@@ -35,7 +35,7 @@ process.Geometry = caldata.Service(
     "Geometry",
     SurfaceY = caldata.double(130.0e2), # in cm
     Name     = caldata.string("argoneut"),
-    GDML     = caldata.string("/grid/fermiapp/lbne/lar/larsoft/Geometry/gdml/argoneut.gdml")
+    GDML     = caldata.string("argoneut.gdml")
 )
 
 
@@ -54,7 +54,7 @@ process.source = caldata.Source("PoolSource",
 process.caldataCal = caldata.EDProducer(
     "CalWire",
     DetSimModuleLabel  = caldata.string("wiresim"),
-    ResponseFile       = caldata.string("/uboone/app/code/data/ArgoResponse1.2.root"),
+    ResponseFile       = caldata.string("/grid/fermiapp/lbne/lar/aux/ArgoResponse1.2.root"),
     ExponentialEndBins = caldata.int32(300),
     UseRawData         = caldata.int32(0)
     )
