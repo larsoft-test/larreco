@@ -35,7 +35,7 @@ process.Geometry = caldata.Service(
     "Geometry",
     SurfaceY = caldata.double(130.0e2), # in cm
     Name     = caldata.string("argoneut"),
-    GDML     = caldata.string("argoneut.gdml")
+    GDML     = caldata.FileInPath("Geometry/gdml/argoneut.gdml")
 )
 
 
@@ -77,7 +77,7 @@ process.ffthit = caldata.EDProducer(
 # Write the events to the output file.
 process.output = caldata.OutputModule(
     "PoolOutputModule",
-    fileName = caldata.untracked.string('file:out/calhitf_gen.root'),
+    fileName = caldata.untracked.string('file:calhitf_gen.root'),
 )
 
 ####### End of the section that defines and configures modules.#########
