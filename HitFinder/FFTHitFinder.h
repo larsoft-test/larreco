@@ -6,6 +6,7 @@
 
 #include "FWCore/Framework/interface/EDProducer.h" 
 
+/// localizations of energy depositions
 namespace hit {
    
   class FFTHitFinder : public edm::EDProducer {
