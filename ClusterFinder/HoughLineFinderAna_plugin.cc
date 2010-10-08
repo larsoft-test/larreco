@@ -9,11 +9,11 @@
 // Framework includes
 #include "FWCore/Framework/interface/MakerMacros.h" 
 #include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
+
 
 #include "ClusterFinder/HoughLineFinderAna.h"
 
-namespace caldata{
+namespace cluster{
 
   DEFINE_FWK_MODULE(HoughLineFinderAna);
   

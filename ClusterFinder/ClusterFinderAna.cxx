@@ -72,7 +72,7 @@ cluster::ClusterFinderAna::~ClusterFinderAna()
 
 }
 
-void cluster::ClusterFinderAna::ClusterFinderAna::beginJob(edm::EventSetup const&)
+void cluster::ClusterFinderAna::beginJob(edm::EventSetup const&)
 {
      // get access to the TFile service
      edm::Service<edm::TFileService> tfs;
@@ -322,7 +322,7 @@ void cluster::ClusterFinderAna::analyze(const edm::Event& evt,  edm::EventSetup 
 	       may not compile/run. ... until such time as the up-
 	       casting is put in a future ART. EC, 5-Oct-2010
 	    */
-	    sim::SimDigit* simdigit = dynamic_cast<sim::SimDigit*>(dynamic_cast<raw::RawDigit*>(_rawdigit.get()));
+	    sim::SimDigit* simdigit = const_cast<sim::SimDigit*>(_rawdigit.get());
 	    //sim::SimDigit* simdigit = edm::View< sim::SimDigit*>(_rawdigit);
 	    int numberOfElectrons = simdigit->NumberOfElectrons();
 	    // std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
@@ -772,7 +772,7 @@ sort( all_trackids.begin(), all_trackids.end() );
 	   double XTime=hits[j]-> CrossingTime();
 	   //if(XTime >1650){std::cout<<"possible fake hit line ***********"<<std::endl;}
 	   _rawdigit2 = hits[j]->Wire()->RawDigit();
-	   sim::SimDigit* simdigit = dynamic_cast< sim::SimDigit*>(_rawdigit2);
+	   sim::SimDigit* simdigit = const_cast< sim::SimDigit*>(_rawdigit2);
 	   int numberOfElectrons = simdigit->NumberOfElectrons();
 	   //  std::cout<<"Hits only, numberOfElectrons= "<< numberOfElectrons<<std::endl;
 	   if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
@@ -1054,7 +1054,7 @@ sort( all_trackids.begin(), all_trackids.end() );
 	    // std::cout<<"channel= "<<w_<<std::endl;
 	    double XTime=hits[j]-> CrossingTime();
 	    _rawdigit = hits[j]->Wire()->RawDigit();
-	    sim::SimDigit* simdigit2 = dynamic_cast< sim::SimDigit*>(_rawdigit);
+	    sim::SimDigit* simdigit2 = const_cast< sim::SimDigit*>(_rawdigit);
 	    int numberOfElectrons = simdigit2->NumberOfElectrons();
 	    
 	    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
@@ -1151,7 +1151,7 @@ no_ele_p0=0;
 	    // std::cout<<"channel: "<<wire<<std::endl;
 	    
 	    _rawdigit2 = (*wireIter2)->RawDigit();
-	    sim::SimDigit* simdigit = dynamic_cast< sim::SimDigit*>(_rawdigit2);
+	    sim::SimDigit* simdigit = const_cast< sim::SimDigit*>(_rawdigit2);
 	    int numberOfElectrons = simdigit->NumberOfElectrons();
 	    
 	    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}

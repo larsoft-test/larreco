@@ -20,7 +20,7 @@ namespace cluster {
     explicit HoughLineFinderAna(edm::ParameterSet const& pset); 
     ~HoughLineFinderAna();
          
-    void analyze(edm::Event& , edm::EventSetup const&);
+    void analyze(const edm::Event& , edm::EventSetup const&);
     void beginJob(edm::EventSetup const&);
      
   private:
@@ -39,11 +39,11 @@ namespace cluster {
       Int_t m_wirespan;    // Wire spanned by track
       Int_t m_sizeClusterZ;  //Number of clusters
       Int_t m_sizeHitZ;      //Number of Hits
-      Int_t m_hitidZ;
-      Int_t m_mipZ;
-      Int_t m_drifttimeZ;
-      Int_t m_widthZ;
-      Int_t m_upadcZ;
+      Int_t *m_hitidZ;
+      Double_t *m_mipZ;
+      Double_t *m_drifttimeZ;
+      Double_t *m_widthZ;
+      Double_t *m_upadcZ;
       
   };
   

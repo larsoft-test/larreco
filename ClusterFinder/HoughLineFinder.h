@@ -51,8 +51,7 @@ namespace cluster {
 
       
     private:
-
-      std::string fDBScanModuleLabel;
+   
       int m_dx, m_dy;
       std::vector<std::map<int,int> > m_accum;  // column=rho, row=theta
       int m_rowLength;
@@ -71,7 +70,7 @@ namespace cluster {
     }; // class HoughTransform  
      
   private:
-    
+    std::string fDBScanModuleLabel;    
     int    fMaxLines;      //Max number of lines that can be found 
     int    fMinHits;       //Min number of hits in the accumulator to consider (number of hits required to be considered a line).
     int    fSaveAccumulator;  //Save bitmap image of accumulator for debugging?

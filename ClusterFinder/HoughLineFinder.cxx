@@ -59,16 +59,16 @@ extern "C" {
 
 cluster::HoughLineFinder::HoughLineFinder(edm::ParameterSet const& pset) : 
   fDBScanModuleLabel    (pset.getParameter< std::string >("DBScanModuleLabel")),
-     fMaxLines    (pset.getParameter< int >("MaxLines")),
-     fMinHits    (pset.getParameter< int >("MinHits")),
-     fSaveAccumulator    (pset.getParameter< int >("SaveAccumulator")),
-     fNumAngleCells    (pset.getParameter< int >("NumAngleCells")),
-     fRhoResolutionFactor    (pset.getParameter< int >("RhoResolutionFactor")),
-     fSmootherSigma    (pset.getParameter< double >("SmootherSigma")),
-     fMaxDistance    (pset.getParameter< double >("MaxDistance")),
-     fRhoZeroOutRange    (pset.getParameter< int >("RhoZeroOutRange")),
-     fThetaZeroOutRange    (pset.getParameter< int >("ThetaZeroOutRange")),
-     fPerCluster    (pset.getParameter< int >("HitsPerCluster"))
+  fMaxLines    (pset.getParameter< int >("MaxLines")),
+  fMinHits    (pset.getParameter< int >("MinHits")),
+  fSaveAccumulator    (pset.getParameter< int >("SaveAccumulator")),
+  fNumAngleCells    (pset.getParameter< int >("NumAngleCells")),
+  fRhoResolutionFactor    (pset.getParameter< int >("RhoResolutionFactor")),
+  fSmootherSigma    (pset.getParameter< double >("SmootherSigma")),
+  fMaxDistance    (pset.getParameter< double >("MaxDistance")),
+  fRhoZeroOutRange    (pset.getParameter< int >("RhoZeroOutRange")),
+  fThetaZeroOutRange    (pset.getParameter< int >("ThetaZeroOutRange")),
+  fPerCluster    (pset.getParameter< int >("HitsPerCluster"))
 {
 
   produces< std::vector<recob::Cluster> >();
@@ -91,7 +91,7 @@ cluster::HoughLineFinder::HoughTransform::~HoughTransform()
 
 
 //-------------------------------------------------
-void cluster::HoughLineFinder::beginJob(edm::EventSetup const&);
+void cluster::HoughLineFinder::beginJob(edm::EventSetup const&)
 {
 
  
@@ -119,297 +119,319 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
   //Point to a collection of clusters to output.
   std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
 
-//   std::vector<int> skip;  
+   std::vector<int> skip;  
 
-//   edm::Service<geo::Geometry> geom;
-//   filter::ChannelFilter chanFilt;
-//   HoughTransform c;
-//   HoughTransform cc;
-//   HoughTransform ccc;
-//   extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
-//   std::vector<const recob::Hit *> cHits;
-//   std::vector<const recob::Hit *> hit;
+   edm::Service<geo::Geometry> geom;
+   filter::ChannelFilter chanFilt;
+   HoughTransform c;
+   HoughTransform cc;
+   HoughTransform ccc;
+   extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
+   edm::PtrVector<recob::Hit> cHits;
+   //std::vector<const recob::Hit *> cHits;
+   edm::PtrVector<recob::Hit> hit;
+   //std::vector<const recob::Hit *> hit;
 
-//   edm::PtrVector<recob::Cluster> clusIn;
-//    for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
-//      {
-//        edm::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
-//        clusIn.push_back(cluster);
-//      }
- 
+   edm::PtrVector<recob::Cluster> clusIn;
+    for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
+      {
+        edm::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
+        clusIn.push_back(cluster);
+      }
 
-//    edm::PtrVectorItr<recob::Cluster> clusterIter;
 
-//   //std::vector<const recob::Cluster*>::iterator clusterIter;
 
-//   for(int p = 0; p < geom->Nplanes(); p++) {
+   //std::vector<const recob::Cluster*>::iterator clusterIter;
 
-//     clusterIter = clusIn.begin();
+   for(int p = 0; p < geom->Nplanes(); p++) {
 
-//     // This loop below is weird. Might Talk to Josh. EC, 1-Oct-2010.
-//     while(clusterIter!=clusterIn.end()) 
-//       {
-// 	hit.clear();
-// 	cHits.clear();
-// 	if(fPerCluster)
-// 	  hit = (*clusterIter)->Hits(p,-1);
-// 	else 
-// 	  {    
-// 	    while(clusterIter!=clusIn.end()) 
-// 	      {
-// 		cHits = (*clusterIter)->Hits(p,-1);
-// 		if(cHits.size() > 0)
-// 		  hit.insert(hit.end(),cHits.begin(),cHits.end());
-// 		clusterIter++;
-// 	      } 
-// 	  }
-// 	if(hit.size() == 0) 
-// 	  { 
-// 	    if(fPerCluster) clusterIter++;
-// 	    continue;
-// 	  }
+     edm::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
 
-// 	int x, y, channel, plane, wire;
-// 	//there must be a better way to find which plane a cluster comes from
-// 	int dx=geom->Nwires(1);//number of wires 
-// 	int dy=hit[0]->Wire()->fSignal.size();//number of time samples. 
-// 	skip.clear();
-// 	skip.resize(hit.size());
-// 	int clusterID=0;//the unique ID of the cluster
-// 	std::vector<int> listofxmax;
-// 	std::vector<int> listofymax;  
-// 	std::vector<int> hitTemp;  //indecies ofcandidate hits
-// 	std::vector<int> sequenceHolder;  //channels of hits in list
-// 	std::vector<int> currentHits; //working vector of hits 
-// 	std::vector<int> lastHits;  //best list of hits
-// 	//	std::vector<const recob::Hit *> clusterHits; //hits beloning to a cluster
-// 	edm::PtrVector<recob::Hit> clusterHits;
-// 	double indcolscaling=0.;//a parameter to account for the different characteristic hit width of induction and collection plane
-// 	double centerofmassx=0;
-// 	double centerofmassy=0;
-// 	double denom = 0; 
-// 	double intercept=0.;
-// 	double slope=0.;
-// 	//this array keeps track of the hits that have already been associated with a line. 
-// 	int xMax=0;
-// 	int yMax=0;
-// 	double rho;
-// 	double theta;
-// 	double norm=100.;//normalize. This is important since newcellvalue will end up as an int.  
-// 	int accDx(0), accDy(0);
+     // This loop below is weird. Might Talk to Josh. EC, 1-Oct-2010.
+     while(clusterIter!=clusIn.end()) 
+       {
+ 	hit.clear();
+ 	cHits.clear();
+ 	if(fPerCluster)
+ 	  hit = (*clusterIter)->Hits(p,-1);
+ 	else 
+ 	  {    
+ 	    while(clusterIter!=clusIn.end()) 
+ 	      {
+ 		cHits = (*clusterIter)->Hits(p,-1);
+ 		if(cHits.size() > 0)
+		  {
+		    // hit.insert(hit.end(),cHits.begin(),cHits.end());
+		    edm::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
+		    while (hitIter!=cHits.end())
+		      {
+			hit.push_back((*hitIter));
+			hitIter++;
+		      }
+		    clusterIter++;
+		  }
+ 	      } 
+ 	  }
+ 	if(hit.size() == 0) 
+ 	  { 
+ 	    if(fPerCluster) clusterIter++;
+ 	    continue;
+ 	  }
+
+ 	int x, y;
+	unsigned int channel, plane, wire;
+ 	//there must be a better way to find which plane a cluster comes from
+ 	int dx=geom->Nwires(1);//number of wires 
+ 	int dy=hit[0]->Wire()->fSignal.size();//number of time samples. 
+ 	skip.clear();
+ 	skip.resize(hit.size());
+ 	int clusterID=0;//the unique ID of the cluster
+ 	std::vector<int> listofxmax;
+ 	std::vector<int> listofymax;  
+ 	std::vector<int> hitTemp;  //indecies ofcandidate hits
+ 	std::vector<int> sequenceHolder;  //channels of hits in list
+ 	std::vector<int> currentHits; //working vector of hits 
+ 	std::vector<int> lastHits;  //best list of hits
+	//std::vector<const recob::Hit *> clusterHits; //hits beloning to a cluster
+ 	edm::PtrVector<recob::Hit> clusterHits;
+ 	double indcolscaling=0.;//a parameter to account for the different characteristic hit width of induction and collection plane
+ 	double centerofmassx=0;
+ 	double centerofmassy=0;
+ 	double denom = 0; 
+ 	double intercept=0.;
+ 	double slope=0.;
+ 	//this array keeps track of the hits that have already been associated with a line. 
+ 	int xMax=0;
+ 	int yMax=0;
+ 	double rho;
+ 	double theta;
+ 	double norm=100.;//normalize. This is important since newcellvalue will end up as an int.  
+ 	int accDx(0), accDy(0);
 	
-// 	for (int linenum = 0; linenum < fMaxLines; linenum++)
-// 	  { 
-// 	    //Init specifies the size of the two-dimensional accumulator (based on the arguments, number of wires and number of time samples). 
-// 	    c.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
-// 	    //initialize the smoothing accumulators as well, one each for the two dimensions of the accumulator
-// 	    cc.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
-// 	    ccc.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells); 
-// 	    //adds all of the hits (that have not yet been associated with a line) to the accumulator
-// 	    for(unsigned int i=0;i < hit.size(); i++)
-// 	      {
-// 		channel=hit[i]->Wire()->RawDigit()->Channel();
-// 		geom->ChannelToWire(channel,plane,wire);
-// 		if (skip[i] != 1)
-// 		  c.AddPoint(wire,(int)(hit[i]->CrossingTime()));
-// 	      }
-// 	    //gets the actual two-dimensional size of the accumulator
-// 	    c.GetAccumSize(accDy, accDx);
+ 	for (int linenum = 0; linenum < fMaxLines; linenum++)
+ 	  { 
+ 	    //Init specifies the size of the two-dimensional accumulator (based on the arguments, number of wires and number of time samples). 
+ 	    c.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
+ 	    //initialize the smoothing accumulators as well, one each for the two dimensions of the accumulator
+ 	    cc.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
+ 	    ccc.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells); 
+ 	    //adds all of the hits (that have not yet been associated with a line) to the accumulator
+ 	    for(unsigned int i=0;i < hit.size(); i++)
+ 	      {
+ 		channel=hit[i]->Wire()->RawDigit()->Channel();
+ 		geom->ChannelToWire(channel,plane,wire);
+ 		if (skip[i] != 1)
+ 		  c.AddPoint(wire,(int)(hit[i]->CrossingTime()));
+ 	      }
+ 	    //gets the actual two-dimensional size of the accumulator
+ 	    c.GetAccumSize(accDy, accDx);
 	    
-// 	    if(fSmootherSigma>0)  
-// 	      {  
+ 	    if(fSmootherSigma>0)  
+ 	      {  
 		
-// 	      double Weight[accDx];
-// 	      double newcellvalue[accDx];
-// 	      for(int i=0;i<=(3*fSmootherSigma);i++)
-// 		{
-// 		  //find the 2D Gaussian's weights
-// 		  Weight[i]=norm*exp((-(pow(i,2)))/(2.*pow(fSmootherSigma,2))); 
-// 		}
-// 	      //two separate 1D Gaussian blurs are used to form a 2D Gaussian blur.
-// 	      //smoothing in x (rho) direction 
-// 	      for (y=0; y<accDy; y++)
-// 		{
-// 		  for (x=0; x<accDx; x++)
-// 		    {
-// 		      for(int i=0;i<=(3*fSmootherSigma);i++)
-// 			{
-// 			  //if the Gaussian falls off the accumulator edge, the accumulator is extended using mirrored cells 
-// 			  if(i==0)
-// 			    newcellvalue[x] = Weight[i]*c.GetCell(y,x);
-// 			  else if(x+i>=accDx && x-i > 0)
-// 			    newcellvalue[x] += 2.*Weight[i]*c.GetCell(y,x-i);
-// 			  else if(x-i<0 && x+i < accDx)
-// 			    newcellvalue[x] += 2.*Weight[i]*c.GetCell(y,x+i);
-// 			  else
-// 			    newcellvalue[x] += Weight[i]*(c.GetCell(y,x+i)+c.GetCell(y,x-i));                             
-// 			}   
-// 		      cc.SetCell(y,x,(int)newcellvalue[x]);
-// 		    }
-// 		}
-// 	      //smoothing in y (theta) direction
-// 	      for (y=0; y<accDy; y++)
-// 		{
-// 		  for (x=0; x<accDx; x++)
-// 		    {
-// 		      for(int i=0;i<=(3*fSmootherSigma);i++)
-// 			{
-// 			  //if the Gaussian falls off the accumulator edge, the accumulator is extended using mirrored cells 
-// 			  if(i==0)
-// 			    newcellvalue[x] = Weight[i]*cc.GetCell(y,x);
-// 			  else if(y+i>=accDy && y-i > 0)
-// 			    newcellvalue[x] += 2.*Weight[i]*cc.GetCell(y-i,x);
-// 			  else if(y-i<0 && y+i < accDy)
-// 			    newcellvalue[x] += 2.*Weight[i]*cc.GetCell(y+i,x);
-// 			  else
-// 			    newcellvalue[x] += Weight[i]*(cc.GetCell(y+i,x)+cc.GetCell(y-i,x));                    
-// 			} 
-// 		      ccc.SetCell(y,x,(int)newcellvalue[x]);
-// 		    }
-// 		}
- 
-// 	      } 
-// 	    else
-// 	    {
-// 	      ccc = c;
-// 	    }
-// 	    // zeroes out the neighborhood of all previous lines  
-// 	    for(unsigned int i=0;i<listofxmax.size();i++)
-// 	      {
-// 		int yClearStart = listofymax[i]-fRhoZeroOutRange;
-// 		if (yClearStart < 0)
-// 		  yClearStart = 0;
-// 		int yClearEnd = listofymax[i]+fRhoZeroOutRange;
-// 		if (yClearEnd >= accDy)
-// 		  yClearEnd = accDy-1;
-// 		int xClearStart = listofxmax[i]-fThetaZeroOutRange;
-// 		if (xClearStart < 0)
-// 		  xClearStart = 0;
-// 		int xClearEnd = listofxmax[i]+fThetaZeroOutRange;
-// 		if (xClearEnd >= accDx)
-// 		  xClearEnd = accDx-1;
+ 	      double Weight[accDx];
+ 	      double newcellvalue[accDx];
+ 	      for(int i=0;i<=(3*fSmootherSigma);i++)
+ 		{
+ 		  //find the 2D Gaussian's weights
+ 		  Weight[i]=norm*exp((-(pow(i,2)))/(2.*pow(fSmootherSigma,2))); 
+ 		}
+ 	      //two separate 1D Gaussian blurs are used to form a 2D Gaussian blur.
+ 	      //smoothing in x (rho) direction 
+ 	      for (y=0; y<accDy; y++)
+ 		{
+ 		  for (x=0; x<accDx; x++)
+ 		    {
+ 		      for(int i=0;i<=(3*fSmootherSigma);i++)
+ 			{
+ 			  //if the Gaussian falls off the accumulator edge, the accumulator is extended using mirrored cells 
+ 			  if(i==0)
+ 			    newcellvalue[x] = Weight[i]*c.GetCell(y,x);
+ 			  else if(x+i>=accDx && x-i > 0)
+ 			    newcellvalue[x] += 2.*Weight[i]*c.GetCell(y,x-i);
+ 			  else if(x-i<0 && x+i < accDx)
+ 			    newcellvalue[x] += 2.*Weight[i]*c.GetCell(y,x+i);
+ 			  else
+ 			    newcellvalue[x] += Weight[i]*(c.GetCell(y,x+i)+c.GetCell(y,x-i));                             
+ 			}   
+ 		      cc.SetCell(y,x,(int)newcellvalue[x]);
+ 		    }
+ 		}
+ 	      //smoothing in y (theta) direction
+ 	      for (y=0; y<accDy; y++)
+ 		{
+ 		  for (x=0; x<accDx; x++)
+ 		    {
+ 		      for(int i=0;i<=(3*fSmootherSigma);i++)
+ 			{
+ 			  //if the Gaussian falls off the accumulator edge, the accumulator is extended using mirrored cells 
+ 			  if(i==0)
+ 			    newcellvalue[x] = Weight[i]*cc.GetCell(y,x);
+ 			  else if(y+i>=accDy && y-i > 0)
+ 			    newcellvalue[x] += 2.*Weight[i]*cc.GetCell(y-i,x);
+ 			  else if(y-i<0 && y+i < accDy)
+ 			    newcellvalue[x] += 2.*Weight[i]*cc.GetCell(y+i,x);
+ 			  else
+ 			    newcellvalue[x] += Weight[i]*(cc.GetCell(y+i,x)+cc.GetCell(y-i,x));                    
+ 			} 
+ 		      ccc.SetCell(y,x,(int)newcellvalue[x]);
+ 		    }
+ 		}
 
-// 		for (y=yClearStart; y<=yClearEnd; y++)
-// 		  {
-// 		    for (x=xClearStart; x<=xClearEnd; x++)
-// 		      {
-// 			ccc.SetCell(y,x,0);
-// 		      }
-// 		  }
-// 	      }
-// 	    //find the weightiest cell in the smoothed accumulator.
-// 	    int maxCell = 0;
-// 	    xMax = 0;
-// 	    yMax = 0;
-// 	    maxCell = ccc.GetMax(yMax,xMax);
-// 	    // break when biggest maximum is smaller than fMinHits
-// 	    if ((maxCell < fMinHits*pow(norm,2) && fSmootherSigma>0) || (maxCell < fMinHits && fSmootherSigma==0.)) 
-// 	      break;
+ 	      } 
+ 	    else
+ 	    {
+ 	      ccc = c;
+ 	    }
+ 	    // zeroes out the neighborhood of all previous lines  
+ 	    for(unsigned int i=0;i<listofxmax.size();i++)
+ 	      {
+ 		int yClearStart = listofymax[i]-fRhoZeroOutRange;
+ 		if (yClearStart < 0)
+ 		  yClearStart = 0;
+ 		int yClearEnd = listofymax[i]+fRhoZeroOutRange;
+ 		if (yClearEnd >= accDy)
+ 		  yClearEnd = accDy-1;
+ 		int xClearStart = listofxmax[i]-fThetaZeroOutRange;
+ 		if (xClearStart < 0)
+ 		  xClearStart = 0;
+ 		int xClearEnd = listofxmax[i]+fThetaZeroOutRange;
+ 		if (xClearEnd >= accDx)
+ 		  xClearEnd = accDx-1;
+
+ 		for (y=yClearStart; y<=yClearEnd; y++)
+ 		  {
+ 		    for (x=xClearStart; x<=xClearEnd; x++)
+ 		      {
+ 			ccc.SetCell(y,x,0);
+ 		      }
+ 		  }
+ 	      }
+ 	    //find the weightiest cell in the smoothed accumulator.
+ 	    int maxCell = 0;
+ 	    xMax = 0;
+ 	    yMax = 0;
+ 	    maxCell = ccc.GetMax(yMax,xMax);
+ 	    // break when biggest maximum is smaller than fMinHits
+ 	    if ((maxCell < fMinHits*pow(norm,2) && fSmootherSigma>0) || (maxCell < fMinHits && fSmootherSigma==0.)) 
+ 	      break;
 	  
-// 	    //find the center of mass of the 3x3 cell system (with maxCell at the center). 
-// 	    denom=centerofmassx=centerofmassy=0;
+ 	    //find the center of mass of the 3x3 cell system (with maxCell at the center). 
+ 	    denom=centerofmassx=centerofmassy=0;
 
-// 	    if(xMax>0 && yMax>0 && xMax+1<accDx && yMax+1<accDy)
-// 	      {  
-// 		for(int i = -1; i < 2; i++) 
-// 		  {
-// 		    for(int j = -1; j < 2; j++) 
-// 		      {
-// 			denom+=ccc.GetCell(yMax+i,xMax+j);
-// 			centerofmassx+=j*ccc.GetCell(yMax+i,xMax+j);
-// 			centerofmassy+=i*ccc.GetCell(yMax+i,xMax+j);
-// 		      }
-// 		  }
-// 		centerofmassx/=denom;
-// 		centerofmassy/=denom;      
-// 	      }
-// 	    else
-// 	      {
-// 		centerofmassx=centerofmassy=0;
-// 	      }
-// 	    //fill the list of cells that have already been found
-// 	    listofxmax.push_back(xMax);
-// 	    listofymax.push_back(yMax);
+ 	    if(xMax>0 && yMax>0 && xMax+1<accDx && yMax+1<accDy)
+ 	      {  
+ 		for(int i = -1; i < 2; i++) 
+ 		  {
+ 		    for(int j = -1; j < 2; j++) 
+ 		      {
+ 			denom+=ccc.GetCell(yMax+i,xMax+j);
+ 			centerofmassx+=j*ccc.GetCell(yMax+i,xMax+j);
+ 			centerofmassy+=i*ccc.GetCell(yMax+i,xMax+j);
+ 		      }
+ 		  }
+ 		centerofmassx/=denom;
+ 		centerofmassy/=denom;      
+ 	      }
+ 	    else
+ 	      {
+ 		centerofmassx=centerofmassy=0;
+ 	      }
+ 	    //fill the list of cells that have already been found
+ 	    listofxmax.push_back(xMax);
+ 	    listofymax.push_back(yMax);
 	    
-// 	    ccc.GetEquation(yMax+centerofmassy, xMax+centerofmassx, rho, theta);
-// 	    slope=-1./tan(theta);    
-// 	    intercept=(rho/sin(theta));
+ 	    ccc.GetEquation(yMax+centerofmassy, xMax+centerofmassx, rho, theta);
+ 	    slope=-1./tan(theta);    
+ 	    intercept=(rho/sin(theta));
 	    
-// 	    double distance;
-// 	    if(p==0)
-// 	      indcolscaling=5.;
-// 	    else
-// 	      indcolscaling=0.;
-// 	    //the collection plane's characteristic hit width's are, on average, about 5 time samples wider than the induction plane's. this is hard-coded for now.
-// 	    if(!isinf(slope) && !isnan(slope)){
-// 	      sequenceHolder.clear();
-// 	      hitTemp.clear();
-// 	      for(unsigned int i=0;i<hit.size();i++)
-// 		{
-// 		  channel=hit[i]->Wire()->RawDigit()->Channel();
-// 		  geom->ChannelToWire(channel,plane,wire);
-// 		  //Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
-// 		  distance=(TMath::Abs(hit[i]->CrossingTime()-slope*(double)(wire)-intercept)/(sqrt(pow(.0743*slope,2)+1)));
+ 	    double distance;
+ 	    if(p==0)
+ 	      indcolscaling=5.;
+ 	    else
+ 	      indcolscaling=0.;
+ 	    //the collection plane's characteristic hit width's are, on average, about 5 time samples wider than the induction plane's. this is hard-coded for now.
+ 	    if(!isinf(slope) && !isnan(slope)){
+ 	      sequenceHolder.clear();
+ 	      hitTemp.clear();
+ 	      for(unsigned int i=0;i<hit.size();i++)
+ 		{
+ 		  channel=hit[i]->Wire()->RawDigit()->Channel();
+ 		  geom->ChannelToWire(channel,plane,wire);
+ 		  //Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
+ 		  distance=(TMath::Abs(hit[i]->CrossingTime()-slope*(double)(wire)-intercept)/(sqrt(pow(.0743*slope,2)+1)));
 	
-// 		  if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling && fPerCluster==1){
-// 		    hitTemp.push_back(i);
-// 		    sequenceHolder.push_back(channel);
-// 		  }
-// 		  else if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling && fPerCluster==0 && skip[i]!=1){
-// 		    hitTemp.push_back(i);
-// 		    sequenceHolder.push_back(channel);
-// 		  }
-// 		}
-// 	      if(hitTemp.size() < 2) continue;
-// 	      currentHits.clear();  
-// 	      lastHits.clear();
-// 	      int j; 
-// 	      currentHits.push_back(0);
-// 	      for(unsigned int i=0;i+1<sequenceHolder.size();i++) {  
-// 		j = 1;
-// 		while((chanFilt.BadChannel(sequenceHolder[i]+j))==true) j++;
-// 		if(sequenceHolder[i+1]-sequenceHolder[i]<=j+1) currentHits.push_back(i+1);
-// 		else if(currentHits.size() > lastHits.size()) {
-// 		  lastHits = currentHits;
-// 		  currentHits.clear();
-// 		}
-// 		else currentHits.clear();
-// 	      } 
-// 	      if(currentHits.size() > lastHits.size()) lastHits = currentHits;
-// 	      //clusterHits.clear();    
-// 	      for(unsigned int i = 0; i < lastHits.size();i++) {
-// 		clusterHits.push_back(hit[hitTemp[lastHits[i]]]);
-// 		skip[hitTemp[lastHits[i]]]=1;
-// 	      } 
-// 	      //protection against very steep uncorrelated hits
-// 	      if(TMath::Abs(slope)>75. && TMath::Abs(clusterHits.front()->Wire()->RawDigit()->Channel()-clusterHits.back()->Wire()->RawDigit()->Channel())>0)
-// 		continue;
-        
-// 	      //recob::Cluster* cluster = new recob::Cluster(clusterHits);
-// 	      edm::Ptr<recob::Cluster> cluster;
-// 	      cluster->SetSlope(slope);
-// 	      cluster->SetIntercept(intercept);
-// 	      channel = clusterHits.front()->Wire()->RawDigit()->Channel(); 
-// 	      geom->ChannelToWire(channel,plane,wire);
-// 	      cluster->SetStartWire(wire);
-// 	      cluster->SetStartTime(clusterHits.front()->CrossingTime());
-// 	      //cluster->SetStartTime(slope*(double)(wire)+intercept);
-// 	      channel = clusterHits.back()->Wire()->RawDigit()->Channel(); 
-// 	      geom->ChannelToWire(channel,plane,wire);
-// 	      cluster->SetEndWire(wire);        
-// 	      cluster->SetEndTime(clusterHits.back()->CrossingTime());
-// 	      //cluster->SetEndTime(slope*(double)(wire)+intercept);
-// 	      cluster->SetID(clusterID);
-// 	      clusterID++;
+ 		  if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling && fPerCluster==1){
+ 		    hitTemp.push_back(i);
+ 		    sequenceHolder.push_back(channel);
+ 		  }
+ 		  else if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling && fPerCluster==0 && skip[i]!=1){
+ 		    hitTemp.push_back(i);
+ 		    sequenceHolder.push_back(channel);
+ 		  }
+ 		}
+ 	      if(hitTemp.size() < 2) continue;
+ 	      currentHits.clear();  
+ 	      lastHits.clear();
+ 	      int j; 
+ 	      currentHits.push_back(0);
+ 	      for(unsigned int i=0;i+1<sequenceHolder.size();i++) {  
+ 		j = 1;
+ 		while((chanFilt.BadChannel(sequenceHolder[i]+j))==true) j++;
+ 		if(sequenceHolder[i+1]-sequenceHolder[i]<=j+1) currentHits.push_back(i+1);
+ 		else if(currentHits.size() > lastHits.size()) {
+ 		  lastHits = currentHits;
+ 		  currentHits.clear();
+ 		}
+ 		else currentHits.clear();
+ 	      } 
+ 	      if(currentHits.size() > lastHits.size()) lastHits = currentHits;
+ 	      clusterHits.clear();    
+ 	      for(unsigned int i = 0; i < lastHits.size();i++) {
+ 		clusterHits.push_back(hit[hitTemp[lastHits[i]]]);
+ 		skip[hitTemp[lastHits[i]]]=1;
+ 	      } 
+ 	      //protection against very steep uncorrelated hits
+	      /* Does not compile. Doesn't like front(),back(). 
+		 EC, 7-Oct-2010
 	      
-// 	      ccol->push_back(cluster);
+ 	      if(TMath::Abs(slope)>75. && TMath::Abs(clusterHits.front()->Wire()->RawDigit()->Channel()-clusterHits.back()->Wire()->RawDigit()->Channel())>0)
+ 		continue;
+	      */
+
+ 	      //recob::Cluster* cluster = new recob::Cluster(clusterHits);
+
+
+	      /*
+		WTF? Not sure why I can't create this cluster  object. Looks 
+		to me like the correct method exists. EC, 7-Oct-2010.
+	      
+ 	      edm::Ptr<recob::Cluster> cluster(clusterHits);
+ 	      cluster->SetSlope(slope);
+ 	      cluster->SetIntercept(intercept);
+ 	      channel = clusterHits.front()->Wire()->RawDigit()->Channel(); 
+ 	      geom->ChannelToWire(channel,plane,wire);
+ 	      cluster->SetStartWire(wire);
+ 	      cluster->SetStartTime(clusterHits.front()->CrossingTime());
+ 	      //cluster->SetStartTime(slope*(double)(wire)+intercept);
+ 	      channel = clusterHits.back()->Wire()->RawDigit()->Channel(); 
+ 	      geom->ChannelToWire(channel,plane,wire);
+ 	      cluster->SetEndWire(wire);        
+ 	      cluster->SetEndTime(clusterHits.back()->CrossingTime());
+ 	      //cluster->SetEndTime(slope*(double)(wire)+intercept);
+ 	      cluster->SetID(clusterID);
+ 	      clusterID++;
+	      
+ 	      ccol->push_back(cluster);
+	      */
+
 	    }
-  
+
 	  } 
   
 
 
-      //saves a bitmap image of the accumulator (useful for debugging), with scaling based on the maximum cell value
+	//saves a bitmap image of the accumulator (useful for debugging), with scaling based on the maximum cell value
 	if(fSaveAccumulator)
 	  {   
 	    unsigned char *outPix = new unsigned char [accDx*accDy];
@@ -445,8 +467,8 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
 
   evt.put(ccol);
  
-  
-  for(unsigned int i = 0; i < ClusterVector.size(); i++) delete ClusterVector[i];
+    
+
  
 }
 

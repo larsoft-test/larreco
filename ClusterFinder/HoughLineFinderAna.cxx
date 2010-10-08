@@ -63,9 +63,9 @@ extern "C" {
 
 
 cluster::HoughLineFinderAna::HoughLineFinderAna(edm::ParameterSet const& pset) : 
-  fHoughModuleLabel    (pset.getParameter< string >("HoughModuleLabel")),
-  fDigitModuleLabel    (pset.getParameter< string >("DigitModuleLabel")),
-  fHitModuleLabel    (pset.getParameter< string >("HitModuleLabel")),
+  fHoughModuleLabel    (pset.getParameter< std::string >("HoughModuleLabel")),
+  fDigitModuleLabel    (pset.getParameter< std::string >("DigitModuleLabel")),
+  fHitModuleLabel    (pset.getParameter< std::string >("HitModuleLabel")),
   m_run(0), m_event(0), m_plane(0), m_clusterid(0), m_wirespan(0), 
   m_sizeClusterZ(10000), m_sizeHitZ(10000)
 {
@@ -76,11 +76,11 @@ cluster::HoughLineFinderAna::HoughLineFinderAna(edm::ParameterSet const& pset) :
 //-------------------------------------------------
 cluster::HoughLineFinderAna::~HoughLineFinderAna()
 {
-  delete [] m_hitidZ;
-  delete [] m_mipZ;
-  delete [] m_drifttimeZ;
-  delete [] m_widthZ;
-  delete [] m_upadcZ;
+  delete &m_hitidZ;
+  delete &m_mipZ;
+  delete &m_drifttimeZ;
+  delete &m_widthZ;
+  delete &m_upadcZ;
 }
 
 //-------------------------------------------------
@@ -92,10 +92,10 @@ void cluster::HoughLineFinderAna::beginJob(edm::EventSetup const&)
 
      tree= tfs->make<TTree>("HoughTree","HoughTree");
      m_hitidZ = new Int_t[m_sizeHitZ];
-     m_mipZ = new Float_t[m_sizeHitZ];
-     m_drifttimeZ = new Float_t[m_sizeHitZ];
-     m_widthZ = new Float_t[m_sizeHitZ];
-     m_upadcZ = new Float_t[m_sizeHitZ];
+     m_mipZ = new Double_t[m_sizeHitZ];
+     m_drifttimeZ = new Double_t[m_sizeHitZ];
+     m_widthZ = new Double_t[m_sizeHitZ];
+     m_upadcZ = new Double_t[m_sizeHitZ];
      tree->Branch("run", &m_run, "run/I");
      tree->Branch("run_timestamp", &m_run_timestamp, "run_timestamp/D");
      tree->Branch("event", &m_event, "event/I");
@@ -112,7 +112,7 @@ void cluster::HoughLineFinderAna::beginJob(edm::EventSetup const&)
 
 
 
-cluster::HoughLineFinderAna::analyze(const edm::EventHandle& evt, edm::EventSetup const&)
+void cluster::HoughLineFinderAna::analyze(const edm::Event& evt, edm::EventSetup const&)
 {
 
 
@@ -129,21 +129,21 @@ cluster::HoughLineFinderAna::analyze(const edm::EventHandle& evt, edm::EventSetu
     
   for (unsigned int ii = 0; ii <  hlfListHandle->size(); ++ii)
     {
-      edm::Ptr<const recob::Cluster> cluster(hlfListHandle,ii);
+      edm::Ptr<recob::Cluster> cluster(hlfListHandle,ii);
       clusters.push_back(cluster);
     }
 
   
     std::cout << "run    : " << evt.id().run() << std::endl;
-    std::cout << "subrun : " << evt.id().subrun() << std::endl;
+    //std::cout << "subrun : " << evt.subRun() << std::endl;
     std::cout << "event  : " << evt.id().event() << std::endl;
     m_run=evt.id().run();
     m_event=evt.id().event();
-    m_run_timestamp=evt.time(); // no id(), EC, 5-Oct-2010.
+    //m_run_timestamp=(Double_t )evt.time(); // won't cast, EC, 7-Oct-2010.
 
-    Int_t firstwire=0;
-    Int_t lastwire=0;
-    Int_t p;
+    unsigned int firstwire=0;
+    unsigned int lastwire=0;
+    unsigned int p;
     m_sizeClusterZ=0;
     m_sizeHitZ=0;
 
