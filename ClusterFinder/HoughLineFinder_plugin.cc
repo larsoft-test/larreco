@@ -17,5 +17,5 @@ namespace cluster{
 
   DEFINE_FWK_MODULE(HoughLineFinder);
   
-} // end namespace caldata
+} // end namespace 
 

@@ -7,15 +7,14 @@
 //
 ////////////////////////////////////////////////////////////////////////
 
-#include "ClusterFinder/ClusterFinder.h"
+
 // Framework includes
 #include "FWCore/Framework/interface/MakerMacros.h" 
 #include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
 
+#include "ClusterFinder/ClusterFinder.h"
 
-
-namespace caldata{
+namespace cluster{
 
   DEFINE_FWK_MODULE(ClusterFinder);
   

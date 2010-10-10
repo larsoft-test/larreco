@@ -33,7 +33,7 @@ namespace cluster {
   public:
           
     explicit ClusterFinder(edm::ParameterSet const& pset); 
-    virtual ~ClusterFinder();
+    ~ClusterFinder();
  
     /// write access to event
     void produce(edm::Event& evt, edm::EventSetup const&);
@@ -59,7 +59,7 @@ namespace cluster {
 
     ///<parameters to set
     int          fMakeClusters;         ///< flag to make hits or read them from a file
-    virtual void FindCluster(edm::PtrVector<const recob::Hit> &hit)=0;
+    //void FindCluster(edm::PtrVector<const recob::Hit> &hit)=0;
     
       	 
   }; // class ClusterFinder

@@ -85,9 +85,6 @@ void cluster::ClusterFinder::produce(edm::Event& evt, edm::EventSetup const&)
 
 
   evt.put(fClusterVecCol);
-
-
-
   
 }
 

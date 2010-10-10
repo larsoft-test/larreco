@@ -131,10 +131,17 @@ void cluster::ClusterFinderAna::analyze(const edm::Event& evt,  edm::EventSetup 
   std::cout << "event  : " << evt.id().event() << std::endl;
   //----------------------------------------------------------------
 
-  edm::Handle< std::vector<raw::RawDigit> > rdListHandle;
+  /* This is basically a module for studying MC efficiency/purity. Kick out now if not MC. EC, 8-Oct-2010 */
+  if (evt.isRealData()) 
+    {
+      std::cout<<"**** ClusterFinderAna: Bailing. Don't call this module if you're not MC. "<<std::endl;
+      exit (1);
+    }
+  //  edm::Handle< edm::View <std::vector<raw::RawDigit> > > rdListHandle;
+  edm::Handle< edm::View <std::vector<sim::SimDigit> > > rdListHandle;
   evt.getByLabel(fDigitModuleLabel,rdListHandle);
-  // edm::Handle< std::vector<recob::Hit> > hitListHandle;
-  // evt.getByLabel(fHitModuleLabel,hitListHandle);
+  edm::Handle< std::vector<recob::Hit> > hitListHandle;
+  evt.getByLabel(fHitModuleLabel,hitListHandle);
   edm::Handle< std::vector<sim::ParticleList> > partListHandle;
   evt.getByLabel(fLArG4ModuleLabel,partListHandle);
   edm::Handle< std::vector<sim::LArVoxelList> > voxelListHandle;
@@ -145,17 +152,6 @@ void cluster::ClusterFinderAna::analyze(const edm::Event& evt,  edm::EventSetup 
   evt.getByLabel(fClusterFinderModuleLabel,clusterListHandle);
   edm::Handle< std::vector<recob::Wire> > wireListHandle;
   evt.getByLabel(fDetSimModuleLabel,wireListHandle);
-
-
-  // As with CalData/CalDataAna.cxx, we need 
-  // to revisit SimDigits when ART Upcasting is available. EC, 5-Oct-2010.
-  /*
-    std::vector<const sim::SimDigit*> simdigit;
-    try{ evt.Raw().Get("./sim::SimDigits", simdigit); }
-    catch(edm::Exception e){
-    std::cout << "Error retrieving simdigit list!!!kinga"<<std::endl;
-  }
-  */
 
 
 
@@ -169,19 +165,21 @@ void cluster::ClusterFinderAna::analyze(const edm::Event& evt,  edm::EventSetup 
 
   //----------------------------------------------------------------   
 
+  /*
   edm::PtrVector<raw::RawDigit> rawdigits;
   for (unsigned int ii = 0; ii <  rdListHandle->size(); ++ii)
     {
-      edm::Ptr<const raw::RawDigit> rawdigit(rdListHandle,ii);
+      edm::Ptr<raw::RawDigit> rawdigit(rdListHandle,ii);
       rawdigits.push_back(rawdigit);
     }
+  */
 
   edm::Ptr<sim::ParticleList> check_particleList;
   edm::Ptr<sim::ParticleList> particleList;
   edm::PtrVector<sim::ParticleList> _particleList;
   for (unsigned int ii = 0; ii <  partListHandle->size(); ++ii)
     {
-      edm::Ptr<const sim::ParticleList> partlist(partListHandle,ii);
+      edm::Ptr<sim::ParticleList> partlist(partListHandle,ii);
       _particleList.push_back(partlist);
     }
   
@@ -211,15 +209,13 @@ void cluster::ClusterFinderAna::analyze(const edm::Event& evt,  edm::EventSetup 
   
   //----------------------------------------------------------------
   
-  edm::PtrVector<const sim::LArVoxelList> larVoxelList;
+  edm::PtrVector<sim::LArVoxelList> larVoxelList;
   for (unsigned int ii = 0; ii <  voxelListHandle->size(); ++ii)
     {
-      edm::Ptr<const sim::LArVoxelList> voxellist(voxelListHandle,ii);
+      edm::Ptr<sim::LArVoxelList> voxellist(voxelListHandle,ii);
       larVoxelList.push_back(voxellist);
     }
-  
-
-  // There's probably only one LArVoxelList per event, but ART-nee'-FMWK...
+  // There's probably only one LArVoxelList per event, but ART-nee'-FMWK... blah blah blah
   edm::Ptr<sim::LArVoxelList> voxelList(voxelListHandle,larVoxelList.size()-1);
  
   
@@ -231,9 +227,6 @@ void cluster::ClusterFinderAna::analyze(const edm::Event& evt,  edm::EventSetup 
       mclist.push_back(mctparticle);
     }
 
-  // get hits
-  edm::Handle< std::vector<recob::Hit> > hitListHandle;
-  evt.getByLabel(fHitModuleLabel,hitListHandle);
   edm::PtrVector<recob::Hit> hits;
   for (unsigned int ii = 0; ii <  hitListHandle->size(); ++ii)
     {
@@ -242,7 +235,7 @@ void cluster::ClusterFinderAna::analyze(const edm::Event& evt,  edm::EventSetup 
     }
 
 
-  edm::PtrVector<recob::Cluster*> clusters;
+  edm::PtrVector<recob::Cluster> clusters;
   for (unsigned int ii = 0; ii <  clusterListHandle->size(); ++ii)
     {
       edm::Ptr<recob::Cluster> clusterHolder(clusterListHandle,ii);
@@ -254,7 +247,7 @@ void cluster::ClusterFinderAna::analyze(const edm::Event& evt,  edm::EventSetup 
   edm::PtrVector<recob::Wire> wirelist;
   for (unsigned int ii = 0; ii <  wireListHandle->size(); ++ii)
     {
-      edm::Ptr<const recob::Wire> wireHolder(wireListHandle,ii);
+      edm::Ptr<recob::Wire> wireHolder(wireListHandle,ii);
       wirelist.push_back(wireHolder);
     }
   
@@ -276,8 +269,8 @@ void cluster::ClusterFinderAna::analyze(const edm::Event& evt,  edm::EventSetup 
   double no_of_clusters=0;
   double total_no_hits_in_clusters=0;
   //unsigned int plane=0;
-  edm::Ptr<raw::RawDigit> _rawdigit;
-  edm::Ptr<raw::RawDigit> _rawdigit2;
+  //  edm::Ptr<sim::SimDigit > _rawdigit;
+  //edm::Ptr<sim::SimDigit > _rawdigit2;
   const sim::Electrons* _electrons=0;
   const sim::Electrons* electrons=0;
   std::vector<int> vec_pdg;
@@ -306,7 +299,7 @@ void cluster::ClusterFinderAna::analyze(const edm::Event& evt,  edm::EventSetup 
        
 	//	std::cout<<"I AM ON PLANE #"<<plane<<std::endl;
 	edm::Ptr<const recob::Cluster> clusTmp(clusterListHandle,j);
-	edm::PtrVector<const recob::Hit> _hits (clusTmp->Hits(plane,-1));
+	edm::PtrVector<recob::Hit> _hits (clusTmp->Hits(plane,-1));
 	//	std::cout<<"in the "<<j<<" cluster loop, hits' size= "<<_hits.size()<<"****************************************"<<std::endl;
 		if(_hits.size()!=0){ //need this b/c of plane
 	  
@@ -315,15 +308,7 @@ void cluster::ClusterFinderAna::analyze(const edm::Event& evt,  edm::EventSetup 
 	    //  std::cout<<"channel: "<<_hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(_hits[i]->StartTime()+_hits[i]->EndTime())/2.<<" X time= "<<_hits[i]-> CrossingTime()<<std::endl;
 	    
 	    double XTime=_hits[i]-> CrossingTime();
-	    _rawdigit = _hits[i]->Wire()->RawDigit();
-
-	    /* This cast right here may not yet be available in ART.
-	       Hence all the stuff pulled from a simdigit in this code
-	       may not compile/run. ... until such time as the up-
-	       casting is put in a future ART. EC, 5-Oct-2010
-	    */
-	    sim::SimDigit* simdigit = const_cast<sim::SimDigit*>(_rawdigit.get());
-	    //sim::SimDigit* simdigit = edm::View< sim::SimDigit*>(_rawdigit);
+	    const sim::SimDigit* simdigit = static_cast<const sim::SimDigit*>(_hits[i]->Wire()->RawDigit().get());
 	    int numberOfElectrons = simdigit->NumberOfElectrons();
 	    // std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
 	    if(simdigit==0){std::cout<<"simdigit=0 !!!!!!!!!!"<<std::endl;}
@@ -771,8 +756,7 @@ sort( all_trackids.begin(), all_trackids.end() );
 	 // std::cout<<"channel: "<<hits[j]->Wire()->RawDigit()->Channel()<<"  time= "<<(hits[j]->StartTime()+hits[j]->EndTime())/2.<<" w= "<<w<<" plane= "<<plane_k<<std::endl;
 	   double XTime=hits[j]-> CrossingTime();
 	   //if(XTime >1650){std::cout<<"possible fake hit line ***********"<<std::endl;}
-	   _rawdigit2 = hits[j]->Wire()->RawDigit();
-	   sim::SimDigit* simdigit = const_cast< sim::SimDigit*>(_rawdigit2);
+	   const sim::SimDigit* simdigit = static_cast<const sim::SimDigit*>(hits[j]->Wire()->RawDigit().get());
 	   int numberOfElectrons = simdigit->NumberOfElectrons();
 	   //  std::cout<<"Hits only, numberOfElectrons= "<< numberOfElectrons<<std::endl;
 	   if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
@@ -1053,8 +1037,7 @@ sort( all_trackids.begin(), all_trackids.end() );
 	    
 	    // std::cout<<"channel= "<<w_<<std::endl;
 	    double XTime=hits[j]-> CrossingTime();
-	    _rawdigit = hits[j]->Wire()->RawDigit();
-	    sim::SimDigit* simdigit2 = const_cast< sim::SimDigit*>(_rawdigit);
+	    const sim::SimDigit* simdigit2 = static_cast<const sim::SimDigit*>(hits[j]->Wire()->RawDigit().get());
 	    int numberOfElectrons = simdigit2->NumberOfElectrons();
 	    
 	    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
@@ -1150,8 +1133,7 @@ no_ele_p0=0;
 	    geom->ChannelToWire(channel,pl,wire);
 	    // std::cout<<"channel: "<<wire<<std::endl;
 	    
-	    _rawdigit2 = (*wireIter2)->RawDigit();
-	    sim::SimDigit* simdigit = const_cast< sim::SimDigit*>(_rawdigit2);
+	    const sim::SimDigit* simdigit = static_cast<const sim::SimDigit*>((*wireIter2)->RawDigit().get());
 	    int numberOfElectrons = simdigit->NumberOfElectrons();
 	    
 	    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}

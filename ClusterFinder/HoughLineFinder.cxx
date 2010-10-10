@@ -392,38 +392,38 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  		skip[hitTemp[lastHits[i]]]=1;
  	      } 
  	      //protection against very steep uncorrelated hits
-	      /* Does not compile. Doesn't like front(),back(). 
-		 EC, 7-Oct-2010
-	      
- 	      if(TMath::Abs(slope)>75. && TMath::Abs(clusterHits.front()->Wire()->RawDigit()->Channel()-clusterHits.back()->Wire()->RawDigit()->Channel())>0)
+ 	      if(TMath::Abs(slope)>75. && TMath::Abs((*clusterHits.begin())->Wire()->RawDigit()->Channel()-
+						     (*clusterHits.end())->Wire()->RawDigit()->Channel())>0)
  		continue;
-	      */
+	      
 
- 	      //recob::Cluster* cluster = new recob::Cluster(clusterHits);
+
 
 
 	      /*
-		WTF? Not sure why I can't create this cluster  object. Looks 
-		to me like the correct method exists. EC, 7-Oct-2010.
-	      
- 	      edm::Ptr<recob::Cluster> cluster(clusterHits);
+		Since we're putting these on the event they must be of type
+		vanilla recob::Cluster*, not edm::Ptr<recob::Cluster>.
+		EC, 7-Oct-2010.
+	      */
+ 	      recob::Cluster* cluster = new recob::Cluster(clusterHits);	      
+
  	      cluster->SetSlope(slope);
  	      cluster->SetIntercept(intercept);
- 	      channel = clusterHits.front()->Wire()->RawDigit()->Channel(); 
+	      channel = (*clusterHits.begin())->Wire()->RawDigit()->Channel(); 
  	      geom->ChannelToWire(channel,plane,wire);
  	      cluster->SetStartWire(wire);
- 	      cluster->SetStartTime(clusterHits.front()->CrossingTime());
+ 	      cluster->SetStartTime((*clusterHits.begin())->CrossingTime());
  	      //cluster->SetStartTime(slope*(double)(wire)+intercept);
- 	      channel = clusterHits.back()->Wire()->RawDigit()->Channel(); 
+ 	      channel = (*clusterHits.end())->Wire()->RawDigit()->Channel(); 
  	      geom->ChannelToWire(channel,plane,wire);
  	      cluster->SetEndWire(wire);        
- 	      cluster->SetEndTime(clusterHits.back()->CrossingTime());
+ 	      cluster->SetEndTime((*clusterHits.end())->CrossingTime());
  	      //cluster->SetEndTime(slope*(double)(wire)+intercept);
  	      cluster->SetID(clusterID);
  	      clusterID++;
 	      
- 	      ccol->push_back(cluster);
-	      */
+ 	      ccol->push_back(*cluster);
+	      
 
 	    }
 
