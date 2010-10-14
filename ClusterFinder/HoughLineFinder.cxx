@@ -108,7 +108,6 @@ void cluster::HoughLineFinder::beginJob(edm::EventSetup const&)
 void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
 {
 
-  std::vector<const recob::Cluster*> clusterlist;
    //////////////////////////////////////////////////////
   // here is how to get a collection of objects out of the file
   // and connect it to a edm::Handle
