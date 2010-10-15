@@ -545,10 +545,10 @@ void cluster::DBcluster::produce(edm::Event& evt, edm::EventSetup const&){
    edm::Service<geo::Geometry> geom;
 
   // get hits
-  //std::vector<const recob::Hit*> hitlist;
+  //std::vector<recob::Hit> hitlist;
   
   
-  edm::Handle< std::vector<const recob::Hit*> > hitcol;
+  edm::Handle< std::vector<recob::Hit> > hitcol;
     evt.getByLabel(fhitsModuleLabel,hitcol);
   
   
