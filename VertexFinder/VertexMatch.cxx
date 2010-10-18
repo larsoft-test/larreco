@@ -69,12 +69,12 @@ vertex::VertexMatch::~VertexMatch()
 
 
 
-bool sort_pred(const std::pair<const recob::Hit *,double>& left, const std::pair<const recob::Hit *,double>& right)
+bool sort_pred(const std::pair<edm::Ptr<recob::Hit>,double>& left, const std::pair<edm::Ptr<recob::Hit>,double>& right)
 {
 return left.first < right.first;
 }
 
-bool sort_pred2(const std::pair<const recob::Hit *,double>& left, const std::pair<const recob::Hit *,double>& right)
+bool sort_pred2(const std::pair<edm::Ptr<recob::Hit>,double>& left, const std::pair<edm::Ptr<recob::Hit>,double>& right)
 {
 return left.second < right.second;
 }
@@ -100,7 +100,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   edm::Handle< std::vector<recob::Vertex> > vertexListHandle;
   evt.getByLabel(fVertexModuleLabel,vertexListHandle);
   
-  edm::Handle< std::vector<recob::Vertex> > houghListHandle;
+  edm::Handle< std::vector<recob::Cluster> > houghListHandle;
   evt.getByLabel(fHoughClusterLabel,houghListHandle);
   
   
@@ -131,13 +131,13 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   //edm::PtrVector< std::pair<recob::Hit,double> > matchedvertex;
   //std::vector< std::pair<const recob::Hit *, double> > matchedvertex; //vertices associated with a hough line
   
-  std::vector< std::pair<edm::PtrVector<recob::Hit>, double> > matchedvertex;
+  std::vector< std::pair<edm::Ptr<recob::Hit>, double> > matchedvertex;
   
   
   
   edm::PtrVector<recob::Hit> strongvertex;
   //std::vector<recob::Hit *> strongvertex;
-  std::vector< std::pair<edm::PtrVector<recob::Hit>, double> > strongestvertex; //the strongest strong vertex
+  std::vector< std::pair<edm::Ptr<recob::Hit>, double> > strongestvertex; //the strongest strong vertex
   
   edm::PtrVector<recob::Vertex> vertIn;
     for(unsigned int ii = 0; ii < vertexListHandle->size(); ++ii)
@@ -237,7 +237,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
            if(distance<(fMaxDistance+((vertexhit[i]->EndTime()-vertexhit[i]->StartTime())/2.))&&distance>-1)
 
          
-	     matchedvertex.push_back(std::pair<edm::PtrVector<recob::Hit>,double>(vertexhit[i], weakvertexstrength[i]*sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
+	     matchedvertex.push_back(std::pair<edm::Ptr<recob::Hit>,double>(vertexhit[i], weakvertexstrength[i]*sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
 	   //ala strongestvertex.push_back(std::pair<edm::PtrVector<recob::Hit>,double>(matchedvertex[i].first,strength));
 
 	    }
@@ -254,7 +254,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
      }
    
    //sort matchedvertex vector to make it easy to find duplicate entries (strong vertices)
-   std::sort(matchedvertex.begin(), matchedvertex.end(),sort_pred);
+   std::sort(matchedvertex.rbegin(), matchedvertex.rend(),sort_pred);
 
 //the "strength" of a strong vertex is defined as (HarrisVertexStrength*LengthofHoughLine)_1+(HarrisVertexStrength*LengthofHoughLine)_2+...+(HarrisVertexStrength*LengthofHoughLine)_n, where n is the number of vertices associated with a Hough Line
   
@@ -272,7 +272,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
  
      
       if(strength>matchedvertex[i].second)
-	  strongestvertex.push_back(std::pair<edm::PtrVector<recob::Hit>,double>(matchedvertex[i].first,strength));
+	  strongestvertex.push_back(std::pair<edm::Ptr<recob::Hit>,double>(matchedvertex[i].first,strength));
   }
   
 
@@ -283,21 +283,21 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   for(unsigned int i=0;i < matchedvertex.size(); i++)
   {
     // I think this is grabbing first item in pair, itself a pointer then grabbing first (.begin()) one of those. EC, 18-Oct-2010.
-    channel=(*(matchedvertex[i].first).begin())->Wire()->RawDigit()->Channel();
+    channel=(matchedvertex[i].first)->Wire()->RawDigit()->Channel();
      geom->ChannelToWire(channel,plane,wire);
 
      // strongvertex, despite name, is a hit vector.
-     strongvertex.push_back((*(matchedvertex[i].first).begin())->Wire());
+     strongvertex.push_back(matchedvertex[i].first);
      recob::Vertex* vertex = new recob::Vertex(strongvertex);      
      vertex->SetWire(wire);
      vertex->SetStrength(strongvertexstrength[i]);
      //vertex->SetDriftTime(matchedvertex[i].first->CrossingTime());
-     vertex->SetDriftTime((*(matchedvertex[i].first).begin())->CrossingTime());
+     vertex->SetDriftTime((matchedvertex[i].first)->CrossingTime());
 
      //find the strong vertices, those vertices that have been associated with more than one hough line	   
       if(matchedvertex[i].first==matchedvertex[i-1].first)	
       {
-	if(strongvertex[0]==(*(strongestvertex[0].first).begin())&&strongestvertex.size()>0)
+	if(strongvertex[0]==(strongestvertex[0].first)&&strongestvertex.size()>0)
 	  vertex->SetID(4);//the strongest strong vertex is given a vertex id=4
 	else
 	  vertex->SetID(3);//strong vertices are given vertex id=3
