@@ -129,12 +129,15 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   //std::vector<const recob::Hit *> houghhit;
   
   //edm::PtrVector< std::pair<recob::Hit,double> > matchedvertex;
-  std::vector< std::pair<const recob::Hit *, double> > matchedvertex; //vertices associated with a hough line
+  //std::vector< std::pair<const recob::Hit *, double> > matchedvertex; //vertices associated with a hough line
+  
+  std::vector< std::pair<edm::PtrVector<recob::Hit>, double> > matchedvertex;
+  
   
   
   edm::PtrVector<recob::Hit> strongvertex;
   //std::vector<const recob::Hit *> strongvertex;
-  std::vector< std::pair<const recob::Hit *, double> > strongestvertex; //the strongest strong vertex
+  std::vector< std::pair<edm::PtrVector<recob::Hit>, double> > strongestvertex; //the strongest strong vertex
   
   edm::PtrVector<recob::Vertex> vertIn;
     for(unsigned int ii = 0; ii < vertexListHandle->size(); ++ii)
@@ -261,8 +264,11 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   
   strongvertexstrength.push_back(strength);
      //make sure there is more than one Hough Line associated with the vertex 
+     
+ 
+     
       if(strength>matchedvertex[i].second)
-	  strongestvertex.push_back(std::pair<const recob::Hit *,double>(matchedvertex[i].first,strength));
+	  strongestvertex.push_back(std::pair<edm::PtrVector<recob::Hit>,double>(matchedvertex[i].first,strength));
   }
   
 
@@ -272,7 +278,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 
   for(unsigned int i=0;i < matchedvertex.size(); i++)
   {
-	 channel=matchedvertex[i].first->Wire()->RawDigit()->Channel();
+	 channel=matchedvertex[i].first.Wire().RawDigit().Channel();
      geom->ChannelToWire(channel,plane,wire);
 
 	 //find the strong vertices, those vertices that have been associated with more than one hough line	   
