@@ -114,9 +114,9 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   
   
   
-  std::vector<const recob::Hit *> vertexhit;
+ //  std::vector<const recob::Hit *> vertexhit;
   
-  
+  edm::PtrVector<recob::Hit> vertexhit;
   
   std::vector<double> weakvertexstrength; //strength of weak vertices
   std::vector<double> strongvertexstrength; //strength of strong vertices
@@ -236,7 +236,8 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
    
            if(distance<(fMaxDistance+((vertexhit[i]->EndTime()-vertexhit[i]->StartTime())/2.))&&distance>-1)
 
-	     matchedvertex.push_back(std::pair<edm::PtrVector<recob::Hit>,double>(vertexhit[i],weakvertexstrength[i]*sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
+         
+	     matchedvertex.push_back(std::pair<edm::PtrVector<recob::Hit>,double>(vertexhit[i], weakvertexstrength[i]*sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
 	   //ala strongestvertex.push_back(std::pair<edm::PtrVector<recob::Hit>,double>(matchedvertex[i].first,strength));
 
 	    }
