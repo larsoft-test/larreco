@@ -136,7 +136,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   
   
   edm::PtrVector<recob::Hit> strongvertex;
-  //std::vector<const recob::Hit *> strongvertex;
+  //std::vector<recob::Hit *> strongvertex;
   std::vector< std::pair<edm::PtrVector<recob::Hit>, double> > strongestvertex; //the strongest strong vertex
   
   edm::PtrVector<recob::Vertex> vertIn;
@@ -235,7 +235,10 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
    if(((TMath::Abs((int)(wire-startwire))<fMaxDistance*.0743)||(TMath::Abs((int)(wire-endwire))<fMaxDistance*.0743))&&((TMath::Abs(vertexhit[i]->CrossingTime()-starttime)<fMaxDistance)||(TMath::Abs(vertexhit[i]->CrossingTime()-endtime)<fMaxDistance)))          distance=(TMath::Abs(vertexhit[i]->CrossingTime()-slope*(double)wire-intercept)/(sqrt(pow(.0743*slope,2)+1))); 
    
            if(distance<(fMaxDistance+((vertexhit[i]->EndTime()-vertexhit[i]->StartTime())/2.))&&distance>-1)
-           matchedvertex.push_back(std::pair<const recob::Hit *,double>(vertexhit[i],weakvertexstrength[i]*sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
+
+	     matchedvertex.push_back(std::pair<edm::PtrVector<recob::Hit>,double>(vertexhit[i],weakvertexstrength[i]*sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
+	   //ala strongestvertex.push_back(std::pair<edm::PtrVector<recob::Hit>,double>(matchedvertex[i].first,strength));
+
 	    }
 	   }
 	   
@@ -278,39 +281,32 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 
   for(unsigned int i=0;i < matchedvertex.size(); i++)
   {
-	 channel=matchedvertex[i].first.Wire().RawDigit().Channel();
+    // I think this is grabbing first item in pair, itself a pointer then grabbing first (.begin()) one of those. EC, 18-Oct-2010.
+    channel=(*(matchedvertex[i].first).begin())->Wire()->RawDigit()->Channel();
      geom->ChannelToWire(channel,plane,wire);
 
-	 //find the strong vertices, those vertices that have been associated with more than one hough line	   
+     // strongvertex, despite name, is a hit vector.
+     strongvertex.push_back((*(matchedvertex[i].first).begin())->Wire());
+     recob::Vertex* vertex = new recob::Vertex(strongvertex);      
+     vertex->SetWire(wire);
+     vertex->SetStrength(strongvertexstrength[i]);
+     //vertex->SetDriftTime(matchedvertex[i].first->CrossingTime());
+     vertex->SetDriftTime((*(matchedvertex[i].first).begin())->CrossingTime());
+
+     //find the strong vertices, those vertices that have been associated with more than one hough line	   
       if(matchedvertex[i].first==matchedvertex[i-1].first)	
       {
-	  strongvertex.push_back(matchedvertex[i].first);
-      recob::Vertex* vertex = new recob::Vertex(strongvertex);      
-      vertex->SetWire(wire);
-      vertex->SetStrength(strongvertexstrength[i]);
-      vertex->SetDriftTime(matchedvertex[i].first->CrossingTime());
-	  if(strongvertex[0]==strongestvertex[0].first&&strongestvertex.size()>0)
+	if(strongvertex[0]==(*(strongestvertex[0].first).begin())&&strongestvertex.size()>0)
 	  vertex->SetID(4);//the strongest strong vertex is given a vertex id=4
-	  else
+	else
 	  vertex->SetID(3);//strong vertices are given vertex id=3
-	  mvertexcol->push_back(vertex);
-	  strongvertex.clear();
-	  } 	  
+      } 	  
       else	
-      {
-	  strongvertex.push_back(matchedvertex[i].first);
-      recob::Vertex* vertex = new recob::Vertex(strongvertex);      
-      vertex->SetWire(wire);
-      vertex->SetStrength(strongvertexstrength[i]);
-      vertex->SetDriftTime(matchedvertex[i].first->CrossingTime());
+	{
 	  vertex->SetID(2);//weak vertices that have been associated with an endpoint of a single Hough line are given vertex id=2
-	  ;
-	  
-	  mvertexcol->push_back(*vertex);
-	  
-	  
-	  strongvertex.clear();
-	  }  
+	}  
+      mvertexcol->push_back(*vertex);
+      strongvertex.clear();
 	  
 	  
 	  
