@@ -1,7 +1,7 @@
 #ifndef HOUGHLINEFINDER_H
 #define HOUGHLINEFINDER_H
 
-#include "ClusterFinder.h"
+
 #include "TMath.h"
 #include "TObject.h"
 #include <vector>

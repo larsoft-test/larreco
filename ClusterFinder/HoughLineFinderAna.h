@@ -1,7 +1,6 @@
 #ifndef HOUGHLINEFINDERANA_H
 #define HOUGHLINEFINDERANA_H
 
-#include "ClusterFinder.h"
 #include "TMath.h"
 #include "TObject.h"
 #include <vector>
