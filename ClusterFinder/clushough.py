@@ -74,23 +74,38 @@ process.ffthit = clusterfinder.Service(
     )
     
  
-process.dbscan = clusterfinder.EDProducer(
+process.dbscan = clusterfinder.Service(
     "DBSCANFinder",
     DBScanModuleLabel   = clusterfinder.string("dbscan"),
-    eps       = clusterfinder.double(1.0),
-    eps2      = clusterfinder.double(0.75),
-    minPts    = clusterfinder.int32(2)
+    eps                 = clusterfinder.double(1.0),
+    eps2                = clusterfinder.double(0.75),
+    minPts              = clusterfinder.int32(2)
     )    
 
+
+process.hough = clusterfinder.EDProducer(
+    "HoughLineFinder",
+    HoughModuleLabel   = clusterfinder.string("hough"),
+    MaxLines           = clusterfinder.int32(5),
+    MinHits            = clusterfinder.int32(3),
+    SaveAccumulator    = clusterfinder.int32(0),
+    NumAngleCells      = clusterfinder.int32(10000),
+    RhoResolutionFactor = clusterfinder.int32(10),
+    SmootherSigma    = clusterfinder.double(0.),
+    MaxDistance  = clusterfinder.double(5.),
+    RhoZeroOutRange = clusterfinder.int32(0),
+    ThetaZeroOutRange  = clusterfinder.int32(0),
+    PerCluster    = clusterfinder.int32(1)
+    )
 
 # Write the events to the output file.
 process.output = clusterfinder.OutputModule(
     "PoolOutputModule",
-    fileName = clusterfinder.untracked.string('file:clusdbscan_gen.root'),
+    fileName = clusterfinder.untracked.string('file:clushough_gen.root'),
 )
 
 ####### End of the section that defines and configures modules.#########
 
 # Tell the system to execute all paths. Services, source, output are implied ....
-process.doit = clusterfinder.EndPath( process.dbscan*process.output )
+process.doit = clusterfinder.EndPath( process.hough*process.output )
 
