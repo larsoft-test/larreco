@@ -92,5 +92,5 @@ process.output = clusterfinder.OutputModule(
 ####### End of the section that defines and configures modules.#########
 
 # Tell the system to execute all paths. Services, source, output are implied ....
-process.doit = clusterfinder.EndPath( process.caldataCal*process.ffthit*process.dbscan*process.output )
+process.doit = clusterfinder.EndPath( process.dbscan*process.output )
 
