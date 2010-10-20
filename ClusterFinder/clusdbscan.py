@@ -48,10 +48,10 @@ process.LArFFT = clusterfinder.Service(
 
 # Service to get my MC events, which were run up through DetSim.
 process.source = clusterfinder.Source("PoolSource",
-                                fileNames = clusterfinder.untracked.vstring("out/genie_gen.root")
+                                fileNames = clusterfinder.untracked.vstring("out/genie_ART_6GeV-c_muons_gen_hist.root")
                                 )
 
-process.caldataCal = clusterfinder.Servce(
+process.caldataCal = clusterfinder.EDProducer(
     "CalWire",
     DetSimModuleLabel  = clusterfinder.string("wiresim"),
     ResponseFile       = clusterfinder.string("/grid/fermiapp/lbne/lar/aux/ArgoResponse1.2.root"),
@@ -59,7 +59,7 @@ process.caldataCal = clusterfinder.Servce(
     UseRawData         = clusterfinder.int32(0)
     )
 
-process.ffthit = clusterfinder.Service(
+process.ffthit = clusterfinder.EDProducer(
     "FFTHitFinder",
     CalDataModuleLabel   = clusterfinder.string("caldataCal"),
     MinSigInd       = clusterfinder.double(8.0),
@@ -75,8 +75,8 @@ process.ffthit = clusterfinder.Service(
     
  
 process.dbscan = clusterfinder.EDProducer(
-    "DBSCANFinder",
-    DBScanModuleLabel   = clusterfinder.string("dbscan"),
+    "DBcluster",
+    HitsModuleLabel   = clusterfinder.string("ffthit"),
     eps       = clusterfinder.double(1.0),
     eps2      = clusterfinder.double(0.75),
     minPts    = clusterfinder.int32(2)
@@ -86,11 +86,11 @@ process.dbscan = clusterfinder.EDProducer(
 # Write the events to the output file.
 process.output = clusterfinder.OutputModule(
     "PoolOutputModule",
-    fileName = clusterfinder.untracked.string('file:clusdbscan_gen.root'),
+    fileName = clusterfinder.untracked.string('clusdbscan_gen.root'),
 )
 
 ####### End of the section that defines and configures modules.#########
 
 # Tell the system to execute all paths. Services, source, output are implied ....
-process.doit = clusterfinder.EndPath( process.dbscan*process.output )
+process.doit = clusterfinder.EndPath(process.caldataCal*process.ffthit*process.dbscan*process.output )
 

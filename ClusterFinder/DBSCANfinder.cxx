@@ -57,7 +57,7 @@
 //-------------------------------------------------
 cluster::DBcluster::DBcluster(edm::ParameterSet const& pset) : 
   
-  
+  fhitsModuleLabel     (pset.getParameter< std::string >("HitsModuleLabel")),
   fEps                 (pset.getParameter< double >("eps")),
   fEps2                (pset.getParameter< double >("eps2")),
   fMinPts              (pset.getParameter< int >("minPts"))

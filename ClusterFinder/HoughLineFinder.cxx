@@ -419,6 +419,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	      cluster->SetEndTime((*clusterHits.end())->CrossingTime());
  	      //cluster->SetEndTime(slope*(double)(wire)+intercept);
  	      cluster->SetID(clusterID);
+
  	      clusterID++;
 	      
  	      ccol->push_back(*cluster);
