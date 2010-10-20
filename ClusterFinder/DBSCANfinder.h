@@ -2,7 +2,7 @@
 //  DBSCANfinder.h
 //  kinga.partyka@yale.edu
 ////////////////////////////////////////////////////////////////////
-//#include "ClusterFinder.h"
+
 #include <vector>
 #include <cmath>
 #include <iostream>
@@ -18,8 +18,7 @@ class ParameterSet;}
 class TH1F;
 namespace cluster{
   
-  //The line below is for my testing purposes only: 
-  //void randomInit(std::vector<std::vector<double> > & ps, int dims = //5,unsigned int num_points = 10);
+ 
  
   //--------------------------------------------------------------- 
   class DBcluster : public edm::EDProducer
@@ -34,53 +33,12 @@ namespace cluster{
   
   edm::PtrVector<recob::Hit> allhits;
   edm::PtrVector<recob::Hit> clusterHits;
-    // double fEps, fEps2;
-//     int fMinPts;
+    
      
  TH1F *fhitwidth;
  TH1F *fhitwidth_ind_test;  
  TH1F *fhitwidth_coll_test;  
-    //the collection of clusters
-    
-     TH1F* fNoParticles_pdg;
-    TH1F* fNoParticles_trackid; 
-    TH1F* fNoParticles_trackid_mother;
-    TH1F* fNoParticles_trackid_per_event;  
-    TH1F* fNoParticles_pdg_per_event;
-    TH1F* fCl_for_Muon;
-   /*  TH1F* fCl_for_Electron; */
-/*     TH1F* fCl_for_Positron; */
-/*     TH1F* fCl_for_Pion_111; */
-/*     TH1F* fCl_for_Pion_211; */
-/*     TH1F* fCl_for_Pion_m211; */
-/*     TH1F* fCl_for_Proton; */
-    TH1F* fNoClustersInEvent;
-    TH1F* fPercentNoise;
-    TH1F* fno_of_clusters_per_track;
-    TH1F* fPercent_lost_muon_hits;
-    TH1F* fPercent_lost_electron_hits;
-    TH1F* fPercent_lost_positron_hits;
-    TH1F* fPercent_lost_111_hits;
-    TH1F* fPercent_lost_211_hits;
-    TH1F* fPercent_lost_m211_hits;
-    TH1F* fPercent_lost_2212_hits;
-    TH1F* fPercent_lost_2112_hits;
-
-    TH1F* fPercent_lost_muon_energy;
-    TH1F* fPercent_lost_electron_energy;
-    TH1F* fPercent_lost_positron_energy;
-    TH1F* fPercent_lost_111_energy;
-    TH1F* fPercent_lost_211_energy;
-    TH1F* fPercent_lost_m211_energy;
-    TH1F* fPercent_lost_2212_energy;
-    TH1F* fPercent_lost_2112_energy;
-    TH1F* fEnergy;
-    TH2F* fbrian_in;
-    TH2F* fbrian_coll;
-    TH1F* fhitwidth_;
-    TH1F* fhitwidth_0;
-    TH1F* fhitwidth_1;
-
+  
   protected:
 std::string fhitsModuleLabel;
     double fEps, fEps2;
@@ -125,10 +83,6 @@ std::string fhitsModuleLabel;
       // mapping point_id -> clusterId
        std::vector<unsigned int> _pointId_to_clusterId; 
       
-      // the collection of clusters
-      // std::vector<std::vector<unsigned int>> _clusters;
-      
-      // simarity_matrix
       
       std::vector<std::vector<double> >_sim;
       std::vector<std::vector<double> >_sim2;
@@ -139,7 +93,7 @@ std::string fhitsModuleLabel;
       
   private:
       
-      // eps radiuus
+      // eps radius
       // Two points are neighbors if the distance 
       // between them does not exceed threshold value.
       double _eps, _eps2;
@@ -149,8 +103,6 @@ std::string fhitsModuleLabel;
       
       // noise vector
       std::vector<bool> _noise;
-      
-      // noise vector
       std::vector<bool> _visited;
      
       

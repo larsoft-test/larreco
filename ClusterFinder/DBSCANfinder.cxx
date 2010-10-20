@@ -23,33 +23,20 @@
 #include "FWCore/Framework/interface/TFileDirectory.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
-#include "DBSCANfinder.h"
+#include "ClusterFinder/DBSCANfinder.h"
 #include <cmath>
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
 #include "Geometry/geo.h"
 #include "RawData/RawDigit.h"
-#include "Geometry/WireGeo.h"
-#include "Geometry/PlaneGeo.h"
+#include "SimulationBase/simbase.h"
+#include "RawData/RawDigit.h" 
+#include "Simulation/sim.h"
+#include "RecoBase/recobase.h"
 #include "TGeoManager.h"
 #include "TH1.h"
-#include "Geometry/Geometry.h"
-#include "SimulationBase/MCFlux.h"
-#include "SimulationBase/MCNeutrino.h"
-#include "SimulationBase/MCTruth.h"
-#include "RawData/RawDigit.h" 
-#include "Simulation/Particle.h"
-#include "Simulation/ParticleList.h"
-#include "Simulation/LArVoxelList.h"
-#include "RecoBase/Hit.h"
-#include "RecoBase/Cluster.h"
-#include <Simulation/LArVoxelID.h>
-#include <Simulation/Electrons.h>
-#include <Simulation/SimDigit.h>
-#include "Geometry/WireGeo.h"
-#include <TObject.h>               //probably need to delete also
-#include "TDatabasePDG.h"
+
 
 
 
@@ -71,73 +58,12 @@ cluster::DBcluster::DBcluster(edm::ParameterSet const& pset) :
   produces<std::vector<recob::Cluster> >();
   
   
-  
-
-
-
-
- //rest of these plots is for ANA method:
-// fNoParticles_pdg_per_event = new TH1F("fNoParticles_pdg_per_event","Average # of Particles per cluster for each event", 500,0 ,5);
-//     fNoParticles_pdg=new TH1F("fNoParticles_pdg","Number of Particles in a Cluster for each cluster", 500,0 ,5);
-//     fNoParticles_trackid=new TH1F("fNoParticles_trackid","Number of different TrackIDs in a Cluster", 300,0 ,30);
-// 
-// fNoParticles_trackid_mother=new TH1F("fNoParticles_trackid_mother","Number of different TrackIDs in a Cluster(using mother)for each cluster", 300,0 ,30);
-// 
-// fNoParticles_trackid_per_event=new TH1F("fNoParticles_trackid_per_event","Avg Number of different TrackIDs per Cluster per event", 300,0 ,30);
-// fCl_for_Muon=new TH1F("fCl_for_Muon","Number of Clusters for Muon per plane (pdg)", 1500,0 ,15);
-// //  fCl_for_Electron=new TH1F("fCl_for_Electron","Number of Clusters for Electron  (pdg)", 1500,0 ,15);
-// //  fCl_for_Positron=new TH1F("fCl_for_Positron","Number of Clusters for Positron", 1500,0 ,15);
-// //  fCl_for_Pion_111=new TH1F("fCl_for_Pion_111","Number of Clusters for Pion (111)", 1500,0 ,15);
-// //  fCl_for_Pion_211=new TH1F("fCl_for_Pion_211","Number of Clusters for Pion (211)", 1500,0 ,15);
-// //  fCl_for_Pion_m211=new TH1F("fCl_for_Pion_m211","Number of Clusters for Pion (-211)", 1500,0 ,15);
-// // fCl_for_Proton=new TH1F("fCl_for_Proton","Number of Clusters for Proton", 1500,0 ,15);
-// 
-// fNoClustersInEvent=new TH1F("fNoClustersInEvent","Number of Clusters in an Event", 5000,0 ,50);
-// 
-//  fPercentNoise=new TH1F("fPercentNoise","% of hits that were marked as Noise by DBSCAN",2500,0 ,25);
-// 
-// fno_of_clusters_per_track=new TH1F("fno_of_clusters_per_track","Number of Clusters per TrackID per plane", 1500,0 ,15);
-// 
-// fPercent_lost_muon_hits=new TH1F("fPercent_lost_muon_hits","Number of muon hits excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_electron_hits=new TH1F("fPercent_lost_electron_hits","Number of electron hits excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_positron_hits=new TH1F("fPercent_lost_positron_hits","Number of positron hits excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_111_hits=new TH1F("fPercent_lost_111_hits","Number of pion(111) hits excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_211_hits=new TH1F("fPercent_lost_211_hits","Number of pion(211) hits excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_m211_hits=new TH1F("fPercent_lost_m211_hits","Number of pion(-211) hits excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_2212_hits=new TH1F("fPercent_lost_2212_hits","Number of proton hits excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_2112_hits=new TH1F("fPercent_lost_2112_hits","Number of neutron hits excluded by dbscan in % (per Event)", 10000,0 ,100);
-// 
-// fPercent_lost_muon_energy=new TH1F("fPercent_lost_muon_energy"," muon energy excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_electron_energy=new TH1F("fPercent_lost_electron_energy","electron energy excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_positron_energy=new TH1F("fPercent_lost_positron_energy"," positron energy excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_111_energy=new TH1F("fPercent_lost_111_energy","pion(111) energy excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_211_energy=new TH1F("fPercent_lost_211_energy","pion(211) energy excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_m211_energy=new TH1F("fPercent_lost_m211_energy"," pion(-211) energy excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_2212_energy=new TH1F("fPercent_lost_2212_energy","proton energy excluded by dbscan in % (per Event)", 10000,0 ,100);
-// fPercent_lost_2112_energy=new TH1F("fPercent_lost_2112_energy","neutron energy excluded by dbscan in % (per Event)", 10000,0 ,100);
-// 
-// fEnergy=new TH1F("fEnergy","energy for each voxel", 100000,0 ,0.0005);
-// 
-// fbrian_in = new TH2F("fbrian_in", ";# Electrons deposited; # Electrons detected by hitfinder", 1000,     0, 10000000, 1000, 0, 10000000);
-// fbrian_coll = new TH2F("fbrian_coll", ";# Electrons deposited; # Electrons detected by hitfinder", 1000,     0, 10000000, 1000, 0, 10000000);
-// fhitwidth_= new TH1F(" fhitwidth_","width of hits in cm", 50000,0 ,5  );
-// fhitwidth_0= new TH1F(" fhitwidth_0","width of hits in cm", 50000,0 ,5  );
-// fhitwidth_1= new TH1F(" fhitwidth_1","width of hits in cm", 50000,0 ,5  );
-// 
-
 }
 
 //-------------------------------------------------
 cluster::DBcluster::~DBcluster()
 {
-
-
-
-
 }
-
-
-
 //-------------------------------------------------
 
 void cluster::DBcluster::beginJob(edm::EventSetup const&){
@@ -152,13 +78,7 @@ fhitwidth_coll_test= tfs->make<TH1F>("fhitwidth_coll_test","width of hits in cm"
 
 double cluster::DBScan::getSimilarity(const std::vector<double> v1, const std::vector<double> v2){
   
-  
- //  double dot1_2=v1[0]*v2[0]+v1[1]*v2[1];
-//   double dot1_1=v1[0]*v1[0]+v1[1]*v1[1];
-//   double dot2_2=v2[0]*v2[0]+v2[1]*v2[1];
-// std::cout<<"cos similarity = "<<dot1_2/((sqrt(dot1_1))*(sqrt(dot2_2)))<<std::endl;
-  // return dot1_2/((sqrt(dot1_1))*(sqrt(dot2_2)));
-  //--------------------------------------------------------------------  
+   
 //for Euclidean distance comment everything out except this-->>>
   // return sqrt((v2[1]-v1[1])*(v2[1]-v1[1])+(v2[0]-v1[0])*(v2[0]-v1[0]));
 //------------------------------------------------------------------------
@@ -169,19 +89,11 @@ double cluster::DBScan::getSimilarity(const std::vector<double> v1, const std::v
  //---------------------------------------------------------------------
   return (( v2[0]-v1[0])*( v2[0]-v1[0])); //for ellipse
 
-  
-  
-}
+ }
 
 //----------------------------------------------------------------
 double cluster::DBScan::getSimilarity2(const std::vector<double> v1, const std::vector<double> v2){
- //  double diff=0;
-//   if(v1[0]==v2[0]){
-    
-//     diff= v1[1]-v2[1];}
-//   else{
-//     diff=0;}
-//   return diff;
+
 //-------------------------------------------
 //return fabs( v2[1]-v1[1]);//for rectangle
 //------------------------------------------
@@ -529,7 +441,7 @@ void cluster::DBScan::run_cluster()
    std::cout<<"THE CURRENT NOISE LEVEL IS: "<<(double(noise)/double(_noise.size()))*100<<" %"<<std::endl;
   
 
-	};
+	}
 //-----------------------------------------------------------------
 
 
@@ -544,27 +456,12 @@ void cluster::DBcluster::produce(edm::Event& evt, edm::EventSetup const&){
    //std::cout << "event  : " << evt.Header().Event() << std::endl;
    edm::Service<geo::Geometry> geom;
 
-  // get hits
-  //std::vector<recob::Hit> hitlist;
   
   
   edm::Handle< std::vector<recob::Hit> > hitcol;
     evt.getByLabel(fhitsModuleLabel,hitcol);
   
   
- //  try{
-//     evt.Reco().Get(fInputFolder.c_str(),hitlist);
-//   } 
-//   catch(edm::Exception e){
-//     std::cerr << "Error retrieving hit list, while looking for hits "
-// 	      << "in ExampleClusterFinder::Make(),  "<< "directory : " 
-// 	      << fInputFolder.c_str() << std::endl;
-//     return jobc::kFailed;
-//   }
-
-
-  
-
   ///loop over all hits in the event and look for clusters (for each plane)
   
   
@@ -687,50 +584,28 @@ clusterHits.push_back(allhits[j]);
        }
        
      }
-     //reco_cl->SetID(i);
-     //std::cout<<"Id= "<<reco_cl->ID()<<std::endl;
-    //ccol.push_back(reco_cl); 
-    ccol->push_back(recob::Cluster(clusterHits));
-    recob::Cluster(clusterHits).SetID(i);
+     
+    //ccol->push_back(recob::Cluster(clusterHits));
+    //recob::Cluster(clusterHits).SetID(i);
+    
+    
+    
+    ////////
+    recob::Cluster cluster(clusterHits);
+   cluster.SetID(i);
+   ccol->push_back(cluster);
+    //////
+
+   
+   
+   
+   
    }
 
  
  allhits.clear();
  }
 
-
-// if(evt.Reco().GetFolder(fOutputFolder.c_str())){
-//     std::cerr << "Output Folder reco/" << fOutputFolder.c_str()
-// 	      << " already exists" << std::endl;
-//     return jobc::kFailed;
-//   }
-// 
-//   evt.Reco().MakeFolder(fOutputFolder.c_str());
-// 
-//   int nsave = evt.Reco().PutVector(fClusterVec,fOutputFolder.c_str());
-//   //std::cout<<"nsave= "<<nsave<<std::endl;
-//   //********************************
-// 
-// 
-// 
-// 
-//   if(nsave != (int)fClusterVec.size()){
-//     std::cerr << "ClusterFinder::SaveData: wrong number of Clusters saved: "
-// 	      << nsave << " instead of expected " 
-// 	      << fClusterVec.size() << std::endl;
-//    
-//     return jobc::kFailed;
-//   }
-
-  
-  // std::cout<<"size of fClusterVec before delete is: "<<fClusterVec.size()<<std::endl;
-//for(unsigned int i = 0; i < fClusterVec.size(); i++) delete fClusterVec[i]; 
- //fClusterVec.resize(0);
-
- 
-
- // std::cout << "Event Done.  List():" << std::endl;
-//     evt.Reco().List(fInputFolder.c_str());
 
 if(ccol->size() == 0){
      std::cerr << "no clusters made for this event" << std::endl;

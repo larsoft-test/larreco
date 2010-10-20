@@ -48,7 +48,7 @@ process.LArFFT = clusterfinder.Service(
 
 # Service to get my MC events, which were run up through DetSim.
 process.source = clusterfinder.Source("PoolSource",
-                                fileNames = clusterfinder.untracked.vstring("out/genie_ART_6GeV-c_muons_gen.root")
+                                fileNames = clusterfinder.untracked.vstring("/argoneut/app/users/echurch/larsoft/ART-SRT/out/genie_ART_6GeV-c_muons_gen.root")
                                 )
 
 process.caldataCal = clusterfinder.EDProducer(
