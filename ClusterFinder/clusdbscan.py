@@ -48,12 +48,12 @@ process.LArFFT = clusterfinder.Service(
 
 # Service to get my MC events, which were run up through DetSim.
 process.source = clusterfinder.Source("PoolSource",
-                                fileNames = clusterfinder.untracked.vstring("out/genie_ART_6GeV-c_muons_gen_hist.root")
+                                fileNames = clusterfinder.untracked.vstring("out/genie_ART_6GeV-c_muons_gen.root")
                                 )
 
 process.caldataCal = clusterfinder.EDProducer(
     "CalWire",
-    DetSimModuleLabel  = clusterfinder.string("wiresim"),
+    DigitModuleLabel  = clusterfinder.string("wiresim"),
     ResponseFile       = clusterfinder.string("/grid/fermiapp/lbne/lar/aux/ArgoResponse1.2.root"),
     ExponentialEndBins = clusterfinder.int32(300),
     UseRawData         = clusterfinder.int32(0)
