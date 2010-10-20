@@ -162,25 +162,25 @@ void cluster::DBSCANfinderAna::analyze(const edm::Event& evt,  edm::EventSetup c
     }
   */
 
-edm::Ptr<sim::ParticleList> check_particleList = sim::SimListUtils::GetParticleList(evt,fEvtModuleLabel);
-edm::Ptr<sim::ParticleList> particleList = sim::SimListUtils::GetParticleList(evt,fEvtModuleLabel);
-edm::Ptr<sim::ParticleList> _particleList = sim::SimListUtils::GetParticleList(evt,fEvtModuleLabel);
+  sim::ParticleList check_particleList = sim::SimListUtils::GetParticleList(evt,fEvtModuleLabel);
+  sim::ParticleList particleList = sim::SimListUtils::GetParticleList(evt,fEvtModuleLabel);
+  sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt,fEvtModuleLabel);
 
   // edm::Ptr<sim::ParticleList> check_particleList;
 //   edm::Ptr<sim::ParticleList> particleList;
 //   edm::PtrVector<sim::ParticleList> _particleList;
-  for (unsigned int ii = 0; ii <  partListHandle->size(); ++ii)
-    {
-      edm::Ptr<sim::ParticleList> partlist(partListHandle,ii);
-      _particleList.push_back(partlist);
-    }
+//  for (unsigned int ii = 0; ii <  partListHandle->size(); ++ii)
+//   {
+//     edm::Ptr<sim::ParticleList> partlist(partListHandle,ii);
+//     _particleList.push_back(partlist);
+//   }
   
   std::vector<int> mc_trackids;
   
-  check_particleList = _particleList[0];
+  check_particleList(_particleList[0]);
   //std::cout<<"checking trackID: ";
-  for ( sim::ParticleList::const_iterator i = check_particleList->begin();
-	i != check_particleList->end(); ++i )
+  for ( sim::ParticleList::const_iterator i = check_particleList.begin();
+	i != check_particleList.end(); ++i )
     {
       // const sim::Particle* particle = (*i).second;
       //int pdgcode=particle->PdgCode();
@@ -370,7 +370,7 @@ edm::Ptr<sim::ParticleList> _particleList = sim::SimListUtils::GetParticleList(e
 		      // 	double energyTrackID=voxelData.Energy[trackID];
 		      //  	std::cout<<"ENERGY OF PRIMARY TRACKID= "<<energyTrackID<<std::endl;
 		    
-		      const sim::Particle* particle = particleList->at( trackID );
+		      const sim::Particle* particle = particleList.at( trackID );
 		      int pdg = particle->PdgCode();
 		      
 		      double energy2=voxelData.Energy(i);
@@ -402,11 +402,11 @@ edm::Ptr<sim::ParticleList> _particleList = sim::SimListUtils::GetParticleList(e
 		      vec_pdg.push_back(pdg);
 		      // std::cout<<"_en_11= "<<_en_11<<std::endl;
 		      //while particle is not a primary particle and going up in a chain of trackIDs is not going to change its pdg code, go up the chain.
-		      while ( (! particleList->IsPrimary( trackID )) && (((particleList->at(particle->Mother()))->PdgCode())==pdg))
+		      while ( (! particleList.IsPrimary( trackID )) && (((particleList.at(particle->Mother()))->PdgCode())==pdg))
 			{
 			  trackID = particle->Mother();
 			  //std::cout<<"((NOt a PRIMARY ORIGINALLY!!! ) trackID= "<<trackID<<std::endl;
-			  particle = particleList->at( trackID );
+			  particle = particleList.at( trackID );
 			  pdg= particle->PdgCode();
 			  //	 std::cout<<"(NOt a PRIMARY ORIGINALLY!!! ) The PDG from HIT is: "<<pdg<<std::endl;
 			  
