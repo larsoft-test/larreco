@@ -19,7 +19,6 @@ namespace vertex {
     
     explicit VertexMatch(edm::ParameterSet const& pset); 
     ~VertexMatch();
-
     void produce(edm::Event& evt, edm::EventSetup const&);
     void beginJob(edm::EventSetup const&);
     

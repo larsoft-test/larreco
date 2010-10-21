@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////
 /// \file  DriftElectrons.h
-/// \brief Module to finde vertices
+/// \brief Module to find vertices
 ///
 /// \author  joshua.spitz@yale.edu
 ////////////////////////////////////////////////////////////////////////
@@ -45,8 +45,7 @@ namespace vertex {
     double fThreshold;
     int fSaveVertexMap;
   };
-  
-  
+    
 }
 
 

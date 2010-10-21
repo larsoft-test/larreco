@@ -23,7 +23,6 @@ extern "C" {
 #include <math.h>
 #include <algorithm>
 
-
 #include "FWCore/Framework/interface/Event.h" 
 #include "FWCore/ParameterSet/interface/ParameterSet.h" 
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
@@ -35,30 +34,18 @@ extern "C" {
 #include "FWCore/Services/interface/TFileService.h" 
 #include "FWCore/Framework/interface/TFileDirectory.h" 
 #include "FWCore/MessageLogger/interface/MessageLogger.h" 
- 
-#include "Geometry/Geometry.h"
+
+#include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
-#include "SimulationBase/MCFlux.h"
-#include "SimulationBase/MCNeutrino.h"
-#include "SimulationBase/MCTruth.h"
-#include "RawData/RawDigit.h"
-#include "Simulation/Particle.h"
-#include "Simulation/ParticleList.h"
-#include "Simulation/LArVoxelList.h"
-#include "RecoBase/Hit.h"
-#include "RecoBase/Cluster.h"
-#include "RecoBase/Vertex.h"
-#include <Simulation/LArVoxelID.h>
-#include <Simulation/Electrons.h>
-#include <Simulation/SimDigit.h>
-#include "Geometry/WireGeo.h"
-#include "RawData/RawDigit.h"
+#include "SimulationBase/simbase.h"
+#include "RecoBase/recobase.h"
+#include "Geometry/geo.h"
 
 
 vertex::VertexMatch::VertexMatch(edm::ParameterSet const& pset) : 
   fVertexModuleLabel    (pset.getParameter< std::string >("VertexModuleLabel")),
   fHoughClusterLabel    (pset.getParameter< std::string >("HoughClusterLabel")),
-  fMaxDistance    (pset.getParameter< double >("MaxDistance"))
+  fMaxDistance          (pset.getParameter< double >("MaxDistance"))
 {
  produces< std::vector<recob::Vertex> >();
 }
@@ -66,8 +53,6 @@ vertex::VertexMatch::VertexMatch(edm::ParameterSet const& pset) :
 vertex::VertexMatch::~VertexMatch()
 {
 }
-
-
 
 bool sort_pred(const std::pair<edm::Ptr<recob::Hit>,double>& left, const std::pair<edm::Ptr<recob::Hit>,double>& right)
 {
@@ -79,21 +64,6 @@ bool sort_pred2(const std::pair<edm::Ptr<recob::Hit>,double>& left, const std::p
 return left.second < right.second;
 }
 
-
-void vertex::VertexMatch::beginJob(edm::EventSetup const&)
-{
-
- 
-     //////////////////////////////////////////////////////
-     // the geometry is accessed through a edm::Service rather than 
-     // as a bare singleton - that allows one to pass parameters to
-     // the geometry in the configuration file if needed
-     //////////////////////////////////////////////////////
-     edm::Service<geo::Geometry> geo;
-
- 
-}
-
 void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 {
 
@@ -103,7 +73,6 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   edm::Handle< std::vector<recob::Cluster> > houghListHandle;
   evt.getByLabel(fHoughClusterLabel,houghListHandle);
   
-  
   // std::vector<recob::Vertex*> MatchedVertexVector; //holds strong vertices to be saved
   
   std::auto_ptr<std::vector<recob::Vertex> > mvertexcol(new std::vector<recob::Vertex>);
@@ -111,9 +80,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   edm::Service<geo::Geometry> geom;
   //hits associated with a vertex
   edm::PtrVector<recob::Hit> vHits;
-  
-  
-  
+
  //  std::vector<const recob::Hit *> vertexhit;
   
   edm::PtrVector<recob::Hit> vertexhit;
@@ -123,18 +90,14 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   //hits associated with a hough line
   edm::PtrVector<recob::Hit> hHits;
   edm::PtrVector<recob::Hit> houghhit;
-  
- 
-  
+
   //std::vector<const recob::Hit *> houghhit;
   
   //edm::PtrVector< std::pair<recob::Hit,double> > matchedvertex;
   //std::vector< std::pair<const recob::Hit *, double> > matchedvertex; //vertices associated with a hough line
   
   std::vector< std::pair<edm::Ptr<recob::Hit>, double> > matchedvertex;
-  
-  
-  
+
   edm::PtrVector<recob::Hit> strongvertex;
   //std::vector<recob::Hit *> strongvertex;
   std::vector< std::pair<edm::Ptr<recob::Hit>, double> > strongestvertex; //the strongest strong vertex
@@ -268,14 +231,11 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   
   strongvertexstrength.push_back(strength);
      //make sure there is more than one Hough Line associated with the vertex 
-     
- 
-     
+          
       if(strength>matchedvertex[i].second)
 	  strongestvertex.push_back(std::pair<edm::Ptr<recob::Hit>,double>(matchedvertex[i].first,strength));
   }
   
-
   
   //sort the strength of the strong vertices to find the strongest vertex
   std::sort(strongestvertex.rbegin(), strongestvertex.rend(),sort_pred2);
@@ -288,29 +248,28 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 
      // strongvertex, despite name, is a hit vector.
      strongvertex.push_back(matchedvertex[i].first);
-     recob::Vertex* vertex = new recob::Vertex(strongvertex);      
-     vertex->SetWire(wire);
-     vertex->SetStrength(strongvertexstrength[i]);
+     recob::Vertex vertex(strongvertex);      
+     vertex.SetWire(wire);
+     vertex.SetStrength(strongvertexstrength[i]);
      //vertex->SetDriftTime(matchedvertex[i].first->CrossingTime());
-     vertex->SetDriftTime((matchedvertex[i].first)->CrossingTime());
+     vertex.SetDriftTime((matchedvertex[i].first)->CrossingTime());
 
      //find the strong vertices, those vertices that have been associated with more than one hough line	   
       if(matchedvertex[i].first==matchedvertex[i-1].first)	
       {
-	if(strongvertex[0]==(strongestvertex[0].first)&&strongestvertex.size()>0)
-	  vertex->SetID(4);//the strongest strong vertex is given a vertex id=4
-	else
-	  vertex->SetID(3);//strong vertices are given vertex id=3
+	   if(strongvertex[0]==(strongestvertex[0].first)&&strongestvertex.size()>0)
+	   vertex.SetID(4);//the strongest strong vertex is given a vertex id=4
+	   else
+	  vertex.SetID(3);//strong vertices are given vertex id=3
       } 	  
       else	
-	{
-	  vertex->SetID(2);//weak vertices that have been associated with an endpoint of a single Hough line are given vertex id=2
-	}  
-      mvertexcol->push_back(*vertex);
+	  {
+	  vertex.SetID(2);//weak vertices that have been associated with an endpoint of a single Hough line are given vertex id=2
+	  } 
+	  
+      mvertexcol->push_back(vertex);
       strongvertex.clear();
-	  
-	  
-	  
+	  	 	  
   }
 
 strongestvertex.clear();

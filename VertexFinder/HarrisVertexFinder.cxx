@@ -38,31 +38,23 @@ extern "C" {
 #include <algorithm>
 #include "TMath.h"
 
-#include "Geometry/Geometry.h"
+
+#include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
-#include "RawData/RawDigit.h"
-#include "RecoBase/Hit.h"
-#include "RecoBase/Cluster.h"
-#include "RecoBase/Vertex.h"
-#include "Geometry/WireGeo.h"
-#include "RawData/RawDigit.h"
-
-
+#include "SimulationBase/simbase.h"
+#include "RecoBase/recobase.h"
+#include "Geometry/geo.h"
 
 vertex::HarrisVertexFinder::HarrisVertexFinder(edm::ParameterSet const& pset) :
-   fTimeBins    (pset.getParameter< int >("TimeBins")),
-   fMaxCorners    (pset.getParameter< int >("MaxCorners")),
-   fGsigma    (pset.getParameter< double >("Gsigma")),
-   fWindow    (pset.getParameter< int >("Window")),
-   fThreshold    (pset.getParameter< double >("Threshold")),
-   fSaveVertexMap    (pset.getParameter< int >("SaveVertexMap")),
-   fHitModuleLabel    (pset.getParameter< std::string >("HitModuleLabel"))
+   fTimeBins        (pset.getParameter< int >("TimeBins")),
+   fMaxCorners      (pset.getParameter< int >("MaxCorners")),
+   fGsigma          (pset.getParameter< double >("Gsigma")),
+   fWindow          (pset.getParameter< int >("Window")),
+   fThreshold       (pset.getParameter< double >("Threshold")),
+   fSaveVertexMap   (pset.getParameter< int >("SaveVertexMap")),
+   fHitModuleLabel  (pset.getParameter< std::string >("HitModuleLabel"))
 {
-
  produces< std::vector<recob::Vertex> >();
-
-
-
 }
 
 vertex::HarrisVertexFinder::~HarrisVertexFinder()
@@ -89,21 +81,6 @@ double Norm=1./(sqrt(2*TMath::Pi())*pow(fGsigma,3));
 double value=Norm*(-y)*exp(-(pow(x,2)+pow(y,2))/(2*pow(fGsigma,2)));
 return value;
 }
-
-
-
-void vertex::HarrisVertexFinder::beginJob(edm::EventSetup const&)
-{
-
- 
-     //////////////////////////////////////////////////////
-     // the geometry is accessed through a edm::Service rather than 
-     // as a bare singleton - that allows one to pass parameters to
-     // the geometry in the configuration file if needed
-     //////////////////////////////////////////////////////
-     edm::Service<geo::Geometry> geo;
-}
- 
 
 void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&)
 {
@@ -166,7 +143,7 @@ for(int p = 0; p < geom->Nplanes(); p++)
       if(hit.size() == 0) 
         continue;
 
-  numberwires=geom->Nwires(1);
+  numberwires=geom->Nwires(0);
   numbertimesamples=hit[0]->Wire()->fSignal.size();
   double MatrixAsum[numberwires][fTimeBins];
   double MatrixBsum[numberwires][fTimeBins];
@@ -290,13 +267,13 @@ for(int vertexnum=0;vertexnum<fMaxCorners;vertexnum++)
       vertexnum=fMaxCorners;
       
       vHits.push_back(hit[hit_loc[wire][timebin]]);
-      recob::Vertex* vertex = new recob::Vertex(vHits);
-      vertex->SetWire(wire);
-      vertex->SetDriftTime(hit[hit_loc[wire][timebin]]->CrossingTime());
+      recob::Vertex vertex(vHits);
+      vertex.SetWire(wire);
+      vertex.SetDriftTime(hit[hit_loc[wire][timebin]]->CrossingTime());
       //weak vertices are given vertex id=1
-	  vertex->SetID(1);
-	  vertex->SetStrength(Cornerness[wire][timebin]);	  
-	  vtxcol->push_back(*vertex);
+	  vertex.SetID(1);
+	  vertex.SetStrength(Cornerness[wire][timebin]);	  
+	  vtxcol->push_back(vertex);
 	  vHits.clear();
 	   //non-maximal suppression on a square window. The wire coordinate units are converted to time ticks so that the window is truly square. 
 	   //Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
@@ -349,7 +326,7 @@ for(int vertexnum=0;vertexnum<fMaxCorners;vertexnum++)
 
 }
 
-
+//this method saves a BMP image of the vertex map space, which can be viewed with gimp
 void SaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy)
 {
   ofstream bmpFile(fileName, std::ios::binary);
