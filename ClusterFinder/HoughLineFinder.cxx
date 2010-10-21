@@ -58,25 +58,21 @@ extern "C" {
 
 
 cluster::HoughLineFinder::HoughLineFinder(edm::ParameterSet const& pset) : 
-  fDBScanModuleLabel    (pset.getParameter< std::string >("DBScanModuleLabel")),
-  fMaxLines    (pset.getParameter< int >("MaxLines")),
-  fMinHits    (pset.getParameter< int >("MinHits")),
-  fSaveAccumulator    (pset.getParameter< int >("SaveAccumulator")),
-  fNumAngleCells    (pset.getParameter< int >("NumAngleCells")),
-  fRhoResolutionFactor    (pset.getParameter< int >("RhoResolutionFactor")),
-  fSmootherSigma    (pset.getParameter< double >("SmootherSigma")),
-  fMaxDistance    (pset.getParameter< double >("MaxDistance")),
-  fRhoZeroOutRange    (pset.getParameter< int >("RhoZeroOutRange")),
-  fThetaZeroOutRange    (pset.getParameter< int >("ThetaZeroOutRange")),
-  fPerCluster    (pset.getParameter< int >("HitsPerCluster"))
+  fDBScanModuleLabel       (pset.getParameter< std::string >("DBScanModuleLabel")),
+  fMaxLines                (pset.getParameter< int >("MaxLines")),
+  fMinHits                 (pset.getParameter< int >("MinHits")),
+  fSaveAccumulator         (pset.getParameter< int >("SaveAccumulator")),
+  fNumAngleCells           (pset.getParameter< int >("NumAngleCells")),
+  fRhoResolutionFactor     (pset.getParameter< int >("RhoResolutionFactor")),
+  fSmootherSigma           (pset.getParameter< double >("SmootherSigma")),
+  fMaxDistance             (pset.getParameter< double >("MaxDistance")),
+  fRhoZeroOutRange         (pset.getParameter< int >("RhoZeroOutRange")),
+  fThetaZeroOutRange       (pset.getParameter< int >("ThetaZeroOutRange")),
+  fPerCluster              (pset.getParameter< int >("HitsPerCluster"))
 {
+produces< std::vector<recob::Cluster> >();
+}
 
-  produces< std::vector<recob::Cluster> >();
-
-
- }
-
-//-------------------------------------------------
 cluster::HoughLineFinder::~HoughLineFinder()
 {
 }
@@ -87,22 +83,6 @@ cluster::HoughLineFinder::HoughTransform::HoughTransform()
 
 cluster::HoughLineFinder::HoughTransform::~HoughTransform()
 {  
-}
-
-
-//-------------------------------------------------
-void cluster::HoughLineFinder::beginJob(edm::EventSetup const&)
-{
-
- 
-     //////////////////////////////////////////////////////
-     // the geometry is accessed through a edm::Service rather than 
-     // as a bare singleton - that allows one to pass parameters to
-     // the geometry in the configuration file if needed
-     //////////////////////////////////////////////////////
-     edm::Service<geo::Geometry> geo;
-
- 
 }
 
 void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
@@ -146,7 +126,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
 
      edm::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
 
-     // This loop below is weird. Might Talk to Josh. EC, 1-Oct-2010.
+     // This is the loop over clusters. The algorithm searches for lines on a (DBSCAN) cluster-by-cluster basis. 
      while(clusterIter!=clusIn.end()) 
        {
  	hit.clear();
@@ -180,7 +160,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	int x, y;
 	unsigned int channel, plane, wire;
  	//there must be a better way to find which plane a cluster comes from
- 	int dx=geom->Nwires(1);//number of wires 
+ 	int dx=geom->Nwires(0);//number of wires 
  	int dy=hit[0]->Wire()->fSignal.size();//number of time samples. 
  	skip.clear();
  	skip.resize(hit.size());
@@ -404,25 +384,25 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
 		vanilla recob::Cluster*, not edm::Ptr<recob::Cluster>.
 		EC, 7-Oct-2010.
 	      */
- 	      recob::Cluster* cluster = new recob::Cluster(clusterHits);	      
+ 	      recob::Cluster cluster(clusterHits);	      
 
- 	      cluster->SetSlope(slope);
- 	      cluster->SetIntercept(intercept);
+ 	      cluster.SetSlope(slope);
+ 	      cluster.SetIntercept(intercept);
 	      channel = (*clusterHits.begin())->Wire()->RawDigit()->Channel(); 
  	      geom->ChannelToWire(channel,plane,wire);
- 	      cluster->SetStartWire(wire);
- 	      cluster->SetStartTime((*clusterHits.begin())->CrossingTime());
+ 	      cluster.SetStartWire(wire);
+ 	      cluster.SetStartTime((*clusterHits.begin())->CrossingTime());
  	      //cluster->SetStartTime(slope*(double)(wire)+intercept);
  	      channel = (*clusterHits.end())->Wire()->RawDigit()->Channel(); 
  	      geom->ChannelToWire(channel,plane,wire);
- 	      cluster->SetEndWire(wire);        
- 	      cluster->SetEndTime((*clusterHits.end())->CrossingTime());
+ 	      cluster.SetEndWire(wire);        
+ 	      cluster.SetEndTime((*clusterHits.end())->CrossingTime());
  	      //cluster->SetEndTime(slope*(double)(wire)+intercept);
- 	      cluster->SetID(clusterID);
+ 	      cluster.SetID(clusterID);
 
  	      clusterID++;
 	      
- 	      ccol->push_back(*cluster);
+ 	      ccol->push_back(cluster);
 	      
 
 	    }
@@ -555,6 +535,7 @@ bool cluster::HoughLineFinder::HoughTransform::DoAddPoint(int x, int y)
   return true;
 }
 
+//this method saves a BMP image of the Hough Accumulator, which can be viewed with gimp
 void SaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy)
 {
   ofstream bmpFile(fileName, std::ios::binary);

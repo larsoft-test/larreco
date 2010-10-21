@@ -58,12 +58,6 @@ namespace cluster {
       int m_numAccumulated;
       int m_rhoResolutionFactor;
       int m_numAngleCells;
-      Int_t* m_hitidZ;      //Hit ID 
-      Float_t* m_mipZ;      //MIP deposition of hit (peak height)
-      Float_t* m_drifttimeZ; //drift time of hit
-      Float_t* m_widthZ;     //width of hit (end time - start time)
-      Float_t* m_upadcZ;     //MIP deposition of hit (integrated)
-
       std::vector<double> m_cosTable;
       std::vector<double> m_sinTable;
       bool DoAddPoint(int x, int y);
@@ -85,7 +79,6 @@ namespace cluster {
   protected:
 
     friend class HoughTransform;
-    std::string fHitFolder;
   };
   
   

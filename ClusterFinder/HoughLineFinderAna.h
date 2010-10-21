@@ -24,25 +24,23 @@ namespace cluster {
      
   private:
 
-    TH1F* fGenerated[6];  ///< Spectra as generated. Unused, it'd seem.
-
     std::string fHoughModuleLabel;
     std::string fDigitModuleLabel;
     std::string fHitModuleLabel;
-      TTree* tree;
-      Int_t m_run;          // Run number
-      Double_t m_run_timestamp;          // Run number
-      Int_t m_event;        // Event number
-      Int_t m_plane;        // Plane number
-      Int_t m_clusterid;    // Cluster ID
-      Int_t m_wirespan;    // Wire spanned by track
-      Int_t m_sizeClusterZ;  //Number of clusters
-      Int_t m_sizeHitZ;      //Number of Hits
-      Int_t *m_hitidZ;
-      Double_t *m_mipZ;
-      Double_t *m_drifttimeZ;
-      Double_t *m_widthZ;
-      Double_t *m_upadcZ;
+      TTree* ftree;
+      Int_t fm_run;          // Run number
+      Double_t fm_run_timestamp;          // Run number
+      Int_t fm_event;        // Event number
+      Int_t fm_plane;        // Plane number
+      Int_t fm_clusterid;    // Cluster ID
+      Int_t fm_wirespan;    // Wire spanned by track
+      Int_t fm_sizeClusterZ;  //Number of clusters
+      Int_t fm_sizeHitZ;      //Number of Hits
+      Int_t *fm_hitidZ;
+      Double_t *fm_mipZ;
+      Double_t *fm_drifttimeZ;
+      Double_t *fm_widthZ;
+      Double_t *fm_upadcZ;
       
   };
   
