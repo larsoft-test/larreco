@@ -41,7 +41,7 @@
 
 //-------------------------------------------------
 cluster::DBSCANfinderAna::DBSCANfinderAna(edm::ParameterSet const& pset) : 
-  fEvtModuleLabel          (pset.getParameter< std::string >("singlegen")),
+  
   fDigitModuleLabel         (pset.getParameter< std::string >("DigitModuleLabel")),
   fHitModuleLabel           (pset.getParameter< std::string >("HitModuleLabel")),
   fLArG4ModuleLabel         (pset.getParameter< std::string >("LArG4ModuleLabel")),

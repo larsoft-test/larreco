@@ -2,7 +2,8 @@
 #
 # $Id: ex02.py,v 1.5 2010/05/18 21:24:21 kutschke Exp $
 #
-# Original author J. Spitz
+#  /author kinga.partyka@yale.edu
+#           echurch@fnal.gov
 #
 # Spacing is not signficant in this file.
 
@@ -14,7 +15,7 @@ process = clusterfinder.Process("ClusterFinder")
 
 # Maximum number of events to do.
 process.maxEvents = clusterfinder.untracked.PSet(
-    input = clusterfinder.untracked.int32(9) # See if this works to run fewer than are in input file.
+    input = clusterfinder.untracked.int32(3) # See if this works to run fewer than are in input file.
 )
 
 # Load the standard message logger configuration.
