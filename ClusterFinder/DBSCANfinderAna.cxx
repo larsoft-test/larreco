@@ -130,10 +130,11 @@ void cluster::DBSCANfinderAna::analyze(const edm::Event& evt,  edm::EventSetup c
   evt.getByLabel(fDigitModuleLabel,rdListHandle);
   edm::Handle< std::vector<recob::Hit> > hitListHandle;
   evt.getByLabel(fHitModuleLabel,hitListHandle);
-  edm::Handle< std::vector<sim::ParticleList> > partListHandle;
-  evt.getByLabel(fLArG4ModuleLabel,partListHandle);
-  edm::Handle< std::vector<sim::LArVoxelList> > voxelListHandle;
-  evt.getByLabel(fLArG4ModuleLabel,voxelListHandle);
+  
+ 
+ //  edm::Handle< std::vector<sim::LArVoxelList> > voxelListHandle;
+//   evt.getByLabel(fLArG4ModuleLabel,voxelListHandle);
+  
   edm::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
   evt.getByLabel(fGenieGenModuleLabel,mctruthListHandle);
   edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
@@ -162,25 +163,19 @@ void cluster::DBSCANfinderAna::analyze(const edm::Event& evt,  edm::EventSetup c
     }
   */
 
-  sim::ParticleList check_particleList = sim::SimListUtils::GetParticleList(evt,fEvtModuleLabel);
-  sim::ParticleList particleList = sim::SimListUtils::GetParticleList(evt,fEvtModuleLabel);
-  sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt,fEvtModuleLabel);
 
-  // edm::Ptr<sim::ParticleList> check_particleList;
-//   edm::Ptr<sim::ParticleList> particleList;
-//   edm::PtrVector<sim::ParticleList> _particleList;
-//  for (unsigned int ii = 0; ii <  partListHandle->size(); ++ii)
-//   {
-//     edm::Ptr<sim::ParticleList> partlist(partListHandle,ii);
-//     _particleList.push_back(partlist);
-//   }
+//get the sim::Particle collection from the edm::Event and then use the Simulation/SimListUtils object to create a sim::ParticleList from the edm::Event.  
+
+static sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
+
+
   
   std::vector<int> mc_trackids;
   
-  check_particleList(_particleList[0]);
+  //check_particleList(_particleList[0]);
   //std::cout<<"checking trackID: ";
-  for ( sim::ParticleList::const_iterator i = check_particleList.begin();
-	i != check_particleList.end(); ++i )
+  for ( sim::ParticleList::const_iterator i = _particleList.begin();
+	i != _particleList.end(); ++i )
     {
       // const sim::Particle* particle = (*i).second;
       //int pdgcode=particle->PdgCode();
@@ -200,16 +195,18 @@ void cluster::DBSCANfinderAna::analyze(const edm::Event& evt,  edm::EventSetup c
   // std::cout<<"I have in total "<<mc_trackids.size()<<" different tracks"<<std::endl;
   
   //----------------------------------------------------------------
+  static sim::LArVoxelList voxelList = sim::SimListUtils::GetLArVoxelList(evt, fLArG4ModuleLabel);
   
-  edm::PtrVector<sim::LArVoxelList> larVoxelList;
-  for (unsigned int ii = 0; ii <  voxelListHandle->size(); ++ii)
-    {
-      edm::Ptr<sim::LArVoxelList> voxellist(voxelListHandle,ii);
-      larVoxelList.push_back(voxellist);
-    }
-  // There's probably only one LArVoxelList per event, but ART-nee'-FMWK... blah blah blah
-  edm::Ptr<sim::LArVoxelList> voxelList(voxelListHandle,larVoxelList.size()-1);
- 
+  
+  // edm::PtrVector<sim::LArVoxelList> larVoxelList;
+//   for (unsigned int ii = 0; ii <  voxelListHandle->size(); ++ii)
+//     {
+//       edm::Ptr<sim::LArVoxelList> voxellist(voxelListHandle,ii);
+//       larVoxelList.push_back(voxellist);
+//     }
+//   // There's probably only one LArVoxelList per event, but ART-nee'-FMWK... blah blah blah
+//   edm::Ptr<sim::LArVoxelList> voxelList(voxelListHandle,larVoxelList.size()-1);
+//  
   
   //---------------------------------------------------------------- 
   edm::PtrVector<simb::MCTruth> mclist;
@@ -346,7 +343,7 @@ void cluster::DBSCANfinderAna::analyze(const edm::Event& evt,  edm::EventSetup c
 	      const sim::LArVoxelID* voxelID = &voxelIDval;
 	      if(voxelID==0){std::cout<<"voxelID =0!!!!!!!!! ************"<<std::endl;}
 	      // sim::LArVoxelData& voxelData =const_cast<sim::LArVoxelList*> (voxelList)->at(*voxelID);
-	      const sim::LArVoxelData& voxelData = voxelList->at(*voxelID);
+	      const sim::LArVoxelData& voxelData = voxelList.at(*voxelID);
 	    
 	    
 	      int numberParticles = voxelData.NumberParticles();
@@ -364,13 +361,13 @@ void cluster::DBSCANfinderAna::analyze(const edm::Event& evt,  edm::EventSetup c
 		  for( unsigned int i=0; i<_particleList.size(); ++i )
 		    {
 		      // const sim::ParticleList* particleList = _particleList[i];
-		      particleList = _particleList[i];
+		      //particleList = _particleList[i];
 		      
 
 		      // 	double energyTrackID=voxelData.Energy[trackID];
 		      //  	std::cout<<"ENERGY OF PRIMARY TRACKID= "<<energyTrackID<<std::endl;
 		    
-		      const sim::Particle* particle = particleList.at( trackID );
+		      const sim::Particle* particle = _particleList.at( trackID );
 		      int pdg = particle->PdgCode();
 		      
 		      double energy2=voxelData.Energy(i);
@@ -402,11 +399,11 @@ void cluster::DBSCANfinderAna::analyze(const edm::Event& evt,  edm::EventSetup c
 		      vec_pdg.push_back(pdg);
 		      // std::cout<<"_en_11= "<<_en_11<<std::endl;
 		      //while particle is not a primary particle and going up in a chain of trackIDs is not going to change its pdg code, go up the chain.
-		      while ( (! particleList.IsPrimary( trackID )) && (((particleList.at(particle->Mother()))->PdgCode())==pdg))
+		      while ( (! _particleList.IsPrimary( trackID )) && (((_particleList.at(particle->Mother()))->PdgCode())==pdg))
 			{
 			  trackID = particle->Mother();
 			  //std::cout<<"((NOt a PRIMARY ORIGINALLY!!! ) trackID= "<<trackID<<std::endl;
-			  particle = particleList.at( trackID );
+			  particle = _particleList.at( trackID );
 			  pdg= particle->PdgCode();
 			  //	 std::cout<<"(NOt a PRIMARY ORIGINALLY!!! ) The PDG from HIT is: "<<pdg<<std::endl;
 			  
@@ -797,7 +794,7 @@ void cluster::DBSCANfinderAna::analyze(const edm::Event& evt,  edm::EventSetup c
       const sim::LArVoxelID* voxelID = &voxelIDval;
       if(voxelID==0){std::cout<<"voxelID =0!!!!!!!!! ************"<<std::endl;}
       // sim::LArVoxelData& voxelData =const_cast<sim::LArVoxelList*> (voxelList)->at(*voxelID);
-      const sim::LArVoxelData& voxelData = voxelList->at(*voxelID);
+      const sim::LArVoxelData& voxelData = voxelList.at(*voxelID);
 	     
 	     
       int numberParticles = voxelData.NumberParticles();
@@ -809,9 +806,11 @@ void cluster::DBSCANfinderAna::analyze(const edm::Event& evt,  edm::EventSetup c
 		 
 	  for( unsigned int i=0; i<_particleList.size(); ++i )
 	    {
-	      edm::Ptr<sim::ParticleList> particleList(partListHandle,i);
+	      //edm::Ptr<sim::ParticleList> particleList(partListHandle,i);
 	      // This barfs, EC, 6-Oct-2010.
-	      const sim::Particle* particle = particleList->at( trackID );
+	      //const sim::ParticleList particleList = _particleList;
+	      
+	      const sim::Particle* particle = _particleList.at( trackID );
 	      int pdg = particle->PdgCode();
 	      //  std::cout<<"pdg= "<<pdg<<std::endl;
 		     
