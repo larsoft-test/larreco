@@ -38,22 +38,12 @@ extern "C" {
 #include "FWCore/Framework/interface/TFileDirectory.h" 
 #include "FWCore/MessageLogger/interface/MessageLogger.h" 
  
-#include "Geometry/Geometry.h"
+#include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
-#include "SimulationBase/MCFlux.h"
-#include "SimulationBase/MCNeutrino.h"
-#include "SimulationBase/MCTruth.h"
-#include "RawData/RawDigit.h"
-#include "Simulation/Particle.h"
-#include "Simulation/ParticleList.h"
-#include "Simulation/LArVoxelList.h"
-#include "RecoBase/Hit.h"
-#include "RecoBase/Cluster.h"
-#include <Simulation/LArVoxelID.h>
-#include <Simulation/Electrons.h>
-#include <Simulation/SimDigit.h>
-#include "Geometry/WireGeo.h"
-#include "RawData/RawDigit.h"
+#include "SimulationBase/simbase.h"
+#include "RecoBase/recobase.h"
+#include "Geometry/geo.h"
+
 
 
 
