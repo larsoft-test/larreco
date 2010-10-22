@@ -45,43 +45,49 @@ extern "C" {
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
 
+//-----------------------------------------------------------------------------
 vertex::HarrisVertexFinder::HarrisVertexFinder(edm::ParameterSet const& pset) :
-   fTimeBins        (pset.getParameter< int >("TimeBins")),
-   fMaxCorners      (pset.getParameter< int >("MaxCorners")),
-   fGsigma          (pset.getParameter< double >("Gsigma")),
-   fWindow          (pset.getParameter< int >("Window")),
-   fThreshold       (pset.getParameter< double >("Threshold")),
-   fSaveVertexMap   (pset.getParameter< int >("SaveVertexMap")),
-   fHitModuleLabel  (pset.getParameter< std::string >("HitModuleLabel"))
+  fTimeBins        (pset.getParameter< int         >("TimeBins")      ),
+  fMaxCorners      (pset.getParameter< int         >("MaxCorners")    ),
+  fGsigma          (pset.getParameter< double      >("Gsigma")        ),
+  fWindow          (pset.getParameter< int         >("Window")        ),
+  fThreshold       (pset.getParameter< double      >("Threshold")     ),
+  fSaveVertexMap   (pset.getParameter< int         >("SaveVertexMap") ),
+  fHitModuleLabel  (pset.getParameter< std::string >("HitModuleLabel"))
 {
- produces< std::vector<recob::Vertex> >();
+  produces< std::vector<recob::Vertex> >();
 }
 
+//-----------------------------------------------------------------------------
 vertex::HarrisVertexFinder::~HarrisVertexFinder()
 {
 }
 
+//-----------------------------------------------------------------------------
 double vertex::HarrisVertexFinder::Gaussian(int x, int y, double sigma)
 {
-double Norm=1./sqrt(2*TMath::Pi()*pow(sigma,2));
-double value=Norm*exp(-(pow(x,2)+pow(y,2))/(2*pow(sigma,2)));
-return value;
+  double Norm=1./sqrt(2*TMath::Pi()*pow(sigma,2));
+  double value=Norm*exp(-(pow(x,2)+pow(y,2))/(2*pow(sigma,2)));
+  return value;
 }
 
+//-----------------------------------------------------------------------------
 double vertex::HarrisVertexFinder::GaussianDerivativeX(int x,int y)
 {
-double Norm=1./(sqrt(2*TMath::Pi())*pow(fGsigma,3));
-double value=Norm*(-x)*exp(-(pow(x,2)+pow(y,2))/(2*pow(fGsigma,2)));
-return value;
+  double Norm=1./(sqrt(2*TMath::Pi())*pow(fGsigma,3));
+  double value=Norm*(-x)*exp(-(pow(x,2)+pow(y,2))/(2*pow(fGsigma,2)));
+  return value;
 }
 
+//-----------------------------------------------------------------------------
 double vertex::HarrisVertexFinder::GaussianDerivativeY(int x,int y)
 {
-double Norm=1./(sqrt(2*TMath::Pi())*pow(fGsigma,3));
-double value=Norm*(-y)*exp(-(pow(x,2)+pow(y,2))/(2*pow(fGsigma,2)));
-return value;
+  double Norm=1./(sqrt(2*TMath::Pi())*pow(fGsigma,3));
+  double value=Norm*(-y)*exp(-(pow(x,2)+pow(y,2))/(2*pow(fGsigma,2)));
+  return value;
 }
 
+//-----------------------------------------------------------------------------
 void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&)
 {
 
@@ -97,16 +103,16 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
   //std::vector<recob::Vertex*> VertexVector; //holds vertices to be saved
   filter::ChannelFilter chanFilt;  
   edm::PtrVector<recob::Hit> cHits;
-   //std::vector<const recob::Hit *> cHits;
+  //std::vector<const recob::Hit *> cHits;
   edm::PtrVector<recob::Hit> hit;
    
   //std::vector<const recob::Cluster*>::iterator clusterIter;
-   edm::PtrVector<recob::Cluster> clusIn;
-    for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
-      {
-        edm::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
-        clusIn.push_back(cluster);
-      }
+  edm::PtrVector<recob::Cluster> clusIn;
+  for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
+    {
+      edm::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
+      clusIn.push_back(cluster);
+    }
 
   int flag=0;
   int windex=0;//the wire index to make sure the vertex finder does not fall off the edge of the hit map
@@ -117,179 +123,186 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
   double MatrixAAsum,MatrixBBsum,MatrixCCsum;
   std::vector<double> Cornerness2;
   //gaussian window definitions. The cell weights are calculated here to help the algorithm's speed
-  double w[49]={Gaussian(-3,3,fGsigma),Gaussian(-2,3,fGsigma),Gaussian(-1,3,fGsigma),Gaussian(0,3,fGsigma),Gaussian(1,3,fGsigma),Gaussian(2,3,fGsigma),Gaussian(3,3,fGsigma),Gaussian(-3,2,fGsigma),Gaussian(-2,2,fGsigma),Gaussian(-1,2,fGsigma),Gaussian(0,2,fGsigma),Gaussian(1,2,fGsigma),Gaussian(2,2,fGsigma),Gaussian(3,2,fGsigma),Gaussian(-3,1,fGsigma),Gaussian(-2,1,fGsigma),Gaussian(-1,1,fGsigma),Gaussian(0,1,fGsigma),Gaussian(1,1,fGsigma),Gaussian(2,1,fGsigma),Gaussian(3,1,fGsigma),Gaussian(-3,0,fGsigma),Gaussian(-2,0,fGsigma),Gaussian(-1,0,fGsigma),Gaussian(0,0,fGsigma),Gaussian(1,0,fGsigma),Gaussian(2,0,fGsigma),Gaussian(3,0,fGsigma),Gaussian(-3,-1,fGsigma),Gaussian(-2,-1,fGsigma),Gaussian(-1,-1,fGsigma),Gaussian(0,-1,fGsigma),Gaussian(1,-1,fGsigma),Gaussian(2,-1,fGsigma),Gaussian(3,-1,fGsigma),Gaussian(-3,-2,fGsigma),Gaussian(-2,-2,fGsigma),Gaussian(-1,-2,fGsigma),Gaussian(0,-2,fGsigma),Gaussian(1,-2,fGsigma),Gaussian(2,-2,fGsigma),Gaussian(3,-2,fGsigma),Gaussian(-3,-3,fGsigma),Gaussian(-2,-3,fGsigma),Gaussian(-1,-3,fGsigma),Gaussian(0,-3,fGsigma),Gaussian(1,-3,fGsigma),Gaussian(2,-3,fGsigma),Gaussian(3,-3,fGsigma)};
-  
-  double wx[49]={GaussianDerivativeX(-3,3),GaussianDerivativeX(-2,3),GaussianDerivativeX(-1,3),GaussianDerivativeX(0,3),GaussianDerivativeX(1,3),GaussianDerivativeX(2,3),GaussianDerivativeX(3,3),GaussianDerivativeX(-3,2),GaussianDerivativeX(-2,2),GaussianDerivativeX(-1,2),GaussianDerivativeX(0,2),GaussianDerivativeX(1,2),GaussianDerivativeX(2,2),GaussianDerivativeX(3,2),GaussianDerivativeX(-3,1),GaussianDerivativeX(-2,1),GaussianDerivativeX(-1,1),GaussianDerivativeX(0,1),GaussianDerivativeX(1,1),GaussianDerivativeX(2,1),GaussianDerivativeX(3,1),GaussianDerivativeX(-3,0),GaussianDerivativeX(-2,0),GaussianDerivativeX(-1,0),GaussianDerivativeX(0,0),GaussianDerivativeX(1,0),GaussianDerivativeX(2,0),GaussianDerivativeX(3,0),GaussianDerivativeX(-3,-1),GaussianDerivativeX(-2,-1),GaussianDerivativeX(-1,-1),GaussianDerivativeX(0,-1),GaussianDerivativeX(1,-1),GaussianDerivativeX(2,-1),GaussianDerivativeX(3,-1),GaussianDerivativeX(-3,-2),GaussianDerivativeX(-2,-2),GaussianDerivativeX(-1,-2),GaussianDerivativeX(0,-2),GaussianDerivativeX(1,-2),GaussianDerivativeX(2,-2),GaussianDerivativeX(3,-2),GaussianDerivativeX(-3,-3),GaussianDerivativeX(-2,-3),GaussianDerivativeX(-1,-3),GaussianDerivativeX(0,-3),GaussianDerivativeX(1,-3),GaussianDerivativeX(2,-3),GaussianDerivativeX(3,-3)};
-  
-  double wy[49]={GaussianDerivativeY(-3,3),GaussianDerivativeY(-2,3),GaussianDerivativeY(-1,3),GaussianDerivativeY(0,3),GaussianDerivativeY(1,3),GaussianDerivativeY(2,3),GaussianDerivativeY(3,3),GaussianDerivativeY(-3,2),GaussianDerivativeY(-2,2),GaussianDerivativeY(-1,2),GaussianDerivativeY(0,2),GaussianDerivativeY(1,2),GaussianDerivativeY(2,2),GaussianDerivativeY(3,2),GaussianDerivativeY(-3,1),GaussianDerivativeY(-2,1),GaussianDerivativeY(-1,1),GaussianDerivativeY(0,1),GaussianDerivativeY(1,1),GaussianDerivativeY(2,1),GaussianDerivativeY(3,1),GaussianDerivativeY(-3,0),GaussianDerivativeY(-2,0),GaussianDerivativeY(-1,0),GaussianDerivativeY(0,0),GaussianDerivativeY(1,0),GaussianDerivativeY(2,0),GaussianDerivativeY(3,0),GaussianDerivativeY(-3,-1),GaussianDerivativeY(-2,-1),GaussianDerivativeY(-1,-1),GaussianDerivativeY(0,-1),GaussianDerivativeY(1,-1),GaussianDerivativeY(2,-1),GaussianDerivativeY(3,-1),GaussianDerivativeY(-3,-2),GaussianDerivativeY(-2,-2),GaussianDerivativeY(-1,-2),GaussianDerivativeY(0,-2),GaussianDerivativeY(1,-2),GaussianDerivativeY(2,-2),GaussianDerivativeY(3,-2),GaussianDerivativeY(-3,-3),GaussianDerivativeY(-2,-3),GaussianDerivativeY(-1,-3),GaussianDerivativeY(0,-3),GaussianDerivativeY(1,-3),GaussianDerivativeY(2,-3),GaussianDerivativeY(3,-3)};
+  double  w[49]={0.};
+  double wx[49]={0.};
+  double wy[49]={0.};
+  int ctr = 0;
+  for(int i = -3; i < 4; ++i){
+    for(int j = 3; j > -4; --j){
+      w[ctr] = Gaussian(i, j, fGsigma);
+      wx[ctr] = GaussianDerivativeX(i,j);
+      wy[ctr] = GaussianDerivativeY(i,j);
+      ++ctr;
+    }
+  }
   
   unsigned int channel,plane,wire,wire2;
-for(int p = 0; p < geom->Nplanes(); p++) 
-{
-  //std::vector<const recob::Hit *> vHits;//hits associtated with vertex
-  edm::PtrVector<recob::Hit> vHits;
-   // clusterIter = clusterlist.begin();    
-   edm::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
+  for(int p = 0; p < geom->Nplanes(); p++) 
+    {
+      //std::vector<const recob::Hit *> vHits;//hits associtated with vertex
+      edm::PtrVector<recob::Hit> vHits;
+      // clusterIter = clusterlist.begin();    
+      edm::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
       hit.clear();
       cHits.clear();      
-        while(clusterIter!= clusIn.end() ) {
-          cHits = (*clusterIter)->Hits(p,-1);
-          if(cHits.size() > 0)
-	    //hit.insert(hit.end(),cHits.begin(),cHits.end());
-	    edm::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
-          clusterIter++;  
-        } 
+      while(clusterIter!= clusIn.end() ) {
+	cHits = (*clusterIter)->Hits(p,-1);
+	if(cHits.size() > 0)
+	  //hit.insert(hit.end(),cHits.begin(),cHits.end());
+	  edm::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
+	clusterIter++;  
+      } 
       
       if(hit.size() == 0) 
         continue;
 
-  numberwires=geom->Nwires(0);
-  numbertimesamples=hit[0]->Wire()->fSignal.size();
-  double MatrixAsum[numberwires][fTimeBins];
-  double MatrixBsum[numberwires][fTimeBins];
-  double hit_map[numberwires][fTimeBins];//the map of hits 
-  int hit_loc[numberwires][fTimeBins];//the index of the hit that corresponds to the potential corner
-  double Cornerness[numberwires][fTimeBins];//the "weight" of a corner
+      numberwires=geom->Nwires(0);
+      numbertimesamples=hit[0]->Wire()->fSignal.size();
+      double MatrixAsum[numberwires][fTimeBins];
+      double MatrixBsum[numberwires][fTimeBins];
+      double hit_map[numberwires][fTimeBins];//the map of hits 
+      int hit_loc[numberwires][fTimeBins];//the index of the hit that corresponds to the potential corner
+      double Cornerness[numberwires][fTimeBins];//the "weight" of a corner
   
       for(int wi=0;wi < numberwires; wi++)
-     for(int timebin=0;timebin < fTimeBins; timebin++)
-     {
-     hit_map[wi][timebin]=0.;
-     hit_loc[wi][timebin]=-1;
-     Cornerness[wi][timebin]=0.;
-     MatrixAsum[wi][timebin]=0.;
-     MatrixBsum[wi][timebin]=0.;
-     }
-             
-	  for(unsigned int i=0;i < hit.size(); i++)
+	for(int timebin=0;timebin < fTimeBins; timebin++)
 	  {
-	      channel=hit[i]->Wire()->RawDigit()->Channel();
-	      geom->ChannelToWire(channel,plane,wire);
-	     //pixelization using a Gaussian
-	     for(int j=0;j <= (int)(hit[i]->EndTime()-hit[i]->StartTime()+.5); j++)     hit_map[wire][(int)((hit[i]->StartTime()+j)*(fTimeBins/numbertimesamples)+.5)]+=Gaussian((int)(j-((hit[i]->EndTime()-hit[i]->StartTime())/2.)+.5),0,hit[i]->EndTime()-hit[i]->StartTime());      
+	    hit_map[wi][timebin]=0.;
+	    hit_loc[wi][timebin]=-1;
+	    Cornerness[wi][timebin]=0.;
+	    MatrixAsum[wi][timebin]=0.;
+	    MatrixBsum[wi][timebin]=0.;
 	  }
+             
+      for(unsigned int i=0;i < hit.size(); i++)
+	{
+	  channel=hit[i]->Wire()->RawDigit()->Channel();
+	  geom->ChannelToWire(channel,plane,wire);
+	  //pixelization using a Gaussian
+	  for(int j=0;j <= (int)(hit[i]->EndTime()-hit[i]->StartTime()+.5); j++)     hit_map[wire][(int)((hit[i]->StartTime()+j)*(fTimeBins/numbertimesamples)+.5)]+=Gaussian((int)(j-((hit[i]->EndTime()-hit[i]->StartTime())/2.)+.5),0,hit[i]->EndTime()-hit[i]->StartTime());      
+	}
 	
-	////Gaussian derivative convolution  
-    for(int wire=1;wire < numberwires-1; wire++)
-     for(int timebin=1;timebin < fTimeBins-1; timebin++)
-     {
-        MatrixAsum[wire][timebin]=0.;
-        MatrixBsum[wire][timebin]=0.;
-        n=0;
-        for(int i = -3; i <= 3; i++) 
+      ////Gaussian derivative convolution  
+      for(int wire=1;wire < numberwires-1; wire++)
+	for(int timebin=1;timebin < fTimeBins-1; timebin++)
+	  {
+	    MatrixAsum[wire][timebin]=0.;
+	    MatrixBsum[wire][timebin]=0.;
+	    n=0;
+	    for(int i = -3; i <= 3; i++) 
               {
-              windex=0;
+		windex=0;
                 for(int j = -3; j <= 3; j++) 
-                {
-                tindex=0;
-                while(wire+i+windex<0)
-                windex++;
-                while(wire+i+windex>numberwires)
-                windex--;
-                while(timebin+j+tindex<0)
-                tindex++;
-                while(timebin+j+tindex>fTimeBins)
-                tindex--;               
-                MatrixAsum[wire][timebin]+=wx[n]*hit_map[wire+i+windex][timebin+j+tindex];  
-                MatrixBsum[wire][timebin]+=wy[n]*hit_map[wire+i+windex][timebin+j+tindex]; 
-                n++;
-		        }
+		  {
+		    tindex=0;
+		    while(wire+i+windex<0)
+		      windex++;
+		    while(wire+i+windex>numberwires)
+		      windex--;
+		    while(timebin+j+tindex<0)
+		      tindex++;
+		    while(timebin+j+tindex>fTimeBins)
+		      tindex--;               
+		    MatrixAsum[wire][timebin]+=wx[n]*hit_map[wire+i+windex][timebin+j+tindex];  
+		    MatrixBsum[wire][timebin]+=wy[n]*hit_map[wire+i+windex][timebin+j+tindex]; 
+		    n++;
+		  }
               }
-     }
+	  }
      
-//calculate the cornerness of each pixel while making sure not to fall off the hit map.
-   for(int wire=1;wire < numberwires-1; wire++)
-     for(int timebin=1;timebin < fTimeBins-1; timebin++)
-     {     
-        MatrixAAsum=0;
-        MatrixBBsum=0;
-        MatrixCCsum=0;
-        //Gaussian smoothing convolution
+      //calculate the cornerness of each pixel while making sure not to fall off the hit map.
+      for(int wire=1;wire < numberwires-1; wire++)
+	for(int timebin=1;timebin < fTimeBins-1; timebin++)
+	  {     
+	    MatrixAAsum=0;
+	    MatrixBBsum=0;
+	    MatrixCCsum=0;
+	    //Gaussian smoothing convolution
 	    n=0;
 
-        for(int i = -3; i <= 3; i++) 
+	    for(int i = -3; i <= 3; i++) 
               {
-              windex=0;
+		windex=0;
                 for(int j = -3; j <= 3; j++) 
-                {
-                tindex=0;
-                while(wire+i+windex<0)
-                windex++;
-                while(wire+i+windex>numberwires)
-                windex--;
-                while(timebin+j+tindex<0)
-                tindex++;
-                while(timebin+j+tindex>fTimeBins)
-                tindex--;               
-                MatrixAAsum+=w[n]*pow(MatrixAsum[wire+i][timebin+j],2);  
-                MatrixBBsum+=w[n]*pow(MatrixBsum[wire+i][timebin+j],2);                   MatrixCCsum+=w[n]*MatrixAsum[wire+i][timebin+j]*MatrixBsum[wire+i][timebin+j]; 
-                n++;
-		        }
+		  {
+		    tindex=0;
+		    while(wire+i+windex<0)
+		      windex++;
+		    while(wire+i+windex>numberwires)
+		      windex--;
+		    while(timebin+j+tindex<0)
+		      tindex++;
+		    while(timebin+j+tindex>fTimeBins)
+		      tindex--;               
+		    MatrixAAsum+=w[n]*pow(MatrixAsum[wire+i][timebin+j],2);  
+		    MatrixBBsum+=w[n]*pow(MatrixBsum[wire+i][timebin+j],2);                   MatrixCCsum+=w[n]*MatrixAsum[wire+i][timebin+j]*MatrixBsum[wire+i][timebin+j]; 
+		    n++;
+		  }
               }
        
 	    if((MatrixAAsum+MatrixBBsum)>0)		Cornerness[wire][timebin]=(MatrixAAsum*MatrixBBsum-pow(MatrixCCsum,2))/(MatrixAAsum+MatrixBBsum);
-		else
-		Cornerness[wire][timebin]=0;
+	    else
+	      Cornerness[wire][timebin]=0;
         
 	    if(Cornerness[wire][timebin]>0)
-	    {	  
-	   for(unsigned int i=0;i < hit.size(); i++)
-	     {
-	      channel=hit[i]->Wire()->RawDigit()->Channel();
-	      geom->ChannelToWire(channel,plane,wire2);	 
-	      //make sure the vertex candidate coincides with an actual hit.
-	        if(wire==wire2 && hit[i]->StartTime()<timebin*(numbertimesamples/fTimeBins) && hit[i]->EndTime()>timebin*(numbertimesamples/fTimeBins))
- 	       { 	       
- 	       //this index keeps track of the hit number
- 	       hit_loc[wire][timebin]=i;
- 	       Cornerness2.push_back(Cornerness[wire][timebin]);
- 	       break;
- 	       } 	        
-	     }	     
-	    }	    
-     }
+	      {	  
+		for(unsigned int i=0;i < hit.size(); i++)
+		  {
+		    channel=hit[i]->Wire()->RawDigit()->Channel();
+		    geom->ChannelToWire(channel,plane,wire2);	 
+		    //make sure the vertex candidate coincides with an actual hit.
+		    if(wire==wire2 && hit[i]->StartTime()<timebin*(numbertimesamples/fTimeBins) && hit[i]->EndTime()>timebin*(numbertimesamples/fTimeBins))
+		      { 	       
+			//this index keeps track of the hit number
+			hit_loc[wire][timebin]=i;
+			Cornerness2.push_back(Cornerness[wire][timebin]);
+			break;
+		      } 	        
+		  }	     
+	      }	    
+	  }
 
-std::sort(Cornerness2.rbegin(),Cornerness2.rend());
+      std::sort(Cornerness2.rbegin(),Cornerness2.rend());
 
-for(int vertexnum=0;vertexnum<fMaxCorners;vertexnum++)
-   {
-   flag=0;
-   for(int wire=0;wire < numberwires && flag==0; wire++)
-    for(int timebin=0;timebin < fTimeBins && flag==0; timebin++)
-    {    
-     if(Cornerness2.size()>(unsigned int)vertexnum)
-     if(Cornerness[wire][timebin]==Cornerness2[vertexnum] && Cornerness[wire][timebin]>0. && hit_loc[wire][timebin]>-1)
-     {
-      flag++;      
-      //thresholding
-      if(Cornerness2.size())
-      if(Cornerness[wire][timebin]<(fThreshold*Cornerness2[0]))
-      vertexnum=fMaxCorners;
+      for(int vertexnum=0;vertexnum<fMaxCorners;vertexnum++)
+	{
+	  flag=0;
+	  for(int wire=0;wire < numberwires && flag==0; wire++)
+	    for(int timebin=0;timebin < fTimeBins && flag==0; timebin++)
+	      {    
+		if(Cornerness2.size()>(unsigned int)vertexnum)
+		  if(Cornerness[wire][timebin]==Cornerness2[vertexnum] && Cornerness[wire][timebin]>0. && hit_loc[wire][timebin]>-1)
+		    {
+		      flag++;      
+		      //thresholding
+		      if(Cornerness2.size())
+			if(Cornerness[wire][timebin]<(fThreshold*Cornerness2[0]))
+			  vertexnum=fMaxCorners;
       
-      vHits.push_back(hit[hit_loc[wire][timebin]]);
-      recob::Vertex vertex(vHits);
-      vertex.SetWire(wire);
-      vertex.SetDriftTime(hit[hit_loc[wire][timebin]]->CrossingTime());
-      //weak vertices are given vertex id=1
-	  vertex.SetID(1);
-	  vertex.SetStrength(Cornerness[wire][timebin]);	  
-	  vtxcol->push_back(vertex);
-	  vHits.clear();
-	   //non-maximal suppression on a square window. The wire coordinate units are converted to time ticks so that the window is truly square. 
-	   //Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
-      for(int wireout=wire-(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5);wireout <= wire+(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5) ; wireout++)
-      for(int timebinout=timebin-fWindow;timebinout <= timebin+fWindow; timebinout++)
-       if(sqrt(pow(wire-wireout,2)+pow(timebin-timebinout,2))<fWindow)//circular window 
-       Cornerness[wireout][timebinout]=0;	  
-	 }     
-    }
-   }
+		      vHits.push_back(hit[hit_loc[wire][timebin]]);
+		      recob::Vertex vertex(vHits);
+		      vertex.SetWire(wire);
+		      vertex.SetDriftTime(hit[hit_loc[wire][timebin]]->CrossingTime());
+		      //weak vertices are given vertex id=1
+		      vertex.SetID(1);
+		      vertex.SetStrength(Cornerness[wire][timebin]);	  
+		      vtxcol->push_back(vertex);
+		      vHits.clear();
+		      //non-maximal suppression on a square window. The wire coordinate units are converted to time ticks so that the window is truly square. 
+		      //Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
+		      for(int wireout=wire-(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5);wireout <= wire+(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5) ; wireout++)
+			for(int timebinout=timebin-fWindow;timebinout <= timebin+fWindow; timebinout++)
+			  if(sqrt(pow(wire-wireout,2)+pow(timebin-timebinout,2))<fWindow)//circular window 
+			    Cornerness[wireout][timebinout]=0;	  
+		    }     
+	      }
+	}
     
-     Cornerness2.clear();
-     hit.clear();
-     if(clusterIter!=clusIn.end()) clusterIter++;
+      Cornerness2.clear();
+      hit.clear();
+      if(clusterIter!=clusIn.end()) clusterIter++;
 
-   if(p==fSaveVertexMap)
+      if(p==fSaveVertexMap)
 	{ 
 	  unsigned char *outPix = new unsigned char [fTimeBins*numberwires];
 	  //finds the maximum cell in the map for image scaling
@@ -303,7 +316,7 @@ for(int vertexnum=0;vertexnum<fMaxCorners;vertexnum++)
 		  maxCell = cell;
 		  xmaxx=x;
 		  ymaxx=y;
-		  }
+		}
 	      }
        
 	  for (int y=0; y<fTimeBins; y++)
@@ -316,16 +329,17 @@ for(int vertexnum=0;vertexnum<fMaxCorners;vertexnum++)
 	      }
 	  SaveBMPFile("harrisvertexmap.bmp", outPix, numberwires, fTimeBins);
 	  delete [] outPix;
-    }  
+	}  
     
-   evt.put(vtxcol); 
+      evt.put(vtxcol); 
     
     
-}
+    }
     
 
 }
 
+//-----------------------------------------------------------------------------
 //this method saves a BMP image of the vertex map space, which can be viewed with gimp
 void SaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy)
 {
