@@ -88,7 +88,7 @@ process.dbscan = clusterfinder.EDAnalyzer(
     "DBcluster",
     
     fDigitModuleLabel =clusterfinder.string("DigitModuleLabel"),
-     fHitModuleLabel=clusterfinder.string("HitModuleLabel"),
+     fHitsModuleLabel=clusterfinder.string("HitsModuleLabel"),
      fLArG4ModuleLabel=clusterfinder.string("LArG4ModuleLabel"),
      fDetSimModuleLabel=clusterfinder.string("DetSimModuleLabel"),
      fGenieGenModuleLabel=clusterfinder.string("GenieGenModuleLabel"),

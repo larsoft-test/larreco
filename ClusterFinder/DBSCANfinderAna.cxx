@@ -43,7 +43,7 @@
 cluster::DBSCANfinderAna::DBSCANfinderAna(edm::ParameterSet const& pset) : 
   
   fDigitModuleLabel         (pset.getParameter< std::string >("DigitModuleLabel")),
-  fHitModuleLabel           (pset.getParameter< std::string >("HitModuleLabel")),
+  fHitsModuleLabel           (pset.getParameter< std::string >("HitsModuleLabel")),
   fLArG4ModuleLabel         (pset.getParameter< std::string >("LArG4ModuleLabel")),
   fDetSimModuleLabel        (pset.getParameter< std::string >("DetSimModuleLabel")),
   fGenieGenModuleLabel      (pset.getParameter< std::string >("GenieGenModuleLabel")),
@@ -129,7 +129,7 @@ void cluster::DBSCANfinderAna::analyze(const edm::Event& evt,  edm::EventSetup c
   edm::Handle< edm::View <std::vector<sim::SimDigit> > > rdListHandle;
   evt.getByLabel(fDigitModuleLabel,rdListHandle);
   edm::Handle< std::vector<recob::Hit> > hitListHandle;
-  evt.getByLabel(fHitModuleLabel,hitListHandle);
+  evt.getByLabel(fHitsModuleLabel,hitListHandle);
   
  
  //  edm::Handle< std::vector<sim::LArVoxelList> > voxelListHandle;

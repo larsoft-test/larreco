@@ -75,7 +75,7 @@ namespace cluster {
     TH2F* fbrian_coll;
     std::string fEvtModuleLabel;
     std::string fDigitModuleLabel;
-    std::string fHitModuleLabel;
+    std::string fHitsModuleLabel;
     std::string fLArG4ModuleLabel;
     std::string fClusterFinderModuleLabel;
     std::string fDetSimModuleLabel;
