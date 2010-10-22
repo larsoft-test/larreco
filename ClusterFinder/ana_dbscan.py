@@ -15,7 +15,7 @@ process = clusterfinder.Process("ClusterFinderAna")
 
 # Maximum number of events to do.
 process.maxEvents = clusterfinder.untracked.PSet(
-    input = clusterfinder.untracked.int32(3) # See if this works to run fewer than are in input file.
+    input = clusterfinder.untracked.int32(1) # See if this works to run fewer than are in input file.
 )
 
 # Load the standard message logger configuration.
@@ -87,12 +87,12 @@ process.dbscan = clusterfinder.EDProducer(
 process.dbscanana = clusterfinder.EDAnalyzer(
     "DBclusterAna",
     
-    fDigitModuleLabel =clusterfinder.string("wiresim"),
-     fHitsModuleLabel=clusterfinder.string("ffthit"),
-     fLArG4ModuleLabel=clusterfinder.string("largeant"),
-     fDetSimModuleLabel=clusterfinder.string("detsim"),
-     fGenieGenModuleLabel=clusterfinder.string("singlegen"),
-     fClusterFinderModuleLabel=clusterfinder.string("dbscan")
+    DigitModuleLabel =clusterfinder.string("wiresim"),
+     HitsModuleLabel=clusterfinder.string("ffthit"),
+     LArG4ModuleLabel=clusterfinder.string("largeant"),
+     CalDataModuleLabel=clusterfinder.string("caldataCal"),
+     GenieGenModuleLabel=clusterfinder.string("singlegen"),
+     ClusterFinderModuleLabel=clusterfinder.string("dbscan")
     )    
 
 
@@ -105,5 +105,5 @@ process.output = clusterfinder.OutputModule(
 ####### End of the section that defines and configures modules.#########
 
 # Tell the system to execute all paths. Services, source, output are implied ....
-process.doit = clusterfinder.EndPath(process.caldataCal*process.ffthit*process.dbscan*process.output )
+process.doit = clusterfinder.EndPath(process.caldataCal*process.ffthit*process.dbscan*process.dbscanana*process.output )
 

@@ -45,7 +45,7 @@ cluster::DBclusterAna::DBclusterAna(edm::ParameterSet const& pset) :
   fDigitModuleLabel         (pset.getParameter< std::string >("DigitModuleLabel")),
   fHitsModuleLabel           (pset.getParameter< std::string >("HitsModuleLabel")),
   fLArG4ModuleLabel         (pset.getParameter< std::string >("LArG4ModuleLabel")),
-  fDetSimModuleLabel        (pset.getParameter< std::string >("DetSimModuleLabel")),
+  fCalDataModuleLabel        (pset.getParameter< std::string >("CalDataModuleLabel")),
   fGenieGenModuleLabel      (pset.getParameter< std::string >("GenieGenModuleLabel")),
   fClusterFinderModuleLabel (pset.getParameter< std::string >("ClusterFinderModuleLabel"))
 {
@@ -126,23 +126,20 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
       exit (1);
     }
   //  edm::Handle< edm::View <std::vector<raw::RawDigit> > > rdListHandle;
+  
+  std::cout<<"before getbylabel"<<std::endl;
   edm::Handle< edm::View <std::vector<sim::SimDigit> > > rdListHandle;
   evt.getByLabel(fDigitModuleLabel,rdListHandle);
   edm::Handle< std::vector<recob::Hit> > hitListHandle;
   evt.getByLabel(fHitsModuleLabel,hitListHandle);
-  
- 
- //  edm::Handle< std::vector<sim::LArVoxelList> > voxelListHandle;
-//   evt.getByLabel(fLArG4ModuleLabel,voxelListHandle);
-  
   edm::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
   evt.getByLabel(fGenieGenModuleLabel,mctruthListHandle);
   edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fClusterFinderModuleLabel,clusterListHandle);
   edm::Handle< std::vector<recob::Wire> > wireListHandle;
-  evt.getByLabel(fDetSimModuleLabel,wireListHandle);
+  evt.getByLabel(fCalDataModuleLabel,wireListHandle);
 
-
+std::cout<<"after getbylabel"<<std::endl;
 
   //  std::cout<<"****simdigit.size()= "<<simdigit.size()<<std::endl;
   //   for(int i=0; i<simdigit.size();i++){
@@ -232,12 +229,16 @@ static sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt,
     }
 
   std::cout<<"in Efficiency, clusters.size()= "<<clusters.size()<<std::endl;
+  
   //---------------------------------------------------------------
   edm::PtrVector<recob::Wire> wirelist;
+  
   for (unsigned int ii = 0; ii <  wireListHandle->size(); ++ii)
     {
-      edm::Ptr<recob::Wire> wireHolder(wireListHandle,ii);
+    edm::Ptr<recob::Wire> wireHolder(wireListHandle,ii);
+      
       wirelist.push_back(wireHolder);
+      
     }
   
   
