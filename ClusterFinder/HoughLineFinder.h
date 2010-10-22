@@ -21,8 +21,6 @@ namespace cluster {
     ~HoughLineFinder();
          
     void produce(edm::Event& evt, edm::EventSetup const&);
-    void beginJob(edm::EventSetup const&);
-
      
     class HoughTransform {
     public:
