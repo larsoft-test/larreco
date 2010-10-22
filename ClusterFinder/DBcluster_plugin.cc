@@ -11,7 +11,7 @@
 #include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
 
 
-#include "ClusterFinder/DBSCANfinder.h"
+#include "ClusterFinder/DBcluster.h"
 
 namespace cluster{
 

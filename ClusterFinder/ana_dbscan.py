@@ -84,15 +84,15 @@ process.dbscan = clusterfinder.EDProducer(
     )    
     
     
-process.dbscan = clusterfinder.EDAnalyzer(
-    "DBcluster",
+process.dbscanana = clusterfinder.EDAnalyzer(
+    "DBclusterAna",
     
-    fDigitModuleLabel =clusterfinder.string("DigitModuleLabel"),
-     fHitsModuleLabel=clusterfinder.string("HitsModuleLabel"),
-     fLArG4ModuleLabel=clusterfinder.string("LArG4ModuleLabel"),
-     fDetSimModuleLabel=clusterfinder.string("DetSimModuleLabel"),
-     fGenieGenModuleLabel=clusterfinder.string("GenieGenModuleLabel"),
-     fClusterFinderModuleLabel=clusterfinder.string("ClusterFinderModuleLabel")
+    fDigitModuleLabel =clusterfinder.string("wiresim"),
+     fHitsModuleLabel=clusterfinder.string("ffthit"),
+     fLArG4ModuleLabel=clusterfinder.string("largeant"),
+     fDetSimModuleLabel=clusterfinder.string("detsim"),
+     fGenieGenModuleLabel=clusterfinder.string("singlegen"),
+     fClusterFinderModuleLabel=clusterfinder.string("dbscan")
     )    
 
 
