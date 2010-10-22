@@ -132,8 +132,8 @@ void cluster::DBSCANfinderAna::analyze(const edm::Event& evt,  edm::EventSetup c
   evt.getByLabel(fHitsModuleLabel,hitListHandle);
   
  
- //  edm::Handle< std::vector<sim::LArVoxelList> > voxelListHandle;
-//   evt.getByLabel(fLArG4ModuleLabel,voxelListHandle);
+  //  edm::Handle< std::vector<sim::LArVoxelList> > voxelListHandle;
+  //   evt.getByLabel(fLArG4ModuleLabel,voxelListHandle);
   
   edm::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
   evt.getByLabel(fGenieGenModuleLabel,mctruthListHandle);
@@ -164,9 +164,9 @@ void cluster::DBSCANfinderAna::analyze(const edm::Event& evt,  edm::EventSetup c
   */
 
 
-//get the sim::Particle collection from the edm::Event and then use the Simulation/SimListUtils object to create a sim::ParticleList from the edm::Event.  
+  //get the sim::Particle collection from the edm::Event and then use the Simulation/SimListUtils object to create a sim::ParticleList from the edm::Event.  
 
-static sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
+  static sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
 
 
   
@@ -199,14 +199,14 @@ static sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt,
   
   
   // edm::PtrVector<sim::LArVoxelList> larVoxelList;
-//   for (unsigned int ii = 0; ii <  voxelListHandle->size(); ++ii)
-//     {
-//       edm::Ptr<sim::LArVoxelList> voxellist(voxelListHandle,ii);
-//       larVoxelList.push_back(voxellist);
-//     }
-//   // There's probably only one LArVoxelList per event, but ART-nee'-FMWK... blah blah blah
-//   edm::Ptr<sim::LArVoxelList> voxelList(voxelListHandle,larVoxelList.size()-1);
-//  
+  //   for (unsigned int ii = 0; ii <  voxelListHandle->size(); ++ii)
+  //     {
+  //       edm::Ptr<sim::LArVoxelList> voxellist(voxelListHandle,ii);
+  //       larVoxelList.push_back(voxellist);
+  //     }
+  //   // There's probably only one LArVoxelList per event, but ART-nee'-FMWK... blah blah blah
+  //   edm::Ptr<sim::LArVoxelList> voxelList(voxelListHandle,larVoxelList.size()-1);
+  //  
   
   //---------------------------------------------------------------- 
   edm::PtrVector<simb::MCTruth> mclist;

@@ -60,7 +60,7 @@ cluster::HoughLineFinder::HoughLineFinder(edm::ParameterSet const& pset) :
   fThetaZeroOutRange       (pset.getParameter< int >("ThetaZeroOutRange")),
   fPerCluster              (pset.getParameter< int >("HitsPerCluster"))
 {
-produces< std::vector<recob::Cluster> >();
+  produces< std::vector<recob::Cluster> >();
 }
 
 cluster::HoughLineFinder::~HoughLineFinder()
@@ -78,7 +78,7 @@ cluster::HoughLineFinder::HoughTransform::~HoughTransform()
 void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
 {
 
-   //////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////
   // here is how to get a collection of objects out of the file
   // and connect it to a edm::Handle
   //////////////////////////////////////////////////////
@@ -88,37 +88,37 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
   //Point to a collection of clusters to output.
   std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
 
-   std::vector<int> skip;  
+  std::vector<int> skip;  
 
-   edm::Service<geo::Geometry> geom;
-   filter::ChannelFilter chanFilt;
-   HoughTransform c;
-   HoughTransform cc;
-   HoughTransform ccc;
-   extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
-   edm::PtrVector<recob::Hit> cHits;
-   //std::vector<const recob::Hit *> cHits;
-   edm::PtrVector<recob::Hit> hit;
-   //std::vector<const recob::Hit *> hit;
+  edm::Service<geo::Geometry> geom;
+  filter::ChannelFilter chanFilt;
+  HoughTransform c;
+  HoughTransform cc;
+  HoughTransform ccc;
+  extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
+  edm::PtrVector<recob::Hit> cHits;
+  //std::vector<const recob::Hit *> cHits;
+  edm::PtrVector<recob::Hit> hit;
+  //std::vector<const recob::Hit *> hit;
 
-   edm::PtrVector<recob::Cluster> clusIn;
-    for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
+  edm::PtrVector<recob::Cluster> clusIn;
+  for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
+    {
+      edm::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
+      clusIn.push_back(cluster);
+    }
+
+
+
+  //std::vector<const recob::Cluster*>::iterator clusterIter;
+
+  for(int p = 0; p < geom->Nplanes(); p++) {
+
+    edm::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
+
+    // This is the loop over clusters. The algorithm searches for lines on a (DBSCAN) cluster-by-cluster basis. 
+    while(clusterIter!=clusIn.end()) 
       {
-        edm::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
-        clusIn.push_back(cluster);
-      }
-
-
-
-   //std::vector<const recob::Cluster*>::iterator clusterIter;
-
-   for(int p = 0; p < geom->Nplanes(); p++) {
-
-     edm::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
-
-     // This is the loop over clusters. The algorithm searches for lines on a (DBSCAN) cluster-by-cluster basis. 
-     while(clusterIter!=clusIn.end()) 
-       {
  	hit.clear();
  	cHits.clear();
  	if(fPerCluster)
@@ -198,60 +198,60 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	    if(fSmootherSigma>0)  
  	      {  
 		
- 	      double Weight[accDx];
- 	      double newcellvalue[accDx];
- 	      for(int i=0;i<=(3*fSmootherSigma);i++)
- 		{
- 		  //find the 2D Gaussian's weights
- 		  Weight[i]=norm*exp((-(pow(i,2)))/(2.*pow(fSmootherSigma,2))); 
- 		}
- 	      //two separate 1D Gaussian blurs are used to form a 2D Gaussian blur.
- 	      //smoothing in x (rho) direction 
- 	      for (y=0; y<accDy; y++)
- 		{
- 		  for (x=0; x<accDx; x++)
- 		    {
- 		      for(int i=0;i<=(3*fSmootherSigma);i++)
- 			{
- 			  //if the Gaussian falls off the accumulator edge, the accumulator is extended using mirrored cells 
- 			  if(i==0)
- 			    newcellvalue[x] = Weight[i]*c.GetCell(y,x);
- 			  else if(x+i>=accDx && x-i > 0)
- 			    newcellvalue[x] += 2.*Weight[i]*c.GetCell(y,x-i);
- 			  else if(x-i<0 && x+i < accDx)
- 			    newcellvalue[x] += 2.*Weight[i]*c.GetCell(y,x+i);
- 			  else
- 			    newcellvalue[x] += Weight[i]*(c.GetCell(y,x+i)+c.GetCell(y,x-i));                             
- 			}   
- 		      cc.SetCell(y,x,(int)newcellvalue[x]);
- 		    }
- 		}
- 	      //smoothing in y (theta) direction
- 	      for (y=0; y<accDy; y++)
- 		{
- 		  for (x=0; x<accDx; x++)
- 		    {
- 		      for(int i=0;i<=(3*fSmootherSigma);i++)
- 			{
- 			  //if the Gaussian falls off the accumulator edge, the accumulator is extended using mirrored cells 
- 			  if(i==0)
- 			    newcellvalue[x] = Weight[i]*cc.GetCell(y,x);
- 			  else if(y+i>=accDy && y-i > 0)
- 			    newcellvalue[x] += 2.*Weight[i]*cc.GetCell(y-i,x);
- 			  else if(y-i<0 && y+i < accDy)
- 			    newcellvalue[x] += 2.*Weight[i]*cc.GetCell(y+i,x);
- 			  else
- 			    newcellvalue[x] += Weight[i]*(cc.GetCell(y+i,x)+cc.GetCell(y-i,x));                    
- 			} 
- 		      ccc.SetCell(y,x,(int)newcellvalue[x]);
- 		    }
- 		}
+		double Weight[accDx];
+		double newcellvalue[accDx];
+		for(int i=0;i<=(3*fSmootherSigma);i++)
+		  {
+		    //find the 2D Gaussian's weights
+		    Weight[i]=norm*exp((-(pow(i,2)))/(2.*pow(fSmootherSigma,2))); 
+		  }
+		//two separate 1D Gaussian blurs are used to form a 2D Gaussian blur.
+		//smoothing in x (rho) direction 
+		for (y=0; y<accDy; y++)
+		  {
+		    for (x=0; x<accDx; x++)
+		      {
+			for(int i=0;i<=(3*fSmootherSigma);i++)
+			  {
+			    //if the Gaussian falls off the accumulator edge, the accumulator is extended using mirrored cells 
+			    if(i==0)
+			      newcellvalue[x] = Weight[i]*c.GetCell(y,x);
+			    else if(x+i>=accDx && x-i > 0)
+			      newcellvalue[x] += 2.*Weight[i]*c.GetCell(y,x-i);
+			    else if(x-i<0 && x+i < accDx)
+			      newcellvalue[x] += 2.*Weight[i]*c.GetCell(y,x+i);
+			    else
+			      newcellvalue[x] += Weight[i]*(c.GetCell(y,x+i)+c.GetCell(y,x-i));                             
+			  }   
+			cc.SetCell(y,x,(int)newcellvalue[x]);
+		      }
+		  }
+		//smoothing in y (theta) direction
+		for (y=0; y<accDy; y++)
+		  {
+		    for (x=0; x<accDx; x++)
+		      {
+			for(int i=0;i<=(3*fSmootherSigma);i++)
+			  {
+			    //if the Gaussian falls off the accumulator edge, the accumulator is extended using mirrored cells 
+			    if(i==0)
+			      newcellvalue[x] = Weight[i]*cc.GetCell(y,x);
+			    else if(y+i>=accDy && y-i > 0)
+			      newcellvalue[x] += 2.*Weight[i]*cc.GetCell(y-i,x);
+			    else if(y-i<0 && y+i < accDy)
+			      newcellvalue[x] += 2.*Weight[i]*cc.GetCell(y+i,x);
+			    else
+			      newcellvalue[x] += Weight[i]*(cc.GetCell(y+i,x)+cc.GetCell(y-i,x));                    
+			  } 
+			ccc.SetCell(y,x,(int)newcellvalue[x]);
+		      }
+		  }
 
  	      } 
  	    else
- 	    {
- 	      ccc = c;
- 	    }
+	      {
+		ccc = c;
+	      }
  	    // zeroes out the neighborhood of all previous lines  
  	    for(unsigned int i=0;i<listofxmax.size();i++)
  	      {
