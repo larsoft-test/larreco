@@ -97,9 +97,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
   HoughTransform ccc;
   extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   edm::PtrVector<recob::Hit> cHits;
-  //std::vector<const recob::Hit *> cHits;
   edm::PtrVector<recob::Hit> hit;
-  //std::vector<const recob::Hit *> hit;
 
   edm::PtrVector<recob::Cluster> clusIn;
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
@@ -107,10 +105,6 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
       edm::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
       clusIn.push_back(cluster);
     }
-
-
-
-  //std::vector<const recob::Cluster*>::iterator clusterIter;
 
   for(int p = 0; p < geom->Nplanes(); p++) {
 
@@ -161,7 +155,6 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	std::vector<int> sequenceHolder;  //channels of hits in list
  	std::vector<int> currentHits; //working vector of hits 
  	std::vector<int> lastHits;  //best list of hits
-	//std::vector<const recob::Hit *> clusterHits; //hits beloning to a cluster
  	edm::PtrVector<recob::Hit> clusterHits;
  	double indcolscaling=0.;//a parameter to account for the different characteristic hit width of induction and collection plane
  	double centerofmassx=0;
@@ -361,19 +354,13 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  		skip[hitTemp[lastHits[i]]]=1;
  	      } 
  	      //protection against very steep uncorrelated hits
- 	      if(TMath::Abs(slope)>75. && TMath::Abs((*clusterHits.begin())->Wire()->RawDigit()->Channel()-
-						     (*clusterHits.end())->Wire()->RawDigit()->Channel())>0)
+ 	      if(TMath::Abs(slope)>75. 
+		 && TMath::Abs((*clusterHits.begin())->Wire()->RawDigit()->Channel()-
+			       (*clusterHits.end())->Wire()->RawDigit()->Channel())>0
+		 )
  		continue;
 	      
 
-
-
-
-	      /*
-		Since we're putting these on the event they must be of type
-		vanilla recob::Cluster*, not edm::Ptr<recob::Cluster>.
-		EC, 7-Oct-2010.
-	      */
  	      recob::Cluster cluster(clusterHits);	      
 
  	      cluster.SetSlope(slope);
@@ -393,14 +380,11 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	      clusterID++;
 	      
  	      ccol->push_back(cluster);
-	      
-
+	     
 	    }
 
 	  } 
   
-
-
 	//saves a bitmap image of the accumulator (useful for debugging), with scaling based on the maximum cell value
 	if(fSaveAccumulator)
 	  {   
@@ -474,6 +458,7 @@ void cluster::HoughLineFinder::HoughTransform::Init(int dx, int dy, int rhores,
       a += angleStep;
     }
 }
+
 int cluster::HoughLineFinder::HoughTransform::GetMax(int &xmax, int &ymax)
 {
   std::map<int,int>::iterator rhoIter;
@@ -491,6 +476,7 @@ int cluster::HoughLineFinder::HoughTransform::GetMax(int &xmax, int &ymax)
     }
   return maxVal;
 }
+
 bool cluster::HoughLineFinder::HoughTransform::DoAddPoint(int x, int y)
 {
   int distCenter = (int)(m_rowLength/2.);

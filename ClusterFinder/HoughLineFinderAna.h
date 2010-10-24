@@ -2,7 +2,6 @@
 #define HOUGHLINEFINDERANA_H
 
 #include "TMath.h"
-#include "TObject.h"
 #include <vector>
 #include <string>
 
@@ -27,20 +26,20 @@ namespace cluster {
     std::string fHoughModuleLabel;
     std::string fDigitModuleLabel;
     std::string fHitModuleLabel;
-      TTree* ftree;
-      Int_t fm_run;          // Run number
-      Double_t fm_run_timestamp;          // Run number
-      Int_t fm_event;        // Event number
-      Int_t fm_plane;        // Plane number
-      Int_t fm_clusterid;    // Cluster ID
-      Int_t fm_wirespan;    // Wire spanned by track
-      Int_t fm_sizeClusterZ;  //Number of clusters
-      Int_t fm_sizeHitZ;      //Number of Hits
-      Int_t *fm_hitidZ;
-      Double_t *fm_mipZ;
-      Double_t *fm_drifttimeZ;
-      Double_t *fm_widthZ;
-      Double_t *fm_upadcZ;
+    TTree* ftree;
+    Int_t fm_run;          // Run number
+    ULong64_t fm_run_timestamp;          // Run number
+    Int_t fm_event;        // Event number
+    Int_t fm_plane;        // Plane number
+    Int_t fm_clusterid;    // Cluster ID
+    Int_t fm_wirespan;    // Wire spanned by track
+    Int_t fm_sizeClusterZ;  //Number of clusters
+    Int_t fm_sizeHitZ;      //Number of Hits
+    Int_t *fm_hitidZ;
+    Double_t *fm_mipZ;
+    Double_t *fm_drifttimeZ;
+    Double_t *fm_widthZ;
+    Double_t *fm_upadcZ;
       
   };
   

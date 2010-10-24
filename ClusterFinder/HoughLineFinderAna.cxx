@@ -56,8 +56,13 @@ cluster::HoughLineFinderAna::HoughLineFinderAna(edm::ParameterSet const& pset) :
   fHoughModuleLabel    (pset.getParameter< std::string >("HoughModuleLabel")),
   fDigitModuleLabel    (pset.getParameter< std::string >("DigitModuleLabel")),
   fHitModuleLabel      (pset.getParameter< std::string >("HitModuleLabel")),
-  fm_run(0), fm_event(0), fm_plane(0), fm_clusterid(0), fm_wirespan(0), 
-  fm_sizeClusterZ(10000), fm_sizeHitZ(10000)
+  fm_run(0), 
+  fm_event(0), 
+  fm_plane(0), 
+  fm_clusterid(0), 
+  fm_wirespan(0), 
+  fm_sizeClusterZ(10000), 
+  fm_sizeHitZ(10000)
 {
 }
 
@@ -85,7 +90,7 @@ void cluster::HoughLineFinderAna::beginJob(edm::EventSetup const&)
      fm_widthZ = new Double_t[fm_sizeHitZ];
      fm_upadcZ = new Double_t[fm_sizeHitZ];
      ftree->Branch("run", &fm_run, "run/I");
-     ftree->Branch("run_timestamp", &fm_run_timestamp, "run_timestamp/D");
+     ftree->Branch("run_timestamp", &fm_run_timestamp, "run_timestamp/l"); //l is for ULong64_t
      ftree->Branch("event", &fm_event, "event/I");
      ftree->Branch("plane",&fm_plane,"plane/I");
      ftree->Branch("clusterid",&fm_clusterid,"clusterid/I");
@@ -99,10 +104,8 @@ void cluster::HoughLineFinderAna::beginJob(edm::EventSetup const&)
 }
 
 
-
 void cluster::HoughLineFinderAna::analyze(const edm::Event& evt, edm::EventSetup const&)
 {
-
 
   edm::Handle< std::vector<recob::Cluster> > hlfListHandle;
   evt.getByLabel(fHoughModuleLabel,hlfListHandle);
@@ -110,7 +113,7 @@ void cluster::HoughLineFinderAna::analyze(const edm::Event& evt, edm::EventSetup
   evt.getByLabel(fHitModuleLabel,hitListHandle);
 
   edm::PtrVector<recob::Cluster> clusters;   
-  edm::PtrVector<recob::Hit> hits;// unused, as yet. EC, 5-Oct-2010.
+//   edm::PtrVector<recob::Hit> hits;// unused, as yet. EC, 5-Oct-2010.
     
   for (unsigned int ii = 0; ii <  hlfListHandle->size(); ++ii)
     {
@@ -124,7 +127,7 @@ void cluster::HoughLineFinderAna::analyze(const edm::Event& evt, edm::EventSetup
     std::cout << "event  : " << evt.id().event() << std::endl;
     fm_run=evt.id().run();
     fm_event=evt.id().event();
-    //fm_run_timestamp=(Double_t )evt.time(); // won't cast, EC, 7-Oct-2010.
+    fm_run_timestamp=evt.time().value(); // won't cast, EC, 7-Oct-2010.
 
     unsigned int firstwire=0;
     unsigned int lastwire=0;
@@ -142,7 +145,6 @@ void cluster::HoughLineFinderAna::analyze(const edm::Event& evt, edm::EventSetup
   {
        fm_clusterid=clusters[j]->ID();
        edm::PtrVector<recob::Hit> _hits=clusters[j]->Hits(plane,-1);
-       //std::vector<const recob::Hit*> _hits=clusters[j]->Hits(plane,-1);
 	  
    if(_hits.size()!=0)
    {
