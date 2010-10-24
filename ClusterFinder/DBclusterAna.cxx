@@ -35,18 +35,18 @@
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
 #include "RecoBase/recobase.h"
-#include "RawData/RawDigit.h"
+//#include "RawData/RawDigit.h"
 
 
-
+ 
 //-------------------------------------------------
 cluster::DBclusterAna::DBclusterAna(edm::ParameterSet const& pset) : 
   
-  fDigitModuleLabel         (pset.getParameter< std::string >("DigitModuleLabel")),
-  fHitsModuleLabel           (pset.getParameter< std::string >("HitsModuleLabel")),
-  fLArG4ModuleLabel         (pset.getParameter< std::string >("LArG4ModuleLabel")),
-  fCalDataModuleLabel        (pset.getParameter< std::string >("CalDataModuleLabel")),
-  fGenieGenModuleLabel      (pset.getParameter< std::string >("GenieGenModuleLabel")),
+  fDigitModuleLabel         (pset.getParameter< std::string >("DigitModuleLabel")        ),
+  fHitsModuleLabel          (pset.getParameter< std::string >("HitsModuleLabel")         ),
+  fLArG4ModuleLabel         (pset.getParameter< std::string >("LArG4ModuleLabel")        ),
+  fCalDataModuleLabel       (pset.getParameter< std::string >("CalDataModuleLabel")      ),
+  fGenieGenModuleLabel      (pset.getParameter< std::string >("GenieGenModuleLabel")     ),
   fClusterFinderModuleLabel (pset.getParameter< std::string >("ClusterFinderModuleLabel"))
 {
 
@@ -125,8 +125,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
       std::cout<<"**** DBclusterAna: Bailing. Don't call this module if you're not MC. "<<std::endl;
       exit (1);
     }
-  //  edm::Handle< edm::View <std::vector<raw::RawDigit> > > rdListHandle;
-  
+
   std::cout<<"before getbylabel"<<std::endl;
   edm::Handle< edm::View <std::vector<sim::SimDigit> > > rdListHandle;
   evt.getByLabel(fDigitModuleLabel,rdListHandle);
@@ -139,7 +138,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   edm::Handle< std::vector<recob::Wire> > wireListHandle;
   evt.getByLabel(fCalDataModuleLabel,wireListHandle);
 
-std::cout<<"after getbylabel"<<std::endl;
+  std::cout<<"after getbylabel"<<std::endl;
 
   //  std::cout<<"****simdigit.size()= "<<simdigit.size()<<std::endl;
   //   for(int i=0; i<simdigit.size();i++){
@@ -161,9 +160,9 @@ std::cout<<"after getbylabel"<<std::endl;
   */
 
 
-//get the sim::Particle collection from the edm::Event and then use the Simulation/SimListUtils object to create a sim::ParticleList from the edm::Event.  
+  //get the sim::Particle collection from the edm::Event and then use the Simulation/SimListUtils object to create a sim::ParticleList from the edm::Event.  
 
-static sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
+  static sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
 
 
   
@@ -196,14 +195,14 @@ static sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt,
   
   
   // edm::PtrVector<sim::LArVoxelList> larVoxelList;
-//   for (unsigned int ii = 0; ii <  voxelListHandle->size(); ++ii)
-//     {
-//       edm::Ptr<sim::LArVoxelList> voxellist(voxelListHandle,ii);
-//       larVoxelList.push_back(voxellist);
-//     }
-//   // There's probably only one LArVoxelList per event, but ART-nee'-FMWK... blah blah blah
-//   edm::Ptr<sim::LArVoxelList> voxelList(voxelListHandle,larVoxelList.size()-1);
-//  
+  //   for (unsigned int ii = 0; ii <  voxelListHandle->size(); ++ii)
+  //     {
+  //       edm::Ptr<sim::LArVoxelList> voxellist(voxelListHandle,ii);
+  //       larVoxelList.push_back(voxellist);
+  //     }
+  //   // There's probably only one LArVoxelList per event, but ART-nee'-FMWK... blah blah blah
+  //   edm::Ptr<sim::LArVoxelList> voxelList(voxelListHandle,larVoxelList.size()-1);
+  //  
   
   //---------------------------------------------------------------- 
   edm::PtrVector<simb::MCTruth> mclist;
@@ -235,7 +234,7 @@ static sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt,
   
   for (unsigned int ii = 0; ii <  wireListHandle->size(); ++ii)
     {
-    edm::Ptr<recob::Wire> wireHolder(wireListHandle,ii);
+      edm::Ptr<recob::Wire> wireHolder(wireListHandle,ii);
       
       wirelist.push_back(wireHolder);
       

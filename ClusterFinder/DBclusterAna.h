@@ -9,10 +9,6 @@
 #define DBCLUSTERANA_H
 
 #include "FWCore/Framework/interface/EDAnalyzer.h"
-#include "RecoBase/Wire.h"
-#include "RecoBase/Hit.h"
-#include "RecoBase/Cluster.h"
-#include "RawData/DAQHeader.h"
 
 #include <vector>
 #include <string>
@@ -32,10 +28,8 @@ namespace cluster {
     virtual ~DBclusterAna();
  
     /// read access to event
-      void analyze(const edm::Event& evt,  edm::EventSetup const&);
-    // analyze() Must go into new module. EC, 5-Oct-2010.
-    //    void analyze(const edm::Event& evt);
-      void beginJob(edm::EventSetup const&);
+    void analyze(const edm::Event& evt,  edm::EventSetup const&);
+    void beginJob(edm::EventSetup const&);
 
   private:
     TH1F* fNoParticles_pdg;
@@ -45,11 +39,11 @@ namespace cluster {
     TH1F* fNoParticles_pdg_per_event;
     TH1F* fCl_for_Muon;
    /*  TH1F* fCl_for_Electron; */
-/*     TH1F* fCl_for_Positron; */
-/*     TH1F* fCl_for_Pion_111; */
-/*     TH1F* fCl_for_Pion_211; */
-/*     TH1F* fCl_for_Pion_m211; */
-/*     TH1F* fCl_for_Proton; */
+   /*  TH1F* fCl_for_Positron; */
+   /*  TH1F* fCl_for_Pion_111; */
+   /*  TH1F* fCl_for_Pion_211; */
+   /*  TH1F* fCl_for_Pion_m211;*/
+   /*  TH1F* fCl_for_Proton;   */
     TH1F* fNoClustersInEvent;
     TH1F* fPercentNoise;
     TH1F* fno_of_clusters_per_track;

@@ -35,15 +35,15 @@ namespace cluster{
   edm::PtrVector<recob::Hit> clusterHits;
     
      
- TH1F *fhitwidth;
- TH1F *fhitwidth_ind_test;  
- TH1F *fhitwidth_coll_test;  
+  TH1F *fhitwidth;
+  TH1F *fhitwidth_ind_test;  
+  TH1F *fhitwidth_coll_test;  
   
   protected:
-std::string fhitsModuleLabel;
-    double fEps, fEps2;
-    int fMinPts;
-    
+  std::string fhitsModuleLabel;
+  double fEps, fEps2;
+  int fMinPts;
+  
   };
   //--------------------------------------------------------------
   class DBScan {
@@ -66,31 +66,31 @@ std::string fhitsModuleLabel;
 
      double getSimilarity(const std::vector<double> v1, const std::vector<double> v2); 
      std::vector<unsigned int> findNeighbors( unsigned int pid, double threshold, double threshold2);
-      void computeSimilarity();
-      void run_cluster() ;
-      
-      double getSimilarity2(const std::vector<double> v1, const std::vector<double> v2); 
-       void computeSimilarity2();
-       double getWidthFactor(const std::vector<double> v1, const std::vector<double> v2); 
-       void computeWidthFactor();
-      // protected:
-      
-      
-      // the collection of points we are working on
+     void computeSimilarity();
+     void run_cluster() ;
      
-        std::vector<std::vector<double> > _ps;
+     double getSimilarity2(const std::vector<double> v1, const std::vector<double> v2); 
+     void computeSimilarity2();
+     double getWidthFactor(const std::vector<double> v1, const std::vector<double> v2); 
+     void computeWidthFactor();
+     // protected:
       
-      // mapping point_id -> clusterId
-       std::vector<unsigned int> _pointId_to_clusterId; 
       
-      
-      std::vector<std::vector<double> >_sim;
-      std::vector<std::vector<double> >_sim2;
-      std::vector<std::vector<double> >_sim3;
-       	
-      friend std::ostream& operator << (std::ostream& o, const DBScan& c);
-      friend 	std::ostream& operator<<(std::ostream& o,const std::vector<double> & p);
-      
+     // the collection of points we are working on
+     
+     std::vector<std::vector<double> > _ps;
+     
+     // mapping point_id -> clusterId
+     std::vector<unsigned int> _pointId_to_clusterId; 
+     
+     
+     std::vector<std::vector<double> > _sim;
+     std::vector<std::vector<double> > _sim2;
+     std::vector<std::vector<double> > _sim3;
+     
+     friend std::ostream& operator << (std::ostream& o, const DBScan& c);
+     friend std::ostream& operator <<(std::ostream& o,const std::vector<double> & p);
+     
   private:
       
       // eps radius
@@ -104,7 +104,5 @@ std::string fhitsModuleLabel;
       // noise vector
       std::vector<bool> _noise;
       std::vector<bool> _visited;
-     
-      
   };
 }
