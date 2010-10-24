@@ -12,13 +12,7 @@
 #include "TMath.h"
 #include <vector>
 #include <string>
-namespace edm {   
-  class Event;
-  class ParameterSet; 
-}
 
-class TH1F;
-class TTree;
 namespace vertex {
    
  class HarrisVertexFinder :  public edm::EDProducer {
@@ -36,14 +30,12 @@ namespace vertex {
   private:
   
     std::string fHitModuleLabel;
-    std::string fInputFolder;
-    std::string fOutputFolder;
-    int fTimeBins;
-    int fMaxCorners;
-    double fGsigma;
-    int fWindow;
-    double fThreshold;
-    int fSaveVertexMap;
+    int         fTimeBins;
+    int         fMaxCorners;
+    double      fGsigma;
+    int         fWindow;
+    double      fThreshold;
+    int         fSaveVertexMap;
   };
     
 }

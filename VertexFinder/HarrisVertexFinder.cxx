@@ -4,11 +4,16 @@
 //
 // joshua.spitz@yale.edu
 //
-//  This algorithm is designed to find (weak) vertices from hits after deconvolution and hit finding. A weak vertex is a vertex that has been found using a dedicated vertex finding algorithm only. A strong vertex is a vertex that has been found using a dedicated vertex finding algorithm and matched to a crossing of two or more HoughLineFinder lines. The VertexMatch module finds strong vertices.
+//  This algorithm is designed to find (weak) vertices from hits after deconvolution and hit finding. 
+//  A weak vertex is a vertex that has been found using a dedicated vertex finding algorithm only. A 
+//  strong vertex is a vertex that has been found using a dedicated vertex finding algorithm and matched 
+//  to a crossing of two or more HoughLineFinder lines. The VertexMatch module finds strong vertices.
 ////////////////////////////////////////////////////////////////////////
 /// The algorithm is based on:
-///C. Harris and M. Stephens (1988). "A combined corner and edge detector". Proceedings of the 4th Alvey Vision Conference. pp. 147-151.
-///B. Morgan (2010). "Interest Point Detection for Reconstruction in High Granularity Tracking Detectors". arXiv:1006.3012v1 [physics.ins-det]
+///C. Harris and M. Stephens (1988). "A combined corner and edge detector". Proceedings of the 4th Alvey 
+///Vision Conference. pp. 147-151.
+///B. Morgan (2010). "Interest Point Detection for Reconstruction in High Granularity Tracking Detectors". 
+///arXiv:1006.3012v1 [physics.ins-det]
 //Thanks to B. Morgan of U. of Warwick for comments and suggestions
 
 #include <iostream>
@@ -47,13 +52,13 @@ extern "C" {
 
 //-----------------------------------------------------------------------------
 vertex::HarrisVertexFinder::HarrisVertexFinder(edm::ParameterSet const& pset) :
+  fHitModuleLabel  (pset.getParameter< std::string >("HitModuleLabel")),
   fTimeBins        (pset.getParameter< int         >("TimeBins")      ),
   fMaxCorners      (pset.getParameter< int         >("MaxCorners")    ),
   fGsigma          (pset.getParameter< double      >("Gsigma")        ),
   fWindow          (pset.getParameter< int         >("Window")        ),
   fThreshold       (pset.getParameter< double      >("Threshold")     ),
-  fSaveVertexMap   (pset.getParameter< int         >("SaveVertexMap") ),
-  fHitModuleLabel  (pset.getParameter< std::string >("HitModuleLabel"))
+  fSaveVertexMap   (pset.getParameter< int         >("SaveVertexMap") )
 {
   produces< std::vector<recob::Vertex> >();
 }
@@ -100,13 +105,10 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
   //Point to a collection of vertices to output.
   std::auto_ptr<std::vector<recob::Vertex> > vtxcol(new std::vector<recob::Vertex>);
 
-  //std::vector<recob::Vertex*> VertexVector; //holds vertices to be saved
   filter::ChannelFilter chanFilt;  
   edm::PtrVector<recob::Hit> cHits;
-  //std::vector<const recob::Hit *> cHits;
   edm::PtrVector<recob::Hit> hit;
    
-  //std::vector<const recob::Cluster*>::iterator clusterIter;
   edm::PtrVector<recob::Cluster> clusIn;
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
     {
@@ -139,9 +141,7 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
   unsigned int channel,plane,wire,wire2;
   for(int p = 0; p < geom->Nplanes(); p++) 
     {
-      //std::vector<const recob::Hit *> vHits;//hits associtated with vertex
       edm::PtrVector<recob::Hit> vHits;
-      // clusterIter = clusterlist.begin();    
       edm::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
       hit.clear();
       cHits.clear();      
@@ -179,7 +179,8 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
 	  channel=hit[i]->Wire()->RawDigit()->Channel();
 	  geom->ChannelToWire(channel,plane,wire);
 	  //pixelization using a Gaussian
-	  for(int j=0;j <= (int)(hit[i]->EndTime()-hit[i]->StartTime()+.5); j++)     hit_map[wire][(int)((hit[i]->StartTime()+j)*(fTimeBins/numbertimesamples)+.5)]+=Gaussian((int)(j-((hit[i]->EndTime()-hit[i]->StartTime())/2.)+.5),0,hit[i]->EndTime()-hit[i]->StartTime());      
+	  for(int j=0;j <= (int)(hit[i]->EndTime()-hit[i]->StartTime()+.5); j++)    
+	    hit_map[wire][(int)((hit[i]->StartTime()+j)*(fTimeBins/numbertimesamples)+.5)]+=Gaussian((int)(j-((hit[i]->EndTime()-hit[i]->StartTime())/2.)+.5),0,hit[i]->EndTime()-hit[i]->StartTime());      
 	}
 	
       ////Gaussian derivative convolution  
@@ -235,12 +236,14 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
 		    while(timebin+j+tindex>fTimeBins)
 		      tindex--;               
 		    MatrixAAsum+=w[n]*pow(MatrixAsum[wire+i][timebin+j],2);  
-		    MatrixBBsum+=w[n]*pow(MatrixBsum[wire+i][timebin+j],2);                   MatrixCCsum+=w[n]*MatrixAsum[wire+i][timebin+j]*MatrixBsum[wire+i][timebin+j]; 
+		    MatrixBBsum+=w[n]*pow(MatrixBsum[wire+i][timebin+j],2);                   
+		    MatrixCCsum+=w[n]*MatrixAsum[wire+i][timebin+j]*MatrixBsum[wire+i][timebin+j]; 
 		    n++;
 		  }
               }
        
-	    if((MatrixAAsum+MatrixBBsum)>0)		Cornerness[wire][timebin]=(MatrixAAsum*MatrixBBsum-pow(MatrixCCsum,2))/(MatrixAAsum+MatrixBBsum);
+	    if((MatrixAAsum+MatrixBBsum)>0)		
+	      Cornerness[wire][timebin]=(MatrixAAsum*MatrixBBsum-pow(MatrixCCsum,2))/(MatrixAAsum+MatrixBBsum);
 	    else
 	      Cornerness[wire][timebin]=0;
         
@@ -251,7 +254,8 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
 		    channel=hit[i]->Wire()->RawDigit()->Channel();
 		    geom->ChannelToWire(channel,plane,wire2);	 
 		    //make sure the vertex candidate coincides with an actual hit.
-		    if(wire==wire2 && hit[i]->StartTime()<timebin*(numbertimesamples/fTimeBins) && hit[i]->EndTime()>timebin*(numbertimesamples/fTimeBins))
+		    if(wire==wire2 && hit[i]->StartTime()<timebin*(numbertimesamples/fTimeBins) 
+		       && hit[i]->EndTime()>timebin*(numbertimesamples/fTimeBins))
 		      { 	       
 			//this index keeps track of the hit number
 			hit_loc[wire][timebin]=i;
@@ -271,7 +275,9 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
 	    for(int timebin=0;timebin < fTimeBins && flag==0; timebin++)
 	      {    
 		if(Cornerness2.size()>(unsigned int)vertexnum)
-		  if(Cornerness[wire][timebin]==Cornerness2[vertexnum] && Cornerness[wire][timebin]>0. && hit_loc[wire][timebin]>-1)
+		  if(Cornerness[wire][timebin]==Cornerness2[vertexnum] 
+		     && Cornerness[wire][timebin]>0. 
+		     && hit_loc[wire][timebin]>-1)
 		    {
 		      flag++;      
 		      //thresholding
@@ -288,9 +294,12 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
 		      vertex.SetStrength(Cornerness[wire][timebin]);	  
 		      vtxcol->push_back(vertex);
 		      vHits.clear();
-		      //non-maximal suppression on a square window. The wire coordinate units are converted to time ticks so that the window is truly square. 
-		      //Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
-		      for(int wireout=wire-(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5);wireout <= wire+(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5) ; wireout++)
+		      // non-maximal suppression on a square window. The wire coordinate units are 
+		      // converted to time ticks so that the window is truly square. 
+		      // Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), 
+		      // assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
+		      for(int wireout=wire-(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5);
+			  wireout <= wire+(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5) ; wireout++)
 			for(int timebinout=timebin-fWindow;timebinout <= timebin+fWindow; timebinout++)
 			  if(sqrt(pow(wire-wireout,2)+pow(timebin-timebinout,2))<fWindow)//circular window 
 			    Cornerness[wireout][timebinout]=0;	  

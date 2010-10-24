@@ -4,7 +4,11 @@
 //
 // joshua.spitz@yale.edu
 //
-//  This algorithm is designed to match vertices found with a dedicated vertex finder (HarrisVertexFinder) and those found with the HoughLineFinder. A weak vertex is a vertex that has been found using a dedicated vertex finding algorithm only. A strong vertex is a vertex that has been found using a dedicated vertex finding algorithm and matched to a crossing of two or more HoughLineFinder lines.
+//  This algorithm is designed to match vertices found with a dedicated vertex finder 
+//  (HarrisVertexFinder) and those found with the HoughLineFinder. A weak vertex is a 
+//  vertex that has been found using a dedicated vertex finding algorithm only. A strong 
+//  vertex is a vertex that has been found using a dedicated vertex finding algorithm and 
+//  matched to a crossing of two or more HoughLineFinder lines.
 ////////////////////////////////////////////////////////////////////////
 
 #include "VertexMatch.h"
@@ -45,7 +49,7 @@ extern "C" {
 vertex::VertexMatch::VertexMatch(edm::ParameterSet const& pset) : 
   fVertexModuleLabel    (pset.getParameter< std::string >("VertexModuleLabel")),
   fHoughClusterLabel    (pset.getParameter< std::string >("HoughClusterLabel")),
-  fMaxDistance          (pset.getParameter< double >("MaxDistance"))
+  fMaxDistance          (pset.getParameter< double      >("MaxDistance"))
 {
   produces< std::vector<recob::Vertex> >();
 }
@@ -73,16 +77,11 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   edm::Handle< std::vector<recob::Cluster> > houghListHandle;
   evt.getByLabel(fHoughClusterLabel,houghListHandle);
   
-  // std::vector<recob::Vertex*> MatchedVertexVector; //holds strong vertices to be saved
-  
   std::auto_ptr<std::vector<recob::Vertex> > mvertexcol(new std::vector<recob::Vertex>);
   
   edm::Service<geo::Geometry> geom;
   //hits associated with a vertex
   edm::PtrVector<recob::Hit> vHits;
-
-  //  std::vector<const recob::Hit *> vertexhit;
-  
   edm::PtrVector<recob::Hit> vertexhit;
   
   std::vector<double> weakvertexstrength; //strength of weak vertices
@@ -91,15 +90,11 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   edm::PtrVector<recob::Hit> hHits;
   edm::PtrVector<recob::Hit> houghhit;
 
-  //std::vector<const recob::Hit *> houghhit;
-  
-  //edm::PtrVector< std::pair<recob::Hit,double> > matchedvertex;
-  //std::vector< std::pair<const recob::Hit *, double> > matchedvertex; //vertices associated with a hough line
+  //edm::PtrVector< std::pair<recob::Hit,double> > matchedvertex;//vertices associated with a hough line
   
   std::vector< std::pair<edm::Ptr<recob::Hit>, double> > matchedvertex;
 
   edm::PtrVector<recob::Hit> strongvertex;
-  //std::vector<recob::Hit *> strongvertex;
   std::vector< std::pair<edm::Ptr<recob::Hit>, double> > strongestvertex; //the strongest strong vertex
   
   edm::PtrVector<recob::Vertex> vertIn;
@@ -194,7 +189,8 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 		startwire=(*houghIter)->StartWire();
 		endwire=(*houghIter)->EndWire();
            
-		//require the vertices found with HarrisVertexFinder to match up with the endpoints (within a window) of a Hough line. A strong vertex matches up with at least two Hough lines. 
+		//require the vertices found with HarrisVertexFinder to match up with the endpoints 
+		//(within a window) of a Hough line. A strong vertex matches up with at least two Hough lines. 
 		if(((TMath::Abs((int)(wire-startwire))<fMaxDistance*.0743)
 		    ||(TMath::Abs((int)(wire-endwire))<fMaxDistance*.0743)
 		   )
@@ -224,7 +220,10 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
     //sort matchedvertex vector to make it easy to find duplicate entries (strong vertices)
     std::sort(matchedvertex.rbegin(), matchedvertex.rend(),sort_pred);
 
-    //the "strength" of a strong vertex is defined as (HarrisVertexStrength*LengthofHoughLine)_1+(HarrisVertexStrength*LengthofHoughLine)_2+...+(HarrisVertexStrength*LengthofHoughLine)_n, where n is the number of vertices associated with a Hough Line
+    // the "strength" of a strong vertex is defined as 
+    // (HarrisVertexStrength*LengthofHoughLine)_1+(HarrisVertexStrength*LengthofHoughLine)_2+...
+    // ...+(HarrisVertexStrength*LengthofHoughLine)_n, where n is the number of vertices 
+    // associated with a Hough Line
   
     for(unsigned int i=0;i < matchedvertex.size(); i++) 
       {
@@ -247,7 +246,8 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 
     for(unsigned int i=0;i < matchedvertex.size(); i++)
       {
-	// I think this is grabbing first item in pair, itself a pointer then grabbing first (.begin()) one of those. EC, 18-Oct-2010.
+	// I think this is grabbing first item in pair, itself a pointer then grabbing first 
+	// (.begin()) one of those. EC, 18-Oct-2010.
 	channel=(matchedvertex[i].first)->Wire()->RawDigit()->Channel();
 	geom->ChannelToWire(channel,plane,wire);
 
@@ -259,7 +259,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 	//vertex->SetDriftTime(matchedvertex[i].first->CrossingTime());
 	vertex.SetDriftTime((matchedvertex[i].first)->CrossingTime());
 
-	//find the strong vertices, those vertices that have been associated with more than one hough line	   
+	//find the strong vertices, those vertices that have been associated with more than one hough line  
 	if(matchedvertex[i].first==matchedvertex[i-1].first)	
 	  {
 	    if(strongvertex[0]==(strongestvertex[0].first)&&strongestvertex.size()>0)

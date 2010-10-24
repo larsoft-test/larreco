@@ -2,18 +2,15 @@
 #define VERTEXMATCH_H
 
 #include "TMath.h"
-#include "TObject.h"
 #include <vector>
 #include <string>
 #include <algorithm>
 #include <map>
 #include "FWCore/Framework/interface/EDProducer.h"
 
-class TH1F;
-class TTree;
 namespace vertex {
    
- class VertexMatch : public edm::EDProducer {
+  class VertexMatch : public edm::EDProducer {
     
   public:
     
