@@ -283,13 +283,14 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   edm::Service<geo::Geometry> geom;  
   if(clusters.size()!=0){
     for(unsigned int plane=0;plane<geom->Nplanes();++plane){
-      
-      for(unsigned int j=0; j<clusters.size();++j) {
-       
+      edm::PtrVectorItr<recob::Cluster> clusterIter = clusters.begin();      
+      //for(unsigned int j=0; j<clusters.size();++j) {
+      while (clusterIter != clusters.end()) 
+	{
 	//	std::cout<<"I AM ON PLANE #"<<plane<<std::endl;
-	edm::Ptr<const recob::Cluster> clusTmp(clusterListHandle,j);
-	edm::PtrVector<recob::Hit> _hits (clusTmp->Hits(plane,-1));
-	//	std::cout<<"in the "<<j<<" cluster loop, hits' size= "<<_hits.size()<<"****************************************"<<std::endl;
+	edm::PtrVector<recob::Hit> _hits; 
+
+	_hits = (*clusterIter)->Hits(plane,-1);
 	if(_hits.size()!=0){ //need this b/c of plane
 	  
 	  for(unsigned int i = 0; i < _hits.size(); ++i) {
@@ -583,6 +584,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 	  vec_trackid_mother_en.clear();
 	}//non-zero hits
 	
+	clusterIter++;
       }//for each cluster
       
       // std::cout<<"sum_vec_trackid= "<<sum_vec_trackid<<std::endl;
