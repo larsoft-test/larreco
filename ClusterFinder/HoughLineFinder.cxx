@@ -117,21 +117,23 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	hit.clear();
  	cHits.clear();
  	if(fPerCluster)
- 	{
  	  hit = (*clusterIter)->Hits(p,-1);
- 	  std::cout<<"hit size: "<<hit.size()<<std::endl;
- 	  }
  	else 
  	  {   
+ 	  
+ 	    std::cout<<"here"<<std::endl;
  	    while(clusterIter!=clusIn.end()) 
  	      {
+ 	     std::cout<<"here2"<<std::endl; 
  		cHits = (*clusterIter)->Hits(p,-1);
+ 		std::cout<<"cHits.size() "<<cHits.size()<<std::endl;
  		if(cHits.size() > 0)
 		  {
 		    // hit.insert(hit.end(),cHits.begin(),cHits.end());
 		    edm::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
 		    while (hitIter!=cHits.end())
 		      {
+		      std::cout<<"iter"<<std::endl;
 			hit.push_back((*hitIter));
 			hitIter++;
 		      }
