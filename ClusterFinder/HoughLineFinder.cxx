@@ -100,6 +100,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
   edm::PtrVector<recob::Hit> hit;
 
   edm::PtrVector<recob::Cluster> clusIn;
+  std::cout<<" clusterListHandle->size() "<<clusterListHandle->size()<<std::endl;
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
     {
       edm::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
@@ -107,7 +108,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
     }
 
   for(int p = 0; p < geom->Nplanes(); p++) {
-
+     std::cout<<"clusIn.size() "<<clusIn.size()<<std::endl;
     edm::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
 
     // This is the loop over clusters. The algorithm searches for lines on a (DBSCAN) cluster-by-cluster basis. 
@@ -118,16 +119,21 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	if(fPerCluster)
  	  hit = (*clusterIter)->Hits(p,-1);
  	else 
- 	  {    
+ 	  {   
+ 	  
+ 	    std::cout<<"here"<<std::endl;
  	    while(clusterIter!=clusIn.end()) 
  	      {
+ 	     std::cout<<"here2"<<std::endl; 
  		cHits = (*clusterIter)->Hits(p,-1);
+ 		std::cout<<"cHits.size() "<<cHits.size()<<std::endl;
  		if(cHits.size() > 0)
 		  {
 		    // hit.insert(hit.end(),cHits.begin(),cHits.end());
 		    edm::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
 		    while (hitIter!=cHits.end())
 		      {
+		      std::cout<<"iter"<<std::endl;
 			hit.push_back((*hitIter));
 			hitIter++;
 		      }
@@ -135,6 +141,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
 		  }
  	      } 
  	  }
+ 	std::cout<<"hit.size() "<<hit.size()<<std::endl;  
  	if(hit.size() == 0) 
  	  { 
  	    if(fPerCluster) clusterIter++;
@@ -172,6 +179,8 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
 	
  	for (int linenum = 0; linenum < fMaxLines; linenum++)
  	  { 
+ 	  
+ 	  std::cout<<"here"<<std::endl;
  	    //Init specifies the size of the two-dimensional accumulator (based on the arguments, number of wires and number of time samples). 
  	    c.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
  	    //initialize the smoothing accumulators as well, one each for the two dimensions of the accumulator
@@ -270,6 +279,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  		  }
  	      }
  	    //find the weightiest cell in the smoothed accumulator.
+ 	    std::cout<<"here2"<<std::endl;
  	    int maxCell = 0;
  	    xMax = 0;
  	    yMax = 0;
@@ -306,7 +316,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	    ccc.GetEquation(yMax+centerofmassy, xMax+centerofmassx, rho, theta);
  	    slope=-1./tan(theta);    
  	    intercept=(rho/sin(theta));
-	    
+	    std::cout<<"here3"<<std::endl;
  	    double distance;
  	    if(p==0)
  	      indcolscaling=5.;
@@ -332,6 +342,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  		    sequenceHolder.push_back(channel);
  		  }
  		}
+ 		std::cout<<"here4"<<std::endl;
  	      if(hitTemp.size() < 2) continue;
  	      currentHits.clear();  
  	      lastHits.clear();
@@ -360,7 +371,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
 		 )
  		continue;
 	      
-
+        std::cout<<"here5"<<std::endl;
  	      recob::Cluster cluster(clusterHits);	      
 
  	      cluster.SetSlope(slope);
@@ -378,7 +389,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	      cluster.SetID(clusterID);
 
  	      clusterID++;
-	      
+	     
  	      ccol->push_back(cluster);
 	     
 	    }
