@@ -21,7 +21,7 @@ namespace vertex {
     
   private:
     std::string fVertexModuleLabel; 
-    std::string fHoughClusterLabel;
+    std::string fHoughModuleLabel;
     double fMaxDistance;
   protected:
 

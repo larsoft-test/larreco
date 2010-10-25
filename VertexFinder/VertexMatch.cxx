@@ -48,7 +48,7 @@ extern "C" {
 
 vertex::VertexMatch::VertexMatch(edm::ParameterSet const& pset) : 
   fVertexModuleLabel    (pset.getParameter< std::string >("VertexModuleLabel")),
-  fHoughClusterLabel    (pset.getParameter< std::string >("HoughClusterLabel")),
+  fHoughModuleLabel    (pset.getParameter< std::string >("HoughModuleLabel")),
   fMaxDistance          (pset.getParameter< double      >("MaxDistance"))
 {
   produces< std::vector<recob::Vertex> >();
@@ -75,7 +75,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   evt.getByLabel(fVertexModuleLabel,vertexListHandle);
   
   edm::Handle< std::vector<recob::Cluster> > houghListHandle;
-  evt.getByLabel(fHoughClusterLabel,houghListHandle);
+  evt.getByLabel(fHoughModuleLabel,houghListHandle);
   
   std::auto_ptr<std::vector<recob::Vertex> > mvertexcol(new std::vector<recob::Vertex>);
   
