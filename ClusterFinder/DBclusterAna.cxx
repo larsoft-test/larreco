@@ -281,7 +281,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   std::vector<double> diff_vec;
 
   edm::Service<geo::Geometry> geom;  
-  if(clusters.size()!=0){
+  if(clusters.size()!=0 && hits.size()!=0){
     for(unsigned int plane=0;plane<geom->Nplanes();++plane){
       edm::PtrVectorItr<recob::Cluster> clusterIter = clusters.begin();      
       //for(unsigned int j=0; j<clusters.size();++j) {
@@ -290,6 +290,8 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 	//	std::cout<<"I AM ON PLANE #"<<plane<<std::endl;
 	edm::PtrVector<recob::Hit> _hits; 
 
+	std::cout<<"DBClusterAna::analyze(): number of hits in this cluster is "<< _hits.size()<<std::endl;
+	if (_hits.size() <= 0) {clusterIter++; continue;}
 	_hits = (*clusterIter)->Hits(plane,-1);
 	if(_hits.size()!=0){ //need this b/c of plane
 	  
