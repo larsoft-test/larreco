@@ -11,7 +11,7 @@
 #include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
 #include "FWCore/MessageLogger/interface/MessageLogger.h" 
 
-#include "HarrisVertexFinder.h"
+#include "VertexFinder/HarrisVertexFinder.h"
 
 namespace vertex{
 

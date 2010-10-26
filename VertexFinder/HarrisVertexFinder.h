@@ -25,11 +25,10 @@ namespace vertex {
     double GaussianDerivativeX(int x, int y);
     double GaussianDerivativeY(int x, int y);
     void produce(edm::Event& evt, edm::EventSetup const&);
-    void beginJob(edm::EventSetup const&);
     
   private:
   
-    std::string fHitModuleLabel;
+    std::string fHitsModuleLabel;
     int         fTimeBins;
     int         fMaxCorners;
     double      fGsigma;
