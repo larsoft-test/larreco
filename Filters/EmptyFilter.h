@@ -1,0 +1,50 @@
+////////////////////////////////////////////////////////////////////////
+//
+// EmptyFilter class:
+// Algorith to produce event files with the
+// blank events removed using only hit information.
+//
+// pagebri3@msu.edu
+//
+////////////////////////////////////////////////////////////////////////
+#ifndef EMPTYFILTER_H
+#define EMPTYFILTER_H
+
+#include "FWCore/Framework/interface/EDFilter.h"
+#include "TH1I.h"
+#include "TH2I.h"
+#include "TH2D.h"
+namespace filt {
+
+  class EmptyFilter : public edm::EDFilter  {
+    
+  public:
+    
+    explicit EmptyFilter(edm::ParameterSet const& ); 
+    virtual ~EmptyFilter();
+         
+    
+    bool filter(edm::Event& evt, edm::EventSetup const&);
+    void beginJob(const edm::EventSetup&);
+   
+
+  private: 
+ 
+    std::string fHitModuleLabel;
+    double  fMinIonization;  
+    int fMinNumHits;
+    TH1I * totHitHist;
+    TH1I * selHitHist;
+    TH1I * rejHitHist;
+    TH2D * totIonSelHist;
+    TH2D * totIonRejHist;
+    TH1I * numEventHist;
+    TH2I * resultTable;  
+
+  protected: 
+    
+  }; // class EmptyFilter
+
+}
+
+#endif // EMPTYFILTER_H
