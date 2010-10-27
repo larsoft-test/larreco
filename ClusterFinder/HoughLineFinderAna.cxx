@@ -144,7 +144,7 @@ void cluster::HoughLineFinderAna::analyze(const edm::Event& evt, edm::EventSetup
   for(unsigned int j=0; j<clusters.size();++j) 
   {
        fm_clusterid=clusters[j]->ID();
-       edm::PtrVector<recob::Hit> _hits=clusters[j]->Hits(plane,-1);
+       edm::PtrVector<recob::Hit> _hits=clusters[j]->Hits(plane);
 	  
    if(_hits.size()!=0)
    {

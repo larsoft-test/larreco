@@ -117,15 +117,12 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	hit.clear();
  	cHits.clear();
  	if(fPerCluster)
- 	  hit = (*clusterIter)->Hits(p,-1);
+ 	  hit = (*clusterIter)->Hits(p);
  	else 
  	  {   
- 	  
- 	    std::cout<<"here"<<std::endl;
  	    while(clusterIter!=clusIn.end()) 
  	      {
- 	     std::cout<<"here2"<<std::endl; 
- 		cHits = (*clusterIter)->Hits(p,-1);
+ 		cHits = (*clusterIter)->Hits(p);
  		std::cout<<"cHits.size() "<<cHits.size()<<std::endl;
  		if(cHits.size() > 0)
 		  {
@@ -179,8 +176,6 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
 	
  	for (int linenum = 0; linenum < fMaxLines; linenum++)
  	  { 
- 	  
- 	  std::cout<<"here"<<std::endl;
  	    //Init specifies the size of the two-dimensional accumulator (based on the arguments, number of wires and number of time samples). 
  	    c.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
  	    //initialize the smoothing accumulators as well, one each for the two dimensions of the accumulator
@@ -279,7 +274,6 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  		  }
  	      }
  	    //find the weightiest cell in the smoothed accumulator.
- 	    std::cout<<"here2"<<std::endl;
  	    int maxCell = 0;
  	    xMax = 0;
  	    yMax = 0;
@@ -316,7 +310,6 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	    ccc.GetEquation(yMax+centerofmassy, xMax+centerofmassx, rho, theta);
  	    slope=-1./tan(theta);    
  	    intercept=(rho/sin(theta));
-	    std::cout<<"here3"<<std::endl;
  	    double distance;
  	    if(p==0)
  	      indcolscaling=5.;
@@ -342,7 +335,6 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  		    sequenceHolder.push_back(channel);
  		  }
  		}
- 		std::cout<<"here4"<<std::endl;
  	      if(hitTemp.size() < 2) continue;
  	      currentHits.clear();  
  	      lastHits.clear();
@@ -371,7 +363,6 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
 		 )
  		continue;
 	      
-        std::cout<<"here5"<<std::endl;
  	      recob::Cluster cluster(clusterHits);	      
 
  	      cluster.SetSlope(slope);

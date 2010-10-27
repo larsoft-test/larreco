@@ -292,7 +292,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 
 	std::cout<<"DBClusterAna::analyze(): number of hits in this cluster is "<< _hits.size()<<std::endl;
 	if (_hits.size() <= 0) {clusterIter++; continue;}
-	_hits = (*clusterIter)->Hits(plane,-1);
+	_hits = (*clusterIter)->Hits(plane);
 	if(_hits.size()!=0){ //need this b/c of plane
 	  
 	  for(unsigned int i = 0; i < _hits.size(); ++i) {
