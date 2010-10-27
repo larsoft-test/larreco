@@ -146,7 +146,7 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
       hit.clear();
       cHits.clear();      
       while(clusterIter!= clusIn.end() ) {
-	cHits = (*clusterIter)->Hits(p,-1);
+	cHits = (*clusterIter)->Hits(p);
 	if(cHits.size() > 0)
 	  //hit.insert(hit.end(),cHits.begin(),cHits.end());
 	  edm::PtrVectorItr<recob::Hit> hitIter = cHits.begin();

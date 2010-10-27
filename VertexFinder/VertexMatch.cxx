@@ -130,7 +130,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 	//  	 }
 	//      vertexIter++;  
      
-	vHits = (*vertexIter)->Hits(p,-1);
+	vHits = (*vertexIter)->Hits(p);
 	if(vHits.size() > 0)
 	  {
 	    edm::PtrVectorItr<recob::Hit> vertexIter = vHits.begin();
@@ -156,7 +156,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 	plane=-1; 
 	distance=-1.;
 	//create vector of hits associated with hough line
-	hHits = (*houghIter)->Hits(p,-1);
+	hHits = (*houghIter)->Hits(p);
         if(hHits.size() > 0)
 	  {
 
