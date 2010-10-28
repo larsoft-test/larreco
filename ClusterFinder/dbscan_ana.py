@@ -15,7 +15,7 @@ process = clusterfinder.Process("ClusterFinderAna")
 
 # Maximum number of events to do.
 process.maxEvents = clusterfinder.untracked.PSet(
-    input = clusterfinder.untracked.int32(1) # See if this works to run fewer than are in input file.
+    input = clusterfinder.untracked.int32(5) # See if this works to run fewer than are in input file.
 )
 
 # Load the standard message logger configuration.
@@ -35,8 +35,8 @@ process.Timing = clusterfinder.Service("Timing");
 process.Geometry = clusterfinder.Service(
     "Geometry",
     SurfaceY = clusterfinder.double(130.0e2), # in cm
-    Name     = clusterfinder.string("argoneut"),
-    GDML     = clusterfinder.FileInPath("Geometry/gdml/argoneut.gdml")
+    GDML     = clusterfinder.FileInPath("Geometry/gdml/argoneut.gdml"),
+    Name     = clusterfinder.string("argoneut")
 )
 
 

@@ -127,8 +127,10 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
     }
 
   std::cout<<"before getbylabel"<<std::endl;
-  edm::Handle< edm::View <std::vector<sim::SimDigit> > > rdListHandle;
+  edm::Handle< edm::View <raw::RawDigit > > rdListHandle;
   evt.getByLabel(fDigitModuleLabel,rdListHandle);
+  edm::Handle< std::vector<sim::SimDigit>  > sdListHandle;
+  evt.getByLabel(fDigitModuleLabel,sdListHandle);
   edm::Handle< std::vector<recob::Hit> > hitListHandle;
   evt.getByLabel(fHitsModuleLabel,hitListHandle);
   edm::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
@@ -150,14 +152,21 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 
   //----------------------------------------------------------------   
 
-  /*
-    edm::PtrVector<raw::RawDigit> rawdigits;
-    for (unsigned int ii = 0; ii <  rdListHandle->size(); ++ii)
+  std::cout<<"DBclusterAna.cxx::analyze(): rdListHandle->size: " << rdListHandle->size()<< "." <<std::endl;
+  edm::PtrVector<raw::RawDigit> rawdigits;
+  for (unsigned int ii = 0; ii <  rdListHandle->size(); ++ii)
     {
-    edm::Ptr<raw::RawDigit> rawdigit(rdListHandle,ii);
-    rawdigits.push_back(rawdigit);
+      edm::Ptr<raw::RawDigit> rawdigit(rdListHandle,ii);
+      rawdigits.push_back(rawdigit);
     }
-  */
+  
+  edm::PtrVector<sim::SimDigit> simdigits;
+  for (unsigned int ii = 0; ii <  sdListHandle->size(); ++ii)
+    {
+      edm::Ptr<sim::SimDigit> simdigit_unpack(sdListHandle,ii);
+      simdigits.push_back(simdigit_unpack);
+    }
+  
 
 
   //get the sim::Particle collection from the edm::Event and then use the Simulation/SimListUtils object to create a sim::ParticleList from the edm::Event.  
@@ -258,8 +267,8 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   double no_of_clusters=0;
   double total_no_hits_in_clusters=0;
   //unsigned int plane=0;
-  //  edm::Ptr<sim::SimDigit > _rawdigit;
-  //edm::Ptr<sim::SimDigit > _rawdigit2;
+  edm::Ptr<sim::SimDigit > _rawdigit;
+  edm::Ptr<sim::SimDigit > _rawdigit2;
   const sim::Electrons* _electrons=0;
   const sim::Electrons* electrons=0;
   std::vector<int> vec_pdg;
@@ -279,8 +288,13 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   double _hit_13=0,_hit_11=0,_hit_m_11=0,_hit_111=0,_hit_22=0,_hit_211=0,_hit_m211=0,_hit_2212=0,_hit_2112=0;
   double _en_13=0,_en_11=0,_en_m11=0,_en_111=0,_en_22=0,_en_211=0,_en_m211=0,_en_2212=0,_en_2112=0;
   std::vector<double> diff_vec;
-
+  std::cout<<"DBClusterAna::analyze(): number of hits in this event is "<< hits.size()<<std::endl;
   edm::Service<geo::Geometry> geom;  
+
+  for(unsigned int i = 0; i < hits.size(); ++i) {
+    std::cout<<"channel: "<<hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(hits[i]->StartTime()+hits[i]->EndTime())/2.<<" X time= "<<hits[i]-> CrossingTime()<<std::endl;
+  }
+
   if(clusters.size()!=0 && hits.size()!=0){
     for(unsigned int plane=0;plane<geom->Nplanes();++plane){
       edm::PtrVectorItr<recob::Cluster> clusterIter = clusters.begin();      
@@ -290,14 +304,13 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 	//	std::cout<<"I AM ON PLANE #"<<plane<<std::endl;
 	edm::PtrVector<recob::Hit> _hits; 
 
-	std::cout<<"DBClusterAna::analyze(): number of hits in this cluster is "<< _hits.size()<<std::endl;
-	if (_hits.size() <= 0) {clusterIter++; continue;}
+	if (hits.size() <= 0) {clusterIter++; continue;}
 	_hits = (*clusterIter)->Hits(plane);
 	if(_hits.size()!=0){ //need this b/c of plane
 	  
 	  for(unsigned int i = 0; i < _hits.size(); ++i) {
 	    //      // geo->ChannelToWire(hits[i]->Wire()->RawDigit()->Channel(), p, w);
-	    //  std::cout<<"channel: "<<_hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(_hits[i]->StartTime()+_hits[i]->EndTime())/2.<<" X time= "<<_hits[i]-> CrossingTime()<<std::endl;
+	      std::cout<<"channel: "<<_hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(_hits[i]->StartTime()+_hits[i]->EndTime())/2.<<" X time= "<<_hits[i]-> CrossingTime()<<std::endl;
 	    
 	    double XTime=_hits[i]-> CrossingTime();
 	    const sim::SimDigit* simdigit = static_cast<const sim::SimDigit*>(_hits[i]->Wire()->RawDigit().get());
@@ -1137,7 +1150,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 
 
 
-    for ( int i = 0; i != numberOfElectrons; ++i )
+    for ( int i = 0; i!=numberOfElectrons && simdigit!=0; ++i )
       {
 		
 	_electrons = simdigit->GetElectrons(i);

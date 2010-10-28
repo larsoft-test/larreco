@@ -458,8 +458,12 @@ void cluster::DBcluster::produce(edm::Event& evt, edm::EventSetup const&){
   ///loop over all hits in the event and look for clusters (for each plane)
   
   
+    //std::vector<recob::Hit*> allhits;
+    //std::vector<recob::Hit*> clusterHits;
   
-  
+    allhits.clear();
+    clusterHits.clear();
+
   unsigned int p(0),w(0), channel(0);
   for(int plane=0; plane<geom->Nplanes(); plane++)
     {
@@ -584,11 +588,13 @@ void cluster::DBcluster::produce(edm::Event& evt, edm::EventSetup const&){
     
     
 	  ////////
-	  recob::Cluster cluster(clusterHits);
-	  cluster.SetID(i);
-	  ccol->push_back(cluster);
-	  //////
-
+	  if (clusterHits.size()>0)
+	    {
+	      recob::Cluster cluster(clusterHits);
+	      cluster.SetID(i);
+	      ccol->push_back(cluster);
+	      //////
+	    }
    
    
    

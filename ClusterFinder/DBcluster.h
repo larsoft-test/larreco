@@ -31,8 +31,8 @@ namespace cluster{
     
   private:
   
-  edm::PtrVector<recob::Hit> allhits;
-  edm::PtrVector<recob::Hit> clusterHits;
+   edm::PtrVector<recob::Hit> allhits;
+   edm::PtrVector<recob::Hit> clusterHits;
     
      
   TH1F *fhitwidth;
