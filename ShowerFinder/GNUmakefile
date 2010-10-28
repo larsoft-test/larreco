@@ -1,8 +1,7 @@
 #
-# $Id: GNUmakefile,v 1.2 2008/07/14 19:18:07 brebel Exp $
+# $Id: GNUmakefile,v 1.4 2009/06/05 18:49:52 t962cvs Exp $
 #
-# rahaman@fnal.gov
-#
+# messier@indiana.edu
 #
 include SoftRelTools/arch_spec_root.mk
 
@@ -12,7 +11,8 @@ LIB         := lib$(PACKAGE)
 LIBCXXFILES := $(wildcard *.cxx)
 JOBFILES    := $(wildcard *.py)
 
-LIBLINK    := $(LOADLIBES) -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -lRawData -l$(PACKAGE)
+LIBLINK    := $(LOADLIBES) -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -lGeometry -lRecoBase -l$(PACKAGE)
+
 
 ########################################################################
 include SoftRelTools/standard.mk
