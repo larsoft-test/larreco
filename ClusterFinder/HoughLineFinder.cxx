@@ -24,7 +24,7 @@ extern "C" {
 #include <fstream>
 #include <math.h>
 #include <algorithm>
-
+#include <vector>
 
 #include "FWCore/Framework/interface/Event.h" 
 #include "FWCore/ParameterSet/interface/ParameterSet.h" 
@@ -100,7 +100,6 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
   edm::PtrVector<recob::Hit> hit;
 
   edm::PtrVector<recob::Cluster> clusIn;
-  std::cout<<" clusterListHandle->size() "<<clusterListHandle->size()<<std::endl;
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
     {
       edm::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
@@ -108,7 +107,6 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
     }
 
   for(int p = 0; p < geom->Nplanes(); p++) {
-     std::cout<<"clusIn.size() "<<clusIn.size()<<std::endl;
     edm::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
 
     // This is the loop over clusters. The algorithm searches for lines on a (DBSCAN) cluster-by-cluster basis. 
@@ -123,14 +121,12 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	    while(clusterIter!=clusIn.end()) 
  	      {
  		cHits = (*clusterIter)->Hits(p);
- 		std::cout<<"cHits.size() "<<cHits.size()<<std::endl;
  		if(cHits.size() > 0)
 		  {
 		    // hit.insert(hit.end(),cHits.begin(),cHits.end());
 		    edm::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
 		    while (hitIter!=cHits.end())
 		      {
-		      std::cout<<"iter"<<std::endl;
 			hit.push_back((*hitIter));
 			hitIter++;
 		      }
@@ -138,7 +134,6 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
 		  }
  	      } 
  	  }
- 	std::cout<<"hit.size() "<<hit.size()<<std::endl;  
  	if(hit.size() == 0) 
  	  { 
  	    if(fPerCluster) clusterIter++;
@@ -372,17 +367,16 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	      cluster.SetStartWire(wire);
  	      cluster.SetStartTime((*clusterHits.begin())->CrossingTime());
  	      //cluster->SetStartTime(slope*(double)(wire)+intercept);
- 	      channel = (*clusterHits.end())->Wire()->RawDigit()->Channel(); 
+ 	      channel = (clusterHits[clusterHits.size()-1])->Wire()->RawDigit()->Channel(); //there doesn't seem to be a std::vector::back() method to get the last element of the vector here
  	      geom->ChannelToWire(channel,plane,wire);
- 	      cluster.SetEndWire(wire);        
- 	      cluster.SetEndTime((*clusterHits.end())->CrossingTime());
+ 	      cluster.SetEndWire(wire);     
+ 	      cluster.SetEndTime((clusterHits[clusterHits.size()-1])->CrossingTime());
  	      //cluster->SetEndTime(slope*(double)(wire)+intercept);
  	      cluster.SetID(clusterID);
 
  	      clusterID++;
 	     
  	      ccol->push_back(cluster);
-	     
 	    }
 
 	  } 
