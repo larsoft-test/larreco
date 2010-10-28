@@ -62,7 +62,7 @@ process.caldataCal = emptyfilter.EDProducer(
 process.ffthit = emptyfilter.EDProducer(
     "FFTHitFinder",
     CalDataModuleLabel   = emptyfilter.string("caldataCal"),
-    MinSigInd       = emptyfilter.double(8.0),
+    MinSigInd       = emptyfilter.double(6.0),
     MinSigCol       = emptyfilter.double(11.0),
     IndWidth        = emptyfilter.double(5.0),
     ColWidth        = emptyfilter.double(7.5),
