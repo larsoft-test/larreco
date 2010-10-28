@@ -63,7 +63,7 @@ process.caldataCal = vertexfinder.EDProducer(
 process.ffthit = vertexfinder.EDProducer(
     "FFTHitFinder",
     CalDataModuleLabel   = vertexfinder.string("caldataCal"),
-    MinSigInd       = vertexfinder.double(8.0),
+    MinSigInd       = vertexfinder.double(6.0),
     MinSigCol       = vertexfinder.double(11.0),
     IndWidth        = vertexfinder.double(5.0),
     ColWidth        = vertexfinder.double(7.5),
