@@ -590,6 +590,8 @@ void cluster::DBcluster::produce(edm::Event& evt, edm::EventSetup const&){
 	      recob::Cluster cluster(clusterHits);
 	      cluster.SetID(i);
 	      ccol->push_back(cluster);
+	      std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
+	      clusterHits.clear();
 	      //////
 	    }
    
