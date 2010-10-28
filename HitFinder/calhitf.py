@@ -62,7 +62,7 @@ process.caldataCal = caldata.EDProducer(
 process.ffthit = caldata.EDProducer(
     "FFTHitFinder",
     CalDataModuleLabel   = caldata.string("caldataCal"),
-    MinSigInd       = caldata.double(8.0),
+    MinSigInd       = caldata.double(6.0),
     MinSigCol       = caldata.double(11.0),
     IndWidth        = caldata.double(5.0),
     ColWidth        = caldata.double(7.5),
