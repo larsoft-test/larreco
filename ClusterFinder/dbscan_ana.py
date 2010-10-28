@@ -63,7 +63,7 @@ process.caldataCal = clusterfinder.EDProducer(
 process.ffthit = clusterfinder.EDProducer(
     "FFTHitFinder",
     CalDataModuleLabel   = clusterfinder.string("caldataCal"),
-    MinSigInd       = clusterfinder.double(8.0),
+    MinSigInd       = clusterfinder.double(6.0),
     MinSigCol       = clusterfinder.double(11.0),
     IndWidth        = clusterfinder.double(5.0),
     ColWidth        = clusterfinder.double(7.5),

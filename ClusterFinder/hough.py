@@ -15,7 +15,7 @@ process = clusterfinder.Process("ClusterFinder")
 
 # Maximum number of events to do.
 process.maxEvents = clusterfinder.untracked.PSet(
-    input = clusterfinder.untracked.int32(3) # See if this works to run fewer than are in input file.
+    input = clusterfinder.untracked.int32(1) # See if this works to run fewer than are in input file.
 )
 
 # Load the standard message logger configuration.
@@ -49,7 +49,7 @@ process.LArFFT = clusterfinder.Service(
 
 # Service to get my MC events, which were run up through DetSim.
 process.source = clusterfinder.Source("PoolSource",
-                                fileNames = clusterfinder.untracked.vstring("/argoneut/app/users/echurch/larsoft/ART-SRT/out/genie_ART_6GeV-c_muons_gen.root")
+                                fileNames = clusterfinder.untracked.vstring("/argoneut/app/users/spitz7/larsoft_new2/genie_ART_6GeV-c_100-muons_gen.root")
                                 )
 
 process.caldataCal = clusterfinder.EDProducer(
@@ -63,7 +63,7 @@ process.caldataCal = clusterfinder.EDProducer(
 process.ffthit = clusterfinder.EDProducer(
     "FFTHitFinder",
     CalDataModuleLabel   = clusterfinder.string("caldataCal"),
-    MinSigInd       = clusterfinder.double(8.0),
+    MinSigInd       = clusterfinder.double(6.0),
     MinSigCol       = clusterfinder.double(11.0),
     IndWidth        = clusterfinder.double(5.0),
     ColWidth        = clusterfinder.double(7.5),
@@ -88,7 +88,7 @@ process.hough = clusterfinder.EDProducer(
     DBScanModuleLabel         = clusterfinder.string("dbscan"),
     MaxLines                 = clusterfinder.int32(5),
     MinHits                  = clusterfinder.int32(3),
-    SaveAccumulator          = clusterfinder.int32(0),
+    SaveAccumulator          = clusterfinder.int32(1),
     NumAngleCells            = clusterfinder.int32(10000),
     RhoResolutionFactor      = clusterfinder.int32(10),
     SmootherSigma            = clusterfinder.double(0.),
