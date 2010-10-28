@@ -49,7 +49,7 @@ cluster::DBclusterAna::DBclusterAna(edm::ParameterSet const& pset) :
   fGenieGenModuleLabel      (pset.getParameter< std::string >("GenieGenModuleLabel")     ),
   fClusterFinderModuleLabel (pset.getParameter< std::string >("ClusterFinderModuleLabel"))
 {
-
+std::cout<<"***in cluster::DBclusterAna::DBclusterAna(edm::ParameterSet const& pset) "<<std::endl;
 
 
 }
@@ -62,6 +62,7 @@ cluster::DBclusterAna::~DBclusterAna()
 
 void cluster::DBclusterAna::beginJob(edm::EventSetup const&)
 {
+std::cout<<"in beginJob"<<std::endl;
   // get access to the TFile service
   edm::Service<edm::TFileService> tfs;
 
@@ -153,7 +154,9 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   //----------------------------------------------------------------   
 
   std::cout<<"DBclusterAna.cxx::analyze(): rdListHandle->size: " << rdListHandle->size()<< "." <<std::endl;
+  
   edm::PtrVector<raw::RawDigit> rawdigits;
+  
   for (unsigned int ii = 0; ii <  rdListHandle->size(); ++ii)
     {
       edm::Ptr<raw::RawDigit> rawdigit(rdListHandle,ii);
@@ -161,8 +164,10 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
     }
   
   edm::PtrVector<sim::SimDigit> simdigits;
+  
   for (unsigned int ii = 0; ii <  sdListHandle->size(); ++ii)
     {
+    //std::cout<<"5***"<<std::endl;
       edm::Ptr<sim::SimDigit> simdigit_unpack(sdListHandle,ii);
       simdigits.push_back(simdigit_unpack);
     }
@@ -174,6 +179,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   static sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
 
 
+  
   
   std::vector<int> mc_trackids;
   
@@ -297,25 +303,32 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   */
   if(clusters.size()!=0 && hits.size()!=0){
     for(unsigned int plane=0;plane<geom->Nplanes();++plane){
-      edm::PtrVectorItr<recob::Cluster> clusterIter = clusters.begin();      
-      //for(unsigned int j=0; j<clusters.size();++j) {
-      while (clusterIter != clusters.end()) 
+      //edm::PtrVectorItr<recob::Cluster> clusterIter = clusters.begin();      
+      for(unsigned int j=0; j<clusters.size();++j) 
+      //while (clusterIter != clusters.end()) 
 	{
 	//	std::cout<<"I AM ON PLANE #"<<plane<<std::endl;
+	std::cout<<"I am on cluster "<<j<<std::endl;
 	edm::PtrVector<recob::Hit> _hits; 
 
-	if (hits.size() <= 0) {clusterIter++; continue;}
-	_hits = (*clusterIter)->Hits(plane);
+	//if (hits.size() <= 0) {clusterIter++; continue;}
+	//_hits = (*clusterIter)->Hits(plane);
+	_hits=clusters[j]->Hits(plane);
+	std::cout<<"# of hits for this cluster is: "<<_hits.size()<<std::endl;
 	if(_hits.size()!=0){ //need this b/c of plane
 	  
 	  for(unsigned int i = 0; i < _hits.size(); ++i) {
+	  std::cout<<"on hit # "<<i<<std::endl;
 	    //      // geo->ChannelToWire(hits[i]->Wire()->RawDigit()->Channel(), p, w);
-	      std::cout<<"channel: "<<_hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(_hits[i]->StartTime()+_hits[i]->EndTime())/2.<<" X time= "<<_hits[i]-> CrossingTime()<<std::endl;
+	      //std::cout<<"channel: "<<_hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(_hits[i]->StartTime()+_hits[i]->EndTime())/2.<<" X time= "<<_hits[i]-> CrossingTime()<<std::endl;
 	    
 	    double XTime=_hits[i]-> CrossingTime();
+	    std::cout<<"after xtime"<<std::endl;
 	    const sim::SimDigit* simdigit = static_cast<const sim::SimDigit*>(_hits[i]->Wire()->RawDigit().get());
+	    
 	    int numberOfElectrons = simdigit->NumberOfElectrons();
-	    // std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
+	    std::cout<<"after numele"<<std::endl;
+	    std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
 	    if(simdigit==0){std::cout<<"simdigit=0 !!!!!!!!!!"<<std::endl;}
 
 
@@ -330,7 +343,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 		diff_vec.push_back(diff);
 
 		/* Below should be generalized for N planes. EC, 5-Oct-2010. */
-
+//std::cout<<"1***"<<std::endl;
 		if(plane==0)  { 
 		  if((diff<22)&&(diff>13))
 		    {
@@ -352,17 +365,24 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 
 
 	      }//for
+	      std::cout<<"after ele loop"<<std::endl;
 	    //   std::cout<<"MIN of DIFF= "<<*min_element(diff_vec.begin(),diff_vec.end())<<" MAX of DIFF= "<<*max_element(diff_vec.begin(),diff_vec.end())<<std::endl;
 	    diff_vec.clear();
+	    std::cout<<"k1"<<std::endl;
+	    //std::cout<<"1-2***"<<std::endl;
 	    if(electrons!=0){
 	      const sim::LArVoxelID voxelIDval = electrons->Voxel()->VoxelID(); 
+	       std::cout<<"k2"<<std::endl;
 	      const sim::LArVoxelID* voxelID = &voxelIDval;
+	       std::cout<<"k3"<<std::endl;
 	      if(voxelID==0){std::cout<<"voxelID =0!!!!!!!!! ************"<<std::endl;}
 	      // sim::LArVoxelData& voxelData =const_cast<sim::LArVoxelList*> (voxelList)->at(*voxelID);
+	      std::cout<<"k4"<<std::endl;
 	      const sim::LArVoxelData& voxelData = voxelList.at(*voxelID);
-	    
+	    std::cout<<"k5"<<std::endl;
 	    
 	      int numberParticles = voxelData.NumberParticles();
+	       std::cout<<"k6"<<std::endl;
 	      //std::cout<<"numberParticles= "<<numberParticles<<std::endl;
 	      for ( int i = 0; i != numberParticles; ++i )
 		{
@@ -374,6 +394,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 		  // fEnergy->Fill(energy);
 		  
 		  vec_trackid.push_back(trackID);
+		   std::cout<<"k7"<<std::endl;
 		  for( unsigned int i=0; i<_particleList.size(); ++i )
 		    {
 		      // const sim::ParticleList* particleList = _particleList[i];
@@ -382,8 +403,9 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 
 		      // 	double energyTrackID=voxelData.Energy[trackID];
 		      //  	std::cout<<"ENERGY OF PRIMARY TRACKID= "<<energyTrackID<<std::endl;
-		    
+		     std::cout<<"k8"<<std::endl;
 		      const sim::Particle* particle = _particleList.at( trackID );
+		       std::cout<<"k9"<<std::endl;
 		      int pdg = particle->PdgCode();
 		      
 		      double energy2=voxelData.Energy(i);
@@ -410,7 +432,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 			_en_2212+=energy2;}
 		      if(pdg==2112){_hit_2112++;
 			_en_2112+=energy2;}
-		    
+		    std::cout<<"3***"<<std::endl;
 		      //std::cout<<"True PDG= "<<pdg<<std::endl;
 		      vec_pdg.push_back(pdg);
 		      // std::cout<<"_en_11= "<<_en_11<<std::endl;
@@ -434,7 +456,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 		}
 	    }//if electrons!=0
 	    ////////////////////////////////////////////
-	    
+	    std::cout<<"check1"<<std::endl;
 	    // int numberPrimaries = particleList->NumberOfPrimaries();
 	    // 	     std::cout<<"no of PRIMARIES: "<<numberPrimaries<<std::endl;
 	    // 	    for ( int i = 0; i != numberPrimaries; ++i )
@@ -447,12 +469,13 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 	    // 	    }
 	    
 	    //////////////////////////////////////////////
-
+std::cout<<"check2"<<std::endl;
 	    _electrons=0;
+	    std::cout<<"check3"<<std::endl;
 	    electrons=0;
-	   
+	   std::cout<<"check4"<<std::endl;
 	  }//for hits
-	
+	std::cout<<"check5"<<std::endl;
 	  //  std::cout<<"vec_pdg("<<vec_pdg.size()<<")= " ;
 	  for(unsigned int i=0;i<vec_pdg.size();++i){
 	    
@@ -580,30 +603,38 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 	  // std::cout<<"noCluster = "<< noCluster<<std::endl;
 	 
 	  
-
+std::cout<<"4***"<<std::endl;
 	  
 	  fNoParticles_pdg->Fill(vec_pdg.size());
+	  std::cout<<"4-1***"<<std::endl;
 	  // std::cout<<"LOOK ->> vec_trackid.size()= "<<vec_trackid.size()<<std::endl;
 	  fNoParticles_trackid->Fill(vec_trackid.size());
+	  std::cout<<"4-2***"<<std::endl;
 	  fNoParticles_trackid_mother->Fill(vec_trackid_mother.size());
+	  std::cout<<"4-3***"<<std::endl;
 	  no_of_clusters++;
 	  // std::cout<<"MUON IS CONTAINED IN "<<no_cl_for_muon<<" CLUSTERS"<<std::endl;
 	  
 	  no_of_particles_in_cluster+=vec_pdg.size();
 	  sum_vec_trackid+=vec_trackid_mother.size();
 	  total_no_hits_in_clusters+=_hits.size();
-	  
+	  std::cout<<"4-4***"<<std::endl;
 	  vec_pdg.clear();
+	   std::cout<<"4-5***"<<std::endl;
 	  vec_trackid.clear();
+	   std::cout<<"4-6***"<<std::endl;
 	  vec_trackid_mother.clear();
+	   std::cout<<"4-7***"<<std::endl;
 	  vec_trackid_mother_en.clear();
+	   std::cout<<"4-8***"<<std::endl;
 	}//non-zero hits
 	
-	clusterIter++;
+	//clusterIter++;
+	 std::cout<<"4-9***"<<std::endl;
       }//for each cluster
       
       // std::cout<<"sum_vec_trackid= "<<sum_vec_trackid<<std::endl;
-      
+      std::cout<<"4-10***"<<std::endl;
       
       sort( all_trackids.begin(), all_trackids.end() );
       all_trackids.erase( unique( all_trackids.begin(), all_trackids.end() ), all_trackids.end() );
@@ -626,7 +657,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
       double no_of_clusters_per_track=noCluster/ids.size();
       //  std::cout<<"alright so i have no_of_clusters_per_track= "<<no_of_clusters_per_track<<std::endl;
  
- 
+ std::cout<<"5***"<<std::endl;
  
       //Filling Histograms:
  
@@ -661,11 +692,12 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
       //  std::cout<<"*************************************************"<<std::endl;
       //  std::cout<<"*************************************************"<<std::endl;
       ids.clear();
- 
+ std::cout<<"6***"<<std::endl;
     }//for each plane
     //std::cout<<"no_of_particles_in_cluster= "<<no_of_particles_in_cluster<<std::endl;
     //std::cout<<" no_of_clusters (with hits that are non-zero)= "<< no_of_clusters<<std::endl;
     double result=no_of_particles_in_cluster/no_of_clusters;
+    std::cout<<"7***"<<std::endl;
     // std::cout<<"FINALLY NO OF PARTICLES PER CLUSTER IS: "<<result<<std::endl;
     // std::cout<<"Sum of all hits in clusters= "<<total_no_hits_in_clusters<<std::endl;
     double no_noise_hits=hits.size()-total_no_hits_in_clusters;
@@ -674,7 +706,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
     //  std::cout<<"%%%%%%%%% NOISE IS: "<< percent_noise<<std::endl;
     
 
-    
+    std::cout<<"8***"<<std::endl;
     double no_trackid_per_cl_per_event  = sum_vec_trackid/no_of_clusters;
     // std::cout<<"sum_vec_trackid= "<<sum_vec_trackid<<" no_of_clusters: "<<no_of_clusters<<" no_trackid_per_cl_per_event= "<<no_trackid_per_cl_per_event<<std::endl;
     fNoParticles_trackid_per_event->Fill(no_trackid_per_cl_per_event);
@@ -701,7 +733,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
       // 	std::cout<<" mc->NParticles()="<< mc->NParticles()<<std::endl;
       //  TParticle part(mc->GetParticle(1));
       //  std::cout<<"part.Gte<PDG()->PdgCode()= "<<part.GetPDG()->PdgCode()<<std::endl;
-
+std::cout<<"# of particles= "<<mc->NParticles()<<std::endl;
       for(int i = 0; i < mc->NParticles(); ++i){
 	simb::MCParticle part(mc->GetParticle(i));
 	std::cout<<"FROM MC TRUTH,the particle's pdg code is: "<<part.PdgCode()<<std::endl;
