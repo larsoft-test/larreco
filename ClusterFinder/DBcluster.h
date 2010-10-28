@@ -30,11 +30,7 @@ namespace cluster{
    void beginJob(edm::EventSetup const&);
     
   private:
-  
-   edm::PtrVector<recob::Hit> allhits;
-   edm::PtrVector<recob::Hit> clusterHits;
-    
-     
+       
   TH1F *fhitwidth;
   TH1F *fhitwidth_ind_test;  
   TH1F *fhitwidth_coll_test;  

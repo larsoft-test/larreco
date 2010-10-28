@@ -290,11 +290,11 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   std::vector<double> diff_vec;
   std::cout<<"DBClusterAna::analyze(): number of hits in this event is "<< hits.size()<<std::endl;
   edm::Service<geo::Geometry> geom;  
-
+  /*
   for(unsigned int i = 0; i < hits.size(); ++i) {
     std::cout<<"channel: "<<hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(hits[i]->StartTime()+hits[i]->EndTime())/2.<<" X time= "<<hits[i]-> CrossingTime()<<std::endl;
   }
-
+  */
   if(clusters.size()!=0 && hits.size()!=0){
     for(unsigned int plane=0;plane<geom->Nplanes();++plane){
       edm::PtrVectorItr<recob::Cluster> clusterIter = clusters.begin();      
