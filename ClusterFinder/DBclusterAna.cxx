@@ -206,7 +206,9 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   // std::cout<<"I have in total "<<mc_trackids.size()<<" different tracks"<<std::endl;
   
   //----------------------------------------------------------------
-  static sim::LArVoxelList voxelList = sim::SimListUtils::GetLArVoxelList(evt, fLArG4ModuleLabel);
+  //Was a static prepended below. I think for the reason that we do a static_cast later. But
+  // This seems to mess up everything. And problems go away if we take it out. EC, 28-Oct-2010.
+  sim::LArVoxelList voxelList = sim::SimListUtils::GetLArVoxelList(evt, fLArG4ModuleLabel);
   
   
   // edm::PtrVector<sim::LArVoxelList> larVoxelList;
