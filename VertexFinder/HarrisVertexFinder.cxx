@@ -149,10 +149,11 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
 	cHits = (*clusterIter)->Hits(p);
 	if(cHits.size() > 0)
 	  //hit.insert(hit.end(),cHits.begin(),cHits.end());
-	  edm::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
+      for(int i = 0; i < cHits.size(); i++)
+      hit.push_back(cHits[i]);
+      
 	clusterIter++;  
       } 
-      
       if(hit.size() == 0) 
         continue;
 
@@ -264,8 +265,7 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
 		      } 	        
 		  }	     
 	      }	    
-	  }
-
+	  }      
       std::sort(Cornerness2.rbegin(),Cornerness2.rend());
 
       for(int vertexnum=0;vertexnum<fMaxCorners;vertexnum++)
@@ -284,7 +284,6 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
 		      if(Cornerness2.size())
 			if(Cornerness[wire][timebin]<(fThreshold*Cornerness2[0]))
 			  vertexnum=fMaxCorners;
-      
 		      vHits.push_back(hit[hit_loc[wire][timebin]]);
 		      recob::Vertex vertex(vHits);
 		      vertex.SetWire(wire);
@@ -306,7 +305,6 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
 		    }     
 	      }
 	}
-    
       Cornerness2.clear();
       hit.clear();
       if(clusterIter!=clusIn.end()) clusterIter++;
@@ -338,14 +336,10 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
 	      }
 	  SaveBMPFile("harrisvertexmap.bmp", outPix, numberwires, fTimeBins);
 	  delete [] outPix;
-	}  
+	}   
+   }
     
-      evt.put(vtxcol); 
-    
-    
-    }
-    
-
+evt.put(vtxcol);   
 }
 
 //-----------------------------------------------------------------------------

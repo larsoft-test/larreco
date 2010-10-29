@@ -15,7 +15,7 @@ process = vertexfinder.Process("VertexFinder")
 
 # Maximum number of events to do.
 process.maxEvents = vertexfinder.untracked.PSet(
-    input = vertexfinder.untracked.int32(3) # See if this works to run fewer than are in input file.
+    input = vertexfinder.untracked.int32(1) # See if this works to run fewer than are in input file.
 )
 
 # Load the standard message logger configuration.
