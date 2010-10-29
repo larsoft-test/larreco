@@ -28,7 +28,7 @@ namespace vertex {
     
   private:
   
-    std::string fHitsModuleLabel;
+    std::string fDBScanModuleLabel;
     int         fTimeBins;
     int         fMaxCorners;
     double      fGsigma;

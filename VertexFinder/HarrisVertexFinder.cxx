@@ -52,7 +52,7 @@ extern "C" {
 
 //-----------------------------------------------------------------------------
 vertex::HarrisVertexFinder::HarrisVertexFinder(edm::ParameterSet const& pset) :
-  fHitsModuleLabel  (pset.getParameter< std::string >("HitsModuleLabel")),
+  fDBScanModuleLabel  (pset.getParameter< std::string >("DBScanModuleLabel")),
   fTimeBins        (pset.getParameter< int         >("TimeBins")      ),
   fMaxCorners      (pset.getParameter< int         >("MaxCorners")    ),
   fGsigma          (pset.getParameter< double      >("Gsigma")        ),
@@ -101,7 +101,7 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
   extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   
   edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
-  evt.getByLabel(fHitsModuleLabel,clusterListHandle);
+  evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
   //Point to a collection of vertices to output.
   std::auto_ptr<std::vector<recob::Vertex> > vtxcol(new std::vector<recob::Vertex>);
 
