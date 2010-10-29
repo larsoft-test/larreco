@@ -103,14 +103,12 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
       edm::Ptr<recob::Vertex> vertex(vertexListHandle, ii);
       vertIn.push_back(vertex);
     }
-    
   edm::PtrVector<recob::Cluster> houghIn;
   for(unsigned int ii = 0; ii < houghListHandle->size(); ++ii)
     {
       edm::Ptr<recob::Cluster> cluster(houghListHandle, ii);
       houghIn.push_back(cluster);
     }
-
   unsigned int channel,plane,wire;
   double slope,intercept,distance;
   double starttime, endtime;
@@ -120,7 +118,6 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
     //create the vector of vertex hits 
     edm::PtrVectorItr<recob::Vertex> vertexIter = vertIn.begin();
     edm::PtrVectorItr<recob::Cluster> houghIter = houghIn.begin();
-    
     while(vertexIter!= vertIn.end() ) 
       {
 	// vHits = (*vertexIter)->Hits(p,-1);
@@ -128,19 +125,18 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 	//  	 vertexhit.insert(vertexhit.end(),vHits.begin(),vHits.end());
 	//  	 weakvertexstrength.push_back((*vertexIter)->Strength());
 	//  	 }
-	//      vertexIter++;  
-     
 	vHits = (*vertexIter)->Hits(p);
 	if(vHits.size() > 0)
 	  {
-	    edm::PtrVectorItr<recob::Hit> vertexIter = vHits.begin();
-	    while (vertexIter!=vHits.end())
+	    edm::PtrVectorItr<recob::Hit> vertexhitIter = vHits.begin();
+	    while (vertexhitIter!=vHits.end())
 	      {
-		vHits.push_back((*vertexIter));
-		vertexIter++;
+		vertexhit.push_back((*vertexhitIter));
+		vertexhitIter++;
 	      }       
 	  }
-     
+	vertexIter++;
+
       } 
     vHits.clear();
       
@@ -172,7 +168,6 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 	  channel=houghhit[0]->Wire()->RawDigit()->Channel();
 	  geom->ChannelToWire(channel,plane,wire);
 	}
-	    
 	if(p==plane)
 	  {
 	    slope=(*houghIter)->Slope();
@@ -188,7 +183,6 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 		endtime=(*houghIter)->EndTime();
 		startwire=(*houghIter)->StartWire();
 		endwire=(*houghIter)->EndWire();
-           
 		//require the vertices found with HarrisVertexFinder to match up with the endpoints 
 		//(within a window) of a Hough line. A strong vertex matches up with at least two Hough lines. 
 		if(((TMath::Abs((int)(wire-startwire))<fMaxDistance*.0743)

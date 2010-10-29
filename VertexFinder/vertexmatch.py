@@ -74,6 +74,14 @@ process.ffthit = vertexfinder.EDProducer(
     MaxMultiHit     = vertexfinder.int32(3)
     )
 
+process.dbscan = vertexfinder.EDProducer(
+    "DBcluster",
+    HitsModuleLabel   = vertexfinder.string("ffthit"),
+    eps               = vertexfinder.double(1.0),
+    eps2              = vertexfinder.double(0.75),
+    minPts            = vertexfinder.int32(2)
+    ) 
+    
 process.hough = vertexfinder.EDProducer(
     "HoughLineFinder",
     DBScanModuleLabel        = vertexfinder.string("dbscan"),
@@ -91,14 +99,14 @@ process.hough = vertexfinder.EDProducer(
     
 process.harris = vertexfinder.EDProducer(
     "HarrisVertexFinder",
-    HitsModuleLabel      = vertexfinder.string("ffthit"),
+    DBScanModuleLabel    = vertexfinder.string("dbscan"),
     TimeBins             = vertexfinder.int32(256),
     MaxCorners           = vertexfinder.int32(20),
     Gsigma               = vertexfinder.double(1.),
     Window               = vertexfinder.int32(5),
     Threshold            = vertexfinder.double(0.1),
     SaveVertexMap        = vertexfinder.int32(-1)
-    )  
+    )
     
 process.vertexmatch = vertexfinder.EDProducer(
     "VertexMatch",    
@@ -116,5 +124,5 @@ process.output = vertexfinder.OutputModule(
 ####### End of the section that defines and configures modules.#########
 
 # Tell the system to execute all paths. Services, source, output are implied ....
-process.doit = vertexfinder.EndPath(process.caldataCal*process.ffthit*process.hough*process.harris*process.vertexmatch*process.output )
+process.doit = vertexfinder.EndPath(process.caldataCal*process.ffthit*process.dbscan*process.hough*process.harris*process.vertexmatch*process.output )
 
