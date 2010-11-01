@@ -40,7 +40,7 @@ namespace filt{
 
   //-------------------------------------------------
   EmptyFilter::EmptyFilter(edm::ParameterSet const & pset) : 
-    fHitModuleLabel(pset.getParameter< std::string > ("FFTHitFinderModuleLabel")), 
+    fHitsModuleLabel(pset.getParameter< std::string > ("HitsModuleLabel")), 
     fMinNumHits(pset.getParameter< int > ("MinHits")),  
     fMinIonization(pset.getParameter< double > ("MinIonization"))
   {   
@@ -77,7 +77,7 @@ namespace filt{
 
     edm::Service<geo::Geometry> geom;
     edm::Handle< std::vector<recob::Hit> > hitHandle;
-    evt.getByLabel(fHitModuleLabel,hitHandle);
+    evt.getByLabel(fHitsModuleLabel,hitHandle);
     edm::PtrVector<recob::Hit> hitvec;
     for(unsigned int i = 0; i < hitHandle->size(); ++i){
       edm::Ptr<recob::Hit> prod(hitHandle, i);

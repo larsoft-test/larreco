@@ -10,7 +10,7 @@
 import FWCore.ParameterSet.python.Config as emptyfilter
 
 # Give this job a name.  
-process = emptyfilter.Process("CalData")
+process = emptyfilter.Process("Filters")
 
 # Maximum number of events to do.
 process.maxEvents = emptyfilter.untracked.PSet(
@@ -51,6 +51,7 @@ process.source = emptyfilter.Source("PoolSource",
                                 fileNames = emptyfilter.untracked.vstring("single_gen.root")
                                 )
 
+
 process.caldataCal = emptyfilter.EDProducer(
     "CalWire",
     DigitModuleLabel  = emptyfilter.string("wiresim"),
@@ -73,9 +74,9 @@ process.ffthit = emptyfilter.EDProducer(
     MaxMultiHit     = emptyfilter.int32(3)
     )
 
-process.emptyfilter = emptyfilter.EDFilter(
+process.emptyfilter = emptyfilter.EDProducer(
     "EmptyFilter",
-    FFTHitFinderModuleLabel   = emptyfilter.string("FFTHitFinder"),
+    HitsModuleLabel   = emptyfilter.string("ffthit"),
     MinHits          = emptyfilter.int32(30),
     MinIonization    = emptyfilter.double(750.0)
     )

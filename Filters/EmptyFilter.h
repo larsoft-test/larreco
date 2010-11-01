@@ -30,7 +30,7 @@ namespace filt {
 
   private: 
  
-    std::string fHitModuleLabel;
+    std::string fHitsModuleLabel;
     double  fMinIonization;  
     int fMinNumHits;
     TH1I * totHitHist;
