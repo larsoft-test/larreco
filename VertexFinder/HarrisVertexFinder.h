@@ -21,12 +21,14 @@ namespace vertex {
     
     explicit HarrisVertexFinder(edm::ParameterSet const& pset); 
     ~HarrisVertexFinder();        
-    double Gaussian(int x, int y, double sigma);
-    double GaussianDerivativeX(int x, int y);
-    double GaussianDerivativeY(int x, int y);
+
     void produce(edm::Event& evt, edm::EventSetup const&);
     
   private:
+
+    double Gaussian(int x, int y, double sigma);
+    double GaussianDerivativeX(int x, int y);
+    double GaussianDerivativeY(int x, int y);
   
     std::string fDBScanModuleLabel;
     int         fTimeBins;

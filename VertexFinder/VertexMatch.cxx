@@ -47,9 +47,9 @@ extern "C" {
 
 
 vertex::VertexMatch::VertexMatch(edm::ParameterSet const& pset) : 
-  fVertexModuleLabel    (pset.getParameter< std::string >("VertexModuleLabel")),
-  fHoughModuleLabel    (pset.getParameter< std::string >("HoughModuleLabel")),
-  fMaxDistance          (pset.getParameter< double      >("MaxDistance"))
+  fVertexModuleLabel(pset.getParameter< std::string >("VertexModuleLabel")),
+  fHoughModuleLabel (pset.getParameter< std::string >("HoughModuleLabel")),
+  fMaxDistance      (pset.getParameter< double      >("MaxDistance"))
 {
   produces< std::vector<recob::Vertex> >();
 }
