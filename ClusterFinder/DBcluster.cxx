@@ -4,9 +4,15 @@
 //
 // kinga.partyka@yale.edu
 //
-//  This algorithm finds clusters of hits, they can be of arbitrary shape.You need to specify 2(3) parameters: epsilon, epsilon2 and MinPoints as explained in the corresponding xml file.In my comments a 'point' reference appears quite often. A 'point' is basically a simple hit which only contains wire and time information. This algorithm is based on DBSCAN(Density Based Spatial Clustering of Applications with Noise): M. Ester, H.-P. Kriegel, J. Sander, and X. Xu, A density-based algorithm for discovering clusters in large spatial databases with noise, Second International Conference on Knowledge Discovery and Data Mining, pp. 226-231, AAAI Press. 1996. 
+//  This algorithm finds clusters of hits, they can be of arbitrary shape.You need to specify 2(3) parameters: 
+// epsilon, epsilon2 and MinPoints as explained in the corresponding xml file.In my comments a 'point' reference 
+// appears quite often. A 'point' is basically a simple hit which only contains wire and time information. This 
+// algorithm is based on DBSCAN(Density Based Spatial Clustering of Applications with Noise): M. Ester, H.-P. Kriegel, 
+// J. Sander, and X. Xu, A density-based algorithm for discovering clusters in large spatial databases with noise, 
+// Second International Conference on Knowledge Discovery and Data Mining, pp. 226-231, AAAI Press. 1996. 
 // ( Some of this code is from "Antonio Gulli's coding playground")  
-// (Once you run it, you can then display the discovered clusters on event display, each cluser is going to appear in a different color.)
+// (Once you run it, you can then display the discovered clusters on event display, each cluser is going to 
+// appear in a different color.)
 ////////////////////////////////////////////////////////////////////////
 
 

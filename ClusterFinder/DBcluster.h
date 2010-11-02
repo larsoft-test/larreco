@@ -7,19 +7,11 @@
 #include <cmath>
 #include <iostream>
 #include "FWCore/Framework/interface/EDProducer.h"
-#include "RecoBase/Cluster.h"
-#include "TH2F.h"
-
-namespace edm { 
-class Event;
-class ParameterSet;}
-
 
 class TH1F;
+
 namespace cluster{
-  
- 
- 
+   
   //--------------------------------------------------------------- 
   class DBcluster : public edm::EDProducer
   {
@@ -27,20 +19,21 @@ namespace cluster{
     explicit DBcluster(edm::ParameterSet const& pset); 
     ~DBcluster();
     void produce(edm::Event& evt, edm::EventSetup const&);
-   void beginJob(edm::EventSetup const&);
+    void beginJob(edm::EventSetup const&);
     
   private:
        
-  TH1F *fhitwidth;
-  TH1F *fhitwidth_ind_test;  
-  TH1F *fhitwidth_coll_test;  
-  
+    TH1F *fhitwidth;
+    TH1F *fhitwidth_ind_test;  
+    TH1F *fhitwidth_coll_test;  
+    
   protected:
-  std::string fhitsModuleLabel;
-  double fEps, fEps2;
-  int fMinPts;
-  
+    std::string fhitsModuleLabel;
+    double fEps, fEps2;
+    int fMinPts;
+    
   };
+
   //--------------------------------------------------------------
   class DBScan {
   public:
