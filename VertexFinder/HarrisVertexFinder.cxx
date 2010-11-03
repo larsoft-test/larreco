@@ -286,7 +286,7 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
 			  vertexnum=fMaxCorners;
 		      vHits.push_back(hit[hit_loc[wire][timebin]]);
 		      recob::Vertex vertex(vHits);
-		      vertex.SetWire(wire);
+		      vertex.SetWireNum(wire);
 		      vertex.SetDriftTime(hit[hit_loc[wire][timebin]]->CrossingTime());
 		      //weak vertices are given vertex id=1
 		      vertex.SetID(1);
