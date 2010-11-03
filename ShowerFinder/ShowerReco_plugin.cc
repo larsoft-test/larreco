@@ -20,6 +20,6 @@
 
 namespace shwf {
 
-  DEFINE_FWK_SERVICE(ShowerFinder);
+  DEFINE_FWK_MODULE(Shower);
 
 }

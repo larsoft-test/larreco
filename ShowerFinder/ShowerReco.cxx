@@ -18,6 +18,21 @@ extern "C" {
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <sstream>
+
+// Framework includes
+#include "FWCore/Framework/interface/Event.h" 
+#include "FWCore/ParameterSet/interface/ParameterSet.h" 
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
+#include "DataFormats/Common/interface/Handle.h" 
+#include "DataFormats/Common/interface/Ptr.h" 
+#include "DataFormats/Common/interface/PtrVector.h" 
+#include "FWCore/Framework/interface/MakerMacros.h" 
+#include "FWCore/ServiceRegistry/interface/Service.h" 
+#include "FWCore/Services/interface/TFileService.h" 
+#include "FWCore/Framework/interface/TFileDirectory.h" 
+#include "FWCore/MessageLogger/interface/MessageLogger.h" 
+#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
 
 #include "TMatrixD.h"
 #include "TVectorD.h"
@@ -29,45 +44,51 @@ extern "C" {
 #include "TTree.h"
 
 // LArSoft includes
-#include "Simulation/inc/LArVoxelList.h"
-#include "Simulation/inc/LArVoxelID.h"
-#include "Simulation/inc/LArVoxelData.h"
-#include "ShowerFinder/inc/ShowerReco.h"
-#include "Geometry/inc/geo.h"
-#include "Geometry/inc/WireGeo.h"
-#include "Geometry/inc/VolumeUtility.h"
-#include "RecoBase/inc/Hit.h"
-#include "RecoBase/inc/Track.h"
-#include "RecoBase/inc/Cluster.h"
-#include "RecoBase/inc/Shower.h"
-#include "RecoBase/inc/Cluster.h"
+#include "Simulation/LArVoxelList.h"
+#include "Simulation/LArVoxelID.h"
+#include "Simulation/LArVoxelData.h"
+#include "ShowerFinder/ShowerReco.h"
+#include "Geometry/geo.h"
+#include "Geometry/WireGeo.h"
+#include "Geometry/VolumeUtility.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Track.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Shower.h"
+#include "RecoBase/Cluster.h"
 
 
-namespace shwf{
-static bool hit_sort_2d(const recob::Hit* h1, const recob::Hit* h2)
-{
+static bool hit_sort_2d(const recob::Hit *h1, const recob::Hit *h2){
   return h1->Wire()->RawDigit()->Channel() < h2->Wire()->RawDigit()->Channel();
-}
+  }
+
 
 
 
 //-------------------------------------------------
-Shower::Shower(edm::ParameterSet const& pset) : 
+shwf::Shower::Shower(edm::ParameterSet const& pset) : 
 
 
-  clusters (pset.getParamter<std::string > ("./clusters")),
-  showers  (pset.getParamter<std::string > ("./shower"))
+  fclusters (pset.getParameter< std::string >("./clusters")),
+  fshowers  (pset.getParameter< std::string >("./shower"))
+  
 {
   produces< std::vector<recob::Shower> >();
 }
 
+
 //-------------------------------------------------
-Shower::~Shower()
+shwf::Shower::~Shower()
 {
 }
 
+void shwf::Shower::endJob()
+{
+}
+
+
 //-------------------------------------------------
-void Shower::beginJob(edm::EventSetup const&)
+void shwf::Shower::beginJob(edm::EventSetup const&)
 {
    edm::Service<edm::TFileService> tfs;
    edm::Service<geo::Geometry> geo;
@@ -79,33 +100,33 @@ void Shower::beginJob(edm::EventSetup const&)
   char tit_h_theta[128] = {0};
   for(int p=0;p<2;p++){
     sprintf(&tit_h_theta[0],"h_theta_%i",p);
-    h_theta[p] = new TH1F(tit_h_theta,"Theta distribution",180,-180, 180);
+    h_theta[p] = new TH1F(tit_h_theta,"Theta distribution",180,-180., 180.);
   }
   char tit_h_theta_wt[128] = {0};
   for(int p=0;p<2;p++){
     sprintf(&tit_h_theta[0],"theta_wire_%i",p);
-    h_theta_wt[p] = new TH1F(tit_h_theta_wt,"Theta wire distribution",45,-180, 180);
+    h_theta_wt[p] = new TH1F(tit_h_theta_wt,"Theta wire distribution",45,-180., 180.);
   }
   
   // Histos for the longitudinal energy distribution of the shower 
   char sh_tit[128] = {0};
   for(int p=0;p<2;p++){
     sprintf(&sh_tit[0],"sh_nrg1_%i",p);
-    sh_nrg[p] = new TH1F(sh_tit,"energy reco",240,0,240*0.4);
+    sh_nrg[p] = new TH1F(sh_tit,"energy reco",240,0.,240*0.4);
   }
   
   //Histo for the Transverse energy distribution of the shower
   char shT_tit[128] = {0};
   for(int p=0;p<2;p++){
     sprintf(&shT_tit[0],"shT_nrg1_%i",p);
-    sh_Tnrg[p] = new TH1F(shT_tit,"energy reco",80,-40,40);
+    sh_Tnrg[p] = new TH1F(shT_tit,"energy reco",80,-40.,40.);
   }
   
   //Histo for the Transverse HIT distribution of the shower
   char sh_long_tit[128] = {0};
   for(int p=0;p<2;p++){
-    sprintf(&sh_long_tit[0],"sh_long_hit_%i",p);
-    sh_long_hit[p] = new TH1F(sh_long_tit,"longitudinal hit reco",240*0.4, 0., 240*0.4);
+    sprintf(&sh_long_tit[0],"sh_long_hit_%i",p);                   //96 = 240*0.4 to avoid error in make command
+    sh_long_hit[p] = new TH1F(sh_long_tit,"longitudinal hit reco",96, 0., 240*0.4);
   }
 
 
@@ -113,15 +134,14 @@ void Shower::beginJob(edm::EventSetup const&)
 
 }
 
-//------------------------------------------------------------------------------------//
-void Shower::produce(edm::Event& evt, edm::EventSetup const&)
-{ 
 
-  std::auto_ptr< std::vector<recob::Shower> > Shower3DVector[2](new std::vector<recob::Shower>);
+
+//------------------------------------------------------------------------------------//
+void shwf::Shower::produce(edm::Event& evt, edm::EventSetup const&)
+{ 
 
   //ART CONVERSION
   //TODO HOW TO GET THE reco::Objects
-
 
   // Get Geometry
   edm::Service<geo::Geometry> geom;
@@ -142,63 +162,71 @@ void Shower::produce(edm::Event& evt, edm::EventSetup const&)
   double timepitch        = driftvelocity*timetick;                  //time sample (cm) 
   double tSI              = plane_pitch/driftvelocity_SI/timetick;   //drift time between Shield and Collection planes (time samples)
   double tIC              = (plane_pitch/driftvelocity_IC/timetick); //drift time between Induction and Collection planes (time samples)
+
+  
   
   //Get Clusters
-  edm::Handle<std::vector<recob::Cluser
-  evt.GetByLabel()
+  edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
+  evt.getByLabel(fclusters,clusterListHandle);
+
+  edm::Handle< std::vector<recob::Hit> > hitcol;
+  evt.getByLabel(fhits,hitcol);
 
 
-  std::vector<const recob::Cluster*> clusterlist;
+  edm::PtrVector<recob::Hit> hitlist; // Define hitlist
+  edm::PtrVector<recob::Hit>  hitlistInd, hitlistCol; // Define hitlist of Induction and Collection plane
 
-  try{
-    evt.Reco().Get(fInputFolder.c_str(),clusterlist);
-  } 
-  catch(edm::Exception e){
-    std::cerr << "Error retrieving cluster list, while looking for clusters "
-	      << "in ShowerReco::Make(),  "<< "directory : " 
-	      << fInputFolder.c_str() << std::endl;
-    return jobc::kFailed;
-  }
- 
-  std::vector<const recob::Hit*> hitlist; // Define hitlist
-  std::vector<const recob::Hit*> hitlistInd, hitlistCol; // Define hitlist of Induction and Collection plane
+
   
-  for(std::vector<const recob::Cluster*>::iterator clusterIter = clusterlist.begin();//loop over all cluster created by DBScan
-      clusterIter != clusterlist.end();  clusterIter++) {
-    
-    recob::Cluster* cl = (recob::Cluster*)(*clusterIter);//Get cluster information
-    
-    hitlist = cl->Hits( 0, -1); // Assign the hitlist of the cluster to "hitlist variable" for INDUCTION plane
-    std::sort(hitlist.begin(), hitlist.end(), hit_sort_2d); //sort hit by wire    
-    
+ 
+  for(int iclust = 0; iclust < clusterListHandle->size(); iclust++)
+    {
+    edm::Ptr<recob::Cluster> clust(clusterListHandle, iclust);//Get cluster information
+
+
+    hitlist = clust->Hits( 0, -1); // Assign the hitlist of the cluster to "hitlist variable" for INDUCTION plane
+
+  /*  std::sort(hitlist.begin(), hitlist.end(), hit_sort_2d); //sort hit by wire    
+
+
+   /* 
     //loop to fill "hitlistInd" that contain info only from INDUCTION plane hits
     int p(0),w(0), c(0); //c=channel, p=plane, w=wire
-    for(std::vector<const recob::Hit*>::iterator a = hitlist.begin(); a!= hitlist.end(); a++){
-      c=(*a)->Wire()->RawDigit()->Channel(); 
+
+    for(int ihits = 0; ihits < hitlist.size(); ihits++)
+      {
+      
+      c = hitlist[ihits]->Wire()->RawDigit()->Channel();
       geom->ChannelToWire(c,p,w);
-      hitlistInd.push_back(*a); 
+      hitlistInd.push_back(ihits); 
     }
     
-    hitlist = cl->Hits( 1, -1);  // Assign the hitlist of the cluster to "hitlist variable" for COLLECTION plane
+    hitlist = clust->Hits( 1, -1);  // Assign the hitlist of the cluster to "hitlist variable" for COLLECTION plane
     std::sort(hitlist.begin(), hitlist.end(), hit_sort_2d); //sort hit by wire  
     
     //loop to fill "hitlistCol" that contain info only from COLLECTION plane hits
-    for(std::vector<const recob::Hit*>::iterator a = hitlist.begin(); a!= hitlist.end(); a++){
-      c=(*a)->Wire()->RawDigit()->Channel();
+
+    for(int ihits = 0; ihits < hitlist.size(); ihits++)
+      {
+      
+      c = hitlist[ihits]->Wire()->RawDigit()->Channel();
       geom->ChannelToWire(c,p,w);
-      hitlistCol.push_back(*a);
+      hitlistCol.push_back(ihits); 
     }
     
     std::sort(hitlistInd.begin(), hitlistInd.end(), hit_sort_2d); //sort induction  hit by wire
     std::sort(hitlistCol.begin(), hitlistCol.end(), hit_sort_2d); //sort collection hit by wire 
-  }// end loop on DBscan cluster 
+*/
+
+  } // end loop on DBscan cluster 
   
  
- 
+ /*
  
   
   // Save enegry in a file
   myfile.open ("/data/larsoft/releases/thomas/shower_energy.txt", std::ios::app);
+
   AngularDistributionI(hitlistInd, geom);
   AngularDistributionC(hitlistCol, geom);
   FitAngularDistributions();
@@ -243,7 +271,7 @@ void Shower::produce(edm::Event& evt, edm::EventSetup const&)
 
   //  std::cout << "LastWire  " << LastWire[0]<<"   time="<<LastTime[1]<<std::endl;
   
-  std::vector<recob::Shower *> Shower3DVector(2);  //holds the 3D shower to be saved 
+  //std::vector<recob::Shower *> Shower3DVector(2);  //holds the 3D shower to be saved 
   for(int p=0;p<2;p++)Shower3DVector[p] = new recob::Shower();
   geo::View_t PlaneI = geo::kU;
   Shower3DVector[0]->SetPitch( Pitch[0], PlaneI);
@@ -274,66 +302,115 @@ void Shower::produce(edm::Event& evt, edm::EventSetup const&)
   Shower3DVector[0]->fLastTime[0] = LastTime[0];
   Shower3DVector[0]->fLastTime[1] = LastTime[1];
 
+
+  */
 }
 
+/*
+
 // ***************** //
-float Shower::McReleasedEnergy(const edm::EventHandle& evt){
+float shwf::Shower::McReleasedEnergy(const edm::EventHandle& evt){
   //Thomas
   //Retrieve the total energy released by the MC simulation 
-  m_totenergy=0.;
 
-  typedef std::vector<const sim::LArVoxelList* > larVoxelList_type;
-  larVoxelList_type larVoxelLists;
+  float m_totenergy=0.;
+
+  typedef std::vector<const sim::LArVoxelList* > larVoxelLists_t;
+  larVoxelLists_t larVoxelLists;
 
   try {
-
     evt.DetSim().Get("",larVoxelLists);
   }
   catch ( edm::Exception& exception )
     {
-
       std::cout<< "No LarVoxelList objects found in DetSim() folder!" 
                 << std::endl;
-
       std::cerr << __FILE__ << ", line " << __LINE__
 		<< ": error in getting LArVoxelList objects DetSim() folder:"
 		<< std::endl
 		<< "    Error in " << exception.fFile << ", line " << exception.fLine 
 		<< ": " << exception.fId
 		<< std::endl;
-
       // Do no more processing for this event.
       return -1;
     }
 
-  for ( larVoxelList_type::const_iterator i = larVoxelLists.begin(), 
-	  end = larVoxelLists.end();
-	i != end; ++i )
-    {
-      // Look at a single LArVoxelList.
-      const sim::LArVoxelList* larVoxelList = (*i);
 
-      // Loop over every voxel in the list. (Confused? Look carefully
-      // at the names; above we're looping over LArVoxelListS
-      // (plural!); now we're looping within in a single LArVoxelList
-      // (singular)).
-      for ( sim::LArVoxelList::const_iterator j = larVoxelList->begin(),
-	      end = larVoxelList->end();
-	    j != end; ++j )
+  typedef std::vector<const sim::ParticleList*> particleLists_t;
+  particleLists_t particleLists;
+  
+  // Read in a vector of BlorgList pointers. Note that your objects 
+  // may not be in the DetSim folder; look up the location!
+  try {
+    evt.DetSim().Get("",particleLists);
+    }
+  catch(edm::Exception& exception)
+    {
+      std::cout<< "No particleList objects found in DetSim() folder!" 
+               << std::endl;
+      std::cerr << __FILE__ << ", line " << __LINE__
+		<< ": error in getting particleList objects DetSim() folder:"
+		<< std::endl
+		<< "    Error in " << exception.fFile << ", line " << exception.fLine 
+		<< ": " << exception.fId
+		<< std::endl;
+      // Do no more processing for this event.
+      return -1;
+    }
+
+  for( particleLists_t::const_iterator k = particleLists.begin();  k != particleLists.end(); ++k )
+    {
+      const sim::ParticleList* particleList = (*k);
+
+     for( larVoxelLists_t::const_iterator l = larVoxelLists.begin();  l != larVoxelLists.end(); ++l )
+       {
+
+         const sim::LArVoxelList* larVoxelList = (*l);
+   
+      for ( sim::LArVoxelList::const_iterator j = larVoxelList->begin(), end = larVoxelList->end(); j != end; ++j )
 	{
 	  // A LArVoxelList is a map, so each entry is a pair, with a
 	  // first and second member.
 	  const sim::LArVoxelID& voxelID = (*j).first;
 	  const sim::LArVoxelData& data  = (*j).second;
 
-          m_totenergy += data.Energy();
+          const sim::LArVoxelData& voxelData = larVoxelList->at( voxelID );
+
+          int numberParticles = voxelData.NumberParticles();
+
+          for ( int i = 0; i != numberParticles; ++i )
+            {
+              // Perhaps this is all you want: the deposited in the voxel by that particle.
+              //double energy = voxelData.Energy(i);
   
-	  
+              // If you want to know more about the particle:
+              // Get the simulation track ID number of the particle.
+              int trackID = voxelData.TrackID(i);
+ 
+              // Fetch the particle object.
+              const sim::Particle* particle = particleList->at( trackID );
+
+              // Now you can access detailed particle information. For example:
+              int pdg = particle->PdgCode();
+             
+              if (abs(pdg)==11)  m_totenergy += voxelData.Energy();
+              //std::cout<< "voxelData.Energy()" << voxelData.Energy() << "data.Energy()" << data.Energy() << std::endl;
+ 
+            }
+          // But we're not yet done! There's typically "unassigned" energy in a voxel,
+          // the sum of the particles whose energies were too small to include in the 
+          // simulation output.
+          double unassignedEnergy = voxelData.UnassignedEnergy();
+          // ... process the left-over energy
+
+          //std::cout<< "unassignedEnergy" << unassignedEnergy << std::endl;
 	} // For each voxel
 
     } // For each LArVoxelList
-
+}
   return m_totenergy;
+
+
 
 }
 
@@ -342,7 +419,7 @@ float Shower::McReleasedEnergy(const edm::EventHandle& evt){
 
 
 // ***************** //
-void Shower::AngularDistributionI(std::vector<const recob::Hit*> hitlistInd,  geo::Geometry* geom){ 
+void shwf::Shower::AngularDistributionI(edm::PtrVector<recob::Hit> *hitlistInd,  geo::Geometry *geom){ 
 
   // Angular distribution of the energy of the shower - Induction plane
   int   loopI = 0; // Flag
@@ -375,13 +452,13 @@ void Shower::AngularDistributionI(std::vector<const recob::Hit*> hitlistInd,  ge
     h_theta[0]->Fill(thetaI, theHit_I->MIPs()); // angle in cm,cm coordinate
     
     // moving to polar coordinates (wire, tick coordinate)
-    /* int BI_wt = (wire_I - wireI1)+1; // in wire
-    int AI_wt = (time_I - timeI1);   // in ticks 
-    float thetaI_wt = asin(AI_wt/sqrt(pow(AI_wt,2)+pow(BI_wt,2))); //in rad
-    thetaI_wt = 180*thetaI_wt/3.14; // in deg
+    // int BI_wt = (wire_I - wireI1)+1; // in wire
+    //int AI_wt = (time_I - timeI1);   // in ticks 
+    //float thetaI_wt = asin(AI_wt/sqrt(pow(AI_wt,2)+pow(BI_wt,2))); //in rad
+    //thetaI_wt = 180*thetaI_wt/3.14; // in deg
     // Filling the histo (angle, energy of the hit)
-    h_theta_wt[0]->Fill(thetaI_wt, theHit_I->MIPs());//angle in wire,tick coordinate
-    */
+    //h_theta_wt[0]->Fill(thetaI_wt, theHit_I->MIPs());//angle in wire,tick coordinate
+    
     loopI++; // flag increment
   }
   
@@ -392,7 +469,7 @@ void Shower::AngularDistributionI(std::vector<const recob::Hit*> hitlistInd,  ge
 // ******************************* //
 
 // Angular distribution of the energy of the shower - Collection view
-void Shower::AngularDistributionC(std::vector<const recob::Hit*> hitlistCol,  geo::Geometry* geom){
+void shwf::Shower::AngularDistributionC(edm::PtrVector<recob::Hit> *hitlistCol,  geo::Geometry *geom){
   
   int    loopC = 0; // flag
   
@@ -422,13 +499,13 @@ void Shower::AngularDistributionC(std::vector<const recob::Hit*> hitlistCol,  ge
     h_theta[1]->Fill(thetaC, theHit_C->MIPs()); // Filling the histo (angle, energy of the hit)
     
     // moving to polar coordinates (wire, tick coordinate)
-    /*BC = (wire_C - wire1C); //in cm
-    AC = (time_C - time1C); // in cm 
-    thetaC = asin(AC/sqrt(pow(AC,2)+pow(BC,2))); //in rad
-    thetaC = 180*thetaC/3.14; // in deg
+    //BC = (wire_C - wire1C); //in cm
+    //AC = (time_C - time1C); // in cm 
+    //thetaC = asin(AC/sqrt(pow(AC,2)+pow(BC,2))); //in rad
+    //thetaC = 180*thetaC/3.14; // in deg
     // Filling the histo (angle, energy of the hit)
-    h_theta_wt[1]->Fill(thetaC, theHit_C->MIPs());//angle in wire,tick coordinate
-    */
+    //h_theta_wt[1]->Fill(thetaC, theHit_C->MIPs());//angle in wire,tick coordinate
+    
     loopC++; // flag counter
   }
   std::cout << "VertexWireC= " << wire1C << "   VerTimeC= " << time1C << std::endl;
@@ -439,7 +516,7 @@ void Shower::AngularDistributionC(std::vector<const recob::Hit*> hitlistCol,  ge
 
 // ***************** //
 
-void Shower::FitAngularDistributions(){
+void shwf::Shower::FitAngularDistributions(){
   // Fit function of the angular distribution (cm,cm)
   TF1 *gau = new TF1("gaus","gaus",-60, 60);
   h_theta[0]->Fit("gaus","QR"); // Fit of the angular distribution
@@ -455,24 +532,24 @@ void Shower::FitAngularDistributions(){
   //std::cout << "Col theta(cm,cm)=" << theta_Mean[1] << " RMS=" << theta_RMS[1] <<std::endl;
 
   // Fit function of the angular distribution (wire,tick)
-  /*TF1 *gau_wt = new TF1("gaus_wt","gaus",-120, 120);
-  double MAX = h_theta_wt[0]->GetMaximumBin();
-  std::cout<< " MAX " << MAX << std::endl;
-  h_theta_wt[0]->Fit("gaus_wt","QR"); // Fit of the angular distribution
-  theta_wt_Mean[0] = gau_wt->GetParameter(1);// Mean value of the fit (Induction)
-  theta_wt_RMS[0]  = gau_wt->GetParameter(2); // RMS of the fit of the angular distribution (IND) in deg
+  //TF1 *gau_wt = new TF1("gaus_wt","gaus",-120, 120);
+  //double MAX = h_theta_wt[0]->GetMaximumBin();
+  //std::cout<< " MAX " << MAX << std::endl;
+  //h_theta_wt[0]->Fit("gaus_wt","QR"); // Fit of the angular distribution
+  //theta_wt_Mean[0] = gau_wt->GetParameter(1);// Mean value of the fit (Induction)
+  //theta_wt_RMS[0]  = gau_wt->GetParameter(2); // RMS of the fit of the angular distribution (IND) in deg
  
-  h_theta_wt[1]->Fit("gaus_wt","QR");
-  theta_wt_Mean[1] = gau_wt->GetParameter(1);// Mean value of the fit (Collection)
-  theta_wt_RMS[1]  = gau_wt->GetParameter(2);// RMS of the fit of the angular distribution (COL) in deg
+  //h_theta_wt[1]->Fit("gaus_wt","QR");
+  //theta_wt_Mean[1] = gau_wt->GetParameter(1);// Mean value of the fit (Collection)
+  //theta_wt_RMS[1]  = gau_wt->GetParameter(2);// RMS of the fit of the angular distribution (COL) in deg
 
-  std::cout << "Ind Theta(w,t)=" << theta_wt_Mean[0] << " RMS=" << theta_wt_RMS[0] <<std::endl;
-  std::cout << "Col theta(w,t)=" << theta_wt_Mean[1] << " RMS=" << theta_wt_RMS[1] <<std::endl;
-  */
+  //std::cout << "Ind Theta(w,t)=" << theta_wt_Mean[0] << " RMS=" << theta_wt_RMS[0] <<std::endl;
+  //std::cout << "Col theta(w,t)=" << theta_wt_Mean[1] << " RMS=" << theta_wt_RMS[1] <<std::endl;
+  
 }
 // ***************** //
 
-void Shower::LongTransEnergyI(std::vector<const recob::Hit*> hitlistInd,  geo::Geometry* geom){
+void shwf::Shower::LongTransEnergyI(edm::PtrVector<recob::Hit> *hitlistInd,  geo::Geometry *geom){
   
   // Longitudinal energy of the shower (roto-translation) - Induction plane
   double thetaI_sh;
@@ -510,10 +587,10 @@ void Shower::LongTransEnergyI(std::vector<const recob::Hit*> hitlistInd,  geo::G
     High_thI = theta_Mean[0]+(alpha*theta_RMS[0]);
        
     //std::cout << "thresholds= " << Low_thI << "   " << High_thI << std::endl;
-    /*    if((thetaI<Low_thI) || (thetaI>High_thI)){
+    //    if((thetaI<Low_thI) || (thetaI>High_thI)){
       //std::cout << " skipping hits outside 5*RMS out of the cone" << loop_nrgI++ << std::endl; 
-      continue;
-      }*/
+      //continue;
+      //}
     
     if( (thetaI>(theta_Mean[0]-0.1))&&(thetaI<(theta_Mean[0]+0.1)) ){
       LastWire[0] = (int)wire_I;
@@ -543,7 +620,7 @@ void Shower::LongTransEnergyI(std::vector<const recob::Hit*> hitlistInd,  geo::G
 }
 
 // -------------------------- //
-void Shower::LongTransEnergyC(std::vector<const recob::Hit*> hitlistCol,  geo::Geometry* geom){
+void shwf::Shower::LongTransEnergyC(edm::PtrVector<recob::Hit> *hitlistCol,  geo::Geometry *geom){
   // alogorithm for energy vs dx of the shower (roto-translation) COLLECTION VIEW
   double thetaC_sh, wireC_rot, timeC_rot, wireC_cm, timeC_cm;
   int loop_nrgC = 0;
@@ -609,7 +686,7 @@ void Shower::LongTransEnergyC(std::vector<const recob::Hit*> hitlistCol,  geo::G
 
 
 //------------------------------------------------------------------------------------//  
-int Shower::Get3Daxis(double thetaI, double thetaC, double Wire_vertexI, double Wire_vertexC, double Time_vertex){
+int shwf::Shower::Get3Daxis(double thetaI, double thetaC, double Wire_vertexI, double Wire_vertexC, double Time_vertex){
   
   double timetick = 0.198;    //time sample in microsec
  
@@ -644,12 +721,12 @@ int Shower::Get3Daxis(double thetaI, double thetaC, double Wire_vertexI, double 
   
   std::cout << "befor Phi=" <<phi*180/pi  << "   theta=" << theta*180/pi <<std::endl;
   phi = phi<0. ? phi+TMath::Pi() : phi ; // solve the ambiguities due to tangent periodicity
-  /*if(phi<0)phi=-1*phi;
-  if(phi>0){
-    phi = phi*180/pi;
-    phi = 180 - phi;
-    phi = phi*pi/180;
-    }*/
+  //if(phi<0)phi=-1*phi;
+  //if(phi>0){
+    //phi = phi*180/pi;
+    //phi = 180 - phi;
+    //phi = phi*pi/180;
+    //}
   std::cout << " Phi=" <<phi*180/pi  << "   theta=" << theta*180/pi <<std::endl;
   myfile << "   " <<phi*180/pi << "   ";
   myfile << "   " << theta*180/pi << "   ";
@@ -660,7 +737,7 @@ int Shower::Get3Daxis(double thetaI, double thetaC, double Wire_vertexI, double 
 }
 
 //------------------------------------------------------------------------------------//  
-int Shower::Get2Dvariables(double Wire_vertexI_wt, double Wire_vertexC_wt, double Time_I_wt, double Time_C_wt){
+int shwf::Shower::Get2Dvariables(double Wire_vertexI_wt, double Wire_vertexC_wt, double Time_I_wt, double Time_C_wt){
   
   Wire_vertexI_wt = Wire_vertexI_wt /0.4;
   Wire_vertexC_wt = Wire_vertexC_wt /0.4;
@@ -679,12 +756,12 @@ int Shower::Get2Dvariables(double Wire_vertexI_wt, double Wire_vertexC_wt, doubl
   intercept_wt[0] = Time_I_wt - Wire_vertexI_wt*slope_wt[0];
   intercept_wt[1] = Time_C_wt - Wire_vertexC_wt*slope_wt[1];
 
-  /*  slope_wt[0] = tan((thetaI_wt*pi/180));
-  slope_wt[1] = tan((thetaC_wt*pi/180));
+  //  slope_wt[0] = tan((thetaI_wt*pi/180));
+  //slope_wt[1] = tan((thetaC_wt*pi/180));
   
-  intercept_wt[0] = Time_I_wt - (slope_wt[0]*Wire_vertexI_wt);
-  intercept_wt[1] = Time_C_wt - (slope_wt[1]*Wire_vertexC_wt);
-  */
+  //intercept_wt[0] = Time_I_wt - (slope_wt[0]*Wire_vertexI_wt);
+  //intercept_wt[1] = Time_C_wt - (slope_wt[1]*Wire_vertexC_wt);
+  
   //  std::cout << " Slope_wt[0]=" <<slope_wt[0] << "  Intercept_wt[0]=" << intercept_wt[0] <<std::endl;
   //std::cout << " Slope_wt[1]=" <<slope_wt[1] << "  Intercept_wt[1]=" << intercept_wt[1] <<std::endl;  
 
@@ -693,8 +770,12 @@ int Shower::Get2Dvariables(double Wire_vertexI_wt, double Wire_vertexC_wt, doubl
 
 
 // automatically called by Get3Daxis
-void Shower::GetPitchLength(double theta, double phi){
+void shwf::Shower::GetPitchLength(double theta, double phi){
   
+//TODO replace with correctly call
+
+  const static double wire_pitch    =  0.4;   // wire pitch in cm
+
   //std::cout << "theta_input=" <<theta << " Phi=" << phi <<std::endl;  
 
   double angle_rad = 30* pi /180;
@@ -712,7 +793,7 @@ void Shower::GetPitchLength(double theta, double phi){
 }
 
 
-/*****************************************************/
+//-----------------------------------------------//
 void GetVertex(){
 
 
@@ -721,8 +802,8 @@ void GetVertex(){
 }
  
 
-/******************************************************/
-double Shower::DriftVelocity(double Efield, double Temperature){
+//-----------------------------------------------//
+double shwf::Shower::DriftVelocity(double Efield, double Temperature){
   
   // Dirft Velocity as a function of Electric Field and LAr Temperature
   // from : W. Walkowiak, NIM A 449 (2000) 288-294
@@ -748,7 +829,7 @@ double Shower::DriftVelocity(double Efield, double Temperature){
   return vd;// in cm/us
 }
 
-void Shower::WriteHistos(edm::EventHandle& evt){
+void shwf::Shower::WriteHistos(edm::EventHandle& evt){
   
   char Out_file[128] = "Shower_0000";
   sprintf(&Out_file[7],"%.4i.root", evt.Header().Run());
@@ -773,4 +854,4 @@ void Shower::WriteHistos(edm::EventHandle& evt){
 }
  
 
-}
+*/
