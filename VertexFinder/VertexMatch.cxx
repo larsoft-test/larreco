@@ -248,7 +248,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 	// strongvertex, despite name, is a hit vector.
 	strongvertex.push_back(matchedvertex[i].first);
 	recob::Vertex vertex(strongvertex);      
-	vertex.SetWire(wire);
+	vertex.SetWireNum(wire);
 	vertex.SetStrength(strongvertexstrength[i]);
 	//vertex->SetDriftTime(matchedvertex[i].first->CrossingTime());
 	vertex.SetDriftTime((matchedvertex[i].first)->CrossingTime());
