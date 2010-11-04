@@ -49,13 +49,10 @@ extern "C" {
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
 
-
-
-
 cluster::HoughLineFinderAna::HoughLineFinderAna(edm::ParameterSet const& pset) : 
   fHoughModuleLabel    (pset.getParameter< std::string >("HoughModuleLabel")),
   fDigitModuleLabel    (pset.getParameter< std::string >("DigitModuleLabel")),
-  fHitModuleLabel      (pset.getParameter< std::string >("HitModuleLabel")),
+  fHitsModuleLabel      (pset.getParameter< std::string >("HitsModuleLabel")),
   fm_run(0), 
   fm_event(0), 
   fm_plane(0), 
@@ -69,11 +66,7 @@ cluster::HoughLineFinderAna::HoughLineFinderAna(edm::ParameterSet const& pset) :
 //-------------------------------------------------
 cluster::HoughLineFinderAna::~HoughLineFinderAna()
 {
-  delete &fm_hitidZ;
-  delete &fm_mipZ;
-  delete &fm_drifttimeZ;
-  delete &fm_widthZ;
-  delete &fm_upadcZ;
+
 }
 
 //-------------------------------------------------
@@ -110,7 +103,7 @@ void cluster::HoughLineFinderAna::analyze(const edm::Event& evt, edm::EventSetup
   edm::Handle< std::vector<recob::Cluster> > hlfListHandle;
   evt.getByLabel(fHoughModuleLabel,hlfListHandle);
   edm::Handle< std::vector<recob::Hit> > hitListHandle;
-  evt.getByLabel(fHitModuleLabel,hitListHandle);
+  evt.getByLabel(fHitsModuleLabel,hitListHandle);
 
   edm::PtrVector<recob::Cluster> clusters;   
 //   edm::PtrVector<recob::Hit> hits;// unused, as yet. EC, 5-Oct-2010.

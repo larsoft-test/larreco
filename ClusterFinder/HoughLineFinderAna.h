@@ -25,7 +25,7 @@ namespace cluster {
 
     std::string fHoughModuleLabel;
     std::string fDigitModuleLabel;
-    std::string fHitModuleLabel;
+    std::string fHitsModuleLabel;
     TTree* ftree;
     Int_t fm_run;          // Run number
     ULong64_t fm_run_timestamp;          // Run number
