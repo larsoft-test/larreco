@@ -65,7 +65,7 @@ process.scanfilter = scanfilter.EDProducer(
 # Write the events to the output file.
 process.output = scanfilter.OutputModule(
     "PoolOutputModule",
-    fileName = scanfilter.untracked.string('file:emptyfil_hists.root'),
+    fileName = scanfilter.untracked.string('scanfilter_gen.root'),
 )
 
 ####### End of the section that defines and configures modules.#########

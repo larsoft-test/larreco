@@ -41,10 +41,10 @@ namespace filt{
 
   //-------------------------------------------------
   ScanFilter::ScanFilter(edm::ParameterSet const & pset) : 
-    fScanModuleLabel(pset.getParameter< std::string > ("ScanModuleLabel")),
-    fNeutrino_req(pset.getParameter< int >("Neutrino_req")),
-    fNumShowers_req(pset.getParameter< int >("NumShowers_req")),
-    fNumTracks_req(pset.getParameter< int >("NumTracks_req"))
+    fScanModuleLabel      (pset.getParameter< std::string > ("ScanModuleLabel")),
+    fNeutrino_req         (pset.getParameter< int >("Neutrino_req")),
+    fNumShowers_req       (pset.getParameter< int >("NumShowers_req")),
+    fNumTracks_req        (pset.getParameter< int >("NumTracks_req"))
   {   
   }
 
@@ -62,11 +62,9 @@ namespace filt{
   bool ScanFilter::filter(edm::Event &evt, edm::EventSetup const&)
   { 
 
-
     int failFlag = 1;
     int run = evt.id().run();
     int event = evt.id().event();
-
     
     edm::PtrVector<merge::ScanInfo> scanIn;
     scanIn.clear();
@@ -80,9 +78,12 @@ namespace filt{
       scanIn.push_back(scaninfo);     
     }
 
-
     for(unsigned int i = 0; i < scanIn.size(); ++i){
-    if(scanIn[i]->Get_IsNeutrino()>=fNeutrino_req && scanIn[i]->Get_NumShower()<=fNumShowers_req  && (scanIn[i]->Get_TrackInd()<=fNumTracks_req||scanIn[i]->Get_TrackCol()<=fNumTracks_req)  &&scanIn[i]->Get_Run()==run && scanIn[i]->Get_Event()==event)
+    if(scanIn[i]->Get_IsNeutrino()>=fNeutrino_req 
+    && scanIn[i]->Get_NumShower()<=fNumShowers_req  
+    && (scanIn[i]->Get_TrackInd()<=fNumTracks_req||scanIn[i]->Get_TrackCol()<=fNumTracks_req) 
+    && scanIn[i]->Get_Run()==run 
+    && scanIn[i]->Get_Event()==event)
     failFlag=0;
     }
  
