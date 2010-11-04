@@ -354,7 +354,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	      //protection against very steep uncorrelated hits
  	      if(TMath::Abs(slope)>75. 
 		 && TMath::Abs((*clusterHits.begin())->Wire()->RawDigit()->Channel()-
-			       (*clusterHits.end())->Wire()->RawDigit()->Channel())>0
+			       clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel())>0
 		 )
  		continue;
 	      
