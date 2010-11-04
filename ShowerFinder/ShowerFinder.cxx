@@ -164,7 +164,7 @@ namespace shwf{
     for(unsigned int ivert = 0; ivert < vertSel.size(); ++ivert)
       {
 	//get the coordinates of the vertex for the summit of the cone
-	xa_cone = vertSel[ivert]->Wire();
+	xa_cone = vertSel[ivert]->WireNum();
 	ya_cone = vertSel[ivert]->DriftTime();
 	  
 
