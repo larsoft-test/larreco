@@ -2,13 +2,13 @@
 /// \file  ShowerFinder.cxx
 /// \brief Reconstruct Showers 
 ///
-/// \version $Id: ShowerFinder.cxx,v 0.1 2010/10/12 06:08:30 brossi strauss $
+/// \version $Id: ShowerFinder.cxx,v 0.1 11/04/2010 12:45:16 PM  brossi strauss $
 /// \author brossi@lhep.unibe.ch
 /// \author strauss@lhep.unibe.ch
 ////////////////////////////////////////////////////////////////////////
 // This class solves the following problem:
 //
-// Autoitc shower reconstruction and distinguish between electron and gamma
+// Automaitc shower reconstruction and distinguish between electron and gamma
 
 // Framework includes
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -20,6 +20,6 @@
 
 namespace shwf {
 
-  DEFINE_FWK_MODULE(Shower);
+  DEFINE_FWK_MODULE(ShowerReco);
 
 }
