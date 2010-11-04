@@ -25,7 +25,7 @@ process.maxEvents = clusterfinder.untracked.PSet(
 # Load the service that manages root files for histograms.
 process.TFileService = clusterfinder.Service(
     "TFileService",
-    fileName = clusterfinder.string("ana_hist.root"),
+    fileName = clusterfinder.string("houghana_hist.root"),
     closeFileFast = clusterfinder.untracked.bool(False)
 )
 
@@ -113,7 +113,7 @@ process.houghana = clusterfinder.EDAnalyzer(
 # Write the events to the output file.
 process.output = clusterfinder.OutputModule(
     "PoolOutputModule",
-    fileName = clusterfinder.untracked.string('ana_gen.root'),
+    fileName = clusterfinder.untracked.string('houghana_gen.root'),
 )
 
 ####### End of the section that defines and configures modules.#########

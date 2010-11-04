@@ -25,7 +25,7 @@ process.maxEvents = clusterfinder.untracked.PSet(
 # Load the service that manages root files for histograms.
 process.TFileService = clusterfinder.Service(
     "TFileService",
-    fileName = clusterfinder.string("clusterfinder_hist.root"),
+    fileName = clusterfinder.string("hough_hist.root"),
     closeFileFast = clusterfinder.untracked.bool(False)
 )
 
@@ -101,7 +101,7 @@ process.hough = clusterfinder.EDProducer(
 # Write the events to the output file.
 process.output = clusterfinder.OutputModule(
     "PoolOutputModule",
-    fileName = clusterfinder.untracked.string('clushough_gen.root'),
+    fileName = clusterfinder.untracked.string('hough_gen.root'),
 )
 
 ####### End of the section that defines and configures modules.#########
