@@ -56,6 +56,8 @@ cluster::HoughLineFinderAna::HoughLineFinderAna(edm::ParameterSet const& pset) :
   fm_run(0), 
   fm_event(0), 
   fm_plane(0), 
+  fm_clusterslope(0), 
+  fm_clusterintercept(0),
   fm_clusterid(0), 
   fm_wirespan(0), 
   fm_sizeClusterZ(10000), 
@@ -82,15 +84,19 @@ void cluster::HoughLineFinderAna::beginJob(edm::EventSetup const&)
      fm_drifttimeZ = new Float_t[fm_sizeHitZ];
      fm_widthZ = new Float_t[fm_sizeHitZ];
      fm_upadcZ = new Float_t[fm_sizeHitZ];
+     fm_wireZ = new Int_t[fm_sizeHitZ];
      ftree->Branch("run", &fm_run, "run/I");
      ftree->Branch("run_timestamp", &fm_run_timestamp, "run_timestamp/l"); //l is for ULong64_t
      ftree->Branch("event", &fm_event, "event/I");
      ftree->Branch("plane",&fm_plane,"plane/I");
      ftree->Branch("clusterid",&fm_clusterid,"clusterid/I");
+     ftree->Branch("clusterslope",&fm_clusterslope,"clusterslope/F");
+     ftree->Branch("clusterintercept",&fm_clusterintercept,"clusterintecept/F");
      ftree->Branch("wirespan",&fm_wirespan,"wirespan/I");
      ftree->Branch("numberHits",&fm_sizeHitZ,"numberHits/I");
      ftree->Branch("numberClusters",&fm_sizeClusterZ,"numberClusters/I");
      ftree->Branch("hitidZ",fm_hitidZ,"hitidZ[numberHits]/I");
+     ftree->Branch("wireZ",fm_wireZ,"wireZ[numberHits]/I");
      ftree->Branch("mipZ",fm_mipZ,"mipZ[numberHits]/F");
      ftree->Branch("drifttimeZ",fm_drifttimeZ,"drifttitmeZ[numberHits]/F");
      ftree->Branch("widthZ",fm_widthZ,"widthZ[numberHits]/F");
@@ -113,7 +119,6 @@ void cluster::HoughLineFinderAna::analyze(const edm::Event& evt, edm::EventSetup
       edm::Ptr<recob::Cluster> cluster(hlfListHandle,ii);
       clusters.push_back(cluster);
     }
-
   
     std::cout << "run    : " << evt.id().run() << std::endl;
     //std::cout << "subrun : " << evt.subRun() << std::endl;
@@ -127,6 +132,7 @@ void cluster::HoughLineFinderAna::analyze(const edm::Event& evt, edm::EventSetup
     unsigned int p;
     fm_sizeClusterZ=0;
     fm_sizeHitZ=0;
+    unsigned int wire=0;
 
     edm::Service<geo::Geometry> geo;
 
@@ -138,16 +144,21 @@ void cluster::HoughLineFinderAna::analyze(const edm::Event& evt, edm::EventSetup
   {
        fm_clusterid=clusters[j]->ID();
        edm::PtrVector<recob::Hit> _hits=clusters[j]->Hits(plane);
-	  
+	   fm_clusterslope=(Float_t)clusters[j]->Slope();
+       fm_clusterintercept=(Float_t)clusters[j]->Intercept();
    if(_hits.size()!=0)
    {
 	  geo->ChannelToWire(_hits[0]->Wire()->RawDigit()->Channel(), p, firstwire);
 	  geo->ChannelToWire(_hits[_hits.size()-1]->Wire()->RawDigit()->Channel(), p, lastwire);
 	  fm_wirespan=lastwire-firstwire;
 	  fm_sizeHitZ=_hits.size();
+	  
 	  for(unsigned int i = 0; i < _hits.size(); ++i) 
 	  {	     
+	  
+	     geo->ChannelToWire(_hits[i]->Wire()->RawDigit()->Channel(), p, wire);
          fm_hitidZ[i]=i;         
+         fm_wireZ[i]=wire;
          fm_mipZ[i]=(Float_t)_hits[i]->MIPs();
          fm_drifttimeZ[i]= (Float_t)_hits[i]->CrossingTime();
          fm_widthZ[i]=(Float_t)_hits[i]->EndTime()-_hits[i]->StartTime();
