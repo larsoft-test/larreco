@@ -73,15 +73,15 @@ cluster::HoughLineFinderAna::~HoughLineFinderAna()
 void cluster::HoughLineFinderAna::beginJob(edm::EventSetup const&)
 {
 
+
     // get access to the TFile service
      edm::Service<edm::TFileService> tfs;
-
      ftree= tfs->make<TTree>("HoughTree","HoughTree");
      fm_hitidZ = new Int_t[fm_sizeHitZ];
-     fm_mipZ = new Double_t[fm_sizeHitZ];
-     fm_drifttimeZ = new Double_t[fm_sizeHitZ];
-     fm_widthZ = new Double_t[fm_sizeHitZ];
-     fm_upadcZ = new Double_t[fm_sizeHitZ];
+     fm_mipZ = new Float_t[fm_sizeHitZ];
+     fm_drifttimeZ = new Float_t[fm_sizeHitZ];
+     fm_widthZ = new Float_t[fm_sizeHitZ];
+     fm_upadcZ = new Float_t[fm_sizeHitZ];
      ftree->Branch("run", &fm_run, "run/I");
      ftree->Branch("run_timestamp", &fm_run_timestamp, "run_timestamp/l"); //l is for ULong64_t
      ftree->Branch("event", &fm_event, "event/I");
@@ -146,12 +146,12 @@ void cluster::HoughLineFinderAna::analyze(const edm::Event& evt, edm::EventSetup
 	  fm_wirespan=lastwire-firstwire;
 	  fm_sizeHitZ=_hits.size();
 	  for(unsigned int i = 0; i < _hits.size(); ++i) 
-	  {
-         fm_hitidZ[i]=i;
-         fm_mipZ[i]=_hits[i]->MIPs();
-         fm_drifttimeZ[i]= _hits[i]->CrossingTime();
-         fm_widthZ[i]=_hits[i]->EndTime()-_hits[i]->StartTime();
-         fm_upadcZ[i]=_hits[i]->UpADC();
+	  {	     
+         fm_hitidZ[i]=i;         
+         fm_mipZ[i]=(Float_t)_hits[i]->MIPs();
+         fm_drifttimeZ[i]= (Float_t)_hits[i]->CrossingTime();
+         fm_widthZ[i]=(Float_t)_hits[i]->EndTime()-_hits[i]->StartTime();
+         fm_upadcZ[i]=(Float_t)_hits[i]->UpADC();
 	  } 
     
    ftree->Fill();  
