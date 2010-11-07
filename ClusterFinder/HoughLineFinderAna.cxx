@@ -51,11 +51,13 @@ extern "C" {
 
 cluster::HoughLineFinderAna::HoughLineFinderAna(edm::ParameterSet const& pset) : 
   fHoughModuleLabel    (pset.getParameter< std::string >("HoughModuleLabel")),
+  fDBScanModuleLabel       (pset.getParameter< std::string >("DBScanModuleLabel")),
   fDigitModuleLabel    (pset.getParameter< std::string >("DigitModuleLabel")),
   fHitsModuleLabel      (pset.getParameter< std::string >("HitsModuleLabel")),
   fm_run(0), 
   fm_event(0), 
-  fm_plane(0), 
+  fm_plane(0),
+  fm_dbsize(0),
   fm_clusterslope(0), 
   fm_clusterintercept(0),
   fm_clusterid(0), 
@@ -89,6 +91,7 @@ void cluster::HoughLineFinderAna::beginJob(edm::EventSetup const&)
      ftree->Branch("run_timestamp", &fm_run_timestamp, "run_timestamp/l"); //l is for ULong64_t
      ftree->Branch("event", &fm_event, "event/I");
      ftree->Branch("plane",&fm_plane,"plane/I");
+     ftree->Branch("dbsize",&fm_dbsize,"dbsize/I");
      ftree->Branch("clusterid",&fm_clusterid,"clusterid/I");
      ftree->Branch("clusterslope",&fm_clusterslope,"clusterslope/F");
      ftree->Branch("clusterintercept",&fm_clusterintercept,"clusterintecept/F");
@@ -110,8 +113,11 @@ void cluster::HoughLineFinderAna::analyze(const edm::Event& evt, edm::EventSetup
   evt.getByLabel(fHoughModuleLabel,hlfListHandle);
   edm::Handle< std::vector<recob::Hit> > hitListHandle;
   evt.getByLabel(fHitsModuleLabel,hitListHandle);
-
-  edm::PtrVector<recob::Cluster> clusters;   
+  edm::Handle< std::vector<recob::Cluster> > dbscanListHandle;
+  evt.getByLabel(fDBScanModuleLabel,dbscanListHandle);
+  
+  edm::PtrVector<recob::Cluster> clusters;  
+  edm::PtrVector<recob::Cluster> dbclusters;
 //   edm::PtrVector<recob::Hit> hits;// unused, as yet. EC, 5-Oct-2010.
     
   for (unsigned int ii = 0; ii <  hlfListHandle->size(); ++ii)
@@ -119,27 +125,41 @@ void cluster::HoughLineFinderAna::analyze(const edm::Event& evt, edm::EventSetup
       edm::Ptr<recob::Cluster> cluster(hlfListHandle,ii);
       clusters.push_back(cluster);
     }
-  
+    
+  for (unsigned int ii = 0; ii <  dbscanListHandle->size(); ++ii)
+    {
+      edm::Ptr<recob::Cluster> dbcluster(dbscanListHandle,ii);
+      dbclusters.push_back(dbcluster);
+    }
+      
     std::cout << "run    : " << evt.id().run() << std::endl;
     //std::cout << "subrun : " << evt.subRun() << std::endl;
     std::cout << "event  : " << evt.id().event() << std::endl;
     fm_run=evt.id().run();
     fm_event=evt.id().event();
     fm_run_timestamp=evt.time().value(); // won't cast, EC, 7-Oct-2010.
-
     unsigned int firstwire=0;
     unsigned int lastwire=0;
     unsigned int p;
     fm_sizeClusterZ=0;
     fm_sizeHitZ=0;
     unsigned int wire=0;
-
+    fm_dbsize=0;  
     edm::Service<geo::Geometry> geo;
 
     for(unsigned int plane=0;plane < geo->Nplanes();++plane)
  {
+      fm_dbsize=0;
       fm_plane=plane;
       fm_sizeClusterZ=clusters.size();
+      
+       for(unsigned int j=0; j<dbclusters.size();++j) 
+  {
+     edm::PtrVector<recob::Hit> _dbhits=dbclusters[j]->Hits(plane);
+      fm_dbsize+=_dbhits.size();
+  } 
+  
+    
   for(unsigned int j=0; j<clusters.size();++j) 
   {
        fm_clusterid=clusters[j]->ID();

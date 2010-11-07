@@ -15,7 +15,7 @@ process = clusterfinder.Process("ClusterFinderAna")
 
 # Maximum number of events to do.
 process.maxEvents = clusterfinder.untracked.PSet(
-    input = clusterfinder.untracked.int32(1) # See if this works to run fewer than are in input file.
+    input = clusterfinder.untracked.int32(999) # See if this works to run fewer than are in input file.
 )
 
 # Load the standard message logger configuration.
@@ -49,7 +49,7 @@ process.LArFFT = clusterfinder.Service(
 
 # Service to get my MC events, which were run up through DetSim.
 process.source = clusterfinder.Source("PoolSource",
-                                fileNames = clusterfinder.untracked.vstring("/argoneut/app/users/echurch/larsoft/ART-SRT/out/genie_ART_6GeV-c_muons_gen.root")
+                                fileNames = clusterfinder.untracked.vstring("/argoneut/app/users/spitz7/larsoft_new3/single_gen.root")
                                 )
 
 process.caldataCal = clusterfinder.EDProducer(

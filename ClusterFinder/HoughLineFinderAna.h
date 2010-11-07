@@ -26,11 +26,13 @@ namespace cluster {
     std::string fHoughModuleLabel;
     std::string fDigitModuleLabel;
     std::string fHitsModuleLabel;
+    std::string fDBScanModuleLabel;       
     TTree* ftree;
     Int_t fm_run;          // Run number
     ULong64_t fm_run_timestamp;          // Run number
     Int_t fm_event;        // Event number
     Int_t fm_plane;        // Plane number
+    Int_t fm_dbsize;
     Int_t fm_clusterid;    // Cluster ID
     Int_t fm_wirespan;    // Wire spanned by track
     Int_t fm_sizeClusterZ;  //Number of clusters
