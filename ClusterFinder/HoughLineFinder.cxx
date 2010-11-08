@@ -321,7 +321,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  		  //Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
  		  distance=(TMath::Abs(hit[i]->CrossingTime()-slope*(double)(wire)-intercept)/(sqrt(pow(.0743*slope,2)+1)));
 	
- 		  if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling && fPerCluster==1){
+ 		  if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling && fPerCluster==1 && skip[i]!=1){
  		    hitTemp.push_back(i);
  		    sequenceHolder.push_back(channel);
  		  }
