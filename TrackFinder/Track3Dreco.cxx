@@ -51,7 +51,8 @@ extern "C" {
 #include "TMath.h"
 
 
-static bool hit_sort_2d(const recob::Hit* h1, const recob::Hit* h2)
+//static bool hit_sort_2d(const recob::Hit* h1, const recob::Hit* h2)
+static bool hit_sort_2d(edm::Ptr <recob::Hit> h1, edm::Ptr <recob::Hit> h2)
 {
   return h1->Wire()->RawDigit()->Channel() < h2->Wire()->RawDigit()->Channel();
 }
@@ -365,32 +366,43 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	*/ 
 	//create the the 3D track
 	std::vector<recob::Hit*> hits3D;
-	edm::PtrVector <recob::Hit> hits3Dpv;
-	edm::Ptr<recob::Hit> hit1();
+	//edm::PtrVector <recob::Hit> hits3Dpv;
+	std::vector<recob::Hit*> hits3Dpv;
+	recob::Hit* hit1 = new recob::Hit();
  	hit1->SetView(geo::k3D);
 	hit1->SetXYZ(startpoint);
  	hits3Dpv.push_back(hit1);    
-	edm::Ptr<recob::Hit> hit2();
+	recob::Hit* hit2 = new recob::Hit();
+	// edm::Ptr<recob::Hit> hit2();
  	hit2->SetView(geo::k3D);
 	hit2->SetXYZ(endpoint);
   	hits3Dpv.push_back(hit2);
 
- 	recob::Cluster cl3D(hits3Dpv);
+	recob::Cluster cl3D(hits3Dpv);  // uses new constructor.
+	//edm::Ptr<recob::Cluster> cl3D(hits3Dpv);
 	cl3D.SetID(Associations);
-	recob::Track*  the3DTrack = new recob::Track();
+	//recob::Track*  the3DTrack = new recob::Track();
 	// Eric's next chunk here to include original hits. EC, 27-Aug-2010.
 	// Playing along with the detector-specific coding for now.
+	std::vector<recob::Cluster*> clustersPerTrack;
 	recob::Cluster* clOrigC = new recob::Cluster(hitsCtrk);
 	clOrigC->SetID(Associations);
- 	the3DTrack->Add(clOrigC);
+	clustersPerTrack.push_back(clOrigC);
+ 	//the3DTrack->Add(clOrigC);
  	recob::Cluster* clOrigI = new recob::Cluster(hitsItrk);
 	clOrigI->SetID(Associations);
- 	the3DTrack->Add(clOrigI);
+ 	//the3DTrack->Add(clOrigI);
+	clustersPerTrack.push_back(clOrigI);
 
+	clustersPerTrack.push_back(&cl3D);
+	/*
+	recob::Track*  the3DTrack = new recob::Track(clustersPerTrack);
 	the3DTrack->SetDirection(DirCos,DirCos);
-	the3DTrack->SetPitch(TrackPitchI,geo::kU);
-	the3DTrack->SetPitch(TrackPitchC,geo::kV);
- 	the3DTrack->Add(cl3D);
+	the3DTrack->SetTrackPitch(TrackPitchI,geo::kU);
+	the3DTrack->SetTrackPitch(TrackPitchC,geo::kV);
+	*/
+ 	//the3DTrack->Add(cl3D);
+
 
 
 
@@ -398,21 +410,21 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	// Match hits
 	////////////////////////////
 
-	std::vector<const recob::Hit*> minhits = hitsCtrk.size() <= hitsItrk.size() ? hitsCtrk : hitsItrk;
- 	std::vector<const recob::Hit*> maxhits = hitsItrk.size() <= hitsCtrk.size() ? hitsCtrk : hitsItrk;
+	  edm::PtrVector<const recob::Hit> minhits = hitsCtrk.size() <= hitsItrk.size() ? hitsCtrk : hitsItrk;
+	  edm::PtrVector<const recob::Hit> maxhits = hitsItrk.size() <= hitsCtrk.size() ? hitsCtrk : hitsItrk;
 
 
 
 	bool maxhitsMatch[maxhits.size()];
 	for(unsigned int it=0;it<maxhits.size();it++) maxhitsMatch[it] = false;
 
-	std::vector<const recob::Hit*> hits3Dmatched;
+	std::vector<recob::Hit*> hits3Dmatched;
 	// For the matching start from the view where the track projection presents less hits
 	unsigned int imaximum = 0;
 	for(unsigned int imin=0;imin<minhits.size();imin++){ //loop over hits
 	  //get wire - time coordinate of the hit
-	  recob::Wire* theWire = (recob::Wire*)minhits[imin]->Wire();
-	  int channel,wire,plane1,plane2;
+	  edm::Ptr<recob::Wire> theWire = minhits[imin]->Wire();
+	  unsigned int channel,wire,plane1,plane2;
 	  channel = theWire->RawDigit()->Channel();
 	  geom->ChannelToWire(channel,plane1,wire);
 	  // get the wire-time co-ordinates of the hit to be matched
@@ -428,12 +440,12 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	  plane1==1 ? maxVtx2D.Set(It0,Iw0): maxVtx2D.Set(Ct0,Cw0);
 	  
 	  // get the track last hit co-ordinates in the two views
-	  theWire = (recob::Wire*)minhits[minhits.size()-1]->Wire();
+	  theWire = minhits[minhits.size()-1]->Wire();
 	  channel = theWire->RawDigit()->Channel();
 	  geom->ChannelToWire(channel,plane1,wire);
 	  double w1_last = plane1==1?Cw1:Iw1;
 	  double t1_last = plane1==1?Ct1:It1;  
-	  theWire = (recob::Wire*)maxhits[maxhits.size()-1]->Wire();
+	  theWire = maxhits[maxhits.size()-1]->Wire();
 	  channel = theWire->RawDigit()->Channel();
 	  geom->ChannelToWire(channel,plane2,wire);
 	  double w2_last =plane2==1?Cw1:Iw1;
@@ -451,7 +463,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	  for(unsigned int imax = imaximum; imax < maxhits.size(); imax++){ //loop over hits of the other view
 	    if(!maxhitsMatch[imax]){
 	      //get wire - time coordinate of the hit
-	      theWire = (recob::Wire*)maxhits[imax]->Wire();
+	      theWire = maxhits[imax]->Wire();
 	      channel = theWire->RawDigit()->Channel();
 	      geom->ChannelToWire(channel,plane2,wire);
 	      double w2 = (double)((wire+1)*wire_pitch);
@@ -471,7 +483,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	  
 	  
 	  // Get the time-wire co-ordinates of the matched hit
-	  theWire = (recob::Wire*)maxhits[imaximum]->Wire();
+	  theWire = maxhits[imaximum]->Wire();
 	  channel = theWire->RawDigit()->Channel();
 	  geom->ChannelToWire(channel,plane2,wire);
 	  double w1_match = (double)((wire+1)*wire_pitch);
@@ -521,8 +533,8 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	  std::ofstream outf;
 	  outf.open("vdrift.txt",std::ios::out | std::ios::app);
 	  outf<<"\n";
-	  outf<<"run          : "<<evt.Header().Run()<<"\n";
-	  outf<<"event        : "<<evt.Header().Event()<<"\n";
+	  outf<<"run          : "<<evt.run()<<"\n";
+	  outf<<"event        : "<<evt.id().event()<<"\n";
 	  outf<<"trk3D ID     : "<<Associations<<"\n";
 	  outf<<"Direction Cosine : "<< DirCos[0]<<" "<<DirCos[1]<<" "<<DirCos[2]<<"\n";
 	  outf<<"Theta (deg)      : "<< Theta/TMath::Pi()*180. <<"\n";
@@ -539,10 +551,18 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 
 	// Add the 3D track to the vector of the reconstructed tracks
         if(hits3Dmatched.size()>0){
-	  recob::Cluster* cl3Dmatched= new recob::Cluster(hits3Dmatched);
-	  cl3Dmatched->SetID(Associations);
-	  the3DTrack->Add(cl3Dmatched);
-	  tcol->push_back(the3DTrack);
+	  recob::Cluster cl3Dmatched(hits3Dmatched);
+	  cl3Dmatched.SetID(Associations);
+	  //the3DTrack->Add(cl3Dmatched);
+
+	  clustersPerTrack.push_back(&cl3Dmatched);
+	  recob::Track*  the3DTrack = new recob::Track(clustersPerTrack);
+	  the3DTrack->SetDirection(DirCos,DirCos);
+	  the3DTrack->SetTrackPitch(TrackPitchI,geo::kU);
+	  the3DTrack->SetTrackPitch(TrackPitchC,geo::kV);
+
+
+	  tcol->push_back(*the3DTrack);
 	}
       } //close match 2D tracks
       
@@ -550,7 +570,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
     
   }//close loop over Collection xxview 2D tracks
   
-  std::cout<<"Run "<<evt.Header().Run()<<" Event "<<evt.Header().Event()<<std::endl;
+  std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
   std::cout<<"TRACK3DRECO found "<<Associations<<" 3D track(s)"<<std::endl;
   
   evt.put(tcol);
