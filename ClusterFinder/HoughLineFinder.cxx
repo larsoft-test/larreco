@@ -108,7 +108,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
 
   for(int p = 0; p < geom->Nplanes(); p++) {
     edm::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
-
+    int clusterID=0;//the unique ID of the cluster
     // This is the loop over clusters. The algorithm searches for lines on a (DBSCAN) cluster-by-cluster basis. 
     while(clusterIter!=clusIn.end()) 
       {
@@ -147,7 +147,6 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	int dy=hit[0]->Wire()->fSignal.size();//number of time samples. 
  	skip.clear();
  	skip.resize(hit.size());
- 	int clusterID=0;//the unique ID of the cluster
  	std::vector<int> listofxmax;
  	std::vector<int> listofymax;  
  	std::vector<int> hitTemp;  //indecies ofcandidate hits
