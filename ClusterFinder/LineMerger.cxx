@@ -68,33 +68,35 @@ namespace cluster{
     edm::Handle< std::vector<recob::Cluster> > clusterVecHandle;
     evt.getByLabel(fClusterModuleLabel,clusterVecHandle);
 
-    edm::PtrVector<recob::Cluster> kU_Cls;
-    std::vector<int> kU_Cls_matches;
-    edm::PtrVector<recob::Cluster> kV_Cls;
-    std::vector<int> kV_Cls_matches;
+    edm::Service<geo::Geometry> geo;
+    int nplanes = geo->Nplanes();
+
+    edm::PtrVector<recob::Cluster> Cls[nplanes];//one PtrVector for each plane in the geometry
+    std::vector<int> Cls_matches[nplanes];//vector with indicators for whether a cluster has been merged already
 
     // loop over the input Clusters
     for(unsigned int i = 0; i < clusterVecHandle->size(); ++i){
       
       //get a edm::Ptr to each Cluster
       edm::Ptr<recob::Cluster> cl(clusterVecHandle, i);
-      //std::cout << *cl << std::endl;
       
       switch(cl->View()){
       case geo::kU :
-	kU_Cls.push_back(cl);
-	kU_Cls_matches.push_back(0);
+	Cls[0].push_back(cl);
+	Cls_matches[0].push_back(0);
 	break;
       case geo::kV :
-	kV_Cls.push_back(cl);
-	kV_Cls_matches.push_back(0);
+	Cls[1].push_back(cl);
+	Cls_matches[1].push_back(0);
+	break;
+      case geo::kW :
+	Cls[2].push_back(cl);
+	Cls_matches[2].push_back(0);
 	break;
       default :
 	break;
       }
     }
-
-    //std::cout << kU_Cls.size() << " U Hough Clusters ; " << kV_Cls.size() << " V Hough Clusters " << std::endl;
 
      //////////////////////////////////////////////////////
     // Make a std::auto_ptr<> for the thing you want to put into the event
@@ -102,66 +104,38 @@ namespace cluster{
     //////////////////////////////////////////////////////
     std::auto_ptr<std::vector<recob::Cluster> > SuperClusters(new std::vector<recob::Cluster>);
 
-    int ikU_Cls=0;
-    for(edm::PtrVectorItr<recob::Cluster> clusIter1 = kU_Cls.begin(); clusIter1!=kU_Cls.end();++clusIter1){
-      edm::Ptr<recob::Cluster> cl1 = *clusIter1;
-      if(kU_Cls_matches[ikU_Cls]==1){
-	ikU_Cls++;
-	continue;
-      }
-      SuperClusters->push_back(*cl1);
-      kU_Cls_matches[ikU_Cls]=1; 
-      SuperClusters->back().SetID(SuperClusters->size()-1);
-      recob::Cluster SCl= SuperClusters->back();
-  
-      int jkU_Cls=0;
-      for(edm::PtrVectorItr<recob::Cluster> clusIter2 = kU_Cls.begin(); clusIter2!=kU_Cls.end();++clusIter2){
-	edm::Ptr<recob::Cluster> cl2 = *clusIter2;
-	if(kU_Cls_matches[jkU_Cls]==1){
-	  jkU_Cls++;
+    for(int i = 0; i<nplanes; ++i){
+      int clustersfound = 0;//how many merged clusters found in each plane
+      int clsnum1 = 0;
+      for(edm::PtrVectorItr<recob::Cluster> clusIter1 = Cls[i].begin(); clusIter1!=Cls[i].end();++clusIter1){
+	edm::Ptr<recob::Cluster> cl1 = *clusIter1;
+	if(Cls_matches[i][clsnum1]==1){
+	  clsnum1++;
 	  continue;
 	}
-	bool sameSlope = SlopeCompatibility(SCl.Slope(),cl2->Slope());
-	bool sameIntercept = InterceptCompatibility(SCl.Intercept(),cl2->Intercept());
-	bool AreCompatible = sameSlope && sameIntercept;
-	if(AreCompatible){
-	  SuperClusters->back() = SuperClusters->back() + *cl2;
-	  kU_Cls_matches[jkU_Cls]=1;       
+	SuperClusters->push_back(*cl1);
+	Cls_matches[i][clsnum1]=1; 
+	SuperClusters->back().SetID(clustersfound);//IDs are sequential by plane, starting from 0
+	++clustersfound;
+	recob::Cluster SCl= SuperClusters->back();
+	
+	int clsnum2 = 0;
+	for(edm::PtrVectorItr<recob::Cluster> clusIter2 = Cls[i].begin(); clusIter2!=Cls[i].end();++clusIter2){
+	  edm::Ptr<recob::Cluster> cl2 = *clusIter2;
+	  if(Cls_matches[i][clsnum2]==1){
+	    clsnum2++;
+	    continue;
+	  }
+	  bool sameSlope = SlopeCompatibility(SCl.Slope(),cl2->Slope());
+	  bool sameIntercept = InterceptCompatibility(SCl.Intercept(),cl2->Intercept());
+	  if(sameSlope && sameIntercept){
+	    SuperClusters->back() = SuperClusters->back() + *cl2;
+	    Cls_matches[i][clsnum2]=1;       
+	  }
+	  clsnum2++;
 	}
-	jkU_Cls++;
+	clsnum1++;
       }
-      ikU_Cls++;
-    }
-
-    int ikV_Cls=0;
-    for( edm::PtrVectorItr<recob::Cluster> clusIter1 = kV_Cls.begin(); clusIter1!=kV_Cls.end();++clusIter1){
-      edm::Ptr<recob::Cluster> cl1 = *clusIter1;
-      if(kV_Cls_matches[ikV_Cls]==1){
-	ikV_Cls++;
-	continue;
-      }
-      SuperClusters->push_back(*cl1);
-      kV_Cls_matches[ikV_Cls]=1; 
-      SuperClusters->back().SetID(SuperClusters->size()-1);
-      recob::Cluster SCl=SuperClusters->back();
-  
-      int jkV_Cls=0;
-      for( edm::PtrVectorItr<recob::Cluster> clusIter2 = kV_Cls.begin(); clusIter2!=kV_Cls.end();++clusIter2){
-	edm::Ptr<recob::Cluster> cl2 = *clusIter2;
-	if(kV_Cls_matches[jkV_Cls]==1){
-	  jkV_Cls++;
-	  continue;
-	}
-	bool sameSlope = SlopeCompatibility(SCl.Slope(),cl2->Slope());
-	bool sameIntercept = InterceptCompatibility(SCl.Intercept(),cl2->Intercept());
-	bool AreCompatible = sameSlope && sameIntercept;
-	if(AreCompatible){
-	  SuperClusters->back() = SuperClusters->back() + *cl2;
-	  kV_Cls_matches[jkV_Cls]=1;       
-	}
-	jkV_Cls++;
-      }
-      ikV_Cls++;
     }
 
     std::sort(SuperClusters->begin(),SuperClusters->end());//sort before Putting
@@ -169,6 +143,7 @@ namespace cluster{
     for(std::vector<recob::Cluster>::iterator clusIter1 = SuperClusters->begin(); clusIter1 !=  SuperClusters->end();  clusIter1++) {
       recob::Cluster cl1 = *clusIter1;
       std::cout << cl1 << std::endl;
+      //cl1.PrintHits();
     }
 
     evt.put(SuperClusters);
