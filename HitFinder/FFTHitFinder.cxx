@@ -169,7 +169,7 @@ namespace hit{
       int size(0); 
       int hitIndex(0);
       double amplitude, position,width;
-      double XYZ[3]={0,0,0};
+     
       //stores gaussian paramters first index is the hit number
       //the second refers to height, position, and width respectively
       std::vector<double>  hitSig;
@@ -260,10 +260,6 @@ namespace hit{
 	    hit.SetEndTime(position+width);
 	    hit.SetUpADC(totSig);
 	    hit.SetMIPs(amplitude);
-	    XYZ[0]=XYZ[1]=XYZ[2]=0;
-	    if(sigType == geo::kInduction) XYZ[0] = fPOffset*fDrift;
-	    XYZ[0]+=fDrift*(position) - fOOffset;
-	    hit.SetXYZ(XYZ);
 	    hit.SetView(view);
 	    
 	    hcol->push_back(hit);
