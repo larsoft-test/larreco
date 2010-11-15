@@ -25,7 +25,6 @@ namespace filt {
          
     
     bool filter(edm::Event& evt, edm::EventSetup const&);
-    void beginJob(const edm::EventSetup&);
    
   private: 
  

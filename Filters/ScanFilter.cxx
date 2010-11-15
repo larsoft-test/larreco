@@ -53,11 +53,6 @@ namespace filt{
   {
   }
 
-  void ScanFilter::beginJob(const edm::EventSetup&)
-  {
-    return;
-  }
-
   //-------------------------------------------------
   bool ScanFilter::filter(edm::Event &evt, edm::EventSetup const&)
   { 
@@ -79,16 +74,18 @@ namespace filt{
     }
 
     for(unsigned int i = 0; i < scanIn.size(); ++i){
-    if(scanIn[i]->Get_IsNeutrino()>=fNeutrino_req 
+
+    if(    
+    (scanIn[i]->Get_IsNeutrino()==1||(fNeutrino_req>0 && scanIn[i]->Get_IsMaybeNeutrino()==1)||(fNeutrino_req==0 && scanIn[i]->Get_IsnotNeutrino()==1)) 
     && scanIn[i]->Get_NumShower()<=fNumShowers_req  
     && scanIn[i]->Get_Track()<=fNumTracks_req 
     && scanIn[i]->Get_Run()==run 
     && scanIn[i]->Get_Event()==event)
-    failFlag=0;
+    failFlag=0;       
     }
  
     if(failFlag>0)
-    return  false;
+    return false;
 
     return true;
   }
