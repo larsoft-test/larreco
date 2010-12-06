@@ -140,8 +140,8 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
       } 
     vHits.clear();
       
-    if(vHits.size() == 0)
-      continue;
+//     if(vHits.size() == 0)
+//       continue;
       
     //loop over vector of hough lines and find the vertex hits that are associated with the hough line(s)
     houghIter = houghIn.begin();  
