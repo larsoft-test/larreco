@@ -20,13 +20,11 @@ namespace trkf {
     void beginJob(const edm::EventSetup&);
     void endJob();
 
-
-    double DriftVelocity(double Efield, double Temperature); // in cm/us
-    
   private:
         
     int             ftmatch; // tolerance for time matching (in time samples) 
-    std::string fDBScanModuleLabel;
+    double          fchi2dof;// tolerance for chi2/dof of cluster fit to function
+    std::string     fClusterModuleLabel;// label for input cluster collection
   protected: 
     
   

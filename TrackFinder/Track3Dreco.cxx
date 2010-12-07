@@ -9,10 +9,11 @@
 //  2D-track matching algorithm
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" {
-#include <sys/types.h>
-#include <sys/stat.h>
-}
+// C++ includes
+#include <math.h>
+#include <algorithm>
+#include <iostream>
+#include <fstream>
 
 // Framework includes
 #include "FWCore/Framework/interface/Event.h" 
@@ -30,10 +31,6 @@ extern "C" {
 #include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
 
 // LArSoft includes
-#include <math.h>
-#include <algorithm>
-#include <iostream>
-#include <fstream>
 #include "Track3Dreco.h"
 #include "Geometry/geo.h"
 #include "Geometry/WireGeo.h"
@@ -41,26 +38,21 @@ extern "C" {
 #include "RecoBase/Hit.h"
 #include "RecoBase/Track.h"
 #include "RecoBase/Cluster.h"
-#include "TMatrixD.h"
+#include "RecoBase/SpacePoint.h"
+#include "Utilities/LArProperties.h"
+
+// ROOT includes
 #include "TVectorD.h"
-#include "TDecompSVD.h"
-#include "TH2F.h"
 #include "TF1.h"
-#include "TFile.h"
 #include "TGraph.h"
 #include "TMath.h"
 
 
-//static bool hit_sort_2d(const recob::Hit* h1, const recob::Hit* h2)
-static bool hit_sort_2d(edm::Ptr <recob::Hit> h1, edm::Ptr <recob::Hit> h2)
-{
-  return h1->Wire()->RawDigit()->Channel() < h2->Wire()->RawDigit()->Channel();
-}
-
 //-------------------------------------------------
 trkf::Track3Dreco::Track3Dreco(edm::ParameterSet const& pset) :
-  fDBScanModuleLabel     (pset.getParameter< std::string >("DBScanModuleLabel")),
-  ftmatch                (pset.getParameter< int >("TMatch"))
+  fClusterModuleLabel     (pset.getParameter< std::string >("ClusterModuleLabel")),
+  ftmatch                 (pset.getParameter< int >("TMatch")),
+  fchi2dof                (pset.getParameter< int >("Chi2DOFmax"))
 {
   produces< std::vector<recob::Track> >();
 }
@@ -85,23 +77,19 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 { 
 
 
-  // get the geometry
+  // get services
   edm::Service<geo::Geometry> geom;
+  edm::Service<util::LArProperties> larprop;
 
-  //Get Clusters
-  // Read in the clusterList object(s).
-  edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
-  evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
+  //////////////////////////////////////////////////////
+  // Make a std::auto_ptr<> for the thing you want to put into the event
+  // because that handles the memory management for you
+  //////////////////////////////////////////////////////
   std::auto_ptr<std::vector<recob::Track> > tcol(new std::vector<recob::Track>);
-  edm::PtrVector<recob::Cluster> clusterlist;
-  for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
-    {
-      edm::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
-      clusterlist.push_back(cluster);
-    }
 
 
-  // TPC parameters
+
+  // define TPC parameters
   TString tpcName = geom->GetLArTPCVolumeName();
   geo::VolumeUtility* m_tpcVolumeUtility = new geo::VolumeUtility( tpcName );
   //TPC dimensions
@@ -112,185 +100,154 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
   double timetick = 0.198;    //time sample in us
   double presamplings = 60.;
   const double wireShift=50.; // half the number of wires from the Induction(Collection) plane intersecting with a wire from the Collection(Induction) plane.
-  double plane_pitch = 0.4;   //wire plane pitch in cm 
-  double wire_pitch = 0.4;    //wire pitch in cm
-  //double Efield_drift = 0.52;  // Electric Field in the drift region in kV/cm
+  double plane_pitch = geom->PlanePitch(0,1);   //wire plane pitch in cm 
+  double wire_pitch = geom->WirePitch(0,1,0);    //wire pitch in cm
+  double Efield_drift = 0.5;  // Electric Field in the drift region in kV/cm
   double Efield_SI = 0.7;     // Electric Field between Shield and Induction planes in kV/cm
   double Efield_IC = 0.9;     // Electric Field between Induction and Collection planes in kV/cm
   double Temperature = 87.6;  // LAr Temperature in K
-  //  double driftvelocity = DriftVelocity(Efield_drift,Temperature);    //drift velocity in the drift region (cm/us)
-  double driftvelocity = 0.153;
-  double driftvelocity_SI = DriftVelocity(Efield_SI,Temperature);    //drift velocity between shield and induction (cm/us)
-  double driftvelocity_IC = DriftVelocity(Efield_IC,Temperature);    //drift velocity between induction and collection (cm/us)
+  double driftvelocity = larprop->DriftVelocity(Efield_drift,Temperature);    //drift velocity in the drift region (cm/us)
+  double driftvelocity_SI = larprop->DriftVelocity(Efield_SI,Temperature);    //drift velocity between shield and induction (cm/us)
+  double driftvelocity_IC = larprop->DriftVelocity(Efield_IC,Temperature);    //drift velocity between induction and collection (cm/us)
   double timepitch = driftvelocity*timetick;                         //time sample (cm) 
   double tSI = plane_pitch/driftvelocity_SI/timetick;                   //drift time between Shield and Collection planes (time samples)
   double tIC = plane_pitch/driftvelocity_IC/timetick;                //drift time between Induction and Collection planes (time samples)
 
 
+  // get input Cluster object(s).
+  edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
+  evt.getByLabel(fClusterModuleLabel,clusterListHandle);
+
+  
   // Declare some vectors..
   // Induction
-  std::vector<double> Islopes; 
-  std::vector<double> Iintercepts;       // in cm
-  std::vector<double> Ichi2s;
-  std::vector<double> Indfs;
-  std::vector<double> InormChi2s;  
-  std::vector<double> Icrosstfirsts;     // in samples
-  std::vector<double> Icrosstlasts;      // in samples
   std::vector<double> Iwirefirsts;       // in cm
   std::vector<double> Iwirelasts;        // in cm
   std::vector<double> Itimefirsts;       // in cm
   std::vector<double> Itimelasts;        // in cm
   std::vector<double> Itimefirsts_line;  // in cm
   std::vector<double> Itimelasts_line;   // in cm
-  std::vector<int>    IclusterIDs;
   std::vector < edm::PtrVector<recob::Hit> > IclusHitlists;
+  std::vector<unsigned int> Icluster_count; 
+
   // Collection
-  std::vector<double> Cslopes;
-  std::vector<double> Cintercepts;       // in cm
-  std::vector<double> Cchi2s;
-  std::vector<double> Cndfs;
-  std::vector<double> CnormChi2s;
-  std::vector<double> Ccrosstfirsts;     // in samples
-  std::vector<double> Ccrosstlasts;      // in samples
   std::vector<double> Cwirefirsts;       // in cm
   std::vector<double> Cwirelasts;        // in cm
   std::vector<double> Ctimefirsts;       // in cm
   std::vector<double> Ctimelasts;        // in cm
   std::vector<double> Ctimefirsts_line;  // in cm
   std::vector<double> Ctimelasts_line;   // in cm
-  std::vector<int>    CclusterIDs;
   std::vector< edm::PtrVector < recob::Hit> > CclusHitlists;
+  std::vector<unsigned int> Ccluster_count; 
 
-  
-  /////////////////////////
-  //////////// 2D track FIT
-  /////////////////////////
-
-  TGraph* the2Dtrack=0;
-  edm::PtrVectorItr<recob::Cluster> cl = clusterlist.begin();
-  for(cl; cl != clusterlist.end(); cl++) 
+  for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
     {
+      edm::Ptr<recob::Cluster> cl(clusterListHandle, ii);
+      
+      /////////////////////////
+      //////////// 2D track FIT
+      /////////////////////////
       
       // Figure out which View the cluster belongs to 
-      int clPlane = (*cl)->View()-1;
+      int clPlane = cl->View()-1;
 
       // Some variables for the hit
       unsigned int channel;  //channel number
       float time;            //hit time at maximum
       unsigned int wire;              //hit wire number
       unsigned int plane;             //hit plane number
-   
-
+      
+      
       edm::PtrVector<recob::Hit> hitlist;
-      hitlist = (*cl)->Hits( clPlane, -1);
-      std::sort(hitlist.begin(), hitlist.end(), hit_sort_2d); //sort hit by wire
+      hitlist = cl->Hits( clPlane, -1);
+      // std::sort(hitlist.begin(), hitlist.end(), hit_sort_2d); //sort hit by wire
+      
+      TGraph * the2Dtrack = new TGraph(hitlist.size());
+      
+      std::vector<double> wires;
+      std::vector<double> times;
+     
+      
+      int np=0;
+      for(edm::PtrVectorItr<recob::Hit> theHit = hitlist.begin(); theHit != hitlist.end();  theHit++) //loop over cluster hits
+	{
+	  //recover the Hit
+	  //      recob::Hit* theHit = (recob::Hit*)(*hitIter);
+	  time = (*theHit)->CrossingTime() ;
+	 
+	  time -= presamplings;
+	  
+	  channel = (*theHit)->Channel();
+	  geom->ChannelToWire(channel,plane,wire);
+	  
+	  //correct for the distance between wire planes
+	  if(plane==0) time -= tSI;         // Induction
+	  if(plane==1) time -= (tSI+tIC);   // Collection
+	
+	  //transform hit wire and time into cm
+	  double wire_cm = (double)((wire+1) * wire_pitch); 
+	  double time_cm = (double)(time * timepitch);
+	  wires.push_back(wire_cm);
+	  times.push_back(time_cm);
+	
+	  the2Dtrack->SetPoint(np,wire_cm,time_cm);
+	  np++;
+	}//end of loop over cluster hits
     
-    the2Dtrack = new TGraph(hitlist.size());
 
-    std::vector<double> wires;
-    std::vector<double> times;
-    std::vector<double> crossingtimes;
-
-    int np=0;
-    for(edm::PtrVectorItr<recob::Hit> theHit = hitlist.begin(); theHit != hitlist.end();  theHit++) //loop over cluster hits
-      {
-      //recover the Hit
-	//      recob::Hit* theHit = (recob::Hit*)(*hitIter);
-	time = (*theHit)->CrossingTime() ;
-      crossingtimes.push_back(time);
-      time -= presamplings;
-      edm::Ptr <recob::Wire> theWire = (*theHit)->Wire();
-      channel = theWire->RawDigit()->Channel();
-      geom->ChannelToWire(channel,plane,wire);
-
-      //correct for the distance between wire planes
-      if(plane==0) time -= tSI;         // Induction
-      if(plane==1) time -= (tSI+tIC);   // Collection
-
-      //transform hit wire and time into cm
-      double wire_cm = (double)((wire+1) * wire_pitch); 
-      double time_cm = (double)(time * timepitch);
-      wires.push_back(wire_cm);
-      times.push_back(time_cm);
-
-      the2Dtrack->SetPoint(np,wire_cm,time_cm);
-      np++;
-      }//end of loop over cluster hits
-
-
-    // fit the 2Dtrack and get some info to store
-    the2Dtrack->Fit("pol1","Q");
-    TF1 *pol1=(TF1*) the2Dtrack->GetFunction("pol1");
-    double Chi2 = pol1->GetChisquare();
-    double NDF = pol1->GetNDF();
-    double par[2];
-    pol1->GetParameters(par);
-    double intercept = par[0];
-    double slope = par[1];
-    int nw = wires.size();
-    double w0 = wires[0];      // first hit wire (cm)
-    double w1 = wires[nw-1];   // last hit wire (cm)
-    double t0 = times[0];      // first hit time (cm)
-    double t1 = times[nw-1];   // last hit time (cm)
-    double t0_line = intercept + (w0)*slope; // time coordinate at wire w0 on the fit line (cm)  
-    double t1_line = intercept + (w1)*slope; // time coordinate at wire w1 on the fit line (cm)
-    double crosst0 = crossingtimes[0];       // hit crossing time at wire w0 (samples)
-    double crosst1 = crossingtimes[nw-1];    // hit crossing time at wire w1 (samples)
-
-
-    // actually store the 2Dtrack info
-    switch(plane){
-    case 0:
-      Iintercepts.push_back(intercept);
-      Islopes.push_back(slope);
-      Ichi2s.push_back(Chi2);
-      Indfs.push_back(NDF);
-      InormChi2s.push_back(Chi2/NDF);
-      Icrosstfirsts.push_back(crosst0);
-      Icrosstlasts.push_back(crosst1);
-      Iwirefirsts.push_back(w0);
-      Iwirelasts.push_back(w1);
-      Itimefirsts.push_back(t0);
-      Itimelasts.push_back(t1); 
-      Itimefirsts_line.push_back(t0_line);
-      Itimelasts_line.push_back(t1_line);    
-      IclusterIDs.push_back((*cl)->ID());
-      IclusHitlists.push_back(hitlist);
-      break;
-    case 1:
-      Cintercepts.push_back(intercept);
-      Cslopes.push_back(slope);
-      Cchi2s.push_back(Chi2);
-      Cndfs.push_back(NDF);
-      CnormChi2s.push_back(Chi2/NDF);
-      Ccrosstfirsts.push_back(crosst0);
-      Ccrosstlasts.push_back(crosst1);
-      Cwirefirsts.push_back(w0);
-      Cwirelasts.push_back(w1);
-      Ctimefirsts.push_back(t0);
-      Ctimelasts.push_back(t1);
-      Ctimefirsts_line.push_back(t0_line);
-      Ctimelasts_line.push_back(t1_line);
-      CclusterIDs.push_back((*cl)->ID());
-      CclusHitlists.push_back(hitlist);
-      break;   
-    }
+      // fit the 2Dtrack and get some info to store
+      the2Dtrack->Fit("pol1","Q");
+      TF1 *pol1=(TF1*) the2Dtrack->GetFunction("pol1");
+      double Chi2 = pol1->GetChisquare();
+      double NDF = pol1->GetNDF();
+      double par[2];
+      pol1->GetParameters(par);
+      double intercept = par[0];
+      double slope = par[1];
+  
+      double w0 = wires.front();      // first hit wire (cm)
+      double w1 = wires.back();        // last hit wire (cm)
+      double t0 = times.front();      // first hit time (cm)
+      double t1 = times.back();        // last hit time (cm)
+      double t0_line = intercept + (w0)*slope;       // time coordinate at wire w0 on the fit line (cm)  
+      double t1_line = intercept + (w1)*slope;       // time coordinate at wire w1 on the fit line (cm)
     
-    delete pol1;
-  }// end of loop over all cluster created by  HoughLineFinder
 
+
+      // actually store the 2Dtrack info
+      switch(plane){
+      case 0:
+	Iwirefirsts.push_back(w0);
+	Iwirelasts.push_back(w1);
+	Itimefirsts.push_back(t0);
+	Itimelasts.push_back(t1); 
+	Itimefirsts_line.push_back(t0_line);
+	Itimelasts_line.push_back(t1_line);    
+	IclusHitlists.push_back(hitlist);
+	Icluster_count.push_back(ii);
+	break;
+      case 1:
+	Cwirefirsts.push_back(w0);
+	Cwirelasts.push_back(w1);
+	Ctimefirsts.push_back(t0);
+	Ctimelasts.push_back(t1);
+	Ctimefirsts_line.push_back(t0_line);
+	Ctimelasts_line.push_back(t1_line);
+	CclusHitlists.push_back(hitlist);
+	Ccluster_count.push_back(ii);
+	break;   
+      }
+    
+      delete pol1;
+    }// end of loop over all input clusters
   
 
   /////////////////////////////////////////////////////
   /////// 2D Track Matching and 3D Track Reconstruction
   /////////////////////////////////////////////////////
 
-  unsigned int Associations = 0;
-  //  std::vector<recob::Track *> track3DVector;  //holds 3D tracks to be saved
-  for(unsigned int collectionIter=0; collectionIter < CclusterIDs.size();collectionIter++){  //loop over Collection view 2D tracks
+  for(unsigned int collectionIter=0; collectionIter < CclusHitlists.size();collectionIter++){  //loop over Collection view 2D tracks
     // Recover previously stored info
-    double Ccrosst0 = Ccrosstfirsts[collectionIter];
-    double Ccrosst1 = Ccrosstlasts[collectionIter];
     double Cw0 = Cwirefirsts[collectionIter];
     double Cw1 = Cwirelasts[collectionIter];
     double Ct0 = Ctimefirsts[collectionIter];
@@ -299,10 +256,8 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
     double Ct1_line = Ctimelasts_line[collectionIter];
     edm::PtrVector<recob::Hit> hitsCtrk = CclusHitlists[collectionIter];
 
-    for(unsigned int inductionIter=0;inductionIter<IclusterIDs.size();inductionIter++){   //loop over Induction view 2D tracks
+    for(unsigned int inductionIter=0;inductionIter<IclusHitlists.size();inductionIter++){   //loop over Induction view 2D tracks
       // Recover previously stored info
-      double Icrosst0 = Icrosstfirsts[inductionIter];
-      double Icrosst1 = Icrosstlasts[inductionIter];
       double Iw0 = Iwirefirsts[inductionIter];
       double Iw1 = Iwirelasts[inductionIter];
       double It0 = Itimefirsts[inductionIter];
@@ -314,18 +269,16 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
       // match 2D tracks
       if((fabs(Ct0_line-It0_line)<ftmatch*timepitch) && (fabs(Ct1_line-It1_line)<ftmatch*timepitch)){ 
 	//std::cout<<"-----> Track "<<collectionIter<< " Collection associated with track "<<inductionIter<< " Induction"<<std::endl;
-	Associations++;
-
+       
         // Reconstruct the 3D track
 	TVector3 XYZ0;  // track origin or interaction vertex
 	XYZ0.SetXYZ(Ct0_line,(Cw0-Iw0)/(2.*TMath::Sin(Angle)),(Cw0+Iw0)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
 
-
 	//compute track startpoint and endpoint in Local co-ordinate system 
-	const TVector3 startpointVec(XYZ0.X(),XYZ0.Y(),XYZ0.Z());
- 	const TVector3 endpointVec(Ct1_line,(Cw1-Iw1)/(2.*TMath::Sin(Angle)),(Cw1+Iw1)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
-	const TVector3 startpointVecLocal = m_tpcVolumeUtility->WorldToLocal(startpointVec);
-	const TVector3 endpointVecLocal = m_tpcVolumeUtility->WorldToLocal(endpointVec);
+	TVector3 startpointVec(XYZ0.X(),XYZ0.Y(),XYZ0.Z());
+ 	TVector3 endpointVec(Ct1_line,(Cw1-Iw1)/(2.*TMath::Sin(Angle)),(Cw1+Iw1)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
+	TVector3 startpointVecLocal = m_tpcVolumeUtility->WorldToLocal(startpointVec);
+	TVector3 endpointVecLocal = m_tpcVolumeUtility->WorldToLocal(endpointVec);
 	Double_t startpoint[3],endpoint[3];
 	startpoint[0] = startpointVecLocal[0];
 	startpoint[1] = startpointVecLocal[1];
@@ -335,20 +288,14 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	endpoint[2]   = endpointVecLocal[2]; 
 
 	//compute track (normalized) cosine directions in the World co-ordinate system
-        double DirCos[3];
-        DirCos[0] = endpointVec.X()-startpointVec.X();
-        DirCos[1] = endpointVec.Y()-startpointVec.Y();
-        DirCos[2] = endpointVec.Z()-startpointVec.Z();
-	double Norma = TMath::Sqrt(TMath::Power(DirCos[0],2.)+TMath::Power(DirCos[1],2.)+TMath::Power(DirCos[2],2.));
-	DirCos[0] = DirCos[0]/Norma; 
-	DirCos[1] = DirCos[1]/Norma;
-	DirCos[2] = DirCos[2]/Norma;
+	TVector3 DirCos = endpointVecLocal - startpointVecLocal;
+	DirCos.SetMag(1.0);//normalize vector
 
 	//compute 3D track parameters (theta, phi, track pitch length) in the World co-ordinate system         
 	double Theta; // Zenith angle with respect to y (vertical) axis in radians 
 	double Phi;   // Azimuth angle with respect to x axis in radians
-	Theta = TMath::ACos(DirCos[1]);
-	Phi = TMath::ATan(DirCos[2]/DirCos[0]);
+	Theta = TMath::ACos(DirCos.Y());
+	Phi = TMath::ATan(DirCos.Z()/DirCos.X());
 	Phi = Phi<0. ? Phi+TMath::Pi() : Phi ; // solve the ambiguities due to tangent periodicity	
 	double cosgammaC; // angle between the track direction and the direction of the Collection wire pitch
 	cosgammaC = TMath::Sin(Theta)*TMath::Sin(Phi)*TMath::Cos(Angle)+TMath::Cos(Theta)*TMath::Sin(Angle);
@@ -358,61 +305,23 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	double TrackPitchI  = wire_pitch/cosgammaI; // Induction Track Pitch length (i.e. the effective length of the track seen by the Induction wire) in cm
 	//double TrackLength_line = TMath::Sqrt(TMath::Power((startpoint[0]-endpoint[0]),2.)+TMath::Power((startpoint[1]-endpoint[1]),2.)+TMath::Power((startpoint[2]-endpoint[2]),2.));
 
-	/* This is how this works. Maddalena creates a 3D trk and then packs
-	 2 k3D clusters into it. The first one contains the first and last hits
-	 on the new trk. The second one contains all the matching ones in 
-	 between.I will now add 2 more clusters. They will be kU, kT clusters. 
-	 EC, 27-Aug-2010.
-	*/ 
-	//create the the 3D track
-	std::vector<recob::Hit*> hits3D;
-	//edm::PtrVector <recob::Hit> hits3Dpv;
-	std::vector<recob::Hit*> hits3Dpv;
-	recob::Hit* hit1 = new recob::Hit();
- 	hit1->SetView(geo::k3D);
-	hit1->SetXYZ(startpoint);
- 	hits3Dpv.push_back(hit1);    
-	recob::Hit* hit2 = new recob::Hit();
-	// edm::Ptr<recob::Hit> hit2();
- 	hit2->SetView(geo::k3D);
-	hit2->SetXYZ(endpoint);
-  	hits3Dpv.push_back(hit2);
+	edm::Ptr <recob::Cluster> cl1(clusterListHandle,Icluster_count[inductionIter]);
+	edm::Ptr <recob::Cluster> cl2(clusterListHandle,Ccluster_count[collectionIter]);
+	edm::PtrVector<recob::Cluster> clustersPerTrack;
+	clustersPerTrack.push_back(cl1);
+	clustersPerTrack.push_back(cl2);
 
-	recob::Cluster cl3D(hits3Dpv);  // uses new constructor.
-	//edm::Ptr<recob::Cluster> cl3D(hits3Dpv);
-	cl3D.SetID(Associations);
-	//recob::Track*  the3DTrack = new recob::Track();
-	// Eric's next chunk here to include original hits. EC, 27-Aug-2010.
-	// Playing along with the detector-specific coding for now.
-	std::vector<recob::Cluster*> clustersPerTrack;
-	recob::Cluster* clOrigC = new recob::Cluster(hitsCtrk);
-	clOrigC->SetID(Associations);
-	clustersPerTrack.push_back(clOrigC);
- 	//the3DTrack->Add(clOrigC);
- 	recob::Cluster* clOrigI = new recob::Cluster(hitsItrk);
-	clOrigI->SetID(Associations);
- 	//the3DTrack->Add(clOrigI);
-	clustersPerTrack.push_back(clOrigI);
-
-	clustersPerTrack.push_back(&cl3D);
-	/*
-	recob::Track*  the3DTrack = new recob::Track(clustersPerTrack);
-	the3DTrack->SetDirection(DirCos,DirCos);
-	the3DTrack->SetTrackPitch(TrackPitchI,geo::kU);
-	the3DTrack->SetTrackPitch(TrackPitchC,geo::kV);
-	*/
- 	//the3DTrack->Add(cl3D);
-
-
-
-
+ 
 	/////////////////////////////
 	// Match hits
 	////////////////////////////
 
-	  edm::PtrVector<const recob::Hit> minhits = hitsCtrk.size() <= hitsItrk.size() ? hitsCtrk : hitsItrk;
-	  edm::PtrVector<const recob::Hit> maxhits = hitsItrk.size() <= hitsCtrk.size() ? hitsCtrk : hitsItrk;
+	//create collection of spacepoints that will be used when creating the Track object
+	std::vector<recob::SpacePoint> spacepoints;
+	
 
+	edm::PtrVector<recob::Hit> minhits = hitsCtrk.size() <= hitsItrk.size() ? hitsCtrk : hitsItrk;
+	edm::PtrVector<recob::Hit> maxhits = hitsItrk.size() <= hitsCtrk.size() ? hitsCtrk : hitsItrk;
 
 
 	bool maxhitsMatch[maxhits.size()];
@@ -423,15 +332,12 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	unsigned int imaximum = 0;
 	for(unsigned int imin=0;imin<minhits.size();imin++){ //loop over hits
 	  //get wire - time coordinate of the hit
-	  edm::Ptr<recob::Wire> theWire = minhits[imin]->Wire();
 	  unsigned int channel,wire,plane1,plane2;
-	  channel = theWire->RawDigit()->Channel();
+	  channel = minhits[imin]->Channel();
 	  geom->ChannelToWire(channel,plane1,wire);
 	  // get the wire-time co-ordinates of the hit to be matched
 	  double w1 = (double)((wire+1)*wire_pitch);
  	  double t1 = plane1==1?(double)((minhits[imin]->CrossingTime()-presamplings-(tSI+tIC))*timepitch):(double)((minhits[imin]->CrossingTime()-presamplings-tSI)*timepitch); //in cm	  
-	  double crossTime1 = minhits[imin]->CrossingTime();
-	  double MIPs1 = minhits[imin]->MIPs();
 
 	  //get the track origin co-ordinates in the two views
 	  TVector2 minVtx2D;
@@ -440,13 +346,11 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	  plane1==1 ? maxVtx2D.Set(It0,Iw0): maxVtx2D.Set(Ct0,Cw0);
 	  
 	  // get the track last hit co-ordinates in the two views
-	  theWire = minhits[minhits.size()-1]->Wire();
-	  channel = theWire->RawDigit()->Channel();
+	  channel = minhits[minhits.size()-1]->Channel();
 	  geom->ChannelToWire(channel,plane1,wire);
 	  double w1_last = plane1==1?Cw1:Iw1;
 	  double t1_last = plane1==1?Ct1:It1;  
-	  theWire = maxhits[maxhits.size()-1]->Wire();
-	  channel = theWire->RawDigit()->Channel();
+	  channel = maxhits[maxhits.size()-1]->Channel();
 	  geom->ChannelToWire(channel,plane2,wire);
 	  double w2_last =plane2==1?Cw1:Iw1;
 	  double t2_last =plane2==1?Ct1:It1;
@@ -459,12 +363,12 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	  double minDistance = maxLength* TMath::Sqrt(TMath::Power(t1-minVtx2D.X(),2)+TMath::Power(w1-minVtx2D.Y(),2))/minLength;
 	  
 	  //core matching algorithm
-	  double difference = 9999999.;
+	  double difference = 9999999.;	  
+
 	  for(unsigned int imax = imaximum; imax < maxhits.size(); imax++){ //loop over hits of the other view
 	    if(!maxhitsMatch[imax]){
 	      //get wire - time coordinate of the hit
-	      theWire = maxhits[imax]->Wire();
-	      channel = theWire->RawDigit()->Channel();
+	      channel = maxhits[imax]->Channel();
 	      geom->ChannelToWire(channel,plane2,wire);
 	      double w2 = (double)((wire+1)*wire_pitch);
 	      double t2 = plane2==1?(double)((maxhits[imax]->CrossingTime()-presamplings-(tSI+tIC))*timepitch):(double)((maxhits[imax]->CrossingTime()-presamplings-tSI)*timepitch); //in cm
@@ -481,88 +385,48 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	  }
 	  maxhitsMatch[imaximum]=true;
 	  
+	  edm::PtrVector<recob::Hit> sp_hits;
+	  if(difference!= 9999999.){
+	    sp_hits.push_back(minhits[imin]);
+	    sp_hits.push_back(maxhits[imaximum]);
+	  }
 	  
 	  // Get the time-wire co-ordinates of the matched hit
-	  theWire = maxhits[imaximum]->Wire();
-	  channel = theWire->RawDigit()->Channel();
+	  channel =  maxhits[imaximum]->Channel();
 	  geom->ChannelToWire(channel,plane2,wire);
 	  double w1_match = (double)((wire+1)*wire_pitch);
 	  double t1_match = plane2==1?(double)((maxhits[imaximum]->CrossingTime()-presamplings-(tSI+tIC))*timepitch):(double)((maxhits[imaximum]->CrossingTime()-presamplings-tSI)*timepitch);
-	  double crossTime1_match = maxhits[imaximum]->CrossingTime();
-	  double MIPs1_match = maxhits[imaximum]->MIPs();
 
 	  // create the 3D hit, compute its co-ordinates and add it to the 3D hits list	  
 	  double Ct = plane1==1?t1:t1_match;
 	  double Cw = plane1==1?w1:w1_match;
 	  double Iw = plane1==1?w1_match:w1;
-	  double crossTime = plane1==1?crossTime1:crossTime1_match;
-	  double MIPs = plane1==1?MIPs1:MIPs1_match;
 
 	  const TVector3 hit3d(Ct,(Cw-Iw)/(2.*TMath::Sin(Angle)),(Cw+Iw)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle)); 
-	  recob::Hit* hit = new recob::Hit();
-	  hit->SetView(geo::k3D);
-	  hit->SetCrossingTime(crossTime);
-	  hit->SetMIPs(MIPs);
 	  const TVector3 hit3dLocal = m_tpcVolumeUtility->WorldToLocal(hit3d);
 	  Double_t hitcoord[3];
 	  hitcoord[0] = hit3dLocal.X();
 	  hitcoord[1] = hit3dLocal.Y();
-	  hitcoord[2] = hit3dLocal.Z();
-	  hit->SetXYZ(hitcoord);           
-	  hits3Dmatched.push_back(hit);
-	}
+	  hitcoord[2] = hit3dLocal.Z();           
 
-	/// Output file for Direction Cosines 
-// 	if(hits3Dmatched.size()>15){
-// 	  std::ofstream outfile;
-// 	  outfile.open("dircos_bis.txt",std::ios::out | std::ios::app);
-// 	  outfile<<"\n";
-// 	  outfile<<"run          : "<<evt.Header().Run()<<"\n";
-// 	  outfile<<"event        : "<<evt.Header().Event()<<"\n";
-// 	  outfile<<"trk3D ID     : "<<Associations<<"\n";
-// 	  outfile<<"Direction Cosine : "<< DirCos[0]<<" "<<DirCos[1]<<" "<<DirCos[2]<<"\n";
-// 	  outfile<<"Theta (deg)      : "<< Theta/TMath::Pi()*180. <<"\n";
-// 	  outfile<<"Phi   (deg)      : "<< Phi/TMath::Pi()*180. <<"\n";
-// 	  outfile<<"Start Point (cm) : "<< startpointVec.X()<<" "<<startpointVec.Y()<<" "<<startpointVec.Z()<<"\n";
-// 	  outfile<<"End Point   (cm) : "<< endpointVec.X()<<" "<<endpointVec.Y()<<" "<<endpointVec.Z()<<"\n";
-// 	  outfile.close();
-// 	}
-	//
-	/// Output file for Drift Velocity 
-	if(hits3Dmatched.size()>15){
-	  std::ofstream outf;
-	  outf.open("vdrift.txt",std::ios::out | std::ios::app);
-	  outf<<"\n";
-	  outf<<"run          : "<<evt.run()<<"\n";
-	  outf<<"event        : "<<evt.id().event()<<"\n";
-	  outf<<"trk3D ID     : "<<Associations<<"\n";
-	  outf<<"Direction Cosine : "<< DirCos[0]<<" "<<DirCos[1]<<" "<<DirCos[2]<<"\n";
-	  outf<<"Theta (deg)      : "<< Theta/TMath::Pi()*180. <<"\n";
-	  outf<<"Phi   (deg)      : "<< Phi/TMath::Pi()*180. <<"\n";
-	  outf<<"Start Point (cm) : "<< startpointVec.X()<<" "<<startpointVec.Y()<<" "<<startpointVec.Z()<<"\n";
-	  outf<<"SP CrossT_C (sam): "<< Ccrosst0<<"\n";
-	  outf<<"SP CrossT_I (sam): "<< Icrosst0<<"\n";
-	  outf<<"End Point   (cm) : "<< endpointVec.X()<<" "<<endpointVec.Y()<<" "<<endpointVec.Z()<<"\n";
-	  outf<<"EP CrossT_C (sam): "<< Ccrosst1<<"\n";
-	  outf<<"EP CrossT_I (sam): "<< Icrosst1<<"\n";
-	  outf.close();
-	}
-	//
+	  recob::SpacePoint mysp(sp_hits);//3d point at end of track
+	  mysp.SetXYZ(hitcoord);
+	  spacepoints.push_back(mysp);
+	  
+	}//loop over min-hits
+      
 
 	// Add the 3D track to the vector of the reconstructed tracks
-        if(hits3Dmatched.size()>0){
-	  recob::Cluster cl3Dmatched(hits3Dmatched);
-	  cl3Dmatched.SetID(Associations);
-	  //the3DTrack->Add(cl3Dmatched);
+        if(spacepoints.size()>0 || clustersPerTrack.size()>0){
+	 
+	  recob::Track  the3DTrack(clustersPerTrack,spacepoints);
+	  double dircos[3];
+	  DirCos.GetXYZ(dircos);
+	  the3DTrack.SetDirection(dircos,dircos);
+	  the3DTrack.SetTrackPitch(TrackPitchI,geo::kU);
+	  the3DTrack.SetTrackPitch(TrackPitchC,geo::kV);
 
-	  clustersPerTrack.push_back(&cl3Dmatched);
-	  recob::Track*  the3DTrack = new recob::Track(clustersPerTrack);
-	  the3DTrack->SetDirection(DirCos,DirCos);
-	  the3DTrack->SetTrackPitch(TrackPitchI,geo::kU);
-	  the3DTrack->SetTrackPitch(TrackPitchC,geo::kV);
-
-
-	  tcol->push_back(*the3DTrack);
+	  tcol->push_back(the3DTrack);
 	}
       } //close match 2D tracks
       
@@ -570,36 +434,10 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
     
   }//close loop over Collection xxview 2D tracks
   
-  std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
-  std::cout<<"TRACK3DRECO found "<<Associations<<" 3D track(s)"<<std::endl;
+  //std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
+  //std::cout<<"TRACK3DRECO found "<< tcol.size() <<" 3D track(s)"<<std::endl;
   
   evt.put(tcol);
   
 
-}
-//------------------------------------------------------------------------------------//
-double trkf::Track3Dreco::DriftVelocity(double Efield, double Temperature){
-  
-  // Dirft Velocity as a function of Electric Field and LAr Temperature
-  // from : W. Walkowiak, NIM A 449 (2000) 288-294
-  
-  double vd;
-  double field = Efield; //Electric field kV/cm   default = 0.5
-  double T = Temperature;
-  
-  
-  double P1,P2,P3,P4,P5,P6,T0;
-  P1=-0.01481; // K^-1
-  P2=-0.0075; // K^-1
-  P3=0.141;//(kV/cm)^-1
-  P4=12.4;//kV/cm
-  P5=1.627;//(kV/cm)^-P6
-  P6=0.317;
-  T0 = 90.371; // K
-
-  vd=(P1*(T-T0)+1)*(P3*field*TMath::Log(1+P4/field) + P5*TMath::Power(field,P6))+P2*(T-T0);
-
-  vd /= 10.;
-
-  return vd;// in cm/us
 }
