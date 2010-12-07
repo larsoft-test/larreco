@@ -12,6 +12,7 @@
 #include <fstream>
 
 #include "TH1F.h"
+#include "TTree.h"
 
 #include "RecoBase/Cluster.h"
 
