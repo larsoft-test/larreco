@@ -4,7 +4,7 @@
 //
 // maddalena.antonello@lngs.infn.it
 // ornella.palamara@lngs.infn.it
-// ART port and edits: echurch@fnal.gov
+// ART port and edits: soderber,echurch@fnal.gov
 //  This algorithm is designed to reconstruct 3D tracks through a simple 
 //  2D-track matching algorithm
 ////////////////////////////////////////////////////////////////////////
@@ -51,8 +51,8 @@
 //-------------------------------------------------
 trkf::Track3Dreco::Track3Dreco(edm::ParameterSet const& pset) :
   fClusterModuleLabel     (pset.getParameter< std::string >("ClusterModuleLabel")),
-  ftmatch                 (pset.getParameter< int >("TMatch")),
-  fchi2dof                (pset.getParameter< int >("Chi2DOFmax"))
+  ftmatch                 (pset.getParameter< int    >("TMatch")),
+  fchi2dof                (pset.getParameter< double >("Chi2DOFmax"))
 {
   produces< std::vector<recob::Track> >();
 }
@@ -87,14 +87,15 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
   //////////////////////////////////////////////////////
   std::auto_ptr<std::vector<recob::Track> > tcol(new std::vector<recob::Track>);
 
-
-
   // define TPC parameters
   TString tpcName = geom->GetLArTPCVolumeName();
-  geo::VolumeUtility* m_tpcVolumeUtility = new geo::VolumeUtility( tpcName );
+
   //TPC dimensions
-  double m_TPCHalfZ = m_tpcVolumeUtility->GetHalfZ();
-  double YC =  (m_TPCHalfZ-5.)*2.; // TPC height in cm
+  //double m_TPCHalfZ = m_tpcVolumeUtility->GetHalfZ();
+  double m_TPCHalfZ = geom->DetLength()*2;
+
+  //  double YC =  (m_TPCHalfZ-5.)*2.; // TPC height in cm
+  double YC =  (geom->DetHalfHeight())*2.; // TPC height in cm
   double Angle = geom->Plane(1).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to the vertical direction
   // Parameters temporary defined here, but possibly to be retrieved somewhere in the code
   double timetick = 0.198;    //time sample in us
@@ -106,14 +107,16 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
   double Efield_SI = 0.7;     // Electric Field between Shield and Induction planes in kV/cm
   double Efield_IC = 0.9;     // Electric Field between Induction and Collection planes in kV/cm
   double Temperature = 87.6;  // LAr Temperature in K
+  std::cout<<"Track3Dreco.cxx: Here -0.1"<<std::endl;
   double driftvelocity = larprop->DriftVelocity(Efield_drift,Temperature);    //drift velocity in the drift region (cm/us)
+  std::cout<<"Track3Dreco.cxx: Here -0.1"<<std::endl;
   double driftvelocity_SI = larprop->DriftVelocity(Efield_SI,Temperature);    //drift velocity between shield and induction (cm/us)
   double driftvelocity_IC = larprop->DriftVelocity(Efield_IC,Temperature);    //drift velocity between induction and collection (cm/us)
   double timepitch = driftvelocity*timetick;                         //time sample (cm) 
   double tSI = plane_pitch/driftvelocity_SI/timetick;                   //drift time between Shield and Collection planes (time samples)
   double tIC = plane_pitch/driftvelocity_IC/timetick;                //drift time between Induction and Collection planes (time samples)
 
-
+  std::cout<<"Track3Dreco.cxx: Here 0"<<std::endl;
   // get input Cluster object(s).
   edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fClusterModuleLabel,clusterListHandle);
@@ -162,7 +165,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
       hitlist = cl->Hits( clPlane, -1);
       // std::sort(hitlist.begin(), hitlist.end(), hit_sort_2d); //sort hit by wire
       
-      TGraph * the2Dtrack = new TGraph(hitlist.size());
+      TGraph *the2Dtrack = new TGraph(hitlist.size());
       
       std::vector<double> wires;
       std::vector<double> times;
@@ -194,7 +197,6 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	  np++;
 	}//end of loop over cluster hits
     
-
       // fit the 2Dtrack and get some info to store
       the2Dtrack->Fit("pol1","Q");
       TF1 *pol1=(TF1*) the2Dtrack->GetFunction("pol1");
@@ -237,11 +239,10 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	Ccluster_count.push_back(ii);
 	break;   
       }
-    
+      //delete the2Dtrack;
       delete pol1;
     }// end of loop over all input clusters
   
-
   /////////////////////////////////////////////////////
   /////// 2D Track Matching and 3D Track Reconstruction
   /////////////////////////////////////////////////////
@@ -268,7 +269,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 
       // match 2D tracks
       if((fabs(Ct0_line-It0_line)<ftmatch*timepitch) && (fabs(Ct1_line-It1_line)<ftmatch*timepitch)){ 
-	//std::cout<<"-----> Track "<<collectionIter<< " Collection associated with track "<<inductionIter<< " Induction"<<std::endl;
+	std::cout<<"-----> Track "<<collectionIter<< " Collection associated with track "<<inductionIter<< " Induction"<<std::endl;
        
         // Reconstruct the 3D track
 	TVector3 XYZ0;  // track origin or interaction vertex
@@ -277,8 +278,10 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	//compute track startpoint and endpoint in Local co-ordinate system 
 	TVector3 startpointVec(XYZ0.X(),XYZ0.Y(),XYZ0.Z());
  	TVector3 endpointVec(Ct1_line,(Cw1-Iw1)/(2.*TMath::Sin(Angle)),(Cw1+Iw1)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
-	TVector3 startpointVecLocal = m_tpcVolumeUtility->WorldToLocal(startpointVec);
-	TVector3 endpointVecLocal = m_tpcVolumeUtility->WorldToLocal(endpointVec);
+	//	TVector3 startpointVecLocal = m_tpcVolumeUtility->WorldToLocal(startpointVec);
+	TVector3 startpointVecLocal = geom->Plane(1).WorldToLocal(startpointVec);
+	//TVector3 endpointVecLocal = m_tpcVolumeUtility->WorldToLocal(endpointVec);
+	TVector3 endpointVecLocal = geom->Plane(1).WorldToLocal(endpointVec);
 	Double_t startpoint[3],endpoint[3];
 	startpoint[0] = startpointVecLocal[0];
 	startpoint[1] = startpointVecLocal[1];
@@ -403,7 +406,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	  double Iw = plane1==1?w1_match:w1;
 
 	  const TVector3 hit3d(Ct,(Cw-Iw)/(2.*TMath::Sin(Angle)),(Cw+Iw)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle)); 
-	  const TVector3 hit3dLocal = m_tpcVolumeUtility->WorldToLocal(hit3d);
+	  const TVector3 hit3dLocal = geom->Plane(1).WorldToLocal(hit3d);// m_tpcVolumeUtility->WorldToLocal(hit3d);
 	  Double_t hitcoord[3];
 	  hitcoord[0] = hit3dLocal.X();
 	  hitcoord[1] = hit3dLocal.Y();
@@ -434,8 +437,8 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
     
   }//close loop over Collection xxview 2D tracks
   
-  //std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
-  //std::cout<<"TRACK3DRECO found "<< tcol.size() <<" 3D track(s)"<<std::endl;
+  std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
+  std::cout<<"TRACK3DRECO found "<< tcol->size() <<" 3D track(s)"<<std::endl;
   
   evt.put(tcol);
   
