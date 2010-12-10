@@ -92,10 +92,10 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 
   //TPC dimensions
   //double m_TPCHalfZ = m_tpcVolumeUtility->GetHalfZ();
-  double m_TPCHalfZ = geom->DetLength()*2;
+  double m_TPCHalfZ = geom->DetLength()-5.0;
 
   //  double YC =  (m_TPCHalfZ-5.)*2.; // TPC height in cm
-  double YC =  (geom->DetHalfHeight())*2.; // TPC height in cm
+  double YC =  (geom->DetHalfHeight()-0.5715)*2.; // TPC height in cm
   double Angle = geom->Plane(1).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to the vertical direction
   // Parameters temporary defined here, but possibly to be retrieved somewhere in the code
   double timetick = 0.198;    //time sample in us
@@ -107,16 +107,16 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
   double Efield_SI = 0.7;     // Electric Field between Shield and Induction planes in kV/cm
   double Efield_IC = 0.9;     // Electric Field between Induction and Collection planes in kV/cm
   double Temperature = 87.6;  // LAr Temperature in K
-  std::cout<<"Track3Dreco.cxx: Here -0.1"<<std::endl;
+
   double driftvelocity = larprop->DriftVelocity(Efield_drift,Temperature);    //drift velocity in the drift region (cm/us)
-  std::cout<<"Track3Dreco.cxx: Here -0.1"<<std::endl;
+
   double driftvelocity_SI = larprop->DriftVelocity(Efield_SI,Temperature);    //drift velocity between shield and induction (cm/us)
   double driftvelocity_IC = larprop->DriftVelocity(Efield_IC,Temperature);    //drift velocity between induction and collection (cm/us)
   double timepitch = driftvelocity*timetick;                         //time sample (cm) 
   double tSI = plane_pitch/driftvelocity_SI/timetick;                   //drift time between Shield and Collection planes (time samples)
   double tIC = plane_pitch/driftvelocity_IC/timetick;                //drift time between Induction and Collection planes (time samples)
 
-  std::cout<<"Track3Dreco.cxx: Here 0"<<std::endl;
+
   // get input Cluster object(s).
   edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fClusterModuleLabel,clusterListHandle);
@@ -406,7 +406,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	  double Iw = plane1==1?w1_match:w1;
 
 	  const TVector3 hit3d(Ct,(Cw-Iw)/(2.*TMath::Sin(Angle)),(Cw+Iw)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle)); 
-	  const TVector3 hit3dLocal = geom->Plane(1).WorldToLocal(hit3d);// m_tpcVolumeUtility->WorldToLocal(hit3d);
+	  const TVector3 hit3dLocal = geom->Plane(plane1).WorldToLocal(hit3d);// m_tpcVolumeUtility->WorldToLocal(hit3d);
 	  Double_t hitcoord[3];
 	  hitcoord[0] = hit3dLocal.X();
 	  hitcoord[1] = hit3dLocal.Y();
