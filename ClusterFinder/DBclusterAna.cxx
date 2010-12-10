@@ -35,7 +35,7 @@
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
 #include "RecoBase/recobase.h"
-//#include "RawData/RawDigit.h"
+#include "RawData/RawDigit.h"
 
 
  
@@ -128,10 +128,10 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
     }
 
   
-  edm::Handle< edm::View <raw::RawDigit > > rdListHandle;
+  edm::Handle< std::vector<raw::RawDigit>  > rdListHandle;
   evt.getByLabel(fDigitModuleLabel,rdListHandle);
-  edm::Handle< std::vector<sim::SimDigit>  > sdListHandle;
-  evt.getByLabel(fDigitModuleLabel,sdListHandle);
+  edm::Handle< std::vector<sim::SimChannel>  > scListHandle;
+  evt.getByLabel(fDigitModuleLabel,scListHandle);
   edm::Handle< std::vector<recob::Hit> > hitListHandle;
   evt.getByLabel(fHitsModuleLabel,hitListHandle);
   edm::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
@@ -161,24 +161,20 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
       edm::Ptr<raw::RawDigit> rawdigit(rdListHandle,ii);
       rawdigits.push_back(rawdigit);
     }
+
+  edm::PtrVector<sim::SimChannel> simchans;
   
-  edm::PtrVector<sim::SimDigit> simdigits;
-  
-  for (unsigned int ii = 0; ii <  sdListHandle->size(); ++ii)
+  for (unsigned int ii = 0; ii <  scListHandle->size(); ++ii)
     {
-    
-      edm::Ptr<sim::SimDigit> simdigit_unpack(sdListHandle,ii);
-      simdigits.push_back(simdigit_unpack);
+      edm::Ptr<sim::SimChannel> simc(scListHandle,ii);
+      simchans.push_back(simc);
     }
   
-
 
   //get the sim::Particle collection from the edm::Event and then use the Simulation/SimListUtils object to create a sim::ParticleList from the edm::Event.  
 
    sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
 
-
-  
   
   std::vector<int> mc_trackids;
   
@@ -204,21 +200,9 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   //   }
   // std::cout<<"I have in total "<<mc_trackids.size()<<" different tracks"<<std::endl;
   
-  //----------------------------------------------------------------
-  //Was a static prepended below. I think for the reason that we do a static_cast later. But
-  // This seems to mess up everything. And problems go away if we take it out. EC, 28-Oct-2010.
   sim::LArVoxelList voxelList = sim::SimListUtils::GetLArVoxelList(evt, fLArG4ModuleLabel);
   
   
-  // edm::PtrVector<sim::LArVoxelList> larVoxelList;
-  //   for (unsigned int ii = 0; ii <  voxelListHandle->size(); ++ii)
-  //     {
-  //       edm::Ptr<sim::LArVoxelList> voxellist(voxelListHandle,ii);
-  //       larVoxelList.push_back(voxellist);
-  //     }
-  //   // There's probably only one LArVoxelList per event, but ART-nee'-FMWK... blah blah blah
-  //   edm::Ptr<sim::LArVoxelList> voxelList(voxelListHandle,larVoxelList.size()-1);
-  //  
   
   //---------------------------------------------------------------- 
   edm::PtrVector<simb::MCTruth> mclist;
@@ -274,8 +258,8 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   double no_of_clusters=0;
   double total_no_hits_in_clusters=0;
   //unsigned int plane=0;
-  edm::Ptr<sim::SimDigit > _rawdigit;
-  edm::Ptr<sim::SimDigit > _rawdigit2;
+  edm::Ptr<raw::RawDigit > _rawdigit;
+  edm::Ptr<raw::RawDigit > _rawdigit2;
   const sim::Electrons* _electrons=0;
   const sim::Electrons* electrons=0;
   std::vector<int> vec_pdg;
@@ -320,23 +304,27 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 	  
 	  for(unsigned int i = 0; i < _hits.size(); ++i) {
 	  
-	    //      // geo->ChannelToWire(hits[i]->Wire()->RawDigit()->Channel(), p, w);
+	    
 	      //std::cout<<"channel: "<<_hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(_hits[i]->StartTime()+_hits[i]->EndTime())/2.<<" X time= "<<_hits[i]-> CrossingTime()<<std::endl;
 	    
 	    double XTime=_hits[i]-> CrossingTime();
-	    
-	    const sim::SimDigit* simdigit = static_cast<const sim::SimDigit*>(_hits[i]->Wire()->RawDigit().get());
-	    
-	    int numberOfElectrons = simdigit->NumberOfElectrons();
+
+	    // grab the channel from this hit
+	    unsigned int channel = _hits[i]->Wire()->RawDigit()->Channel();
+
+	    // loop over the SimChannels to find this one
+	    edm::Ptr<sim::SimChannel> sc;
+	    for(unsigned int scs = 0; scs < simchans.size(); ++scs)
+	      if(simchans[scs]->Channel() == channel) sc = simchans[scs];
+
+	    int numberOfElectrons = sc->NumberOfElectrons();
 	   
 	    //std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
-	    if(simdigit==0){std::cout<<"simdigit=0 !!!!!!!!!!"<<std::endl;}
-
 
 	    for ( int i = 0; i != numberOfElectrons; ++i )
 	      {
 		
-		_electrons = simdigit->GetElectrons(i);
+		_electrons = sc->GetElectrons(i);
 		double ArrivalTime=(_electrons->ArrivalT())/200;
 		double diff=XTime-ArrivalTime;
 	   
@@ -348,7 +336,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 		if(plane==0)  { 
 		  if((diff<22)&&(diff>13))
 		    {
-		      electrons = simdigit->GetElectrons(i);
+		      electrons = sc->GetElectrons(i);
 		      // double _ArrivalTime=(electrons->ArrivalT())/200;
 		      // double _diff=XTime-_ArrivalTime;
 		      // std::cout<<"PLANE 0,diff= "<<_diff<<std::endl;
@@ -357,7 +345,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 		if(plane==1)  { 
 		  if((diff<36)&&(diff>27))
 		    {
-		      electrons = simdigit->GetElectrons(i);
+		      electrons = sc->GetElectrons(i);
 		      //double _ArrivalTime=(electrons->ArrivalT())/200;
 		      //double _diff=XTime-_ArrivalTime;
 		      // std::cout<<"PLANE 1,diff= "<<_diff<<std::endl;
@@ -786,7 +774,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   for(unsigned int j = 0; j < hits.size(); ++j) {
 	 
     no_hits++;
-    geom->ChannelToWire(hits[j]->Wire()->RawDigit()->Channel(), plane_k, w);
+    unsigned int channel = hits[j]->Wire()->RawDigit()->Channel();
 
     //std::cout<<"0:TOTAL ENERGY FROM HITS for P=0 = "<<total_eng_hits_p0<<std::endl;
     //std::cout<<"0:TOTAL ENERGY FROM HITS for P=1 = "<<total_eng_hits_p1<<std::endl;
@@ -795,17 +783,21 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
     // std::cout<<"channel: "<<hits[j]->Wire()->RawDigit()->Channel()<<"  time= "<<(hits[j]->StartTime()+hits[j]->EndTime())/2.<<" w= "<<w<<" plane= "<<plane_k<<std::endl;
     double XTime=hits[j]-> CrossingTime();
     //if(XTime >1650){std::cout<<"possible fake hit line ***********"<<std::endl;}
-    const sim::SimDigit* simdigit = static_cast<const sim::SimDigit*>(hits[j]->Wire()->RawDigit().get());
-    int numberOfElectrons = simdigit->NumberOfElectrons();
+
+    // loop over the SimChannels to find this one
+    edm::Ptr<sim::SimChannel> sc;
+    for(unsigned int scs = 0; scs < simchans.size(); ++scs)
+      if(simchans[scs]->Channel() == channel) sc = simchans[scs];
+    
+    int numberOfElectrons = sc->NumberOfElectrons();
     //  std::cout<<"Hits only, numberOfElectrons= "<< numberOfElectrons<<std::endl;
     if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
     //std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
-    if(simdigit==0){std::cout<<"simdigit=0 !!!!!!!!!!"<<std::endl;}
     //  std::cout<<"simdigit is: "<<simdigit<<std::endl;
     for ( int i = 0; i != numberOfElectrons; ++i )
       {
 	       
-	_electrons = simdigit->GetElectrons(i);
+	_electrons = sc->GetElectrons(i);
 	double ArrivalTime=(_electrons->ArrivalT())/200;
 	double diff=XTime-ArrivalTime;
 	//	std::cout<<"e's ArrivalT = "<<ArrivalTime<<" diff= "<<diff<<std::endl;
@@ -813,7 +805,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 	if(plane_k==0)  { 
 	  if((diff<22)&&(diff>13))
 	    {
-	      electrons = simdigit->GetElectrons(i);
+	      electrons = sc->GetElectrons(i);
 	      // double _ArrivalTime=(electrons->ArrivalT())/200;
 	      // double _diff=XTime-_ArrivalTime;
 		     
@@ -824,7 +816,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 	if(plane_k==1)  { 
 	  if((diff<36)&&(diff>27))
 	    {
-	      electrons = simdigit->GetElectrons(i);
+	      electrons = sc->GetElectrons(i);
 	      //double _ArrivalTime=(electrons->ArrivalT())/200;
 	      //double _diff=XTime-_ArrivalTime;
 		     
@@ -1012,7 +1004,6 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   // 	  int wire;             
   // 	  int pl=0;
   // 	  unsigned int channel; 
-  // geo::Geometry * geom = geo::Geometry::Instance();
   // 	  //loop through all wires:
 	  
   // 	  for(std::vector<const recob::Wire*>::iterator wireIter = wirelist.begin();
@@ -1074,21 +1065,25 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   for(unsigned int j = 0; j < hits.size(); ++j) {
 
 	    
-    geom->ChannelToWire(hits[j]->Wire()->RawDigit()->Channel(), plane, w_);
+    unsigned int channel = hits[j]->Wire()->RawDigit()->Channel();
 	    
     // std::cout<<"channel= "<<w_<<std::endl;
     double XTime=hits[j]-> CrossingTime();
-    const sim::SimDigit* simdigit2 = static_cast<const sim::SimDigit*>(hits[j]->Wire()->RawDigit().get());
-    int numberOfElectrons = simdigit2->NumberOfElectrons();
+
+    // loop over the SimChannels to find this one
+    edm::Ptr<sim::SimChannel> sc2;
+    for(unsigned int scs = 0; scs < simchans.size(); ++scs)
+      if(simchans[scs]->Channel() == channel) sc2 = simchans[scs];
+
+    int numberOfElectrons = sc2->NumberOfElectrons();
 	    
     if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
     // std::cout<<"# of elec: "<<"for plane: "<<plane<<" is: "<<numberOfElectrons<<std::endl;
-    if(simdigit2==0){std::cout<<"simdigit=0 !!!!!!!!!!"<<std::endl;}
     //  std::cout<<"simdigit is: "<<simdigit<<std::endl;
     for ( int i = 0; i != numberOfElectrons; ++i )
       {
 		
-	_electrons = simdigit2->GetElectrons(i);
+	_electrons = sc2->GetElectrons(i);
 		
 	double ArrivalTime=(_electrons->ArrivalT())/200;
 		
@@ -1099,7 +1094,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 	  if((diff<22)&&(diff>13))
 	    {
 		      
-	      electrons = simdigit2->GetElectrons(i);
+	      electrons = sc2->GetElectrons(i);
 		      
 	      no_ele_p0= electrons-> NumElectrons();
 	      // std::cout<<"p0,channel= "<<w_<<" e= "<<no_ele_p0<<" Hits "<<std::endl;
@@ -1117,7 +1112,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 	if(plane==1)  { 
 	  if((diff<36)&&(diff>27))
 	    {
-	      electrons = simdigit2->GetElectrons(i);
+	      electrons = sc2->GetElectrons(i);
 	      no_ele_p1= electrons-> NumElectrons();
 	      //double _ArrivalTime=(electrons->ArrivalT())/200;
 	      //double _diff=XTime-_ArrivalTime;
@@ -1174,25 +1169,26 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
     geom->ChannelToWire(channel,pl,wire);
     // std::cout<<"channel: "<<wire<<std::endl;
 	    
-    const sim::SimDigit* simdigit = static_cast<const sim::SimDigit*>((*wireIter2)->RawDigit().get());
-    int numberOfElectrons = simdigit->NumberOfElectrons();
+    // loop over the SimChannels to find this one
+    edm::Ptr<sim::SimChannel> sc;
+    for(unsigned int scs = 0; scs < simchans.size(); ++scs)
+      if(simchans[scs]->Channel() == channel) sc = simchans[scs];
+    
+    int numberOfElectrons = sc->NumberOfElectrons();
 	    
     if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
     //std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
-    if(simdigit==0){std::cout<<"simdigit=0 !!!!!!!!!!"<<std::endl;}
 
-
-
-    for ( int i = 0; i!=numberOfElectrons && simdigit!=0; ++i )
+    for ( int i = 0; i!=numberOfElectrons; ++i )
       {
 		
-	_electrons = simdigit->GetElectrons(i);
+	_electrons = sc->GetElectrons(i);
 		
 	
 	if(pl==0)  { 
 		 
 		      
-	  electrons = simdigit->GetElectrons(i);
+	  electrons = sc->GetElectrons(i);
 		      
 	  no_ele_p0= electrons-> NumElectrons();
 	  // std::cout<<"p0,channel= "<<wire<<" e= "<<no_ele_p0<<" Wires"<<std::endl;
@@ -1213,7 +1209,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 	if(pl==1)  { 
 		 
 	    
-	  electrons = simdigit->GetElectrons(i);
+	  electrons = sc->GetElectrons(i);
 	  no_ele_p1= electrons-> NumElectrons();
 	      
 	  //std::cout<<"p1,channel= "<<wire<<" e= "<<no_ele_p1<<" Wires"<<std::endl;

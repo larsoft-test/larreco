@@ -11,8 +11,6 @@
 // J. Sander, and X. Xu, A density-based algorithm for discovering clusters in large spatial databases with noise, 
 // Second International Conference on Knowledge Discovery and Data Mining, pp. 226-231, AAAI Press. 1996. 
 // ( Some of this code is from "Antonio Gulli's coding playground")  
-// (Once you run it, you can then display the discovered clusters on event display, each cluser is going to 
-// appear in a different color.)
 ////////////////////////////////////////////////////////////////////////
 
 
