@@ -76,7 +76,7 @@ namespace filt{
     for(unsigned int i = 0; i < scanIn.size(); ++i){
 
     if(    
-    (scanIn[i]->Get_IsNeutrino()==1||(fNeutrino_req>0 && scanIn[i]->Get_IsMaybeNeutrino()==1)||(fNeutrino_req==0 && scanIn[i]->Get_IsnotNeutrino()==1)) 
+    (scanIn[i]->Get_IsNeutrino()||(fNeutrino_req==1 && scanIn[i]->Get_IsMaybeNeutrino()==1)||(fNeutrino_req==0 && scanIn[i]->Get_IsnotNeutrino()==1)) 
     && scanIn[i]->Get_NumShower()<=fNumShowers_req  
     && scanIn[i]->Get_Track()<=fNumTracks_req 
     && scanIn[i]->Get_Run()==run 
