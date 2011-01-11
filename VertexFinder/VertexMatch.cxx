@@ -98,6 +98,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   std::vector< std::pair<edm::Ptr<recob::Hit>, double> > strongestvertex; //the strongest strong vertex
   
   edm::PtrVector<recob::Vertex> vertIn;
+
   for(unsigned int ii = 0; ii < vertexListHandle->size(); ++ii)
     {
       edm::Ptr<recob::Vertex> vertex(vertexListHandle, ii);
@@ -132,17 +133,19 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 	    while (vertexhitIter!=vHits.end())
 	      {
 		vertexhit.push_back((*vertexhitIter));
+		weakvertexstrength.push_back((*vertexIter)->Strength());
 		vertexhitIter++;
 	      }       
 	  }
 	vertexIter++;
 
       } 
+    
+      
+    if(vHits.size() == 0)
+      continue;
+    
     vHits.clear();
-      
-//     if(vHits.size() == 0)
-//       continue;
-      
     //loop over vector of hough lines and find the vertex hits that are associated with the hough line(s)
     houghIter = houghIn.begin();  
     while(houghIter!= houghIn.end()) 
@@ -153,6 +156,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 	distance=-1.;
 	//create vector of hits associated with hough line
 	hHits = (*houghIter)->Hits(p);
+	
         if(hHits.size() > 0)
 	  {
 
@@ -163,7 +167,6 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 		hitIter++;
 	      }  
 	  }
-        
         if(houghhit.size()){
 	  channel=houghhit[0]->Wire()->RawDigit()->Channel();
 	  geom->ChannelToWire(channel,plane,wire);
@@ -172,9 +175,10 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 	  {
 	    slope=(*houghIter)->Slope();
 	    intercept=(*houghIter)->Intercept();    
-
 	    for(unsigned int i=0;i < vertexhit.size(); i++)
-	      {   
+	      {  
+	      
+
 		distance=-1;
 		channel=vertexhit[i]->Wire()->RawDigit()->Channel();
 		geom->ChannelToWire(channel,plane,wire);
@@ -183,6 +187,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 		endtime=(*houghIter)->EndTime();
 		startwire=(*houghIter)->StartWire();
 		endwire=(*houghIter)->EndWire();
+
 		//require the vertices found with HarrisVertexFinder to match up with the endpoints 
 		//(within a window) of a Hough line. A strong vertex matches up with at least two Hough lines. 
 		if(((TMath::Abs((int)(wire-startwire))<fMaxDistance*.0743)
@@ -190,23 +195,20 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 		   )
 		   &&((TMath::Abs(vertexhit[i]->CrossingTime()-starttime)<fMaxDistance)
 		      ||(TMath::Abs(vertexhit[i]->CrossingTime()-endtime)<fMaxDistance)
-		     )
-		   )          
-		  distance=(TMath::Abs(vertexhit[i]->CrossingTime()-slope*(double)wire-intercept)/(sqrt(pow(.0743*slope,2)+1))); 
-   
+		     ))          		  distance=(TMath::Abs(vertexhit[i]->CrossingTime()-slope*(double)wire-intercept)/(sqrt(pow(.0743*slope,2)+1))); 
+
 		if(distance<(fMaxDistance+((vertexhit[i]->EndTime()-vertexhit[i]->StartTime())/2.))&&distance>-1)
 		  matchedvertex.push_back(std::pair<edm::Ptr<recob::Hit>,double>(vertexhit[i], weakvertexstrength[i]*sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
 		//ala strongestvertex.push_back(std::pair<edm::PtrVector<recob::Hit>,double>(matchedvertex[i].first,strength));
-
 	      }
 	  }
-	   
+  
 	if(vertexhit.size() == 0 || houghhit.size() == 0) 
 	  {
 	    houghIter++;
 	    continue;
 	  }
-
+   
 	if(vertexIter!=vertIn.end()) vertexIter++;
 	if(houghIter!=houghIn.end()) houghIter++;    
       }
@@ -218,7 +220,6 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
     // (HarrisVertexStrength*LengthofHoughLine)_1+(HarrisVertexStrength*LengthofHoughLine)_2+...
     // ...+(HarrisVertexStrength*LengthofHoughLine)_n, where n is the number of vertices 
     // associated with a Hough Line
-  
     for(unsigned int i=0;i < matchedvertex.size(); i++) 
       {
 	strength=matchedvertex[i].second;
@@ -237,9 +238,8 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   
     //sort the strength of the strong vertices to find the strongest vertex
     std::sort(strongestvertex.rbegin(), strongestvertex.rend(),sort_pred2);
-
     for(unsigned int i=0;i < matchedvertex.size(); i++)
-      {
+      {      
 	// I think this is grabbing first item in pair, itself a pointer then grabbing first 
 	// (.begin()) one of those. EC, 18-Oct-2010.
 	channel=(matchedvertex[i].first)->Wire()->RawDigit()->Channel();
@@ -254,6 +254,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 	vertex.SetDriftTime((matchedvertex[i].first)->CrossingTime());
 
 	//find the strong vertices, those vertices that have been associated with more than one hough line  
+	if(i>0)
 	if(matchedvertex[i].first==matchedvertex[i-1].first)	
 	  {
 	    if(strongvertex[0]==(strongestvertex[0].first)&&strongestvertex.size()>0)
@@ -265,17 +266,15 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 	  {
 	    vertex.SetID(2);//weak vertices that have been associated with an endpoint of a single Hough line are given vertex id=2
 	  } 
-	  
 	mvertexcol->push_back(vertex);
 	strongvertex.clear();
-	  	 	  
+
       }
 
     strongestvertex.clear();
     matchedvertex.clear();
     vertexhit.clear();  
   }
-    
 
   evt.put(mvertexcol);
 
