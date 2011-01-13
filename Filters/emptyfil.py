@@ -48,13 +48,13 @@ process.LArFFT = emptyfilter.Service(
 
 # Service to get my MC events, which were run up through DetSim.
 process.source = emptyfilter.Source("PoolSource",
-                                fileNames = emptyfilter.untracked.vstring("single_gen.root")
+                                fileNames = emptyfilter.untracked.vstring(" /argoneut/data/rootfiles_ART/R650_D20090928_T112738.root ")
                                 )
 
 
 process.caldataCal = emptyfilter.EDProducer(
     "CalWire",
-    DigitModuleLabel  = emptyfilter.string("wiresim"),
+    DigitModuleLabel  = emptyfilter.string("source"),
     ResponseFile       = emptyfilter.string("/grid/fermiapp/lbne/lar/aux/ArgoResponse1.2.root"),
     ExponentialEndBins = emptyfilter.int32(300),
     UseRawData         = emptyfilter.int32(0)

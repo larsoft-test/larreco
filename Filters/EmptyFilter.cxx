@@ -53,20 +53,21 @@ namespace filt{
 
   void EmptyFilter::beginJob(const edm::EventSetup&)
   {
-    return;
-  }
-
-  //-------------------------------------------------
-  bool EmptyFilter::filter(edm::Event &evt, edm::EventSetup const&)
-  { 
     edm::Service<edm::TFileService> tfs;
-     totHitHist = tfs->make<TH1I>("totHitHist","Hit Number Per Event",750,0,1500);
+    totHitHist = tfs->make<TH1I>("totHitHist","Hit Number Per Event",750,0,1500);
     totIonSelHist = tfs->make<TH2D>("totIonSelHist","Ionization Per selected Event",500,0,20000,500,0,20000);
     totIonRejHist = tfs->make<TH2D>("totIonRejHist","Ionization Per rejected Event",500,0,20000,500,0,20000);
     selHitHist= tfs->make<TH1I>("selHitHist","Hit Number Per selected  Event",750, 0 ,1500);
     rejHitHist= tfs->make<TH1I>("rejHitHist","Hit Number Per rejected Event",750, 0 ,1500);
     numEventHist = tfs->make<TH1I>("numEventHist","Number of Events Processed and Selected",2,0,2);
     resultTable = tfs->make<TH2I>("resultTable","Event number is x axis, y axis bins 0=selected,1= hit num, 2= one plane empty, 3= too little ionization",40000,0,40000,4,0,4);
+ 
+  }
+
+  //-------------------------------------------------
+  bool EmptyFilter::filter(edm::Event &evt, edm::EventSetup const&)
+  { 
+
     numEventHist->Fill(0);
     int failFlag = 0;
     double indIon(0.0), colIon(0.0);
