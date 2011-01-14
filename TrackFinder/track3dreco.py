@@ -41,9 +41,13 @@ process.LArFFT = trackfinder.Service(
     FFTSize   = trackfinder.int32(4096),#double the number of samples for ArgoNeuT to deal with long exponential tail
     FFTOption = trackfinder.string("ES")
 )
-# Define the LArProperties service
+
+# Define the LAr property service
 process.LArProperties = trackfinder.Service(
-    "LArProperties"
+    "LArProperties",
+    Efield       = trackfinder.double(0.5),   #kV/cm
+    Temperature  = trackfinder.double(87.),     #kelvin
+    Electronlifetime   = trackfinder.double(1000000000.)     #microseconds
 )
 
 
