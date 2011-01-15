@@ -70,7 +70,12 @@ cluster::HoughLineFinderAna::HoughLineFinderAna(edm::ParameterSet const& pset) :
 //-------------------------------------------------
 cluster::HoughLineFinderAna::~HoughLineFinderAna()
 {
-
+delete fm_hitidZ;
+delete fm_mipZ;
+delete fm_drifttimeZ;
+delete fm_widthZ;
+delete fm_upadcZ;
+delete fm_wireZ;
 }
 
 //-------------------------------------------------
