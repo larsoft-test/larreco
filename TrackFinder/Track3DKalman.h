@@ -31,7 +31,7 @@ namespace trkf {
         
     int             ftmatch; // tolerance for time matching (in time samples) 
     double          fchi2dof;// tolerance for chi2/dof of cluster fit to function
-    std::string     fHitModuleLabel;// label for input cluster collection
+    std::string     fTrackModuleLabel;// label for input collection
     std::string     fGenieGenModuleLabel;// label for input MC single particle generator
     TRandom3*              fRandom;           //< random number generator 
     bool fGenfPRINT;

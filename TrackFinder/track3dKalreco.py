@@ -10,7 +10,7 @@ process = trackfinder.Process("TrackFinder")
 
 # Maximum number of events to do.
 process.maxEvents = trackfinder.untracked.PSet(
-    input = trackfinder.untracked.int32(10) 
+    input = trackfinder.untracked.int32(2) 
 )
 
 # Load the standard message logger configuration.
@@ -20,7 +20,7 @@ process.maxEvents = trackfinder.untracked.PSet(
 # Load the service that manages root files for histograms.
 process.TFileService = trackfinder.Service(
     "TFileService",
-    fileName = trackfinder.string("out/genie_Argo_500-5000MeV-c_Kal_30degSpread_muons_tracked_hist.root"),
+    fileName = trackfinder.string("genie_Argo_500-5000MeV-c_Kal_30degSpread_muons_tracked_hist.root"),
 #    track3dreco_ArgoNeuT_CCQE_hist.root
     closeFileFast = trackfinder.untracked.bool(False)
 )
@@ -55,7 +55,7 @@ process.LArProperties = trackfinder.Service(
 process.source = trackfinder.Source("PoolSource",
 #                                fileNames = trackfinder.untracked.vstring("out/R650_D20090928_T112738.root"),
 #                                    fileNames = trackfinder.untracked.vstring("out/genie_ART_400MeV-c_electrons_gen.root")
-                                    fileNames = trackfinder.untracked.vstring("out/genie_ART_500-5500MeV-c_30degSpread_muons_gen.root")
+                                    fileNames = trackfinder.untracked.vstring("/argoneut/app/users/echurch/larsoft/ART-SRT/out/genie_ART_500-5500MeV-c_30degSpread_muons_gen.root")
 #                                    genie_ART_400MeV-c_muons_gen.root"
                                     # 1502,4715,5552,5529 -- CCQE
                                     #skipEvents = trackfinder.untracked.uint32(1)
@@ -94,16 +94,6 @@ process.dbscan = trackfinder.EDProducer(
     minPts            = trackfinder.int32(2)
     )
 
-process.dbscanana = trackfinder.EDAnalyzer(
-    "DBclusterAna",
-    DigitModuleLabel =trackfinder.string("wiresim"),
-     HitsModuleLabel=trackfinder.string("ffthit"),
-     LArG4ModuleLabel=trackfinder.string("largeant"),
-     CalDataModuleLabel=trackfinder.string("caldataCal"),
-     GenieGenModuleLabel=trackfinder.string("singlegen"),
-     ClusterFinderModuleLabel=trackfinder.string("dbscan")
-    )    
-
 
 process.hough = trackfinder.EDProducer(
     "HoughLineFinder",
@@ -126,10 +116,17 @@ process.linemerger = trackfinder.EDProducer(
     Slope                    = trackfinder.double(1.5),
     Intercept                = trackfinder.double(102.0)
     )	
-
+    
+process.tracksoderberg = trackfinder.EDProducer(
+    "Track3Dreco",
+    ClusterModuleLabel       = trackfinder.string("linemerger"),
+    TMatch                        = trackfinder.int32(35),
+    Chi2DOFmax                    = trackfinder.double(10.0)
+    )
+    
 process.track3DKal = trackfinder.EDProducer(
     "Track3DKalman",
-    HitModuleLabel       = trackfinder.string("ffthit"),
+    TrackModuleLabel       = trackfinder.string("tracksoderberg"),
     GenieGenModuleLabel  = trackfinder.string("singlegen"), # comment out for real data.
     TMatch               = trackfinder.int32(10), # 11 is delicate. 10 cuts space hits by fac of 10,
     #                                               12 increases by factor two. EC, 5-Jan-2011.
@@ -138,25 +135,25 @@ process.track3DKal = trackfinder.EDProducer(
     )	
 
 
-process.calitalians = trackfinder.EDAnalyzer(
-    "CaloArgoItaliano",
-    TrackModuleLabel       = trackfinder.string("track3DKal"),
-    SpacePointDimension    = trackfinder.int32(2000),
-    HitCollectionDimension    = trackfinder.int32(1000),
-    HitInductionDimension    = trackfinder.int32(1000)
-    )	
+# process.calitalians = trackfinder.EDAnalyzer(
+#     "CaloArgoItaliano",
+#     TrackModuleLabel       = trackfinder.string("track3DKal"),
+#     SpacePointDimension    = trackfinder.int32(2000),
+#     HitCollectionDimension    = trackfinder.int32(1000),
+#     HitInductionDimension    = trackfinder.int32(1000)
+#     )	
 
 
 # Write the events to the output file.
 process.output = trackfinder.OutputModule(
     "PoolOutputModule",
 #    fileName = trackfinder.untracked.string('out/track3dreco_ArgoNeuT_CCQE.root'),
-    fileName = trackfinder.untracked.string('out/genie_Argo_500-5500MeV-c_Kal_30degSpread_muons_tracked_gen.root')
+    fileName = trackfinder.untracked.string('genie_Argo_500-5500MeV-c_Kal_30degSpread_muons_tracked_gen.root')
 )
 
 ####### End of the section that defines and configures modules.#########
 
 # Tell the system to execute all paths. Services, source, output are implied ....
-process.doit = trackfinder.EndPath(process.caldataCal*process.ffthit*process.track3DKal*process.calitalians*process.output )
+process.doit = trackfinder.EndPath(process.caldataCal*process.ffthit*process.dbscan*process.hough*process.linemerger*process.tracksoderberg*process.track3DKal*process.output )
 #process.doit = trackfinder.EndPath(process.caldataCal*process.ffthit*process.dbscan*process.tracksoderberg*process.output )
 

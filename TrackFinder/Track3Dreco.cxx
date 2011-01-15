@@ -109,7 +109,6 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
   double Temperature = 87.6;  // LAr Temperature in K
 
   double driftvelocity = larprop->DriftVelocity(Efield_drift,Temperature);    //drift velocity in the drift region (cm/us)
-
   double driftvelocity_SI = larprop->DriftVelocity(Efield_SI,Temperature);    //drift velocity between shield and induction (cm/us)
   double driftvelocity_IC = larprop->DriftVelocity(Efield_IC,Temperature);    //drift velocity between induction and collection (cm/us)
   double timepitch = driftvelocity*timetick;                         //time sample (cm) 
@@ -270,6 +269,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
       // match 2D tracks
       if((fabs(Ct0_line-It0_line)<ftmatch*timepitch) && (fabs(Ct1_line-It1_line)<ftmatch*timepitch)){ 
 	std::cout<<"-----> Track "<<collectionIter<< " Collection associated with track "<<inductionIter<< " Induction"<<std::endl;
+	
        
         // Reconstruct the 3D track
 	TVector3 XYZ0;  // track origin or interaction vertex
@@ -432,7 +432,8 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	  tcol->push_back(the3DTrack);
 	}
       } //close match 2D tracks
-      
+
+
     }//close loop over Induction view 2D tracks
     
   }//close loop over Collection xxview 2D tracks
