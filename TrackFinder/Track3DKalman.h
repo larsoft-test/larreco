@@ -6,6 +6,8 @@
 #include <TMatrixT.h>
 #include <TRandom3.h>
 
+#include "Genfit/GFAbsTrackRep.h"
+
 #include <vector>
 #include <string>
 
@@ -50,6 +52,8 @@ namespace trkf {
     int nfail;
     int ndf;
 
+    genf::GFAbsTrackRep *repMC;
+    genf::GFAbsTrackRep *rep;
 
   protected: 
     

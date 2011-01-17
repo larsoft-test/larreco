@@ -145,6 +145,8 @@ void trkf::Track3DKalman::endJob()
 {
   //tree->Write();
   //fileGENFIT->Close();
+  delete rep;
+  delete repMC;
 }
 
 
@@ -230,7 +232,6 @@ void trkf::Track3DKalman::produce(edm::Event& evt, edm::EventSetup const&)
     spacepoints.clear();
     spacepoints= (*trackIter)->SpacePoints();
     
-  
 
 
   std::cout<<"Track3DKalman found "<< spacepoints.size() <<" 3D spacepoint(s)."<<std::endl;
@@ -244,10 +245,10 @@ void trkf::Track3DKalman::produce(edm::Event& evt, edm::EventSetup const&)
       const double resolution = 0.5; // dunno, 5 mm
       const int numIT = 3; // 3->1, EC, 6-Jan-2011. Back, 7-Jan-2011.
 
-      TVector3 pos(39.0,0.0,0.0); // Doesn't get used. EC, 7-Jan-2011.
-      TVector3 mom(-4,0.0,0.);
+      TVector3 pos(0.0,0.0,0.0); // Doesn't get used. EC, 7-Jan-2011.
+      TVector3 mom(0.0,0.0,4.0);
       TVector3 posErr(.5,.5,.5); // resolution. 5mm, which is too large.
-      TVector3 momErr(3,.5,.5);
+      TVector3 momErr(.5,.5,3.0);
 
       mom.SetMag(1.);
 
@@ -259,15 +260,13 @@ void trkf::Track3DKalman::produce(edm::Event& evt, edm::EventSetup const&)
       momM.SetX(gRandom->Gaus(momM.X(),momSmear*momM.X()));
       momM.SetY(gRandom->Gaus(momM.Y(),momSmear*momM.Y()));
       momM.SetZ(gRandom->Gaus(momM.Z(),momSmear*momM.Z()));
-      std::cout << "Track3DKalman: sort spacepoints by x (volTPC coords) for tracker's sake." << std::endl;
-      //      std::sort(spacepoints.begin(), spacepoints.end(), sp_sort_3dz);
+      //std::cout << "Track3DKalman: sort spacepoints by x (volTPC coords) for tracker's sake." << std::endl;
+      std::sort(spacepoints.begin(), spacepoints.end(), sp_sort_3dz);
       
-      
-      std::sort(spacepoints.begin(), spacepoints.end(), sp_sort_3dx); // Reverse sort!
+      //std::sort(spacepoints.begin(), spacepoints.end(), sp_sort_3dx); // Reverse sort!
 
       genf::GFFieldManager::getInstance()->init(new genf::GFConstField(0.,0.,0.0));
       genf::GFDetPlane planeG((TVector3)(spacepoints[0].XYZ()),momM);
-      genf::GFAbsTrackRep *repMC;
       TVector3 MCOrigin;
       TVector3 MCMomentum;
 
@@ -312,7 +311,7 @@ void trkf::Track3DKalman::produce(edm::Event& evt, edm::EventSetup const&)
 
       std::cout<<"Track3DKalman about to do GAbsTrackRep."<<std::endl;
       // Initialize with 1st spacepoint location and a guess at the momentum.
-      genf::GFAbsTrackRep *rep = new genf::RKTrackRep(//posM-.5/momM.Mag()*momM,
+      rep = new genf::RKTrackRep(//posM-.5/momM.Mag()*momM,
 						      (TVector3)(spacepoints[0].XYZ()),
 						      momM,
 						      posErr,
@@ -393,7 +392,7 @@ void trkf::Track3DKalman::produce(edm::Event& evt, edm::EventSetup const&)
       pMCT[3] = MCMomentum.Mag();
       pREC[3] = -1.0/(*stREC)[0][0];
       
-      std::cout<<"Track3DKalman about to do tree->Fill(). Chi2/ndf is " << chi2/ndf << ". All in volTPC coords .... pMCT[0-3] is " << -pMCT[2] << ", " << pMCT[1] << ", " << -pMCT[0] << ", " << pMCT[3] << ". pREC[0-3] is " << pREC[0] << ", "<< pREC[1] << ", " << pREC[2] << ", " << pREC[3] << "." <<std::endl;
+      std::cout<<"Track3DKalman about to do tree->Fill(). Chi2/ndf is " << chi2/ndf << ". All in volTPC coords .... pMCT[0-3] is " << pMCT[0] << ", " << pMCT[1] << ", " << pMCT[2] << ", " << pMCT[3] << ". pREC[0-3] is " << pREC[0] << ", "<< pREC[1] << ", " << pREC[2] << ", " << pREC[3] << "." <<std::endl;
       tree->Fill();
 
 
