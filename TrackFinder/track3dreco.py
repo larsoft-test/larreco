@@ -20,7 +20,7 @@ process = trackfinder.Process("TrackFinder")
 # Load the service that manages root files for histograms.
 process.TFileService = trackfinder.Service(
     "TFileService",
-    fileName = trackfinder.string("out/track3dreco_ArgoNeuT_CCQE_hist.root"),
+    fileName = trackfinder.string("track3dreco_ArgoNeuT_CCQE_hist.root"),
     closeFileFast = trackfinder.untracked.bool(False)
 )
 
@@ -53,7 +53,7 @@ process.LArProperties = trackfinder.Service(
 
 # Josh's files/events
 process.source = trackfinder.Source("PoolSource",
-                                fileNames = trackfinder.untracked.vstring("out/R650_D20090928_T112738.root"),
+                                fileNames = trackfinder.untracked.vstring("/argoneut/data/rootfiles_ART/R650_D20090928_T112738.root"),
 #                                    fileNames = trackfinder.untracked.vstring("out/roxArg_Data.root")
                                     maxEvents = trackfinder.untracked.int32(5),
                                     skipEvents = trackfinder.untracked.uint32(12)
@@ -130,7 +130,7 @@ process.calitalians = trackfinder.EDAnalyzer(
 # Write the events to the output file.
 process.output = trackfinder.OutputModule(
     "PoolOutputModule",
-    fileName = trackfinder.untracked.string('out/track3dreco_ArgoNeuT_CCQE.root'),
+    fileName = trackfinder.untracked.string('track3dreco_ArgoNeuT_CCQE.root'),
 )
 
 ####### End of the section that defines and configures modules.#########
