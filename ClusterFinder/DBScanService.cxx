@@ -56,6 +56,10 @@ void cluster::DBScanService::InitScan(edm::PtrVector<recob::Hit>& allhits)
   fpointId_to_clusterId.clear();
   fnoise.clear();
   fvisited.clear();
+  fsim.clear();
+  fsim2.clear();
+  fsim3.clear();
+  fclusters.clear();
 
   //------------------------------------------------------------------
   // Determine spacing between wires (different for each detector)
