@@ -15,7 +15,7 @@ process = clusterfinder.Process("ClusterFinder")
 
 # Maximum number of events to do.
 process.maxEvents = clusterfinder.untracked.PSet(
-    input = clusterfinder.untracked.int32(3) # See if this works to run fewer than are in input file.
+    input = clusterfinder.untracked.int32(1) # See if this works to run fewer than are in input file.
 )
 
 # Load the standard message logger configuration.
@@ -25,7 +25,7 @@ process.maxEvents = clusterfinder.untracked.PSet(
 # Load the service that manages root files for histograms.
 process.TFileService = clusterfinder.Service(
     "TFileService",
-    fileName = clusterfinder.string("clusterfinder_hist.root"),
+    fileName = clusterfinder.string("clusterfinderTEST_MOD_hist.root"),
     closeFileFast = clusterfinder.untracked.bool(False)
 )
 
@@ -49,7 +49,7 @@ process.LArFFT = clusterfinder.Service(
 
 # Service to get my MC events, which were run up through DetSim.
 process.source = clusterfinder.Source("PoolSource",
-                                fileNames = clusterfinder.untracked.vstring("/argoneut/app/users/echurch/larsoft/ART-SRT/out/genie_ART_6GeV-c_muons_gen.root")
+                                fileNames = clusterfinder.untracked.vstring("single100_gen.root")
                                 )
 
 process.caldataCal = clusterfinder.EDProducer(
@@ -75,12 +75,13 @@ process.ffthit = clusterfinder.EDProducer(
     )
     
  
-# process.DBScan = clusterfinder.Service(
+ # process.DBScanService = clusterfinder.Service(
+#     "DBScanService",
 #     eps       = clusterfinder.double(1.0),
 #     eps2      = clusterfinder.double(0.75),
 #     minPts    = clusterfinder.int32(2)
-#     )    
-
+#      )    
+# 
 # process.dbscanmod = clusterfinder.EDProducer(
 #     "DBScanModule",
 #     HitsModuleLabel   = clusterfinder.string("ffthit")
@@ -98,7 +99,7 @@ process.dbscan = clusterfinder.EDProducer(
 # Write the events to the output file.
 process.output = clusterfinder.OutputModule(
     "PoolOutputModule",
-    fileName = clusterfinder.untracked.string('clusdbscan_gen.root'),
+    fileName = clusterfinder.untracked.string('clusdbscanTEST_MOD_gen.root'),
 )
 
 ####### End of the section that defines and configures modules.#########
