@@ -75,6 +75,17 @@ process.ffthit = clusterfinder.EDProducer(
     )
     
  
+# process.DBScan = clusterfinder.Service(
+#     eps       = clusterfinder.double(1.0),
+#     eps2      = clusterfinder.double(0.75),
+#     minPts    = clusterfinder.int32(2)
+#     )    
+
+# process.dbscanmod = clusterfinder.EDProducer(
+#     "DBScanModule",
+#     HitsModuleLabel   = clusterfinder.string("ffthit")
+#     )    
+
 process.dbscan = clusterfinder.EDProducer(
     "DBcluster",
     HitsModuleLabel   = clusterfinder.string("ffthit"),
@@ -93,5 +104,6 @@ process.output = clusterfinder.OutputModule(
 ####### End of the section that defines and configures modules.#########
 
 # Tell the system to execute all paths. Services, source, output are implied ....
+#process.doit = clusterfinder.EndPath(process.caldataCal*process.ffthit*process.dbscanmod*process.output )
 process.doit = clusterfinder.EndPath(process.caldataCal*process.ffthit*process.dbscan*process.output )
 

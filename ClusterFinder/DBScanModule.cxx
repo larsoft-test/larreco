@@ -1,0 +1,176 @@
+////////////////////////////////////////////////////////////////////////
+//
+// DBSCANfinder.cxx
+//
+// kinga.partyka@yale.edu
+//
+//  This algorithm finds clusters of hits, they can be of arbitrary shape.You need to specify 2(3) parameters: 
+// epsilon, epsilon2 and MinPoints as explained in the corresponding xml file.In my comments a 'point' reference 
+// appears quite often. A 'point' is basically a simple hit which only contains wire and time information. This 
+// algorithm is based on DBSCAN(Density Based Spatial Clustering of Applications with Noise): M. Ester, H.-P. Kriegel, 
+// J. Sander, and X. Xu, A density-based algorithm for discovering clusters in large spatial databases with noise, 
+// Second International Conference on Knowledge Discovery and Data Mining, pp. 226-231, AAAI Press. 1996. 
+// ( Some of this code is from "Antonio Gulli's coding playground")  
+////////////////////////////////////////////////////////////////////////
+
+
+//Framework includes:
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
+#include "DataFormats/Common/interface/Handle.h"
+#include "DataFormats/Common/interface/Ptr.h"
+#include "DataFormats/Common/interface/PtrVector.h"
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "FWCore/Services/interface/TFileService.h"
+#include "FWCore/Framework/interface/TFileDirectory.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
+
+#include "ClusterFinder/DBScanService.h"
+#include "ClusterFinder/DBScanModule.h"
+#include <cmath>
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include "Geometry/geo.h"
+#include "SimulationBase/simbase.h"
+#include "Simulation/sim.h"
+#include "RecoBase/recobase.h"
+#include "TGeoManager.h"
+#include "TH1.h"
+
+//-------------------------------------------------
+cluster::DBScanModule::DBScanModule(edm::ParameterSet const& pset) : 
+  fhitsModuleLabel(pset.getParameter< std::string >("HitsModuleLabel"))  
+{  
+  produces<std::vector<recob::Cluster> >();  
+}
+
+//-------------------------------------------------
+cluster::DBScanModule::~DBScanModule()
+{
+}
+
+//-------------------------------------------------
+void cluster::DBScanModule::beginJob(edm::EventSetup const&){
+  // get access to the TFile service
+  edm::Service<edm::TFileService> tfs;
+
+  fhitwidth= tfs->make<TH1F>(" fhitwidth","width of hits in cm", 50000,0 ,5  );
+  fhitwidth_ind_test= tfs->make<TH1F>("fhitwidth_ind_test","width of hits in cm", 50000,0 ,5  );
+  fhitwidth_coll_test= tfs->make<TH1F>("fhitwidth_coll_test","width of hits in cm", 50000,0 ,5  );
+    
+}
+
+//-----------------------------------------------------------------
+void cluster::DBScanModule::produce(edm::Event& evt, edm::EventSetup const&)
+{
+   
+  //get a collection of clusters   
+  std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
+    
+  //std::cout << "event  : " << evt.Header().Event() << std::endl;
+  edm::Service<geo::Geometry> geom;
+
+  edm::Handle< std::vector<recob::Hit> > hitcol;
+  evt.getByLabel(fhitsModuleLabel,hitcol);
+  
+  
+  ///loop over all hits in the event and look for clusters (for each plane)
+  
+  
+  edm::PtrVector<recob::Hit> allhits;
+  edm::PtrVector<recob::Hit> clusterHits;
+
+  // get the DBScan service
+  edm::Service<cluster::DBScanService> dbscan;
+      
+  unsigned int p(0),w(0), channel(0);
+  for(int plane=0; plane<geom->Nplanes(); plane++)
+    {
+      for(unsigned int i = 0; i< hitcol->size(); ++i){
+  
+	edm::Ptr<recob::Hit> hit(hitcol, i);
+  
+  
+	channel=hit->Wire()->RawDigit()->Channel();
+	geom->ChannelToWire(channel,p,w);
+    
+	if(p == plane) allhits.push_back(hit);
+   
+      }  
+  
+      dbscan->InitScan(allhits);
+
+      // std::cout<<"number of hits is: "<<hit.size()<<std::endl;
+ 
+      //----------------------------------------------------------------
+      for(unsigned int j = 0; j < dbscan->fps.size(); ++j){
+
+	if(allhits.size() != dbscan->fps.size()) break;
+   
+	fhitwidth->Fill(dbscan->fps[j][2]);
+	if(allhits[j]->Wire()->RawDigit()->Channel()<240){ fhitwidth_ind_test->Fill(dbscan->fps[j][2]);}
+	if(allhits[j]->Wire()->RawDigit()->Channel()>240){ fhitwidth_coll_test->Fill(dbscan->fps[j][2]);}
+	// std::cout<<"Point "<<j<<"= ("<<allhits[j]->Wire()->RawDigit()->Channel()
+	//<<", "<<(allhits[j]->StartTime()+allhits[j]->EndTime())/2.<<", "<<dbscan->fps[j][2]<<")"<<std::endl;
+	//  std::cout << dbscan->fps[j][i] << ' ';
+	//  std::cout << std::endl;
+      
+      }
+      //*******************************************************************
+
+      dbscan->computeSimilarity();
+      dbscan->computeSimilarity2();
+      dbscan->computeWidthFactor();
+      dbscan->run_cluster();
+
+      //std::cout<<clusters;
+      std::cout<<"DBSCAN found "<<dbscan->fclusters.size()<<" cluster(s)."<<std::endl;
+
+
+      for(unsigned int i=0; i<dbscan->fclusters.size();i++)
+	{
+	  //recob::Cluster* reco_cl= new recob::Cluster();
+	  for(unsigned int j=0;j<dbscan->fpointId_to_clusterId.size();j++){
+
+	    if(dbscan->fpointId_to_clusterId[j]==(i+1)){
+
+	      // reco_cl->Add(allhits[j]);
+	      clusterHits.push_back(allhits[j]);
+	    }
+       
+	  }
+     
+	  //ccol->push_back(recob::Cluster(clusterHits));
+	  //recob::Cluster(clusterHits).SetID(i);
+    
+    
+    
+	  ////////
+	  if (clusterHits.size()>0)
+	    {
+	      recob::Cluster cluster(clusterHits);
+	      cluster.SetID(i);
+	      ccol->push_back(cluster);
+	      std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
+	      clusterHits.clear();
+	      //////
+	    }
+   
+   
+   
+   
+	}
+
+ 
+      allhits.clear();
+    }
+
+
+  if(ccol->size() == 0){
+    std::cerr << "no clusters made for this event" << std::endl;
+  }
+  evt.put(ccol);
+  return;
+}
