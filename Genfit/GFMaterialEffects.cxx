@@ -135,14 +135,21 @@ double genf::GFMaterialEffects::stepper(const double& maxDist,
   while(X<maxDist){
     
     geoMatManager->getMaterialParameters(matDensity, matZ, matA, radiationLength, mEE); 
-    /* I need to revisit this. EC, 7-Jan-2011.
+    // I need to revisit this. EC, 7-Jan-2011.
+    // You know what? F*ck it. Just force this to be LAr.... is what I *could/will* say here ....
+
+    matDensity = 1.40; matZ = 18.0; matA = 39.95; radiationLength=13.947; mEE=188.0;
     if (floor(matZ)!=18.0 and floor(matA)!=39.0) // Non-LAr!
       {
 	std::cout << "GFMaterialEffects: matDensity, matZ, matA, radiationLength, mEE" << matDensity<<", "<< matZ<<", "<< matA<<", "<< radiationLength<<", "<< mEE<< std::endl;
 	GFException exc("GFMaterialEffects: You have somehow stepped outside the TPC!!!! This is probably very bad.",__LINE__,__FILE__);
 	throw exc;
       }
-    */
+    else
+      {
+	//	std::cout << "GFMaterialEffects: matDensity, matZ, matA, radiationLength, mEE" << matDensity<<", "<< matZ<<", "<< matA<<", "<< radiationLength<<", "<< mEE<< std::endl;
+      }
+    //
     step = geoMatManager->stepOrNextBoundary(maxDist-X);
     
     // Loop over EnergyLoss classes
