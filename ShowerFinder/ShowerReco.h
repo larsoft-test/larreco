@@ -42,39 +42,39 @@ namespace shwf {
 
 
     /**Variables needed as global*/
-    std::vector<unsigned int> wires;      /**Number of wires per plane, will be set by edm::Geometry in beginJob*/
-    std::vector<double> plane_pitch;      /**Pitch between the wire planes, will be set by edm::Geometry in beginJob*/
-    std::vector<double> wire_pitch;       /**Pitch between each 2 wires in one plane, will be set by edm::Geometry in beginJob*/
-    std::vector<double> mean_wire_pitch;  /**Mean pitch between the wires in one plane, will be set by edm::Geometry in beginJob*/
-    std::vector<unsigned int> wire_vertex;/**Vertex position in #wire */
-    std::vector<float> time_vertex;       /**Vertex position in time*/
-    std::vector<double> theta_Mean;       /**Mean value of the angular shower distribution cm,cm*/
-    std::vector<double> theta_RMS;        /**RMS of the angular shower distribution cm, cm*/
-    double theta, phi;                    /**Polar Coordinates of the shower axis*/
-    const static double pi = M_PI;        /**short handle to access Pi*/
-    const static int alpha = 8;           /**Parameter: #RMS of the anglular distribution which are part of the shower cone*/
-    std::vector<int> LastWire;            /**Last wire_hit of the shower*/
-    std::vector<float> LastTime;          /**Last time_hit of the shower*/
-    std::vector<double> totCharge;        /**Total Charge per plane in MIPs*/
-    std::vector<double> slope_2d;         /** 2d information from reconstructed shower for line*/
-    std::vector<double> intercept_2d;     /** with form time = slope * wire + intercept in cm, cm per plane */
+    std::vector<unsigned int> fwires;      /**Number of wires per plane, will be set by edm::Geometry in beginJob*/
+    std::vector<double> fplane_pitch;      /**Pitch between the wire planes, will be set by edm::Geometry in beginJob*/
+    std::vector<double> fwire_pitch;       /**Pitch between each 2 wires in one plane, will be set by edm::Geometry in beginJob*/
+    std::vector<double> fmean_wire_pitch;  /**Mean pitch between the wires in one plane, will be set by edm::Geometry in beginJob*/
+    std::vector<unsigned int> fwire_vertex;/**Vertex position in #wire */
+    std::vector<float> ftime_vertex;       /**Vertex position in time*/
+    std::vector<double> ftheta_Mean;       /**Mean value of the angular shower distribution cm,cm*/
+    std::vector<double> ftheta_RMS;        /**RMS of the angular shower distribution cm, cm*/
+    double ftheta, fphi;                    /**Polar Coordinates of the shower axis*/
+    const static double fpi = M_PI;        /**short handle to access Pi*/
+    const static int falpha = 8;           /**Parameter: #RMS of the anglular distribution which are part of the shower cone*/
+    std::vector<int> fLastWire;            /**Last wire_hit of the shower*/
+    std::vector<float> fLastTime;          /**Last time_hit of the shower*/
+    std::vector<double> ftotCharge;        /**Total Charge per plane in MIPs*/
+    std::vector<double> fslope_2d;         /** 2d information from reconstructed shower for line*/
+    std::vector<double> fintercept_2d;     /** with form time = slope * wire + intercept in cm, cm per plane */
 
 
  
-    TTree* tree;
+    TTree* ftree_shwf;
     std::string     fclusterModuleLabel;
 
     /**Histograms to return the shower reconstruction*/
-    std::vector<TH1F*> h_theta;     /**Histo for the angular distribution theta of the shower*/
-    std::vector<TH1F*> h_theta_wt;  /**Histo for the angular distribution theta wire of the shower*/
-    std::vector<TH1F*> sh_nrg;      /**Histo for the longitudinal energy distribution of the shower*/
-    std::vector<TH1F*> sh_Tnrg;     /**Histo for the longitudinal energy distribution of the shower*/
-    std::vector<TH1F*> sh_long_hit; /**Histo for the Transverse HIT distribution of the shower*/
+    std::vector<TH1F*> fh_theta;     /**Histo for the angular distribution theta of the shower*/
+    std::vector<TH1F*> fh_theta_wt;  /**Histo for the angular distribution theta wire of the shower*/
+    std::vector<TH1F*> fsh_nrg;      /**Histo for the longitudinal energy distribution of the shower*/
+    std::vector<TH1F*> fsh_Tnrg;     /**Histo for the longitudinal energy distribution of the shower*/
+    std::vector<TH1F*> fsh_long_hit; /**Histo for the Transverse HIT distribution of the shower*/
 
     /**To be checked how to get by external handle...*/
 
-    double timetick; // time sample in us
-    double driftvelocity; // drift velocity of electrons a liquids temperature in cm/us
+    double ftimetick; // time sample in us
+    double fdriftvelocity; // drift velocity of electrons a liquids temperature in cm/us
 
   protected: 
     

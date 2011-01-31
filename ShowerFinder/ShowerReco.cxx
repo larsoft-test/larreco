@@ -75,13 +75,13 @@ void shwf::ShowerReco::beginJob(edm::EventSetup const&)
 
   for (unsigned int i=0;i<planes;++i){
     mean_wirepitch = 0.;
-    plane_pitch.push_back(geo->PlanePitch(i,i+1));
-    wires.push_back(geo->Nwires(i));
-    for (unsigned int j=0;j<wires[i]-1;++j){
-      wire_pitch.push_back(geo->WirePitch(j,j+1,i));
+    fplane_pitch.push_back(geo->PlanePitch(i,i+1));
+    fwires.push_back(geo->Nwires(i));
+    for (unsigned int j=0;j<fwires[i]-1;++j){
+      fwire_pitch.push_back(geo->WirePitch(j,j+1,i));
       mean_wirepitch+=geo->WirePitch(j,j+1,i);
     }
-    mean_wire_pitch.push_back(mean_wirepitch/geo->Nwires(i));
+    fmean_wire_pitch.push_back(mean_wirepitch/geo->Nwires(i));
   }
   /**Get TFileService and define output Histograms*/
   edm::Service<edm::TFileService> tfs;
@@ -97,38 +97,38 @@ void shwf::ShowerReco::beginJob(edm::EventSetup const&)
   for(unsigned int i=0;i<planes;++i){
 
     /**Histos for the angular distribution theta of the shower*/
-    sprintf(&tit_h_theta[0],"h_theta_%i",i);
-    h_theta.push_back(tfs->make<TH1F>(tit_h_theta,"Theta distribution",180,-180., 180.));
+    sprintf(&tit_h_theta[0],"fh_theta_%i",i);
+    fh_theta.push_back(tfs->make<TH1F>(tit_h_theta,"Theta distribution",180,-180., 180.));
 
     /**Histos for the angular distribution theta wire of the shower*/
-    sprintf(&tit_h_theta[0],"theta_wire_%i",i);
-    h_theta_wt.push_back(tfs->make<TH1F>(tit_h_theta_wt,"Theta wire distribution",45,-180., 180.));
+    sprintf(&tit_h_theta[0],"ftheta_wire_%i",i);
+    fh_theta_wt.push_back(tfs->make<TH1F>(tit_h_theta_wt,"Theta wire distribution",45,-180., 180.));
  
     /**Histos for the longitudinal energy distribution of the shower */
-    sprintf(&sh_tit[0],"sh_nrg1_%i",i);                   /**number of wires used,min wire,max_wire you need for the anlysis*/
-    sh_nrg.push_back(tfs->make<TH1F>(sh_tit,"energy reco",wires[i],               0.,      wires[i]*mean_wire_pitch[i]));
+    sprintf(&sh_tit[0],"fsh_nrg1_%i",i);                   /**number of wires used,min wire,max_wire you need for the anlysis*/
+    fsh_nrg.push_back(tfs->make<TH1F>(sh_tit,"energy reco",fwires[i],               0.,      fwires[i]*fmean_wire_pitch[i]));
 
     /**Histos for the transverse energy distribution of the shower*/
-    sprintf(&shT_tit[0],"shT_nrg1_%i",i);                   /**units are ticks most lickely, but how did Biagio get size of it???*/
-    sh_Tnrg.push_back(tfs->make<TH1F>(shT_tit,"energy reco",80,-40.,40.));
+    sprintf(&shT_tit[0],"fshT_nrg1_%i",i);                   /**units are ticks most lickely, but how did Biagio get size of it???*/
+    fsh_Tnrg.push_back(tfs->make<TH1F>(shT_tit,"energy reco",80,-40.,40.));
   
     /**Histos for the Transverse HIT distribution of the shower*/
-    nbins = (int)(wires[i]*mean_wire_pitch[i]);
-    sprintf(&sh_long_tit[0],"sh_long_hit_%i",i);                           /**nbins,min wire,max_wire you need for the analysis*/
-    sh_long_hit.push_back(tfs->make<TH1F>(sh_long_tit,"longitudinal hit reco",nbins, 0.,     wires[i]*mean_wire_pitch[i]));
+    nbins = (int)(fwires[i]*fmean_wire_pitch[i]);
+    sprintf(&sh_long_tit[0],"fsh_long_hit_%i",i);                           /**nbins,min wire,max_wire you need for the analysis*/
+    fsh_long_hit.push_back(tfs->make<TH1F>(sh_long_tit,"longitudinal hit reco",nbins, 0.,     fwires[i]*fmean_wire_pitch[i]));
   }
 
-  tree =tfs->make<TTree>("ShowerReco","Results");/**All-knowing tree with reconstruction information*/
-  tree->Branch("theta_Mean","std::vector<double>", &theta_Mean);
-  tree->Branch("theta_RMS","std::vector<double>", &theta_RMS);
-  tree->Branch("theta","double",&theta);
-  tree->Branch("phi","double",&phi);
-  tree->Branch("totCharge","std::vector<double>",&totCharge);
-  tree->Branch("mean_wire_pitch","std::vector<double>", &mean_wire_pitch);
-  tree->Branch("wire_vertex","std::vector<unsigned int>", &wire_vertex);
-  tree->Branch("time_vertex","std::vector<float>", &time_vertex);
-  tree->Branch("slope_2d"," std::vector<double>", &slope_2d);
-  tree->Branch("intercept_2d","std::vector<double>", &intercept_2d);
+  ftree_shwf =tfs->make<TTree>("ShowerReco","Results");/**All-knowing tree with reconstruction information*/
+  ftree_shwf->Branch("ftheta_Mean","std::vector<double>", &ftheta_Mean);
+  ftree_shwf->Branch("ftheta_RMS","std::vector<double>", &ftheta_RMS);
+  ftree_shwf->Branch("ftheta","double",&ftheta);
+  ftree_shwf->Branch("fphi","double",&fphi);
+  ftree_shwf->Branch("ftotCharge","std::vector<double>",&ftotCharge);
+  ftree_shwf->Branch("fmean_wire_pitch","std::vector<double>", &fmean_wire_pitch);
+  ftree_shwf->Branch("fwire_vertex","std::vector<unsigned int>", &fwire_vertex);
+  ftree_shwf->Branch("ftime_vertex","std::vector<float>", &ftime_vertex);
+  ftree_shwf->Branch("fslope_2d"," std::vector<double>", &fslope_2d);
+  ftree_shwf->Branch("fintercept_2d","std::vector<double>", &fintercept_2d);
 
 
 }
@@ -142,16 +142,16 @@ void shwf::ShowerReco::produce(edm::Event& evt, edm::EventSetup const&)
   *double Efield_IC        =  0.9;     // Electric Field between Induction and Collection planes in kV/cm
   *double Temperature      = 87.6;  // LAr Temperature in K
   *check if there can be a replacement later for the product, not needed now
-  *double timepitch        = driftvelocity*timetick;                  //time sample (cm) */
+  *double timepitch        = fdriftvelocity*ftimetick;                  //time sample (cm) */
 
   /** Get Geometry */
   edm::Service<geo::Geometry> geo;
   //edm::Service<util::LArProperties> larprop;
   unsigned int planes = geo->Nplanes();
   /**TODO GET THESE FROM A PARAMETERSET/DATABASE*/
-  timetick      =  0.198; //get from parameterset
-  driftvelocity =  0.157;  //get from paramtereset 9either k and V) 
-  //driftvelocity = larprob->DriftVelocity(Efield_SI,Temperature);
+  ftimetick      =  0.198; //get from parameterset
+  fdriftvelocity =  0.157;  //get from paramtereset 9either k and V) 
+  //fdriftvelocity = larprob->DriftVelocity(Efield_SI,Temperature);
   
   /**Get Clusters*/
   edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
@@ -167,7 +167,7 @@ void shwf::ShowerReco::produce(edm::Event& evt, edm::EventSetup const&)
     geo::View_t view = geo->Plane(iplane).View();
 
     hitlist_helpplane.clear();
-    for(unsigned int iwire=0; iwire<wires[iplane];++iwire){//Loop over wires
+    for(unsigned int iwire=0; iwire<fwires[iplane];++iwire){//Loop over wires
       hitlist_helpwire.clear();
       for(int iclust = 0; iclust < clusterListHandle->size(); iclust++){//Loop over cluster
         edm::Ptr<recob::Cluster> clust(clusterListHandle, iclust);
@@ -195,7 +195,7 @@ void shwf::ShowerReco::produce(edm::Event& evt, edm::EventSetup const&)
   /**Get back the 2d variables*/
   Get2Dvariables();
   /**Fill the output tree with all information */
-  tree->Fill();
+  ftree_shwf->Fill();
 }
 
 // ***************** //
@@ -220,21 +220,21 @@ void shwf::ShowerReco::AngularDistribution(std::vector<edm::PtrVector<recob::Hit
 
       /** Determine the vertex*/
       if (ihits==0) {    
-        wire_vertex.push_back(iwire_hit); 
-        time_vertex.push_back(ftime_hit);
+        fwire_vertex.push_back(iwire_hit); 
+        ftime_vertex.push_back(ftime_hit);
         }
 
       /** moving to polar coordinates (cm,cm coordinate) */
-      b_polar = (iwire_hit - wire_vertex[iplane])* mean_wire_pitch[iplane]+ mean_wire_pitch[iplane]; /**in cm*/
-      a_polar = (ftime_hit - time_vertex[iplane])* timetick *driftvelocity; /** in cm*/ 
+      b_polar = (iwire_hit - fwire_vertex[iplane])* fmean_wire_pitch[iplane]+ fmean_wire_pitch[iplane]; /**in cm*/
+      a_polar = (ftime_hit - ftime_vertex[iplane])* ftimetick *fdriftvelocity; /** in cm*/ 
       theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
-      theta_polar = 180*theta_polar/pi; /** in deg*/
+      theta_polar = 180*theta_polar/fpi; /** in deg*/
 
       /** Filling the histo (angle, energy of the hit)*/
-      h_theta[iplane]->Fill(theta_polar, hit_help->MIPs()); /** angle in deg (cm,cm) coordinate*/
+      fh_theta[iplane]->Fill(theta_polar, hit_help->MIPs()); /** angle in deg (cm,cm) coordinate*/
       }
 
-    std::cout << "Plane " << iplane << "VertexWire= " << wire_vertex[iplane] << "   Time= " << time_vertex[iplane] << std::endl;
+    std::cout << "Plane " << iplane << "VertexWire= " << fwire_vertex[iplane] << "   Time= " << ftime_vertex[iplane] << std::endl;
 
     }
   return;
@@ -248,9 +248,9 @@ void shwf::ShowerReco::FitAngularDistributions(){
   TF1 *gau = new TF1("gaus","gaus",-60, 60);
 
   for(unsigned int iplane = 0; iplane < planes; ++iplane){
-    h_theta[iplane]->Fit("gaus","QR");        /** Fit of the angular distribution*/
-    theta_Mean[iplane] = gau->GetParameter(1);/** Mean value of the fit */
-    theta_RMS[iplane] = gau->GetParameter(2); /** RMS of the fit of the angular distribution in deg*/
+    fh_theta[iplane]->Fit("gaus","QR");        /** Fit of the angular distribution*/
+    ftheta_Mean[iplane] = gau->GetParameter(1);/** Mean value of the fit */
+    ftheta_RMS[iplane] = gau->GetParameter(2); /** RMS of the fit of the angular distribution in deg*/
   }
 }
 
@@ -265,41 +265,41 @@ void shwf::ShowerReco::Get3Daxis(){
 
   for(unsigned int iplane = 0; iplane < planes; ++iplane){/**Loop over planes*/
     /** moving to polar coordinates (cm,cm coordinate) */
-    b_polar = wire_vertex[iplane]* mean_wire_pitch[iplane]+ mean_wire_pitch[iplane]; /**in cm*/
-    a_polar = time_vertex[iplane]* timetick *driftvelocity; /** in cm*/ 
+    b_polar = fwire_vertex[iplane]* fmean_wire_pitch[iplane]+ fmean_wire_pitch[iplane]; /**in cm*/
+    a_polar = ftime_vertex[iplane]* ftimetick *fdriftvelocity; /** in cm*/ 
     theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
-    theta_polar = 180*theta_polar/pi; /** in deg*/
+    theta_polar = 180*theta_polar/fpi; /** in deg*/
 
     /**Calculate the shower cone direction in each plane time=slope[plane]*wire + intercept[plane]*/
     if(geo->Plane(iplane).SignalType() == geo::kCollection){
-      slope[1] = tan((theta_polar*pi/180));
-      wire_help = wire_vertex[iplane] *mean_wire_pitch[iplane]; // in cm 
-      time_help = time_vertex[iplane] *timetick *driftvelocity; // in cm
-      intercept[1] = time_help-(slope[1]*wire_vertex[iplane]);
+      slope[1] = tan((theta_polar*fpi/180));
+      wire_help = fwire_vertex[iplane] *fmean_wire_pitch[iplane]; // in cm 
+      time_help = ftime_vertex[iplane] *ftimetick *fdriftvelocity; // in cm
+      intercept[1] = time_help-(slope[1]*fwire_vertex[iplane]);
       }
     else if (geo->Plane(iplane).SignalType() == geo::kInduction) {
-      slope[0] = tan((theta_polar*pi/180));
-      wire_help = wire_vertex[iplane] *mean_wire_pitch[iplane]; // in cm 
-      time_help = time_vertex[iplane] *timetick *driftvelocity; // in cm
-      intercept[0] = time_help-(slope[0]*wire_vertex[iplane]);
+      slope[0] = tan((theta_polar*fpi/180));
+      wire_help = fwire_vertex[iplane] *fmean_wire_pitch[iplane]; // in cm 
+      time_help = ftime_vertex[iplane] *ftimetick *fdriftvelocity; // in cm
+      intercept[0] = time_help-(slope[0]*fwire_vertex[iplane]);
       }
     }
 
   /**Calculate 3d axis*/
   double l(0),m(0),n(0);
-  double angle_rad = 30* pi /180;
+  double angle_rad = 30* fpi /180;
   l = 1;
   m = (1/(2*sin(angle_rad)))*((1/slope[1])-(1/slope[0]));
   n = (1/(2*cos(angle_rad)))*((1/slope[1])+(1/slope[0]));
  
-  phi   = atan(n/l);
-  theta = acos(m/(sqrt(pow(l,2)+pow(m,2)+pow(n,2))));
+  fphi   = atan(n/l);
+  ftheta = acos(m/(sqrt(pow(l,2)+pow(m,2)+pow(n,2))));
 
-  phi = phi<0. ? phi+TMath::Pi() : phi ; /** solve the ambiguities due to tangent periodicity*/
+  fphi = fphi<0. ? fphi+TMath::Pi() : fphi ; /** solve the ambiguities due to tangent periodicity*/
 
-  phi = phi*180/pi;
-  theta = theta*180/pi;
-  std::cout << "Shower axis: Phi=" <<phi << "   theta=" << theta <<std::endl;
+  fphi = fphi*180/fpi;
+  ftheta = ftheta*180/fpi;
+  std::cout << "Shower axis: fphi=" <<fphi << "   ftheta=" << ftheta <<std::endl;
   return;
 }
 
@@ -311,7 +311,7 @@ void shwf::ShowerReco::LongTransEnergy(std::vector<edm::PtrVector<recob::Hit> > 
   unsigned int iplane_hit,iwire_hit,ichannel_hit;
   float ftime_hit;
   double a_polar,b_polar,theta_polar, wire_rot, time_rot;
-  double low_th, high_th, theta_sh, totcharge;   /** thresholds for adding up only the energy of the shower in a cone of alpha*RMS the angular distribution of the shower itself*/
+  double low_th, high_th, theta_sh, totcharge;   /** thresholds for adding up only the energy of the shower in a cone of falpha*RMS the angular distribution of the shower itself*/
 
   for(unsigned int iplane = 0; iplane < planes; ++iplane){/**Loop over planes*/
     totcharge =0.;
@@ -324,35 +324,35 @@ void shwf::ShowerReco::LongTransEnergy(std::vector<edm::PtrVector<recob::Hit> > 
       ichannel_hit = hit->Wire()->RawDigit()->Channel();
       geo->ChannelToWire(ichannel_hit, iplane_hit, iwire_hit); /** Get Information of wire/plane of the hit */
 
-      b_polar = (iwire_hit - wire_vertex[iplane])* mean_wire_pitch[iplane]+ mean_wire_pitch[iplane]; /**in cm*/
-      a_polar = (ftime_hit - time_vertex[iplane])* timetick *driftvelocity; /** in cm*/ 
+      b_polar = (iwire_hit - fwire_vertex[iplane])* fmean_wire_pitch[iplane]+ fmean_wire_pitch[iplane]; /**in cm*/
+      a_polar = (ftime_hit - ftime_vertex[iplane])* ftimetick *fdriftvelocity; /** in cm*/ 
       theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
-      theta_polar = 180*theta_polar/pi; /** in deg*/
+      theta_polar = 180*theta_polar/fpi; /** in deg*/
 
-      low_th  = theta_Mean[iplane]-(alpha*theta_RMS[iplane]);
-      high_th = theta_Mean[iplane]+(alpha*theta_RMS[iplane]);
+      low_th  = ftheta_Mean[iplane]-(falpha*ftheta_RMS[iplane]);
+      high_th = ftheta_Mean[iplane]+(falpha*ftheta_RMS[iplane]);
 
       if((theta_polar<low_th) || (theta_polar>high_th)) continue;
 
-      if( (theta_polar>(theta_Mean[iplane]-0.1))&&(theta_polar<(theta_Mean[iplane]+0.1)) ){
-        LastWire[iplane] = iwire_hit;
-        LastTime[iplane] = ftime_hit; 
+      if( (theta_polar>(ftheta_Mean[iplane]-0.1))&&(theta_polar<(ftheta_Mean[iplane]+0.1)) ){
+        fLastWire[iplane] = iwire_hit;
+        fLastTime[iplane] = ftime_hit; 
       }
 
-      theta_sh  = theta_Mean[iplane]*pi/180; // in radians
-      wire_rot = (iwire_hit - wire_vertex[iplane])* mean_wire_pitch[iplane] *cos(theta_sh) + (ftime_hit - time_vertex[iplane])* timetick *driftvelocity *sin(theta_sh);
-      time_rot = (ftime_hit - time_vertex[iplane])* timetick *driftvelocity /cos(theta_sh) - (iwire_hit - wire_vertex[iplane])* mean_wire_pitch[iplane] *sin(theta_sh) 
-                 - (ftime_hit - time_vertex[iplane])* timetick *driftvelocity *tan(theta_sh) *sin(theta_sh);   
+      theta_sh  = ftheta_Mean[iplane]*fpi/180; // in radians
+      wire_rot = (iwire_hit - fwire_vertex[iplane])* fmean_wire_pitch[iplane] *cos(theta_sh) + (ftime_hit - ftime_vertex[iplane])* ftimetick *fdriftvelocity *sin(theta_sh);
+      time_rot = (ftime_hit - ftime_vertex[iplane])* ftimetick *fdriftvelocity /cos(theta_sh) - (iwire_hit - fwire_vertex[iplane])* fmean_wire_pitch[iplane] *sin(theta_sh) 
+                 - (ftime_hit - ftime_vertex[iplane])* ftimetick *fdriftvelocity *tan(theta_sh) *sin(theta_sh);   
     
       totcharge +=hit->MIPs(); // Sum the energy of all the hits
     
-      sh_nrg[iplane]->Fill(wire_rot, hit->MIPs()); // Fill histo longitudinal distr of the energy (IND)
-      sh_Tnrg[iplane]->Fill(time_rot, hit->MIPs());// Fill histo transverse   distr of the energy (IND)
-      sh_long_hit[iplane]->Fill(wire_rot, 1);
+      fsh_nrg[iplane]->Fill(wire_rot, hit->MIPs()); // Fill histo longitudinal distr of the energy (IND)
+      fsh_Tnrg[iplane]->Fill(time_rot, hit->MIPs());// Fill histo transverse   distr of the energy (IND)
+      fsh_long_hit[iplane]->Fill(wire_rot, 1);
     
     }
-    totCharge.push_back(totcharge);
-    std::cout << "In plane" << iplane << "totCharge (Mips)= " << totcharge<< std::endl;
+    ftotCharge.push_back(totcharge);
+    std::cout << "In plane" << iplane << "ftotCharge (Mips)= " << totcharge<< std::endl;
   }
   return;
 }
@@ -362,9 +362,9 @@ void shwf::ShowerReco::Get2Dvariables(){
   edm::Service<geo::Geometry> geo;
   unsigned int planes = geo->Nplanes();
   for(unsigned int iplane = 0; iplane < planes; ++iplane){/**Loop over planes*/  
-    slope_2d.push_back((LastTime[iplane]-time_vertex[iplane]) /(LastWire[iplane]-wire_vertex[iplane])); 
-    intercept_2d.push_back(time_vertex[iplane] - wire_vertex[iplane]*slope_2d[iplane]);
-    std::cout << "Cone in plane " << iplane << "slope " << slope_2d[iplane] << "intercept " << intercept_2d[iplane] << std::endl;
+    fslope_2d.push_back((fLastTime[iplane]-ftime_vertex[iplane]) /(fLastWire[iplane]-fwire_vertex[iplane])); 
+    fintercept_2d.push_back(ftime_vertex[iplane] - fwire_vertex[iplane]*fslope_2d[iplane]);
+    std::cout << "Cone in plane " << iplane << "slope " << fslope_2d[iplane] << "intercept " << fintercept_2d[iplane] << std::endl;
     }
   return;
 }
