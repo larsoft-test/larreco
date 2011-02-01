@@ -51,134 +51,135 @@
  */
 namespace genf {
 
-class GFTrackCand : public TObject {
-public:
+  class GFTrackCand : public TObject {
+  public:
 
-  // Constructors/Destructors ---------
-  GFTrackCand();
-  ~GFTrackCand();
+    // Constructors/Destructors ---------
+    GFTrackCand();
+    ~GFTrackCand();
 
-  /** @brief Initializing constructor
-   *
-   * @param curv Curvature from prefit. There is no stringent definition what
-   * this parameter means at the moment.
-   * @param dip Dip angle from prefit. There is no stringent definition what
-   * this parameter means at the moment.
-   * @param inv Dummy paramter. Has been used to mark inverted tracks 
-   * in the past.
-   * @param detIDs collection of detector IDs. Each detector ID needs
-   * a corresponding GFRecoHitProducer. See RecoHitFactory for details.
-   * @param hitIDs collection of hit indices. 
-   */
-  GFTrackCand(double curv, double dip, double inv, std::vector<unsigned int> detIDs, std::vector<unsigned int> hitIDs);
-  /* @brief same as previous ctor, but with ordering parameters */
-  GFTrackCand(double curv, double dip, double inv, std::vector<unsigned int> detIDs, std::vector<unsigned int> hitIDs, std::vector<double> rhos);
+    /** @brief Initializing constructor
+     *
+     * @param curv Curvature from prefit. There is no stringent definition what
+     * this parameter means at the moment.
+     * @param dip Dip angle from prefit. There is no stringent definition what
+     * this parameter means at the moment.
+     * @param inv Dummy paramter. Has been used to mark inverted tracks 
+     * in the past.
+     * @param detIDs collection of detector IDs. Each detector ID needs
+     * a corresponding GFRecoHitProducer. See RecoHitFactory for details.
+     * @param hitIDs collection of hit indices. 
+     */
+    GFTrackCand(double curv, double dip, double inv, std::vector<unsigned int> detIDs, std::vector<unsigned int> hitIDs);
+    /* @brief same as previous ctor, but with ordering parameters */
+    GFTrackCand(double curv, double dip, double inv, std::vector<unsigned int> detIDs, std::vector<unsigned int> hitIDs, std::vector<double> rhos);
 
-  /* @brief == operator does not check for rho */
-  friend bool operator== (const GFTrackCand& lhs, const GFTrackCand& rhs);
+    /* @brief == operator does not check for rho */
+    friend bool operator== (const GFTrackCand& lhs, const GFTrackCand& rhs);
 
-  // Accessors -----------------------
-  /** @brief Get detector ID and cluster index (hitId) for hit number i 
-   */
-  void getHit(unsigned int i, 
-	      unsigned int& detId,
-	      unsigned int& hitId) const {
-	assert(i<getNHits());
-	detId=fDetId.at(i);hitId=fHitId.at(i);
-  }
-  /** @brief Get detector ID and cluster index (hitId) for 
-   * hit number i with ordering parameter rho 
-   */
-  void getHit(unsigned int i, 
-	      unsigned int& detId,
-	      unsigned int& hitId,
-	      double &rho) const {
-	assert(i<getNHits());
-	detId=fDetId.at(i);hitId=fHitId.at(i);
-	rho=fRho.at(i);
-  }
-  /** @brief Get detector ID and cluster index (hitId) for 
-   * hit number i with plane id
-   */
-  void getHitWithPlane(unsigned int i, 
-	      unsigned int& detId,
-	      unsigned int& hitId,
-	      unsigned int& planeId) const {
-	assert(i<getNHits());
-	detId=fDetId.at(i);hitId=fHitId.at(i);
-	planeId=fPlaneId.at(i);
-  }
-
-  unsigned int getNHits() const {return fDetId.size();}
-  double getCurv() const {return fCurv;}
-  double getDip() const {return fDip;}
-  bool inverted() const {return fInv;}
-  std::vector<unsigned int> GetHitIDs(int detId=-1);
-  std::vector<unsigned int> GetDetIDs() const {return fDetId;}
-  std::vector<double>       GetRhos() const {return fRho;}
-  std::set<unsigned int> GetUniqueDetIDs() const {
-    std::set<unsigned int> retVal;
-    for(unsigned int i=0;i<fDetId.size();++i){
-      retVal.insert(fDetId.at(i));
+    // Accessors -----------------------
+    /** @brief Get detector ID and cluster index (hitId) for hit number i 
+     */
+    void getHit(unsigned int i, 
+		unsigned int& detId,
+		unsigned int& hitId) const {
+      assert(i<getNHits());
+      detId=fDetId.at(i);hitId=fHitId.at(i);
     }
-    return retVal;
-  }
-  /** @brief get the MCT track id, for MC simulations - def. value -1
-   */
-  int getMcTrackId() const {return fMcTrackId;}
-  /** @brief get the seed value for track: pos */
-  TVector3 getPosSeed() const {return fPosSeed;}
-  /** @brief get the seed value for track: direction */
-  TVector3 getDirSeed() const {return fDirSeed;}
-  /** @brief get the seed value for track: qoverp */
-  double getQoverPseed() const {return fQoverpSeed;}
+    /** @brief Get detector ID and cluster index (hitId) for 
+     * hit number i with ordering parameter rho 
+     */
+    void getHit(unsigned int i, 
+		unsigned int& detId,
+		unsigned int& hitId,
+		double &rho) const {
+      assert(i<getNHits());
+      detId=fDetId.at(i);hitId=fHitId.at(i);
+      rho=fRho.at(i);
+    }
+    /** @brief Get detector ID and cluster index (hitId) for 
+     * hit number i with plane id
+     */
+    void getHitWithPlane(unsigned int i, 
+			 unsigned int& detId,
+			 unsigned int& hitId,
+			 unsigned int& planeId) const {
+      assert(i<getNHits());
+      detId=fDetId.at(i);hitId=fHitId.at(i);
+      planeId=fPlaneId.at(i);
+    }
 
-  // Modifiers -----------------------
-  void addHit(unsigned int detId, unsigned int hitId, double rho=0., unsigned int planeId=0);
-  void setCurv(double c){fCurv=c;}
-  void setDip(double d){fDip=d;}
-  void setInverted(bool f=true) {fInv=f;}
-  /** @brief set the MCT track id, for MC simulations
-   */
-  void setMcTrackId(int i){fMcTrackId=i;}
-  /** @brief Test if hit already is part of this track candidate
-   */
-  bool HitInTrack(unsigned int detId, unsigned int hitId);
-  /** @brief set the seed values for track: pos, direction, q/p
-   */
-  void setTrackSeed(const TVector3& p,const TVector3& d,double qop){
-    fPosSeed=p;fDirSeed=d;fQoverpSeed=qop;
-  }
+    unsigned int getNHits() const {return fDetId.size();}
+    double getCurv() const {return fCurv;}
+    double getDip() const {return fDip;}
+    bool inverted() const {return fInv;}
+    std::vector<unsigned int> GetHitIDs(int detId=-1);
+    std::vector<unsigned int> GetDetIDs() const {return fDetId;}
+    std::vector<double>       GetRhos() const {return fRho;}
+    std::set<unsigned int> GetUniqueDetIDs() const {
+      std::set<unsigned int> retVal;
+      for(unsigned int i=0;i<fDetId.size();++i){
+	retVal.insert(fDetId.at(i));
+      }
+      return retVal;
+    }
+    /** @brief get the MCT track id, for MC simulations - def. value -1
+     */
+    int getMcTrackId() const {return fMcTrackId;}
+    /** @brief get the seed value for track: pos */
+    TVector3 getPosSeed() const {return fPosSeed;}
+    /** @brief get the seed value for track: direction */
+    TVector3 getDirSeed() const {return fDirSeed;}
+    /** @brief get the seed value for track: qoverp */
+    double getQoverPseed() const {return fQoverpSeed;}
 
-  void append(const GFTrackCand&);
+    // Modifiers -----------------------
+    void addHit(unsigned int detId, unsigned int hitId, double rho=0., unsigned int planeId=0);
+    void setCurv(double c){fCurv=c;}
+    void setDip(double d){fDip=d;}
+    void setInverted(bool f=true) {fInv=f;}
+    /** @brief set the MCT track id, for MC simulations
+     */
+    void setMcTrackId(int i){fMcTrackId=i;}
+    /** @brief Test if hit already is part of this track candidate
+     */
+    bool HitInTrack(unsigned int detId, unsigned int hitId);
+    /** @brief set the seed values for track: pos, direction, q/p
+     */
+    void setTrackSeed(const TVector3& p,const TVector3& d,double qop){
+      fPosSeed=p;fDirSeed=d;fQoverpSeed=qop;
+    }
 
-  // Operations ----------------------
-  void reset();
-  void Print() const ;
+    void append(const GFTrackCand&);
 
-private:
+    // Operations ----------------------
+    void reset();
+    void Print() const ;
 
-  // Private Data Members ------------
-  std::vector<unsigned int> fDetId;
-  std::vector<unsigned int> fHitId;
-  std::vector<unsigned int> fPlaneId;
-  std::vector<double>       fRho;
+  private:
 
-  double fCurv; // curvature from pattern reco
-  double fDip;  // dip angle from pattern reco
-  bool fInv;  // true if inverted track
+    // Private Data Members ------------
+    std::vector<unsigned int> fDetId;
+    std::vector<unsigned int> fHitId;
+    std::vector<unsigned int> fPlaneId;
+    std::vector<double>       fRho;
 
-  TVector3 fPosSeed;  //seed value for the track: pos
-  TVector3 fDirSeed;  //direction
-  double fQoverpSeed; //q/p
+    double fCurv; // curvature from pattern reco
+    double fDip;  // dip angle from pattern reco
+    bool fInv;  // true if inverted track
 
-  int fMcTrackId; //if MC simulation, store the mct track id here
-  // Private Methods -----------------
+    TVector3 fPosSeed;  //seed value for the track: pos
+    TVector3 fDirSeed;  //direction
+    double fQoverpSeed; //q/p
 
-  //public:
-  //ClassDef(GFTrackCand,3)
-};
+    int fMcTrackId; //if MC simulation, store the mct track id here
+    // Private Methods -----------------
 
+    //public:
+    //ClassDef(GFTrackCand,3)
+  };
+
+  bool operator==(const genf::GFTrackCand&, const genf::GFTrackCand&);
 } // namespace genf
 #endif
 

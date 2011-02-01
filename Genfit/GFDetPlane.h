@@ -56,113 +56,117 @@
  * and two plane-spanning directions u and v.
  */
 namespace genf {
-  
+
   class GFDetPlane : public TObject {
   public:
     
-  // Constructors/Destructors ---------
+    // Constructors/Destructors ---------
     GFDetPlane(genf::GFAbsFinitePlane* finite=NULL);
     GFDetPlane(const TVector3& o,
-	     const TVector3& u,
-	     const TVector3& v,
+	       const TVector3& u,
+	       const TVector3& v,
 	       genf::GFAbsFinitePlane* finite=NULL);
-  GFDetPlane(const TVector3& o,
-	     const TVector3& n,
-	     genf::GFAbsFinitePlane* finite=NULL);
-  virtual ~GFDetPlane();
-  GFDetPlane(const genf::GFDetPlane&);
-  GFDetPlane& operator=(const genf::GFDetPlane&);
-  // Accessors -----------------------
-  TVector3 getO() const {return fO;}
-  TVector3 getU() const {return fU;}
-  TVector3 getV() const {return fV;}
+    GFDetPlane(const TVector3& o,
+	       const TVector3& n,
+	       genf::GFAbsFinitePlane* finite=NULL);
+    virtual ~GFDetPlane();
+    GFDetPlane(const genf::GFDetPlane&);
+    GFDetPlane& operator=(const genf::GFDetPlane&);
+    // Accessors -----------------------
+    TVector3 getO() const {return fO;}
+    TVector3 getU() const {return fU;}
+    TVector3 getV() const {return fV;}
 
-  // Modifiers -----------------------
-  void set(const TVector3& o,
-	   const TVector3& u,
-	   const TVector3& v); 
+    // Modifiers -----------------------
+    void set(const TVector3& o,
+	     const TVector3& u,
+	     const TVector3& v); 
 
-  void setO(const TVector3& o);
-  void setO(double,double,double);
-  void setU(const TVector3& u);
-  void setU(double,double,double);
-  void setV(const TVector3& v);
-  void setV(double,double,double);
-  void setUV(const TVector3& u,const TVector3& v);
-  void setON(const TVector3& o,const TVector3& n);
+    void setO(const TVector3& o);
+    void setO(double,double,double);
+    void setU(const TVector3& u);
+    void setU(double,double,double);
+    void setV(const TVector3& v);
+    void setV(double,double,double);
+    void setUV(const TVector3& u,const TVector3& v);
+    void setON(const TVector3& o,const TVector3& n);
 
-  //! Optionally, set the finite plane definition. This is most important for
-  //! avoiding fake intersection points in fitting of loopers. This should
-  //! be implemented for silicon detectors most importantly.
-  void setFinitePlane(genf::GFAbsFinitePlane* finite){fFinitePlane=finite;}
+    //! Optionally, set the finite plane definition. This is most important for
+    //! avoiding fake intersection points in fitting of loopers. This should
+    //! be implemented for silicon detectors most importantly.
+    void setFinitePlane(genf::GFAbsFinitePlane* finite){fFinitePlane=finite;}
 
-  // Operations ----------------------
-  TVector3 getNormal() const;
-  void setNormal(TVector3 n);
-  void setNormal(double,double,double);
-  void setNormal(const double& theta, const double& phi);
-  //! projecting a direction onto the plane:
-  TVector2 project(const TVector3& x) const;
-  //! transform from Lab system into plane
-  TVector2 LabToPlane(const TVector3& x) const;
-  //! transform from plane coordinates to lab system
-  TVector3 toLab(const TVector2& x) const;
-  // get vector from point to plane (normal)
-  TVector3 dist(const TVector3& point) const;
+    // Operations ----------------------
+    TVector3 getNormal() const;
+    void setNormal(TVector3 n);
+    void setNormal(double,double,double);
+    void setNormal(const double& theta, const double& phi);
+    //! projecting a direction onto the plane:
+    TVector2 project(const TVector3& x) const;
+    //! transform from Lab system into plane
+    TVector2 LabToPlane(const TVector3& x) const;
+    //! transform from plane coordinates to lab system
+    TVector3 toLab(const TVector2& x) const;
+    // get vector from point to plane (normal)
+    TVector3 dist(const TVector3& point) const;
   
-  //! gives u,v coordinates of the intersection point of a straight line with plane
-  TVector2 straightLineToPlane(const TVector3& point,const TVector3& dir) const;
+    //! gives u,v coordinates of the intersection point of a straight line with plane
+    TVector2 straightLineToPlane(const TVector3& point,const TVector3& dir) const;
 
 
-  void Print() const;
+    void Print() const;
 
-  //! for poor attempts of making an event display. There is a lot of room for improvements.
-  void getGraphics(double mesh, double length, TPolyMarker3D **pl, TPolyLine3D **plLine,TPolyLine3D **u, TPolyLine3D **v, TPolyLine3D **n=NULL);
+    //! for poor attempts of making an event display. There is a lot of room for improvements.
+    void getGraphics(double mesh, double length, TPolyMarker3D **pl, TPolyLine3D **plLine,TPolyLine3D **u, TPolyLine3D **v, TPolyLine3D **n=NULL);
 
-  //! this operator is called very often in Kalman filtering. It checks equality of planes
-  //! by comparing the 9 double values that define them.
-  friend bool operator== (const GFDetPlane&, const GFDetPlane&);
-  //! returns NOT ==
-  friend bool operator!= (const GFDetPlane&, const GFDetPlane&);
+    //! this operator is called very often in Kalman filtering. It checks equality of planes
+    //! by comparing the 9 double values that define them.
+    friend bool operator== (const GFDetPlane&, const GFDetPlane&);
+    //! returns NOT ==
+    friend bool operator!= (const GFDetPlane&, const GFDetPlane&);
 
-  double distance(TVector3&) const;
-  double distance(double,double,double) const;
+    double distance(TVector3&) const;
+    double distance(double,double,double) const;
 
 
-  //! intersect in the active area? C.f. GFAbsFinitePlane
-  bool inActive(const TVector3& point, const TVector3& dir) const{
-    return this->inActive( this->straightLineToPlane(point,dir));
-  }
+    //! intersect in the active area? C.f. GFAbsFinitePlane
+    bool inActive(const TVector3& point, const TVector3& dir) const{
+      return this->inActive( this->straightLineToPlane(point,dir));
+    }
 
-  //! inActive methods refer to finite plane. C.f. GFAbsFinitePlane
-  bool inActive(double u, double v) const{
-    if(fFinitePlane==NULL) return true;
-    return fFinitePlane->inActive(u,v);
-  }
+    //! inActive methods refer to finite plane. C.f. GFAbsFinitePlane
+    bool inActive(double u, double v) const{
+      if(fFinitePlane==NULL) return true;
+      return fFinitePlane->inActive(u,v);
+    }
 
-  //! inActive methods refer to finite plane. C.f. GFAbsFinitePlane
-  bool inActive(const TVector2& v) const{
-    return inActive(v.X(),v.Y());
-  }
+    //! inActive methods refer to finite plane. C.f. GFAbsFinitePlane
+    bool inActive(const TVector2& v) const{
+      return inActive(v.X(),v.Y());
+    }
   
-  //private:
+    //private:
 
-  // Private Data Members ------------
-  // origin
-  TVector3 fO;
-  // Vectors spanning the plane
-  TVector3 fU;
-  TVector3 fV;
+    // Private Data Members ------------
+    // origin
+    TVector3 fO;
+    // Vectors spanning the plane
+    TVector3 fU;
+    TVector3 fV;
 
-  genf::GFAbsFinitePlane* fFinitePlane;
+    genf::GFAbsFinitePlane* fFinitePlane;
 
-  // Private Methods -----------------
+    // Private Methods -----------------
 
-  void sane(); // ensures orthnormal coordinates
-  //public:
-  //ClassDef(GFDetPlane,2)
+    void sane(); // ensures orthnormal coordinates
+    //public:
+    //ClassDef(GFDetPlane,2)
 
-};
+  };
+
+  bool operator==(const genf::GFDetPlane&, const genf::GFDetPlane&);
+  bool operator!=(const genf::GFDetPlane&, const genf::GFDetPlane&);
+  
 } // namespace genf
 /* @} **/
 
