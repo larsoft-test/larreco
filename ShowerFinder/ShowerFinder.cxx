@@ -18,18 +18,15 @@ extern "C" {
 #include <algorithm>
 
 // Framework includes
-#include "FWCore/Framework/interface/Event.h" 
-#include "FWCore/ParameterSet/interface/ParameterSet.h" 
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
-#include "DataFormats/Common/interface/Handle.h" 
-#include "DataFormats/Common/interface/Ptr.h" 
-#include "DataFormats/Common/interface/PtrVector.h" 
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/Service.h" 
-#include "FWCore/Services/interface/TFileService.h" 
-#include "FWCore/Framework/interface/TFileDirectory.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
+#include "art/Framework/Core/Event.h" 
+#include "fhiclcpp/ParameterSet.h" 
+#include "art/Persistency/Common/Handle.h" 
+#include "art/Persistency/Common/Ptr.h" 
+#include "art/Persistency/Common/PtrVector.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Optional/TFileService.h" 
+#include "art/Framework/Core/TFileDirectory.h" 
+#include "messagefacility/MessageLogger/MessageLogger.h" 
 
 // LArSoft Includes
 #include "RawData/RawDigit.h"
@@ -46,14 +43,13 @@ extern "C" {
 namespace shwf{
 
   //-------------------------------------------------
-  ShowerFinder::ShowerFinder(edm::ParameterSet const& pset) :
-    fVertexModuleLabel (pset.getParameter<std::string > ("VertexModuleLabel")),
-    fClusterModuleLabel (pset.getParameter<std::string > ("ClusterModuleLabel")),
-    fHoughLineModuleLabel (pset.getParameter<std::string > ("HoughLineModuleLabel")),
-    fVertexStrengthModuleLabel (pset.getParameter<std::string > ("VertexStrengthModuleLabel")),
-    fRcone (pset.getParameter<double > ("Rcone")), //Radius of the cone
-    fLcone (pset.getParameter<double > ("Lcone"))  // Length (perpendicular to the base) of the cone
-    
+  ShowerFinder::ShowerFinder(fhicl::ParameterSet const& pset) :
+    fVertexModuleLabel        (pset.get<std::string > ("VertexModuleLabel")),
+    fClusterModuleLabel       (pset.get<std::string > ("ClusterModuleLabel")),
+    fHoughLineModuleLabel     (pset.get<std::string > ("HoughLineModuleLabel")),
+    fVertexStrengthModuleLabel(pset.get<std::string > ("VertexStrengthModuleLabel")),
+    fRcone                    (pset.get<double      > ("Rcone")), //Radius of the cone
+    fLcone                    (pset.get<double      > ("Lcone"))  //Length (perpendicular to the base) of the cone    
   {
     produces< std::vector<recob::Shower> >();
   }
@@ -67,7 +63,7 @@ namespace shwf{
   
   //
   //-------------------------------------------------
-  void ShowerFinder::produce(edm::Event& evt, edm::EventSetup const&)
+  void ShowerFinder::produce(art::Event& evt)
   { 
     
     
@@ -82,37 +78,37 @@ namespace shwf{
 
 
     // Read in the vertex List object(s).
-    edm::Handle< std::vector<recob::Vertex> > vertexListHandle;
+    art::Handle< std::vector<recob::Vertex> > vertexListHandle;
     evt.getByLabel(fVertexModuleLabel,vertexListHandle);
     // Read in the hough line List object(s).
-    edm::Handle< std::vector<recob::Cluster> > houghListHandle;
+    art::Handle< std::vector<recob::Cluster> > houghListHandle;
     evt.getByLabel(fHoughLineModuleLabel,houghListHandle);
     // Read in the cluster List object(s).
-    edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
+    art::Handle< std::vector<recob::Cluster> > clusterListHandle;
     evt.getByLabel(fClusterModuleLabel,clusterListHandle);
     // Read in the vertex Strength List object(s).
-    edm::Handle< std::vector<recob::Vertex> > vertexStrengthListHandle;
+    art::Handle< std::vector<recob::Vertex> > vertexStrengthListHandle;
     evt.getByLabel(fVertexStrengthModuleLabel,vertexStrengthListHandle);
     
-    // edm::PtrVector<recob::Cluster> clust;
+    // art::PtrVector<recob::Cluster> clust;
     //for (unsigned int ii = 0; ii <  clusterListHandle->size(); ++ii)
     //{
-    // edm::Ptr<recob::Cluster> clusterHolder(clusterListHandle,ii);
+    // art::Ptr<recob::Cluster> clusterHolder(clusterListHandle,ii);
     // clust.push_back(clusterHolder);
     //}
 
-    edm::PtrVector<recob::Cluster> protoShowers; //vector of clusters associated to a cone
+    art::PtrVector<recob::Cluster> protoShowers; //vector of clusters associated to a cone
 
-    edm::PtrVector<recob::Hit> clusterhits; //hits in the cluster
-    edm::PtrVector<recob::Hit> hlhits; //hits in the hough Lines
+    art::PtrVector<recob::Hit> clusterhits; //hits in the cluster
+    art::PtrVector<recob::Hit> hlhits; //hits in the hough Lines
 
 
-    edm::Service<geo::Geometry> geom;
+    art::ServiceHandle<geo::Geometry> geom;
     
     unsigned int channel,plane,wire;
     
     //This vector will contain all strong and strongest vertices
-    edm::PtrVector<recob::Vertex> vertSel;
+    art::PtrVector<recob::Vertex> vertSel;
     
     //This loop is going over all the vertices in the event 
     //and is interested in ONLY strong and strongest vertices.
@@ -121,7 +117,7 @@ namespace shwf{
     
     for(unsigned int iv = 0; iv < vertexListHandle->size(); ++iv)
       {
-	edm::Ptr<recob::Vertex> vertex(vertexListHandle, iv);
+	art::Ptr<recob::Vertex> vertex(vertexListHandle, iv);
 	//std::cout << "Vertex " << iv << " :  str = " << vertex->ID() << std::endl;
 	//if(vertex->Strength() == 4 || vertex->Strength() == 3){
 	if(vertex->ID() == 1 || vertex->Strength() == 3){ //only use Strongest and strong
@@ -198,7 +194,7 @@ namespace shwf{
 	  //Looking if a cluster is in this cone (loop over all hits of all clusters)
 	  for(int iclust = 0; iclust < clusterListHandle->size(); iclust++){
 	  
-	    edm::Ptr<recob::Cluster> clust(clusterListHandle, iclust);
+	    art::Ptr<recob::Cluster> clust(clusterListHandle, iclust);
 	    //std::cout << "Number of clusters: " << clusterListHandle->size() << std::endl;
 	    
 	    //Get the hits vector from the cluster

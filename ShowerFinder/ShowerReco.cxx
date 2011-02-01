@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////
 //
-// ShowerReco class - V.1.0 - 11/16/2010 
+// \file ShowerReco.cxx
 //
 // biagio.rossi@lhep.unibe.ch   (FWMK : argoneut specific)
 // thomas.strauss@lhep.unibe.ch (ART  : general detector)
@@ -21,18 +21,15 @@ extern "C" {
 #include <sstream>
 
 // Framework includes
-#include "FWCore/Framework/interface/Event.h" 
-#include "FWCore/ParameterSet/interface/ParameterSet.h" 
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
-#include "DataFormats/Common/interface/Handle.h" 
-#include "DataFormats/Common/interface/Ptr.h" 
-#include "DataFormats/Common/interface/PtrVector.h" 
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/Service.h" 
-#include "FWCore/Services/interface/TFileService.h" 
-#include "FWCore/Framework/interface/TFileDirectory.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
+#include "art/Framework/Core/Event.h" 
+#include "fhiclcpp/ParameterSet.h" 
+#include "art/Persistency/Common/Handle.h" 
+#include "art/Persistency/Common/Ptr.h" 
+#include "art/Persistency/Common/PtrVector.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Optional/TFileService.h" 
+#include "art/Framework/Core/TFileDirectory.h" 
+#include "messagefacility/MessageLogger/MessageLogger.h" 
 
 #include "TMatrixD.h"
 #include "TVectorD.h"
@@ -51,9 +48,9 @@ extern "C" {
 
 
 // ***************** //
-shwf::ShowerReco::ShowerReco(edm::ParameterSet const& pset) : 
+shwf::ShowerReco::ShowerReco(fhicl::ParameterSet const& pset) : 
 
-  fclusterModuleLabel (pset.getParameter< std::string >("clusters"))
+  fclusterModuleLabel (pset.get< std::string >("clusters"))
   
 {
   produces< std::vector<recob::Shower> >();
@@ -65,10 +62,10 @@ shwf::ShowerReco::~ShowerReco()
 }
 
 // ***************** //
-void shwf::ShowerReco::beginJob(edm::EventSetup const&)
+void shwf::ShowerReco::beginJob()
 {
   /** Get Geometry*/
-  edm::Service<geo::Geometry> geo;
+  art::ServiceHandle<geo::Geometry> geo;
   unsigned int planes = geo->Nplanes();
   
   double mean_wirepitch;
@@ -84,7 +81,7 @@ void shwf::ShowerReco::beginJob(edm::EventSetup const&)
     fmean_wire_pitch.push_back(mean_wirepitch/geo->Nwires(i));
   }
   /**Get TFileService and define output Histograms*/
-  edm::Service<edm::TFileService> tfs;
+  art::ServiceHandle<art::TFileService> tfs;
 
   /** Create Histos names*/
   char tit_h_theta[128] = {0};
@@ -134,7 +131,7 @@ void shwf::ShowerReco::beginJob(edm::EventSetup const&)
 }
 
 // ***************** //
-void shwf::ShowerReco::produce(edm::Event& evt, edm::EventSetup const&)
+void shwf::ShowerReco::produce(art::Event& evt)
 { 
 
   /**TODO THIS VALUES SHOULD BE PARAMETERS OF THE MODULE, evtl from database
@@ -145,8 +142,8 @@ void shwf::ShowerReco::produce(edm::Event& evt, edm::EventSetup const&)
   *double timepitch        = fdriftvelocity*ftimetick;                  //time sample (cm) */
 
   /** Get Geometry */
-  edm::Service<geo::Geometry> geo;
-  //edm::Service<util::LArProperties> larprop;
+  art::ServiceHandle<geo::Geometry> geo;
+  //art::ServiceHandle<util::LArProperties> larprop;
   unsigned int planes = geo->Nplanes();
   /**TODO GET THESE FROM A PARAMETERSET/DATABASE*/
   ftimetick      =  0.198; //get from parameterset
@@ -154,13 +151,13 @@ void shwf::ShowerReco::produce(edm::Event& evt, edm::EventSetup const&)
   //fdriftvelocity = larprob->DriftVelocity(Efield_SI,Temperature);
   
   /**Get Clusters*/
-  edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
+  art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fclusterModuleLabel,clusterListHandle);
 
 
-  edm::PtrVector<recob::Hit> hitlist_helpwire; /** Define hitlist of all hits per wire*/
-  edm::PtrVector<recob::Hit> hitlist_helpplane; /** Define hitlist to sort by #wire in hitlist_helpwire*/
-  std::vector<edm::PtrVector<recob::Hit> > hitlist_plane; // Define vector of hitslists for each Induction and Collection planes
+  art::PtrVector<recob::Hit> hitlist_helpwire; /** Define hitlist of all hits per wire*/
+  art::PtrVector<recob::Hit> hitlist_helpplane; /** Define hitlist to sort by #wire in hitlist_helpwire*/
+  std::vector<art::PtrVector<recob::Hit> > hitlist_plane; // Define vector of hitslists for each Induction and Collection planes
 
   /**Loop to fill the std::vector<edm:PtrVector<recob::Hit>> with the hits of each plane*/
   for(unsigned int iplane = 0; iplane < planes; ++iplane){//Loop over planes
@@ -170,12 +167,12 @@ void shwf::ShowerReco::produce(edm::Event& evt, edm::EventSetup const&)
     for(unsigned int iwire=0; iwire<fwires[iplane];++iwire){//Loop over wires
       hitlist_helpwire.clear();
       for(int iclust = 0; iclust < clusterListHandle->size(); iclust++){//Loop over cluster
-        edm::Ptr<recob::Cluster> clust(clusterListHandle, iclust);
+        art::Ptr<recob::Cluster> clust(clusterListHandle, iclust);
         if(view == clust->View()){//If correct plane
           hitlist_helpplane = clust->Hits(iplane,iwire);//Fill with Hits from the wire (hitlist_help is automatically sorted)
         }
       for (int ihits =0; ihits<hitlist_helpplane.size(); ++ihits){//work around since clust->Hits return a std::vector,recob::Hit*> object
-        edm::Ptr<recob::Hit> hit_help ;
+        art::Ptr<recob::Hit> hit_help ;
         hit_help = hitlist_helpplane[ihits];
         hitlist_helpwire.push_back(hit_help);
         }
@@ -199,19 +196,19 @@ void shwf::ShowerReco::produce(edm::Event& evt, edm::EventSetup const&)
 }
 
 // ***************** //
-void shwf::ShowerReco::AngularDistribution(std::vector<edm::PtrVector<recob::Hit> > hitlist_all){ 
+void shwf::ShowerReco::AngularDistribution(std::vector<art::PtrVector<recob::Hit> > hitlist_all){ 
 
   /** Determine the angular distribution of the shower energy in each plane */
-  edm::Service<geo::Geometry> geo;
+  art::ServiceHandle<geo::Geometry> geo;
   unsigned int planes = geo->Nplanes();
   unsigned int iplane_hit,iwire_hit,ichannel_hit;
   float ftime_hit;
   double a_polar,b_polar,theta_polar;
 
   for(unsigned int iplane = 0; iplane < planes; ++iplane){/**Loop over planes*/
-    edm::PtrVector<recob::Hit> hitlist = hitlist_all[iplane];
+    art::PtrVector<recob::Hit> hitlist = hitlist_all[iplane];
     for (int ihits=0;ihits<hitlist.size();++ihits){
-      edm::Ptr<recob::Hit> hit_help ;
+      art::Ptr<recob::Hit> hit_help ;
       hit_help = hitlist[ihits]; 
       const recob::Hit* hit = hit_help.get(); /** Retrieve info of the hits*/
       ftime_hit = hit->CrossingTime(); /** Hit crossing time*/
@@ -243,7 +240,7 @@ void shwf::ShowerReco::AngularDistribution(std::vector<edm::PtrVector<recob::Hit
 // ***************** //
 void shwf::ShowerReco::FitAngularDistributions(){
   /** Fit function of the angular distribution (cm,cm)*/
-  edm::Service<geo::Geometry> geo;
+  art::ServiceHandle<geo::Geometry> geo;
   unsigned int planes = geo->Nplanes();
   TF1 *gau = new TF1("gaus","gaus",-60, 60);
 
@@ -256,7 +253,7 @@ void shwf::ShowerReco::FitAngularDistributions(){
 
 // ***************** //
 void shwf::ShowerReco::Get3Daxis(){
-  edm::Service<geo::Geometry> geo;
+  art::ServiceHandle<geo::Geometry> geo;
   unsigned int planes = geo->Nplanes();
   double a_polar,b_polar,theta_polar;
   float wire_help,time_help;
@@ -304,9 +301,9 @@ void shwf::ShowerReco::Get3Daxis(){
 }
 
 // ***************** //
-void shwf::ShowerReco::LongTransEnergy(std::vector<edm::PtrVector<recob::Hit> > hitlist_all){
+void shwf::ShowerReco::LongTransEnergy(std::vector<art::PtrVector<recob::Hit> > hitlist_all){
 
-  edm::Service<geo::Geometry> geo;
+  art::ServiceHandle<geo::Geometry> geo;
   unsigned int planes = geo->Nplanes();
   unsigned int iplane_hit,iwire_hit,ichannel_hit;
   float ftime_hit;
@@ -315,9 +312,9 @@ void shwf::ShowerReco::LongTransEnergy(std::vector<edm::PtrVector<recob::Hit> > 
 
   for(unsigned int iplane = 0; iplane < planes; ++iplane){/**Loop over planes*/
     totcharge =0.;
-    edm::PtrVector<recob::Hit> hitlist = hitlist_all[iplane];
+    art::PtrVector<recob::Hit> hitlist = hitlist_all[iplane];
     for (int ihits=0;ihits<hitlist.size();++ihits){
-      edm::Ptr<recob::Hit> hit_help ;
+      art::Ptr<recob::Hit> hit_help ;
       hit_help = hitlist[ihits]; 
       const recob::Hit* hit = hit_help.get(); /** Retrieve info of the hits*/
       ftime_hit = hit->CrossingTime(); /** Hit crossing time*/
@@ -359,7 +356,7 @@ void shwf::ShowerReco::LongTransEnergy(std::vector<edm::PtrVector<recob::Hit> > 
 
 // ***************** //
 void shwf::ShowerReco::Get2Dvariables(){
-  edm::Service<geo::Geometry> geo;
+  art::ServiceHandle<geo::Geometry> geo;
   unsigned int planes = geo->Nplanes();
   for(unsigned int iplane = 0; iplane < planes; ++iplane){/**Loop over planes*/  
     fslope_2d.push_back((fLastTime[iplane]-ftime_vertex[iplane]) /(fLastWire[iplane]-fwire_vertex[iplane])); 

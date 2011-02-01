@@ -1,32 +1,38 @@
+////////////////////////////////////////////////////////////////////////
+/// \file  ShowerFinder.h
+/// \brief
+///
+///
+/// \version $Id: SingleGen.cxx,v 1.4 2010/03/29 09:54:01 brebel Exp $
+/// \author  roxanne
+////////////////////////////////////////////////////////////////////////
 #ifndef SHOWERFINDER_H
 #define SHOWERFINDER_H
 
 #include <vector>
 #include <string>
 
-#include "FWCore/Framework/interface/EDProducer.h" 
+#include "art/Framework/Core/EDProducer.h" 
 
 
 namespace shwf {
    
-  class ShowerFinder : public edm::EDProducer {
+  class ShowerFinder : public art::EDProducer {
     
   public:
     
-    explicit ShowerFinder(edm::ParameterSet const&); 
+    explicit ShowerFinder(fhicl::ParameterSet const&); 
     virtual ~ShowerFinder();
          
-    void produce(edm::Event& evt, edm::EventSetup const&); 
-    void beginJob(const edm::EventSetup&); 
-    void endJob(); 
+    void produce(art::Event& evt); 
  
 
   private:
 
-    std::string     fvertices;  
-    std::string     fclusters;  
-    std::string     fhoughlines;  
-    std::string     fhits;  
+    std::string     fVertexModuleLabel;  
+    std::string     fClusterModuleLabel;  
+    std::string     fHoughLineModuleLabel;  
+    std::string     fVertexStrengthModuleLabel;  
     double     fRcone;  
     double     fLcone;  
 

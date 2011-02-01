@@ -5,14 +5,12 @@
 //
 ////////////////////////////////////////////////////////////////////////
 // Framework includes
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
+#include "art/Framework/Core/ModuleMacros.h" 
 
 #include "ShowerFinder/ShowerFinder.h"
 
 namespace shwf{
 
-  DEFINE_FWK_MODULE(ShowerFinder);
+  DEFINE_ART_MODULE(ShowerFinder);
   
 } //end of shower namespace

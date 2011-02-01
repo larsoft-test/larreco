@@ -1,7 +1,15 @@
+////////////////////////////////////////////////////////////////////////
+/// \file  ShowerReco.h
+/// \brief
+///
+///
+/// \version $Id: SingleGen.cxx,v 1.4 2010/03/29 09:54:01 brebel Exp $
+/// \author  biagio
+////////////////////////////////////////////////////////////////////////
 #ifndef SHOWERRECO_H
 #define SHOWERRECO_H
 
-#include "FWCore/Framework/interface/EDProducer.h" // include the proper bit of the framework
+#include "art/Framework/Core/EDProducer.h" // include the proper bit of the framework
 
 #include <vector>
 #include <string>
@@ -16,28 +24,26 @@
 
 #include "RecoBase/Cluster.h"
 
-
-
 namespace shwf {
 
-  class ShowerReco : public edm::EDProducer {
+  class ShowerReco : public art::EDProducer {
     
   public:
 
     /**METHODS global*/
-    explicit ShowerReco(edm::ParameterSet const& pset);    /**Constructor*/
-    virtual ~ShowerReco();                                 /**Deconstructor*/
-    void beginJob(edm::EventSetup const&);                 /**Needed by Art as initialzer*/ 
-    void produce(edm::Event& evt, edm::EventSetup const&); /**Actual routine that reconstruct the shower*/
+    explicit ShowerReco(fhicl::ParameterSet const& pset);/**Constructor*/
+    virtual ~ShowerReco();                               /**Deconstructor*/
+    void beginJob();                                     /**Needed by Art as initialzer*/ 
+    void produce(art::Event& evt);                       /**Actual routine that reconstruct the shower*/
    
 
  private:
 
     /**METHODS private*/
-    void  AngularDistribution(std::vector<edm::PtrVector<recob::Hit> > hitlist); /**Get angular distribution of the shower in each plane */
+    void  AngularDistribution(std::vector<art::PtrVector<recob::Hit> > hitlist); /**Get angular distribution of the shower in each plane */
     void  FitAngularDistributions();                                             /**Fit the angular distibution*/ 
     void  Get3Daxis();                                                           /** Get the 3d Shower axis*/
-    void  LongTransEnergy(std::vector<edm::PtrVector<recob::Hit> > hitlist);     /**Longitudinal and transverse enegry of the shower*/ 
+    void  LongTransEnergy(std::vector<art::PtrVector<recob::Hit> > hitlist);     /**Longitudinal and transverse enegry of the shower*/ 
     void  Get2Dvariables();                                                      /** Get the 2d view per plane in rad*/
 
 
@@ -58,7 +64,6 @@ namespace shwf {
     std::vector<double> ftotCharge;        /**Total Charge per plane in MIPs*/
     std::vector<double> fslope_2d;         /** 2d information from reconstructed shower for line*/
     std::vector<double> fintercept_2d;     /** with form time = slope * wire + intercept in cm, cm per plane */
-
 
  
     TTree* ftree_shwf;
