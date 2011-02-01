@@ -36,7 +36,7 @@
 //----------------------------------------------------------
 cluster::DBScanService::DBScanService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg):
   fEps   (pset.get< double      >("eps")   ),
-  fEps2  (pset.get< double      >("eps2")  ),
+  fEps2  (pset.get< double      >("epstwo")  ),
   fMinPts(pset.get< int         >("minPts"))
 {
 

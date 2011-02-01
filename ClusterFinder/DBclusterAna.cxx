@@ -45,7 +45,7 @@ cluster::DBclusterAna::DBclusterAna(fhicl::ParameterSet const& pset) :
   
   fDigitModuleLabel         (pset.get< std::string >("DigitModuleLabel")        ),
   fHitsModuleLabel          (pset.get< std::string >("HitsModuleLabel")         ),
-  fLArG4ModuleLabel         (pset.get< std::string >("LArG4ModuleLabel")        ),
+  fLArG4ModuleLabel         (pset.get< std::string >("LArGeantModuleLabel")     ),
   fCalDataModuleLabel       (pset.get< std::string >("CalDataModuleLabel")      ),
   fGenieGenModuleLabel      (pset.get< std::string >("GenieGenModuleLabel")     ),
   fClusterFinderModuleLabel (pset.get< std::string >("ClusterFinderModuleLabel"))

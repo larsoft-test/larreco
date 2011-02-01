@@ -42,7 +42,7 @@ cluster::DBcluster::DBcluster(fhicl::ParameterSet const& pset) :
   
   fhitsModuleLabel(pset.get< std::string >("HitsModuleLabel")),
   fEps            (pset.get< double      >("eps")            ),
-  fEps2           (pset.get< double      >("eps2")           ),
+  fEps2           (pset.get< double      >("epstwo")         ),
   fMinPts         (pset.get< int         >("minPts")         )
   
   // std::cerr << "Set epsilon distance = " << fEps << std::endl;

@@ -42,7 +42,6 @@ extern "C" {
 #include "art/Framework/Core/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
  
-#include "Filters/ChannelFilter.h"
 #include "SimulationBase/simbase.h"
 #include "RawData/RawDigit.h"
 #include "RecoBase/recobase.h"

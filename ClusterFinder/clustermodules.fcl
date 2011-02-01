@@ -5,16 +5,17 @@ argoneut_dbcluster:
  module_type:     "DBcluster"
  HitsModuleLabel: "ffthit"
  eps:             1.0
- eps2:            0.75
+ epstwo:          0.75
  minPts:          2
 }
+
 
 argoneut_dbclusterana:
 { 
  module_type:              "DBclusterAna"
  DigitModuleLabel:         "daq"
  HitsModuleLabel:          "ffthit"
- LArG4ModuleLabel:         "largeant"
+ LArGeantModuleLabel:      "largeant"
  CalDataModuleLabel:       "caldataCal"
  GenieGenModuleLabel:      "singlegen"
  ClusterFinderModuleLabel: "dbscan"
@@ -47,19 +48,16 @@ argoneut_houghlinefinderana:
  module_type:         "HoughLineFinderAna"
  DigitModuleLabel:    "wiresim"
  HitsModuleLabel:     "ffthit"
- LArG4ModuleLabel:    "largeant"
- CalDataModuleLabel:  "caldataCal"
- GenieGenModuleLabel: "singlegen"
  DBScanModuleLabel:   "dbscan"
  HoughModuleLabel:    "hough"
 }
 
 argoneut_linemerger:
 {
- module_type:       "LineMerger"
- ClusterModuleLabel "hough"
- Slope              1.5
- Intercept          102.0
+ module_type:        "LineMerger"
+ ClusterModuleLabel: "hough"
+ Slope:              1.5
+ Intercept:          102.0
 }
 
 END_PROLOG
