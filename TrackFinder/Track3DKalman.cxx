@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////
 //
-// Track3DKalman class
+// \file Track3DKalman.cxx
 //
-// echurch@fnal.gov
+// \author echurch@fnal.gov
 //
 //  This algorithm is designed to reconstruct 3D tracks through  
 //  GENFIT's Kalman filter.
@@ -15,29 +15,20 @@
 #include <fstream>
 
 // Framework includes
-#include "FWCore/Framework/interface/Event.h" 
-#include "FWCore/ParameterSet/interface/ParameterSet.h" 
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
-#include "DataFormats/Common/interface/Handle.h" 
-#include "DataFormats/Common/interface/View.h" 
-#include "DataFormats/Common/interface/Ptr.h" 
-#include "DataFormats/Common/interface/PtrVector.h" 
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/Service.h" 
-#include "FWCore/Services/interface/TFileService.h" 
-#include "FWCore/Framework/interface/TFileDirectory.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
+#include "art/Framework/Core/Event.h" 
+#include "fhiclcpp/ParameterSet.h" 
+#include "art/Persistency/Common/Handle.h" 
+#include "art/Persistency/Common/Ptr.h" 
+#include "art/Persistency/Common/PtrVector.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Optional/TFileService.h" 
+#include "art/Framework/Core/TFileDirectory.h" 
+#include "messagefacility/MessageLogger/MessageLogger.h" 
 
 // LArSoft includes
-#include "Track3DKalman.h"
+#include "TrackFinder/Track3DKalman.h"
 #include "Geometry/geo.h"
-#include "Geometry/WireGeo.h"
-#include "Geometry/VolumeUtility.h"
-#include "RecoBase/Hit.h"
-#include "RecoBase/Track.h"
-#include "RecoBase/Cluster.h"
-#include "RecoBase/SpacePoint.h"
+#include "RecoBase/recobase.h"
 #include "Utilities/LArProperties.h"
 #include "SimulationBase/simbase.h"
 #include "Simulation/sim.h"
@@ -78,12 +69,12 @@ static bool sp_sort_3dx(const recob::SpacePoint& h1, const recob::SpacePoint& h2
 }
 
 //-------------------------------------------------
-trkf::Track3DKalman::Track3DKalman(edm::ParameterSet const& pset) :
-  fTrackModuleLabel     (pset.getParameter< std::string >("TrackModuleLabel")),
-  fGenieGenModuleLabel     (pset.getParameter< std::string >("GenieGenModuleLabel")),
-  ftmatch                 (pset.getParameter< int    >("TMatch")),
-  fchi2dof                (pset.getParameter< double >("Chi2DOFmax")),
-  fGenfPRINT                (pset.getParameter< bool >("GenfPRINT"))
+trkf::Track3DKalman::Track3DKalman(fhicl::ParameterSet const& pset) :
+  fTrackModuleLabel   (pset.get< std::string >("TrackModuleLabel")),
+  fGenieGenModuleLabel(pset.get< std::string >("GenieGenModuleLabel")),
+  ftmatch             (pset.get< int    >("TMatch")),
+  fchi2dof            (pset.get< double >("Chi2DOFmax")),
+  fGenfPRINT          (pset.get< bool >("GenfPRINT"))
 {
   produces< std::vector<recob::Track> >();
 
@@ -101,11 +92,11 @@ trkf::Track3DKalman::~Track3DKalman()
 }
 
 //-------------------------------------------------
-void trkf::Track3DKalman::beginJob(const edm::EventSetup&)
+void trkf::Track3DKalman::beginJob()
 {
   // Purposely, don't do this with auto-mojo of the TFileService.
   // But, I change my mind and do wanna do it this way now. EC, 7-Jan-2011.
-  edm::Service<edm::TFileService> tfs;
+  art::ServiceHandle<art::TFileService> tfs;
   stMCT  = new TMatrixT<Double_t>(5,1);
   covMCT = new TMatrixT<Double_t>(5,5);
   stREC  = new TMatrixT<Double_t>(5,1);
@@ -133,31 +124,23 @@ void trkf::Track3DKalman::beginJob(const edm::EventSetup&)
   //TGeoManager* geomGENFIT = new TGeoManager("Geometry", "Geane geometry");
   //TGeoManager::Import("config/genfitGeom.root");
   //  gROOT->Macro("config/Geane.C"); 
-  
-// Let's presume my already-defined geometry and physics list will do what's needed.
-  // get services
-  edm::Service<geo::Geometry> geom;
-  edm::Service<util::LArProperties> larprop;
-
+ 
 }
 
 void trkf::Track3DKalman::endJob()
 {
-  //tree->Write();
-  //fileGENFIT->Close();
   delete rep;
   delete repMC;
 }
 
 
 //------------------------------------------------------------------------------------//
-void trkf::Track3DKalman::produce(edm::Event& evt, edm::EventSetup const&)
+void trkf::Track3DKalman::produce(art::Event& evt)
 { 
 
-
   // get services
-  edm::Service<geo::Geometry> geom;
-  edm::Service<util::LArProperties> larprop;
+  art::ServiceHandle<geo::Geometry> geom;
+  art::ServiceHandle<util::LArProperties> larprop;
 
   //////////////////////////////////////////////////////
   // Make a std::auto_ptr<> for the thing you want to put into the event
@@ -196,36 +179,36 @@ void trkf::Track3DKalman::produce(edm::Event& evt, edm::EventSetup const&)
 
 
   // get input Hit object(s).
-  edm::Handle< std::vector<recob::Track> > trackListHandle;
+  art::Handle< std::vector<recob::Track> > trackListHandle;
   evt.getByLabel(fTrackModuleLabel,trackListHandle);
 
-  edm::PtrVector<simb::MCTruth> mclist;
+  art::PtrVector<simb::MCTruth> mclist;
   if (!evt.isRealData())
     {
       std::cout << "Track3DKalman: This is MC." << std::endl;
 
-      edm::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
+      art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
       evt.getByLabel(fGenieGenModuleLabel,mctruthListHandle);
 
       for (unsigned int ii = 0; ii <  mctruthListHandle->size(); ++ii)
 	{
-	  edm::Ptr<simb::MCTruth> mctparticle(mctruthListHandle,ii);
+	  art::Ptr<simb::MCTruth> mctparticle(mctruthListHandle,ii);
 	  mclist.push_back(mctparticle);
 	}
     }
 
   //create collection of spacepoints that will be used when creating the Track object
    std::vector<recob::SpacePoint> spacepoints;
-  edm::PtrVector<recob::Track> trackIn;
+  art::PtrVector<recob::Track> trackIn;
   for(unsigned int ii = 0; ii < trackListHandle->size(); ++ii)
     {
-      edm::Ptr<recob::Track> track(trackListHandle, ii);
+      art::Ptr<recob::Track> track(trackListHandle, ii);
       trackIn.push_back(track);
       
     }
       
       
-      edm::PtrVectorItr<recob::Track> trackIter = trackIn.begin();
+      art::PtrVectorItr<recob::Track> trackIter = trackIn.begin();
     
     while(trackIter!=trackIn.end()) 
       {
@@ -276,8 +259,8 @@ void trkf::Track3DKalman::produce(edm::Event& evt, edm::EventSetup const&)
 	  // Below breaks are stupid, I realize.
 	  for( unsigned int ii = 0; ii < mclist.size(); ++ii )
 	    {
-	    //edm::Ptr<const simb::MCTruth> mc(mctruthListHandle,i);
-	    edm::Ptr<simb::MCTruth> mc(mclist[ii]);
+	    //art::Ptr<const simb::MCTruth> mc(mctruthListHandle,i);
+	    art::Ptr<simb::MCTruth> mc(mclist[ii]);
 	    for(int jj = 0; jj < mc->NParticles(); ++jj)
 	      {
 		simb::MCParticle part(mc->GetParticle(jj));

@@ -1,23 +1,31 @@
+////////////////////////////////////////////////////////////////////////
+// $Id: Track3DKalman.cxx,v 1.36 2010/09/15  Exp $
+//
+// \file Track3Dreco.h
+//
+// \author mitch
+//
+////////////////////////////////////////////////////////////////////////
 #ifndef TRACK3DRECO_H
 #define TRACK3DRECO_H
 
-#include "FWCore/Framework/interface/EDProducer.h" //
+#include "art/Framework/Core/EDProducer.h" //
 
 #include <vector>
 #include <string>
 
 namespace trkf {
    
-  class Track3Dreco : public edm::EDProducer {
+  class Track3Dreco : public art::EDProducer {
     
   public:
     
-    explicit Track3Dreco(edm::ParameterSet const& pset);
+    explicit Track3Dreco(fhicl::ParameterSet const& pset);
     ~Track3Dreco();
     
     //////////////////////////////////////////////////////////
-    void produce(edm::Event& evt, edm::EventSetup const&); 
-    void beginJob(const edm::EventSetup&);
+    void produce(art::Event& evt); 
+    void beginJob();
     void endJob();
 
   private:

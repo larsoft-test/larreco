@@ -1,21 +1,19 @@
 ////////////////////////////////////////////////////////////////////////
 // $Id: Track3Dreco.cxx,v 1.36 2010/09/15 soderberg Exp $
 //
-// Track3Dreco class
+// \file Track3Dreco_module.cc
 //
-// echurch@fnal.gov
+// \author echurch@fnal.gov
 //
 ////////////////////////////////////////////////////////////////////////
 // Framework includes
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
-
+#include "art/Framework/Core/ModuleMacros.h" 
 
 #include "TrackFinder/Track3Dreco.h"
 
 namespace trkf{
 
-  DEFINE_FWK_MODULE(Track3Dreco);
+  DEFINE_ART_MODULE(Track3Dreco);
   
 } // end namespace 
 

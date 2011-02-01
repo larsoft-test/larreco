@@ -1,0 +1,22 @@
+BEGIN_PROLOG
+
+argoneut_track3d:
+{
+ module_type:        "Track3Dreco"
+ ClusterModuleLabel: "linemerger"
+ TMatch:             35
+ Chi2DOFmax:         10.0
+}
+
+argoneut_kalman:
+{
+ module_type:         "Track3DKalman"
+ TrackModuleLabel:    "tracks"
+ GenieGenModuleLabel: "generator"     # comment out for real data.
+ TMatch:              10              # 11 is delicate. 10 cuts space hits by fac of 10,
+                                      #12 increases by factor two. EC, 5-Jan-2011.
+ Chi2DOFmax:          10.0
+ GenfPRINT:           true
+}
+
+END_PROLOG

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////
 //
-// Track3Dreco class
+// \file Track3Dreco.cxx
 //
 // maddalena.antonello@lngs.infn.it
 // ornella.palamara@lngs.infn.it
@@ -16,29 +16,20 @@
 #include <fstream>
 
 // Framework includes
-#include "FWCore/Framework/interface/Event.h" 
-#include "FWCore/ParameterSet/interface/ParameterSet.h" 
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
-#include "DataFormats/Common/interface/Handle.h" 
-#include "DataFormats/Common/interface/View.h" 
-#include "DataFormats/Common/interface/Ptr.h" 
-#include "DataFormats/Common/interface/PtrVector.h" 
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/Service.h" 
-#include "FWCore/Services/interface/TFileService.h" 
-#include "FWCore/Framework/interface/TFileDirectory.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
+#include "art/Framework/Core/Event.h" 
+#include "fhiclcpp/ParameterSet.h" 
+#include "art/Persistency/Common/Handle.h" 
+#include "art/Persistency/Common/Ptr.h" 
+#include "art/Persistency/Common/PtrVector.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Optional/TFileService.h" 
+#include "art/Framework/Core/TFileDirectory.h" 
+#include "messagefacility/MessageLogger/MessageLogger.h" 
 
 // LArSoft includes
 #include "Track3Dreco.h"
 #include "Geometry/geo.h"
-#include "Geometry/WireGeo.h"
-#include "Geometry/VolumeUtility.h"
-#include "RecoBase/Hit.h"
-#include "RecoBase/Track.h"
-#include "RecoBase/Cluster.h"
-#include "RecoBase/SpacePoint.h"
+#include "RecoBase/recobase.h"
 #include "Utilities/LArProperties.h"
 
 // ROOT includes
@@ -49,10 +40,10 @@
 
 
 //-------------------------------------------------
-trkf::Track3Dreco::Track3Dreco(edm::ParameterSet const& pset) :
-  fClusterModuleLabel     (pset.getParameter< std::string >("ClusterModuleLabel")),
-  ftmatch                 (pset.getParameter< int    >("TMatch")),
-  fchi2dof                (pset.getParameter< double >("Chi2DOFmax"))
+trkf::Track3Dreco::Track3Dreco(fhicl::ParameterSet const& pset) :
+  fClusterModuleLabel     (pset.get< std::string >("ClusterModuleLabel")),
+  ftmatch                 (pset.get< int    >("TMatch")),
+  fchi2dof                (pset.get< double >("Chi2DOFmax"))
 {
   produces< std::vector<recob::Track> >();
 }
@@ -63,23 +54,24 @@ trkf::Track3Dreco::~Track3Dreco()
 }
 
 //-------------------------------------------------
-void trkf::Track3Dreco::beginJob(const edm::EventSetup&)
+void trkf::Track3Dreco::beginJob()
 {
   
 
 }
+
 void trkf::Track3Dreco::endJob()
 {
 }
 
 //------------------------------------------------------------------------------------//
-void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
+void trkf::Track3Dreco::produce(art::Event& evt)
 { 
 
 
   // get services
-  edm::Service<geo::Geometry> geom;
-  edm::Service<util::LArProperties> larprop;
+  art::ServiceHandle<geo::Geometry> geom;
+  art::ServiceHandle<util::LArProperties> larprop;
 
   //////////////////////////////////////////////////////
   // Make a std::auto_ptr<> for the thing you want to put into the event
@@ -117,7 +109,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 
 
   // get input Cluster object(s).
-  edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
+  art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fClusterModuleLabel,clusterListHandle);
 
   
@@ -129,7 +121,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
   std::vector<double> Itimelasts;        // in cm
   std::vector<double> Itimefirsts_line;  // in cm
   std::vector<double> Itimelasts_line;   // in cm
-  std::vector < edm::PtrVector<recob::Hit> > IclusHitlists;
+  std::vector < art::PtrVector<recob::Hit> > IclusHitlists;
   std::vector<unsigned int> Icluster_count; 
 
   // Collection
@@ -139,12 +131,12 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
   std::vector<double> Ctimelasts;        // in cm
   std::vector<double> Ctimefirsts_line;  // in cm
   std::vector<double> Ctimelasts_line;   // in cm
-  std::vector< edm::PtrVector < recob::Hit> > CclusHitlists;
+  std::vector< art::PtrVector < recob::Hit> > CclusHitlists;
   std::vector<unsigned int> Ccluster_count; 
 
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
     {
-      edm::Ptr<recob::Cluster> cl(clusterListHandle, ii);
+      art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
       
       /////////////////////////
       //////////// 2D track FIT
@@ -160,7 +152,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
       unsigned int plane;             //hit plane number
       
       
-      edm::PtrVector<recob::Hit> hitlist;
+      art::PtrVector<recob::Hit> hitlist;
       hitlist = cl->Hits( clPlane, -1);
       // std::sort(hitlist.begin(), hitlist.end(), hit_sort_2d); //sort hit by wire
       
@@ -171,7 +163,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
      
       
       int np=0;
-      for(edm::PtrVectorItr<recob::Hit> theHit = hitlist.begin(); theHit != hitlist.end();  theHit++) //loop over cluster hits
+      for(art::PtrVectorItr<recob::Hit> theHit = hitlist.begin(); theHit != hitlist.end();  theHit++) //loop over cluster hits
 	{
 	  //recover the Hit
 	  //      recob::Hit* theHit = (recob::Hit*)(*hitIter);
@@ -254,7 +246,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
     double Ct1 = Ctimelasts[collectionIter];
     double Ct0_line = Ctimefirsts_line[collectionIter];
     double Ct1_line = Ctimelasts_line[collectionIter];
-    edm::PtrVector<recob::Hit> hitsCtrk = CclusHitlists[collectionIter];
+    art::PtrVector<recob::Hit> hitsCtrk = CclusHitlists[collectionIter];
 
     for(unsigned int inductionIter=0;inductionIter<IclusHitlists.size();inductionIter++){   //loop over Induction view 2D tracks
       // Recover previously stored info
@@ -264,7 +256,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
       double It1 = Itimelasts[inductionIter];
       double It0_line = Itimefirsts_line[inductionIter];
       double It1_line = Itimelasts_line[inductionIter];
-      edm::PtrVector<recob::Hit> hitsItrk = IclusHitlists[inductionIter];
+      art::PtrVector<recob::Hit> hitsItrk = IclusHitlists[inductionIter];
 
       // match 2D tracks
       if((fabs(Ct0_line-It0_line)<ftmatch*timepitch) && (fabs(Ct1_line-It1_line)<ftmatch*timepitch)){ 
@@ -308,9 +300,9 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	double TrackPitchI  = wire_pitch/cosgammaI; // Induction Track Pitch length (i.e. the effective length of the track seen by the Induction wire) in cm
 	//double TrackLength_line = TMath::Sqrt(TMath::Power((startpoint[0]-endpoint[0]),2.)+TMath::Power((startpoint[1]-endpoint[1]),2.)+TMath::Power((startpoint[2]-endpoint[2]),2.));
 
-	edm::Ptr <recob::Cluster> cl1(clusterListHandle,Icluster_count[inductionIter]);
-	edm::Ptr <recob::Cluster> cl2(clusterListHandle,Ccluster_count[collectionIter]);
-	edm::PtrVector<recob::Cluster> clustersPerTrack;
+	art::Ptr <recob::Cluster> cl1(clusterListHandle,Icluster_count[inductionIter]);
+	art::Ptr <recob::Cluster> cl2(clusterListHandle,Ccluster_count[collectionIter]);
+	art::PtrVector<recob::Cluster> clustersPerTrack;
 	clustersPerTrack.push_back(cl1);
 	clustersPerTrack.push_back(cl2);
 
@@ -323,8 +315,8 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	std::vector<recob::SpacePoint> spacepoints;
 	
 
-	edm::PtrVector<recob::Hit> minhits = hitsCtrk.size() <= hitsItrk.size() ? hitsCtrk : hitsItrk;
-	edm::PtrVector<recob::Hit> maxhits = hitsItrk.size() <= hitsCtrk.size() ? hitsCtrk : hitsItrk;
+	art::PtrVector<recob::Hit> minhits = hitsCtrk.size() <= hitsItrk.size() ? hitsCtrk : hitsItrk;
+	art::PtrVector<recob::Hit> maxhits = hitsItrk.size() <= hitsCtrk.size() ? hitsCtrk : hitsItrk;
 
 
 	bool maxhitsMatch[maxhits.size()];
@@ -388,7 +380,7 @@ void trkf::Track3Dreco::produce(edm::Event& evt, edm::EventSetup const&)
 	  }
 	  maxhitsMatch[imaximum]=true;
 	  
-	  edm::PtrVector<recob::Hit> sp_hits;
+	  art::PtrVector<recob::Hit> sp_hits;
 	  if(difference!= 9999999.){
 	    sp_hits.push_back(minhits[imin]);
 	    sp_hits.push_back(maxhits[imaximum]);

@@ -1,21 +1,19 @@
 ////////////////////////////////////////////////////////////////////////
 // $Id: Track3DKalman.cxx,v 1.36 2010/09/15  Exp $
 //
-// Track3DKalman class
+// \file Track3DKalman_module.cc
 //
-// echurch@fnal.gov
+// \author echurch@fnal.gov
 //
 ////////////////////////////////////////////////////////////////////////
 // Framework includes
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
-
+#include "art/Framework/Core/ModuleMacros.h" 
 
 #include "TrackFinder/Track3DKalman.h"
 
 namespace trkf{
 
-  DEFINE_FWK_MODULE(Track3DKalman);
+  DEFINE_ART_MODULE(Track3DKalman);
   
 } // end namespace 
 

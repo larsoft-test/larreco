@@ -1,7 +1,16 @@
+////////////////////////////////////////////////////////////////////////
+//
+//   \file Track3DKalman.h
+//
+//   soderber@fnal.gov
+//   kinga.partyka@yale.edu
+//   joshua.spitz@yale.edu
+//
+////////////////////////////////////////////////////////////////////////
 #ifndef TRACK3DRECO_H
 #define TRACK3DRECO_H
 
-#include "FWCore/Framework/interface/EDProducer.h"
+#include "art/Framework/Core/EDProducer.h"
 #include <TTree.h>
 #include <TMatrixT.h>
 #include <TRandom3.h>
@@ -15,18 +24,16 @@
 
 namespace trkf {
 
-
-   
-  class Track3DKalman : public edm::EDProducer {
+  class Track3DKalman : public art::EDProducer {
     
   public:
     
-    explicit Track3DKalman(edm::ParameterSet const& pset);
+    explicit Track3DKalman(fhicl::ParameterSet const& pset);
     ~Track3DKalman();
     
     //////////////////////////////////////////////////////////
-    void produce(edm::Event& evt, edm::EventSetup const&); 
-    void beginJob(const edm::EventSetup&);
+    void produce(art::Event& evt); 
+    void beginJob();
     void endJob();
 
   private:
