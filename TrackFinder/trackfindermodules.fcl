@@ -1,6 +1,6 @@
 BEGIN_PROLOG
 
-argoneut_track3d:
+argoneut_track:
 {
  module_type:        "Track3Dreco"
  ClusterModuleLabel: "linemerger"
