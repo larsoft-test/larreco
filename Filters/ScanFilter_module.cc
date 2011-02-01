@@ -9,15 +9,13 @@
 ////////////////////////////////////////////////////////////////////////
 
 /// Framework includes
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
+#include "art/Framework/Core/ModuleMacros.h" 
  
 // LArSoft includes
 #include "ScanFilter.h"
 
 namespace filt {
 
-  DEFINE_FWK_MODULE(ScanFilter);
+  DEFINE_ART_MODULE(ScanFilter);
 
 } //namespace filt

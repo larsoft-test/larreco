@@ -10,22 +10,23 @@
 #ifndef EMPTYFILTER_H
 #define EMPTYFILTER_H
 
-#include "FWCore/Framework/interface/EDFilter.h"
+#include "art/Framework/Core/EDFilter.h"
 #include "TH1I.h"
 #include "TH2I.h"
 #include "TH2D.h"
+
 namespace filt {
 
-  class EmptyFilter : public edm::EDFilter  {
+  class EmptyFilter : public art::EDFilter  {
     
   public:
     
-    explicit EmptyFilter(edm::ParameterSet const& ); 
+    explicit EmptyFilter(fhicl::ParameterSet const& ); 
     virtual ~EmptyFilter();
          
     
-    bool filter(edm::Event& evt, edm::EventSetup const&);
-    void beginJob(const edm::EventSetup&);
+    bool filter(art::Event& evt);
+    void beginJob();
    
 
   private: 

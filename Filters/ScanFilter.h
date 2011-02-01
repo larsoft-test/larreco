@@ -10,21 +10,22 @@
 #ifndef SCANFILTER_H
 #define SCANFILTER_H
 
-#include "FWCore/Framework/interface/EDFilter.h"
+#include "art/Framework/Core/EDFilter.h"
 #include "TH1I.h"
 #include "TH2I.h"
 #include "TH2D.h"
+
 namespace filt {
 
-  class ScanFilter : public edm::EDFilter  {
+  class ScanFilter : public art::EDFilter  {
     
   public:
     
-    explicit ScanFilter(edm::ParameterSet const& ); 
+    explicit ScanFilter(fhicl::ParameterSet const& ); 
     virtual ~ScanFilter();
          
     
-    bool filter(edm::Event& evt, edm::EventSetup const&);
+    bool filter(art::Event& evt);
    
   private: 
  

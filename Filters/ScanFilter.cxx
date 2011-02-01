@@ -16,18 +16,15 @@ extern "C" {
 #include <fstream>
 
 //Framework Includes
-#include "FWCore/Framework/interface/Event.h" 
-#include "FWCore/ParameterSet/interface/ParameterSet.h" 
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
-#include "DataFormats/Common/interface/Handle.h" 
-#include "DataFormats/Common/interface/Ptr.h" 
-#include "DataFormats/Common/interface/PtrVector.h" 
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/Service.h" 
-#include "FWCore/Services/interface/TFileService.h" 
-#include "FWCore/Framework/interface/TFileDirectory.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
+#include "art/Framework/Core/Event.h" 
+#include "fhiclcpp/ParameterSet.h" 
+#include "art/Persistency/Common/Handle.h" 
+#include "art/Persistency/Common/Ptr.h" 
+#include "art/Persistency/Common/PtrVector.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Optional/TFileService.h" 
+#include "art/Framework/Core/TFileDirectory.h" 
+#include "messagefacility/MessageLogger/MessageLogger.h" 
 
 
 //Larsoft Includes
@@ -40,11 +37,11 @@ extern "C" {
 namespace filt{
 
   //-------------------------------------------------
-  ScanFilter::ScanFilter(edm::ParameterSet const & pset) : 
-    fScanModuleLabel      (pset.getParameter< std::string > ("ScanModuleLabel")),
-    fNeutrino_req         (pset.getParameter< int >("Neutrino_req")),
-    fNumShowers_req       (pset.getParameter< int >("NumShowers_req")),
-    fNumTracks_req        (pset.getParameter< int >("NumTracks_req"))
+  ScanFilter::ScanFilter(fhicl::ParameterSet const & pset) : 
+    fScanModuleLabel(pset.get< std::string > ("ScanModuleLabel")),
+    fNeutrino_req   (pset.get< int >("Neutrino_req")),
+    fNumShowers_req (pset.get< int >("NumShowers_req")),
+    fNumTracks_req  (pset.get< int >("NumTracks_req"))
   {   
   }
 
@@ -54,22 +51,22 @@ namespace filt{
   }
 
   //-------------------------------------------------
-  bool ScanFilter::filter(edm::Event &evt, edm::EventSetup const&)
+  bool ScanFilter::filter(art::Event &evt)
   { 
 
     int failFlag = 1;
     int run = evt.id().run();
     int event = evt.id().event();
     
-    edm::PtrVector<merge::ScanInfo> scanIn;
+    art::PtrVector<merge::ScanInfo> scanIn;
     scanIn.clear();
 
-    edm::Service<geo::Geometry> geom;
-    edm::Handle< std::vector<merge::ScanInfo> > scanHandle;
+    art::ServiceHandle<geo::Geometry> geom;
+    art::Handle< std::vector<merge::ScanInfo> > scanHandle;
     evt.getByLabel(fScanModuleLabel,scanHandle);
 
     for(unsigned int i = 0; i < scanHandle->size(); ++i){     
-     edm::Ptr<merge::ScanInfo> scaninfo(scanHandle, i);
+     art::Ptr<merge::ScanInfo> scaninfo(scanHandle, i);
       scanIn.push_back(scaninfo);     
     }
 

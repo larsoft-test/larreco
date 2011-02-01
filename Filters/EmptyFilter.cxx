@@ -16,18 +16,15 @@ extern "C" {
 #include <fstream>
 
 //Framework Includes
-#include "FWCore/Framework/interface/Event.h" 
-#include "FWCore/ParameterSet/interface/ParameterSet.h" 
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
-#include "DataFormats/Common/interface/Handle.h" 
-#include "DataFormats/Common/interface/Ptr.h" 
-#include "DataFormats/Common/interface/PtrVector.h" 
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/Service.h" 
-#include "FWCore/Services/interface/TFileService.h" 
-#include "FWCore/Framework/interface/TFileDirectory.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
+#include "art/Framework/Core/Event.h" 
+#include "fhiclcpp/ParameterSet.h" 
+#include "art/Persistency/Common/Handle.h" 
+#include "art/Persistency/Common/Ptr.h" 
+#include "art/Persistency/Common/PtrVector.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Optional/TFileService.h" 
+#include "art/Framework/Core/TFileDirectory.h" 
+#include "messagefacility/MessageLogger/MessageLogger.h" 
 
 
 //Larsoft Includes
@@ -39,10 +36,10 @@ extern "C" {
 namespace filt{
 
   //-------------------------------------------------
-  EmptyFilter::EmptyFilter(edm::ParameterSet const & pset) : 
-    fHitsModuleLabel(pset.getParameter< std::string > ("HitsModuleLabel")), 
-    fMinNumHits(pset.getParameter< int > ("MinHits")),  
-    fMinIonization(pset.getParameter< double > ("MinIonization"))
+  EmptyFilter::EmptyFilter(fhicl::ParameterSet const & pset) : 
+    fHitsModuleLabel(pset.get< std::string > ("HitsModuleLabel")), 
+    fMinNumHits     (pset.get< int         > ("MinHits")),  
+    fMinIonization  (pset.get< double      > ("MinIonization"))
   {   
   }
 
@@ -51,9 +48,9 @@ namespace filt{
   {
   }
 
-  void EmptyFilter::beginJob(const edm::EventSetup&)
+  void EmptyFilter::beginJob()
   {
-    edm::Service<edm::TFileService> tfs;
+    art::ServiceHandle<art::TFileService> tfs;
     totHitHist = tfs->make<TH1I>("totHitHist","Hit Number Per Event",750,0,1500);
     totIonSelHist = tfs->make<TH2D>("totIonSelHist","Ionization Per selected Event",500,0,20000,500,0,20000);
     totIonRejHist = tfs->make<TH2D>("totIonRejHist","Ionization Per rejected Event",500,0,20000,500,0,20000);
@@ -65,7 +62,7 @@ namespace filt{
   }
 
   //-------------------------------------------------
-  bool EmptyFilter::filter(edm::Event &evt, edm::EventSetup const&)
+  bool EmptyFilter::filter(art::Event &evt)
   { 
 
     numEventHist->Fill(0);
@@ -76,12 +73,12 @@ namespace filt{
     
     
 
-    edm::Service<geo::Geometry> geom;
-    edm::Handle< std::vector<recob::Hit> > hitHandle;
+    art::ServiceHandle<geo::Geometry> geom;
+    art::Handle< std::vector<recob::Hit> > hitHandle;
     evt.getByLabel(fHitsModuleLabel,hitHandle);
-    edm::PtrVector<recob::Hit> hitvec;
+    art::PtrVector<recob::Hit> hitvec;
     for(unsigned int i = 0; i < hitHandle->size(); ++i){
-      edm::Ptr<recob::Hit> prod(hitHandle, i);
+      art::Ptr<recob::Hit> prod(hitHandle, i);
       hitvec.push_back(prod);
     }
 
