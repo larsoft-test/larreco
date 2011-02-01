@@ -4,15 +4,13 @@
 //
 ////////////////////////////////////////////////////////////////////////
 // Framework includes
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
-
+#include "art/Framework/Core/ModuleMacros.h" 
 
 #include "ClusterFinder/LineMerger.h"
 
 namespace cluster{
 
-  DEFINE_FWK_MODULE(LineMerger);
+  DEFINE_ART_MODULE(LineMerger);
   
 } // end namespace 
 

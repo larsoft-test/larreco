@@ -15,12 +15,12 @@
 
 
 //Framework includes:
-#include "FWCore/Framework/interface/Event.h"
-#include "DataFormats/Common/interface/Handle.h"
-#include "FWCore/ServiceRegistry/interface/Service.h"
-#include "FWCore/Services/interface/TFileService.h"
-#include "FWCore/Framework/interface/TFileDirectory.h"
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "art/Framework/Core/Event.h"
+#include "art/Persistency/Common/Handle.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "art/Framework/Services/Optional/TFileService.h"
+#include "art/Framework/Core/TFileDirectory.h"
+#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "ClusterFinder/DBScanService.h"
 #include <cmath>
@@ -34,10 +34,10 @@
 #include "TH1.h"
 
 //----------------------------------------------------------
-cluster::DBScanService::DBScanService(edm::ParameterSet const& pset, edm::ActivityRegistry& reg):
-  fEps   (pset.getParameter< double      >("eps")   ),
-  fEps2  (pset.getParameter< double      >("eps2")  ),
-  fMinPts(pset.getParameter< int         >("minPts"))
+cluster::DBScanService::DBScanService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg):
+  fEps   (pset.get< double      >("eps")   ),
+  fEps2  (pset.get< double      >("eps2")  ),
+  fMinPts(pset.get< int         >("minPts"))
 {
 
 }
@@ -48,7 +48,7 @@ cluster::DBScanService::~DBScanService()
 }
 
 //----------------------------------------------------------
-void cluster::DBScanService::InitScan(edm::PtrVector<recob::Hit>& allhits)
+void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits)
 {
 
   // clear all the data member vectors for the new set of hits
@@ -65,7 +65,7 @@ void cluster::DBScanService::InitScan(edm::PtrVector<recob::Hit>& allhits)
   // Determine spacing between wires (different for each detector)
   ///get 2 first wires and find their spacing (wire_dist)
   
-  edm::Service<geo::Geometry> geom;
+  art::ServiceHandle<geo::Geometry> geom;
 
   const geo::WireGeo& wire = geom->Plane(0).Wire(0);
   const double pos[3] = {0., 0.0, 0.};

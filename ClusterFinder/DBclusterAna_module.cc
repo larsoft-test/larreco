@@ -7,14 +7,13 @@
 //
 ////////////////////////////////////////////////////////////////////////
 // Framework includes
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
+#include "art/Framework/Core/ModuleMacros.h" 
 
 #include "DBclusterAna.h"
 
 namespace cluster{
 
-  DEFINE_FWK_MODULE(DBclusterAna);
+  DEFINE_ART_MODULE(DBclusterAna);
   
 } 
 

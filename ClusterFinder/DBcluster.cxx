@@ -15,17 +15,15 @@
 
 
 //Framework includes:
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
-#include "DataFormats/Common/interface/Handle.h"
-#include "DataFormats/Common/interface/Ptr.h"
-#include "DataFormats/Common/interface/PtrVector.h"
-#include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/ServiceRegistry/interface/Service.h"
-#include "FWCore/Services/interface/TFileService.h"
-#include "FWCore/Framework/interface/TFileDirectory.h"
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "art/Framework/Core/Event.h"
+#include "fhiclcpp/ParameterSet.h"
+#include "art/Persistency/Common/Handle.h"
+#include "art/Persistency/Common/Ptr.h"
+#include "art/Persistency/Common/PtrVector.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "art/Framework/Services/Optional/TFileService.h"
+#include "art/Framework/Core/TFileDirectory.h"
+#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "ClusterFinder/DBcluster.h"
 #include <cmath>
@@ -40,12 +38,12 @@
 #include "TH1.h"
 
 //-------------------------------------------------
-cluster::DBcluster::DBcluster(edm::ParameterSet const& pset) : 
+cluster::DBcluster::DBcluster(fhicl::ParameterSet const& pset) : 
   
-  fhitsModuleLabel(pset.getParameter< std::string >("HitsModuleLabel")),
-  fEps            (pset.getParameter< double      >("eps")            ),
-  fEps2           (pset.getParameter< double      >("eps2")           ),
-  fMinPts         (pset.getParameter< int         >("minPts")         )
+  fhitsModuleLabel(pset.get< std::string >("HitsModuleLabel")),
+  fEps            (pset.get< double      >("eps")            ),
+  fEps2           (pset.get< double      >("eps2")           ),
+  fMinPts         (pset.get< int         >("minPts")         )
   
   // std::cerr << "Set epsilon distance = " << fEps << std::endl;
   // std::cerr << "Set epsilon distance = " << fEps2 << std::endl;
@@ -63,9 +61,9 @@ cluster::DBcluster::~DBcluster()
 }
 
 //-------------------------------------------------
-void cluster::DBcluster::beginJob(edm::EventSetup const&){
+void cluster::DBcluster::beginJob(){
   // get access to the TFile service
-  edm::Service<edm::TFileService> tfs;
+  art::ServiceHandle<art::TFileService> tfs;
 
   fhitwidth= tfs->make<TH1F>(" fhitwidth","width of hits in cm", 50000,0 ,5  );
   fhitwidth_ind_test= tfs->make<TH1F>("fhitwidth_ind_test","width of hits in cm", 50000,0 ,5  );
@@ -442,7 +440,7 @@ void cluster::DBScan::run_cluster()
 //-----------------------------------------------------------------
 
 
-void cluster::DBcluster::produce(edm::Event& evt, edm::EventSetup const&){
+void cluster::DBcluster::produce(art::Event& evt){
    
   //get a collection of clusters
    
@@ -451,26 +449,26 @@ void cluster::DBcluster::produce(edm::Event& evt, edm::EventSetup const&){
     
     
   //std::cout << "event  : " << evt.Header().Event() << std::endl;
-  edm::Service<geo::Geometry> geom;
+  art::ServiceHandle<geo::Geometry> geom;
 
   
   
-  edm::Handle< std::vector<recob::Hit> > hitcol;
+  art::Handle< std::vector<recob::Hit> > hitcol;
   evt.getByLabel(fhitsModuleLabel,hitcol);
   
   
   ///loop over all hits in the event and look for clusters (for each plane)
   
   
-    edm::PtrVector<recob::Hit> allhits;
-    edm::PtrVector<recob::Hit> clusterHits;
+    art::PtrVector<recob::Hit> allhits;
+    art::PtrVector<recob::Hit> clusterHits;
 
   unsigned int p(0),w(0), channel(0);
   for(int plane=0; plane<geom->Nplanes(); plane++)
     {
       for(unsigned int i = 0; i< hitcol->size(); ++i){
   
-	edm::Ptr<recob::Hit> hit(hitcol, i);
+	art::Ptr<recob::Hit> hit(hitcol, i);
   
   
 	channel=hit->Wire()->RawDigit()->Channel();

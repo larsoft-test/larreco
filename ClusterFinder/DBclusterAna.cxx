@@ -11,25 +11,26 @@
 #include <fstream>
 #include <algorithm>
 #include <functional>
+
 #include <TH1.h>
 #include <TH2.h>
 #include <TH1F.h>
 #include <TH2F.h>
-#include "ClusterFinder/DBclusterAna.h"
 #include "TDatabasePDG.h"
 #include "TSystem.h"
-#include "FWCore/Framework/interface/Event.h" 
-#include "FWCore/ParameterSet/interface/ParameterSet.h" 
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
-#include "DataFormats/Common/interface/Handle.h" 
-#include "DataFormats/Common/interface/View.h"
-#include "DataFormats/Common/interface/Ptr.h" 
-#include "DataFormats/Common/interface/PtrVector.h" 
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/Service.h" 
-#include "FWCore/Services/interface/TFileService.h" 
-#include "FWCore/Framework/interface/TFileDirectory.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
+
+#include "art/Framework/Core/Event.h" 
+#include "fhiclcpp/ParameterSet.h" 
+#include "art/Persistency/Common/Handle.h" 
+#include "art/Persistency/Common/Ptr.h" 
+#include "art/Persistency/Common/PtrVector.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Optional/TFileService.h" 
+#include "art/Framework/Core/TFileDirectory.h" 
+#include "messagefacility/MessageLogger/MessageLogger.h" 
+
+
+#include "ClusterFinder/DBclusterAna.h"
 #include "Geometry/geo.h"
 #include "SimulationBase/simbase.h"
 #include "Simulation/sim.h"
@@ -40,14 +41,14 @@
 
  
 //-------------------------------------------------
-cluster::DBclusterAna::DBclusterAna(edm::ParameterSet const& pset) : 
+cluster::DBclusterAna::DBclusterAna(fhicl::ParameterSet const& pset) : 
   
-  fDigitModuleLabel         (pset.getParameter< std::string >("DigitModuleLabel")        ),
-  fHitsModuleLabel          (pset.getParameter< std::string >("HitsModuleLabel")         ),
-  fLArG4ModuleLabel         (pset.getParameter< std::string >("LArG4ModuleLabel")        ),
-  fCalDataModuleLabel       (pset.getParameter< std::string >("CalDataModuleLabel")      ),
-  fGenieGenModuleLabel      (pset.getParameter< std::string >("GenieGenModuleLabel")     ),
-  fClusterFinderModuleLabel (pset.getParameter< std::string >("ClusterFinderModuleLabel"))
+  fDigitModuleLabel         (pset.get< std::string >("DigitModuleLabel")        ),
+  fHitsModuleLabel          (pset.get< std::string >("HitsModuleLabel")         ),
+  fLArG4ModuleLabel         (pset.get< std::string >("LArG4ModuleLabel")        ),
+  fCalDataModuleLabel       (pset.get< std::string >("CalDataModuleLabel")      ),
+  fGenieGenModuleLabel      (pset.get< std::string >("GenieGenModuleLabel")     ),
+  fClusterFinderModuleLabel (pset.get< std::string >("ClusterFinderModuleLabel"))
 {
 
 
@@ -60,11 +61,11 @@ cluster::DBclusterAna::~DBclusterAna()
 
 }
 
-void cluster::DBclusterAna::beginJob(edm::EventSetup const&)
+void cluster::DBclusterAna::beginJob()
 {
 
   // get access to the TFile service
-  edm::Service<edm::TFileService> tfs;
+  art::ServiceHandle<art::TFileService> tfs;
 
   fNoParticles_pdg_per_event = tfs->make<TH1F>("fNoParticles_pdg_per_event","Average # of Particles per cluster for each event", 500,0 ,5);
   fNoParticles_pdg=tfs->make<TH1F>("fNoParticles_pdg","Number of Particles in a Cluster for each cluster", 500,0 ,5);
@@ -112,7 +113,7 @@ void cluster::DBclusterAna::beginJob(edm::EventSetup const&)
 
 }
 
-void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup const&)
+void cluster::DBclusterAna::analyze(const art::Event& evt)
 {
   
   std::cout << "run    : " << evt.run() << std::endl;
@@ -128,17 +129,17 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
     }
 
   
-  edm::Handle< std::vector<raw::RawDigit>  > rdListHandle;
+  art::Handle< std::vector<raw::RawDigit>  > rdListHandle;
   evt.getByLabel(fDigitModuleLabel,rdListHandle);
-  edm::Handle< std::vector<sim::SimChannel>  > scListHandle;
+  art::Handle< std::vector<sim::SimChannel>  > scListHandle;
   evt.getByLabel(fDigitModuleLabel,scListHandle);
-  edm::Handle< std::vector<recob::Hit> > hitListHandle;
+  art::Handle< std::vector<recob::Hit> > hitListHandle;
   evt.getByLabel(fHitsModuleLabel,hitListHandle);
-  edm::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
+  art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
   evt.getByLabel(fGenieGenModuleLabel,mctruthListHandle);
-  edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
+  art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fClusterFinderModuleLabel,clusterListHandle);
-  edm::Handle< std::vector<recob::Wire> > wireListHandle;
+  art::Handle< std::vector<recob::Wire> > wireListHandle;
   evt.getByLabel(fCalDataModuleLabel,wireListHandle);
 
   
@@ -154,24 +155,24 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 
  
   
-  edm::PtrVector<raw::RawDigit> rawdigits;
+  art::PtrVector<raw::RawDigit> rawdigits;
   
   for (unsigned int ii = 0; ii <  rdListHandle->size(); ++ii)
     {
-      edm::Ptr<raw::RawDigit> rawdigit(rdListHandle,ii);
+      art::Ptr<raw::RawDigit> rawdigit(rdListHandle,ii);
       rawdigits.push_back(rawdigit);
     }
 
-  edm::PtrVector<sim::SimChannel> simchans;
+  art::PtrVector<sim::SimChannel> simchans;
   
   for (unsigned int ii = 0; ii <  scListHandle->size(); ++ii)
     {
-      edm::Ptr<sim::SimChannel> simc(scListHandle,ii);
+      art::Ptr<sim::SimChannel> simc(scListHandle,ii);
       simchans.push_back(simc);
     }
   
 
-  //get the sim::Particle collection from the edm::Event and then use the Simulation/SimListUtils object to create a sim::ParticleList from the edm::Event.  
+  //get the sim::Particle collection from the art::Event and then use the Simulation/SimListUtils object to create a sim::ParticleList from the art::Event.  
 
    sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
 
@@ -205,36 +206,36 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   
   
   //---------------------------------------------------------------- 
-  edm::PtrVector<simb::MCTruth> mclist;
+  art::PtrVector<simb::MCTruth> mclist;
   for (unsigned int ii = 0; ii <  mctruthListHandle->size(); ++ii)
     {
-      edm::Ptr<simb::MCTruth> mctparticle(mctruthListHandle,ii);
+      art::Ptr<simb::MCTruth> mctparticle(mctruthListHandle,ii);
       mclist.push_back(mctparticle);
     }
 
-  edm::PtrVector<recob::Hit> hits;
+  art::PtrVector<recob::Hit> hits;
   for (unsigned int ii = 0; ii <  hitListHandle->size(); ++ii)
     {
-      edm::Ptr<recob::Hit> hitHolder(hitListHandle,ii);
+      art::Ptr<recob::Hit> hitHolder(hitListHandle,ii);
       hits.push_back(hitHolder);
     }
 
 
-  edm::PtrVector<recob::Cluster> clusters;
+  art::PtrVector<recob::Cluster> clusters;
   for (unsigned int ii = 0; ii <  clusterListHandle->size(); ++ii)
     {
-      edm::Ptr<recob::Cluster> clusterHolder(clusterListHandle,ii);
+      art::Ptr<recob::Cluster> clusterHolder(clusterListHandle,ii);
       clusters.push_back(clusterHolder);
     }
 
   std::cout<<"in Efficiency, clusters.size()= "<<clusters.size()<<std::endl;
   
   //---------------------------------------------------------------
-  edm::PtrVector<recob::Wire> wirelist;
+  art::PtrVector<recob::Wire> wirelist;
   
   for (unsigned int ii = 0; ii <  wireListHandle->size(); ++ii)
     {
-      edm::Ptr<recob::Wire> wireHolder(wireListHandle,ii);
+      art::Ptr<recob::Wire> wireHolder(wireListHandle,ii);
       
       wirelist.push_back(wireHolder);
       
@@ -258,8 +259,8 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   double no_of_clusters=0;
   double total_no_hits_in_clusters=0;
   //unsigned int plane=0;
-  edm::Ptr<raw::RawDigit > _rawdigit;
-  edm::Ptr<raw::RawDigit > _rawdigit2;
+  art::Ptr<raw::RawDigit > _rawdigit;
+  art::Ptr<raw::RawDigit > _rawdigit2;
   const sim::Electrons* _electrons=0;
   const sim::Electrons* electrons=0;
   std::vector<int> vec_pdg;
@@ -280,7 +281,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   double _en_13=0,_en_11=0,_en_m11=0,_en_111=0,_en_22=0,_en_211=0,_en_m211=0,_en_2212=0,_en_2112=0;
   std::vector<double> diff_vec;
   
-  edm::Service<geo::Geometry> geom;  
+  art::ServiceHandle<geo::Geometry> geom;  
   /*
   for(unsigned int i = 0; i < hits.size(); ++i) {
     std::cout<<"channel: "<<hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(hits[i]->StartTime()+hits[i]->EndTime())/2.<<" X time= "<<hits[i]-> CrossingTime()<<std::endl;
@@ -288,13 +289,13 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   */
   if(clusters.size()!=0 && hits.size()!=0){
     for(unsigned int plane=0;plane<geom->Nplanes();++plane){
-      //edm::PtrVectorItr<recob::Cluster> clusterIter = clusters.begin();      
+      //art::PtrVectorItr<recob::Cluster> clusterIter = clusters.begin();      
       for(unsigned int j=0; j<clusters.size();++j) 
       //while (clusterIter != clusters.end()) 
 	{
 	//	std::cout<<"I AM ON PLANE #"<<plane<<std::endl;
 	
-	edm::PtrVector<recob::Hit> _hits; 
+	art::PtrVector<recob::Hit> _hits; 
 
 	//if (hits.size() <= 0) {clusterIter++; continue;}
 	//_hits = (*clusterIter)->Hits(plane);
@@ -313,7 +314,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 	    unsigned int channel = _hits[i]->Wire()->RawDigit()->Channel();
 
 	    // loop over the SimChannels to find this one
-	    edm::Ptr<sim::SimChannel> sc;
+	    art::Ptr<sim::SimChannel> sc;
 	    for(unsigned int scs = 0; scs < simchans.size(); ++scs)
 	      if(simchans[scs]->Channel() == channel) sc = simchans[scs];
 
@@ -715,8 +716,8 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
       
     //-----------------------------------------------------------------------
     for( unsigned int i = 0; i < mclist.size(); ++i ){
-      //edm::Ptr<const simb::MCTruth> mc(mctruthListHandle,i);
-      edm::Ptr<simb::MCTruth> mc(mclist[i]);
+      //art::Ptr<const simb::MCTruth> mc(mctruthListHandle,i);
+      art::Ptr<simb::MCTruth> mc(mclist[i]);
       // simb::MCTruth mcp(*(mclist[i]));// We don't ever use this. EC, 6-Oct-2010.
       // std::cout<<"Number of particles is : "<<mc->NParticles()<<std::endl;
       // 	std::cout<<" mc->NParticles()="<< mc->NParticles()<<std::endl;
@@ -785,7 +786,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
     //if(XTime >1650){std::cout<<"possible fake hit line ***********"<<std::endl;}
 
     // loop over the SimChannels to find this one
-    edm::Ptr<sim::SimChannel> sc;
+    art::Ptr<sim::SimChannel> sc;
     for(unsigned int scs = 0; scs < simchans.size(); ++scs)
       if(simchans[scs]->Channel() == channel) sc = simchans[scs];
     
@@ -848,7 +849,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 		 
 	  for( unsigned int i=0; i<_particleList.size(); ++i )
 	    {
-	      //edm::Ptr<sim::ParticleList> particleList(partListHandle,i);
+	      //art::Ptr<sim::ParticleList> particleList(partListHandle,i);
 	      // This barfs, EC, 6-Oct-2010.
 	      //const sim::ParticleList particleList = _particleList;
 	      
@@ -991,7 +992,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
   //   try{
   //     evt.Reco().Get(fInputFolder.c_str(),wirelist);
   //   } 
-  //   catch(edm::Exception e){
+  //   catch(art::Exception e){
   //     std::cerr << "Error retrieving wire list, while looking for wires "
   // 	      << "in hit::FFTHitFinder::Ana(),  "<< "directory : " 
   // 	      << fInputFolder.c_str() << std::endl;
@@ -1071,7 +1072,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
     double XTime=hits[j]-> CrossingTime();
 
     // loop over the SimChannels to find this one
-    edm::Ptr<sim::SimChannel> sc2;
+    art::Ptr<sim::SimChannel> sc2;
     for(unsigned int scs = 0; scs < simchans.size(); ++scs)
       if(simchans[scs]->Channel() == channel) sc2 = simchans[scs];
 
@@ -1159,7 +1160,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
 
   //loop through all wires:
 	  
-  for(edm::PtrVectorItr<recob::Wire> wireIter2 = wirelist.begin();
+  for(art::PtrVectorItr<recob::Wire> wireIter2 = wirelist.begin();
       wireIter2 != wirelist.end();  wireIter2++) {
 	    
 	    
@@ -1170,7 +1171,7 @@ void cluster::DBclusterAna::analyze(const edm::Event& evt,  edm::EventSetup cons
     // std::cout<<"channel: "<<wire<<std::endl;
 	    
     // loop over the SimChannels to find this one
-    edm::Ptr<sim::SimChannel> sc;
+    art::Ptr<sim::SimChannel> sc;
     for(unsigned int scs = 0; scs < simchans.size(); ++scs)
       if(simchans[scs]->Channel() == channel) sc = simchans[scs];
     

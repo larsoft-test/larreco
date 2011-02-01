@@ -1,20 +1,19 @@
 ////////////////////////////////////////////////////////////////////////
 // $Id: DBSCANfinderAna.cxx,v 1.36 2010/09/15  bpage Exp $
 //
-// DBScanModule
+// DBScan service
 //
 // \author kinga.partyka@yale.edu
 //
 ////////////////////////////////////////////////////////////////////////
 // Framework includes
-#include "FWCore/Framework/interface/MakerMacros.h"
+#include "art/Framework/Services/Registry/ServiceMacros.h"
 
-
-#include "ClusterFinder/DBScanModule.h"
+#include "ClusterFinder/DBScanService.h"
 
 namespace cluster{
 
-  DEFINE_FWK_MODULE(DBScanModule);
+  DEFINE_ART_SERVICE(DBScanService);
   
 } 
 

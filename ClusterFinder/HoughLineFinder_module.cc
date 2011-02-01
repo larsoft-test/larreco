@@ -7,15 +7,13 @@
 //
 ////////////////////////////////////////////////////////////////////////
 // Framework includes
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
-
+#include "art/Framework/Core/ModuleMacros.h" 
 
 #include "ClusterFinder/HoughLineFinder.h"
 
 namespace cluster{
 
-  DEFINE_FWK_MODULE(HoughLineFinder);
+  DEFINE_ART_MODULE(HoughLineFinder);
   
 } // end namespace 
 

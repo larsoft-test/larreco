@@ -15,16 +15,15 @@
 
 
 //Framework includes:
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
-#include "DataFormats/Common/interface/Handle.h"
-#include "DataFormats/Common/interface/Ptr.h"
-#include "DataFormats/Common/interface/PtrVector.h"
-#include "FWCore/ServiceRegistry/interface/Service.h"
-#include "FWCore/Services/interface/TFileService.h"
-#include "FWCore/Framework/interface/TFileDirectory.h"
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "art/Framework/Core/Event.h"
+#include "fhiclcpp/ParameterSet.h"
+#include "art/Persistency/Common/Handle.h"
+#include "art/Persistency/Common/Ptr.h"
+#include "art/Persistency/Common/PtrVector.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "art/Framework/Services/Optional/TFileService.h"
+#include "art/Framework/Core/TFileDirectory.h"
+#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "ClusterFinder/DBScanService.h"
 #include "ClusterFinder/DBScanModule.h"
@@ -40,8 +39,8 @@
 #include "TH1.h"
 
 //-------------------------------------------------
-cluster::DBScanModule::DBScanModule(edm::ParameterSet const& pset) : 
-  fhitsModuleLabel(pset.getParameter< std::string >("HitsModuleLabel"))  
+cluster::DBScanModule::DBScanModule(fhicl::ParameterSet const& pset) : 
+  fhitsModuleLabel(pset.get< std::string >("HitsModuleLabel"))  
 {  
   produces<std::vector<recob::Cluster> >();  
 }
@@ -52,9 +51,9 @@ cluster::DBScanModule::~DBScanModule()
 }
 
 //-------------------------------------------------
-void cluster::DBScanModule::beginJob(edm::EventSetup const&){
+void cluster::DBScanModule::beginJob(){
   // get access to the TFile service
-  edm::Service<edm::TFileService> tfs;
+  art::ServiceHandle<art::TFileService> tfs;
 
   fhitwidth= tfs->make<TH1F>(" fhitwidth","width of hits in cm", 50000,0 ,5  );
   fhitwidth_ind_test= tfs->make<TH1F>("fhitwidth_ind_test","width of hits in cm", 50000,0 ,5  );
@@ -63,34 +62,34 @@ void cluster::DBScanModule::beginJob(edm::EventSetup const&){
 }
 
 //-----------------------------------------------------------------
-void cluster::DBScanModule::produce(edm::Event& evt, edm::EventSetup const&)
+void cluster::DBScanModule::produce(art::Event& evt)
 {
    
   //get a collection of clusters   
   std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
     
   //std::cout << "event  : " << evt.Header().Event() << std::endl;
-  edm::Service<geo::Geometry> geom;
+  art::ServiceHandle<geo::Geometry> geom;
 
-  edm::Handle< std::vector<recob::Hit> > hitcol;
+  art::Handle< std::vector<recob::Hit> > hitcol;
   evt.getByLabel(fhitsModuleLabel,hitcol);
   
   
   ///loop over all hits in the event and look for clusters (for each plane)
   
   
-  edm::PtrVector<recob::Hit> allhits;
-  edm::PtrVector<recob::Hit> clusterHits;
+  art::PtrVector<recob::Hit> allhits;
+  art::PtrVector<recob::Hit> clusterHits;
 
   // get the DBScan service
-  edm::Service<cluster::DBScanService> dbscan;
+  art::ServiceHandle<cluster::DBScanService> dbscan;
       
   unsigned int p(0),w(0), channel(0);
   for(int plane=0; plane<geom->Nplanes(); plane++)
     {
       for(unsigned int i = 0; i< hitcol->size(); ++i){
   
-	edm::Ptr<recob::Hit> hit(hitcol, i);
+	art::Ptr<recob::Hit> hit(hitcol, i);
   
   
 	channel=hit->Wire()->RawDigit()->Channel();

@@ -6,20 +6,21 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
-#include "FWCore/Framework/interface/EDProducer.h"
+#include "art/Framework/Core/EDProducer.h"
 
 class TH1F;
 
+///associating hits in groups based on time and space
 namespace cluster{
    
   //--------------------------------------------------------------- 
-  class DBcluster : public edm::EDProducer
+  class DBcluster : public art::EDProducer
   {
   public:
-    explicit DBcluster(edm::ParameterSet const& pset); 
+    explicit DBcluster(fhicl::ParameterSet const& pset); 
     ~DBcluster();
-    void produce(edm::Event& evt, edm::EventSetup const&);
-    void beginJob(edm::EventSetup const&);
+    void produce(art::Event& evt);
+    void beginJob();
     
   private:
        

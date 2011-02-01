@@ -7,15 +7,13 @@
 //
 ////////////////////////////////////////////////////////////////////////
 // Framework includes
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
-
+#include "art/Framework/Core/ModuleMacros.h" 
 
 #include "ClusterFinder/HoughLineFinderAna.h"
 
 namespace cluster{
 
-  DEFINE_FWK_MODULE(HoughLineFinderAna);
+  DEFINE_ART_MODULE(HoughLineFinderAna);
   
 } // end namespace caldata
 

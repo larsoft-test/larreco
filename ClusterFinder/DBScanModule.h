@@ -6,20 +6,20 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
-#include "FWCore/Framework/interface/EDProducer.h"
+#include "art/Framework/Core/EDProducer.h"
 
 class TH1F;
 
 namespace cluster{
    
   //--------------------------------------------------------------- 
-  class DBScanModule : public edm::EDProducer
+  class DBScanModule : public art::EDProducer
   {
   public:
-    explicit DBScanModule(edm::ParameterSet const& pset); 
+    explicit DBScanModule(fhicl::ParameterSet const& pset); 
     ~DBScanModule();
-    void produce(edm::Event& evt, edm::EventSetup const&);
-    void beginJob(edm::EventSetup const&);
+    void produce(art::Event& evt);
+    void beginJob();
     
   private:
        
@@ -27,7 +27,6 @@ namespace cluster{
     TH1F *fhitwidth_ind_test;  
     TH1F *fhitwidth_coll_test;  
     
-  protected:
     std::string fhitsModuleLabel;
     
   };

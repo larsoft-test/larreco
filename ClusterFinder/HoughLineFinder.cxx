@@ -26,17 +26,15 @@ extern "C" {
 #include <algorithm>
 #include <vector>
 
-#include "FWCore/Framework/interface/Event.h" 
-#include "FWCore/ParameterSet/interface/ParameterSet.h" 
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
-#include "DataFormats/Common/interface/Handle.h" 
-#include "DataFormats/Common/interface/Ptr.h" 
-#include "DataFormats/Common/interface/PtrVector.h" 
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/Service.h" 
-#include "FWCore/Services/interface/TFileService.h" 
-#include "FWCore/Framework/interface/TFileDirectory.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
+#include "art/Framework/Core/Event.h" 
+#include "fhiclcpp/ParameterSet.h" 
+#include "art/Persistency/Common/Handle.h" 
+#include "art/Persistency/Common/Ptr.h" 
+#include "art/Persistency/Common/PtrVector.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Optional/TFileService.h" 
+#include "art/Framework/Core/TFileDirectory.h" 
+#include "messagefacility/MessageLogger/MessageLogger.h" 
  
 #include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
@@ -45,20 +43,18 @@ extern "C" {
 #include "Geometry/geo.h"
 
 
-
-
-cluster::HoughLineFinder::HoughLineFinder(edm::ParameterSet const& pset) : 
-  fDBScanModuleLabel       (pset.getParameter< std::string >("DBScanModuleLabel")),
-  fMaxLines                (pset.getParameter< int >("MaxLines")),
-  fMinHits                 (pset.getParameter< int >("MinHits")),
-  fSaveAccumulator         (pset.getParameter< int >("SaveAccumulator")),
-  fNumAngleCells           (pset.getParameter< int >("NumAngleCells")),
-  fRhoResolutionFactor     (pset.getParameter< int >("RhoResolutionFactor")),
-  fSmootherSigma           (pset.getParameter< double >("SmootherSigma")),
-  fMaxDistance             (pset.getParameter< double >("MaxDistance")),
-  fRhoZeroOutRange         (pset.getParameter< int >("RhoZeroOutRange")),
-  fThetaZeroOutRange       (pset.getParameter< int >("ThetaZeroOutRange")),
-  fPerCluster              (pset.getParameter< int >("HitsPerCluster"))
+cluster::HoughLineFinder::HoughLineFinder(fhicl::ParameterSet const& pset) : 
+  fDBScanModuleLabel       (pset.get< std::string >("DBScanModuleLabel")),
+  fMaxLines                (pset.get< int >("MaxLines")),
+  fMinHits                 (pset.get< int >("MinHits")),
+  fSaveAccumulator         (pset.get< int >("SaveAccumulator")),
+  fNumAngleCells           (pset.get< int >("NumAngleCells")),
+  fRhoResolutionFactor     (pset.get< int >("RhoResolutionFactor")),
+  fSmootherSigma           (pset.get< double >("SmootherSigma")),
+  fMaxDistance             (pset.get< double >("MaxDistance")),
+  fRhoZeroOutRange         (pset.get< int >("RhoZeroOutRange")),
+  fThetaZeroOutRange       (pset.get< int >("ThetaZeroOutRange")),
+  fPerCluster              (pset.get< int >("HitsPerCluster"))
 {
   produces< std::vector<recob::Cluster> >();
 }
@@ -75,39 +71,39 @@ cluster::HoughLineFinder::HoughTransform::~HoughTransform()
 {  
 }
 
-void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
+void cluster::HoughLineFinder::produce(art::Event& evt)
 {
 
   //////////////////////////////////////////////////////
   // here is how to get a collection of objects out of the file
-  // and connect it to a edm::Handle
+  // and connect it to a art::Handle
   //////////////////////////////////////////////////////
   // Read in the clusterList object(s).
-  edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
+  art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
   //Point to a collection of clusters to output.
   std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
 
   std::vector<int> skip;  
 
-  edm::Service<geo::Geometry> geom;
+  art::ServiceHandle<geo::Geometry> geom;
   filter::ChannelFilter chanFilt;
   HoughTransform c;
   HoughTransform cc;
   HoughTransform ccc;
   extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
-  edm::PtrVector<recob::Hit> cHits;
-  edm::PtrVector<recob::Hit> hit;
+  art::PtrVector<recob::Hit> cHits;
+  art::PtrVector<recob::Hit> hit;
 
-  edm::PtrVector<recob::Cluster> clusIn;
+  art::PtrVector<recob::Cluster> clusIn;
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
     {
-      edm::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
+      art::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
       clusIn.push_back(cluster);
     }
 
   for(int p = 0; p < geom->Nplanes(); p++) {
-    edm::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
+    art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
     int clusterID=0;//the unique ID of the cluster
     // This is the loop over clusters. The algorithm searches for lines on a (DBSCAN) cluster-by-cluster basis. 
     while(clusterIter!=clusIn.end()) 
@@ -124,7 +120,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  		if(cHits.size() > 0)
 		  {
 		    // hit.insert(hit.end(),cHits.begin(),cHits.end());
-		    edm::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
+		    art::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
 		    while (hitIter!=cHits.end())
 		      {
 			hit.push_back((*hitIter));
@@ -153,7 +149,7 @@ void cluster::HoughLineFinder::produce(edm::Event& evt, edm::EventSetup const&)
  	std::vector<int> sequenceHolder;  //channels of hits in list
  	std::vector<int> currentHits; //working vector of hits 
  	std::vector<int> lastHits;  //best list of hits
- 	edm::PtrVector<recob::Hit> clusterHits;
+ 	art::PtrVector<recob::Hit> clusterHits;
  	double indcolscaling=0.;//a parameter to account for the different characteristic hit width of induction and collection plane
  	double centerofmassx=0;
  	double centerofmassy=0;
@@ -540,6 +536,6 @@ void SaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy)
   // write the actual pixels
   bmpFile.write((const char *)pix, dx*dy);
 }
-
+ 
 
 

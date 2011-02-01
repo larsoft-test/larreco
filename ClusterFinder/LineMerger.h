@@ -1,20 +1,28 @@
+////////////////////////////////////////////////////////////////////////
+// $Id: HoughLineFinderAna.cxx,v 1.36 2010/09/15  bpage Exp $
+//
+// HoughLineFinderAna class
+//
+// josh
+//
+////////////////////////////////////////////////////////////////////////
 #ifndef LINEMERGER_H
 #define LINEMERGER_H
 
-#include "FWCore/Framework/interface/EDProducer.h"
+#include "art/Framework/Core/EDProducer.h"
 #include <string>
 
 namespace cluster {
    
-  class LineMerger : public edm::EDProducer {
+  class LineMerger : public art::EDProducer {
     
   public:
     
-    explicit LineMerger(edm::ParameterSet const& pset); 
+    explicit LineMerger(fhicl::ParameterSet const& pset); 
     ~LineMerger();
     
-    void produce(edm::Event& evt, edm::EventSetup const&);
-    void beginJob(edm::EventSetup const&);
+    void produce(art::Event& evt);
+    void beginJob();
     
   private:
         

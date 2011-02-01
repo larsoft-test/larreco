@@ -1,25 +1,33 @@
+////////////////////////////////////////////////////////////////////////
+// $Id: HoughLineFinderAna.cxx,v 1.36 2010/09/15  bpage Exp $
+//
+// HoughLineFinderAna class
+//
+// josh
+//
+////////////////////////////////////////////////////////////////////////
 #ifndef HOUGHLINEFINDER_H
 #define HOUGHLINEFINDER_H
-
 
 #include "TMath.h"
 #include <vector>
 #include <string>
 
-#include "FWCore/Framework/interface/EDProducer.h"
+#include "art/Framework/Core/EDProducer.h"
 
 class TH1F;
 class TTree;
+
 namespace cluster {
    
-  class HoughLineFinder : public edm::EDProducer {
+  class HoughLineFinder : public art::EDProducer {
     
   public:
     
-    explicit HoughLineFinder(edm::ParameterSet const& pset); 
+    explicit HoughLineFinder(fhicl::ParameterSet const& pset); 
     ~HoughLineFinder();
          
-    void produce(edm::Event& evt, edm::EventSetup const&);
+    void produce(art::Event& evt);
      
     class HoughTransform {
     public:

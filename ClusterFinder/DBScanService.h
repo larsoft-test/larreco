@@ -6,10 +6,10 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
-#include "FWCore/ServiceRegistry/interface/ActivityRegistry.h"
-#include "FWCore/ServiceRegistry/interface/Service.h"
-#include "DataFormats/Common/interface/Ptr.h"
-#include "DataFormats/Common/interface/PtrVector.h"
+#include "art/Framework/Services/Registry/ActivityRegistry.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "art/Persistency/Common/Ptr.h"
+#include "art/Persistency/Common/PtrVector.h"
 
 class TH1F;
 
@@ -22,10 +22,10 @@ namespace cluster{
   public:
     
     
-    DBScanService(edm::ParameterSet const& pset, edm::ActivityRegistry& reg);
+    DBScanService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg);
     virtual ~DBScanService();
     
-    void InitScan(edm::PtrVector<recob::Hit>& allhits);
+    void InitScan(art::PtrVector<recob::Hit>& allhits);
     double getSimilarity(const std::vector<double> v1, const std::vector<double> v2); 
     std::vector<unsigned int> findNeighbors( unsigned int pid, double threshold, double threshold2);
     void computeSimilarity();

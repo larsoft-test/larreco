@@ -8,7 +8,7 @@
 #ifndef DBCLUSTERANA_H
 #define DBCLUSTERANA_H
 
-#include "FWCore/Framework/interface/EDAnalyzer.h"
+#include "art/Framework/Core/EDAnalyzer.h"
 
 #include <vector>
 #include <string>
@@ -20,16 +20,16 @@ class TH2F;
 namespace cluster {
 
    
-  class DBclusterAna : public edm::EDAnalyzer {
+  class DBclusterAna : public art::EDAnalyzer {
 
   public:
           
-    explicit DBclusterAna(edm::ParameterSet const& pset); 
+    explicit DBclusterAna(fhicl::ParameterSet const& pset); 
     virtual ~DBclusterAna();
  
     /// read access to event
-    void analyze(const edm::Event& evt,  edm::EventSetup const&);
-    void beginJob(edm::EventSetup const&);
+    void analyze(const art::Event& evt);
+    void beginJob();
 
   private:
     TH1F* fNoParticles_pdg;

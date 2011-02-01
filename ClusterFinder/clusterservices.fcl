@@ -1,0 +1,10 @@
+BEGIN_PROLOG
+
+argoneut_dbscanservice:
+{
+ eps:             1.0
+ eps2:            0.75
+ minPts:          2
+}
+
+END_PROLOG
