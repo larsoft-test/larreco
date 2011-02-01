@@ -1,0 +1,44 @@
+BEGIN_PROLOG
+
+argoneut_hitfinder:
+{
+ module_type:         "FFTHitFinder"
+ CalDataModuleLabel:  "caldata"      #Induction signal height threshold 
+ MinSigInd:            6.0           #Collection signal height threshold 
+ MinSigCol:            11.0          #Initial width for induction fit
+ IndWidth:             5.0           #Iitial width for induction fit
+ ColWidth:             7.5           #Initial width for collection fit
+ POffset:              20.0          #Time delay between planes
+ OOffset:              24.0          #Distance(cm) from induction plane to origin
+ MaxMultiHit:          3             #maximum hits for multi fit   
+}
+
+#microboone version is same as argoneut for now
+microboone_hitfinder:
+{
+ module_type:         "FFTHitFinder"
+ CalDataModuleLabel:  "caldata"      #Induction signal height threshold 
+ MinSigInd:            6.0           #Collection signal height threshold 
+ MinSigCol:            11.0          #Initial width for induction fit
+ IndWidth:             5.0           #Iitial width for induction fit
+ ColWidth:             7.5           #Initial width for collection fit
+ POffset:              20.0          #Time delay between planes
+ OOffset:              24.0          #Distance(cm) from induction plane to origin
+ MaxMultiHit:          3             #maximum hits for multi fit   
+}
+
+#lbne version is same as argoneut for now
+lbne_hitfinder:
+{
+ module_type:         "FFTHitFinder"
+ CalDataModuleLabel:  "caldata"      #Induction signal height threshold 
+ MinSigInd:            6.0           #Collection signal height threshold 
+ MinSigCol:            11.0          #Initial width for induction fit
+ IndWidth:             5.0           #Iitial width for induction fit
+ ColWidth:             7.5           #Initial width for collection fit
+ POffset:              20.0          #Time delay between planes
+ OOffset:              24.0          #Distance(cm) from induction plane to origin
+ MaxMultiHit:          3             #maximum hits for multi fit   
+}
+
+END_PROLOG

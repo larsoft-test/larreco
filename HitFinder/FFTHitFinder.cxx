@@ -17,18 +17,15 @@ extern "C" {
 #include <algorithm>
 
 // Framework includes
-#include "FWCore/Framework/interface/Event.h" 
-#include "FWCore/ParameterSet/interface/ParameterSet.h" 
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
-#include "DataFormats/Common/interface/Handle.h" 
-#include "DataFormats/Common/interface/Ptr.h" 
-#include "DataFormats/Common/interface/PtrVector.h" 
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/Service.h" 
-#include "FWCore/Services/interface/TFileService.h" 
-#include "FWCore/Framework/interface/TFileDirectory.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
+#include "art/Framework/Core/Event.h" 
+#include "fhiclcpp/ParameterSet.h" 
+#include "art/Persistency/Common/Handle.h" 
+#include "art/Persistency/Common/Ptr.h" 
+#include "art/Persistency/Common/PtrVector.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Optional/TFileService.h" 
+#include "art/Framework/Core/TFileDirectory.h" 
+#include "messagefacility/MessageLogger/MessageLogger.h" 
 
 // LArSoft Includes
 #include "HitFinder/FFTHitFinder.h"
@@ -45,17 +42,16 @@ extern "C" {
 namespace hit{
 
   //-------------------------------------------------
-  FFTHitFinder::FFTHitFinder(edm::ParameterSet const& pset) :
+  FFTHitFinder::FFTHitFinder(fhicl::ParameterSet const& pset) :
     fSpacer (false),
-    fCalDataModuleLabel(pset.getParameter< std::string  >("CalDataModuleLabel")),
-    fMinSigInd(pset.getParameter< double >("MinSigInd")),
-    fMinSigCol(pset.getParameter< double >("MinSigCol")),
-    fIndWidth(pset.getParameter< double >("IndWidth")),
-    fColWidth(pset.getParameter< double >("ColWidth")),
-    fDrift(pset.getParameter< double >("Drift")),
-    fPOffset(pset.getParameter< double >("POffset")),
-    fOOffset(pset.getParameter< double >("OOffset")),
-    fMaxMultiHit(pset.getParameter< int >("MaxMultiHit"))
+    fCalDataModuleLabel(pset.get< std::string  >("CalDataModuleLabel")),
+    fMinSigInd         (pset.get< double       >("MinSigInd")), 
+    fMinSigCol         (pset.get< double       >("MinSigCol")), 
+    fIndWidth          (pset.get< double       >("IndWidth")),  
+    fColWidth          (pset.get< double       >("ColWidth")),  
+    fPOffset           (pset.get< double       >("POffset")),	  
+    fOOffset           (pset.get< double       >("OOffset")),	  
+    fMaxMultiHit       (pset.get< int          >("MaxMultiHit"))
   {
     produces< std::vector<recob::Hit> >();
   }
@@ -67,7 +63,7 @@ namespace hit{
   }
   
   //-------------------------------------------------
-  void FFTHitFinder::beginJob(const edm::EventSetup&)
+  void FFTHitFinder::beginJob()
   {
   }
   void FFTHitFinder::endJob()
@@ -78,7 +74,7 @@ namespace hit{
   //  and looks for hits 
   //  as areas between local minima that have signal above threshold.
   //-------------------------------------------------
-  void FFTHitFinder::produce(edm::Event& evt, edm::EventSetup const&)
+  void FFTHitFinder::produce(art::Event& evt)
   { 
     
     //////////////////////////////////////////////////////
@@ -87,10 +83,10 @@ namespace hit{
     //////////////////////////////////////////////////////
     std::auto_ptr<std::vector<recob::Hit> > hcol(new std::vector<recob::Hit>);
     // Read in the wire List object(s).
-    edm::Handle< std::vector<recob::Wire> > wireVecHandle;
+    art::Handle< std::vector<recob::Wire> > wireVecHandle;
     evt.getByLabel(fCalDataModuleLabel,wireVecHandle);
     
-    edm::Service<geo::Geometry> geom;
+    art::ServiceHandle<geo::Geometry> geom;
     
     std::vector<double> signal;            
     std::vector<int> startTimes;  //stores time of 1st local minimum
@@ -112,7 +108,7 @@ namespace hit{
     //loop over wires
 
     for(unsigned int wireIter=0; wireIter<wireVecHandle->size(); wireIter++) {
-      edm::Ptr<recob::Wire> wireVec(wireVecHandle, wireIter);
+      art::Ptr<recob::Wire> wireVec(wireVecHandle, wireIter);
       startTimes.clear();
       maxTimes.clear();
       endTimes.clear();
