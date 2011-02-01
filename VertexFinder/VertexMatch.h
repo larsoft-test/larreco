@@ -6,17 +6,17 @@
 #include <string>
 #include <algorithm>
 #include <map>
-#include "FWCore/Framework/interface/EDProducer.h"
+#include "art/Framework/Core/EDProducer.h"
 
 namespace vertex {
    
-  class VertexMatch : public edm::EDProducer {
+  class VertexMatch : public art::EDProducer {
     
   public:
     
-    explicit VertexMatch(edm::ParameterSet const& pset); 
-    ~VertexMatch();
-    void produce(edm::Event& evt, edm::EventSetup const&);
+    explicit VertexMatch(fhicl::ParameterSet const& pset); 
+    virtual ~VertexMatch();
+    void produce(art::Event& evt);
     
   private:
     std::string fVertexModuleLabel; 

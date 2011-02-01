@@ -19,19 +19,17 @@
 #include <iostream>
 
 // Framework includes
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
-#include "DataFormats/Common/interface/Handle.h"
-#include "DataFormats/Common/interface/Ptr.h"
-#include "DataFormats/Common/interface/PtrVector.h"
-#include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/ServiceRegistry/interface/Service.h"
-#include "FWCore/Services/interface/TFileService.h"
-#include "FWCore/Framework/interface/TFileDirectory.h"
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "art/Framework/Core/Event.h"
+#include "fhiclcpp/ParameterSet.h"
+#include "art/Persistency/Common/Handle.h"
+#include "art/Persistency/Common/Ptr.h"
+#include "art/Persistency/Common/PtrVector.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "art/Framework/Services/Optional/TFileService.h"
+#include "art/Framework/Core/TFileDirectory.h"
+#include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "HarrisVertexFinder.h"
+#include "VertexFinder/HarrisVertexFinder.h"
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -51,14 +49,14 @@ extern "C" {
 #include "Geometry/geo.h"
 
 //-----------------------------------------------------------------------------
-vertex::HarrisVertexFinder::HarrisVertexFinder(edm::ParameterSet const& pset) :
-  fDBScanModuleLabel  (pset.getParameter< std::string >("DBScanModuleLabel")),
-  fTimeBins        (pset.getParameter< int         >("TimeBins")      ),
-  fMaxCorners      (pset.getParameter< int         >("MaxCorners")    ),
-  fGsigma          (pset.getParameter< double      >("Gsigma")        ),
-  fWindow          (pset.getParameter< int         >("Window")        ),
-  fThreshold       (pset.getParameter< double      >("Threshold")     ),
-  fSaveVertexMap   (pset.getParameter< int         >("SaveVertexMap") )
+vertex::HarrisVertexFinder::HarrisVertexFinder(fhicl::ParameterSet const& pset) :
+  fDBScanModuleLabel  (pset.get< std::string >("DBScanModuleLabel")),
+  fTimeBins        (pset.get< int         >("TimeBins")      ),
+  fMaxCorners      (pset.get< int         >("MaxCorners")    ),
+  fGsigma          (pset.get< double      >("Gsigma")        ),
+  fWindow          (pset.get< int         >("Window")        ),
+  fThreshold       (pset.get< double      >("Threshold")     ),
+  fSaveVertexMap   (pset.get< int         >("SaveVertexMap") )
 {
   produces< std::vector<recob::Vertex> >();
 }
@@ -93,26 +91,26 @@ double vertex::HarrisVertexFinder::GaussianDerivativeY(int x,int y)
 }
 
 //-----------------------------------------------------------------------------
-void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&)
+void vertex::HarrisVertexFinder::produce(art::Event& evt)
 {
 
-  edm::Service<geo::Geometry> geom;
+  art::ServiceHandle<geo::Geometry> geom;
   
   extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   
-  edm::Handle< std::vector<recob::Cluster> > clusterListHandle;
+  art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
   //Point to a collection of vertices to output.
   std::auto_ptr<std::vector<recob::Vertex> > vtxcol(new std::vector<recob::Vertex>);
 
   filter::ChannelFilter chanFilt;  
-  edm::PtrVector<recob::Hit> cHits;
-  edm::PtrVector<recob::Hit> hit;
+  art::PtrVector<recob::Hit> cHits;
+  art::PtrVector<recob::Hit> hit;
    
-  edm::PtrVector<recob::Cluster> clusIn;
+  art::PtrVector<recob::Cluster> clusIn;
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
     {
-      edm::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
+      art::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
       clusIn.push_back(cluster);
     }
 
@@ -141,8 +139,8 @@ void vertex::HarrisVertexFinder::produce(edm::Event& evt, edm::EventSetup const&
   unsigned int channel,plane,wire,wire2;
   for(int p = 0; p < geom->Nplanes(); p++) 
     {
-      edm::PtrVector<recob::Hit> vHits;
-      edm::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
+      art::PtrVector<recob::Hit> vHits;
+      art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
       hit.clear();
       cHits.clear();      
       while(clusterIter!= clusIn.end() ) {

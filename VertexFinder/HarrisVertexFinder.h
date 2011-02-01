@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////
-/// \file  DriftElectrons.h
+/// \file  HarrisVertexFinder.h
 /// \brief Module to find vertices
 ///
 /// \author  joshua.spitz@yale.edu
@@ -8,21 +8,22 @@
 #ifndef HarrisVertexFinder_H
 #define HarrisVertexFinder_H
 
-#include "FWCore/Framework/interface/EDProducer.h"
+#include "art/Framework/Core/EDProducer.h"
 #include "TMath.h"
 #include <vector>
 #include <string>
 
+///vertex reconstruction
 namespace vertex {
    
- class HarrisVertexFinder :  public edm::EDProducer {
+ class HarrisVertexFinder :  public art::EDProducer {
     
   public:
     
-    explicit HarrisVertexFinder(edm::ParameterSet const& pset); 
-    ~HarrisVertexFinder();        
+    explicit HarrisVertexFinder(fhicl::ParameterSet const& pset); 
+    virtual ~HarrisVertexFinder();        
 
-    void produce(edm::Event& evt, edm::EventSetup const&);
+    void produce(art::Event& evt);
     
   private:
 

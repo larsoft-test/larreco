@@ -11,7 +11,7 @@
 //  matched to a crossing of two or more HoughLineFinder lines.
 ////////////////////////////////////////////////////////////////////////
 
-#include "VertexMatch.h"
+#include "VertexFinder/VertexMatch.h"
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -27,17 +27,15 @@ extern "C" {
 #include <math.h>
 #include <algorithm>
 
-#include "FWCore/Framework/interface/Event.h" 
-#include "FWCore/ParameterSet/interface/ParameterSet.h" 
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
-#include "DataFormats/Common/interface/Handle.h" 
-#include "DataFormats/Common/interface/Ptr.h" 
-#include "DataFormats/Common/interface/PtrVector.h" 
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/Service.h" 
-#include "FWCore/Services/interface/TFileService.h" 
-#include "FWCore/Framework/interface/TFileDirectory.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
+#include "art/Framework/Core/Event.h" 
+#include "fhiclcpp/ParameterSet.h" 
+#include "art/Persistency/Common/Handle.h" 
+#include "art/Persistency/Common/Ptr.h" 
+#include "art/Persistency/Common/PtrVector.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Optional/TFileService.h" 
+#include "art/Framework/Core/TFileDirectory.h" 
+#include "messagefacility/MessageLogger/MessageLogger.h" 
 
 #include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
@@ -46,10 +44,10 @@ extern "C" {
 #include "Geometry/geo.h"
 
 
-vertex::VertexMatch::VertexMatch(edm::ParameterSet const& pset) : 
-  fVertexModuleLabel(pset.getParameter< std::string >("VertexModuleLabel")),
-  fHoughModuleLabel (pset.getParameter< std::string >("HoughModuleLabel")),
-  fMaxDistance      (pset.getParameter< double      >("MaxDistance"))
+vertex::VertexMatch::VertexMatch(fhicl::ParameterSet const& pset) : 
+  fVertexModuleLabel(pset.get< std::string >("VertexModuleLabel")),
+  fHoughModuleLabel (pset.get< std::string >("HoughModuleLabel")),
+  fMaxDistance      (pset.get< double      >("MaxDistance"))
 {
   produces< std::vector<recob::Vertex> >();
 }
@@ -58,56 +56,56 @@ vertex::VertexMatch::~VertexMatch()
 {
 }
 
-bool sort_pred(const std::pair<edm::Ptr<recob::Hit>,double>& left, const std::pair<edm::Ptr<recob::Hit>,double>& right)
+bool sort_pred(const std::pair<art::Ptr<recob::Hit>,double>& left, const std::pair<art::Ptr<recob::Hit>,double>& right)
 {
   return left.first < right.first;
 }
 
-bool sort_pred2(const std::pair<edm::Ptr<recob::Hit>,double>& left, const std::pair<edm::Ptr<recob::Hit>,double>& right)
+bool sort_pred2(const std::pair<art::Ptr<recob::Hit>,double>& left, const std::pair<art::Ptr<recob::Hit>,double>& right)
 {
   return left.second < right.second;
 }
 
-void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
+void vertex::VertexMatch::produce(art::Event& evt)
 {
 
-  edm::Handle< std::vector<recob::Vertex> > vertexListHandle;
+  art::Handle< std::vector<recob::Vertex> > vertexListHandle;
   evt.getByLabel(fVertexModuleLabel,vertexListHandle);
   
-  edm::Handle< std::vector<recob::Cluster> > houghListHandle;
+  art::Handle< std::vector<recob::Cluster> > houghListHandle;
   evt.getByLabel(fHoughModuleLabel,houghListHandle);
   
   std::auto_ptr<std::vector<recob::Vertex> > mvertexcol(new std::vector<recob::Vertex>);
   
-  edm::Service<geo::Geometry> geom;
+  art::ServiceHandle<geo::Geometry> geom;
   //hits associated with a vertex
-  edm::PtrVector<recob::Hit> vHits;
-  edm::PtrVector<recob::Hit> vertexhit;
+  art::PtrVector<recob::Hit> vHits;
+  art::PtrVector<recob::Hit> vertexhit;
   
   std::vector<double> weakvertexstrength; //strength of weak vertices
   std::vector<double> strongvertexstrength; //strength of strong vertices
   //hits associated with a hough line
-  edm::PtrVector<recob::Hit> hHits;
-  edm::PtrVector<recob::Hit> houghhit;
+  art::PtrVector<recob::Hit> hHits;
+  art::PtrVector<recob::Hit> houghhit;
 
-  //edm::PtrVector< std::pair<recob::Hit,double> > matchedvertex;//vertices associated with a hough line
+  //art::PtrVector< std::pair<recob::Hit,double> > matchedvertex;//vertices associated with a hough line
   
-  std::vector< std::pair<edm::Ptr<recob::Hit>, double> > matchedvertex;
+  std::vector< std::pair<art::Ptr<recob::Hit>, double> > matchedvertex;
 
-  edm::PtrVector<recob::Hit> strongvertex;
-  std::vector< std::pair<edm::Ptr<recob::Hit>, double> > strongestvertex; //the strongest strong vertex
+  art::PtrVector<recob::Hit> strongvertex;
+  std::vector< std::pair<art::Ptr<recob::Hit>, double> > strongestvertex; //the strongest strong vertex
   
-  edm::PtrVector<recob::Vertex> vertIn;
+  art::PtrVector<recob::Vertex> vertIn;
 
   for(unsigned int ii = 0; ii < vertexListHandle->size(); ++ii)
     {
-      edm::Ptr<recob::Vertex> vertex(vertexListHandle, ii);
+      art::Ptr<recob::Vertex> vertex(vertexListHandle, ii);
       vertIn.push_back(vertex);
     }
-  edm::PtrVector<recob::Cluster> houghIn;
+  art::PtrVector<recob::Cluster> houghIn;
   for(unsigned int ii = 0; ii < houghListHandle->size(); ++ii)
     {
-      edm::Ptr<recob::Cluster> cluster(houghListHandle, ii);
+      art::Ptr<recob::Cluster> cluster(houghListHandle, ii);
       houghIn.push_back(cluster);
     }
   unsigned int channel,plane,wire;
@@ -117,8 +115,8 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
   double strength; //the strength of a strong vertex
   for(int p = 0; p < geom->Nplanes(); p++) {
     //create the vector of vertex hits 
-    edm::PtrVectorItr<recob::Vertex> vertexIter = vertIn.begin();
-    edm::PtrVectorItr<recob::Cluster> houghIter = houghIn.begin();
+    art::PtrVectorItr<recob::Vertex> vertexIter = vertIn.begin();
+    art::PtrVectorItr<recob::Cluster> houghIter = houghIn.begin();
     while(vertexIter!= vertIn.end() ) 
       {
 	// vHits = (*vertexIter)->Hits(p,-1);
@@ -129,7 +127,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 	vHits = (*vertexIter)->Hits(p);
 	if(vHits.size() > 0)
 	  {
-	    edm::PtrVectorItr<recob::Hit> vertexhitIter = vHits.begin();
+	    art::PtrVectorItr<recob::Hit> vertexhitIter = vHits.begin();
 	    while (vertexhitIter!=vHits.end())
 	      {
 		vertexhit.push_back((*vertexhitIter));
@@ -160,7 +158,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
         if(hHits.size() > 0)
 	  {
 
- 	    edm::PtrVectorItr<recob::Hit> hitIter = hHits.begin();
+ 	    art::PtrVectorItr<recob::Hit> hitIter = hHits.begin();
 	    while (hitIter!=hHits.end())
 	      {
 		houghhit.push_back((*hitIter));
@@ -198,8 +196,8 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 		     ))          		  distance=(TMath::Abs(vertexhit[i]->CrossingTime()-slope*(double)wire-intercept)/(sqrt(pow(.0743*slope,2)+1))); 
 
 		if(distance<(fMaxDistance+((vertexhit[i]->EndTime()-vertexhit[i]->StartTime())/2.))&&distance>-1)
-		  matchedvertex.push_back(std::pair<edm::Ptr<recob::Hit>,double>(vertexhit[i], weakvertexstrength[i]*sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
-		//ala strongestvertex.push_back(std::pair<edm::PtrVector<recob::Hit>,double>(matchedvertex[i].first,strength));
+		  matchedvertex.push_back(std::pair<art::Ptr<recob::Hit>,double>(vertexhit[i], weakvertexstrength[i]*sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
+		//ala strongestvertex.push_back(std::pair<art::PtrVector<recob::Hit>,double>(matchedvertex[i].first,strength));
 	      }
 	  }
   
@@ -232,7 +230,7 @@ void vertex::VertexMatch::produce(edm::Event& evt, edm::EventSetup const&)
 	//make sure there is more than one Hough Line associated with the vertex 
           
 	if(strength>matchedvertex[i].second)
-	  strongestvertex.push_back(std::pair<edm::Ptr<recob::Hit>,double>(matchedvertex[i].first,strength));
+	  strongestvertex.push_back(std::pair<art::Ptr<recob::Hit>,double>(matchedvertex[i].first,strength));
       }
   
   

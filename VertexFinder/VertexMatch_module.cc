@@ -1,20 +1,18 @@
 ////////////////////////////////////////////////////////////////////////
 //
-// VertexMatch class
+// \file VertexMatch_module.cc
 //
-// joshua.spitz@yale.edu
+// \author joshua.spitz@yale.edu
 //
 //  
 ////////////////////////////////////////////////////////////////////////
 // Framework includes
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
+#include "art/Framework/Core/ModuleMacros.h" 
 
 #include "VertexFinder/VertexMatch.h"
 
 namespace vertex{
 
-  DEFINE_FWK_MODULE(VertexMatch);
+  DEFINE_ART_MODULE(VertexMatch);
 
 } // end of vertex namespace

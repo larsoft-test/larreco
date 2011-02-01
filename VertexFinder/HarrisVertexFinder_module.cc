@@ -7,14 +7,12 @@
 //  
 ////////////////////////////////////////////////////////////////////////
 // Framework includes
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
+#include "art/Framework/Core/ModuleMacros.h" 
 
 #include "VertexFinder/HarrisVertexFinder.h"
 
 namespace vertex{
 
-  DEFINE_FWK_MODULE(HarrisVertexFinder);
+  DEFINE_ART_MODULE(HarrisVertexFinder);
 
 } // end of vertex namespace
