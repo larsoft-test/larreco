@@ -52,6 +52,12 @@ argoneut_houghlinefinderana:
  HoughModuleLabel:    "hough"
 }
 
+argoneut_houghlinemod:
+{
+ module_type:          "HoughLineModule"
+ DBScanModuleLabel:    "dbscan"
+}
+ 
 argoneut_linemerger:
 {
  module_type:        "LineMerger"

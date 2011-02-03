@@ -7,4 +7,18 @@ argoneut_dbscanservice:
  minPts:          2
 }
 
+argoneut_houghlineservice:
+{
+ MaxLines:             5
+ MinHits:              3
+ SaveAccumulator:      0
+ NumAngleCells:        10000
+ RhoResolutionFactor:  10
+ SmootherSigma:        0.
+ MaxDistance:          5.
+ RhoZeroOutRange:      0
+ ThetaZeroOutRange:    0
+ HitsPerCluster:       1
+}
+
 END_PROLOG
