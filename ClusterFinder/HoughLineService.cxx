@@ -278,7 +278,7 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
  		channel=hit[i]->Wire()->RawDigit()->Channel();
  		geom->ChannelToWire(channel,plane,wire);
  		if (skip[i] != 1)
- 		  c.AddPoint(wire,(int)(hit[i]->CrossingTime()));
+ 		  c.AddPoint(wire,(int)(hit[i]->PeakTime()));
  	      }
  	    //gets the actual two-dimensional size of the accumulator
  	    c.GetAccumSize(accDy, accDx);
@@ -415,7 +415,7 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
  		  channel=hit[i]->Wire()->RawDigit()->Channel();
  		  geom->ChannelToWire(channel,plane,wire);
  		  //Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
- 		  distance=(TMath::Abs(hit[i]->CrossingTime()-slope*(double)(wire)-intercept)/(sqrt(pow(.0743*slope,2)+1)));
+ 		  distance=(TMath::Abs(hit[i]->PeakTime()-slope*(double)(wire)-intercept)/(sqrt(pow(.0743*slope,2)+1)));
 	
  		  if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling && fPerCluster==1 && skip[i]!=1){
  		    hitTemp.push_back(i);
@@ -454,21 +454,23 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 		 )
  		continue;
 	      
- 	      recob::Cluster cluster(clusterHits);	      
-
- 	      cluster.SetSlope(slope);
- 	      cluster.SetIntercept(intercept);
+	      unsigned int sw = 0;
+	      unsigned int ew = 0;
 	      channel = (*clusterHits.begin())->Wire()->RawDigit()->Channel(); 
- 	      geom->ChannelToWire(channel,plane,wire);
- 	      cluster.SetStartWire(wire);
- 	      cluster.SetStartTime((*clusterHits.begin())->CrossingTime());
- 	      //cluster->SetStartTime(slope*(double)(wire)+intercept);
- 	      channel = (clusterHits[clusterHits.size()-1])->Wire()->RawDigit()->Channel(); //there doesn't seem to be a std::vector::back() method to get the last element of the vector here
- 	      geom->ChannelToWire(channel,plane,wire);
- 	      cluster.SetEndWire(wire);     
- 	      cluster.SetEndTime((clusterHits[clusterHits.size()-1])->CrossingTime());
- 	      //cluster->SetEndTime(slope*(double)(wire)+intercept);
- 	      cluster.SetID(clusterID);
+ 	      geom->ChannelToWire(channel,plane,sw);
+
+	      //there doesn't seem to be a std::vector::back() method to get the last element of the vector here
+ 	      channel = (clusterHits[clusterHits.size()-1])->Wire()->RawDigit()->Channel(); 
+ 	      geom->ChannelToWire(channel,plane,ew);
+	      
+ 	      recob::Cluster cluster(clusterHits,
+				     sw, 0.,
+				     (*clusterHits.begin())->PeakTime(), 0.,
+				     ew, 0., 
+				     (clusterHits[clusterHits.size()-1])->PeakTime(), 0.,
+				     slope, 0., 
+				     -999., 0., 
+				     clusterID);	      
 
  	      clusterID++;
 	     

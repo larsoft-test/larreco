@@ -589,8 +589,23 @@ void cluster::DBcluster::produce(art::Event& evt){
 	  ////////
 	  if (clusterHits.size()>0)
 	    {
-	      recob::Cluster cluster(clusterHits);
-	      cluster.SetID(i);
+	      ///!todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
+	      unsigned int p = 0; 
+	      unsigned int sw = 0;
+	      unsigned int ew = 0;
+	      geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), p, sw);
+	      geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), p, ew);
+
+	      
+	      
+	      recob::Cluster cluster(clusterHits, 
+				     sw*1., 0.,
+				     clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
+				     ew*1., 0.,
+				     clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
+				     -999., 0., 
+				     -999., 0.,
+				     i);
 	      ccol->push_back(cluster);
 	      std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
 	      clusterHits.clear();

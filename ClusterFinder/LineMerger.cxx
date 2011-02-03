@@ -110,7 +110,7 @@ namespace cluster{
 	}
 	SuperClusters->push_back(*cl1);
 	Cls_matches[i][clsnum1]=1; 
-	SuperClusters->back().SetID(clustersfound);//IDs are sequential by plane, starting from 0
+	//SuperClusters->back().SetID(clustersfound);//IDs are sequential by plane, starting from 0
 	++clustersfound;
 	recob::Cluster SCl= SuperClusters->back();
 	
@@ -121,8 +121,14 @@ namespace cluster{
 	    clsnum2++;
 	    continue;
 	  }
-	  bool sameSlope = SlopeCompatibility(SCl.Slope(),cl2->Slope());
-	  bool sameIntercept = InterceptCompatibility(SCl.Intercept(),cl2->Intercept());
+
+	  //check that the slopes are the same
+	  bool sameSlope = SlopeCompatibility(SCl.dTdW(),cl2->dTdW());
+
+	  double sclint = SCl.StartPos()[1] - SCl.dTdW()*SCl.StartPos()[0];
+	  double cl2int = cl2->StartPos()[1] - cl2->dTdW()*cl2->StartPos()[0];
+	  bool sameIntercept = InterceptCompatibility(sclint, cl2int);
+
 	  if(sameSlope && sameIntercept){
 	    SuperClusters->back() = SuperClusters->back() + *cl2;
 	    Cls_matches[i][clsnum2]=1;       

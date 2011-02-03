@@ -308,7 +308,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 	    
 	      //std::cout<<"channel: "<<_hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(_hits[i]->StartTime()+_hits[i]->EndTime())/2.<<" X time= "<<_hits[i]-> CrossingTime()<<std::endl;
 	    
-	    double XTime=_hits[i]-> CrossingTime();
+	    double XTime=_hits[i]->PeakTime();
 
 	    // grab the channel from this hit
 	    unsigned int channel = _hits[i]->Wire()->RawDigit()->Channel();
@@ -782,7 +782,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 
 
     // std::cout<<"channel: "<<hits[j]->Wire()->RawDigit()->Channel()<<"  time= "<<(hits[j]->StartTime()+hits[j]->EndTime())/2.<<" w= "<<w<<" plane= "<<plane_k<<std::endl;
-    double XTime=hits[j]-> CrossingTime();
+    double XTime=hits[j]->PeakTime();
     //if(XTime >1650){std::cout<<"possible fake hit line ***********"<<std::endl;}
 
     // loop over the SimChannels to find this one
@@ -1069,7 +1069,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
     unsigned int channel = hits[j]->Wire()->RawDigit()->Channel();
 	    
     // std::cout<<"channel= "<<w_<<std::endl;
-    double XTime=hits[j]-> CrossingTime();
+    double XTime=hits[j]->PeakTime();
 
     // loop over the SimChannels to find this one
     art::Ptr<sim::SimChannel> sc2;

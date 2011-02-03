@@ -167,8 +167,8 @@ void cluster::HoughLineFinderAna::analyze(const art::Event& evt)
 	{
 	  fm_clusterid=clusters[j]->ID();
 	  art::PtrVector<recob::Hit> _hits=clusters[j]->Hits(plane);
-	  fm_clusterslope=(double)clusters[j]->Slope();
-	  fm_clusterintercept=(double)clusters[j]->Intercept();
+	  fm_clusterslope=(double)clusters[j]->dTdW();
+	  fm_clusterintercept=(double)clusters[j]->StartPos()[1];
 	  if(_hits.size()!=0)
 	    {
 	      geo->ChannelToWire(_hits[0]->Wire()->RawDigit()->Channel(), p, firstwire);
@@ -182,10 +182,10 @@ void cluster::HoughLineFinderAna::analyze(const art::Event& evt)
 		  geo->ChannelToWire(_hits[i]->Wire()->RawDigit()->Channel(), p, wire);
 		  fm_hitidZ[i]=i;         
 		  fm_wireZ[i]=wire;
-		  fm_mipZ[i]=(double)_hits[i]->MIPs();
-		  fm_drifttimeZ[i]= (double)_hits[i]->CrossingTime();
+		  fm_mipZ[i]=(double)_hits[i]->Charge();
+		  fm_drifttimeZ[i]= (double)_hits[i]->PeakTime();
 		  fm_widthZ[i]=(double)_hits[i]->EndTime()-_hits[i]->StartTime();
-		  fm_upadcZ[i]=(double)_hits[i]->UpADC();
+		  fm_upadcZ[i]=(double)_hits[i]->Charge();
 		} 
     
 	      ftree->Fill();  
