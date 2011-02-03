@@ -285,7 +285,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 		      vHits.push_back(hit[hit_loc[wire][timebin]]);
 		      recob::Vertex vertex(vHits);
 		      vertex.SetWireNum(wire);
-		      vertex.SetDriftTime(hit[hit_loc[wire][timebin]]->CrossingTime());
+		      vertex.SetDriftTime(hit[hit_loc[wire][timebin]]->PeakTime());
 		      //weak vertices are given vertex id=1
 		      vertex.SetID(1);
 		      vertex.SetStrength(Cornerness[wire][timebin]);	  

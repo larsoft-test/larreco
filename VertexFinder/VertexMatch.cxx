@@ -171,8 +171,8 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	}
 	if(p==plane)
 	  {
-	    slope=(*houghIter)->Slope();
-	    intercept=(*houghIter)->Intercept();    
+	    slope=(*houghIter)->dTdW();
+	    intercept=(*houghIter)->StartPos()[1] - slope*(*houghIter)->StartPos()[0];
 	    for(unsigned int i=0;i < vertexhit.size(); i++)
 	      {  
 	      
@@ -181,19 +181,19 @@ void vertex::VertexMatch::produce(art::Event& evt)
 		channel=vertexhit[i]->Wire()->RawDigit()->Channel();
 		geom->ChannelToWire(channel,plane,wire);
 
-		starttime=(*houghIter)->StartTime();
-		endtime=(*houghIter)->EndTime();
-		startwire=(*houghIter)->StartWire();
-		endwire=(*houghIter)->EndWire();
+		starttime=(*houghIter)->StartPos()[1];
+		endtime=(*houghIter)->EndPos()[1];
+		startwire=(*houghIter)->StartPos()[0];
+		endwire=(*houghIter)->EndPos()[0];
 
 		//require the vertices found with HarrisVertexFinder to match up with the endpoints 
 		//(within a window) of a Hough line. A strong vertex matches up with at least two Hough lines. 
 		if(((TMath::Abs((int)(wire-startwire))<fMaxDistance*.0743)
 		    ||(TMath::Abs((int)(wire-endwire))<fMaxDistance*.0743)
 		   )
-		   &&((TMath::Abs(vertexhit[i]->CrossingTime()-starttime)<fMaxDistance)
-		      ||(TMath::Abs(vertexhit[i]->CrossingTime()-endtime)<fMaxDistance)
-		     ))          		  distance=(TMath::Abs(vertexhit[i]->CrossingTime()-slope*(double)wire-intercept)/(sqrt(pow(.0743*slope,2)+1))); 
+		   &&((TMath::Abs(vertexhit[i]->PeakTime()-starttime)<fMaxDistance)
+		      ||(TMath::Abs(vertexhit[i]->PeakTime()-endtime)<fMaxDistance)
+		     ))          		  distance=(TMath::Abs(vertexhit[i]->PeakTime()-slope*(double)wire-intercept)/(sqrt(pow(.0743*slope,2)+1))); 
 
 		if(distance<(fMaxDistance+((vertexhit[i]->EndTime()-vertexhit[i]->StartTime())/2.))&&distance>-1)
 		  matchedvertex.push_back(std::pair<art::Ptr<recob::Hit>,double>(vertexhit[i], weakvertexstrength[i]*sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
@@ -248,8 +248,8 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	recob::Vertex vertex(strongvertex);      
 	vertex.SetWireNum(wire);
 	vertex.SetStrength(strongvertexstrength[i]);
-	//vertex->SetDriftTime(matchedvertex[i].first->CrossingTime());
-	vertex.SetDriftTime((matchedvertex[i].first)->CrossingTime());
+	//vertex->SetDriftTime(matchedvertex[i].first->PeakTime());
+	vertex.SetDriftTime((matchedvertex[i].first)->PeakTime());
 
 	//find the strong vertices, those vertices that have been associated with more than one hough line  
 	if(i>0)
