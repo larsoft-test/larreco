@@ -210,7 +210,7 @@ namespace shwf{
 	      channel = clusterhits[ihits]->Wire()->RawDigit()->Channel();
 	      geom->ChannelToWire(channel,plane,wire);
 	      x_hit = channel;
-	      y_hit = clusterhits[ihits]->CrossingTime();
+	      y_hit = clusterhits[ihits]->PeakTime();
 	      
 	      //std::cout << " --- " << ihits << " : hits: (" << x_hit << ", " << y_hit << ")"<< std::endl;
 	      

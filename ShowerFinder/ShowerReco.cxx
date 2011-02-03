@@ -211,7 +211,7 @@ void shwf::ShowerReco::AngularDistribution(std::vector<art::PtrVector<recob::Hit
       art::Ptr<recob::Hit> hit_help ;
       hit_help = hitlist[ihits]; 
       const recob::Hit* hit = hit_help.get(); /** Retrieve info of the hits*/
-      ftime_hit = hit->CrossingTime(); /** Hit crossing time*/
+      ftime_hit = hit->PeakTime(); /** Hit crossing time*/
       ichannel_hit = hit->Wire()->RawDigit()->Channel();
       geo->ChannelToWire(ichannel_hit, iplane_hit, iwire_hit); /** Get Information of wire/plane of the hit */
 
@@ -228,7 +228,7 @@ void shwf::ShowerReco::AngularDistribution(std::vector<art::PtrVector<recob::Hit
       theta_polar = 180*theta_polar/fpi; /** in deg*/
 
       /** Filling the histo (angle, energy of the hit)*/
-      fh_theta[iplane]->Fill(theta_polar, hit_help->MIPs()); /** angle in deg (cm,cm) coordinate*/
+      fh_theta[iplane]->Fill(theta_polar, hit_help->Charge()); /** angle in deg (cm,cm) coordinate*/
       }
 
     std::cout << "Plane " << iplane << "VertexWire= " << fwire_vertex[iplane] << "   Time= " << ftime_vertex[iplane] << std::endl;
@@ -317,7 +317,7 @@ void shwf::ShowerReco::LongTransEnergy(std::vector<art::PtrVector<recob::Hit> > 
       art::Ptr<recob::Hit> hit_help ;
       hit_help = hitlist[ihits]; 
       const recob::Hit* hit = hit_help.get(); /** Retrieve info of the hits*/
-      ftime_hit = hit->CrossingTime(); /** Hit crossing time*/
+      ftime_hit = hit->PeakTime(); /** Hit crossing time*/
       ichannel_hit = hit->Wire()->RawDigit()->Channel();
       geo->ChannelToWire(ichannel_hit, iplane_hit, iwire_hit); /** Get Information of wire/plane of the hit */
 
@@ -341,10 +341,10 @@ void shwf::ShowerReco::LongTransEnergy(std::vector<art::PtrVector<recob::Hit> > 
       time_rot = (ftime_hit - ftime_vertex[iplane])* ftimetick *fdriftvelocity /cos(theta_sh) - (iwire_hit - fwire_vertex[iplane])* fmean_wire_pitch[iplane] *sin(theta_sh) 
                  - (ftime_hit - ftime_vertex[iplane])* ftimetick *fdriftvelocity *tan(theta_sh) *sin(theta_sh);   
     
-      totcharge +=hit->MIPs(); // Sum the energy of all the hits
+      totcharge +=hit->Charge(); // Sum the energy of all the hits
     
-      fsh_nrg[iplane]->Fill(wire_rot, hit->MIPs()); // Fill histo longitudinal distr of the energy (IND)
-      fsh_Tnrg[iplane]->Fill(time_rot, hit->MIPs());// Fill histo transverse   distr of the energy (IND)
+      fsh_nrg[iplane]->Fill(wire_rot, hit->Charge()); // Fill histo longitudinal distr of the energy (IND)
+      fsh_Tnrg[iplane]->Fill(time_rot, hit->Charge());// Fill histo transverse   distr of the energy (IND)
       fsh_long_hit[iplane]->Fill(wire_rot, 1);
     
     }
