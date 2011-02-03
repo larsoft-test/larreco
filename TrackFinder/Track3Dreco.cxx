@@ -167,7 +167,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	{
 	  //recover the Hit
 	  //      recob::Hit* theHit = (recob::Hit*)(*hitIter);
-	  time = (*theHit)->CrossingTime() ;
+	  time = (*theHit)->PeakTime() ;
 	 
 	  time -= presamplings;
 	  
@@ -332,7 +332,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	  geom->ChannelToWire(channel,plane1,wire);
 	  // get the wire-time co-ordinates of the hit to be matched
 	  double w1 = (double)((wire+1)*wire_pitch);
- 	  double t1 = plane1==1?(double)((minhits[imin]->CrossingTime()-presamplings-(tSI+tIC))*timepitch):(double)((minhits[imin]->CrossingTime()-presamplings-tSI)*timepitch); //in cm	  
+ 	  double t1 = plane1==1?(double)((minhits[imin]->PeakTime()-presamplings-(tSI+tIC))*timepitch):(double)((minhits[imin]->PeakTime()-presamplings-tSI)*timepitch); //in cm	  
 
 	  //get the track origin co-ordinates in the two views
 	  TVector2 minVtx2D;
@@ -366,7 +366,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	      channel = maxhits[imax]->Channel();
 	      geom->ChannelToWire(channel,plane2,wire);
 	      double w2 = (double)((wire+1)*wire_pitch);
-	      double t2 = plane2==1?(double)((maxhits[imax]->CrossingTime()-presamplings-(tSI+tIC))*timepitch):(double)((maxhits[imax]->CrossingTime()-presamplings-tSI)*timepitch); //in cm
+	      double t2 = plane2==1?(double)((maxhits[imax]->PeakTime()-presamplings-(tSI+tIC))*timepitch):(double)((maxhits[imax]->PeakTime()-presamplings-tSI)*timepitch); //in cm
 	      
 	      bool timematch = (fabs(t1-t2)<ftmatch*timepitch);
 	      bool wirematch = (fabs(w1-w2)<wireShift*wire_pitch);
@@ -390,7 +390,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	  channel =  maxhits[imaximum]->Channel();
 	  geom->ChannelToWire(channel,plane2,wire);
 	  double w1_match = (double)((wire+1)*wire_pitch);
-	  double t1_match = plane2==1?(double)((maxhits[imaximum]->CrossingTime()-presamplings-(tSI+tIC))*timepitch):(double)((maxhits[imaximum]->CrossingTime()-presamplings-tSI)*timepitch);
+	  double t1_match = plane2==1?(double)((maxhits[imaximum]->PeakTime()-presamplings-(tSI+tIC))*timepitch):(double)((maxhits[imaximum]->PeakTime()-presamplings-tSI)*timepitch);
 
 	  // create the 3D hit, compute its co-ordinates and add it to the 3D hits list	  
 	  double Ct = plane1==1?t1:t1_match;
