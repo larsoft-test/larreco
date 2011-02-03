@@ -101,7 +101,7 @@ namespace filt{
 	unsigned int colStart(0);  //first Collection plane index
 	//advances j to collection plane
 	while(plane ==0) {
-	  indIon+=hitvec[j]->MIPs();
+	  indIon+=hitvec[j]->Charge();
 	  j++;
 	  if(j == hitvec.size()) {
 	    failFlag=2;
@@ -115,7 +115,7 @@ namespace filt{
 	}
 	colStart = j;
 	for(; j < hitvec.size(); j++){
-	  colIon+=hitvec[j]->MIPs();
+	  colIon+=hitvec[j]->Charge();
 	}
 	double minIon=0;
 	if((1.92*indIon)>colIon) minIon = colIon;
