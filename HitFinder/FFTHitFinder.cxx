@@ -238,8 +238,6 @@ namespace hit{
 	hitSignal.Fit(&gSum,"QNR","", startT, endT);
 	for(int hitNumber = 0; hitNumber < numHits; hitNumber++) {
 	  if(gSum.GetParameter(3*hitNumber) > threshold/2.0) { 
-	    // Make this an object, not ptr in FMWK->ART port. EC, 10-Sep-2010.
-	    recob::Hit hit(wireVec);// = new recob::Hit(wireVec); 
 	    amplitude = gSum.GetParameter(3*hitNumber);
 	    position = gSum.GetParameter(3*hitNumber+1);
 	    width = gSum.GetParameter(3*hitNumber+2);
@@ -249,15 +247,16 @@ namespace hit{
 	      hitSig[(int)sigPos] = amplitude*TMath::Gaus(sigPos,position, width);
 	      totSig+=hitSig[(int)sigPos]; 
 	    }              	    
-	    hit.fHitSignal=hitSig;            
-	    hit.SetCrossingTime(position);             
-	    hit.SetUpTime(2*width);
-	    hit.SetStartTime(position-width);
-	    hit.SetEndTime(position+width);
-	    hit.SetUpADC(totSig);
-	    hit.SetMIPs(amplitude);
-	    hit.SetView(view);
-	    
+
+	    // make the hit
+	    recob::Hit hit(wireVec, 
+			   position-width, 0., //!todo - need to define uncertainty on start time
+			   position+width, 0., //!todo - need to define uncertainty on end time
+			   position,       0., //!todo - need to define uncertainty on peak time
+			   totSig,         0., //!todo - need to define uncertainty on charge
+			   1,                  //!todo - mulitplicity has to be determined
+			   0.);                //!todo - goodness of fit has to be determined
+
 	    hcol->push_back(hit);
 	    
 	  }//end if over threshold
