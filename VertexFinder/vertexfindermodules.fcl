@@ -3,7 +3,7 @@ BEGIN_PROLOG
 argoneut_harris:
 {
  module_type:        "HarrisVertexFinder"
- DBScanModuleLabel:  "cluster"
+ DBScanModuleLabel:  "dbscan"
  TimeBins:           256
  MaxCorners:         20
  Gsigma:             1.

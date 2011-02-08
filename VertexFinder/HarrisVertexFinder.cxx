@@ -47,6 +47,8 @@ extern "C" {
 #include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
+#include "TH2.h"
+
 
 //-----------------------------------------------------------------------------
 vertex::HarrisVertexFinder::HarrisVertexFinder(fhicl::ParameterSet const& pset) :
@@ -66,6 +68,13 @@ vertex::HarrisVertexFinder::~HarrisVertexFinder()
 {
 }
 
+void vertex::HarrisVertexFinder::beginJob(){
+ // get access to the TFile service
+  art::ServiceHandle<art::TFileService> tfs;
+
+  fNoVertices= tfs->make<TH2F>("fNoVertices", ";Event No; No of vertices", 100,0, 100, 30, 0, 30);
+
+}
 //-----------------------------------------------------------------------------
 double vertex::HarrisVertexFinder::Gaussian(int x, int y, double sigma)
 {
@@ -336,7 +345,9 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 	  delete [] outPix;
 	}   
    }
-    
+    std::cout<<"Size of vtxcol= "<<vtxcol->size()<<std::endl;
+    fNoVertices->Fill(evt.id().event(),vtxcol->size());
+
 evt.put(vtxcol);   
 }
 

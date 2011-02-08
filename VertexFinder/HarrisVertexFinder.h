@@ -13,6 +13,8 @@
 #include <vector>
 #include <string>
 
+class TH2F;
+
 ///vertex reconstruction
 namespace vertex {
    
@@ -22,6 +24,7 @@ namespace vertex {
     
     explicit HarrisVertexFinder(fhicl::ParameterSet const& pset); 
     virtual ~HarrisVertexFinder();        
+    void beginJob();
 
     void produce(art::Event& evt);
     
@@ -38,6 +41,8 @@ namespace vertex {
     int         fWindow;
     double      fThreshold;
     int         fSaveVertexMap;
+    TH2F *fNoVertices;
+
   };
     
 }
