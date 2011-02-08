@@ -286,20 +286,6 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	TVector3 DirCos = endpointVecLocal - startpointVecLocal;
 	DirCos.SetMag(1.0);//normalize vector
 
-	//compute 3D track parameters (theta, phi, track pitch length) in the World co-ordinate system         
-	double Theta; // Zenith angle with respect to y (vertical) axis in radians 
-	double Phi;   // Azimuth angle with respect to x axis in radians
-	Theta = TMath::ACos(DirCos.Y());
-	Phi = TMath::ATan(DirCos.Z()/DirCos.X());
-	Phi = Phi<0. ? Phi+TMath::Pi() : Phi ; // solve the ambiguities due to tangent periodicity	
-	double cosgammaC; // angle between the track direction and the direction of the Collection wire pitch
-	cosgammaC = TMath::Sin(Theta)*TMath::Sin(Phi)*TMath::Cos(Angle)+TMath::Cos(Theta)*TMath::Sin(Angle);
-	double TrackPitchC  = wire_pitch/cosgammaC; // Collection Track Pitch length (i.e. the effective length of the track seen by the Collection wire) in cm  	
-	double cosgammaI; // angle between the track direction and the direction of the Induction wire pitch
-	cosgammaI = TMath::Sin(Theta)*TMath::Sin(Phi)*TMath::Cos(Angle)-TMath::Cos(Theta)*TMath::Sin(Angle);
-	double TrackPitchI  = wire_pitch/cosgammaI; // Induction Track Pitch length (i.e. the effective length of the track seen by the Induction wire) in cm
-	//double TrackLength_line = TMath::Sqrt(TMath::Power((startpoint[0]-endpoint[0]),2.)+TMath::Power((startpoint[1]-endpoint[1]),2.)+TMath::Power((startpoint[2]-endpoint[2]),2.));
-
 	art::Ptr <recob::Cluster> cl1(clusterListHandle,Icluster_count[inductionIter]);
 	art::Ptr <recob::Cluster> cl2(clusterListHandle,Ccluster_count[collectionIter]);
 	art::PtrVector<recob::Cluster> clustersPerTrack;
@@ -418,8 +404,6 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	  double dircos[3];
 	  DirCos.GetXYZ(dircos);
 	  the3DTrack.SetDirection(dircos,dircos);
-	  the3DTrack.SetTrackPitch(TrackPitchI,geo::kU);
-	  the3DTrack.SetTrackPitch(TrackPitchC,geo::kV);
 
 	  tcol->push_back(the3DTrack);
 	}
