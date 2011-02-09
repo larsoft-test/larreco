@@ -117,7 +117,7 @@ namespace hit{
       minTimeHolder = 0;
       maxFound = false;
       channel=wireVec->RawDigit()->Channel();
-      //std::cout << "Channel: " << channel << std::endl;
+//       std::cout << "Channel: " << channel << std::endl;
       geom->ChannelToWire(channel,plane,wire);
       sigType = geom->Plane(plane).SignalType();
       view = geom->Plane(plane).View();
@@ -190,9 +190,13 @@ namespace hit{
 	while(signal[(int)endT] <0) endT--;
 	size = (int)(endT-startT);
 	TH1D hitSignal("hitSignal","",size,startT,endT);
+// 	std::cout << wireVec->RawDigit()->Channel() << " size " 
+// 		  << size << " numHits " << numHits << std::endl;
 
-	for(int i = (int)startT; i < (int)endT; i++) hitSignal.Fill(i,signal[i]);
-	//std::cout << wireVec->RawDigit()->Channel() << " size " << size << std::endl;
+	for(int i = (int)startT; i < (int)endT; i++){
+	  hitSignal.Fill(i,signal[i]);
+	}
+
 	for(int i = 3; i < numHits*3; i+=3) {
 	  eqn.append("+gaus(");
 	  numConv.str("");
@@ -218,7 +222,7 @@ namespace hit{
 	  a.Solve(amps);
          
 	  for(int i = 0;i < numHits; i++) {
-	    //std::cout <<" af: " << amps[i] <<" "<< maxTimes[hitIndex+i]<<" "<<width<<std::endl;
+// 	    std::cout <<" af: " << amps[i] <<" "<< maxTimes[hitIndex+i]<<" "<<width<<std::endl;
 	    gSum.SetParameter(3*i, amps[i]);
 	    gSum.SetParameter(1+3*i, maxTimes[hitIndex+i]);
 	    gSum.SetParameter(2+3*i, width);
@@ -232,7 +236,7 @@ namespace hit{
 	  gSum.SetParLimits(0,0.0,1.5*signal[maxTimes[hitIndex]]);
 	  gSum.SetParLimits(1, startT , endT);
 	  gSum.SetParLimits(2,0.0,10.0*width);
-	  //std::cout <<" af: " << signal[maxTimes[hitIndex]] <<" "<< maxTimes[hitIndex]<<" "<<width<<std::endl;
+// 	  std::cout <<" af: " << signal[maxTimes[hitIndex]] <<" "<< maxTimes[hitIndex]<<" "<<width<<std::endl;
 	}
 
 	hitSignal.Fit(&gSum,"QNR","", startT, endT);
@@ -243,8 +247,9 @@ namespace hit{
 	    width = gSum.GetParameter(3*hitNumber+2);
 	    hitSig.clear();
 	    hitSig.resize(size);
-	    for(double sigPos = 0; sigPos<size; sigPos++){
-	      hitSig[(int)sigPos] = amplitude*TMath::Gaus(sigPos,position, width);
+	    for(int sigPos = 0; sigPos<size; sigPos++){
+	      hitSig[sigPos] = amplitude*TMath::Gaus(sigPos+startT,position, width);
+// 	      std::cout << sigPos << " hit sig " << hitSig[sigPos] << std::endl;
 	      totSig+=hitSig[(int)sigPos]; 
 	    }              	    
 
@@ -256,7 +261,7 @@ namespace hit{
 			   totSig,         0., //!todo - need to define uncertainty on charge
 			   1,                  //!todo - mulitplicity has to be determined
 			   0.);                //!todo - goodness of fit has to be determined
-
+	    
 	    hcol->push_back(hit);
 	    
 	  }//end if over threshold
