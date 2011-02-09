@@ -85,10 +85,10 @@ void cluster::HoughLineFinderAna::beginJob()
   art::ServiceHandle<art::TFileService> tfs;
   ftree= tfs->make<TTree>("HoughTree","HoughTree");
   fm_hitidZ = new int[fm_sizeHitZ];
-  fm_mipZ = new double[fm_sizeHitZ];
-  fm_drifttimeZ = new double[fm_sizeHitZ];
-  fm_widthZ = new double[fm_sizeHitZ];
-  fm_upadcZ = new double[fm_sizeHitZ];
+  fm_mipZ = new float[fm_sizeHitZ];
+  fm_drifttimeZ = new float[fm_sizeHitZ];
+  fm_widthZ = new float[fm_sizeHitZ];
+  fm_upadcZ = new float[fm_sizeHitZ];
   fm_wireZ = new int[fm_sizeHitZ];
   ftree->Branch("run", &fm_run, "run/I");
   ftree->Branch("run_timestamp", &fm_run_timestamp, "run_timestamp/l"); //l is for ULong64_t
@@ -167,8 +167,8 @@ void cluster::HoughLineFinderAna::analyze(const art::Event& evt)
 	{
 	  fm_clusterid=clusters[j]->ID();
 	  art::PtrVector<recob::Hit> _hits=clusters[j]->Hits(plane);
-	  fm_clusterslope=(double)clusters[j]->dTdW();
-	  fm_clusterintercept=(double)clusters[j]->StartPos()[1];
+	  fm_clusterslope=(float)clusters[j]->dTdW();
+	  fm_clusterintercept=(float)clusters[j]->StartPos()[1];
 	  if(_hits.size()!=0)
 	    {
 	      geo->ChannelToWire(_hits[0]->Wire()->RawDigit()->Channel(), p, firstwire);
@@ -182,10 +182,10 @@ void cluster::HoughLineFinderAna::analyze(const art::Event& evt)
 		  geo->ChannelToWire(_hits[i]->Wire()->RawDigit()->Channel(), p, wire);
 		  fm_hitidZ[i]=i;         
 		  fm_wireZ[i]=wire;
-		  fm_mipZ[i]=(double)_hits[i]->Charge();
-		  fm_drifttimeZ[i]= (double)_hits[i]->PeakTime();
-		  fm_widthZ[i]=(double)_hits[i]->EndTime()-_hits[i]->StartTime();
-		  fm_upadcZ[i]=(double)_hits[i]->Charge();
+		  fm_mipZ[i]=(float)_hits[i]->Charge();
+		  fm_drifttimeZ[i]= (float)_hits[i]->PeakTime();
+		  fm_widthZ[i]=(float)_hits[i]->EndTime()-_hits[i]->StartTime();
+		  fm_upadcZ[i]=(float)_hits[i]->Charge();
 		} 
     
 	      ftree->Fill();  

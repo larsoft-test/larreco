@@ -37,14 +37,14 @@ namespace cluster {
     int fm_wirespan;    // Wire spanned by track
     int fm_sizeClusterZ;  //Number of clusters
     int fm_sizeHitZ;      //Number of Hits
-    double fm_clusterslope;
-    double fm_clusterintercept;
+    float fm_clusterslope;
+    float fm_clusterintercept;
     int *fm_wireZ;
     int *fm_hitidZ;
-    double *fm_mipZ;
-    double *fm_drifttimeZ;
-    double *fm_widthZ;
-    double *fm_upadcZ;
+    float *fm_mipZ;
+    float *fm_drifttimeZ;
+    float *fm_widthZ;
+    float *fm_upadcZ;
       
   };
   

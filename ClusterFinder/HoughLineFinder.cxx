@@ -361,7 +361,6 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
 	      //there doesn't seem to be a std::vector::back() method to get the last element of the vector here
  	      channel = (clusterHits[clusterHits.size()-1])->Wire()->RawDigit()->Channel(); 
  	      geom->ChannelToWire(channel,plane,ew);
-	      
  	      recob::Cluster cluster(clusterHits,
 				     sw, 0.,
 				     (*clusterHits.begin())->PeakTime(), 0.,
