@@ -125,7 +125,7 @@ void cluster::DBScanModule::produce(art::Event& evt)
       dbscan->run_cluster();
 
       //std::cout<<clusters;
-      std::cout<<"DBSCAN found "<<dbscan->fclusters.size()<<" cluster(s)."<<std::endl;
+      //std::cout<<"DBSCAN found "<<dbscan->fclusters.size()<<" cluster(s)."<<std::endl;
 
 
       for(unsigned int i=0; i<dbscan->fclusters.size();i++)
@@ -163,7 +163,7 @@ void cluster::DBScanModule::produce(art::Event& evt)
 				     i);
 
 	      ccol->push_back(cluster);
-	      std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
+	      //std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
 	      clusterHits.clear();
 	      //////
 	    }
@@ -178,9 +178,18 @@ void cluster::DBScanModule::produce(art::Event& evt)
     }
 
 
-  if(ccol->size() == 0){
-    std::cerr << "no clusters made for this event" << std::endl;
-  }
+  // if(ccol->size() == 0){
+  //   std::cerr << "no clusters made for this event" << std::endl;
+  // }
+
+  std::sort(ccol->begin(),ccol->end());//sort before Putting
+
+  std::cout << std::setfill('-') << std::setw(175) << "-" << std::endl;
+  std::cout << std::setfill(' ');
+  std::cout << "DBScanModule Summary:" << std::endl;
+  for(int i = 0; i<ccol->size(); ++i) std::cout << ccol->at(i) << std::endl;
+  std::cout << std::endl;
+
   evt.put(ccol);
   return;
 }

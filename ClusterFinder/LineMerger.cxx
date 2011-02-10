@@ -140,12 +140,12 @@ namespace cluster{
     }
 
     std::sort(SuperClusters->begin(),SuperClusters->end());//sort before Putting
-    std::cout<<"LineMerger found "<< SuperClusters->size() <<" Clusters : "<<std::endl;
-    for(std::vector<recob::Cluster>::iterator clusIter1 = SuperClusters->begin(); clusIter1 !=  SuperClusters->end();  clusIter1++) {
-      recob::Cluster cl1 = *clusIter1;
-      std::cout << cl1 << std::endl;
-      //cl1.PrintHits();
-    }
+
+    std::cout << std::setfill('-') << std::setw(175) << "-" << std::endl;
+    std::cout << std::setfill(' ');
+    std::cout << "LineMerger Summary:" << std::endl;
+    for(int i = 0; i<SuperClusters->size(); ++i) std::cout << SuperClusters->at(i) << std::endl;
+    std::cout << std::endl;
 
     evt.put(SuperClusters);
      

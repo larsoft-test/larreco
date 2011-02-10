@@ -88,6 +88,14 @@ void cluster::HoughLineModule::produce(art::Event& evt)
   //Point to a collection of clusters to output.
   std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>(clusOut));
 
+  std::sort(ccol->begin(),ccol->end());//sort before Putting
+
+  std::cout << std::setfill('-') << std::setw(175) << "-" << std::endl;
+  std::cout << std::setfill(' ');
+  std::cout << "HoughLineModule Summary:" << std::endl;
+  for(int i = 0; i<ccol->size(); ++i) std::cout << ccol->at(i) << std::endl;
+  std::cout << std::endl;
+
   evt.put(ccol);
  
     

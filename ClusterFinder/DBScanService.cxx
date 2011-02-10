@@ -441,7 +441,7 @@ void cluster::DBScanService::run_cluster()
   int noise=0;
   //no_hits=fnoise.size();
 
-  std::cout<<"NO OF HITS IS "<<fnoise.size();
+  //std::cout<<"NO OF HITS IS "<<fnoise.size();
    
   
   for(unsigned int y=0;y< fpointId_to_clusterId.size();++y){
@@ -451,9 +451,9 @@ void cluster::DBScanService::run_cluster()
 
   }
   
-  std::cout<<" , "<<noise<<" is noise"<<std::endl;
+  //std::cout<<" , "<<noise<<" is noise"<<std::endl;
    
-  std::cout<<"THE CURRENT NOISE LEVEL IS: "<<(double(noise)/double(fnoise.size()))*100<<" %"<<std::endl;
+  //std::cout<<"THE CURRENT NOISE LEVEL IS: "<<(double(noise)/double(fnoise.size()))*100<<" %"<<std::endl;
   
 }
 
