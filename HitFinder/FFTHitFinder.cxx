@@ -239,6 +239,7 @@ namespace hit{
 // 	  std::cout <<" af: " << signal[maxTimes[hitIndex]] <<" "<< maxTimes[hitIndex]<<" "<<width<<std::endl;
 	}
 
+	//!todo - just get the integral from the fit for totSig
 	hitSignal.Fit(&gSum,"QNR","", startT, endT);
 	for(int hitNumber = 0; hitNumber < numHits; hitNumber++) {
 	  if(gSum.GetParameter(3*hitNumber) > threshold/2.0) { 
