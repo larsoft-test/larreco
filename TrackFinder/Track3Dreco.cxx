@@ -414,8 +414,13 @@ void trkf::Track3Dreco::produce(art::Event& evt)
     
   }//close loop over Collection xxview 2D tracks
   
-  std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
-  std::cout<<"TRACK3DRECO found "<< tcol->size() <<" 3D track(s)"<<std::endl;
+  //std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
+
+  std::cout << std::setfill('-') << std::setw(175) << "-" << std::endl;
+  std::cout << std::setfill(' ');
+  std::cout << "Track3Dreco Summary:" << std::endl;
+  for(int i = 0; i<tcol->size(); ++i) std::cout << tcol->at(i) << std::endl;
+  std::cout << std::endl;
   
   evt.put(tcol);
   
