@@ -106,84 +106,86 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
     art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
     int clusterID=0;//the unique ID of the cluster
     // This is the loop over clusters. The algorithm searches for lines on a (DBSCAN) cluster-by-cluster basis. 
+    //get the view of the current plane
+    geo::View_t view = geom->Plane(p).View();
+    
     while(clusterIter!=clusIn.end()) 
       {
  	hit.clear();
  	cHits.clear();
- 	if(fPerCluster)
- 	  hit = (*clusterIter)->Hits(p);
- 	else 
- 	  {   
- 	    while(clusterIter!=clusIn.end()) 
- 	      {
- 		cHits = (*clusterIter)->Hits(p);
- 		if(cHits.size() > 0)
-		  {
-		    // hit.insert(hit.end(),cHits.begin(),cHits.end());
-		    art::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
-		    while (hitIter!=cHits.end())
-		      {
-			hit.push_back((*hitIter));
-			hitIter++;
-		      }
-		    clusterIter++;
-		  }
- 	      } 
- 	  }
- 	if(hit.size() == 0) 
- 	  { 
- 	    if(fPerCluster) clusterIter++;
- 	    continue;
- 	  }
-
- 	int x, y;
-	unsigned int channel, plane, wire;
- 	//there must be a better way to find which plane a cluster comes from
- 	int dx=geom->Nwires(0);//number of wires 
- 	int dy=hit[0]->Wire()->fSignal.size();//number of time samples. 
- 	skip.clear();
- 	skip.resize(hit.size());
- 	std::vector<int> listofxmax;
- 	std::vector<int> listofymax;  
- 	std::vector<int> hitTemp;  //indecies ofcandidate hits
- 	std::vector<int> sequenceHolder;  //channels of hits in list
- 	std::vector<int> currentHits; //working vector of hits 
- 	std::vector<int> lastHits;  //best list of hits
- 	art::PtrVector<recob::Hit> clusterHits;
- 	double indcolscaling=0.;//a parameter to account for the different characteristic hit width of induction and collection plane
- 	double centerofmassx=0;
- 	double centerofmassy=0;
- 	double denom = 0; 
- 	double intercept=0.;
- 	double slope=0.;
- 	//this array keeps track of the hits that have already been associated with a line. 
- 	int xMax=0;
- 	int yMax=0;
- 	double rho;
- 	double theta;
- 	double norm=100.;//normalize. This is important since newcellvalue will end up as an int.  
- 	int accDx(0), accDy(0);
+ 	if(fPerCluster){
+ 	  if((*clusterIter)->View() == view) hit = (*clusterIter)->Hits();
+	}
+ 	else{   
+	  while(clusterIter!=clusIn.end()){
+	    if( (*clusterIter)->View() == view ){
+	      cHits = (*clusterIter)->Hits();
+	      if(cHits.size() > 0){
+		// hit.insert(hit.end(),cHits.begin(),cHits.end());
+		art::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
+		while (hitIter!=cHits.end()){
+		  hit.push_back((*hitIter));
+		  hitIter++;
+		}
+	      }
+	    }// end if cluster is in correct view
+	    clusterIter++;
+	  }// end loop over clusters
+	}//end if not fPerCluster
+	if(hit.size() == 0) 
+	  { 
+	    if(fPerCluster) clusterIter++;
+	    continue;
+	  }
 	
- 	for (int linenum = 0; linenum < fMaxLines; linenum++)
- 	  { 
- 	    //Init specifies the size of the two-dimensional accumulator (based on the arguments, number of wires and number of time samples). 
- 	    c.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
- 	    //initialize the smoothing accumulators as well, one each for the two dimensions of the accumulator
- 	    cc.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
- 	    ccc.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells); 
- 	    //adds all of the hits (that have not yet been associated with a line) to the accumulator
- 	    for(unsigned int i=0;i < hit.size(); i++)
- 	      {
- 		channel=hit[i]->Wire()->RawDigit()->Channel();
- 		geom->ChannelToWire(channel,plane,wire);
- 		if (skip[i] != 1)
- 		  c.AddPoint(wire,(int)(hit[i]->PeakTime()));
- 	      }
- 	    //gets the actual two-dimensional size of the accumulator
- 	    c.GetAccumSize(accDy, accDx);
+	int x, y;
+	unsigned int channel, plane, wire;
+	//there must be a better way to find which plane a cluster comes from
+	int dx=geom->Nwires(0);//number of wires 
+	int dy=hit[0]->Wire()->fSignal.size();//number of time samples. 
+	skip.clear();
+	skip.resize(hit.size());
+	std::vector<int> listofxmax;
+	std::vector<int> listofymax;  
+	std::vector<int> hitTemp;  //indecies ofcandidate hits
+	std::vector<int> sequenceHolder;  //channels of hits in list
+	std::vector<int> currentHits; //working vector of hits 
+	std::vector<int> lastHits;  //best list of hits
+	art::PtrVector<recob::Hit> clusterHits;
+	double indcolscaling=0.;//a parameter to account for the different characteristic hit width of induction and collection plane
+	double centerofmassx=0;
+	double centerofmassy=0;
+	double denom = 0; 
+	double intercept=0.;
+	double slope=0.;
+	//this array keeps track of the hits that have already been associated with a line. 
+	int xMax=0;
+	int yMax=0;
+	double rho;
+	double theta;
+	double norm=100.;//normalize. This is important since newcellvalue will end up as an int.  
+	int accDx(0), accDy(0);
+	
+	for (int linenum = 0; linenum < fMaxLines; linenum++)
+	  { 
+	    //Init specifies the size of the two-dimensional accumulator (based on the arguments, number of wires and number of time samples). 
+	    c.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
+	    //initialize the smoothing accumulators as well, one each for the two dimensions of the accumulator
+	    cc.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
+	    ccc.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells); 
+	    //adds all of the hits (that have not yet been associated with a line) to the accumulator
+	    for(unsigned int i=0;i < hit.size(); i++)
+	      {
+		channel=hit[i]->Wire()->RawDigit()->Channel();
+		geom->ChannelToWire(channel,plane,wire);
+		if (skip[i] != 1)
+		  c.AddPoint(wire,(int)(hit[i]->PeakTime()));
+	      }
+	    //gets the actual two-dimensional size of the accumulator
+	    c.GetAccumSize(accDy, accDx);
 	    
- 	    if(fSmootherSigma>0)  
- 	      {  
+	    if(fSmootherSigma>0)  
+	      {  
 		
 		double Weight[accDx];
 		double newcellvalue[accDx];
@@ -234,134 +236,134 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
 		      }
 		  }
 
- 	      } 
- 	    else
+	      } 
+	    else
 	      {
 		ccc = c;
 	      }
- 	    // zeroes out the neighborhood of all previous lines  
- 	    for(unsigned int i=0;i<listofxmax.size();i++)
- 	      {
- 		int yClearStart = listofymax[i]-fRhoZeroOutRange;
- 		if (yClearStart < 0)
- 		  yClearStart = 0;
- 		int yClearEnd = listofymax[i]+fRhoZeroOutRange;
- 		if (yClearEnd >= accDy)
- 		  yClearEnd = accDy-1;
- 		int xClearStart = listofxmax[i]-fThetaZeroOutRange;
- 		if (xClearStart < 0)
- 		  xClearStart = 0;
- 		int xClearEnd = listofxmax[i]+fThetaZeroOutRange;
- 		if (xClearEnd >= accDx)
- 		  xClearEnd = accDx-1;
+	    // zeroes out the neighborhood of all previous lines  
+	    for(unsigned int i=0;i<listofxmax.size();i++)
+	      {
+		int yClearStart = listofymax[i]-fRhoZeroOutRange;
+		if (yClearStart < 0)
+		  yClearStart = 0;
+		int yClearEnd = listofymax[i]+fRhoZeroOutRange;
+		if (yClearEnd >= accDy)
+		  yClearEnd = accDy-1;
+		int xClearStart = listofxmax[i]-fThetaZeroOutRange;
+		if (xClearStart < 0)
+		  xClearStart = 0;
+		int xClearEnd = listofxmax[i]+fThetaZeroOutRange;
+		if (xClearEnd >= accDx)
+		  xClearEnd = accDx-1;
 
- 		for (y=yClearStart; y<=yClearEnd; y++)
- 		  {
- 		    for (x=xClearStart; x<=xClearEnd; x++)
- 		      {
- 			ccc.SetCell(y,x,0);
- 		      }
- 		  }
- 	      }
- 	    //find the weightiest cell in the smoothed accumulator.
- 	    int maxCell = 0;
- 	    xMax = 0;
- 	    yMax = 0;
- 	    maxCell = ccc.GetMax(yMax,xMax);
- 	    // break when biggest maximum is smaller than fMinHits
- 	    if ((maxCell < fMinHits*pow(norm,2) && fSmootherSigma>0) || (maxCell < fMinHits && fSmootherSigma==0.)) 
- 	      break;
+		for (y=yClearStart; y<=yClearEnd; y++)
+		  {
+		    for (x=xClearStart; x<=xClearEnd; x++)
+		      {
+			ccc.SetCell(y,x,0);
+		      }
+		  }
+	      }
+	    //find the weightiest cell in the smoothed accumulator.
+	    int maxCell = 0;
+	    xMax = 0;
+	    yMax = 0;
+	    maxCell = ccc.GetMax(yMax,xMax);
+	    // break when biggest maximum is smaller than fMinHits
+	    if ((maxCell < fMinHits*pow(norm,2) && fSmootherSigma>0) || (maxCell < fMinHits && fSmootherSigma==0.)) 
+	      break;
 	  
- 	    //find the center of mass of the 3x3 cell system (with maxCell at the center). 
- 	    denom=centerofmassx=centerofmassy=0;
+	    //find the center of mass of the 3x3 cell system (with maxCell at the center). 
+	    denom=centerofmassx=centerofmassy=0;
 
- 	    if(xMax>0 && yMax>0 && xMax+1<accDx && yMax+1<accDy)
- 	      {  
- 		for(int i = -1; i < 2; i++) 
- 		  {
- 		    for(int j = -1; j < 2; j++) 
- 		      {
- 			denom+=ccc.GetCell(yMax+i,xMax+j);
- 			centerofmassx+=j*ccc.GetCell(yMax+i,xMax+j);
- 			centerofmassy+=i*ccc.GetCell(yMax+i,xMax+j);
- 		      }
- 		  }
- 		centerofmassx/=denom;
- 		centerofmassy/=denom;      
- 	      }
- 	    else
- 	      {
- 		centerofmassx=centerofmassy=0;
- 	      }
- 	    //fill the list of cells that have already been found
- 	    listofxmax.push_back(xMax);
- 	    listofymax.push_back(yMax);
+	    if(xMax>0 && yMax>0 && xMax+1<accDx && yMax+1<accDy)
+	      {  
+		for(int i = -1; i < 2; i++) 
+		  {
+		    for(int j = -1; j < 2; j++) 
+		      {
+			denom+=ccc.GetCell(yMax+i,xMax+j);
+			centerofmassx+=j*ccc.GetCell(yMax+i,xMax+j);
+			centerofmassy+=i*ccc.GetCell(yMax+i,xMax+j);
+		      }
+		  }
+		centerofmassx/=denom;
+		centerofmassy/=denom;      
+	      }
+	    else
+	      {
+		centerofmassx=centerofmassy=0;
+	      }
+	    //fill the list of cells that have already been found
+	    listofxmax.push_back(xMax);
+	    listofymax.push_back(yMax);
 	    
- 	    ccc.GetEquation(yMax+centerofmassy, xMax+centerofmassx, rho, theta);
- 	    slope=-1./tan(theta);    
- 	    intercept=(rho/sin(theta));
- 	    double distance;
- 	    if(p==0)
- 	      indcolscaling=5.;
- 	    else
- 	      indcolscaling=0.;
- 	    //the collection plane's characteristic hit width's are, on average, about 5 time samples wider than the induction plane's. this is hard-coded for now.
- 	    if(!isinf(slope) && !isnan(slope)){
- 	      sequenceHolder.clear();
- 	      hitTemp.clear();
- 	      for(unsigned int i=0;i<hit.size();i++)
- 		{
- 		  channel=hit[i]->Wire()->RawDigit()->Channel();
- 		  geom->ChannelToWire(channel,plane,wire);
- 		  //Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
- 		  distance=(TMath::Abs(hit[i]->PeakTime()-slope*(double)(wire)-intercept)/(sqrt(pow(.0743*slope,2)+1)));
+	    ccc.GetEquation(yMax+centerofmassy, xMax+centerofmassx, rho, theta);
+	    slope=-1./tan(theta);    
+	    intercept=(rho/sin(theta));
+	    double distance;
+	    if(p==0)
+	      indcolscaling=5.;
+	    else
+	      indcolscaling=0.;
+	    //the collection plane's characteristic hit width's are, on average, about 5 time samples wider than the induction plane's. this is hard-coded for now.
+	    if(!isinf(slope) && !isnan(slope)){
+	      sequenceHolder.clear();
+	      hitTemp.clear();
+	      for(unsigned int i=0;i<hit.size();i++)
+		{
+		  channel=hit[i]->Wire()->RawDigit()->Channel();
+		  geom->ChannelToWire(channel,plane,wire);
+		  //Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
+		  distance=(TMath::Abs(hit[i]->PeakTime()-slope*(double)(wire)-intercept)/(sqrt(pow(.0743*slope,2)+1)));
 	
- 		  if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling && fPerCluster==1 && skip[i]!=1){
- 		    hitTemp.push_back(i);
- 		    sequenceHolder.push_back(channel);
- 		  }
- 		  else if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling && fPerCluster==0 && skip[i]!=1){
- 		    hitTemp.push_back(i);
- 		    sequenceHolder.push_back(channel);
- 		  }
- 		}
- 	      if(hitTemp.size() < 2) continue;
- 	      currentHits.clear();  
- 	      lastHits.clear();
- 	      int j; 
- 	      currentHits.push_back(0);
- 	      for(unsigned int i=0;i+1<sequenceHolder.size();i++) {  
- 		j = 1;
- 		while((chanFilt.BadChannel(sequenceHolder[i]+j))==true) j++;
- 		if(sequenceHolder[i+1]-sequenceHolder[i]<=j+1) currentHits.push_back(i+1);
- 		else if(currentHits.size() > lastHits.size()) {
- 		  lastHits = currentHits;
- 		  currentHits.clear();
- 		}
- 		else currentHits.clear();
- 	      } 
- 	      if(currentHits.size() > lastHits.size()) lastHits = currentHits;
- 	      clusterHits.clear();    
- 	      for(unsigned int i = 0; i < lastHits.size();i++) {
- 		clusterHits.push_back(hit[hitTemp[lastHits[i]]]);
- 		skip[hitTemp[lastHits[i]]]=1;
- 	      } 
- 	      //protection against very steep uncorrelated hits
- 	      if(TMath::Abs(slope)>75. 
+		  if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling && fPerCluster==1 && skip[i]!=1){
+		    hitTemp.push_back(i);
+		    sequenceHolder.push_back(channel);
+		  }
+		  else if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling && fPerCluster==0 && skip[i]!=1){
+		    hitTemp.push_back(i);
+		    sequenceHolder.push_back(channel);
+		  }
+		}
+	      if(hitTemp.size() < 2) continue;
+	      currentHits.clear();  
+	      lastHits.clear();
+	      int j; 
+	      currentHits.push_back(0);
+	      for(unsigned int i=0;i+1<sequenceHolder.size();i++) {  
+		j = 1;
+		while((chanFilt.BadChannel(sequenceHolder[i]+j))==true) j++;
+		if(sequenceHolder[i+1]-sequenceHolder[i]<=j+1) currentHits.push_back(i+1);
+		else if(currentHits.size() > lastHits.size()) {
+		  lastHits = currentHits;
+		  currentHits.clear();
+		}
+		else currentHits.clear();
+	      } 
+	      if(currentHits.size() > lastHits.size()) lastHits = currentHits;
+	      clusterHits.clear();    
+	      for(unsigned int i = 0; i < lastHits.size();i++) {
+		clusterHits.push_back(hit[hitTemp[lastHits[i]]]);
+		skip[hitTemp[lastHits[i]]]=1;
+	      } 
+	      //protection against very steep uncorrelated hits
+	      if(TMath::Abs(slope)>75. 
 		 && TMath::Abs((*clusterHits.begin())->Wire()->RawDigit()->Channel()-
 			       clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel())>=0
 		 )
- 		continue;
+		continue;
 
 	      unsigned int sw = 0;
 	      unsigned int ew = 0;
 	      channel = (*clusterHits.begin())->Wire()->RawDigit()->Channel(); 
- 	      geom->ChannelToWire(channel,plane,sw);
+	      geom->ChannelToWire(channel,plane,sw);
 
 	      //there doesn't seem to be a std::vector::back() method to get the last element of the vector here
- 	      channel = (clusterHits[clusterHits.size()-1])->Wire()->RawDigit()->Channel(); 
- 	      geom->ChannelToWire(channel,plane,ew);
- 	      recob::Cluster cluster(clusterHits,
+	      channel = (clusterHits[clusterHits.size()-1])->Wire()->RawDigit()->Channel(); 
+	      geom->ChannelToWire(channel,plane,ew);
+	      recob::Cluster cluster(clusterHits,
 				     sw, 0.,
 				     (*clusterHits.begin())->PeakTime(), 0.,
 				     ew, 0., 
@@ -370,9 +372,9 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
 				     -999., 0., 
 				     clusterID);	      
 
- 	      clusterID++;
+	      clusterID++;
 	     
- 	      ccol->push_back(cluster);
+	      ccol->push_back(cluster);
 	    }
 
 	  } 
@@ -411,11 +413,7 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
       }
   }
 
-  evt.put(ccol);
- 
-    
-
- 
+  evt.put(ccol); 
 }
 
 bool cluster::HoughLineFinder::HoughTransform::AddPoint(int x, int y)

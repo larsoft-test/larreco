@@ -595,8 +595,6 @@ void cluster::DBcluster::produce(art::Event& evt){
 	      unsigned int ew = 0;
 	      geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), p, sw);
 	      geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), p, ew);
-
-	      
 	      
 	      recob::Cluster cluster(clusterHits, 
 				     sw*1., 0.,

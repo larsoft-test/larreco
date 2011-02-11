@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////
 //
-// HarrisVertexFinder class
+// EndPointModule class
 //
 // joshua.spitz@yale.edu
 //
@@ -29,8 +29,8 @@
 #include "art/Framework/Core/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "ClusterFinder/VertexService.h"
-#include "ClusterFinder/VertexModule.h"
+#include "ClusterFinder/EndPointService.h"
+#include "ClusterFinder/EndPointModule.h"
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -50,21 +50,21 @@ extern "C" {
 #include "Geometry/geo.h"
 
 //-----------------------------------------------------------------------------
-vertex::VertexModule::VertexModule(fhicl::ParameterSet const& pset) :
+cluster::EndPointModule::EndPointModule(fhicl::ParameterSet const& pset) :
   fDBScanModuleLabel  (pset.get< std::string >("DBScanModuleLabel"))
   
 {
-  produces< std::vector<recob::Vertex> >();
+  produces< std::vector<recob::EndPoint2D> >();
 }
 
 //-----------------------------------------------------------------------------
-vertex::VertexModule::~VertexModule()
+cluster::EndPointModule::~EndPointModule()
 {
 }
 
 //-----------------------------------------------------------------------------
 
-void vertex::VertexModule::produce(art::Event& evt)
+void cluster::EndPointModule::produce(art::Event& evt)
 {
 
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
@@ -72,27 +72,27 @@ void vertex::VertexModule::produce(art::Event& evt)
   //Point to a collection of vertices to output.
   
   //.......................................
- art::PtrVector<recob::Cluster> clusIn;
+  art::PtrVector<recob::Cluster> clusIn;
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
     {
       art::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
       clusIn.push_back(cluster);
     }
  
- art::ServiceHandle<vertex::VertexService> vs;
+  art::ServiceHandle<cluster::EndPointService> vs;
   
   // make a std::vector<recob::Cluster> for the output of the 
   // Hough Transform
-  std::vector<recob::Vertex> vtxOut;
+  std::vector<recob::EndPoint2D> vtxOut;
   
-  size_t numvtx = vs->Vertex(clusIn, vtxOut);
+  size_t numvtx = vs->EndPoint(clusIn, vtxOut);
 
   mf::LogDebug("Vertex") << "found " << numvtx << "vertices with VertexService";
 
   //Point to a collection of vertices to output.
-    std::auto_ptr<std::vector<recob::Vertex> > vtxcol(new std::vector<recob::Vertex>(vtxOut));
+  std::auto_ptr<std::vector<recob::EndPoint2D> > vtxcol(new std::vector<recob::EndPoint2D>(vtxOut));
 
   
-evt.put(vtxcol);   
+  evt.put(vtxcol);   
 }
 

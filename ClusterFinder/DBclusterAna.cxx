@@ -174,7 +174,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 
   //get the sim::Particle collection from the art::Event and then use the Simulation/SimListUtils object to create a sim::ParticleList from the art::Event.  
 
-   sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
+  sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
 
   
   std::vector<int> mc_trackids;
@@ -283,345 +283,345 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   
   art::ServiceHandle<geo::Geometry> geom;  
   /*
-  for(unsigned int i = 0; i < hits.size(); ++i) {
+    for(unsigned int i = 0; i < hits.size(); ++i) {
     std::cout<<"channel: "<<hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(hits[i]->StartTime()+hits[i]->EndTime())/2.<<" X time= "<<hits[i]-> CrossingTime()<<std::endl;
-  }
+    }
   */
   if(clusters.size()!=0 && hits.size()!=0){
     for(unsigned int plane=0;plane<geom->Nplanes();++plane){
+      geo::View_t view = geom->Plane(plane).View();
       //art::PtrVectorItr<recob::Cluster> clusterIter = clusters.begin();      
       for(unsigned int j=0; j<clusters.size();++j) 
-      //while (clusterIter != clusters.end()) 
+	//while (clusterIter != clusters.end()) 
 	{
-	//	std::cout<<"I AM ON PLANE #"<<plane<<std::endl;
-	
-	art::PtrVector<recob::Hit> _hits; 
-
-	//if (hits.size() <= 0) {clusterIter++; continue;}
-	//_hits = (*clusterIter)->Hits(plane);
-	_hits=clusters[j]->Hits(plane);
-	
-	if(_hits.size()!=0){ //need this b/c of plane
-	  
-	  for(unsigned int i = 0; i < _hits.size(); ++i) {
-	  
+	  //	std::cout<<"I AM ON PLANE #"<<plane<<std::endl;
+	  if( clusters[j]->View() == view){
+	    art::PtrVector<recob::Hit> _hits; 
 	    
-	      //std::cout<<"channel: "<<_hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(_hits[i]->StartTime()+_hits[i]->EndTime())/2.<<" X time= "<<_hits[i]-> CrossingTime()<<std::endl;
+	    //if (hits.size() <= 0) {clusterIter++; continue;}
+	    //_hits = (*clusterIter)->Hits();
+	    _hits=clusters[j]->Hits();
 	    
-	    double XTime=_hits[i]->PeakTime();
-
-	    // grab the channel from this hit
-	    unsigned int channel = _hits[i]->Wire()->RawDigit()->Channel();
-
-	    // loop over the SimChannels to find this one
-	    art::Ptr<sim::SimChannel> sc;
-	    for(unsigned int scs = 0; scs < simchans.size(); ++scs)
-	      if(simchans[scs]->Channel() == channel) sc = simchans[scs];
-
-	    int numberOfElectrons = sc->NumberOfElectrons();
-	   
-	    //std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
-
-	    for ( int i = 0; i != numberOfElectrons; ++i )
-	      {
+	    if(_hits.size()!=0){ //need this b/c of plane
+	      
+	      for(unsigned int i = 0; i < _hits.size(); ++i) {
 		
-		_electrons = sc->GetElectrons(i);
-		double ArrivalTime=(_electrons->ArrivalT())/200;
-		double diff=XTime-ArrivalTime;
-	   
-		//	std::cout<<"e's ArrivalT = "<<ArrivalTime<<" diff= "<<diff<<std::endl;
-		diff_vec.push_back(diff);
+		
+		//std::cout<<"channel: "<<_hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(_hits[i]->StartTime()+_hits[i]->EndTime())/2.<<" X time= "<<_hits[i]-> CrossingTime()<<std::endl;
+		
+		double XTime=_hits[i]->PeakTime();
+		
+		// grab the channel from this hit
+		unsigned int channel = _hits[i]->Wire()->RawDigit()->Channel();
+		
+		// loop over the SimChannels to find this one
+		art::Ptr<sim::SimChannel> sc;
+		for(unsigned int scs = 0; scs < simchans.size(); ++scs)
+		  if(simchans[scs]->Channel() == channel) sc = simchans[scs];
+		
+		int numberOfElectrons = sc->NumberOfElectrons();
+		
+		//std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
 
-		/* Below should be generalized for N planes. EC, 5-Oct-2010. */
-
-		if(plane==0)  { 
-		  if((diff<22)&&(diff>13))
-		    {
-		      electrons = sc->GetElectrons(i);
-		      // double _ArrivalTime=(electrons->ArrivalT())/200;
-		      // double _diff=XTime-_ArrivalTime;
-		      // std::cout<<"PLANE 0,diff= "<<_diff<<std::endl;
-		    }
-		}
-		if(plane==1)  { 
-		  if((diff<36)&&(diff>27))
-		    {
-		      electrons = sc->GetElectrons(i);
-		      //double _ArrivalTime=(electrons->ArrivalT())/200;
-		      //double _diff=XTime-_ArrivalTime;
-		      // std::cout<<"PLANE 1,diff= "<<_diff<<std::endl;
-		    }
-		}
-
-
-	      }//for
-	     
-	    //   std::cout<<"MIN of DIFF= "<<*min_element(diff_vec.begin(),diff_vec.end())<<" MAX of DIFF= "<<*max_element(diff_vec.begin(),diff_vec.end())<<std::endl;
-	    diff_vec.clear();
-	  
-	   
-	    if(electrons!=0){
-	      const sim::LArVoxelID voxelIDval = electrons->Voxel()->VoxelID(); 
-	      
-	      const sim::LArVoxelID* voxelID = &voxelIDval;
-	      
-	      if(voxelID==0){std::cout<<"voxelID =0!!!!!!!!! ************"<<std::endl;}
-	      // sim::LArVoxelData& voxelData =const_cast<sim::LArVoxelList*> (voxelList)->at(*voxelID);
-	     
-	      const sim::LArVoxelData& voxelData = voxelList.at(*voxelID);
-
-	    
-	      int numberParticles = voxelData.NumberParticles();
-	      
-	      
-	      for ( int i = 0; i != numberParticles; ++i )
-		{
-		  int trackID = voxelData.TrackID(i);
-		  //	std::cout<<"trackID= "<<trackID<<std::endl;
-		  //
-		  double energy=voxelData.Energy(i);
-		  // std::cout<<"energy= "<<energy<<std::endl;
-		  // fEnergy->Fill(energy);
-		  
-		  vec_trackid.push_back(trackID);
-		   
-		  for( unsigned int i=0; i<_particleList.size(); ++i )
-		    {
-		      // const sim::ParticleList* particleList = _particleList[i];
-		      //particleList = _particleList[i];
-		      
-
-		      // 	double energyTrackID=voxelData.Energy[trackID];
-		      //  	std::cout<<"ENERGY OF PRIMARY TRACKID= "<<energyTrackID<<std::endl;
+		for ( int i = 0; i != numberOfElectrons; ++i )
+		  {
 		    
-		      const sim::Particle* particle = _particleList.at( trackID );
-		      
-		      int pdg = particle->PdgCode();
-		      
-		      double energy2=voxelData.Energy(i);
-		      // std::cout<<"energy2= "<<energy2<<std::endl;
-
-		      // std::cout<<"part eng= "<<particle->E()<<std::endl;
-		      if(pdg==13){_hit_13++;
-			_en_13+=energy2;}
-		      if(pdg==11){_hit_11++;
-			_en_11+=energy2;
-			// std::cout<<"in clus: _en_11="<<_en_11<<std::endl;
-		      }
-		      if(pdg==-11){_hit_m_11++;
-			_en_m11+=energy2;}
-		      if(pdg==111){_hit_111++;
-			_en_111+=energy2;}
-		      if(pdg==22){_hit_22++;
-			_en_22+=energy2;}
-		      if(pdg==211){_hit_211++;
-			_en_211+=energy2;}
-		      if(pdg==-211){_hit_m211++;
-			_en_m211+=energy2;}
-		      if(pdg==2212){_hit_2212++;
-			_en_2212+=energy2;}
-		      if(pdg==2112){_hit_2112++;
-			_en_2112+=energy2;}
+		    _electrons = sc->GetElectrons(i);
+		    double ArrivalTime=(_electrons->ArrivalT())/200;
+		    double diff=XTime-ArrivalTime;
 		    
-		      //std::cout<<"True PDG= "<<pdg<<std::endl;
-		      vec_pdg.push_back(pdg);
-		      // std::cout<<"_en_11= "<<_en_11<<std::endl;
-		      //while particle is not a primary particle and going up in a chain of trackIDs is not going to change its pdg code, go up the chain.
-		      while ( (! _particleList.IsPrimary( trackID )) && (((_particleList.at(particle->Mother()))->PdgCode())==pdg))
+		    //	std::cout<<"e's ArrivalT = "<<ArrivalTime<<" diff= "<<diff<<std::endl;
+		    diff_vec.push_back(diff);
+		    
+		    /* Below should be generalized for N planes. EC, 5-Oct-2010. */
+		    
+		    if(plane==0)  { 
+		      if((diff<22)&&(diff>13))
 			{
-			  trackID = particle->Mother();
-			  //std::cout<<"((NOt a PRIMARY ORIGINALLY!!! ) trackID= "<<trackID<<std::endl;
-			  particle = _particleList.at( trackID );
-			  pdg= particle->PdgCode();
-			  //	 std::cout<<"(NOt a PRIMARY ORIGINALLY!!! ) The PDG from HIT is: "<<pdg<<std::endl;
-			  
+			  electrons = sc->GetElectrons(i);
+			  // double _ArrivalTime=(electrons->ArrivalT())/200;
+			  // double _diff=XTime-_ArrivalTime;
+			  // std::cout<<"PLANE 0,diff= "<<_diff<<std::endl;
 			}
-		    
-		      // std::cout<<"The PDG from HIT is: "<<pdg<<std::endl;
-		      //std::cout<<"after mother trackid= "<<trackID<<std::endl;
-		      vec_trackid_mother.push_back(trackID);
-		      if(energy>(7e-5)){ vec_trackid_mother_en.push_back(trackID);}
 		    }
+		    if(plane==1)  { 
+		      if((diff<36)&&(diff>27))
+			{
+			  electrons = sc->GetElectrons(i);
+			  //double _ArrivalTime=(electrons->ArrivalT())/200;
+			  //double _diff=XTime-_ArrivalTime;
+			  // std::cout<<"PLANE 1,diff= "<<_diff<<std::endl;
+			}
+		    }
+		    
+		  }//for
+	     
+		//   std::cout<<"MIN of DIFF= "<<*min_element(diff_vec.begin(),diff_vec.end())<<" MAX of DIFF= "<<*max_element(diff_vec.begin(),diff_vec.end())<<std::endl;
+		diff_vec.clear();
+	    
+	   
+		if(electrons!=0){
+		  const sim::LArVoxelID voxelIDval = electrons->Voxel()->VoxelID(); 
+		  
+		  const sim::LArVoxelID* voxelID = &voxelIDval;
+		  
+		  if(voxelID==0){std::cout<<"voxelID =0!!!!!!!!! ************"<<std::endl;}
+		  // sim::LArVoxelData& voxelData =const_cast<sim::LArVoxelList*> (voxelList)->at(*voxelID);
+		  
+		  const sim::LArVoxelData& voxelData = voxelList.at(*voxelID);
+		  
+		  
+		  int numberParticles = voxelData.NumberParticles();
+		  
+		  
+		  for ( int i = 0; i != numberParticles; ++i )
+		    {
+		      int trackID = voxelData.TrackID(i);
+		      //	std::cout<<"trackID= "<<trackID<<std::endl;
+		      //
+		      double energy=voxelData.Energy(i);
+		      // std::cout<<"energy= "<<energy<<std::endl;
+		      // fEnergy->Fill(energy);
+		      
+		      vec_trackid.push_back(trackID);
+		      
+		      for( unsigned int i=0; i<_particleList.size(); ++i )
+			{
+			  // const sim::ParticleList* particleList = _particleList[i];
+			  //particleList = _particleList[i];
+			  
+			  
+			  // 	double energyTrackID=voxelData.Energy[trackID];
+			  //  	std::cout<<"ENERGY OF PRIMARY TRACKID= "<<energyTrackID<<std::endl;
+			  
+			  const sim::Particle* particle = _particleList.at( trackID );
+			  
+			  int pdg = particle->PdgCode();
+			  
+			  double energy2=voxelData.Energy(i);
+			  // std::cout<<"energy2= "<<energy2<<std::endl;
+			  
+			  // std::cout<<"part eng= "<<particle->E()<<std::endl;
+			  if(pdg==13){_hit_13++;
+			    _en_13+=energy2;}
+			  if(pdg==11){_hit_11++;
+			    _en_11+=energy2;
+			    // std::cout<<"in clus: _en_11="<<_en_11<<std::endl;
+			  }
+			  if(pdg==-11){_hit_m_11++;
+			    _en_m11+=energy2;}
+			  if(pdg==111){_hit_111++;
+			    _en_111+=energy2;}
+			  if(pdg==22){_hit_22++;
+			    _en_22+=energy2;}
+			  if(pdg==211){_hit_211++;
+			    _en_211+=energy2;}
+			  if(pdg==-211){_hit_m211++;
+			    _en_m211+=energy2;}
+			  if(pdg==2212){_hit_2212++;
+			    _en_2212+=energy2;}
+			  if(pdg==2112){_hit_2112++;
+			    _en_2112+=energy2;}
+		    
+			  //std::cout<<"True PDG= "<<pdg<<std::endl;
+			  vec_pdg.push_back(pdg);
+			  // std::cout<<"_en_11= "<<_en_11<<std::endl;
+			  //while particle is not a primary particle and going up in a chain of trackIDs is not going to change its pdg code, go up the chain.
+			  while ( (! _particleList.IsPrimary( trackID )) && (((_particleList.at(particle->Mother()))->PdgCode())==pdg))
+			    {
+			      trackID = particle->Mother();
+			      //std::cout<<"((NOt a PRIMARY ORIGINALLY!!! ) trackID= "<<trackID<<std::endl;
+			      particle = _particleList.at( trackID );
+			      pdg= particle->PdgCode();
+			      //	 std::cout<<"(NOt a PRIMARY ORIGINALLY!!! ) The PDG from HIT is: "<<pdg<<std::endl;
+			  
+			    }
+		    
+			  // std::cout<<"The PDG from HIT is: "<<pdg<<std::endl;
+			  //std::cout<<"after mother trackid= "<<trackID<<std::endl;
+			  vec_trackid_mother.push_back(trackID);
+			  if(energy>(7e-5)){ vec_trackid_mother_en.push_back(trackID);}
+			}
 		
+		    }
+		}//if electrons!=0
+		////////////////////////////////////////////
+	    
+		// int numberPrimaries = particleList->NumberOfPrimaries();
+		// 	     std::cout<<"no of PRIMARIES: "<<numberPrimaries<<std::endl;
+		// 	    for ( int i = 0; i != numberPrimaries; ++i )
+		// 	    {
+		// 	    const sim::Particle* primaryParticle = particleList->Primary(i);
+		// 			int trackID = primaryParticle->TrackId();
+		// 		std::cout<<"from PRIMARY trackID= "<<trackID<<std::endl;
+		// 	double energy=voxelData.Energy[trackID];
+		// 	std::cout<<"ENERGY OF PRIMARY TRACKID= "<<energy<<std::endl;
+		// 	    }
+	    
+		//////////////////////////////////////////////
+
+		_electrons=0;
+	   
+		electrons=0;
+	   
+	      }//for hits
+	
+	      //  std::cout<<"vec_pdg("<<vec_pdg.size()<<")= " ;
+	      for(unsigned int i=0;i<vec_pdg.size();++i){
+	    
+		// std::cout<<vec_pdg[i]<<" ";
+	    
+	      }
+	      //std::cout<<std::endl;
+	      //  std::cout<<"vec_trackid("<<vec_trackid.size()<<")= ";
+	      // 	  for(unsigned int i=0;i<vec_trackid.size();++i){
+	    
+	      // 	     std::cout<<vec_trackid[i]<<" ";
+	    
+	      // 	  }
+	  
+	      // std::cout<<"vec_trackid_mother("<<vec_trackid_mother.size()<<")= ";
+	      // 	  for(unsigned int i=0;i<vec_trackid_mother.size();++i){
+	    
+	      // 	     std::cout<<vec_trackid_mother[i]<<" ";
+	    
+	      // 	  }
+	  
+	  
+	      it=find(vec_pdg.begin(),vec_pdg.end(),13);
+	      if(it!=vec_pdg.end()){
+		// std::cout<<"matched found at position="<<int(it-vec_pdg.begin())<<std::endl;
+		no_cl_for_muon++;	  
+	      }
+	      else{
+		// std::cout<<"no match!"<<std::endl;
+	      }
+	  
+	      it2=find(vec_pdg.begin(),vec_pdg.end(),11);
+	      if(it2!=vec_pdg.end()){
+		no_cl_for_electron++;
+	      }
+	  
+	      it3=find(vec_pdg.begin(),vec_pdg.end(),-11);
+	      if(it3!=vec_pdg.end()){
+		no_cl_for_positron++;
+	      }
+	  
+	      it4=find(vec_pdg.begin(),vec_pdg.end(),111);
+	      if(it4!=vec_pdg.end()){
+		no_cl_for_pion_111++;
+	      }
+	      it6=find(vec_pdg.begin(),vec_pdg.end(),211);
+	      if(it6!=vec_pdg.end()){
+		no_cl_for_pion_211++;
+	      }
+	      it7=find(vec_pdg.begin(),vec_pdg.end(),-211);
+	      if(it7!=vec_pdg.end()){
+		no_cl_for_pion_m211++;
+	      }
+	      it8=find(vec_pdg.begin(),vec_pdg.end(),2212);
+	      if(it8!=vec_pdg.end()){
+		no_cl_for_proton++;
+	      }
+	  
+	      // std::cout<<std::endl;
+	      //std::cout<<"numberParticles= "<<numberParticles<<std::endl;
+	      //  std::cout<<"size of vec_pdg= "<<vec_pdg.size()<<std::endl;
+	      sort( vec_pdg.begin(), vec_pdg.end() );
+	      vec_pdg.erase( unique( vec_pdg.begin(), vec_pdg.end() ), vec_pdg.end() );
+	      // std::cout<<" NO OF PARTICLES IN THIS CLUSTER IS: "<<vec_pdg.size()<<std::endl;
+	      //  std::cout<<"They are: ";
+	      // 	  for(unsigned int i=0;i<vec_pdg.size();++i){
+	      //  	     std::cout<<vec_pdg[i]<<" ";
+	      //  	  }
+	      //  	  std::cout<<std::endl;
+	  
+	      //same for vec_trackid:
+	  
+	  
+	      sort( vec_trackid.begin(), vec_trackid.end() );
+	      vec_trackid.erase( unique( vec_trackid.begin(), vec_trackid.end() ), vec_trackid.end() );
+	      //  std::cout<<" NO OF DIFFERENT TRACKIDS IN THIS CLUSTER IS: "<<vec_trackid.size()<<std::endl;
+	      // std::cout<<"They are: ";
+	      for(unsigned int i=0;i<vec_trackid.size();++i){
+		//   std::cout<<vec_trackid[i]<<" ";
+		all_trackids.push_back(vec_trackid[i]);
+		//mytracklist.push_back(vec_trackid[i]);
+	      }
+	      // std::cout<<std::endl;
+	      //...............................................................
+	      //Also Make vec_trackid_mother unique:
+	  
+	      sort( vec_trackid_mother.begin(), vec_trackid_mother.end() );
+	      vec_trackid_mother.erase( unique( vec_trackid_mother.begin(), vec_trackid_mother.end() ), vec_trackid_mother.end() );
+	      // std::cout<<" NO OF DIFFERENT TRACKIDS_MOTHER IN THIS CLUSTER IS: "<<vec_trackid_mother.size()<<std::endl;
+	      // std::cout<<"They are: ";
+	      for(unsigned int i=0;i<vec_trackid_mother.size();++i){
+		// std::cout<<vec_trackid_mother[i]<<" ";
+	    
+	      }
+	      // std::cout<<std::endl;
+	  
+	      //........................................................................
+	  
+	      //Also Make vec_trackid_mother_en unique:
+
+	      sort( vec_trackid_mother_en.begin(), vec_trackid_mother_en.end() );
+	      vec_trackid_mother_en.erase( unique( vec_trackid_mother_en.begin(), vec_trackid_mother_en.end() ), vec_trackid_mother_en.end() );
+	      // std::cout<<" NO OF DIFFERENT TRACKIDS_MOTHER_en IN THIS CLUSTER IS: "<<vec_trackid_mother_en.size()<<std::endl;
+	      // std::cout<<"They are: ";
+	      for(unsigned int i=0;i<vec_trackid_mother_en.size();++i){
+		// std::cout<<vec_trackid_mother_en[i]<<" ";
+	    
+	      }
+	      //  std::cout<<std::endl;
+	  
+	      //........................................................................
+	  
+	  
+	      // Q: How many clusters it takes to contain a certain particle?
+	  
+	      for(unsigned int i=0;i<mc_trackids.size();++i){
+		it5=find(vec_trackid.begin(),vec_trackid.end(),mc_trackids[i]);
+		if(it5!=vec_trackid.end()){
+		  // std::cout<<"found match for: "<<mc_trackids[i]<<" at position: "<<it5-vec_trackid.begin()<<std::endl;
+		  ids.push_back(mc_trackids[i]);//then make it unique 
+		  noCluster++;
 		}
-	    }//if electrons!=0
-	    ////////////////////////////////////////////
-	    
-	    // int numberPrimaries = particleList->NumberOfPrimaries();
-	    // 	     std::cout<<"no of PRIMARIES: "<<numberPrimaries<<std::endl;
-	    // 	    for ( int i = 0; i != numberPrimaries; ++i )
-	    // 	    {
-	    // 	    const sim::Particle* primaryParticle = particleList->Primary(i);
-	    // 			int trackID = primaryParticle->TrackId();
-	    // 		std::cout<<"from PRIMARY trackID= "<<trackID<<std::endl;
-	    // 	double energy=voxelData.Energy[trackID];
-	    // 	std::cout<<"ENERGY OF PRIMARY TRACKID= "<<energy<<std::endl;
-	    // 	    }
-	    
-	    //////////////////////////////////////////////
-
-	    _electrons=0;
-	   
-	    electrons=0;
-	   
-	  }//for hits
-	
-	  //  std::cout<<"vec_pdg("<<vec_pdg.size()<<")= " ;
-	  for(unsigned int i=0;i<vec_pdg.size();++i){
-	    
-	    // std::cout<<vec_pdg[i]<<" ";
-	    
-	  }
-	  //std::cout<<std::endl;
-	  //  std::cout<<"vec_trackid("<<vec_trackid.size()<<")= ";
-	  // 	  for(unsigned int i=0;i<vec_trackid.size();++i){
-	    
-	  // 	     std::cout<<vec_trackid[i]<<" ";
-	    
-	  // 	  }
+	      }
 	  
-	  // std::cout<<"vec_trackid_mother("<<vec_trackid_mother.size()<<")= ";
-	  // 	  for(unsigned int i=0;i<vec_trackid_mother.size();++i){
-	    
-	  // 	     std::cout<<vec_trackid_mother[i]<<" ";
-	    
-	  // 	  }
-	  
-	  
-	  it=find(vec_pdg.begin(),vec_pdg.end(),13);
-	  if(it!=vec_pdg.end()){
-	    // std::cout<<"matched found at position="<<int(it-vec_pdg.begin())<<std::endl;
-	    no_cl_for_muon++;	  
-	  }
-	  else{
-	    // std::cout<<"no match!"<<std::endl;
-	  }
-	  
-	  it2=find(vec_pdg.begin(),vec_pdg.end(),11);
-	  if(it2!=vec_pdg.end()){
-	    no_cl_for_electron++;
-	  }
-	  
-	  it3=find(vec_pdg.begin(),vec_pdg.end(),-11);
-	  if(it3!=vec_pdg.end()){
-	    no_cl_for_positron++;
-	  }
-	  
-	  it4=find(vec_pdg.begin(),vec_pdg.end(),111);
-	  if(it4!=vec_pdg.end()){
-	    no_cl_for_pion_111++;
-	  }
-	  it6=find(vec_pdg.begin(),vec_pdg.end(),211);
-	  if(it6!=vec_pdg.end()){
-	    no_cl_for_pion_211++;
-	  }
-	  it7=find(vec_pdg.begin(),vec_pdg.end(),-211);
-	  if(it7!=vec_pdg.end()){
-	    no_cl_for_pion_m211++;
-	  }
-	  it8=find(vec_pdg.begin(),vec_pdg.end(),2212);
-	  if(it8!=vec_pdg.end()){
-	    no_cl_for_proton++;
-	  }
-	  
-	  // std::cout<<std::endl;
-	  //std::cout<<"numberParticles= "<<numberParticles<<std::endl;
-	  //  std::cout<<"size of vec_pdg= "<<vec_pdg.size()<<std::endl;
-	  sort( vec_pdg.begin(), vec_pdg.end() );
-	  vec_pdg.erase( unique( vec_pdg.begin(), vec_pdg.end() ), vec_pdg.end() );
-	  // std::cout<<" NO OF PARTICLES IN THIS CLUSTER IS: "<<vec_pdg.size()<<std::endl;
-	  //  std::cout<<"They are: ";
-	  // 	  for(unsigned int i=0;i<vec_pdg.size();++i){
-	  //  	     std::cout<<vec_pdg[i]<<" ";
-	  //  	  }
-	  //  	  std::cout<<std::endl;
-	  
-	  //same for vec_trackid:
-	  
-	  
-	  sort( vec_trackid.begin(), vec_trackid.end() );
-	  vec_trackid.erase( unique( vec_trackid.begin(), vec_trackid.end() ), vec_trackid.end() );
-	  //  std::cout<<" NO OF DIFFERENT TRACKIDS IN THIS CLUSTER IS: "<<vec_trackid.size()<<std::endl;
-	  // std::cout<<"They are: ";
-	  for(unsigned int i=0;i<vec_trackid.size();++i){
-	    //   std::cout<<vec_trackid[i]<<" ";
-	    all_trackids.push_back(vec_trackid[i]);
-	    //mytracklist.push_back(vec_trackid[i]);
-	  }
-	  // std::cout<<std::endl;
-	  //...............................................................
-	  //Also Make vec_trackid_mother unique:
-	  
-	  sort( vec_trackid_mother.begin(), vec_trackid_mother.end() );
-	  vec_trackid_mother.erase( unique( vec_trackid_mother.begin(), vec_trackid_mother.end() ), vec_trackid_mother.end() );
-	  // std::cout<<" NO OF DIFFERENT TRACKIDS_MOTHER IN THIS CLUSTER IS: "<<vec_trackid_mother.size()<<std::endl;
-	  // std::cout<<"They are: ";
-	  for(unsigned int i=0;i<vec_trackid_mother.size();++i){
-	    // std::cout<<vec_trackid_mother[i]<<" ";
-	    
-	  }
-	  // std::cout<<std::endl;
-	  
-	  //........................................................................
-	  
-	  //Also Make vec_trackid_mother_en unique:
-
-	  sort( vec_trackid_mother_en.begin(), vec_trackid_mother_en.end() );
-	  vec_trackid_mother_en.erase( unique( vec_trackid_mother_en.begin(), vec_trackid_mother_en.end() ), vec_trackid_mother_en.end() );
-	  // std::cout<<" NO OF DIFFERENT TRACKIDS_MOTHER_en IN THIS CLUSTER IS: "<<vec_trackid_mother_en.size()<<std::endl;
-	  // std::cout<<"They are: ";
-	  for(unsigned int i=0;i<vec_trackid_mother_en.size();++i){
-	    // std::cout<<vec_trackid_mother_en[i]<<" ";
-	    
-	  }
-	  //  std::cout<<std::endl;
-	  
-	  //........................................................................
-	  
-	  
-	  // Q: How many clusters it takes to contain a certain particle?
-	  
-	  for(unsigned int i=0;i<mc_trackids.size();++i){
-	    it5=find(vec_trackid.begin(),vec_trackid.end(),mc_trackids[i]);
-	    if(it5!=vec_trackid.end()){
-	      // std::cout<<"found match for: "<<mc_trackids[i]<<" at position: "<<it5-vec_trackid.begin()<<std::endl;
-	      ids.push_back(mc_trackids[i]);//then make it unique 
-	      noCluster++;
-	    }
-	  }
-	  
-	  // std::cout<<"noCluster = "<< noCluster<<std::endl;
+	      // std::cout<<"noCluster = "<< noCluster<<std::endl;
 	 
 	  
 
 	  
-	  fNoParticles_pdg->Fill(vec_pdg.size());
+	      fNoParticles_pdg->Fill(vec_pdg.size());
 	 
-	  // std::cout<<"LOOK ->> vec_trackid.size()= "<<vec_trackid.size()<<std::endl;
-	  fNoParticles_trackid->Fill(vec_trackid.size());
+	      // std::cout<<"LOOK ->> vec_trackid.size()= "<<vec_trackid.size()<<std::endl;
+	      fNoParticles_trackid->Fill(vec_trackid.size());
 	 
-	  fNoParticles_trackid_mother->Fill(vec_trackid_mother.size());
+	      fNoParticles_trackid_mother->Fill(vec_trackid_mother.size());
 	  
-	  no_of_clusters++;
-	  // std::cout<<"MUON IS CONTAINED IN "<<no_cl_for_muon<<" CLUSTERS"<<std::endl;
+	      no_of_clusters++;
+	      // std::cout<<"MUON IS CONTAINED IN "<<no_cl_for_muon<<" CLUSTERS"<<std::endl;
 	  
-	  no_of_particles_in_cluster+=vec_pdg.size();
-	  sum_vec_trackid+=vec_trackid_mother.size();
-	  total_no_hits_in_clusters+=_hits.size();
+	      no_of_particles_in_cluster+=vec_pdg.size();
+	      sum_vec_trackid+=vec_trackid_mother.size();
+	      total_no_hits_in_clusters+=_hits.size();
 	  
-	  vec_pdg.clear();
+	      vec_pdg.clear();
 	  
-	  vec_trackid.clear();
+	      vec_trackid.clear();
 	   
-	  vec_trackid_mother.clear();
+	      vec_trackid_mother.clear();
 	   
-	  vec_trackid_mother_en.clear();
+	      vec_trackid_mother_en.clear();
 	  
-	}//non-zero hits
+	    }//non-zero hits
+	  }//end if cluster is in correct view
+	  //clusterIter++;
 	
-	//clusterIter++;
-	
-      }//for each cluster
+	}//for each cluster
       
       // std::cout<<"sum_vec_trackid= "<<sum_vec_trackid<<std::endl;
      

@@ -66,9 +66,9 @@ argoneut_linemerger:
  Intercept:          102.0
 }
 
-argoneut_vertexmod:
+argoneut_endpointmod:
 {
- module_type:       "VertexModule"
+ module_type:       "EndPointModule"
  DBScanModuleLabel: "dbscan"
 }
 

@@ -1,12 +1,12 @@
 ////////////////////////////////////////////////////////////////////////
-/// \file  HarrisVertexFinder.h
-/// \brief Module to find vertices
+/// \file  EndPointModule.h
+/// \brief Module to find 2D end points
 ///
 /// \author  joshua.spitz@yale.edu
 ////////////////////////////////////////////////////////////////////////
 
-#ifndef VertexModule_H
-#define VertexModule_H
+#ifndef EndPointModule_H
+#define EndPointModule_H
 
 #include "art/Framework/Core/EDProducer.h"
 #include "TMath.h"
@@ -14,14 +14,15 @@
 #include <string>
 
 ///vertex reconstruction
-namespace vertex {
-   
- class VertexModule :  public art::EDProducer {
+namespace cluster {
+
+  ///module to find 2D end points 
+ class EndPointModule :  public art::EDProducer {
     
   public:
     
-    explicit VertexModule(fhicl::ParameterSet const& pset); 
-    virtual ~VertexModule();        
+    explicit EndPointModule(fhicl::ParameterSet const& pset); 
+    virtual ~EndPointModule();        
 
     void produce(art::Event& evt);
     
@@ -35,4 +36,4 @@ namespace vertex {
 
 
 
-#endif // VertexModule_H
+#endif // EndPointModule_H

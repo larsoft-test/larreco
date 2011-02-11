@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////
 // $Id: DBSCANfinderAna.cxx,v 1.36 2010/09/15  kpartyka Exp $
 //
-// VertexModule
+// EndPointModule_module.cc
 //
 // \author kinga.partyka@yale.edu
 //
@@ -10,11 +10,11 @@
 #include "art/Framework/Core/ModuleMacros.h"
 
 
-#include "ClusterFinder/VertexModule.h"
+#include "ClusterFinder/EndPointModule.h"
 
-namespace vertex{
+namespace cluster{
 
-  DEFINE_ART_MODULE(VertexModule);
+  DEFINE_ART_MODULE(EndPointModule);
   
 } 
 

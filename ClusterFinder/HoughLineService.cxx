@@ -77,7 +77,7 @@ bool cluster::HoughLineService::HoughTransform::AddPoint(int x, int y)
 }
  
 void cluster::HoughLineService::HoughTransform::Init(int dx, int dy, int rhores,
-						    int numACells)
+						     int numACells)
 {
   m_numAngleCells=numACells;
   m_rhoResolutionFactor = rhores;
@@ -207,30 +207,36 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
     art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
     int clusterID=0;//the unique ID of the cluster
     // This is the loop over clusters. The algorithm searches for lines on a (DBSCAN) cluster-by-cluster basis. 
+    //get the view of the current plane
+    geo::View_t view = geom->Plane(p).View();
+
     while(clusterIter!=clusIn.end()) 
       {
  	hit.clear();
  	cHits.clear();
- 	if(fPerCluster)
- 	  hit = (*clusterIter)->Hits(p);
+ 	if(fPerCluster){
+ 	  if((*clusterIter)->View() == view) hit = (*clusterIter)->Hits();
+	}
  	else 
  	  {   
  	    while(clusterIter!=clusIn.end()) 
  	      {
- 		cHits = (*clusterIter)->Hits(p);
- 		if(cHits.size() > 0)
-		  {
-		    // hit.insert(hit.end(),cHits.begin(),cHits.end());
-		    art::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
-		    while (hitIter!=cHits.end())
-		      {
-			hit.push_back((*hitIter));
-			hitIter++;
-		      }
-		    clusterIter++;
-		  }
- 	      } 
- 	  }
+		if( (*clusterIter)->View() == view ){
+		  cHits = (*clusterIter)->Hits();
+		  if(cHits.size() > 0)
+		    {
+		      // hit.insert(hit.end(),cHits.begin(),cHits.end());
+		      art::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
+		      while (hitIter!=cHits.end())
+			{
+			  hit.push_back((*hitIter));
+			  hitIter++;
+			}
+		    }
+		}// end if cluster is in correct view
+		clusterIter++;
+	      }//end loop over clusters
+	  }//end if not fPerCluster
  	if(hit.size() == 0) 
  	  { 
  	    if(fPerCluster) clusterIter++;
@@ -513,7 +519,7 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
       }
   }
 
-	return ccol.size(); 
+  return ccol.size(); 
 }
 
 

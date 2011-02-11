@@ -1,12 +1,12 @@
 ////////////////////////////////////////////////////////////////////////
-/// \file  HarrisVertexFinder.h
-/// \brief Module to find vertices
+/// \file  EndPointService.h
+/// \brief Service to find 2D endpoints
 ///
 /// \author  joshua.spitz@yale.edu
 ////////////////////////////////////////////////////////////////////////
 
-#ifndef VertexService_H
-#define VertexService_H
+#ifndef EndPointService_H
+#define EndPointService_H
 
 #include "art/Framework/Services/Registry/ActivityRegistry.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
@@ -16,28 +16,29 @@
 #include <vector>
 #include <string>
 
-///vertex reconstruction
-namespace recob { class Cluster; }
+namespace recob { 
+  class Cluster;
+  class EndPoint2D; 
+}
 
-namespace recob { class Vertex; }
-
-namespace vertex {
+namespace cluster {
    
- class VertexService {
+  ///Service to find 2D end points
+ class EndPointService {
     
   public:
     
-    explicit VertexService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg); 
-    virtual ~VertexService();        
+    explicit EndPointService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg); 
+    virtual ~EndPointService();        
 
-    size_t Vertex(art::PtrVector<recob::Cluster>& clusIn, std::vector<recob::Vertex>& vtxcol);
+    size_t EndPoint(art::PtrVector<recob::Cluster>& clusIn, std::vector<recob::EndPoint2D>& vtxcol);
     
   private:
 
     double Gaussian(int x, int y, double sigma);
     double GaussianDerivativeX(int x, int y);
     double GaussianDerivativeY(int x, int y);
-  void VSSaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy);
+    void VSSaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy);
 
     
     int         fTimeBins;
@@ -52,4 +53,4 @@ namespace vertex {
 
 
 
-#endif // VertexService_H
+#endif // EndPointService_H

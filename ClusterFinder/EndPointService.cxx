@@ -1,13 +1,13 @@
 ////////////////////////////////////////////////////////////////////////
 //
-// HarrisVertexFinder class
+// EndPointService class
 //
 // joshua.spitz@yale.edu
 //
 //  This algorithm is designed to find (weak) vertices from hits after deconvolution and hit finding. 
-//  A weak vertex is a vertex that has been found using a dedicated vertex finding algorithm only. A 
-//  strong vertex is a vertex that has been found using a dedicated vertex finding algorithm and matched 
-//  to a crossing of two or more HoughLineFinder lines. The VertexMatch module finds strong vertices.
+//  A weak end point is a end point that has been found using a dedicated end point finding algorithm only. A 
+//  strong end point is a end point that has been found using a dedicated end point finding algorithm and matched 
+//  to a crossing of two or more HoughLineFinder lines. The End PointMatch module finds strong vertices.
 ////////////////////////////////////////////////////////////////////////
 /// The algorithm is based on:
 ///C. Harris and M. Stephens (1988). "A combined corner and edge detector". Proceedings of the 4th Alvey 
@@ -29,7 +29,7 @@
 #include "art/Framework/Core/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "ClusterFinder/VertexService.h"
+#include "ClusterFinder/EndPointService.h"
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -49,7 +49,7 @@ extern "C" {
 #include "Geometry/geo.h"
 
 //-----------------------------------------------------------------------------
-vertex::VertexService::VertexService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg) :
+cluster::EndPointService::EndPointService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg) :
  
   fTimeBins        (pset.get< int         >("TimeBins")      ),
   fMaxCorners      (pset.get< int         >("MaxCorners")    ),
@@ -61,12 +61,12 @@ vertex::VertexService::VertexService(fhicl::ParameterSet const& pset, art::Activ
 }
 
 //-----------------------------------------------------------------------------
-vertex::VertexService::~VertexService()
+cluster::EndPointService::~EndPointService()
 {
 }
 
 //-----------------------------------------------------------------------------
-double vertex::VertexService::Gaussian(int x, int y, double sigma)
+double cluster::EndPointService::Gaussian(int x, int y, double sigma)
 {
   double Norm=1./sqrt(2*TMath::Pi()*pow(sigma,2));
   double value=Norm*exp(-(pow(x,2)+pow(y,2))/(2*pow(sigma,2)));
@@ -74,7 +74,7 @@ double vertex::VertexService::Gaussian(int x, int y, double sigma)
 }
 
 //-----------------------------------------------------------------------------
-double vertex::VertexService::GaussianDerivativeX(int x,int y)
+double cluster::EndPointService::GaussianDerivativeX(int x,int y)
 {
   double Norm=1./(sqrt(2*TMath::Pi())*pow(fGsigma,3));
   double value=Norm*(-x)*exp(-(pow(x,2)+pow(y,2))/(2*pow(fGsigma,2)));
@@ -82,7 +82,7 @@ double vertex::VertexService::GaussianDerivativeX(int x,int y)
 }
 
 //-----------------------------------------------------------------------------
-double vertex::VertexService::GaussianDerivativeY(int x,int y)
+double cluster::EndPointService::GaussianDerivativeY(int x,int y)
 {
   double Norm=1./(sqrt(2*TMath::Pi())*pow(fGsigma,3));
   double value=Norm*(-y)*exp(-(pow(x,2)+pow(y,2))/(2*pow(fGsigma,2)));
@@ -92,7 +92,7 @@ double vertex::VertexService::GaussianDerivativeY(int x,int y)
 
 //-----------------------------------------------------------------------------
 //this method saves a BMP image of the vertex map space, which can be viewed with gimp
-void vertex::VertexService::VSSaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy)
+void cluster::EndPointService::VSSaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy)
 {
   ofstream bmpFile(fileName, std::ios::binary);
   bmpFile.write("B", 1);
@@ -127,7 +127,7 @@ void vertex::VertexService::VSSaveBMPFile(const char *fileName, unsigned char *p
 }
 
 //......................................................
-size_t vertex::VertexService::Vertex(art::PtrVector<recob::Cluster>& clusIn, std::vector<recob::Vertex>& vtxcol)
+size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn, std::vector<recob::EndPoint2D>& vtxcol)
 {
 
   art::ServiceHandle<geo::Geometry> geom;
@@ -144,8 +144,8 @@ size_t vertex::VertexService::Vertex(art::PtrVector<recob::Cluster>& clusIn, std
  
 
   int flag=0;
-  int windex=0;//the wire index to make sure the vertex finder does not fall off the edge of the hit map
-  int tindex=0;//the time index to make sure the vertex finder does not fall off the edge of the hit map
+  int windex=0;//the wire index to make sure the end point finder does not fall off the edge of the hit map
+  int tindex=0;//the time index to make sure the end point finder does not fall off the edge of the hit map
   int n=0; //index of window cell. There are 49 cells in the 7X7 Gaussian and Gaussian derivative windows
   int numberwires;
   double numbertimesamples;
@@ -170,15 +170,17 @@ size_t vertex::VertexService::Vertex(art::PtrVector<recob::Cluster>& clusIn, std
     {
       art::PtrVector<recob::Hit> vHits;
       art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
+      geo::View_t view = geom->Plane(p).View();
       hit.clear();
       cHits.clear();      
       while(clusterIter!= clusIn.end() ) {
-	cHits = (*clusterIter)->Hits(p);
-	if(cHits.size() > 0)
-	  //hit.insert(hit.end(),cHits.begin(),cHits.end());
-      for(int i = 0; i < cHits.size(); i++)
-      hit.push_back(cHits[i]);
-      
+	if((*clusterIter)->View() == view){
+	  cHits = (*clusterIter)->Hits();
+	  if(cHits.size() > 0)
+	    //hit.insert(hit.end(),cHits.begin(),cHits.end());
+	    for(int i = 0; i < cHits.size(); i++)
+	      hit.push_back(cHits[i]);
+	}//end if cluster is in the correct view
 	clusterIter++;  
       } 
       if(hit.size() == 0) 
@@ -281,7 +283,7 @@ size_t vertex::VertexService::Vertex(art::PtrVector<recob::Cluster>& clusIn, std
 		  {
 		    channel=hit[i]->Wire()->RawDigit()->Channel();
 		    geom->ChannelToWire(channel,plane,wire2);	 
-		    //make sure the vertex candidate coincides with an actual hit.
+		    //make sure the end point candidate coincides with an actual hit.
 		    if(wire==wire2 && hit[i]->StartTime()<timebin*(numbertimesamples/fTimeBins) 
 		       && hit[i]->EndTime()>timebin*(numbertimesamples/fTimeBins))
 		      { 	       
@@ -312,13 +314,13 @@ size_t vertex::VertexService::Vertex(art::PtrVector<recob::Cluster>& clusIn, std
 			if(Cornerness[wire][timebin]<(fThreshold*Cornerness2[0]))
 			  vertexnum=fMaxCorners;
 		      vHits.push_back(hit[hit_loc[wire][timebin]]);
-		      recob::Vertex vertex(vHits);
-		      vertex.SetWireNum(wire);
-		      vertex.SetDriftTime(hit[hit_loc[wire][timebin]]->PeakTime());
-		      //weak vertices are given vertex id=1
-		      vertex.SetID(1);
-		      vertex.SetStrength(Cornerness[wire][timebin]);	  
-		      vtxcol.push_back(vertex);
+		      recob::EndPoint2D endpoint(vHits);
+		      endpoint.SetWireNum(wire);
+		      endpoint.SetDriftTime(hit[hit_loc[wire][timebin]]->PeakTime());
+		      //weak vertices are given endpoint id=1
+		      endpoint.SetID(1);
+		      endpoint.SetStrength(Cornerness[wire][timebin]);	  
+		      vtxcol.push_back(endpoint);
 		      vHits.clear();
 		      // non-maximal suppression on a square window. The wire coordinate units are 
 		      // converted to time ticks so that the window is truly square. 

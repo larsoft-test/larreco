@@ -21,7 +21,7 @@ argoneut_houghlineservice:
  HitsPerCluster:       1
 }
 
-argoneut_vertexservice:
+argoneut_endpointservice:
 {
  TimeBins:            256
  MaxCorners:          20
