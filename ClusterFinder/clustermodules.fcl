@@ -4,11 +4,7 @@ argoneut_dbcluster:
 {
  module_type:     "DBcluster"
  HitsModuleLabel: "ffthit"
- eps:             1.0
- epstwo:          0.75
- minPts:          2
 }
-
 
 argoneut_dbclusterana:
 { 
@@ -19,12 +15,6 @@ argoneut_dbclusterana:
  CalDataModuleLabel:       "caldataCal"
  GenieGenModuleLabel:      "singlegen"
  ClusterFinderModuleLabel: "dbscan"
-}
-
-argoneut_dbscanmod:
-{
- module_type:     "DBScanModule"
- HitsModuleLabel: "ffthit"
 }
 
 argoneut_houghlinefinder:
