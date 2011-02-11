@@ -260,6 +260,7 @@ namespace hit{
 			   position+width, 0., //!todo - need to define uncertainty on end time
 			   position,       0., //!todo - need to define uncertainty on peak time
 			   totSig,         0., //!todo - need to define uncertainty on charge
+			   amplitude,      0., //!todo - need to define uncertainty on amplitude
 			   1,                  //!todo - mulitplicity has to be determined
 			   0.);                //!todo - goodness of fit has to be determined
 	    
