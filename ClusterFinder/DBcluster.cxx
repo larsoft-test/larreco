@@ -26,7 +26,7 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "ClusterFinder/DBScanService.h"
-#include "ClusterFinder/DBScanModule.h"
+#include "ClusterFinder/DBcluster.h"
 #include <cmath>
 #include <iostream>
 #include <fstream>

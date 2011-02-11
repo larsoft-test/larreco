@@ -10,7 +10,7 @@
 #include "art/Framework/Core/ModuleMacros.h"
 
 
-#include "ClusterFinder/DBScanModule.h"
+#include "ClusterFinder/DBcluster.h"
 
 namespace cluster{
 
