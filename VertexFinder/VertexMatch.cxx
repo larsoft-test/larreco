@@ -49,7 +49,7 @@ vertex::VertexMatch::VertexMatch(fhicl::ParameterSet const& pset) :
   fHoughModuleLabel (pset.get< std::string >("HoughModuleLabel")),
   fMaxDistance      (pset.get< double      >("MaxDistance"))
 {
-  produces< std::vector<recob::Vertex> >();
+  produces< std::vector<recob::EndPoint2D> >();
 }
 
 vertex::VertexMatch::~VertexMatch()
@@ -69,13 +69,13 @@ bool sort_pred2(const std::pair<art::Ptr<recob::Hit>,double>& left, const std::p
 void vertex::VertexMatch::produce(art::Event& evt)
 {
 
-  art::Handle< std::vector<recob::Vertex> > vertexListHandle;
+  art::Handle< std::vector<recob::EndPoint2D> > vertexListHandle;
   evt.getByLabel(fVertexModuleLabel,vertexListHandle);
   
   art::Handle< std::vector<recob::Cluster> > houghListHandle;
   evt.getByLabel(fHoughModuleLabel,houghListHandle);
   
-  std::auto_ptr<std::vector<recob::Vertex> > mvertexcol(new std::vector<recob::Vertex>);
+  std::auto_ptr<std::vector<recob::EndPoint2D> > mvertexcol(new std::vector<recob::EndPoint2D>);
   
   art::ServiceHandle<geo::Geometry> geom;
   //hits associated with a vertex
@@ -95,11 +95,11 @@ void vertex::VertexMatch::produce(art::Event& evt)
   art::PtrVector<recob::Hit> strongvertex;
   std::vector< std::pair<art::Ptr<recob::Hit>, double> > strongestvertex; //the strongest strong vertex
   
-  art::PtrVector<recob::Vertex> vertIn;
+  art::PtrVector<recob::EndPoint2D> vertIn;
 
   for(unsigned int ii = 0; ii < vertexListHandle->size(); ++ii)
     {
-      art::Ptr<recob::Vertex> vertex(vertexListHandle, ii);
+      art::Ptr<recob::EndPoint2D> vertex(vertexListHandle, ii);
       vertIn.push_back(vertex);
     }
   art::PtrVector<recob::Cluster> houghIn;
@@ -115,7 +115,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
   double strength; //the strength of a strong vertex
   for(int p = 0; p < geom->Nplanes(); p++) {
     //create the vector of vertex hits 
-    art::PtrVectorItr<recob::Vertex> vertexIter = vertIn.begin();
+    art::PtrVectorItr<recob::EndPoint2D> vertexIter = vertIn.begin();
     art::PtrVectorItr<recob::Cluster> houghIter = houghIn.begin();
     while(vertexIter!= vertIn.end() ) 
       {
@@ -245,7 +245,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
 
 	// strongvertex, despite name, is a hit vector.
 	strongvertex.push_back(matchedvertex[i].first);
-	recob::Vertex vertex(strongvertex);      
+	recob::EndPoint2D vertex(strongvertex);      
 	vertex.SetWireNum(wire);
 	vertex.SetStrength(strongvertexstrength[i]);
 	//vertex->SetDriftTime(matchedvertex[i].first->PeakTime());

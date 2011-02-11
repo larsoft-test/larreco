@@ -60,7 +60,7 @@ vertex::HarrisVertexFinder::HarrisVertexFinder(fhicl::ParameterSet const& pset) 
   fThreshold       (pset.get< double      >("Threshold")     ),
   fSaveVertexMap   (pset.get< int         >("SaveVertexMap") )
 {
-  produces< std::vector<recob::Vertex> >();
+  produces< std::vector<recob::EndPoint2D> >();
 }
 
 //-----------------------------------------------------------------------------
@@ -110,7 +110,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
   //Point to a collection of vertices to output.
-  std::auto_ptr<std::vector<recob::Vertex> > vtxcol(new std::vector<recob::Vertex>);
+  std::auto_ptr<std::vector<recob::EndPoint2D> > vtxcol(new std::vector<recob::EndPoint2D>);
 
   filter::ChannelFilter chanFilt;  
   art::PtrVector<recob::Hit> cHits;
@@ -292,7 +292,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 			if(Cornerness[wire][timebin]<(fThreshold*Cornerness2[0]))
 			  vertexnum=fMaxCorners;
 		      vHits.push_back(hit[hit_loc[wire][timebin]]);
-		      recob::Vertex vertex(vHits);
+		      recob::EndPoint2D vertex(vHits);
 		      vertex.SetWireNum(wire);
 		      vertex.SetDriftTime(hit[hit_loc[wire][timebin]]->PeakTime());
 		      //weak vertices are given vertex id=1
