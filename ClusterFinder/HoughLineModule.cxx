@@ -90,11 +90,9 @@ void cluster::HoughLineModule::produce(art::Event& evt)
 
   std::sort(ccol->begin(),ccol->end());//sort before Putting
 
-  std::cout << std::setfill('-') << std::setw(175) << "-" << std::endl;
-  std::cout << std::setfill(' ');
-  std::cout << "HoughLineModule Summary:" << std::endl;
-  for(int i = 0; i<ccol->size(); ++i) std::cout << ccol->at(i) << std::endl;
-  std::cout << std::endl;
+  mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
+  mf::LogVerbatim("Summary") << "HoughLineModule Summary:";
+  for(int i = 0; i<ccol->size(); ++i) mf::LogVerbatim("Summary") << ccol->at(i) ;
 
   evt.put(ccol);
  

@@ -141,11 +141,9 @@ namespace cluster{
 
     std::sort(SuperClusters->begin(),SuperClusters->end());//sort before Putting
 
-    std::cout << std::setfill('-') << std::setw(175) << "-" << std::endl;
-    std::cout << std::setfill(' ');
-    std::cout << "LineMerger Summary:" << std::endl;
-    for(int i = 0; i<SuperClusters->size(); ++i) std::cout << SuperClusters->at(i) << std::endl;
-    std::cout << std::endl;
+    mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
+    mf::LogVerbatim("Summary") << "LineMerger Summary:";
+    for(int i = 0; i<SuperClusters->size(); ++i) mf::LogVerbatim("Summary") << SuperClusters->at(i) ;
 
     evt.put(SuperClusters);
      
