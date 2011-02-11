@@ -13,11 +13,11 @@ class TH1F;
 namespace cluster{
    
   //--------------------------------------------------------------- 
-  class DBScanModule : public art::EDProducer
+  class DBcluster : public art::EDProducer
   {
   public:
-    explicit DBScanModule(fhicl::ParameterSet const& pset); 
-    ~DBScanModule();
+    explicit DBcluster(fhicl::ParameterSet const& pset); 
+    ~DBcluster();
     void produce(art::Event& evt);
     void beginJob();
     

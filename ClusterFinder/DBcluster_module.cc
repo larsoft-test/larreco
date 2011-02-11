@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////
 // $Id: DBSCANfinderAna.cxx,v 1.36 2010/09/15  bpage Exp $
 //
-// DBScanModule
+// \file DBcluster_module.cc
 //
 // \author kinga.partyka@yale.edu
 //
@@ -14,7 +14,7 @@
 
 namespace cluster{
 
-  DEFINE_ART_MODULE(DBScanModule);
+  DEFINE_ART_MODULE(DBcluster);
   
 } 
 

@@ -39,19 +39,19 @@
 #include "TH1.h"
 
 //-------------------------------------------------
-cluster::DBScanModule::DBScanModule(fhicl::ParameterSet const& pset) : 
+cluster::DBcluster::DBcluster(fhicl::ParameterSet const& pset) : 
   fhitsModuleLabel(pset.get< std::string >("HitsModuleLabel"))  
 {  
   produces<std::vector<recob::Cluster> >();  
 }
 
 //-------------------------------------------------
-cluster::DBScanModule::~DBScanModule()
+cluster::DBcluster::~DBcluster()
 {
 }
 
 //-------------------------------------------------
-void cluster::DBScanModule::beginJob(){
+void cluster::DBcluster::beginJob(){
   // get access to the TFile service
   art::ServiceHandle<art::TFileService> tfs;
 
@@ -62,7 +62,7 @@ void cluster::DBScanModule::beginJob(){
 }
 
 //-----------------------------------------------------------------
-void cluster::DBScanModule::produce(art::Event& evt)
+void cluster::DBcluster::produce(art::Event& evt)
 {
    
   //get a collection of clusters   
@@ -186,7 +186,7 @@ void cluster::DBScanModule::produce(art::Event& evt)
 
   std::cout << std::setfill('-') << std::setw(175) << "-" << std::endl;
   std::cout << std::setfill(' ');
-  std::cout << "DBScanModule Summary:" << std::endl;
+  std::cout << "DBcluster Summary:" << std::endl;
   for(int i = 0; i<ccol->size(); ++i) std::cout << ccol->at(i) << std::endl;
   std::cout << std::endl;
 
