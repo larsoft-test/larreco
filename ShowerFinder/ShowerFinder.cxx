@@ -78,7 +78,7 @@ namespace shwf{
 
 
     // Read in the vertex List object(s).
-    art::Handle< std::vector<recob::Vertex> > vertexListHandle;
+    art::Handle< std::vector<recob::EndPoint2D> > vertexListHandle;
     evt.getByLabel(fVertexModuleLabel,vertexListHandle);
     // Read in the hough line List object(s).
     art::Handle< std::vector<recob::Cluster> > houghListHandle;
@@ -87,7 +87,7 @@ namespace shwf{
     art::Handle< std::vector<recob::Cluster> > clusterListHandle;
     evt.getByLabel(fClusterModuleLabel,clusterListHandle);
     // Read in the vertex Strength List object(s).
-    art::Handle< std::vector<recob::Vertex> > vertexStrengthListHandle;
+    art::Handle< std::vector<recob::EndPoint2D> > vertexStrengthListHandle;
     evt.getByLabel(fVertexStrengthModuleLabel,vertexStrengthListHandle);
     
     // art::PtrVector<recob::Cluster> clust;
@@ -108,7 +108,7 @@ namespace shwf{
     unsigned int channel,plane,wire;
     
     //This vector will contain all strong and strongest vertices
-    art::PtrVector<recob::Vertex> vertSel;
+    art::PtrVector<recob::EndPoint2D> vertSel;
     
     //This loop is going over all the vertices in the event 
     //and is interested in ONLY strong and strongest vertices.
@@ -117,7 +117,7 @@ namespace shwf{
     
     for(unsigned int iv = 0; iv < vertexListHandle->size(); ++iv)
       {
-	art::Ptr<recob::Vertex> vertex(vertexListHandle, iv);
+	art::Ptr<recob::EndPoint2D> vertex(vertexListHandle, iv);
 	//std::cout << "Vertex " << iv << " :  str = " << vertex->ID() << std::endl;
 	//if(vertex->Strength() == 4 || vertex->Strength() == 3){
 	if(vertex->ID() == 1 || vertex->Strength() == 3){ //only use Strongest and strong
