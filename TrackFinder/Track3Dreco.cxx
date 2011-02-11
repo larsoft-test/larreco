@@ -153,7 +153,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
       
       
       art::PtrVector<recob::Hit> hitlist;
-      hitlist = cl->Hits( clPlane, -1);
+      hitlist = cl->Hits();
       // std::sort(hitlist.begin(), hitlist.end(), hit_sort_2d); //sort hit by wire
       
       TGraph *the2Dtrack = new TGraph(hitlist.size());
@@ -260,7 +260,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 
       // match 2D tracks
       if((fabs(Ct0_line-It0_line)<ftmatch*timepitch) && (fabs(Ct1_line-It1_line)<ftmatch*timepitch)){ 
-	std::cout<<"-----> Track "<<collectionIter<< " Collection associated with track "<<inductionIter<< " Induction"<<std::endl;
+         //std::cout<<"-----> Track "<<collectionIter<< " Collection associated with track "<<inductionIter<< " Induction"<<std::endl;
 	
        
         // Reconstruct the 3D track
@@ -404,24 +404,20 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	  double dircos[3];
 	  DirCos.GetXYZ(dircos);
 	  the3DTrack.SetDirection(dircos,dircos);
-
+      the3DTrack.SetID(tcol->size());
 	  tcol->push_back(the3DTrack);
-	}
+        }
       } //close match 2D tracks
 
 
     }//close loop over Induction view 2D tracks
     
   }//close loop over Collection xxview 2D tracks
-  
-  //std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
 
-  std::cout << std::setfill('-') << std::setw(175) << "-" << std::endl;
-  std::cout << std::setfill(' ');
-  std::cout << "Track3Dreco Summary:" << std::endl;
-  for(int i = 0; i<tcol->size(); ++i) std::cout << tcol->at(i) << std::endl;
-  std::cout << std::endl;
-  
+  mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
+  mf::LogVerbatim("Summary") << "Track3Dreco Summary:";
+  for(int i = 0; i<tcol->size(); ++i) mf::LogVerbatim("Summary") << tcol->at(i) ;
+
   evt.put(tcol);
   
 
