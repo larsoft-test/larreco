@@ -202,14 +202,13 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
   extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   art::PtrVector<recob::Hit> cHits;
   art::PtrVector<recob::Hit> hit;
-
   for(int p = 0; p < geom->Nplanes(); p++) {
-    art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
+      art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
     int clusterID=0;//the unique ID of the cluster
     // This is the loop over clusters. The algorithm searches for lines on a (DBSCAN) cluster-by-cluster basis. 
     //get the view of the current plane
     geo::View_t view = geom->Plane(p).View();
-
+    
     while(clusterIter!=clusIn.end()) 
       {
  	hit.clear();
@@ -217,31 +216,27 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
  	if(fPerCluster){
  	  if((*clusterIter)->View() == view) hit = (*clusterIter)->Hits();
 	}
- 	else 
- 	  {   
- 	    while(clusterIter!=clusIn.end()) 
- 	      {
-		if( (*clusterIter)->View() == view ){
-		  cHits = (*clusterIter)->Hits();
-		  if(cHits.size() > 0)
-		    {
-		      // hit.insert(hit.end(),cHits.begin(),cHits.end());
-		      art::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
-		      while (hitIter!=cHits.end())
-			{
-			  hit.push_back((*hitIter));
-			  hitIter++;
-			}
-		    }
-		}// end if cluster is in correct view
-		clusterIter++;
-	      }//end loop over clusters
-	  }//end if not fPerCluster
- 	if(hit.size() == 0) 
- 	  { 
- 	    if(fPerCluster) clusterIter++;
- 	    continue;
- 	  }
+ 	else{   
+	  while(clusterIter!=clusIn.end()){
+	    if( (*clusterIter)->View() == view ){
+	      cHits = (*clusterIter)->Hits();
+	      if(cHits.size() > 0){
+		// hit.insert(hit.end(),cHits.begin(),cHits.end());
+		art::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
+		while (hitIter!=cHits.end()){
+		  hit.push_back((*hitIter));
+		  hitIter++;
+		}
+	      }
+	    }// end if cluster is in correct view
+	    clusterIter++;
+	  }// end loop over clusters
+	}//end if not fPerCluster
+	if(hit.size() == 0) 
+	  { 
+	    if(fPerCluster) clusterIter++;
+	    continue;
+	  }
 
  	int x, y;
 	unsigned int channel, plane, wire;
@@ -270,7 +265,6 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
  	double theta;
  	double norm=100.;//normalize. This is important since newcellvalue will end up as an int.  
  	int accDx(0), accDy(0);
-	
  	for (int linenum = 0; linenum < fMaxLines; linenum++)
  	  { 
  	    //Init specifies the size of the two-dimensional accumulator (based on the arguments, number of wires and number of time samples). 
