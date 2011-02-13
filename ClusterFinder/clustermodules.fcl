@@ -20,17 +20,7 @@ argoneut_dbclusterana:
 argoneut_houghlinefinder:
 {
  module_type:          "HoughLineFinder"
- DBScanModuleLabel:    "dbscan"
- MaxLines:             5
- MinHits:              3
- SaveAccumulator:      0
- NumAngleCells:        10000
- RhoResolutionFactor:  10
- SmootherSigma:        0.
- MaxDistance:          5.
- RhoZeroOutRange:      0
- ThetaZeroOutRange:    0
- HitsPerCluster:       1
+ DBScanModuleLabel:    "dbcluster"
 }
 
 argoneut_houghlinefinderana:
@@ -38,14 +28,8 @@ argoneut_houghlinefinderana:
  module_type:         "HoughLineFinderAna"
  DigitModuleLabel:    "wiresim"
  HitsModuleLabel:     "ffthit"
- DBScanModuleLabel:   "dbscan"
+ DBScanModuleLabel:   "dbcluster"
  HoughModuleLabel:    "hough"
-}
-
-argoneut_houghlinemod:
-{
- module_type:          "HoughLineModule"
- DBScanModuleLabel:    "dbcluster"
 }
  
 argoneut_linemerger:
