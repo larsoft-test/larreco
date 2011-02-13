@@ -1,32 +1,33 @@
 ////////////////////////////////////////////////////////////////////////
 //
-// HoughLineFinder class
+// \file HoughLineFinder.cxx
 //
-// joshua.spitz@yale.edu
+// \author joshua.spitz@yale.edu
 //
-//  This algorithm is designed to find lines (Houghclusters) from clusters found by DBSCAN after deconvolution and hit finding.
+//  This algorithm is designed to find lines (Houghclusters) from clusters found by DBSCAN 
+//  after deconvolution and hit finding.
 //  The algorithm is based on: 
 //  Queisser, A. "Computing the Hough Transform", C/C++ Users Journal 21, 12 (Dec. 2003).
-//  Niblack, W. and Petkovic, D. On Improving the Accuracy of the Hough Transform", Machine Vision and Applications 3, 87 (1990)  
+//  Niblack, W. and Petkovic, D. On Improving the Accuracy of the Hough Transform", Machine 
+//  Vision and Applications 3, 87 (1990)  
 ////////////////////////////////////////////////////////////////////////
 
-#include "ClusterFinder/HoughLineService.h"
-#include "ClusterFinder/HoughLineModule.h"
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 }
-// ROOT includes
-#include <TCanvas.h>
-#include "TDatabasePDG.h"
-#include "TSystem.h"
-
 #include <sstream>
 #include <fstream>
 #include <math.h>
 #include <algorithm>
 #include <vector>
 
+// ROOT includes
+#include <TCanvas.h>
+#include "TDatabasePDG.h"
+#include "TSystem.h"
+
+// ART includes
 #include "art/Framework/Core/Event.h" 
 #include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Handle.h" 
@@ -36,28 +37,31 @@ extern "C" {
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "art/Framework/Core/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
- 
+
+// LArSoft includes 
 #include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
 #include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
+#include "ClusterFinder/HoughLineService.h"
+#include "ClusterFinder/HoughLineFinder.h"
 
 
-cluster::HoughLineModule::HoughLineModule(fhicl::ParameterSet const& pset) : 
+cluster::HoughLineFinder::HoughLineFinder(fhicl::ParameterSet const& pset) : 
   fDBScanModuleLabel       (pset.get< std::string >("DBScanModuleLabel"))
   
 {
   produces< std::vector<recob::Cluster> >();
 }
 
-cluster::HoughLineModule::~HoughLineModule()
+cluster::HoughLineFinder::~HoughLineFinder()
 {
 }
 
 
 
-void cluster::HoughLineModule::produce(art::Event& evt)
+void cluster::HoughLineFinder::produce(art::Event& evt)
 {
 
   //////////////////////////////////////////////////////
@@ -91,7 +95,7 @@ void cluster::HoughLineModule::produce(art::Event& evt)
   std::sort(ccol->begin(),ccol->end());//sort before Putting
 
   mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
-  mf::LogVerbatim("Summary") << "HoughLineModule Summary:";
+  mf::LogVerbatim("Summary") << "HoughLineFinder Summary:";
   for(int i = 0; i<ccol->size(); ++i) mf::LogVerbatim("Summary") << ccol->at(i) ;
 
   evt.put(ccol);

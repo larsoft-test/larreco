@@ -1,13 +1,13 @@
 ////////////////////////////////////////////////////////////////////////
 // $Id: HoughLineFinderAna.cxx,v 1.36 2010/09/15  bpage Exp $
 //
-// HoughLineFinderAna class
+// \file HoughLineFinder.h
 //
-// josh
+// \author josh
 //
 ////////////////////////////////////////////////////////////////////////
-#ifndef HOUGHLINEMODULE_H
-#define HOUGHLINEMODULE_H
+#ifndef CLUSTER_HOUGHLINEFINDER_H
+#define CLUSTER_HOUGHLINEFINDER_H
 
 #include "TMath.h"
 #include <vector>
@@ -20,12 +20,12 @@ class TTree;
 
 namespace cluster {
    
-  class HoughLineModule : public art::EDProducer {
+  class HoughLineFinder : public art::EDProducer {
     
   public:
     
-    explicit HoughLineModule(fhicl::ParameterSet const& pset); 
-    virtual ~HoughLineModule();
+    explicit HoughLineFinder(fhicl::ParameterSet const& pset); 
+    virtual ~HoughLineFinder();
          
     void produce(art::Event& evt);
      
@@ -42,4 +42,4 @@ namespace cluster {
 
 
 
-#endif // HOUGHLineMODULE_H
+#endif // CLUSTER_HOUGHLINEFINDER_H

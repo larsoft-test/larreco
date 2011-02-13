@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////
 // $Id: DBSCANfinderAna.cxx,v 1.36 2010/09/15  bpage Exp $
 //
-// HoughLineModule
+// \file HoughLineFinder_module.cc
 //
 // \author kinga.partyka@yale.edu
 //
@@ -10,11 +10,11 @@
 #include "art/Framework/Core/ModuleMacros.h"
 
 
-#include "ClusterFinder/HoughLineModule.h"
+#include "ClusterFinder/HoughLineFinder.h"
 
 namespace cluster{
 
-  DEFINE_ART_MODULE(HoughLineModule);
+  DEFINE_ART_MODULE(HoughLineFinder);
   
 } 
 

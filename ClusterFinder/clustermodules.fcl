@@ -14,7 +14,7 @@ argoneut_dbclusterana:
  LArGeantModuleLabel:      "largeant"
  CalDataModuleLabel:       "caldataCal"
  GenieGenModuleLabel:      "singlegen"
- ClusterFinderModuleLabel: "dbscan"
+ ClusterFinderModuleLabel: "dbcluster"
 }
 
 argoneut_houghlinefinder:
@@ -45,7 +45,7 @@ argoneut_houghlinefinderana:
 argoneut_houghlinemod:
 {
  module_type:          "HoughLineModule"
- DBScanModuleLabel:    "dbscan"
+ DBScanModuleLabel:    "dbcluster"
 }
  
 argoneut_linemerger:
@@ -59,7 +59,7 @@ argoneut_linemerger:
 argoneut_endpointmod:
 {
  module_type:       "EndPointModule"
- DBScanModuleLabel: "dbscan"
+ DBScanModuleLabel: "dbcluster"
 }
 
 END_PROLOG
