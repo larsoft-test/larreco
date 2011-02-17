@@ -161,10 +161,11 @@ namespace hit{
       double totSig(0); //stoes the total hit signal
       double startT(0); //stores the start time
       double endT(0);  //stores the end time
-      int numHits;
+      int numHits(0);
       int size(0); 
       int hitIndex(0);
-      double amplitude, position,width;
+      double amplitude(0), position(0),width(0);
+      double amplitudeErr(0), positionErr(0),widthErr(0);
      
       //stores gaussian paramters first index is the hit number
       //the second refers to height, position, and width respectively
@@ -246,6 +247,9 @@ namespace hit{
 	    amplitude = gSum.GetParameter(3*hitNumber);
 	    position = gSum.GetParameter(3*hitNumber+1);
 	    width = gSum.GetParameter(3*hitNumber+2);
+            amplitudeErr = gSum.GetParError(3*hitNumber);
+	    positionErr = gSum.GetParError(3*hitNumber+1);
+	    widthErr = gSum.GetParError(3*hitNumber+2);
 	    hitSig.clear();
 	    hitSig.resize(size);
 	    for(int sigPos = 0; sigPos<size; sigPos++){
@@ -256,11 +260,16 @@ namespace hit{
 
 	    // make the hit
 	    recob::Hit hit(wireVec, 
-			   position-width, 0., //!todo - need to define uncertainty on start time
-			   position+width, 0., //!todo - need to define uncertainty on end time
-			   position,       0., //!todo - need to define uncertainty on peak time
-			   totSig,         0., //!todo - need to define uncertainty on charge
-			   amplitude,      0., //!todo - need to define uncertainty on amplitude
+			   position-width, 
+                           widthErr,
+			   position+width, 
+                           widthErr,
+			   position,
+                           positionErr,
+			   totSig,         
+                           0., //!todo - need to define uncertainty on charge
+			   amplitude,
+                           amplitudeErr,
 			   1,                  //!todo - mulitplicity has to be determined
 			   0.);                //!todo - goodness of fit has to be determined
 	    
