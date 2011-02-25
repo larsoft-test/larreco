@@ -274,16 +274,10 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	TVector3 startpointVecLocal = geom->Plane(1).WorldToLocal(startpointVec);
 	//TVector3 endpointVecLocal = m_tpcVolumeUtility->WorldToLocal(endpointVec);
 	TVector3 endpointVecLocal = geom->Plane(1).WorldToLocal(endpointVec);
-	Double_t startpoint[3],endpoint[3];
-	startpoint[0] = startpointVecLocal[0];
-	startpoint[1] = startpointVecLocal[1];
-	startpoint[2] = startpointVecLocal[2];
-	endpoint[0]   = endpointVecLocal[0];
-	endpoint[1]   = endpointVecLocal[1];
-	endpoint[2]   = endpointVecLocal[2]; 
 
 	//compute track (normalized) cosine directions in the World co-ordinate system
-	TVector3 DirCos = endpointVecLocal - startpointVecLocal;
+	//TVector3 DirCos = endpointVecLocal - startpointVecLocal;
+    TVector3 DirCos = endpointVec - startpointVec;
 	DirCos.SetMag(1.0);//normalize vector
 
 	art::Ptr <recob::Cluster> cl1(clusterListHandle,Icluster_count[inductionIter]);
