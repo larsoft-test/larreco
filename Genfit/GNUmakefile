@@ -18,4 +18,4 @@ LIBLINK    := -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)
 include SoftRelTools/standard.mk
 include SoftRelTools/arch_spec_art.mk
 
-override LIBLIBS += $(LOADLIBES) 
+override LIBLIBS += $(LOADLIBES) -lVMC 
