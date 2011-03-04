@@ -11,8 +11,11 @@ LIB         := lib$(PACKAGE)
 LIBCXXFILES := $(wildcard *.cxx)
 JOBFILES    := $(wildcard *.fcl)
 
-LIBLINK    := $(LOADLIBES) -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -lGeometry -lRecoBase -lRawData -l$(PACKAGE)
+LIBLINK    := -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -l$(PACKAGE)
 
 ########################################################################
 include SoftRelTools/standard.mk
 include SoftRelTools/arch_spec_art.mk
+
+override LIBLIBS += $(LOADLIBES) -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -lGeometry  -lRawData -lRecoBase 
+
