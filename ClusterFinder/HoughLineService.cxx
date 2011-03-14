@@ -49,7 +49,6 @@ cluster::HoughLineService::HoughLineService(fhicl::ParameterSet const& pset, art
   fSaveAccumulator         (pset.get< int >("SaveAccumulator")),
   fNumAngleCells           (pset.get< int >("NumAngleCells")),
   fRhoResolutionFactor     (pset.get< int >("RhoResolutionFactor")),
-  fSmootherSigma           (pset.get< double >("SmootherSigma")),
   fMaxDistance             (pset.get< double >("MaxDistance")),
   fRhoZeroOutRange         (pset.get< int >("RhoZeroOutRange")),
   fThetaZeroOutRange       (pset.get< int >("ThetaZeroOutRange")),
@@ -84,6 +83,8 @@ void cluster::HoughLineService::HoughTransform::Init(int dx, int dy, int rhores,
   m_accum.clear();
   m_accum.resize(m_numAngleCells);
   m_numAccumulated = 0;   
+//   m_cosTable.clear();
+//   m_sinTable.clear();
   m_cosTable.resize(m_numAngleCells);
   m_sinTable.resize(m_numAngleCells);
   if (dx == m_dx && dy == m_dy)
@@ -94,7 +95,7 @@ void cluster::HoughLineService::HoughTransform::Init(int dx, int dy, int rhores,
   
   unsigned int angleIndex;
   double a, angleStep = TMath::Pi()/m_numAngleCells;
-  for (a=0.0, angleIndex=0; angleIndex<m_cosTable.size(); angleIndex++)
+  for (a=0.0, angleIndex=0; angleIndex<m_numAngleCells; angleIndex++)
     {
       m_cosTable[angleIndex] = cos(a);
       m_sinTable[angleIndex] = sin(a);
@@ -122,16 +123,16 @@ int cluster::HoughLineService::HoughTransform::GetMax(int &xmax, int &ymax)
 
 bool cluster::HoughLineService::HoughTransform::DoAddPoint(int x, int y)
 {
-  int distCenter = (int)(m_rowLength/2.);
+  distCenter = (int)(m_rowLength/2.);
  
   // prime the lastDist variable so our linear fill works below
-  int lastDist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[0]*x + m_sinTable[0]*y))) ;
+  lastDist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[0]*x + m_sinTable[0]*y))) ;
   // loop through all angles a from 0 to 180 degrees
   for (unsigned int a=1; a<m_cosTable.size(); a++)
     {
       // Calculate the basic line equation dist = cos(a)*x + sin(a)*y.
       // Shift to center of row to cover negative values
-      int dist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[a]*x + m_sinTable[a]*y))) ;
+      dist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[a]*x + m_sinTable[a]*y))) ;
       // sanity check to make sure we stay within our row
       if (dist >= 0 && dist<m_rowLength)
 	{
@@ -140,8 +141,8 @@ bool cluster::HoughLineService::HoughTransform::DoAddPoint(int x, int y)
 	  else
 	    {
 	      // fill in all values in row a, not just a single cell
-	      int stepDir = dist>lastDist ? 1 : -1;
-	      int cell;
+	      stepDir = dist>lastDist ? 1 : -1;
+	      cell;
 	      for (cell=lastDist; cell!=dist; cell+=stepDir)
 		{   
 		  m_accum[a][cell]++;//maybe add weight of hit here?
@@ -197,18 +198,18 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
   art::ServiceHandle<geo::Geometry> geom;
   filter::ChannelFilter chanFilt;
   HoughTransform c;
-  HoughTransform cc;
-  HoughTransform ccc;
+
   extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   art::PtrVector<recob::Hit> cHits;
   art::PtrVector<recob::Hit> hit;
+
   for(int p = 0; p < geom->Nplanes(); p++) {
-      art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
+    art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
     int clusterID=0;//the unique ID of the cluster
     // This is the loop over clusters. The algorithm searches for lines on a (DBSCAN) cluster-by-cluster basis. 
     //get the view of the current plane
     geo::View_t view = geom->Plane(p).View();
-    
+
     while(clusterIter!=clusIn.end()) 
       {
  	hit.clear();
@@ -216,27 +217,31 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
  	if(fPerCluster){
  	  if((*clusterIter)->View() == view) hit = (*clusterIter)->Hits();
 	}
- 	else{   
-	  while(clusterIter!=clusIn.end()){
-	    if( (*clusterIter)->View() == view ){
-	      cHits = (*clusterIter)->Hits();
-	      if(cHits.size() > 0){
-		// hit.insert(hit.end(),cHits.begin(),cHits.end());
-		art::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
-		while (hitIter!=cHits.end()){
-		  hit.push_back((*hitIter));
-		  hitIter++;
-		}
-	      }
-	    }// end if cluster is in correct view
-	    clusterIter++;
-	  }// end loop over clusters
-	}//end if not fPerCluster
-	if(hit.size() == 0) 
-	  { 
-	    if(fPerCluster) clusterIter++;
-	    continue;
-	  }
+ 	else 
+ 	  {   
+ 	    while(clusterIter!=clusIn.end()) 
+ 	      {
+		if( (*clusterIter)->View() == view ){
+		  cHits = (*clusterIter)->Hits();
+		  if(cHits.size() > 0)
+		    {
+		      // hit.insert(hit.end(),cHits.begin(),cHits.end());
+		      art::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
+		      while (hitIter!=cHits.end())
+			{
+			  hit.push_back((*hitIter));
+			  hitIter++;
+			}
+		    }
+		}// end if cluster is in correct view
+		clusterIter++;
+	      }//end loop over clusters
+	  }//end if not fPerCluster
+ 	if(hit.size() == 0) 
+ 	  { 
+ 	    if(fPerCluster) clusterIter++;
+ 	    continue;
+ 	  }
 
  	int x, y;
 	unsigned int channel, plane, wire;
@@ -262,17 +267,15 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
  	int xMax=0;
  	int yMax=0;
  	double rho;
- 	double theta;
- 	double norm=100.;//normalize. This is important since newcellvalue will end up as an int.  
+ 	double theta; 
  	int accDx(0), accDy(0);
+	
  	for (int linenum = 0; linenum < fMaxLines; linenum++)
  	  { 
  	    //Init specifies the size of the two-dimensional accumulator (based on the arguments, number of wires and number of time samples). 
  	    c.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
- 	    //initialize the smoothing accumulators as well, one each for the two dimensions of the accumulator
- 	    cc.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
- 	    ccc.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells); 
  	    //adds all of the hits (that have not yet been associated with a line) to the accumulator
+ 
  	    for(unsigned int i=0;i < hit.size(); i++)
  	      {
  		channel=hit[i]->Wire()->RawDigit()->Channel();
@@ -280,66 +283,11 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
  		if (skip[i] != 1)
  		  c.AddPoint(wire,(int)(hit[i]->PeakTime()));
  	      }
+ 	   
+
  	    //gets the actual two-dimensional size of the accumulator
  	    c.GetAccumSize(accDy, accDx);
-	    
- 	    if(fSmootherSigma>0)  
- 	      {  
-		
-		double Weight[accDx];
-		double newcellvalue[accDx];
-		for(int i=0;i<=(3*fSmootherSigma);i++)
-		  {
-		    //find the 2D Gaussian's weights
-		    Weight[i]=norm*exp((-(pow(i,2)))/(2.*pow(fSmootherSigma,2))); 
-		  }
-		//two separate 1D Gaussian blurs are used to form a 2D Gaussian blur.
-		//smoothing in x (rho) direction 
-		for (y=0; y<accDy; y++)
-		  {
-		    for (x=0; x<accDx; x++)
-		      {
-			for(int i=0;i<=(3*fSmootherSigma);i++)
-			  {
-			    //if the Gaussian falls off the accumulator edge, the accumulator is extended using mirrored cells 
-			    if(i==0)
-			      newcellvalue[x] = Weight[i]*c.GetCell(y,x);
-			    else if(x+i>=accDx && x-i > 0)
-			      newcellvalue[x] += 2.*Weight[i]*c.GetCell(y,x-i);
-			    else if(x-i<0 && x+i < accDx)
-			      newcellvalue[x] += 2.*Weight[i]*c.GetCell(y,x+i);
-			    else
-			      newcellvalue[x] += Weight[i]*(c.GetCell(y,x+i)+c.GetCell(y,x-i));                             
-			  }   
-			cc.SetCell(y,x,(int)newcellvalue[x]);
-		      }
-		  }
-		//smoothing in y (theta) direction
-		for (y=0; y<accDy; y++)
-		  {
-		    for (x=0; x<accDx; x++)
-		      {
-			for(int i=0;i<=(3*fSmootherSigma);i++)
-			  {
-			    //if the Gaussian falls off the accumulator edge, the accumulator is extended using mirrored cells 
-			    if(i==0)
-			      newcellvalue[x] = Weight[i]*cc.GetCell(y,x);
-			    else if(y+i>=accDy && y-i > 0)
-			      newcellvalue[x] += 2.*Weight[i]*cc.GetCell(y-i,x);
-			    else if(y-i<0 && y+i < accDy)
-			      newcellvalue[x] += 2.*Weight[i]*cc.GetCell(y+i,x);
-			    else
-			      newcellvalue[x] += Weight[i]*(cc.GetCell(y+i,x)+cc.GetCell(y-i,x));                    
-			  } 
-			ccc.SetCell(y,x,(int)newcellvalue[x]);
-		      }
-		  }
 
- 	      } 
- 	    else
-	      {
-		ccc = c;
-	      }
  	    // zeroes out the neighborhood of all previous lines  
  	    for(unsigned int i=0;i<listofxmax.size();i++)
  	      {
@@ -360,17 +308,17 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
  		  {
  		    for (x=xClearStart; x<=xClearEnd; x++)
  		      {
- 			ccc.SetCell(y,x,0);
+ 			c.SetCell(y,x,0);
  		      }
  		  }
  	      }
- 	    //find the weightiest cell in the smoothed accumulator.
+ 	    //find the weightiest cell in the accumulator.
  	    int maxCell = 0;
  	    xMax = 0;
  	    yMax = 0;
- 	    maxCell = ccc.GetMax(yMax,xMax);
+ 	    maxCell = c.GetMax(yMax,xMax);
  	    // break when biggest maximum is smaller than fMinHits
- 	    if ((maxCell < fMinHits*pow(norm,2) && fSmootherSigma>0) || (maxCell < fMinHits && fSmootherSigma==0.)) 
+ 	    if ( maxCell < fMinHits ) 
  	      break;
 	  
  	    //find the center of mass of the 3x3 cell system (with maxCell at the center). 
@@ -382,9 +330,9 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
  		  {
  		    for(int j = -1; j < 2; j++) 
  		      {
- 			denom+=ccc.GetCell(yMax+i,xMax+j);
- 			centerofmassx+=j*ccc.GetCell(yMax+i,xMax+j);
- 			centerofmassy+=i*ccc.GetCell(yMax+i,xMax+j);
+ 			denom+=c.GetCell(yMax+i,xMax+j);
+ 			centerofmassx+=j*c.GetCell(yMax+i,xMax+j);
+ 			centerofmassy+=i*c.GetCell(yMax+i,xMax+j);
  		      }
  		  }
  		centerofmassx/=denom;
@@ -398,7 +346,7 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
  	    listofxmax.push_back(xMax);
  	    listofymax.push_back(yMax);
 	    
- 	    ccc.GetEquation(yMax+centerofmassy, xMax+centerofmassx, rho, theta);
+ 	    c.GetEquation(yMax+centerofmassy, xMax+centerofmassx, rho, theta);
  	    slope=-1./tan(theta);    
  	    intercept=(rho/sin(theta));
  	    double distance;
@@ -473,7 +421,6 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 				     clusterID);	      
 
  	      clusterID++;
-	     
  	      ccol.push_back(cluster);
 	    }
 
@@ -489,7 +436,7 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 	    for (y=0; y<accDy; y++)
 	      for (x=0; x<accDx; x++)
 		{
-		  cell = ccc.GetCell(y,x);
+		  cell = c.GetCell(y,x);
 		  if (cell > maxCell){
 		    maxCell = cell;
 		    xmaxx=x;
@@ -500,7 +447,7 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 		{ 
 		  //scales the pixel weights based on the maximum cell value     
 		  if(maxCell>0)
-		    pix = (int)((1500*ccc.GetCell(y,x))/maxCell);
+		    pix = (int)((1500*c.GetCell(y,x))/maxCell);
 		  outPix[y*accDx + x] = pix;
 		}
 	    SaveBMPFile("houghaccum.bmp", outPix, accDx, accDy);
@@ -508,9 +455,13 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 	  }
 	
 	hit.clear();
+	lastHits.clear();
 	if(clusterIter!=clusIn.end()) clusterIter++;
-
+    listofxmax.clear();
+	listofymax.clear();
       }
+
+      
   }
 
   return ccol.size(); 

@@ -14,13 +14,23 @@ argoneut_dbclusterana:
  LArGeantModuleLabel:      "largeant"
  CalDataModuleLabel:       "caldataCal"
  GenieGenModuleLabel:      "singlegen"
- ClusterFinderModuleLabel: "dbcluster"
+ ClusterFinderModuleLabel: "dbscan"
 }
 
 argoneut_houghlinefinder:
 {
  module_type:          "HoughLineFinder"
- DBScanModuleLabel:    "dbcluster"
+ DBScanModuleLabel:    "dbscan"
+ MaxLines:             5
+ MinHits:              3
+ SaveAccumulator:      0
+ NumAngleCells:        10000
+ RhoResolutionFactor:  10
+ SmootherSigma:        0.
+ MaxDistance:          5.
+ RhoZeroOutRange:      0
+ ThetaZeroOutRange:    0
+ HitsPerCluster:       1
 }
 
 argoneut_houghlinefinderana:
@@ -28,8 +38,14 @@ argoneut_houghlinefinderana:
  module_type:         "HoughLineFinderAna"
  DigitModuleLabel:    "wiresim"
  HitsModuleLabel:     "ffthit"
- DBScanModuleLabel:   "dbcluster"
+ DBScanModuleLabel:   "dbscan"
  HoughModuleLabel:    "hough"
+}
+
+argoneut_houghlinemod:
+{
+ module_type:          "HoughLineModule"
+ DBScanModuleLabel:    "dbscan"
 }
  
 argoneut_linemerger:
@@ -43,7 +59,7 @@ argoneut_linemerger:
 argoneut_endpointmod:
 {
  module_type:       "EndPointModule"
- DBScanModuleLabel: "dbcluster"
+ DBScanModuleLabel: "dbscan"
 }
 
 END_PROLOG

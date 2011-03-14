@@ -63,6 +63,11 @@ namespace cluster {
       
       int m_dx, m_dy;
       std::vector<std::map<int,int> > m_accum;  // column=rho, row=theta
+      int distCenter;
+      int lastDist;
+      int dist;
+      int stepDir;
+      int cell;
       int m_rowLength;
       int m_numAccumulated;
       int m_rhoResolutionFactor;
@@ -81,7 +86,6 @@ namespace cluster {
     int    fMinHits;       //Min number of hits in the accumulator to consider (number of hits required to be considered a line).
     int    fSaveAccumulator;  //Save bitmap image of accumulator for debugging?
     int    fNumAngleCells;    //Number of angle cells in the accumulator (a measure of the angular resolution of the line finder). If this number is too large than the number of votes that fall into the "correct" bin will be small and consistent with noise.
-    double fSmootherSigma;
     double fMaxDistance;
     int fRhoZeroOutRange;
     int fThetaZeroOutRange;

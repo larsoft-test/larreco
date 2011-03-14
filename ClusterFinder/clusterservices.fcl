@@ -12,9 +12,8 @@ argoneut_houghlineservice:
  MaxLines:             5
  MinHits:              3
  SaveAccumulator:      0
- NumAngleCells:        10000
- RhoResolutionFactor:  10
- SmootherSigma:        0.
+ NumAngleCells:        5000
+ RhoResolutionFactor:  5
  MaxDistance:          5.
  RhoZeroOutRange:      0
  ThetaZeroOutRange:    0
