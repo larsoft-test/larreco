@@ -62,4 +62,18 @@ argoneut_endpointmod:
  DBScanModuleLabel: "dbscan"
 }
 
+argoneut_kingacluster:
+{
+ module_type:          "KingaCluster"
+ DBScanModuleLabel:    "dbcluster"
+}
+
+argoneut_kingaclusterana:
+{ 
+ module_type:              "KingaClusterAna"
+ DigitModuleLabel:         "daq"
+ HitsModuleLabel:          "ffthit"
+ ClusterFinderModuleLabel: "dbcluster"
+ KingaModuleLabel:         "kingacluster"
+}
 END_PROLOG
