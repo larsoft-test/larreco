@@ -22,7 +22,6 @@ namespace hit {
 
   private:
         
-    bool            fSpacer;
     std::string     fCalDataModuleLabel;
     double          fMinSigInd;     ///>Induction signal height threshold 
     double          fMinSigCol;     ///>Collection signal height threshold 

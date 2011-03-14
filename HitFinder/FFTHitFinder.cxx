@@ -43,7 +43,6 @@ namespace hit{
 
   //-------------------------------------------------
   FFTHitFinder::FFTHitFinder(fhicl::ParameterSet const& pset) :
-    fSpacer (false),
     fCalDataModuleLabel(pset.get< std::string  >("CalDataModuleLabel")),
     fMinSigInd         (pset.get< double       >("MinSigInd")), 
     fMinSigCol         (pset.get< double       >("MinSigCol")), 
@@ -77,10 +76,6 @@ namespace hit{
   void FFTHitFinder::produce(art::Event& evt)
   { 
     
-    //////////////////////////////////////////////////////
-    // Make a std::auto_ptr<> for the thing you want to put into the event
-    // because that handles the memory management for you
-    //////////////////////////////////////////////////////
     std::auto_ptr<std::vector<recob::Hit> > hcol(new std::vector<recob::Hit>);
     // Read in the wire List object(s).
     art::Handle< std::vector<recob::Wire> > wireVecHandle;
@@ -89,21 +84,21 @@ namespace hit{
     art::ServiceHandle<geo::Geometry> geom;
     
     std::vector<double> signal;            
-    std::vector<int> startTimes;  //stores time of 1st local minimum
-    std::vector<int> maxTimes;    //stores time of local maximum
-    std::vector<int> endTimes;    //stores time of 2nd local minimum
-    std::vector<double>::iterator timeIter;  //iterator for time bins
-    int minTimeHolder;  //hold position of minTime for hit region
-    int time;  //current time bin
-    unsigned int channel;  //channel number
-    unsigned int wire;              //wire number
-    unsigned int plane;             //plane number
-    bool maxFound; //Flag for whether a value>threshold has been found
-    double threshold;
-    std::string eqn;
+    std::vector<int> startTimes;             // stores time of 1st local minimum
+    std::vector<int> maxTimes;    	     // stores time of local maximum    
+    std::vector<int> endTimes;    	     // stores time of 2nd local minimum
+    std::vector<double>::iterator timeIter;  // iterator for time bins
+    int minTimeHolder    = 0;                // hold position of minTime for hit region
+    int time             = 0;                // current time bin
+    unsigned int channel = 0;                // channel number
+    unsigned int wire    = 0;                // wire number
+    unsigned int plane   = 0;                // plane number
+    bool maxFound        = false;            // Flag for whether a value > threshold 
+                                             // has been found
+    double threshold     = 0.;               // minimum signal size for id'ing a hit
+    std::string eqn      = "gaus(0)";        // string for equation to fit
     std::stringstream numConv;
-    geo::SigType_t sigType;
-    geo::View_t view;     
+    geo::SigType_t sigType = geo::kInduction;// type of plane we are looking at
 
     //loop over wires
 
@@ -112,18 +107,17 @@ namespace hit{
       startTimes.clear();
       maxTimes.clear();
       endTimes.clear();
-      signal = wireVec->fSignal;
-      time=0;
+      signal        = wireVec->fSignal;
+      time          = 0;
       minTimeHolder = 0;
-      maxFound = false;
-      channel=wireVec->RawDigit()->Channel();
-//       std::cout << "Channel: " << channel << std::endl;
+      maxFound      = false;
+      channel       = wireVec->RawDigit()->Channel();
       geom->ChannelToWire(channel,plane,wire);
-      sigType = geom->Plane(plane).SignalType();
-      view = geom->Plane(plane).View();
-      if(sigType == geo::kInduction) threshold=fMinSigInd;
-      else threshold= fMinSigCol;
-      //loop over signal
+      sigType       = geom->Plane(plane).SignalType();
+      threshold     = fMinSigInd;
+      if(sigType == geo::kCollection) threshold = fMinSigCol;
+
+      // loop over signal
       for(timeIter = signal.begin();timeIter+2!=signal.end();timeIter++) {    
 	//test if timeIter2 is a local minimum
 	if(*timeIter>*(timeIter+1) && *(timeIter+1)<*(timeIter+2)) {
@@ -164,8 +158,8 @@ namespace hit{
       int numHits(0);
       int size(0); 
       int hitIndex(0);
-      double amplitude(0), position(0),width(0);
-      double amplitudeErr(0), positionErr(0),widthErr(0);
+      double amplitude(0), position(0), width(0);
+      double amplitudeErr(0), positionErr(0), widthErr(0);
      
       //stores gaussian paramters first index is the hit number
       //the second refers to height, position, and width respectively
@@ -191,12 +185,10 @@ namespace hit{
 	while(signal[(int)endT] <0) endT--;
 	size = (int)(endT-startT);
 	TH1D hitSignal("hitSignal","",size,startT,endT);
-// 	std::cout << wireVec->RawDigit()->Channel() << " size " 
-// 		  << size << " numHits " << numHits << std::endl;
 
-	for(int i = (int)startT; i < (int)endT; i++){
+	for(int i = (int)startT; i < (int)endT; i++)
 	  hitSignal.Fill(i,signal[i]);
-	}
+	
 
 	for(int i = 3; i < numHits*3; i+=3) {
 	  eqn.append("+gaus(");
@@ -213,7 +205,9 @@ namespace hit{
 	    amps[i]=signal[maxTimes[hitIndex+i]];
 	    //std::cout <<" ai: " <<amps[i] ;
 	    for(int j = 0; j < numHits;j++) 
-	      data[i+numHits*j]=TMath::Gaus(maxTimes[hitIndex+j],maxTimes[hitIndex+i],width);
+	      data[i+numHits*j] = TMath::Gaus(maxTimes[hitIndex+j],
+					      maxTimes[hitIndex+i],
+					      width);
 	  }//end loop over hits
         
 	  //std::cout <<"channel"<<channel<< std::endl;
@@ -223,7 +217,6 @@ namespace hit{
 	  a.Solve(amps);
          
 	  for(int i = 0;i < numHits; i++) {
-// 	    std::cout <<" af: " << amps[i] <<" "<< maxTimes[hitIndex+i]<<" "<<width<<std::endl;
 	    gSum.SetParameter(3*i, amps[i]);
 	    gSum.SetParameter(1+3*i, maxTimes[hitIndex+i]);
 	    gSum.SetParameter(2+3*i, width);
@@ -237,7 +230,6 @@ namespace hit{
 	  gSum.SetParLimits(0,0.0,1.5*signal[maxTimes[hitIndex]]);
 	  gSum.SetParLimits(1, startT , endT);
 	  gSum.SetParLimits(2,0.0,10.0*width);
-// 	  std::cout <<" af: " << signal[maxTimes[hitIndex]] <<" "<< maxTimes[hitIndex]<<" "<<width<<std::endl;
 	}
 
 	//!todo - just get the integral from the fit for totSig
@@ -254,7 +246,6 @@ namespace hit{
 	    hitSig.resize(size);
 	    for(int sigPos = 0; sigPos<size; sigPos++){
 	      hitSig[sigPos] = amplitude*TMath::Gaus(sigPos+startT,position, width);
-// 	      std::cout << sigPos << " hit sig " << hitSig[sigPos] << std::endl;
 	      totSig+=hitSig[(int)sigPos]; 
 	    }              	    
 
@@ -267,7 +258,7 @@ namespace hit{
 			   position,
                            positionErr,
 			   totSig,         
-                           0., //!todo - need to define uncertainty on charge
+                           0.,                 //!todo - need to define uncertainty on charge
 			   amplitude,
                            amplitudeErr,
 			   1,                  //!todo - mulitplicity has to be determined
@@ -278,7 +269,6 @@ namespace hit{
 	  }//end if over threshold
 	}//end loop over hits
 	hitIndex+=numHits;
-
 
       } // end while on hitIndex<(signed)startTimes.size()
     } // while on Wires
