@@ -35,10 +35,10 @@ namespace cluster {
    std::string fKingaModuleLabel;
     std::string fDigitModuleLabel;
     std::string fHitsModuleLabel;
-    std::string fLArG4ModuleLabel;
+   // std::string fLArG4ModuleLabel;
     std::string fClusterFinderModuleLabel;
-    std::string fCalDataModuleLabel;
-    std::string fGenieGenModuleLabel;
+    //std::string fCalDataModuleLabel;
+   // std::string fGenieGenModuleLabel;
 
   }; // class KingaClusterAna
 

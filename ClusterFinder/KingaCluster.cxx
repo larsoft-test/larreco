@@ -217,7 +217,8 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
      std::cout<<"Should be starting to work on the other plane now"<<std::endl;
     }//Planes
    
-   
+   evt.put(ccol);
+  return;
     }
     
 //..............................................................  
