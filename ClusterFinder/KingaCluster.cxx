@@ -144,7 +144,7 @@ std::cout<<"No of planes = "<<geom->Nplanes()<<std::endl;
     FindMax(plane);
     FinalPeaks();
     FindClusters(plane);
-    std::cout<<"HitsWithClusterID.size()= "<<HitsWithClusterID.size()<< "comapre with allhits.size()= "<<allhits.size()<<std::endl;
+    std::cout<<"HitsWithClusterID.size()= "<<HitsWithClusterID.size()<< "compare with allhits.size()= "<<allhits.size()<<std::endl;
     for(int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++) {
     
        for(int j=0; j<HitsWithClusterID.size();j++){
@@ -164,7 +164,7 @@ std::cout<<"For Cluster # "<<ClusterNo<<" we have "<<clusterHits.size()<<" hits 
 for(int i=0; i<clusterHits.size();i++){
 channel=clusterHits[i]->Wire()->RawDigit()->Channel();
     geom->ChannelToWire(channel,p,w);
-std::cout<<"wire ="<<w<<"  ";
+//std::cout<<"wire ="<<w<<"  ";
 
 
 }
@@ -239,10 +239,20 @@ double a_polar, b_polar,theta_polar;
 // ftime_vertex=1058;
 // ftime_vertex=1072;
 
-fwire_vertex.push_back(62);
-fwire_vertex.push_back(72);
-ftime_vertex.push_back(460);
-ftime_vertex.push_back(450);
+// fwire_vertex.push_back(62);
+// fwire_vertex.push_back(72);
+// ftime_vertex.push_back(460);
+// ftime_vertex.push_back(460);
+
+//pizero:
+fwire_vertex.push_back(83);
+fwire_vertex.push_back(87);
+ftime_vertex.push_back(420);
+ftime_vertex.push_back(430);
+
+art::ServiceHandle<geo::Geometry> geom;
+unsigned int channel=0, w=0;
+unsigned int p=plane;
 
 //std::cout<<"for PLANE "<<plane<<" fwire_vertex= "<<fwire_vertex[plane]<<" ftime_vertex= "<<ftime_vertex[plane]<<std::endl;
 
@@ -257,7 +267,11 @@ ftime_vertex.push_back(450);
 //         std::cout<<"for PLANE "<<plane<<" fwire_vertex= "<<fwire_vertex<<" ftime_vertex= "<<ftime_vertex<<std::endl;
 //           }   
  
-  b_polar = (allhits[i]->Wire()->RawDigit()->Channel() - fwire_vertex[plane])* 0.04+ 0.04; /**in cm*/
+ channel=allhits[i]->Wire()->RawDigit()->Channel();
+ geom->ChannelToWire(channel,p,w);
+ 
+ 
+  b_polar = (w - fwire_vertex[plane])* 0.04; /**in cm*/
       a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
       theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
       theta_polar = 180*theta_polar/fpi; /** in deg*/
@@ -274,7 +288,15 @@ fh_theta_ind_2D->Fill(theta_polar,allhits[i]->Charge());
 }
 if (plane==1 ) {
 
-//std::cout<<"plane= "<<plane<<" theta= "<<theta_polar<<"  channel= "<<allhits[i]->Wire()->RawDigit()->Channel()<<" time= "<<allhits[i]->PeakTime()<<" fwire_vertex[plane]= "<<fwire_vertex[plane]<<" ftime_vertex[plane]= "<<ftime_vertex[plane]<<std::endl;
+std::cout<<"plane= "<<plane<<"  w= "<<w<<" time= "<<allhits[i]->PeakTime()<<" theta= "<<theta_polar<<" fwire_vertex[plane]= "<<fwire_vertex[plane]<<" ftime_vertex[plane]= "<<ftime_vertex[plane];
+
+
+if(w>95 && w<118 && allhits[i]->PeakTime()>500 && allhits[i]->PeakTime()<800){
+std::cout<<"  ***********"<<std::endl;
+}
+else{ std::cout<<std::endl;}
+
+
 
 
 fh_theta_coll->Fill(theta_polar);
@@ -316,8 +338,18 @@ void cluster::KingaCluster::FindMax(int plane){
   endTimes.clear();
  std::cout<<"We have "<<allhits.size()<<" hits for plane "<<plane<<std::endl;
 
-  double threshold=76*allhits.size();
-  double MinThreshold=1000;
+ //  double threshold=76*allhits.size()/2;
+//   double MinThreshold=1000;
+//  double threshold=6;
+//   double MinThreshold=4;
+
+ double threshold=200000;
+  double MinThreshold=30000;
+  
+  
+  
+  
+  
   int time=1;
   int ValidPeak=0;
   std::cout<<"Threshold that a peak must have in order to be considered a peak = "<<threshold<<". For inflection points we must have the value to drop to "<<MinThreshold<<std::endl;
@@ -402,29 +434,51 @@ std::cout<<SortedMaxBin[i]<<std::endl;
   }
   }
    if(ValidPeak==1){
+   std::cout<<"We are working on peak at bin #"<<SortedMaxBin[maxNo]<<std::endl;
   //start at the peak and go left
       for(int LeftBin=SortedMaxBin[maxNo]-1;LeftBin>SortedMaxBin[maxNo]-30; LeftBin--)
       {
-        if(fh_theta_coll_2D->GetBinContent(LeftBin)<MinThreshold) {
+        if(fh_theta_coll_2D->GetBinContent(LeftBin)<MinThreshold && fh_theta_coll_2D->GetBinContent(LeftBin-1)>fh_theta_coll_2D->GetBinContent(LeftBin)) {
            MaxStartPoint.push_back(LeftBin);
-           
+          // std::cout<<"picked option 1, startin point @bin "<<LeftBin<<std::endl;
            std::cout<<"For peak at bin= "<<SortedMaxBin[maxNo]<<"("<<-180+2*SortedMaxBin[maxNo]<<" degrees)"<<" LeftBin="<<LeftBin<<"("<<-180+2*LeftBin<<" degrees)"<<" RightBin= ";
-           break;}
-           else if (LeftBin==SortedMaxBin[maxNo]-20){std::cout<<"cannot find starting point of the peak!!!!!"<<std::endl;}
+           break;
+           }
+           else if(fh_theta_coll_2D->GetBinContent(LeftBin)<MinThreshold && fh_theta_coll_2D->GetBinContent(LeftBin-1)==0){
+           MaxStartPoint.push_back(LeftBin-1);
+           //std::cout<<"picked option 2, startin point @bin "<<LeftBin-1<<std::endl;
+           std::cout<<"For peak at bin= "<<SortedMaxBin[maxNo]<<"("<<-180+2*SortedMaxBin[maxNo]<<" degrees)"<<" LeftBin="<<LeftBin-1<<"("<<-180+2*(LeftBin-1)<<" degrees)"<<" RightBin= ";
+           break;
+           
+           }
+           else if (LeftBin==SortedMaxBin[maxNo]-29){std::cout<<" cannot find starting point of the peak!!!!!"<<std::endl;}
          
       }
-  
+     
+   
+   
+   
   
   for(int RightBin=SortedMaxBin[maxNo]+1;RightBin<SortedMaxBin[maxNo]+30; RightBin++)
       {
-        if(fh_theta_coll_2D->GetBinContent(RightBin)<MinThreshold) {
+        if(fh_theta_coll_2D->GetBinContent(RightBin)<MinThreshold && fh_theta_coll_2D->GetBinContent(RightBin+1)>fh_theta_coll_2D->GetBinContent(RightBin)) {
            MaxEndPoint.push_back(RightBin);
            std::cout<<RightBin<<"("<<-180+2*RightBin<<" degrees)"<<std::endl;
-           break;}
-           else if(RightBin==SortedMaxBin[maxNo]+20){std::cout<<"cannot find end point of the peak!!!!!"<<std::endl;}
+           break;
+           }
+         else if(fh_theta_coll_2D->GetBinContent(RightBin)<MinThreshold && fh_theta_coll_2D->GetBinContent(RightBin+1)==0){
+           MaxEndPoint.push_back(RightBin+1);
+           std::cout<<RightBin+1<<"("<<-180+2*(RightBin+1)<<" degrees)"<<std::endl;
+           break;
+           }
+         else if(RightBin==SortedMaxBin[maxNo]+29){std::cout<<" cannot find end point of the peak!!!!!"<<std::endl;}
          
       }
-  }
+      
+      
+      
+      
+  } //valid peak
   
   ValidPeak=0;
   
@@ -448,7 +502,7 @@ std::cout<<SortedMaxBin[i]<<std::endl;
  
  //induction plane
  if(plane==0){
- std::cout<<"No of bins= "<<fh_theta_ind->GetNbinsX()<<std::endl;
+ std::cout<<"No of bins= "<<fh_theta_ind_2D->GetNbinsX()<<std::endl;
 for(int bin=1; bin<fh_theta_ind_2D->GetNbinsX()+1;bin++){
  
   if(fh_theta_ind_2D->GetBinContent(bin)>fh_theta_ind_2D->GetBinContent(bin+1) && fh_theta_ind_2D->GetBinContent(bin+1)<fh_theta_ind_2D->GetBinContent(bin+2)) {
@@ -529,11 +583,19 @@ std::cout<<SortedMaxBin[i]<<std::endl;
   //start at the peak and go left
       for(int LeftBin=SortedMaxBin[maxNo]-1;LeftBin>SortedMaxBin[maxNo]-30; LeftBin--)
       {
-        if(fh_theta_ind_2D->GetBinContent(LeftBin)<MinThreshold) {
+        if(fh_theta_ind_2D->GetBinContent(LeftBin)<MinThreshold && fh_theta_ind_2D->GetBinContent(LeftBin-1)>fh_theta_ind_2D->GetBinContent(LeftBin)) {
            MaxStartPoint.push_back(LeftBin);
            
            std::cout<<"For peak at bin= "<<SortedMaxBin[maxNo]<<"("<<-180+2*SortedMaxBin[maxNo]<<" degrees)"<<" LeftBin="<<LeftBin<<"("<<-180+2*LeftBin<<" degrees)"<<" RightBin= ";
-           break;}
+           break;
+           }
+           else if(fh_theta_ind_2D->GetBinContent(LeftBin)<MinThreshold && fh_theta_ind_2D->GetBinContent(LeftBin-1)==0){
+           MaxStartPoint.push_back(LeftBin-1);
+           //std::cout<<"picked option 2, startin point @bin "<<LeftBin-1<<std::endl;
+           std::cout<<"For peak at bin= "<<SortedMaxBin[maxNo]<<"("<<-180+2*SortedMaxBin[maxNo]<<" degrees)"<<" LeftBin="<<LeftBin-1<<"("<<-180+2*(LeftBin-1)<<" degrees)"<<" RightBin= ";
+           break;
+           
+           }
            else if (LeftBin==SortedMaxBin[maxNo]-30){std::cout<<"cannot find starting point of the peak!!!!!"<<std::endl;}
          
       }
@@ -541,10 +603,16 @@ std::cout<<SortedMaxBin[i]<<std::endl;
   
   for(int RightBin=SortedMaxBin[maxNo]+1;RightBin<SortedMaxBin[maxNo]+30; RightBin++)
       {
-        if(fh_theta_ind_2D->GetBinContent(RightBin)<MinThreshold) {
+        if(fh_theta_ind_2D->GetBinContent(RightBin)<MinThreshold && fh_theta_ind_2D->GetBinContent(RightBin+1)>fh_theta_ind_2D->GetBinContent(RightBin)) {
            MaxEndPoint.push_back(RightBin);
            std::cout<<RightBin<<"("<<-180+2*RightBin<<" degrees)"<<std::endl;
-           break;}
+           break;
+           }
+           else if(fh_theta_ind_2D->GetBinContent(RightBin)<MinThreshold && fh_theta_ind_2D->GetBinContent(RightBin+1)==0){
+           MaxEndPoint.push_back(RightBin+1);
+           std::cout<<RightBin+1<<"("<<-180+2*(RightBin+1)<<" degrees)"<<std::endl;
+           break;
+           }
            else if(RightBin==SortedMaxBin[maxNo]+20){std::cout<<"cannot find end point of the peak!!!!!"<<std::endl;}
          
       }
@@ -565,9 +633,9 @@ std::cout<<SortedMaxBin[i]<<std::endl;
 //..............................................................   
 void cluster::KingaCluster::FinalPeaks(){  
 std::cout<<"In FinalPeaks()"<<std::endl;
-for(int i=0;i<maxBin.size();i++){
-  std::cout<<"maxTime is at bin = "<<maxBin[i]<<" and its value is "<<fh_theta_ind_2D->GetBinContent(maxBin[i])<<std::endl;
-  }
+// for(int i=0;i<maxBin.size();i++){
+//   std::cout<<"maxTime is at bin = "<<maxBin[i]<<" and its value is "<<fh_theta_ind_2D->GetBinContent(maxBin[i])<<std::endl;
+//   }
 
 
 
@@ -589,6 +657,12 @@ void cluster::KingaCluster::FitAngularDistributions(){
 
 void cluster::KingaCluster::FindClusters(int plane){ 
 
+
+art::ServiceHandle<geo::Geometry> geom;
+unsigned int channel=0, w=0;
+unsigned int p=plane;
+
+
 int no_noise_hits=0;
 std::cout<<"In FindClusters(int plane), we should be producing "<<MaxStartPoint.size()<<" clusters"<<std::endl;
 double a_polar, b_polar,theta_polar;
@@ -599,15 +673,19 @@ double a_polar, b_polar,theta_polar;
 
 
 
+
 for(unsigned int i = 0; i< allhits.size(); ++i){
+
+ channel=allhits[i]->Wire()->RawDigit()->Channel();
+ geom->ChannelToWire(channel,p,w);
  
-b_polar = (allhits[i]->Wire()->RawDigit()->Channel() - fwire_vertex[plane])* 0.04+ 0.04; /**in cm*/
+b_polar = (w - fwire_vertex[plane])* 0.04; /**in cm*/
       a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
       theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
       theta_polar = 180*theta_polar/fpi; /** in deg*/
 for(int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++){
 
-  if(theta_polar>(-180+2*MaxStartPoint[ClusterNo]) && theta_polar<(-180+2*MaxEndPoint[ClusterNo])){
+  if(theta_polar>=(-180+2*MaxStartPoint[ClusterNo]) && theta_polar<=(-180+2*MaxEndPoint[ClusterNo])){
   //want to start counting from 1, O is reserved for hits that will be marked as noise
    HitsWithClusterID.push_back(ClusterNo+1);
    break;}
@@ -625,16 +703,16 @@ for(int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++){
 
 
 std::cout<<"In FindClusters(int plane), marked "<<no_noise_hits<<" hits as NOISE"<<std::endl;
-std::cout<<"HitsWithClusterID contains the following clusterIDs:"<<std::endl;
+//std::cout<<"HitsWithClusterID contains the following clusterIDs:"<<std::endl;
 
-for(int i=0; i<HitsWithClusterID.size();i++){
+//for(int i=0; i<HitsWithClusterID.size();i++){
 
-std::cout<<HitsWithClusterID[i]<<"  ";
+//std::cout<<HitsWithClusterID[i]<<"  ";
 
 
-}
+//}
 
-std::cout<<std::endl;
+//std::cout<<std::endl;
 
 
 
