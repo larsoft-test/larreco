@@ -142,7 +142,7 @@ std::cout<<"No of planes = "<<geom->Nplanes()<<std::endl;
    std::cout<<"ATTENTION, STARTING WORK ON PLANE# "<<plane<<std::endl;
     AngularDistribution(plane);
     FindMax(plane);
-    FinalPeaks();
+    //FinalPeaks();
     FindClusters(plane);
     std::cout<<"HitsWithClusterID.size()= "<<HitsWithClusterID.size()<< "compare with allhits.size()= "<<allhits.size()<<std::endl;
     for(int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++) {
@@ -214,6 +214,7 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
      MaxStartPointTheta.clear();
      MaxEndPointTheta.clear();
      HitsWithClusterID.clear();
+     FinalPeaks.clear();
      std::cout<<"Should be starting to work on the other plane now"<<std::endl;
     }//Planes
    
@@ -288,13 +289,13 @@ fh_theta_ind_2D->Fill(theta_polar,allhits[i]->Charge());
 }
 if (plane==1 ) {
 
-std::cout<<"plane= "<<plane<<"  w= "<<w<<" time= "<<allhits[i]->PeakTime()<<" theta= "<<theta_polar<<" fwire_vertex[plane]= "<<fwire_vertex[plane]<<" ftime_vertex[plane]= "<<ftime_vertex[plane];
+//std::cout<<"plane= "<<plane<<"  w= "<<w<<" time= "<<allhits[i]->PeakTime()<<" theta= "<<theta_polar<<" fwire_vertex[plane]= "<<fwire_vertex[plane]<<" ftime_vertex[plane]= "<<ftime_vertex[plane];
 
 
-if(w>95 && w<118 && allhits[i]->PeakTime()>500 && allhits[i]->PeakTime()<800){
-std::cout<<"  ***********"<<std::endl;
-}
-else{ std::cout<<std::endl;}
+// if(w>95 && w<118 && allhits[i]->PeakTime()>500 && allhits[i]->PeakTime()<800){
+// std::cout<<"  ***********"<<std::endl;
+// }
+// else{ std::cout<<std::endl;}
 
 
 
@@ -344,7 +345,7 @@ void cluster::KingaCluster::FindMax(int plane){
 //   double MinThreshold=4;
 
  double threshold=200000;
-  double MinThreshold=30000;
+  double MinThreshold=120000;
   
   
   
@@ -434,6 +435,9 @@ std::cout<<SortedMaxBin[i]<<std::endl;
   }
   }
    if(ValidPeak==1){
+   
+   std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
+  FinalPeaks.push_back(SortedMaxBin[maxNo]);
    std::cout<<"We are working on peak at bin #"<<SortedMaxBin[maxNo]<<std::endl;
   //start at the peak and go left
       for(int LeftBin=SortedMaxBin[maxNo]-1;LeftBin>SortedMaxBin[maxNo]-30; LeftBin--)
@@ -580,13 +584,17 @@ std::cout<<SortedMaxBin[i]<<std::endl;
   }
   
    if(ValidPeak==1){
+   
+  std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
+  FinalPeaks.push_back(SortedMaxBin[maxNo]);
   //start at the peak and go left
       for(int LeftBin=SortedMaxBin[maxNo]-1;LeftBin>SortedMaxBin[maxNo]-30; LeftBin--)
       {
         if(fh_theta_ind_2D->GetBinContent(LeftBin)<MinThreshold && fh_theta_ind_2D->GetBinContent(LeftBin-1)>fh_theta_ind_2D->GetBinContent(LeftBin)) {
            MaxStartPoint.push_back(LeftBin);
-           
+            
            std::cout<<"For peak at bin= "<<SortedMaxBin[maxNo]<<"("<<-180+2*SortedMaxBin[maxNo]<<" degrees)"<<" LeftBin="<<LeftBin<<"("<<-180+2*LeftBin<<" degrees)"<<" RightBin= ";
+        
            break;
            }
            else if(fh_theta_ind_2D->GetBinContent(LeftBin)<MinThreshold && fh_theta_ind_2D->GetBinContent(LeftBin-1)==0){
@@ -631,15 +639,15 @@ std::cout<<SortedMaxBin[i]<<std::endl;
 }   
 
 //..............................................................   
-void cluster::KingaCluster::FinalPeaks(){  
-std::cout<<"In FinalPeaks()"<<std::endl;
-// for(int i=0;i<maxBin.size();i++){
-//   std::cout<<"maxTime is at bin = "<<maxBin[i]<<" and its value is "<<fh_theta_ind_2D->GetBinContent(maxBin[i])<<std::endl;
-//   }
-
-
-
-}
+// void cluster::KingaCluster::FinalPeaks(){  
+// std::cout<<"In FinalPeaks()"<<std::endl;
+// // for(int i=0;i<maxBin.size();i++){
+// //   std::cout<<"maxTime is at bin = "<<maxBin[i]<<" and its value is "<<fh_theta_ind_2D->GetBinContent(maxBin[i])<<std::endl;
+// //   }
+// 
+// 
+// 
+// }
 void cluster::KingaCluster::FitAngularDistributions(){  
 
 //Now Fit gaussian:
@@ -657,6 +665,14 @@ void cluster::KingaCluster::FitAngularDistributions(){
 
 void cluster::KingaCluster::FindClusters(int plane){ 
 
+std::cout<<"FORMING CLUSTERS NOW :) "<<std::endl;
+std::cout<<"FinalPeaks are at bin(s):  ";
+for(int i=0; i<FinalPeaks.size();i++)
+{
+std::cout<<FinalPeaks[i]<<" which corresponds to angle=  "<<-180+2*FinalPeaks[i]<<std::endl;
+
+}
+
 
 art::ServiceHandle<geo::Geometry> geom;
 unsigned int channel=0, w=0;
@@ -669,8 +685,8 @@ double a_polar, b_polar,theta_polar;
 
 //HitsWithClusterID.clear();
 
-
-
+std::vector<double> DiffAngles;
+DiffAngles.clear();
 
 
 
@@ -690,9 +706,23 @@ for(int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++){
    HitsWithClusterID.push_back(ClusterNo+1);
    break;}
    else if(ClusterNo==MaxStartPoint.size()-1){
-   //mark the hit as noise
-   HitsWithClusterID.push_back(0);
-   no_noise_hits++;
+   //decide where noise hits go
+   
+   //std::cout<<"Noise hit at w= "<<w<<" t= "<<allhits[i]->PeakTime()<<" with theta_polar= "<<theta_polar;
+  // std::cout<<"FinalPeaks.size()= "<<FinalPeaks.size()<<std::endl;
+   for(int peakNo=0;peakNo<FinalPeaks.size();peakNo++){
+   DiffAngles.push_back(fabs(-180+2*FinalPeaks[peakNo]-theta_polar));
+   //std::cout<<"diff for peak "<<peakNo<<" is "<<fabs(-180+2*FinalPeaks[peakNo]-theta_polar)<<std::endl;
+   }
+   //now take minimum of DiffAngles and find at which position it is at, this position corresponds to clusterNo +1 , because we don't want to mark hits with zero 
+   
+   int position=std::distance(DiffAngles.begin(),std::min_element(DiffAngles.begin(),DiffAngles.end()));
+   
+   HitsWithClusterID.push_back(position+1);
+   
+   //std::cout<<"  This hit is closest to cluster # "<<position+1<<std::endl;
+   //no_noise_hits++;
+   DiffAngles.clear();
    }
 
 
@@ -702,7 +732,7 @@ for(int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++){
 } //allhits
 
 
-std::cout<<"In FindClusters(int plane), marked "<<no_noise_hits<<" hits as NOISE"<<std::endl;
+//std::cout<<"In FindClusters(int plane), marked "<<no_noise_hits<<" hits as NOISE"<<std::endl;
 //std::cout<<"HitsWithClusterID contains the following clusterIDs:"<<std::endl;
 
 //for(int i=0; i<HitsWithClusterID.size();i++){

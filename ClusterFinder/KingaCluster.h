@@ -35,7 +35,7 @@ namespace cluster {
     void beginJob();
     void AngularDistribution(int plane);
     void FindMax(int plane);
-    void FinalPeaks();
+    //void FinalPeaks();
     void FitAngularDistributions();
     void FindClusters(int plane);
  
@@ -63,6 +63,7 @@ double fpi;
 
 std::vector<double> maxBinValues;
 std::vector<int> SortedMaxBin;
+std::vector<int> FinalPeaks;
   protected:
 
     
