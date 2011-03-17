@@ -394,19 +394,42 @@ void cluster::KingaCluster::FindMax(int plane){
 //std::vector<double> maxBinValues;
   for(int i=0;i<maxBin.size();i++){
   maxBinValues.push_back(fh_theta_coll_2D->GetBinContent(maxBin[i]));
+  OriginalmaxBinValues.push_back(fh_theta_coll_2D->GetBinContent(maxBin[i]));
   }
   std::cout<<"The largest is at position:  "<<std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))<<" which corresponds to bin #   "<<maxBin[std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))]<<" and its value= "<<*std::max_element(maxBinValues.begin(),maxBinValues.end())<<std::endl;
   
+  //sort values from the largest to the smallest in maxBinValues, then find the corresponding bin numbers to create SortedMaxBin:
+  
+  sort(maxBinValues.begin(),maxBinValues.end());
+ std::cout<<"maxBinValues after sort:"<<std::endl;
+ for(int i=0;i<maxBinValues.size();i++){
+
+   std::cout<<maxBinValues[i]<<std::endl;
+ }
+
+reverse (maxBinValues.begin(),maxBinValues.end());
+ std::cout<<"maxBinValues in the correct order are now:"<<std::endl;
+ for(int i=0;i<maxBinValues.size();i++){
+
+   std::cout<<maxBinValues[i]<<std::endl;
+ }
+
+ for(int i=0; i<maxBinValues.size();i++){
+
+   std::vector<double>::iterator pos=std::find( OriginalmaxBinValues.begin(), OriginalmaxBinValues.end(),maxBinValues[i]);
+   SortedMaxBin.push_back(maxBin[pos-OriginalmaxBinValues.begin()]);
+
+ }
+
+
   //create SortedMaxBin vector whose first element is the global max:
   
+ //  SortedMaxBin.push_back(maxBin[std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))]);
+//   for(int i=0; i<maxBin.size();i++){
+//    if(i!=std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end())))
+//   SortedMaxBin.push_back(maxBin[i]);
   
-  // std::vector<int> SortedMaxBin;
-  SortedMaxBin.push_back(maxBin[std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))]);
-  for(int i=0; i<maxBin.size();i++){
-   if(i!=std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end())))
-  SortedMaxBin.push_back(maxBin[i]);
-  
-  }
+//   }
   
   std::cout<<"SortexMaxBin elements are: "<<std::endl;
 for(int i=0; i<SortedMaxBin.size(); i++)

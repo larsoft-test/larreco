@@ -62,6 +62,7 @@ double fdriftvelocity;  //get from paramtereset 9either k and V)
 double fpi;
 
 std::vector<double> maxBinValues;
+std::vector<double> OriginalmaxBinValues;
 std::vector<int> SortedMaxBin;
 std::vector<int> FinalPeaks;
   protected:
