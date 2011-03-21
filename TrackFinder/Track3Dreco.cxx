@@ -189,7 +189,14 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	}//end of loop over cluster hits
     
       // fit the 2Dtrack and get some info to store
+      try{
       the2Dtrack->Fit("pol1","Q");
+      }
+      catch(...){
+      std::cout<<"The 2D track fit failed"<<std::endl;
+      continue;
+      }
+      
       TF1 *pol1=(TF1*) the2Dtrack->GetFunction("pol1");
       double Chi2 = pol1->GetChisquare();
       double NDF = pol1->GetNDF();
