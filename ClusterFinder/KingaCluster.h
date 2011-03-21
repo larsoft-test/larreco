@@ -47,6 +47,8 @@ namespace cluster {
     TH1F *fh_theta_coll;
     TH1F *fh_theta_ind_2D;
     TH1F *fh_theta_coll_2D;
+    TH1F *fh_theta_coll_Area;
+    TH1F *fh_theta_ind_Area;
      //std::vector<TH1F*> fh_theta;     /**Histo for the angular distribution theta of the shower*/
     art::PtrVector<recob::Hit> allhits;
     std::vector<int> maxBin;    //stores bin # of local maximum

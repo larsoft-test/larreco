@@ -66,6 +66,10 @@ void cluster::KingaCluster::beginJob(){
   fh_theta_coll= tfs->make<TH1F>("fh_theta_coll","theta angle in degrees, Collection Plane", 180,-180 ,180  );
   fh_theta_ind_2D= tfs->make<TH1F>("fh_theta_ind_2D","theta angle in degrees, Induction Plane", 180,-180 ,180  );
   fh_theta_coll_2D= tfs->make<TH1F>("fh_theta_coll_2D","theta angle in degrees, Collection Plane", 180,-180 ,180  );
+ fh_theta_ind_Area= tfs->make<TH1F>("fh_theta_ind_Area","Hit Area vs theta angle in degrees, Induction Plane", 180,-180 ,180  );
+  fh_theta_coll_Area= tfs->make<TH1F>("fh_theta_coll_Area","Hit Area vs theta angle in degrees, Collection Plane", 180,-180 ,180  );
+
+
 
  
   
@@ -235,10 +239,10 @@ double a_polar, b_polar,theta_polar;
 //Define vertex if it is not given by the first hit:
 
 //622_2738:
-// fwire_vertex=95;
-// fwire_vertex=63;
-// ftime_vertex=1058;
-// ftime_vertex=1072;
+ fwire_vertex.push_back(62);
+ fwire_vertex.push_back(93);
+ ftime_vertex.push_back(1058);
+ ftime_vertex.push_back(1060);
 
 // fwire_vertex.push_back(62);
 // fwire_vertex.push_back(72);
@@ -246,10 +250,10 @@ double a_polar, b_polar,theta_polar;
 // ftime_vertex.push_back(460);
 
 //pizero:
-fwire_vertex.push_back(83);
-fwire_vertex.push_back(87);
-ftime_vertex.push_back(420);
-ftime_vertex.push_back(430);
+// fwire_vertex.push_back(83);
+// fwire_vertex.push_back(87);
+// ftime_vertex.push_back(420);
+// ftime_vertex.push_back(430);
 
 art::ServiceHandle<geo::Geometry> geom;
 unsigned int channel=0, w=0;
@@ -272,7 +276,7 @@ unsigned int p=plane;
  geom->ChannelToWire(channel,p,w);
  
  
-  b_polar = (w - fwire_vertex[plane])* 0.04; /**in cm*/
+  b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
       a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
       theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
       theta_polar = 180*theta_polar/fpi; /** in deg*/
@@ -286,6 +290,7 @@ if (plane==0 ) {
 
 fh_theta_ind->Fill(theta_polar);
 fh_theta_ind_2D->Fill(theta_polar,allhits[i]->Charge());
+ fh_theta_ind_Area->Fill(theta_polar,(allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *fdriftvelocity*0.4);
 }
 if (plane==1 ) {
 
@@ -302,7 +307,7 @@ if (plane==1 ) {
 
 fh_theta_coll->Fill(theta_polar);
 fh_theta_coll_2D->Fill(theta_polar,allhits[i]->Charge());
-
+ fh_theta_coll_Area->Fill(theta_polar,(allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *fdriftvelocity*0.4);
 
 }
   }
@@ -344,8 +349,8 @@ void cluster::KingaCluster::FindMax(int plane){
 //  double threshold=6;
 //   double MinThreshold=4;
 
- double threshold=200000;
-  double MinThreshold=120000;
+ double threshold=80000;
+  double MinThreshold=60000;
   
   
   
@@ -568,22 +573,54 @@ std::cout<<"...................................."<<std::endl;
 
 // Lets make sure that the first bin in the maxBin corresponds to the highest peak:
 
-std::vector<double> maxBinValues;
+//std::vector<double> maxBinValues;
   for(int i=0;i<maxBin.size();i++){
   maxBinValues.push_back(fh_theta_ind_2D->GetBinContent(maxBin[i]));
+  OriginalmaxBinValues.push_back(fh_theta_ind_2D->GetBinContent(maxBin[i]));
+
   }
   std::cout<<"The largest is at position:  "<<std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))<<" which corresponds to bin #   "<<maxBin[std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))]<<" and its value= "<<*std::max_element(maxBinValues.begin(),maxBinValues.end())<<std::endl;
+  
+  //sort values from the largest to the smallest in maxBinValues, then find the corresponding bin numbers to create SortedMaxBin:
+  
+  sort(maxBinValues.begin(),maxBinValues.end());
+ std::cout<<"maxBinValues after sort:"<<std::endl;
+ for(int i=0;i<maxBinValues.size();i++){
+
+   std::cout<<maxBinValues[i]<<std::endl;
+ }
+
+reverse (maxBinValues.begin(),maxBinValues.end());
+ std::cout<<"maxBinValues in the correct order are now:"<<std::endl;
+ for(int i=0;i<maxBinValues.size();i++){
+
+   std::cout<<maxBinValues[i]<<std::endl;
+ }
+
+ for(int i=0; i<maxBinValues.size();i++){
+
+   std::vector<double>::iterator pos=std::find( OriginalmaxBinValues.begin(), OriginalmaxBinValues.end(),maxBinValues[i]);
+   SortedMaxBin.push_back(maxBin[pos-OriginalmaxBinValues.begin()]);
+
+ }
+  
+  
+  
+  
+  
+  
+  
   
   //create SortedMaxBin vector whose first element is the global max:
   
   
-  std::vector<int> SortedMaxBin;
-  SortedMaxBin.push_back(maxBin[std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))]);
-  for(int i=0; i<maxBin.size();i++){
-   if(i!=std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end())))
-  SortedMaxBin.push_back(maxBin[i]);
-  
-  }
+  // std::vector<int> SortedMaxBin;
+  // SortedMaxBin.push_back(maxBin[std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))]);
+//   for(int i=0; i<maxBin.size();i++){
+//    if(i!=std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end())))
+//   SortedMaxBin.push_back(maxBin[i]);
+//   
+//   }
   
   std::cout<<"SortexMaxBin elements are: "<<std::endl;
 for(int i=0; i<SortedMaxBin.size(); i++)
@@ -718,7 +755,7 @@ for(unsigned int i = 0; i< allhits.size(); ++i){
  channel=allhits[i]->Wire()->RawDigit()->Channel();
  geom->ChannelToWire(channel,p,w);
  
-b_polar = (w - fwire_vertex[plane])* 0.04; /**in cm*/
+b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
       a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
       theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
       theta_polar = 180*theta_polar/fpi; /** in deg*/
@@ -731,19 +768,24 @@ for(int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++){
    else if(ClusterNo==MaxStartPoint.size()-1){
    //decide where noise hits go
    
-   //std::cout<<"Noise hit at w= "<<w<<" t= "<<allhits[i]->PeakTime()<<" with theta_polar= "<<theta_polar;
+   if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
+   std::cout<<"Noise hit at w= "<<w<<" t= "<<allhits[i]->PeakTime()<<" with theta_polar= "<<theta_polar;
   // std::cout<<"FinalPeaks.size()= "<<FinalPeaks.size()<<std::endl;
+  }
    for(int peakNo=0;peakNo<FinalPeaks.size();peakNo++){
    DiffAngles.push_back(fabs(-180+2*FinalPeaks[peakNo]-theta_polar));
-   //std::cout<<"diff for peak "<<peakNo<<" is "<<fabs(-180+2*FinalPeaks[peakNo]-theta_polar)<<std::endl;
+   if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
+   std::cout<<"diff for peak "<<peakNo<<" is "<<fabs(-180+2*FinalPeaks[peakNo]-theta_polar)<<std::endl;
+   }
    }
    //now take minimum of DiffAngles and find at which position it is at, this position corresponds to clusterNo +1 , because we don't want to mark hits with zero 
    
    int position=std::distance(DiffAngles.begin(),std::min_element(DiffAngles.begin(),DiffAngles.end()));
    
    HitsWithClusterID.push_back(position+1);
-   
-   //std::cout<<"  This hit is closest to cluster # "<<position+1<<std::endl;
+   if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
+   std::cout<<"  This hit is closest to cluster # "<<position+1<<std::endl;
+   }
    //no_noise_hits++;
    DiffAngles.clear();
    }
