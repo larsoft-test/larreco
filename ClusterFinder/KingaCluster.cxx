@@ -22,6 +22,7 @@ extern "C" {
 #include <math.h>
 #include <algorithm>
 #include <vector>
+#include <dirent.h>
 
 #include "art/Framework/Core/Event.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -89,6 +90,115 @@ void cluster::KingaCluster::beginJob(){
 void cluster::KingaCluster::produce(art::Event& evt)
 {
 std::cout<<"In KingaCluster::produce(art::Event& evt)"<<std::endl;
+std::cout<<" Working on ";
+std::cout << "Run: " << evt.run();
+std::cout << " Event: " << evt.id().event() << std::endl;
+  
+  
+ int RunNo= evt.run();
+ int EventNo=evt.id().event();
+
+
+if (evt.isRealData()) 
+    {
+      std::cout<<" YOU ARE WORKING WITH DATA !!!!!!!!!!!!!!!!!!!!! "<<std::endl;
+    //let's see if this Run has been scanned and thus we can find vertex info for it:
+    DIR *pDIR;
+    struct dirent *entry;
+    const char path[60]="/argoneut/data/simplescan_data/simplescan_text/";
+  char path_[60];
+  strcpy(path_,path);
+    if(pDIR=opendir(path))
+    {
+       while(entry=readdir(pDIR))
+       {
+         if(strcmp(entry->d_name,".")!=0 && strcmp(entry->d_name, "..")!=0)
+         {
+          std::string file=entry->d_name;
+          std::cout<<"*******file is "<<file<<std::endl;
+         std::string::size_type pos_end=file.rfind(".");
+         std::string no_string;
+         no_string=file.substr(pos_end-3,3);
+         std::cout<<"no_string= "<<no_string<<std::endl;
+         std::istringstream stream(no_string);
+         int No;
+         stream>>No;
+           if(RunNo==No)
+           {
+            std::cout<<"RUN NO "<<RunNo<<" was scanned, we can find a vertex info :) "<<std::endl;
+            //Now, open the file and find the vertex info in it:
+            //.........................................
+            strcat(path_,entry->d_name);
+            std::string k;
+            int run,event,blah1,blah2,blah3,blah4,time_ind,time_coll,w_ind,w_coll;
+            std::ifstream ScannedFile;
+            ScannedFile.open(path_,std::ios::in);
+            if(!ScannedFile.is_open()){std::cout<<" Couldn't open file named: "<<entry->d_name<<std::endl;}
+            if(ScannedFile.is_open()){std::cout<<" openED file named: "<<entry->d_name<<std::endl;} 
+             
+             
+            while(getline(ScannedFile,k))
+            {
+            std::istringstream ins;
+            ins.clear();
+            ins.str(k);
+            ins>>run>>event>>blah1>>blah2>>blah3>>blah4>>time_ind>>time_coll>>w_ind>>w_coll;
+            //std::cout<<run<<" "<<event<<std::endl;
+            if(EventNo==event && RunNo==run)
+            {
+            ftime_vertex.push_back(time_ind);
+            ftime_vertex.push_back(time_coll);
+            fwire_vertex.push_back(w_ind);
+            fwire_vertex.push_back(w_coll);
+            
+            std::cout<<"GOT VERTEX INFO FROM THE SCANNED FILE:"<<std::endl;
+            std::cout<<"("<<time_ind<<" , "<<w_ind<<" )"<<std::endl;
+            std::cout<<"("<<time_coll<<" , "<<w_coll<<" )"<<std::endl;
+            
+            
+            break;
+            }//event=event
+            
+            
+            
+            
+            
+            }//while getline
+            
+            
+            
+            
+           //.........................................
+            ScannedFile.close();
+            break; 
+         
+           } //if the run was scanned
+           
+           
+           
+         }
+       
+       
+       } //while it loops through all the entries
+        closedir(pDIR);
+    
+    
+    }//if can open directory
+    else{ std::cout<<" THIS RUN HASN'T BEEN SCANNED! SORRY! "<<std::endl;}
+    
+    } //if realData
+
+
+
+
+else {
+
+std::cout<<" YOU ARE WORKING WITH MC !!!!!!!!!!!!!!!!!!!!! "<<std::endl;
+
+}
+
+
+
   //////////////////////////////////////////////////////
   // here is how to get a collection of objects out of the file
   // and connect it to a art::Handle
@@ -164,15 +274,14 @@ std::cout<<"No of planes = "<<geom->Nplanes()<<std::endl;
 
 // let's look at the clusters produced:
 std::cout<<"For Cluster # "<<ClusterNo<<" we have "<<clusterHits.size()<<" hits :"<<std::endl;
-
+if(ClusterNo==4){
 for(int i=0; i<clusterHits.size();i++){
 channel=clusterHits[i]->Wire()->RawDigit()->Channel();
     geom->ChannelToWire(channel,p,w);
-//std::cout<<"wire ="<<w<<"  ";
-
+std::cout<<"wire ="<<w<<"  "<<clusterHits[i]->PeakTime();
 
 }
-
+}
 std::cout<<std::endl;
 
 
@@ -219,6 +328,7 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
      MaxEndPointTheta.clear();
      HitsWithClusterID.clear();
      FinalPeaks.clear();
+     OriginalmaxBinValues.clear();
      std::cout<<"Should be starting to work on the other plane now"<<std::endl;
     }//Planes
    
@@ -239,10 +349,11 @@ double a_polar, b_polar,theta_polar;
 //Define vertex if it is not given by the first hit:
 
 //622_2738:
- fwire_vertex.push_back(62);
- fwire_vertex.push_back(93);
- ftime_vertex.push_back(1058);
- ftime_vertex.push_back(1060);
+ // fwire_vertex.push_back(62);
+//  fwire_vertex.push_back(93);
+//  ftime_vertex.push_back(1058);
+//  ftime_vertex.push_back(1060);
+//......................................
 
 // fwire_vertex.push_back(62);
 // fwire_vertex.push_back(72);
@@ -254,6 +365,38 @@ double a_polar, b_polar,theta_polar;
 // fwire_vertex.push_back(87);
 // ftime_vertex.push_back(420);
 // ftime_vertex.push_back(430);
+//.........................
+//634_2660:
+// fwire_vertex.push_back(2);
+// fwire_vertex.push_back(2);
+// ftime_vertex.push_back(1200);
+// ftime_vertex.push_back(1200);
+
+// 650_1728:
+// fwire_vertex.push_back(137);
+// fwire_vertex.push_back(180);
+// ftime_vertex.push_back(710);
+// ftime_vertex.push_back(710);
+
+//650_2319:
+// fwire_vertex.push_back(66);
+// fwire_vertex.push_back(28);
+// ftime_vertex.push_back(1225);
+// ftime_vertex.push_back(1225);
+//..............................
+//628_6207:
+// fwire_vertex.push_back(48);
+// fwire_vertex.push_back(52);
+// ftime_vertex.push_back(1350);
+// ftime_vertex.push_back(1350);
+
+//628_7100:
+fwire_vertex.push_back(92);
+fwire_vertex.push_back(110);
+ftime_vertex.push_back(850);
+ftime_vertex.push_back(850);
+
+
 
 art::ServiceHandle<geo::Geometry> geom;
 unsigned int channel=0, w=0;
@@ -349,11 +492,22 @@ void cluster::KingaCluster::FindMax(int plane){
 //  double threshold=6;
 //   double MinThreshold=4;
 
- double threshold=80000;
-  double MinThreshold=60000;
+// worked for pizero and nu_e :
+ // double threshold=80000;
+//   double MinThreshold=60000;
+  //............................
   
   
   
+  // double threshold=30000;
+//   double MinThreshold=20000;
+
+  //for lines:
+  // double threshold=20000;
+//   double MinThreshold=10000;
+
+double threshold=30000;
+  double MinThreshold=5000;
   
   
   int time=1;
@@ -768,24 +922,24 @@ for(int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++){
    else if(ClusterNo==MaxStartPoint.size()-1){
    //decide where noise hits go
    
-   if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
-   std::cout<<"Noise hit at w= "<<w<<" t= "<<allhits[i]->PeakTime()<<" with theta_polar= "<<theta_polar;
-  // std::cout<<"FinalPeaks.size()= "<<FinalPeaks.size()<<std::endl;
-  }
+  //  if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
+//    std::cout<<"Noise hit at w= "<<w<<" t= "<<allhits[i]->PeakTime()<<" with theta_polar= "<<theta_polar;
+//   // std::cout<<"FinalPeaks.size()= "<<FinalPeaks.size()<<std::endl;
+//   }
    for(int peakNo=0;peakNo<FinalPeaks.size();peakNo++){
    DiffAngles.push_back(fabs(-180+2*FinalPeaks[peakNo]-theta_polar));
-   if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
-   std::cout<<"diff for peak "<<peakNo<<" is "<<fabs(-180+2*FinalPeaks[peakNo]-theta_polar)<<std::endl;
-   }
+   // if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
+//    std::cout<<"diff for peak "<<peakNo<<" is "<<fabs(-180+2*FinalPeaks[peakNo]-theta_polar)<<std::endl;
+//    }
    }
    //now take minimum of DiffAngles and find at which position it is at, this position corresponds to clusterNo +1 , because we don't want to mark hits with zero 
    
    int position=std::distance(DiffAngles.begin(),std::min_element(DiffAngles.begin(),DiffAngles.end()));
    
    HitsWithClusterID.push_back(position+1);
-   if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
-   std::cout<<"  This hit is closest to cluster # "<<position+1<<std::endl;
-   }
+   // if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
+//    std::cout<<"  This hit is closest to cluster # "<<position+1<<std::endl;
+//    }
    //no_noise_hits++;
    DiffAngles.clear();
    }
