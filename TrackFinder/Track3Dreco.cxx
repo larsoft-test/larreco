@@ -387,12 +387,12 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                const TVector3 hit3d(Ct,(Cw-Iw)/(2.*TMath::Sin(Angle)),(Cw+Iw)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle)); 
                const TVector3 hit3dLocal = geom->Plane(plane1).WorldToLocal(hit3d);// m_tpcVolumeUtility->WorldToLocal(hit3d);
                Double_t hitcoord[3];
-               hitcoord[0] = hit3dLocal.X();
-               hitcoord[1] = hit3dLocal.Y();
-               hitcoord[2] = hit3dLocal.Z();           
-               //hitcoord[0] = hit3d.X();
-               //hitcoord[1] = hit3d.Y();
-               //hitcoord[2] = hit3d.Z();           
+               //hitcoord[0] = hit3dLocal.X();
+               //hitcoord[1] = hit3dLocal.Y();
+               //hitcoord[2] = hit3dLocal.Z();           
+               hitcoord[0] = hit3d.X();
+               hitcoord[1] = hit3d.Y();
+               hitcoord[2] = hit3d.Z();           
 
                recob::SpacePoint mysp(sp_hits);//3d point at end of track
                mysp.SetXYZ(hitcoord);
