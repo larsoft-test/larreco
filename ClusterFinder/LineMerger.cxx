@@ -6,8 +6,9 @@
 // ornella.palamara@lngs.infn.it
 // biagio.rossi@lhep.unibe.ch
 // msoderbe@syr.edu
+// joshua.spitz@yale.edu
 //
-// This algorithm is designed to merge 2D lines with similar slope and intercept 
+// This algorithm is designed to merge 2D lines with similar slope and endpoints 
 //  
 ////////////////////////////////////////////////////////////////////////
 
@@ -40,7 +41,7 @@ namespace cluster{
   LineMerger::LineMerger(fhicl::ParameterSet const& pset) : 
     fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel")),
     fSlope             (pset.get<double     >("Slope")),
-    fIntercept         (pset.get<double     >("Intercept"))
+    fEndpointWindow         (pset.get<double     >("EndpointWindow"))
   {
     produces< std::vector<recob::Cluster> >();
   }
@@ -108,15 +109,16 @@ namespace cluster{
 	  clsnum1++;
 	  continue;
 	}
-	SuperClusters->push_back(*cl1);
+	SuperClusters->push_back(*cl1); 
 	Cls_matches[i][clsnum1]=1; 
 	//SuperClusters->back().SetID(clustersfound);//IDs are sequential by plane, starting from 0
 	++clustersfound;
-	recob::Cluster SCl= SuperClusters->back();
+	// recob::Cluster SCl= SuperClusters->back(); //spitz commented this out and moved it inside the for loop.
 	
 	int clsnum2 = 0;
 	for(art::PtrVectorItr<recob::Cluster> clusIter2 = Cls[i].begin(); clusIter2!=Cls[i].end();++clusIter2){
 	  art::Ptr<recob::Cluster> cl2 = *clusIter2;
+	  recob::Cluster SCl= SuperClusters->back(); //spitz moved this inside the for loop.
 	  if(Cls_matches[i][clsnum2]==1){
 	    clsnum2++;
 	    continue;
@@ -125,11 +127,11 @@ namespace cluster{
 	  //check that the slopes are the same
 	  bool sameSlope = SlopeCompatibility(SCl.dTdW(),cl2->dTdW());
 
-	  double sclint = SCl.StartPos()[1] - SCl.dTdW()*SCl.StartPos()[0];
-	  double cl2int = cl2->StartPos()[1] - cl2->dTdW()*cl2->StartPos()[0];
-	  bool sameIntercept = InterceptCompatibility(sclint, cl2int);
+	  //check that the endpoints fall within a circular window of each other //spitz did this in place of intercept matching
+	  bool sameEndpoint = EndpointCompatibility(SCl.StartPos(),SCl.EndPos(),cl2->StartPos(),cl2->EndPos());
 
-	  if(sameSlope && sameIntercept){
+
+	  if(sameSlope && sameEndpoint){
 	    SuperClusters->back() = SuperClusters->back() + *cl2;
 	    Cls_matches[i][clsnum2]=1;       
 	  }
@@ -156,17 +158,29 @@ namespace cluster{
   { 
     double sl1=atan(slope1);
     double sl2=atan(slope2);
-
     bool comp = fabs(sl1-sl2)<fSlope ? true : false;
     return comp;
   }
   //------------------------------------------------------------------------------------//
-  bool LineMerger::InterceptCompatibility(double intercept1, double intercept2)
+  bool LineMerger::EndpointCompatibility(std::vector<double> sclstart, std::vector<double> sclend,std::vector<double> cl2start, std::vector<double> cl2end)
   { 
-    double in1=intercept1;
-    double in2=intercept2;
- 
-    bool comp = fabs(in1-in2)<fIntercept ? true : false;
+   	  double sclstartwire=sclstart[0];
+	  double sclstarttime=sclstart[1];
+	  double sclendwire=sclend[0];
+	  double sclendtime=sclend[1];
+	  
+	  double cl2startwire=cl2start[0];
+	  double cl2starttime=cl2start[1];
+	  double cl2endwire=cl2end[0];
+	  double cl2endtime=cl2end[1];
+
+	 //13.5 ticks/wire. need to make this detector agnostic--spitz
+     double distance=sqrt((pow(sclendwire-cl2startwire,2)*13.5)+pow(sclendtime-cl2starttime,2));
+     //not sure if this line is necessary--spitz
+     double distance2=sqrt((pow(sclstartwire-cl2endwire,2)*13.5)+pow(sclstarttime-cl2endtime,2));
+
+    bool comp = (distance<fEndpointWindow||distance2<fEndpointWindow) ? true : false;
+
     return comp;
   }
 

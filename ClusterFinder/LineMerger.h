@@ -28,10 +28,10 @@ namespace cluster {
         
     std::string     fClusterModuleLabel;
     double          fSlope; // tolerance for matching Slopes 
-    double          fIntercept; // tolerance for matching Intercepts (in time samples) 
+    double          fEndpointWindow; // tolerance for matching endpoints (in units of time samples) 
    
     bool SlopeCompatibility(double slope1,double slope2);
-    bool InterceptCompatibility(double intercept1,double intercept2);
+    bool EndpointCompatibility(std::vector<double> sclstart, std::vector<double> sclend,std::vector<double> cl2start, std::vector<double> cl2end);
     
   protected: 
     
