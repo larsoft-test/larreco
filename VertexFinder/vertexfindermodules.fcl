@@ -20,4 +20,11 @@ argoneut_vertexmatch:
  MaxDistance:       30.
 }
 
+argoneut_primaryvertex:
+{
+ module_type:       "PrimaryVertexFinder"
+ TrackModuleLabel:  "track3d"
+ VertexWindow:       5.
+}
+
 END_PROLOG
