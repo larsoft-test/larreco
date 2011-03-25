@@ -277,13 +277,8 @@ void trkf::Track3Dreco::produce(art::Event& evt)
             //compute track startpoint and endpoint in Local co-ordinate system 
             TVector3 startpointVec(XYZ0.X(),XYZ0.Y(),XYZ0.Z());
             TVector3 endpointVec(Ct1_line,(Cw1-Iw1)/(2.*TMath::Sin(Angle)),(Cw1+Iw1)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
-            //	TVector3 startpointVecLocal = m_tpcVolumeUtility->WorldToLocal(startpointVec);
-            TVector3 startpointVecLocal = geom->Plane(1).WorldToLocal(startpointVec);
-            //TVector3 endpointVecLocal = m_tpcVolumeUtility->WorldToLocal(endpointVec);
-            TVector3 endpointVecLocal = geom->Plane(1).WorldToLocal(endpointVec);
 
-            //compute track (normalized) cosine directions in the World co-ordinate system
-            //TVector3 DirCos = endpointVecLocal - startpointVecLocal;
+            //compute track (normalized) cosine directions in the TPC co-ordinate system
             TVector3 DirCos = endpointVec - startpointVec;
             DirCos.SetMag(1.0);//normalize vector
 
@@ -385,11 +380,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                double Iw = plane1==1?w1_match:w1;
 
                const TVector3 hit3d(Ct,(Cw-Iw)/(2.*TMath::Sin(Angle)),(Cw+Iw)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle)); 
-               const TVector3 hit3dLocal = geom->Plane(plane1).WorldToLocal(hit3d);// m_tpcVolumeUtility->WorldToLocal(hit3d);
-               Double_t hitcoord[3];
-               //hitcoord[0] = hit3dLocal.X();
-               //hitcoord[1] = hit3dLocal.Y();
-               //hitcoord[2] = hit3dLocal.Z();           
+               Double_t hitcoord[3];       
                hitcoord[0] = hit3d.X();
                hitcoord[1] = hit3d.Y();
                hitcoord[2] = hit3d.Z();           
@@ -422,7 +413,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
    mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
    mf::LogVerbatim("Summary") << "Track3Dreco Summary:";
    for(int i = 0; i<tcol->size(); ++i) mf::LogVerbatim("Summary") << tcol->at(i) ;
-
+ 
    evt.put(tcol);
   
 
