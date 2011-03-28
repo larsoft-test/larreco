@@ -30,6 +30,7 @@
 
 #include "Geometry/geo.h"
 #include "RecoBase/recobase.h"
+#include "Filters/ChannelFilter.h"
 
 #include "TH1.h"
 
@@ -112,9 +113,23 @@ double cluster::DBScanService::getSimilarity(const std::vector<double> v1, const
   //---------------------------------------------------------------------- 
   //Manhattan distance:
   //return fabs(v1[0]-v2[0])+fabs(v1[1]-v2[1]);
+  
+  //wire bridging capability added by spitz
+  filter::ChannelFilter chanFilt;
+    
+  unsigned int wire1=(unsigned int)(v1[0]/0.4);
+  unsigned int wire2=(unsigned int)(v2[0]/0.4);
+  int wirestobridge=0;
+  
+  for(unsigned int i=wire1;i<wire2;i++)
+  {
+  if(chanFilt.BadChannel(i))
+  wirestobridge++;
+  }    
+  
+  double cmtobridge=wirestobridge*0.4;  
   //---------------------------------------------------------------------
-  return (( v2[0]-v1[0])*( v2[0]-v1[0])); //for ellipse
-
+  return (( v2[0]-v1[0]-cmtobridge)*( v2[0]-v1[0]-cmtobridge)); //for ellipse
 }
 
 //----------------------------------------------------------------

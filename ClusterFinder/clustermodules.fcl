@@ -24,8 +24,8 @@ argoneut_houghlinefinder:
  MaxLines:             5
  MinHits:              3
  SaveAccumulator:      0
- NumAngleCells:        10000
- RhoResolutionFactor:  10
+ NumAngleCells:        5000
+ RhoResolutionFactor:  5
  SmootherSigma:        0.
  MaxDistance:          5.
  RhoZeroOutRange:      0
