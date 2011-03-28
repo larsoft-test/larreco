@@ -130,7 +130,7 @@ namespace vertex{
       for (unsigned int j=i+1; j<startpoints_vec.size(); ++j){
 	//std::cout << "distance between " << i << " and " << j << " = " << StartPointSeperation(startpoints_vec[i], startpoints_vec[j]) << std::endl;
 	if(StartPointSeperation(startpoints_vec[i], startpoints_vec[j])<fVertexWindow){
-	  if(!IsInVertexCollection(i, j, vertex_collection_int)){
+	  if((!IsInVertexCollection(i, vertex_collection_int)) && (!IsInVertexCollection(j, vertex_collection_int))){
 	    std::vector<int> newvertex_int;
 	    newvertex_int.push_back(i);
 	    newvertex_int.push_back(j);
@@ -154,7 +154,7 @@ namespace vertex{
 
     //now add the unmatched track IDs to the collection
     for(int i=0; i<startpoints_vec.size(); i++){
-      if(!IsInVertexCollection(i, i, vertex_collection_int)){
+      if(!IsInVertexCollection(i, vertex_collection_int)){
 	std::vector<int> temp;
 	temp.push_back(i);	
 	vertex_collection_int.push_back(temp);
@@ -227,13 +227,13 @@ double vertex::PrimaryVertexFinder::StartPointSeperation(recob::SpacePoint sp1, 
   return distance;
 }
 // //---------------------------------------------------------------------------------
-bool vertex::PrimaryVertexFinder::IsInVertexCollection(int a, int b, std::vector<std::vector<int> > vertex_collection)
+bool vertex::PrimaryVertexFinder::IsInVertexCollection(int a, std::vector<std::vector<int> > vertex_collection)
 {
   int flag = 0;
   
   for(int i = 0; i < vertex_collection.size() ; i++){
     for(std::vector<int>::iterator itr = vertex_collection[i].begin(); itr < vertex_collection[i].end(); ++itr){
-      if (a == *itr || b == *itr){
+      if (a == *itr){
 	flag = 1;
 	break;
       }
