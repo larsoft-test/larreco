@@ -33,18 +33,23 @@ extern "C" {
 #include "art/Framework/Services/Optional/TFileService.h"
 #include "art/Framework/Core/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+
  
 #include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
 #include "SimulationBase/simbase.h"
+#include "Simulation/sim.h"
+#include "Simulation/SimListUtils.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
+#include "Utilities/LArProperties.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TF1.h"
 
 cluster::KingaCluster::KingaCluster(fhicl::ParameterSet const& pset) :
   fDBScanModuleLabel       (pset.get< std::string >("DBScanModuleLabel"))
+  //fGenieGenModuleLabel          (pset.get< std::string >("GenieGenModuleLabel"))
   //fthreshold                (pset.get< int >("Threshold")),
  
 {
@@ -94,9 +99,14 @@ std::cout<<" Working on ";
 std::cout << "Run: " << evt.run();
 std::cout << " Event: " << evt.id().event() << std::endl;
   
-  
+  fMC=0; 
  int RunNo= evt.run();
  int EventNo=evt.id().event();
+ art::ServiceHandle<util::LArProperties> larp;
+ double electronlifetime=larp->ElectronLifetime();
+ 
+
+
 
 
 if (evt.isRealData()) 
@@ -194,6 +204,45 @@ if (evt.isRealData())
 else {
 
 std::cout<<" YOU ARE WORKING WITH MC !!!!!!!!!!!!!!!!!!!!! "<<std::endl;
+ fMC=1;
+ fGenieGenModuleLabel="generator";
+
+art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
+evt.getByLabel(fGenieGenModuleLabel,mctruthListHandle);
+art::PtrVector<simb::MCTruth> mclist;
+  for (unsigned int ii = 0; ii <  mctruthListHandle->size(); ++ii)
+    {
+      art::Ptr<simb::MCTruth> mctparticle(mctruthListHandle,ii);
+      mclist.push_back(mctparticle);
+    } 
+    
+    
+    
+    
+for( unsigned int i = 0; i < mclist.size(); ++i ){
+
+    art::Ptr<simb::MCTruth> mc(mclist[i]);
+
+    simb::MCParticle neut(mc->GetParticle(i));
+
+    // std::cout<<"vertex: "<<neut.Nu().Vx()<<" "<<neut.Nu().Vy()<<" "<<neut.Nu().Vz()<<std::endl;
+    MCvertex[0] =neut.Vx();
+    MCvertex[1] =neut.Vy();
+    MCvertex[2] =neut.Vz();
+    
+    double drifttick=(MCvertex[0]/larp->DriftVelocity(larp->Efield(),larp->Temperature()))*(1./.198);
+    
+    std::cout<<"%%%%%%%%%%%%%%%%%%   drifttick= "<<drifttick<<std::endl;
+    ftime_vertex.push_back(drifttick);
+    ftime_vertex.push_back(drifttick);
+    
+
+  }
+
+
+
+
+
 
 }
 
@@ -339,6 +388,24 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
 //..............................................................  
 
 void cluster::KingaCluster::AngularDistribution(int plane){   
+ 
+ art::ServiceHandle<geo::Geometry> geom;
+ if(fMC==1){
+unsigned int channel2,plane2,wire2;  
+plane2=plane;
+
+  if(plane==0){
+	MCvertex[0]=.3;//force time coordinate to be closer to induction plane 
+	}
+      else{
+	MCvertex[0]=-.3;//force time coordinate to be closer to collection plane
+     }
+      channel2 = geom->NearestChannel(MCvertex);
+      geom->ChannelToWire(channel2,plane2,wire2);   
+   std::cout<<"%%%%%%%%%%%%%%%%%%   WIRE VERTEX IS: "<<wire2<<std::endl;
+   fwire_vertex.push_back(wire2);
+   
+  } 
    
 //std::vector<unsigned int> fwire_vertex,ftime_vertex;
 double a_polar, b_polar,theta_polar;
@@ -391,14 +458,14 @@ double a_polar, b_polar,theta_polar;
 // ftime_vertex.push_back(1350);
 
 //628_7100:
-fwire_vertex.push_back(92);
-fwire_vertex.push_back(110);
-ftime_vertex.push_back(850);
-ftime_vertex.push_back(850);
+// fwire_vertex.push_back(92);
+// fwire_vertex.push_back(110);
+// ftime_vertex.push_back(850);
+// ftime_vertex.push_back(850);
 
 
 
-art::ServiceHandle<geo::Geometry> geom;
+
 unsigned int channel=0, w=0;
 unsigned int p=plane;
 
@@ -426,7 +493,6 @@ unsigned int p=plane;
      //fh_theta[plane]->Fill(theta_polar,allhits[i]->Charge());
      
 if (plane==0 ) {
-
 
 //std::cout<<"plane= "<<plane<<" theta= "<<theta_polar<<"  channel= "<<allhits[i]->Wire()->RawDigit()->Channel()<<" time= "<<allhits[i]->PeakTime()<<" fwire_vertex[plane]= "<<fwire_vertex[plane]<<" ftime_vertex[plane]= "<<ftime_vertex[plane]<<std::endl;
 

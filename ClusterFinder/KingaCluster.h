@@ -42,7 +42,8 @@ namespace cluster {
   
      
   private:
-    std::string fDBScanModuleLabel;    
+    std::string fDBScanModuleLabel;  
+    std::string fGenieGenModuleLabel;  
     TH1F *fh_theta_ind;
     TH1F *fh_theta_coll;
     TH1F *fh_theta_ind_2D;
@@ -62,6 +63,8 @@ namespace cluster {
     double ftimetick; //get from parameterset
 double fdriftvelocity;  //get from paramtereset 9either k and V)
 double fpi;
+int fMC;
+double MCvertex [3];
 
 std::vector<double> maxBinValues;
 std::vector<double> OriginalmaxBinValues;

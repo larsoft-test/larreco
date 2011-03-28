@@ -72,6 +72,7 @@ argoneut_kingaclusterana:
 { 
  module_type:              "KingaClusterAna"
  //DigitModuleLabel:         "daq"
+ //GenieGenModuleLabel:         "generator"
  HitsModuleLabel:          "ffthit"
  ClusterFinderModuleLabel: "dbcluster"
  KingaModuleLabel:         "kingacluster"
