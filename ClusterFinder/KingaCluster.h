@@ -70,6 +70,7 @@ std::vector<double> maxBinValues;
 std::vector<double> OriginalmaxBinValues;
 std::vector<int> SortedMaxBin;
 std::vector<int> FinalPeaks;
+int fpeaks_found; //flag to determine whether the program should continue or not
   protected:
 
     
