@@ -98,7 +98,7 @@ std::cout<<"In KingaCluster::produce(art::Event& evt)"<<std::endl;
 std::cout<<" Working on ";
 std::cout << "Run: " << evt.run();
 std::cout << " Event: " << evt.id().event() << std::endl;
-  
+  fpeaks_found=1;
   fMC=0; 
  int RunNo= evt.run();
  int EventNo=evt.id().event();
@@ -305,6 +305,31 @@ std::cout<<"No of planes = "<<geom->Nplanes()<<std::endl;
    std::cout<<"ATTENTION, STARTING WORK ON PLANE# "<<plane<<std::endl;
     AngularDistribution(plane);
     FindMax(plane);
+    if(fpeaks_found==0){
+    std::cout<<"KingaClusters FAILED on this event because no peaks were found. Perhaps your threshold for peak's height is too big. Goodbye! "<<std::endl;
+    allhits.clear();
+     maxBin.clear();
+     maxBinValues.clear();
+     SortedMaxBin.clear();
+     MaxStartPoint.clear();
+     MaxEndPoint.clear();
+     MaxStartPointTheta.clear();
+     MaxEndPointTheta.clear();
+     HitsWithClusterID.clear();
+     FinalPeaks.clear();
+     OriginalmaxBinValues.clear();
+     for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
+   
+   fh_theta_ind_2D->SetBinContent(bin,0);
+   fh_theta_coll_2D->SetBinContent(bin,0);
+   fh_theta_ind->SetBinContent(bin,0);
+   fh_theta_coll->SetBinContent(bin,0);
+   fh_theta_coll_Area->SetBinContent(bin,0);
+   fh_theta_ind_Area->SetBinContent(bin,0);
+   }
+     
+    return;
+    }
     //FinalPeaks();
     FindClusters(plane);
     std::cout<<"HitsWithClusterID.size()= "<<HitsWithClusterID.size()<< "compare with allhits.size()= "<<allhits.size()<<std::endl;
@@ -383,7 +408,7 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
    
    evt.put(ccol);
    
-   for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
+  for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
    
    fh_theta_ind_2D->SetBinContent(bin,0);
    fh_theta_coll_2D->SetBinContent(bin,0);
@@ -484,9 +509,9 @@ unsigned int p=plane;
 
 
 //std::cout<<"No of HITS for plane "<<plane<<" is: "<<allhits.size()<<std::endl;
-
-  for(unsigned int i = 0; i< allhits.size(); ++i){
  
+  for(unsigned int i = 0; i< allhits.size(); ++i){
+  
   // if(i==0){
 //         fwire_vertex=allhits[i]->Wire()->RawDigit()->Channel();
 //         ftime_vertex=allhits[i]->PeakTime();
@@ -496,8 +521,8 @@ unsigned int p=plane;
  channel=allhits[i]->Wire()->RawDigit()->Channel();
  geom->ChannelToWire(channel,p,w);
  
- 
-  b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
+  
+      b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
       a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
       theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
       theta_polar = 180*theta_polar/fpi; /** in deg*/
@@ -527,7 +552,7 @@ if (plane==1 ) {
 
 fh_theta_coll->Fill(theta_polar);
 fh_theta_coll_2D->Fill(theta_polar,allhits[i]->Charge());
- fh_theta_coll_Area->Fill(theta_polar,(allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *fdriftvelocity*0.4);
+fh_theta_coll_Area->Fill(theta_polar,(allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *fdriftvelocity*0.4);
 
 }
   }
@@ -583,7 +608,7 @@ void cluster::KingaCluster::FindMax(int plane){
   // double threshold=20000;
 //   double MinThreshold=10000;
 
-  double threshold=5000;
+  double threshold=10000;
   double MinThreshold=5000;
   
   
@@ -625,8 +650,8 @@ void cluster::KingaCluster::FindMax(int plane){
   
   std::cout<<"COLLECTION PLANE: "<<std::endl;
   std::cout<<" COULDN'T FIND ANY MAXIMA IN YOUR THETA DISTRIBUTION!!!! PROGRAM WILL NOT PROCEED!!!"<<std::endl;
-    return;}
-     
+    fpeaks_found=0;}
+ if(maxBin.size()>0){     
      
  for(int i=0;i<maxBin.size();i++){
   std::cout<<"maxTime is at bin = "<<maxBin[i]<<" and its value is "<<fh_theta_coll_2D->GetBinContent(maxBin[i])<<std::endl;
@@ -757,7 +782,7 @@ std::cout<<SortedMaxBin[i]<<std::endl;
   
   
 
-  
+  } //if maxBin.size()>0
   
   
   
@@ -803,8 +828,9 @@ for(int bin=1; bin<fh_theta_ind_2D->GetNbinsX()+1;bin++){
 
   if(maxBin.size()==0){
   std::cout<<" COULDN'T FIND ANY MAXIMA IN YOUR THETA DISTRIBUTION!!!! PROGRAM WILL NOT PROCEED!!!"<<std::endl;
-    return;}
+    fpeaks_found=0;}
     
+ if(maxBin.size()>0){   
  std::cout<<"maxBin.size()= "<<maxBin.size()<<std::endl;
   for(int i=0;i<maxBin.size();i++){
   std::cout<<"maxTime is at bin = "<<maxBin[i]<<" ("<<-180+2*maxBin[i]<<" degrees)"<<" and its value is "<<fh_theta_ind_2D->GetBinContent(maxBin[i])<<std::endl;
@@ -937,7 +963,7 @@ std::cout<<SortedMaxBin[i]<<std::endl;
 }//peaks
   
   
-
+}// if maxBin.size()>0 this means that we can find peaks in the theta distribution 
   
   
  } //plane 0
