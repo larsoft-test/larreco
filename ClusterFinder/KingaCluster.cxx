@@ -301,7 +301,7 @@ std::cout<<"No of planes = "<<geom->Nplanes()<<std::endl;
    
    
     //Now we have hits for the plane that we are on right now, so let's do some work:
-   maxBin.clear();
+   //maxBin.clear();
    std::cout<<"ATTENTION, STARTING WORK ON PLANE# "<<plane<<std::endl;
     AngularDistribution(plane);
     FindMax(plane);
@@ -382,6 +382,17 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
     }//Planes
    
    evt.put(ccol);
+   
+   for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
+   
+   fh_theta_ind_2D->SetBinContent(bin,0);
+   fh_theta_coll_2D->SetBinContent(bin,0);
+   fh_theta_ind->SetBinContent(bin,0);
+   fh_theta_coll->SetBinContent(bin,0);
+   fh_theta_coll_Area->SetBinContent(bin,0);
+   fh_theta_ind_Area->SetBinContent(bin,0);
+   }
+   
   return;
     }
     
@@ -540,7 +551,7 @@ void cluster::KingaCluster::FindMax(int plane){
   std::cout<<" Bincontent= "<<fh_theta_ind->GetBinContent(48)<<std::endl;
   std::cout<<" Bincontent= "<<fh_theta_ind->GetBinContent(49)<<std::endl;
   std::cout<<" Bincontent= "<<fh_theta_ind->GetBinContent(50)<<std::endl;
- std::vector<int> PossibleFinalMax, FinalMax;
+// std::vector<int> PossibleFinalMax, FinalMax;
    std::vector<int> startTimes;  //stores time of 1st local minimum
     // std::vector<int> maxBin;    //stores time of local maximum
     std::vector<int> endTimes;    //stores time of 2nd local minimum
@@ -549,7 +560,7 @@ void cluster::KingaCluster::FindMax(int plane){
    int minTimeHolder;
  
   startTimes.clear();
-  //maxBin.clear();
+  maxBin.clear();
   endTimes.clear();
  std::cout<<"We have "<<allhits.size()<<" hits for plane "<<plane<<std::endl;
 
@@ -572,7 +583,7 @@ void cluster::KingaCluster::FindMax(int plane){
   // double threshold=20000;
 //   double MinThreshold=10000;
 
-double threshold=30000;
+  double threshold=5000;
   double MinThreshold=5000;
   
   
@@ -596,7 +607,7 @@ double threshold=30000;
        }
       else {minTimeHolder = time+1; }
     }
-  //if not a minimum test if we are at a local maximum
+  //if not a minimum,-> test if we are at a local maximum
     //if so and the max value is above threshold add it and proceed.
     else if(fh_theta_coll_2D->GetBinContent(bin)<fh_theta_coll_2D->GetBinContent(bin+1) &&
         fh_theta_coll_2D->GetBinContent(bin+1)>fh_theta_coll_2D->GetBinContent(bin+2) &&
@@ -605,11 +616,19 @@ double threshold=30000;
       maxBin.push_back(time+1);
       startTimes.push_back(minTimeHolder);         
     }
-    time++;
- 
+
+    time++; 
+     
   }
- std::cout<<"COLLECTION PLANE: "<<std::endl;
-  for(int i=0;i<maxBin.size();i++){
+  
+  if(maxBin.size()==0){
+  
+  std::cout<<"COLLECTION PLANE: "<<std::endl;
+  std::cout<<" COULDN'T FIND ANY MAXIMA IN YOUR THETA DISTRIBUTION!!!! PROGRAM WILL NOT PROCEED!!!"<<std::endl;
+    return;}
+     
+     
+ for(int i=0;i<maxBin.size();i++){
   std::cout<<"maxTime is at bin = "<<maxBin[i]<<" and its value is "<<fh_theta_coll_2D->GetBinContent(maxBin[i])<<std::endl;
   }
   
@@ -754,6 +773,7 @@ std::cout<<SortedMaxBin[i]<<std::endl;
  
  //induction plane
  if(plane==0){
+ 
  std::cout<<"No of bins= "<<fh_theta_ind_2D->GetNbinsX()<<std::endl;
 for(int bin=1; bin<fh_theta_ind_2D->GetNbinsX()+1;bin++){
  
@@ -780,6 +800,12 @@ for(int bin=1; bin<fh_theta_ind_2D->GetNbinsX()+1;bin++){
  
   }
  std::cout<<"INDUCTION PLANE: "<<std::endl;
+
+  if(maxBin.size()==0){
+  std::cout<<" COULDN'T FIND ANY MAXIMA IN YOUR THETA DISTRIBUTION!!!! PROGRAM WILL NOT PROCEED!!!"<<std::endl;
+    return;}
+    
+ std::cout<<"maxBin.size()= "<<maxBin.size()<<std::endl;
   for(int i=0;i<maxBin.size();i++){
   std::cout<<"maxTime is at bin = "<<maxBin[i]<<" ("<<-180+2*maxBin[i]<<" degrees)"<<" and its value is "<<fh_theta_ind_2D->GetBinContent(maxBin[i])<<std::endl;
 std::cout<<"...................................."<<std::endl;
