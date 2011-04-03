@@ -323,10 +323,10 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 		
 		//std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
 
-		for ( int i = 0; i != numberOfElectrons; ++i )
+		for ( unsigned int ii = 0; ii != numberOfElectrons; ++ii )
 		  {
 		    
-		    _electrons = sc->GetElectrons(i);
+		    _electrons = sc->GetElectrons(ii);
 		    double ArrivalTime=(_electrons->ArrivalT())/200;
 		    double diff=XTime-ArrivalTime;
 		    
@@ -338,7 +338,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 		    if(plane==0)  { 
 		      if((diff<22)&&(diff>13))
 			{
-			  electrons = sc->GetElectrons(i);
+			  electrons = sc->GetElectrons(ii);
 			  // double _ArrivalTime=(electrons->ArrivalT())/200;
 			  // double _diff=XTime-_ArrivalTime;
 			  // std::cout<<"PLANE 0,diff= "<<_diff<<std::endl;
@@ -347,7 +347,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 		    if(plane==1)  { 
 		      if((diff<36)&&(diff>27))
 			{
-			  electrons = sc->GetElectrons(i);
+			  electrons = sc->GetElectrons(ii);
 			  //double _ArrivalTime=(electrons->ArrivalT())/200;
 			  //double _diff=XTime-_ArrivalTime;
 			  // std::cout<<"PLANE 1,diff= "<<_diff<<std::endl;
@@ -474,16 +474,16 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 	      }
 	      //std::cout<<std::endl;
 	      //  std::cout<<"vec_trackid("<<vec_trackid.size()<<")= ";
-	      // 	  for(unsigned int i=0;i<vec_trackid.size();++i){
+	      // 	  for(unsigned int ii=0;ii<vec_trackid.size();++ii){
 	    
-	      // 	     std::cout<<vec_trackid[i]<<" ";
+	      // 	     std::cout<<vec_trackid[ii]<<" ";
 	    
 	      // 	  }
 	  
 	      // std::cout<<"vec_trackid_mother("<<vec_trackid_mother.size()<<")= ";
-	      // 	  for(unsigned int i=0;i<vec_trackid_mother.size();++i){
+	      // 	  for(unsigned int ii=0;ii<vec_trackid_mother.size();++ii){
 	    
-	      // 	     std::cout<<vec_trackid_mother[i]<<" ";
+	      // 	     std::cout<<vec_trackid_mother[ii]<<" ";
 	    
 	      // 	  }
 	  
@@ -531,8 +531,8 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 	      vec_pdg.erase( unique( vec_pdg.begin(), vec_pdg.end() ), vec_pdg.end() );
 	      // std::cout<<" NO OF PARTICLES IN THIS CLUSTER IS: "<<vec_pdg.size()<<std::endl;
 	      //  std::cout<<"They are: ";
-	      // 	  for(unsigned int i=0;i<vec_pdg.size();++i){
-	      //  	     std::cout<<vec_pdg[i]<<" ";
+	      // 	  for(unsigned int ii=0;ii<vec_pdg.size();++ii){
+	      //  	     std::cout<<vec_pdg[ii]<<" ";
 	      //  	  }
 	      //  	  std::cout<<std::endl;
 	  
@@ -543,9 +543,9 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 	      vec_trackid.erase( unique( vec_trackid.begin(), vec_trackid.end() ), vec_trackid.end() );
 	      //  std::cout<<" NO OF DIFFERENT TRACKIDS IN THIS CLUSTER IS: "<<vec_trackid.size()<<std::endl;
 	      // std::cout<<"They are: ";
-	      for(unsigned int i=0;i<vec_trackid.size();++i){
-		//   std::cout<<vec_trackid[i]<<" ";
-		all_trackids.push_back(vec_trackid[i]);
+	      for(unsigned int ii=0;ii<vec_trackid.size();++ii){
+		//   std::cout<<vec_trackid[ii]<<" ";
+		all_trackids.push_back(vec_trackid[ii]);
 		//mytracklist.push_back(vec_trackid[i]);
 	      }
 	      // std::cout<<std::endl;
@@ -556,10 +556,12 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 	      vec_trackid_mother.erase( unique( vec_trackid_mother.begin(), vec_trackid_mother.end() ), vec_trackid_mother.end() );
 	      // std::cout<<" NO OF DIFFERENT TRACKIDS_MOTHER IN THIS CLUSTER IS: "<<vec_trackid_mother.size()<<std::endl;
 	      // std::cout<<"They are: ";
-	      for(unsigned int i=0;i<vec_trackid_mother.size();++i){
-		// std::cout<<vec_trackid_mother[i]<<" ";
+	      /*
+	      for(unsigned int ii=0;ii<vec_trackid_mother.size();++ii){
+		 std::cout<<vec_trackid_mother[ii]<<" ";
 	    
 	      }
+	      */
 	      // std::cout<<std::endl;
 	  
 	      //........................................................................
@@ -570,10 +572,12 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 	      vec_trackid_mother_en.erase( unique( vec_trackid_mother_en.begin(), vec_trackid_mother_en.end() ), vec_trackid_mother_en.end() );
 	      // std::cout<<" NO OF DIFFERENT TRACKIDS_MOTHER_en IN THIS CLUSTER IS: "<<vec_trackid_mother_en.size()<<std::endl;
 	      // std::cout<<"They are: ";
-	      for(unsigned int i=0;i<vec_trackid_mother_en.size();++i){
-		// std::cout<<vec_trackid_mother_en[i]<<" ";
+	      /*
+	      for(unsigned int ii=0;ii<vec_trackid_mother_en.size();++ii){
+		 std::cout<<vec_trackid_mother_en[ii]<<" ";
 	    
 	      }
+	      */
 	      //  std::cout<<std::endl;
 	  
 	      //........................................................................
@@ -581,11 +585,11 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 	  
 	      // Q: How many clusters it takes to contain a certain particle?
 	  
-	      for(unsigned int i=0;i<mc_trackids.size();++i){
-		it5=find(vec_trackid.begin(),vec_trackid.end(),mc_trackids[i]);
+	      for(unsigned int ii=0;ii<mc_trackids.size();++ii){
+		it5=find(vec_trackid.begin(),vec_trackid.end(),mc_trackids[ii]);
 		if(it5!=vec_trackid.end()){
-		  // std::cout<<"found match for: "<<mc_trackids[i]<<" at position: "<<it5-vec_trackid.begin()<<std::endl;
-		  ids.push_back(mc_trackids[i]);//then make it unique 
+		  // std::cout<<"found match for: "<<mc_trackids[ii]<<" at position: "<<it5-vec_trackid.begin()<<std::endl;
+		  ids.push_back(mc_trackids[ii]);//then make it unique 
 		  noCluster++;
 		}
 	      }
@@ -630,8 +634,8 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
       all_trackids.erase( unique( all_trackids.begin(), all_trackids.end() ), all_trackids.end() );
       //	  std::cout<<" NO OF DIFFERENT TRACKIDS IN THIS EVENT IS: "<<all_trackids.size()<<std::endl;
       // std::cout<<"They are: ";
-      for(unsigned int i=0;i<all_trackids.size();++i){
-	// std::cout<<all_trackids[i]<<" ";
+      for(unsigned int ii=0;ii<all_trackids.size();++ii){
+	 std::cout<<all_trackids[ii]<<" ";
    
       }
       // std::cout<<std::endl;
@@ -724,8 +728,8 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
       //  TParticle part(mc->GetParticle(1));
       //  std::cout<<"part.Gte<PDG()->PdgCode()= "<<part.GetPDG()->PdgCode()<<std::endl;
 
-      for(int i = 0; i < mc->NParticles(); ++i){
-	simb::MCParticle part(mc->GetParticle(i));
+      for(int ii = 0; ii < mc->NParticles(); ++ii){
+	simb::MCParticle part(mc->GetParticle(ii));
 	std::cout<<"FROM MC TRUTH,the particle's pdg code is: "<<part.PdgCode()<<std::endl;
 	std::cout<<"with energy= "<<part.E();
 	if(abs(part.PdgCode()) == 13){std::cout<<" I have a muon!!!"<<std::endl;
@@ -792,7 +796,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
     
     int numberOfElectrons = sc->NumberOfElectrons();
     //  std::cout<<"Hits only, numberOfElectrons= "<< numberOfElectrons<<std::endl;
-    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
+    //    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
     //std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
     //  std::cout<<"simdigit is: "<<simdigit<<std::endl;
     for ( int i = 0; i != numberOfElectrons; ++i )
@@ -1078,7 +1082,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 
     int numberOfElectrons = sc2->NumberOfElectrons();
 	    
-    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
+    //    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
     // std::cout<<"# of elec: "<<"for plane: "<<plane<<" is: "<<numberOfElectrons<<std::endl;
     //  std::cout<<"simdigit is: "<<simdigit<<std::endl;
     for ( int i = 0; i != numberOfElectrons; ++i )
@@ -1177,7 +1181,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
     
     int numberOfElectrons = sc->NumberOfElectrons();
 	    
-    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
+    //    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
     //std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
 
     for ( int i = 0; i!=numberOfElectrons; ++i )
