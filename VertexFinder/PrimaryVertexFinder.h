@@ -38,6 +38,10 @@ namespace vertex {
     bool        IsInVertexCollection(int a, std::vector<std::vector<int> > vertex_collection);
     int         IndexInVertexCollection(int a, int b, std::vector<std::vector<int> > vertex_collection);
     bool        IsInNewVertex(int a, std::vector<int> newvertex);
+    double      gammavalue(TVector3 startpoint1, TVector3 startpoint2, TVector3 dircos1, TVector3 dircos2);
+    double      alphavalue(double gamma, TVector3 startpoint1, TVector3 startpoint2, TVector3 dircos1, TVector3 dircos2);
+    double      MinDist(double alpha, double gamma, TVector3 startpoint1, TVector3 startpoint2, TVector3 dircos1, TVector3 dircos2);
+    TVector3    PointOnExtendedTrack(double alphagamma, TVector3 startpoint,  TVector3 dircos);
     
   };
     
