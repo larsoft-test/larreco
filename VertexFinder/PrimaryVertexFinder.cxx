@@ -60,6 +60,10 @@ static bool sp_sort_zz(const std::vector<recob::SpacePoint>& sp_vec1, const std:
   return xyz1[2] < xyz2[2];
 }
 // //------------------------------------------------------------------------------
+bool sort_pred2(const std::pair<art::Ptr<recob::Track>,double>& left, const std::pair<art::Ptr<recob::Track>,double>& right)
+{
+  return left.second < right.second;
+}
 
 namespace vertex{
 
@@ -88,6 +92,15 @@ namespace vertex{
 // //-----------------------------------------------------------------------------
   void PrimaryVertexFinder::produce(art::Event& evt)
   {
+
+    std::cout<<std::endl;
+    std::cout<<"------------------------------------------------------------------------------"<<std::endl;
+    //   std::cout << "run    : " << evt.Header().Run() << std::endl;
+    //   std::cout << "subrun : " << evt.Header().Subrun() << std::endl;
+    //std::cout << "event  : " << evt.Header().Event() << std::endl;
+    
+    std::cout << "event  : " << evt.id().event() << std::endl;
+    
     
     art::ServiceHandle<geo::Geometry> geom;
     
@@ -107,15 +120,70 @@ namespace vertex{
 	trkIn.push_back(track);
       }
 
-    //std::cout << "number of tracks in this event = " << trkIn.size() << std::endl;
+    std::cout << "number of tracks in this event = " << trkIn.size() << std::endl;
 
     std::vector<recob::SpacePoint> spacepoints;  // space points associated to each track 
     std::vector<recob::SpacePoint> startpoints_vec; // first space point of each track
 
+    std::vector<double> start;
+    std::vector<double> end;
+    double startcos[3]={0,0,0};
+    double endcos[3]={0,0,0};
+
+    std::vector <TVector3> startvec;
+    TVector3 startXYZ;
+    
+    std::vector <TVector3> endvec;
+    TVector3 endXYZ;
+
+    std::vector <TVector3> dircosvec;
+    TVector3 dircosXYZ;
+
+///////////////////////////////////////////////////////    
+//     std::cout<< "*********************************************************" << std::endl;
+    
+//     std::vector< std::pair<art::Ptr<recob::Track>, double> > trackpair;
+//     for(unsigned int i = 0; i<trkIn.size(); ++i){
+//       double length = (endvec[i]-startvec[i]).Mag();
+//       std::cout << "Track length calculated = " << length << std::endl;
+//       trackpair.push_back(std::pair<art::Ptr<recob::Track>,double>(trkIn[i],length));
+//     }
+//     for(unsigned int i = 0; i<trkIn.size(); ++i){
+//     std::cout << "track id is  = " << (trackpair[i].first)->ID() << std::endl;
+//     std::cout << "track length = " << (trackpair[i].second) << std::endl;
+//     }
+//     std::sort(trackpair.rbegin(), trackpair.rend(),sort_pred2);
+//     for(unsigned int i = 0; i<trkIn.size(); ++i){
+//       std::cout << "AFTER SORTING" << std::endl;
+//     std::cout << "track id is  = " << (trackpair[i].first)->ID() << std::endl;
+//     std::cout << "track length = " << (trackpair[i].second) << std::endl;
+//     }
+    
+//     std::cout<< "*********************************************************" << std::endl;
+
+///////////////////////////////////////////////////
+
+
     for(unsigned int j=0; j<trkIn.size();++j) { //loop over tracks
       spacepoints=trkIn[j]->SpacePoints();
+
+     
+      trkIn[j]->Extent(start, end);
+      trkIn[j]->Direction(startcos, endcos);
+
+      startXYZ.SetXYZ(start[0],start[1],start[2]);
+      endXYZ.SetXYZ(end[0],end[1],end[2]);
+      dircosXYZ.SetXYZ(startcos[0],startcos[1],startcos[2]);
+ 
+      startvec.push_back(startXYZ);
+      endvec.push_back(endXYZ);
+      dircosvec.push_back(dircosXYZ);
       
-      //std::cout<<"PrimaryVertexFinder got "<< spacepoints.size() <<" 3D spacepoint(s) from Track3Dreco.cxx"<<std::endl;
+      start.clear();
+      end.clear();
+      startcos[3] = 0.;
+      
+      std::cout<<"PrimaryVertexFinder got "<< spacepoints.size() <<" 3D spacepoint(s) from Track3Dreco.cxx"<<std::endl;
             
       for(unsigned int i=0; i<1; ++i) { // save the first SpacePoint of each Track... from now the SpacePoint ID represents the Track ID!!
 	spacepoints[i].SetID(startpoints_vec.size());
@@ -123,13 +191,81 @@ namespace vertex{
       }
     }// loop over tracks
 
+    for(unsigned int i=0; i<startvec.size(); i++){
+      std::cout << "Tvector3 start point = " << std::endl; 
+      startvec[i].Print();
+    }
+    for(unsigned int i=0; i<dircosvec.size(); i++){
+      std::cout << "Tvector3 dir cos = " << std::endl; 
+      dircosvec[i].Print();
+    }
+
+     //see the start points
+     for(unsigned int i=0; i<startpoints_vec.size(); ++i){
+ //       double posX = startpoints_vec[i].XYZ()[0];
+ //       double posY = startpoints_vec[i].XYZ()[1];
+ //       double posZ = startpoints_vec[i].XYZ()[2];
+ //       std::cout << "start point = " << posX << ", " << posY << ", " << posZ << std::endl;
+       std::cout << "Start Points from Track3Dreco.cxx = " << startpoints_vec[i] << std::endl;
+     }
+
+
     //get the collection of track IDs that have matched start points... (vertex_collection_int)
+//     std::vector<std::vector<int> > vertex_collection_int; 
+
+//     for (unsigned int i=0; i<startpoints_vec.size(); ++i){
+//       for (unsigned int j=i+1; j<startpoints_vec.size(); ++j){
+// 	std::cout << "distance between " << i << " and " << j << " = " << StartPointSeperation(startpoints_vec[i], startpoints_vec[j]) << std::endl;
+// 	if(StartPointSeperation(startpoints_vec[i], startpoints_vec[j])<fVertexWindow){
+// 	  if((!IsInVertexCollection(i, vertex_collection_int)) && (!IsInVertexCollection(j, vertex_collection_int))){
+// 	    std::vector<int> newvertex_int;
+// 	    newvertex_int.push_back(i);
+// 	    newvertex_int.push_back(j);
+// 	    vertex_collection_int.push_back(newvertex_int);
+// 	    //newvertex.clear();
+// 	  }
+// 	  else
+// 	    {
+// 	      int index = IndexInVertexCollection(i, j, vertex_collection_int);
+// 	      //std::cout << "index where a new vertex will be added = " << index << std::endl;
+// 	      if(!IsInNewVertex(i, vertex_collection_int[index])){
+// 	      vertex_collection_int[index].push_back(i);
+// 	      }
+// 	     if(!IsInNewVertex(j, vertex_collection_int[index])){
+// 	      vertex_collection_int[index].push_back(j);
+// 	     }
+// 	    }
+// 	}
+//       }
+//     }
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
     std::vector<std::vector<int> > vertex_collection_int; 
 
-    for (unsigned int i=0; i<startpoints_vec.size(); ++i){
-      for (unsigned int j=i+1; j<startpoints_vec.size(); ++j){
-	//std::cout << "distance between " << i << " and " << j << " = " << StartPointSeperation(startpoints_vec[i], startpoints_vec[j]) << std::endl;
-	if(StartPointSeperation(startpoints_vec[i], startpoints_vec[j])<fVertexWindow){
+    for (unsigned int i=0; i<trkIn.size(); ++i){
+      for (unsigned int j=i+1; j<trkIn.size(); ++j){
+	std::cout << "distance between " << i << " and " << j << " = " << StartPointSeperation(startpoints_vec[i], startpoints_vec[j]) << std::endl;
+	double GAMMA = gammavalue(startvec[i], startvec[j], dircosvec[i], dircosvec[j]);
+	std::cout << "gamma value = " << GAMMA << std::endl; 
+	double ALPHA = alphavalue(GAMMA, startvec[i], startvec[j], dircosvec[i], dircosvec[j]);
+	std::cout << "alpha value = " << ALPHA << std::endl;
+	double MINDIST = MinDist(ALPHA, GAMMA, startvec[i], startvec[j], dircosvec[i], dircosvec[j]);
+	std::cout << "MINIMUM DISTANCE = " << MINDIST << std::endl;
+	TVector3 TRACK1POINT = PointOnExtendedTrack(ALPHA, startvec[i], dircosvec[i]);
+	TVector3 TRACK2POINT = PointOnExtendedTrack(GAMMA, startvec[j], dircosvec[j]);
+	std::cout << "POINTS ON THE TRACKS ARE:: " << std::endl;
+	TRACK1POINT.Print();
+	TRACK2POINT.Print();
+	
+	if(StartPointSeperation(startpoints_vec[i], startpoints_vec[j])<fVertexWindow){ ///// correct this
+
+
+
 	  if((!IsInVertexCollection(i, vertex_collection_int)) && (!IsInVertexCollection(j, vertex_collection_int))){
 	    std::vector<int> newvertex_int;
 	    newvertex_int.push_back(i);
@@ -151,6 +287,30 @@ namespace vertex{
 	}
       }
     }
+
+
+    std::cout<< "*********************************************************" << std::endl;
+    
+    std::vector< std::pair<art::Ptr<recob::Track>, double> > trackpair;
+    for(unsigned int i = 0; i<trkIn.size(); ++i){
+      double length = (endvec[i]-startvec[i]).Mag();
+      std::cout << "Track length calculated = " << length << std::endl;
+      trackpair.push_back(std::pair<art::Ptr<recob::Track>,double>(trkIn[i],length));
+    }
+    for(unsigned int i = 0; i<trkIn.size(); ++i){
+    std::cout << "track id is  = " << (trackpair[i].first)->ID() << std::endl;
+    std::cout << "track length = " << (trackpair[i].second) << std::endl;
+    }
+    std::sort(trackpair.rbegin(), trackpair.rend(),sort_pred2);
+    for(unsigned int i = 0; i<trkIn.size(); ++i){
+      std::cout << "AFTER SORTING" << std::endl;
+    std::cout << "track id is  = " << (trackpair[i].first)->ID() << std::endl;
+    std::cout << "track length = " << (trackpair[i].second) << std::endl;
+    }
+    
+    std::cout<< "*********************************************************" << std::endl;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     //now add the unmatched track IDs to the collection
     for(int i=0; i<startpoints_vec.size(); i++){
@@ -175,6 +335,15 @@ namespace vertex{
     }
 
     std::sort(spvertex_collection.begin(), spvertex_collection.end(), sp_sort_zz); // sort the collection in z
+     
+    // see the veretx collection
+    for(unsigned int i=0; i<spvertex_collection.size(); ++i){
+      for(std::vector<recob::SpacePoint>::iterator itr = spvertex_collection[i].begin(); itr < spvertex_collection[i].end(); ++itr){
+	std::cout << "Start vertex vector = " << *itr << std::endl;
+      }
+      std::cout << "---------" << std::endl;
+    }
+
 
     art::PtrVector<recob::Track> vTracks_vec;
     art::PtrVector<recob::Shower> vShowers_vec;
@@ -271,3 +440,31 @@ bool vertex::PrimaryVertexFinder::IsInNewVertex(int a, std::vector<int> newverte
   return false; 
 }
 // //------------------------------------------------------------------------------
+double vertex::PrimaryVertexFinder::gammavalue(TVector3 startpoint1, TVector3 startpoint2, TVector3 dircos1, TVector3 dircos2)
+{
+  double gamma = ((startpoint1*dircos2)-(startpoint2*dircos2)+((dircos1*dircos2)*(startpoint2*dircos1))-((dircos1*dircos2)*(startpoint1*dircos1)))/(1-((dircos1*dircos2)*(dircos1*dircos2)));
+
+  return gamma;
+}
+// //------------------------------------------------------------------------------
+double vertex::PrimaryVertexFinder::alphavalue(double gamma, TVector3 startpoint1, TVector3 startpoint2, TVector3 dircos1, TVector3 dircos2)
+{
+  double alpha = (gamma*(dircos1*dircos2)) + (startpoint2*dircos1) - (startpoint1*dircos1);
+
+  return alpha;
+}
+// //------------------------------------------------------------------------------
+double vertex::PrimaryVertexFinder::MinDist(double alpha, double gamma, TVector3 startpoint1, TVector3 startpoint2, TVector3 dircos1, TVector3 dircos2)
+{
+  TVector3 mindis_vector = startpoint1 - startpoint2 + alpha*dircos1 - gamma*dircos2;
+  double mindis = mindis_vector.Mag();
+  return mindis;
+}
+// //------------------------------------------------------------------------------
+TVector3 vertex::PrimaryVertexFinder::PointOnExtendedTrack(double alphagamma, TVector3 startpoint,  TVector3 dircos)
+{
+  TVector3 PointOnExtendedTrack = startpoint + (alphagamma * dircos);
+  return PointOnExtendedTrack;
+}
+// //------------------------------------------------------------------------------
+
