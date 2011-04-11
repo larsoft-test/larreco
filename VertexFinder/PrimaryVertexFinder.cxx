@@ -139,31 +139,6 @@ namespace vertex{
     std::vector <TVector3> dircosvec;
     TVector3 dircosXYZ;
 
-///////////////////////////////////////////////////////    
-//     std::cout<< "*********************************************************" << std::endl;
-    
-//     std::vector< std::pair<art::Ptr<recob::Track>, double> > trackpair;
-//     for(unsigned int i = 0; i<trkIn.size(); ++i){
-//       double length = (endvec[i]-startvec[i]).Mag();
-//       std::cout << "Track length calculated = " << length << std::endl;
-//       trackpair.push_back(std::pair<art::Ptr<recob::Track>,double>(trkIn[i],length));
-//     }
-//     for(unsigned int i = 0; i<trkIn.size(); ++i){
-//     std::cout << "track id is  = " << (trackpair[i].first)->ID() << std::endl;
-//     std::cout << "track length = " << (trackpair[i].second) << std::endl;
-//     }
-//     std::sort(trackpair.rbegin(), trackpair.rend(),sort_pred2);
-//     for(unsigned int i = 0; i<trkIn.size(); ++i){
-//       std::cout << "AFTER SORTING" << std::endl;
-//     std::cout << "track id is  = " << (trackpair[i].first)->ID() << std::endl;
-//     std::cout << "track length = " << (trackpair[i].second) << std::endl;
-//     }
-    
-//     std::cout<< "*********************************************************" << std::endl;
-
-///////////////////////////////////////////////////
-
-
     for(unsigned int j=0; j<trkIn.size();++j) { //loop over tracks
       spacepoints=trkIn[j]->SpacePoints();
 
