@@ -33,6 +33,9 @@
 #include <math.h>
 #include <algorithm>
 #include "TMath.h"
+#include <TVector3.h>
+#include <vector>
+
 
 
 #include "RawData/RawDigit.h"
@@ -123,12 +126,13 @@ namespace vertex{
     std::cout << "number of tracks in this event = " << trkIn.size() << std::endl;
 
     std::vector<recob::SpacePoint> spacepoints;  // space points associated to each track 
-    std::vector<recob::SpacePoint> startpoints_vec; // first space point of each track
+    std::vector<recob::SpacePoint> startpoints_vec; 
 
     std::vector<double> start;
     std::vector<double> end;
     double startcos[3]={0,0,0};
     double endcos[3]={0,0,0};
+
 
     std::vector <TVector3> startvec;
     TVector3 startXYZ;
@@ -139,12 +143,37 @@ namespace vertex{
     std::vector <TVector3> dircosvec;
     TVector3 dircosXYZ;
 
-    for(unsigned int j=0; j<trkIn.size();++j) { //loop over tracks
-      spacepoints=trkIn[j]->SpacePoints();
+    std::vector< std::pair<art::Ptr<recob::Track>, double> > trackpair;
+    
+    for(unsigned int i = 0; i<trkIn.size(); ++i){
+      trkIn[i]->Extent(start, end);
+      startXYZ.SetXYZ(start[0],start[1],start[2]);
+      endXYZ.SetXYZ(end[0],end[1],end[2]);
+
+
+      double length = (endXYZ-startXYZ).Mag();// (endvec[i]-startvec[i]).Mag();
+      //std::cout << "Track length calculated = " << length << std::endl;
+      trackpair.push_back(std::pair<art::Ptr<recob::Track>,double>(trkIn[i],length));
+    }
+    
+    for(unsigned int i = 0; i<trackpair.size(); ++i){
+      std::cout << "track id is  = " << (trackpair[i].first)->ID() << " track length = " << (trackpair[i].second) << std::endl;
+    }
+    
+    std::sort(trackpair.rbegin(), trackpair.rend(),sort_pred2);
+    
+    std::cout << "AFTER SORTING " << std::endl;
+    for(unsigned int i = 0; i<trackpair.size(); ++i){
+      std::cout << "track id is  = " << (trackpair[i].first)->ID() << " track length = " << (trackpair[i].second) << std::endl;
+    }
+    
+
+    for(unsigned int j=0; j<trackpair.size();++j) { //loop over tracks
+      spacepoints=trackpair[j].first->SpacePoints();
 
      
-      trkIn[j]->Extent(start, end);
-      trkIn[j]->Direction(startcos, endcos);
+      trackpair[j].first->Extent(start, end);
+      trackpair[j].first->Direction(startcos, endcos);
 
       startXYZ.SetXYZ(start[0],start[1],start[2]);
       endXYZ.SetXYZ(end[0],end[1],end[2]);
@@ -158,6 +187,7 @@ namespace vertex{
       end.clear();
       startcos[3] = 0.;
       
+
       std::cout<<"PrimaryVertexFinder got "<< spacepoints.size() <<" 3D spacepoint(s) from Track3Dreco.cxx"<<std::endl;
             
       for(unsigned int i=0; i<1; ++i) { // save the first SpacePoint of each Track... from now the SpacePoint ID represents the Track ID!!
@@ -166,87 +196,46 @@ namespace vertex{
       }
     }// loop over tracks
 
-    for(unsigned int i=0; i<startvec.size(); i++){
-      std::cout << "Tvector3 start point = " << std::endl; 
+    for(unsigned int i=0; i<startvec.size(); i++){ //trackpair.size()
+      std::cout << "Tvector3 start point SORTED = " << std::endl; 
       startvec[i].Print();
     }
-    for(unsigned int i=0; i<dircosvec.size(); i++){
-      std::cout << "Tvector3 dir cos = " << std::endl; 
+    for(unsigned int i=0; i<dircosvec.size(); i++){ //trackpair.size()
+      std::cout << "Tvector3 dir cos SORTED = " << std::endl; 
       dircosvec[i].Print();
     }
 
-     //see the start points
-     for(unsigned int i=0; i<startpoints_vec.size(); ++i){
- //       double posX = startpoints_vec[i].XYZ()[0];
- //       double posY = startpoints_vec[i].XYZ()[1];
- //       double posZ = startpoints_vec[i].XYZ()[2];
- //       std::cout << "start point = " << posX << ", " << posY << ", " << posZ << std::endl;
-       std::cout << "Start Points from Track3Dreco.cxx = " << startpoints_vec[i] << std::endl;
-     }
+    std::vector<std::vector<int> > vertex_collection_int;
+    std::vector <std::vector <TVector3> > vertexcand_vec;
 
-
-    //get the collection of track IDs that have matched start points... (vertex_collection_int)
-//     std::vector<std::vector<int> > vertex_collection_int; 
-
-//     for (unsigned int i=0; i<startpoints_vec.size(); ++i){
-//       for (unsigned int j=i+1; j<startpoints_vec.size(); ++j){
-// 	std::cout << "distance between " << i << " and " << j << " = " << StartPointSeperation(startpoints_vec[i], startpoints_vec[j]) << std::endl;
-// 	if(StartPointSeperation(startpoints_vec[i], startpoints_vec[j])<fVertexWindow){
-// 	  if((!IsInVertexCollection(i, vertex_collection_int)) && (!IsInVertexCollection(j, vertex_collection_int))){
-// 	    std::vector<int> newvertex_int;
-// 	    newvertex_int.push_back(i);
-// 	    newvertex_int.push_back(j);
-// 	    vertex_collection_int.push_back(newvertex_int);
-// 	    //newvertex.clear();
-// 	  }
-// 	  else
-// 	    {
-// 	      int index = IndexInVertexCollection(i, j, vertex_collection_int);
-// 	      //std::cout << "index where a new vertex will be added = " << index << std::endl;
-// 	      if(!IsInNewVertex(i, vertex_collection_int[index])){
-// 	      vertex_collection_int[index].push_back(i);
-// 	      }
-// 	     if(!IsInNewVertex(j, vertex_collection_int[index])){
-// 	      vertex_collection_int[index].push_back(j);
-// 	     }
-// 	    }
-// 	}
-//       }
-//     }
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-    std::vector<std::vector<int> > vertex_collection_int; 
-
-    for (unsigned int i=0; i<trkIn.size(); ++i){
-      for (unsigned int j=i+1; j<trkIn.size(); ++j){
+    for (unsigned int i=0; i<trackpair.size(); ++i){
+      for (unsigned int j=i+1; j<trackpair.size(); ++j){
 	std::cout << "distance between " << i << " and " << j << " = " << StartPointSeperation(startpoints_vec[i], startpoints_vec[j]) << std::endl;
 	double GAMMA = gammavalue(startvec[i], startvec[j], dircosvec[i], dircosvec[j]);
-	std::cout << "gamma value = " << GAMMA << std::endl; 
 	double ALPHA = alphavalue(GAMMA, startvec[i], startvec[j], dircosvec[i], dircosvec[j]);
-	std::cout << "alpha value = " << ALPHA << std::endl;
 	double MINDIST = MinDist(ALPHA, GAMMA, startvec[i], startvec[j], dircosvec[i], dircosvec[j]);
-	std::cout << "MINIMUM DISTANCE = " << MINDIST << std::endl;
+	std::cout << "alpha = " << ALPHA << " gamma = " << GAMMA << " MINIMUM DISTANCE = " << MINDIST << std::endl;
 	TVector3 TRACK1POINT = PointOnExtendedTrack(ALPHA, startvec[i], dircosvec[i]);
 	TVector3 TRACK2POINT = PointOnExtendedTrack(GAMMA, startvec[j], dircosvec[j]);
 	std::cout << "POINTS ON THE TRACKS ARE:: " << std::endl;
 	TRACK1POINT.Print();
 	TRACK2POINT.Print();
-	
-	if(StartPointSeperation(startpoints_vec[i], startpoints_vec[j])<fVertexWindow){ ///// correct this
+	std::cout << std::endl;
 
+	//if(StartPointSeperation(startpoints_vec[i], startpoints_vec[j])<fVertexWindow){ ///// correct this
+	if(MINDIST<2 && trackpair[i].first->SpacePoints().size() >30 && trackpair[j].first->SpacePoints().size() >30){
 
 
 	  if((!IsInVertexCollection(i, vertex_collection_int)) && (!IsInVertexCollection(j, vertex_collection_int))){
 	    std::vector<int> newvertex_int;
+	    std::vector <TVector3> vertexcand;
 	    newvertex_int.push_back(i);
 	    newvertex_int.push_back(j);
+	    vertexcand.push_back(TRACK1POINT);
+	    vertexcand.push_back(TRACK2POINT);
 	    vertex_collection_int.push_back(newvertex_int);
 	    //newvertex.clear();
+	    vertexcand_vec.push_back(vertexcand);
 	  }
 	  else
 	    {
@@ -254,88 +243,54 @@ namespace vertex{
 	      //std::cout << "index where a new vertex will be added = " << index << std::endl;
 	      if(!IsInNewVertex(i, vertex_collection_int[index])){
 	      vertex_collection_int[index].push_back(i);
+	      vertexcand_vec[index].push_back(TRACK1POINT); //need to fix for delta rays
 	      }
 	     if(!IsInNewVertex(j, vertex_collection_int[index])){
 	      vertex_collection_int[index].push_back(j);
+	      vertexcand_vec[index].push_back(TRACK2POINT); //need to fix for delta rays
 	     }
 	    }
 	}
       }
     }
 
-
-    std::cout<< "*********************************************************" << std::endl;
     
-    std::vector< std::pair<art::Ptr<recob::Track>, double> > trackpair;
-    for(unsigned int i = 0; i<trkIn.size(); ++i){
-      double length = (endvec[i]-startvec[i]).Mag();
-      std::cout << "Track length calculated = " << length << std::endl;
-      trackpair.push_back(std::pair<art::Ptr<recob::Track>,double>(trkIn[i],length));
-    }
-    for(unsigned int i = 0; i<trkIn.size(); ++i){
-    std::cout << "track id is  = " << (trackpair[i].first)->ID() << std::endl;
-    std::cout << "track length = " << (trackpair[i].second) << std::endl;
-    }
-    std::sort(trackpair.rbegin(), trackpair.rend(),sort_pred2);
-    for(unsigned int i = 0; i<trkIn.size(); ++i){
-      std::cout << "AFTER SORTING" << std::endl;
-    std::cout << "track id is  = " << (trackpair[i].first)->ID() << std::endl;
-    std::cout << "track length = " << (trackpair[i].second) << std::endl;
-    }
-    
-    std::cout<< "*********************************************************" << std::endl;
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
     //now add the unmatched track IDs to the collection
-    for(int i=0; i<startpoints_vec.size(); i++){
+    for(int i=0; i<trackpair.size(); i++){
       if(!IsInVertexCollection(i, vertex_collection_int)){
+	if(trackpair[i].second>30){
 	std::vector<int> temp;
-	temp.push_back(i);	
+	std::vector <TVector3> temp1;
+	temp.push_back(i);
+	temp1.push_back(startvec[i]);	
 	vertex_collection_int.push_back(temp);
+	vertexcand_vec.push_back(temp1);
+	}
       }
     }
-
-    //make spvertex_collection of 'SpacePoints' instead of spacepoint/Track IDs 
-    std::vector<recob::SpacePoint> spvertex; 
-    std::vector<std::vector<recob::SpacePoint> > spvertex_collection;
-
-    for(unsigned int i=0; i<vertex_collection_int.size(); i++){
-      for(std::vector<int>::iterator itr = vertex_collection_int[i].begin(); itr < vertex_collection_int[i].end(); ++itr){
-	spvertex.push_back(startpoints_vec[*itr]);
-      }
-      std::sort(spvertex.begin(), spvertex.end(), sp_sort_z); // sort the start points in z
-      spvertex_collection.push_back(spvertex);
-      spvertex.clear();
-    }
-
-    std::sort(spvertex_collection.begin(), spvertex_collection.end(), sp_sort_zz); // sort the collection in z
-     
-    // see the veretx collection
-    for(unsigned int i=0; i<spvertex_collection.size(); ++i){
-      for(std::vector<recob::SpacePoint>::iterator itr = spvertex_collection[i].begin(); itr < spvertex_collection[i].end(); ++itr){
-	std::cout << "Start vertex vector = " << *itr << std::endl;
-      }
-      std::cout << "---------" << std::endl;
-    }
-
 
     art::PtrVector<recob::Track> vTracks_vec;
     art::PtrVector<recob::Shower> vShowers_vec;
-    
-    for(unsigned int i=0; i < spvertex_collection.size() ; i++){ 
+
+    for(int i=0; i<vertex_collection_int.size(); i++){
       double x = 0.;
       double y = 0.;
       double z = 0.;
       int elemsize = 0.;
-      for(std::vector<recob::SpacePoint>::iterator itr = spvertex_collection[i].begin(); itr < spvertex_collection[i].end(); ++itr){
-	vTracks_vec.push_back(trkIn[(*itr).ID()]);
+      for(std::vector<int>::iterator itr = vertex_collection_int[i].begin(); itr < vertex_collection_int[i].end(); ++itr){
+	std::cout << "vector elements at index " << i << " are " << *itr <<std::endl;
+	std::cout << "track original ID = " << (trackpair[*itr].first)->ID() << std::endl;
+	vTracks_vec.push_back(trackpair[*itr].first);
+      }
+      std::cout << "----hehe----" <<std::endl;
 
+      
+      for(std::vector<TVector3>::iterator itr = vertexcand_vec[i].begin(); itr < vertexcand_vec[i].end(); ++itr){
 	//calculate sum of x, y and z of a vertex
-	x += ((*itr).XYZ())[0];
-	y += ((*itr).XYZ())[1];
-	z += ((*itr).XYZ())[2];
-	elemsize = spvertex_collection[i].size();
+	x += (*itr).X();
+	y += (*itr).Y();
+	z += (*itr).Z();
+	elemsize = vertexcand_vec[i].size();
       }
 
       double avgx = x/elemsize;
@@ -350,8 +305,9 @@ namespace vertex{
 	  recob::Vertex the3Dvertex(vTracks_vec, vShowers_vec, vtxcoord);
 	  vcol->push_back(the3Dvertex);
 	  vTracks_vec.clear();
+
     }
-   
+
     mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
     mf::LogVerbatim("Summary") << "PrimaryVertexFinder Summary:";
     for(int i = 0; i<vcol->size(); ++i) mf::LogVerbatim("Summary") << vcol->at(i) ;
