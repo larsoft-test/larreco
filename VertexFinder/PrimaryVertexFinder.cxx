@@ -85,8 +85,8 @@ namespace vertex{
   //---------------------------------------------------------------------------
   void PrimaryVertexFinder::reconfigure(fhicl::ParameterSet p) 
   {
-    fTrackModuleLabel  =(p.get< std::string >("TrackModuleLabel"));
-    fVertexWindow      =(p.get<double     >  ("VertexWindow"));
+    fTrackModuleLabel  = p.get< std::string >("TrackModuleLabel");
+    fVertexWindow      = p.get<double     >  ("VertexWindow");
     return;
   }
   //-------------------------------------------------------------------------
