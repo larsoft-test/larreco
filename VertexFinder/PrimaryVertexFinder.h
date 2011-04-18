@@ -14,6 +14,7 @@
 #include <string>
 #include "RecoBase/recobase.h"
 
+class TH1F;
 class TH2F;
 
 ///vertex reconstruction
@@ -26,7 +27,9 @@ namespace vertex {
     explicit PrimaryVertexFinder(fhicl::ParameterSet const& pset); 
     virtual ~PrimaryVertexFinder();        
     void beginJob();
+    void reconfigure(fhicl::ParameterSet p);
 
+    
     void produce(art::Event& evt);
 
   private:
@@ -42,7 +45,13 @@ namespace vertex {
     double      alphavalue(double gamma, TVector3 startpoint1, TVector3 startpoint2, TVector3 dircos1, TVector3 dircos2);
     double      MinDist(double alpha, double gamma, TVector3 startpoint1, TVector3 startpoint2, TVector3 dircos1, TVector3 dircos2);
     TVector3    PointOnExtendedTrack(double alphagamma, TVector3 startpoint,  TVector3 dircos);
-    
+    TH2F*       fNoTracks;
+    TH1F*       fLength_1stTrack;
+    TH1F*       fLength_2ndTrack;
+    TH1F*       fLength_3rdTrack;
+    TH1F*       fLength_4thTrack;
+    TH1F*       fLength_5thTrack;
+
   };
     
 }
