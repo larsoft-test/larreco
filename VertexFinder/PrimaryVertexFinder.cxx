@@ -5,7 +5,7 @@
 // saima@ksu.edu
 //
 // This algorithm is designed to reconstruct the vertices by finding the
-// 3d distance between the very first space points of each track 
+// distance of closest approach between the tracks
 // 
 // This is Preliminary Work and needs modifications
 // ////////////////////////////////////////////////////////////////////////
@@ -43,6 +43,7 @@
 #include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
+#include "TH1.h"
 #include "TH2.h"
 #include "TVectorD.h"
 #include "TGeoManager.h"
@@ -71,25 +72,35 @@ bool sort_pred2(const std::pair<art::Ptr<recob::Track>,double>& left, const std:
 namespace vertex{
 
 //-----------------------------------------------------------------------------
-  PrimaryVertexFinder::PrimaryVertexFinder(fhicl::ParameterSet const& pset) :
-    fTrackModuleLabel  (pset.get< std::string >("TrackModuleLabel")),
-    fVertexWindow      (pset.get<double     >  ("VertexWindow"))
-  {
+  PrimaryVertexFinder::PrimaryVertexFinder(fhicl::ParameterSet const& pset)
+  {  
+    this->reconfigure(pset);    
     produces< std::vector<recob::Vertex> >();
   }
-
 //-----------------------------------------------------------------------------
   PrimaryVertexFinder::~PrimaryVertexFinder()
   {
   }
 
   //---------------------------------------------------------------------------
+  void PrimaryVertexFinder::reconfigure(fhicl::ParameterSet p) 
+  {
+    fTrackModuleLabel  =(p.get< std::string >("TrackModuleLabel"));
+    fVertexWindow      =(p.get<double     >  ("VertexWindow"));
+    return;
+  }
+  //-------------------------------------------------------------------------
   void PrimaryVertexFinder::beginJob(){
     // get access to the TFile service
     art::ServiceHandle<art::TFileService> tfs;
     
     //    fNoVertices= tfs->make<TH2F>("fNoVertices", ";Event No; No of vertices", 100,0, 100, 30, 0, 30);
-    
+     fNoTracks= tfs->make<TH2F>("fNoTracks", ";Event No; No of Tracks", 10,0, 10, 10, 0, 10);
+     fLength_1stTrack = tfs->make<TH1F>("fLength_Track1", "Muon Track Length", 100,0,100);
+     fLength_2ndTrack = tfs->make<TH1F>("fLength_Track2", "2nd Track Length", 100,0,100);
+     fLength_3rdTrack = tfs->make<TH1F>("fLength_Track3", "3rd Track Length", 100,0,100);
+     fLength_4thTrack = tfs->make<TH1F>("fLength_Track4", "4th Track Length", 100,0,100);
+     fLength_5thTrack = tfs->make<TH1F>("fLength_Track5", "5th Track Length", 100,0,100);
   }
 
 // //-----------------------------------------------------------------------------
@@ -124,9 +135,10 @@ namespace vertex{
       }
 
     std::cout << "number of tracks in this event = " << trkIn.size() << std::endl;
+    fNoTracks->Fill(evt.id().event(),trkIn.size());
 
     std::vector<recob::SpacePoint> spacepoints;  // space points associated to each track 
-    std::vector<recob::SpacePoint> startpoints_vec; 
+    std::vector<recob::SpacePoint> startpoints_vec; // first space point of each track
 
     std::vector<double> start;
     std::vector<double> end;
@@ -167,6 +179,19 @@ namespace vertex{
       std::cout << "track id is  = " << (trackpair[i].first)->ID() << " track length = " << (trackpair[i].second) << std::endl;
     }
     
+    fLength_1stTrack->Fill(trackpair[0].second);
+
+    if(trackpair.size()>1)
+    fLength_2ndTrack->Fill(trackpair[1].second);
+
+    if(trackpair.size()>2)
+    fLength_3rdTrack->Fill(trackpair[2].second);
+
+    if(trackpair.size()>3)
+    fLength_4thTrack->Fill(trackpair[3].second);
+
+    if(trackpair.size()>4)
+    fLength_5thTrack->Fill(trackpair[4].second);
 
     for(unsigned int j=0; j<trackpair.size();++j) { //loop over tracks
       spacepoints=trackpair[j].first->SpacePoints();
