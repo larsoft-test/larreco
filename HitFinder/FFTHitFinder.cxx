@@ -42,16 +42,9 @@ extern "C" {
 namespace hit{
 
   //-------------------------------------------------
-  FFTHitFinder::FFTHitFinder(fhicl::ParameterSet const& pset) :
-    fCalDataModuleLabel(pset.get< std::string  >("CalDataModuleLabel")),
-    fMinSigInd         (pset.get< double       >("MinSigInd")), 
-    fMinSigCol         (pset.get< double       >("MinSigCol")), 
-    fIndWidth          (pset.get< double       >("IndWidth")),  
-    fColWidth          (pset.get< double       >("ColWidth")),  
-    fPOffset           (pset.get< double       >("POffset")),	  
-    fOOffset           (pset.get< double       >("OOffset")),	  
-    fMaxMultiHit       (pset.get< int          >("MaxMultiHit"))
+  FFTHitFinder::FFTHitFinder(fhicl::ParameterSet const& pset)
   {
+    this->reconfigure(pset);
     produces< std::vector<recob::Hit> >();
   }
 
@@ -61,6 +54,18 @@ namespace hit{
   {
   }
   
+  //-------------------------------------------------
+  void FFTHitFinder::reconfigure(fhicl::ParameterSet p)
+  {
+    fCalDataModuleLabel = p.get< std::string  >("CalDataModuleLabel");
+    fMinSigInd          = p.get< double       >("MinSigInd");
+    fMinSigCol          = p.get< double       >("MinSigCol"); 
+    fIndWidth           = p.get< double       >("IndWidth");  
+    fColWidth           = p.get< double       >("ColWidth");  
+    fPOffset            = p.get< double       >("POffset");	  
+    fOOffset            = p.get< double       >("OOffset");	  
+    fMaxMultiHit        = p.get< int          >("MaxMultiHit");
+  }  
   //-------------------------------------------------
   void FFTHitFinder::beginJob()
   {
@@ -149,17 +154,18 @@ namespace hit{
       //All code below does the fitting, adding of hits
       //to the hit vector and when all wires are complete 
       //saving them 
-      //std::cout << startTimes.size() <<" "<<maxTimes.size() 
+      //std::cout <<channel<<" "<< startTimes.size() <<" "<<maxTimes.size() 
       //<< " "<< endTimes.size()<<std::endl;
 
       double totSig(0); //stoes the total hit signal
       double startT(0); //stores the start time
       double endT(0);  //stores the end time
-      int numHits(0);
-      int size(0); 
-      int hitIndex(0);
-      double amplitude(0), position(0), width(0);
-      double amplitudeErr(0), positionErr(0), widthErr(0);
+      int numHits(0);  //number of consecutive hits being fitted
+      int size(0);     //size of data vector for fit
+      int hitIndex(0);  //index of current hit in sequence
+      double amplitude(0), position(0), width(0);  //fit parameters
+      double amplitudeErr(0), positionErr(0), widthErr(0);  //fit errors
+      double goodnessOfFit(0), chargeErr(0);  //Chi2/NDF and error on charge
      
       //stores gaussian paramters first index is the hit number
       //the second refers to height, position, and width respectively
@@ -210,7 +216,6 @@ namespace hit{
 					      width);
 	  }//end loop over hits
         
-	  //std::cout <<"channel"<<channel<< std::endl;
 	  TMatrixD h(numHits,numHits);
 	  h.Use(numHits,numHits,data.GetArray());
 	  TDecompSVD a(h);
@@ -233,7 +238,7 @@ namespace hit{
 	}
 
 	//!todo - just get the integral from the fit for totSig
-	hitSignal.Fit(&gSum,"QNR","", startT, endT);
+	hitSignal.Fit(&gSum,"WQNR","", startT, endT);
 	for(int hitNumber = 0; hitNumber < numHits; hitNumber++) {
 	  if(gSum.GetParameter(3*hitNumber) > threshold/2.0) { 
 	    amplitude = gSum.GetParameter(3*hitNumber);
@@ -242,11 +247,13 @@ namespace hit{
             amplitudeErr = gSum.GetParError(3*hitNumber);
 	    positionErr = gSum.GetParError(3*hitNumber+1);
 	    widthErr = gSum.GetParError(3*hitNumber+2);
-	    hitSig.clear();
+            goodnessOfFit= gSum.GetChisquare()/(double)gSum.GetNDF();
+            chargeErr=TMath::Sqrt(TMath::Pi())*(amplitudeErr*width+widthErr*amplitude);   //estimate from area of Gaussian
 	    hitSig.resize(size);
 	    for(int sigPos = 0; sigPos<size; sigPos++){
 	      hitSig[sigPos] = amplitude*TMath::Gaus(sigPos+startT,position, width);
-	      totSig+=hitSig[(int)sigPos]; 
+	      totSig+=hitSig[(int)sigPos];
+              
 	    }              	    
 
 	    // make the hit
@@ -258,12 +265,11 @@ namespace hit{
 			   position,
                            positionErr,
 			   totSig,         
-                           0.,                 //!todo - need to define uncertainty on charge
+                           chargeErr,                
 			   amplitude,
                            amplitudeErr,
 			   1,                  //!todo - mulitplicity has to be determined
-			   0.);                //!todo - goodness of fit has to be determined
-	    
+			   goodnessOfFit);               	    
 	    hcol->push_back(hit);
 	    
 	  }//end if over threshold

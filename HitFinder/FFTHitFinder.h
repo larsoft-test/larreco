@@ -13,12 +13,13 @@ namespace hit {
     
   public:
     
-    explicit FFTHitFinder(fhicl::ParameterSet const& ); 
+    explicit FFTHitFinder(fhicl::ParameterSet const& pset); 
     virtual ~FFTHitFinder();
          
     void produce(art::Event& evt); 
     void beginJob(); 
-    void endJob();                 
+    void endJob(); 
+    void reconfigure(fhicl::ParameterSet p);                
 
   private:
         
