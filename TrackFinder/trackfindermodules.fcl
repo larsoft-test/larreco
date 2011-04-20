@@ -11,11 +11,11 @@ argoneut_track:
 argoneut_kalman:
 {
  module_type:         "Track3DKalman"
- TrackModuleLabel:    "tracks"
+ SpacePtsModuleLabel: "spacepts"
  GenieGenModuleLabel: "generator"     # comment out for real data.
- TMatch:              10              # 11 is delicate. 10 cuts space hits by fac of 10,
-                                      #12 increases by factor two. EC, 5-Jan-2011.
- Chi2DOFmax:          10.0
+ PosErr3:             [0.02,0.02,0.02]   #  position resolution, cm.
+ MomErr3:             [0.10,0.10,0.2]   #  momentum resolution, GeV/c.
+ MomStart3:           [0.10,0.10,1.5]   #  GeV/c. Will *not* be Unit norm'd.
  GenfPRINT:           true
 }
 
@@ -26,6 +26,14 @@ argoneut_lartracker:
  TMatch:             0.05             #tolerance for time matching...in centimeters
 }
 
+argoneut_spacepts:
+{
+ module_type:        "SpacePts"
+ TicksOffset:        60.0
+ ClusterModuleLabel: "dbscan"
+ TMatch:             11.0
+}
+
 microboone_track:
 {
  module_type:        "Track3Dreco"
@@ -34,14 +42,22 @@ microboone_track:
  Chi2DOFmax:         10.0
 }
 
+microboone_spacepts:
+{
+ module_type:        "SpacePts"
+ TicksOffset:        0.0
+ ClusterModuleLabel: "dbscan"
+ TMatch:             11.0
+}
+
 microboone_kalman:
 {
  module_type:         "Track3DKalman"
- TrackModuleLabel:    "tracks"
+ SpacePtsModuleLabel: "spacepts"
  GenieGenModuleLabel: "generator"     # comment out for real data.
- TMatch:              10              # 11 is delicate. 10 cuts space hits by fac of 10,
-                                      #12 increases by factor two. EC, 5-Jan-2011.
- Chi2DOFmax:          10.0
+ PosErr3:             [0.05,0.05,0.05]   #  position resolution, cm.
+ MomErr3:             [0.10,0.10,0.20]   #  momentum resolution, GeV/c.
+ MomStart3:           [0.10,0.10,1.0]    #  Will be Unit norm'd.
  GenfPRINT:           true
 }
 

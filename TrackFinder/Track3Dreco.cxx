@@ -29,6 +29,8 @@
 // LArSoft includes
 #include "Track3Dreco.h"
 #include "Geometry/geo.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Cluster.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/LArProperties.h"
 
@@ -94,7 +96,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
    double presamplings = 60.;
    const double wireShift=50.; // half the number of wires from the Induction(Collection) plane intersecting with a wire from the Collection(Induction) plane.
    double plane_pitch = geom->PlanePitch(0,1);   //wire plane pitch in cm 
-   double wire_pitch = geom->WirePitch(0,1,0);    //wire pitch in cm
+   double wire_pitch = geom->WirePitch();    //wire pitch in cm
    double Efield_drift = 0.5;  // Electric Field in the drift region in kV/cm
    double Efield_SI = 0.7;     // Electric Field between Shield and Induction planes in kV/cm
    double Efield_IC = 0.9;     // Electric Field between Induction and Collection planes in kV/cm
@@ -136,6 +138,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 
    for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
    {
+
       art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
       
       /////////////////////////
@@ -144,6 +147,9 @@ void trkf::Track3Dreco::produce(art::Event& evt)
       
       // Figure out which View the cluster belongs to 
       int clPlane = cl->View()-1;
+      // Gaaaaaah! Change me soon!!! But, for now, 
+      // let's just chuck one plane's worth of info. EC, 30-Mar-2011.
+      if (cl->View() == geo::kW) continue;
 
       // Some variables for the hit
       unsigned int channel;  //channel number
@@ -384,7 +390,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                hitcoord[0] = hit3d.X();
                hitcoord[1] = hit3d.Y();
                hitcoord[2] = hit3d.Z();           
-
+	       std::cout<<"Track3Dreco: SpacePoint adding xyz ..." << hitcoord[0] <<","<< hitcoord[1] <<","<< hitcoord[2] <<std::endl;
                recob::SpacePoint mysp(sp_hits);//3d point at end of track
                mysp.SetXYZ(hitcoord);
                mysp.SetID(spacepoints.size());

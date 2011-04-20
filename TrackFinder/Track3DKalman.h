@@ -38,9 +38,7 @@ namespace trkf {
 
   private:
         
-    int             ftmatch; // tolerance for time matching (in time samples) 
-    double          fchi2dof;// tolerance for chi2/dof of cluster fit to function
-    std::string     fTrackModuleLabel;// label for input collection
+    std::string     fSpacePtsModuleLabel;// label for input collection
     std::string     fGenieGenModuleLabel;// label for input MC single particle generator
     TRandom3*              fRandom;           //< random number generator 
     bool fGenfPRINT;
@@ -54,11 +52,24 @@ namespace trkf {
     TMatrixT<Double_t> *covREC;
     Float_t chi2;
     Float_t chi2ndf;
-    Double_t *pREC;
-    Double_t *pMCT;
+    
+    Float_t *fpRECt3D;    
+    Float_t *fpRECL;
+    Float_t *fpREC;
+    Float_t *fpMCT;
     int nfail;
     int ndf;
-
+    unsigned int evtt;
+    unsigned int nTrks;
+    unsigned int fptsNo;
+    Float_t *fshx;
+    Float_t *fshy;
+    Float_t *fshz;
+    Int_t fDimSize; // if necessary will get this from pset in constructor.
+  
+    std::vector<double> fPosErr;
+    std::vector<double> fMomErr;
+    std::vector<double> fMomStart;
     genf::GFAbsTrackRep *repMC;
     genf::GFAbsTrackRep *rep;
 
