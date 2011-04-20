@@ -27,7 +27,7 @@ namespace cluster {
   private:
         
     std::string     fClusterModuleLabel;
-    double          fSlope; // tolerance for matching Slopes 
+    double          fSlope; // tolerance for matching angles between two lines (in units of radians) 
     double          fEndpointWindow; // tolerance for matching endpoints (in units of time samples) 
    
     bool SlopeCompatibility(double slope1,double slope2);

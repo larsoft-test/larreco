@@ -125,7 +125,9 @@ namespace cluster{
 	  }
 
 	  //check that the slopes are the same
-	  bool sameSlope = SlopeCompatibility(SCl.dTdW(),cl2->dTdW());
+	  //added 13.5 ticks/wirelength in ArgoNeuT. need to make this detector agnostic--spitz
+	  //would be nice to have a LArProperties function that returns ticks/wire.
+	  bool sameSlope = SlopeCompatibility(SCl.dTdW()*(1./13.5),cl2->dTdW()*(1./13.5));  
 
 	  //check that the endpoints fall within a circular window of each other //spitz did this in place of intercept matching
 	  bool sameEndpoint = EndpointCompatibility(SCl.StartPos(),SCl.EndPos(),cl2->StartPos(),cl2->EndPos());
@@ -154,11 +156,13 @@ namespace cluster{
   }
 
   //------------------------------------------------------------------------------------//
+  //checks the difference between angles of the two lines
   bool LineMerger::SlopeCompatibility(double slope1, double slope2)
   { 
     double sl1=atan(slope1);
     double sl2=atan(slope2);
-    bool comp = fabs(sl1-sl2)<fSlope ? true : false;
+    bool comp = fabs(sl1-sl2)<fSlope ? true : false;//the units of fSlope are radians
+
     return comp;
   }
   //------------------------------------------------------------------------------------//
@@ -180,7 +184,6 @@ namespace cluster{
      double distance2=sqrt((pow(sclstartwire-cl2endwire,2)*13.5)+pow(sclstarttime-cl2endtime,2));
 
     bool comp = (distance<fEndpointWindow||distance2<fEndpointWindow) ? true : false;
-
     return comp;
   }
 

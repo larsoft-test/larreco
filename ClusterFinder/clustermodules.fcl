@@ -52,7 +52,7 @@ argoneut_linemerger:
 {
  module_type:        "LineMerger"
  ClusterModuleLabel: "hough"
- Slope:              1.5
+ Slope:              .35
  EndpointWindow:     50.
 }
 
