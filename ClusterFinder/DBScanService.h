@@ -36,15 +36,12 @@ namespace cluster{
     void computeWidthFactor();
       
 
-    std::vector<std::vector<unsigned int> > fclusters;               ///> collection of something
-    std::vector<std::vector<double> >       fps;                     ///> the collection of points we are working on     
-    std::vector<unsigned int>               fpointId_to_clusterId;   ///> mapping point_id -> clusterId     
-    std::vector<std::vector<double> >       fsim;                    ///>
-    std::vector<std::vector<double> >       fsim2;            	     ///>
-    std::vector<std::vector<double> >       fsim3;            	     ///>
-     
-/*     friend std::ostream& operator <<(std::ostream& o, const DBScanService& c); */
-/*     friend std::ostream& operator <<(std::ostream& o,const std::vector<double> & p); */
+    std::vector<std::vector<unsigned int> > fclusters;               ///< collection of something
+    std::vector<std::vector<double> >       fps;                     ///< the collection of points we are working on     
+    std::vector<unsigned int>               fpointId_to_clusterId;   ///< mapping point_id -> clusterId     
+    std::vector<std::vector<double> >       fsim;                    ///<
+    std::vector<std::vector<double> >       fsim2;            	     ///<
+    std::vector<std::vector<double> >       fsim3;            	     ///<
      
   private:
       
@@ -60,5 +57,7 @@ namespace cluster{
     // noise vector
     std::vector<bool> fnoise;
     std::vector<bool> fvisited;
+
+    std::vector<double> fWirePitch; ///< the pitch of the wires in each plane
   };
 } // namespace
