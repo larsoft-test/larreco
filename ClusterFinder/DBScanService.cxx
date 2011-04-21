@@ -116,20 +116,31 @@ double cluster::DBScanService::getSimilarity(const std::vector<double> v1, const
   
   //wire bridging capability added by spitz
   filter::ChannelFilter chanFilt;
-    
-  unsigned int wire1=(unsigned int)(v1[0]/0.4);
-  unsigned int wire2=(unsigned int)(v2[0]/0.4);
+  // get services
+  art::ServiceHandle<geo::Geometry> geom;
+
+  double wire_dist = geom->WirePitch(0,1,0);
+  //std::cout<<wire_dist<<std::endl;
+
+  unsigned int wire1=(unsigned int)(v1[0]/wire_dist+0.5); //to make sure to get desired integer
+  unsigned int wire2=(unsigned int)(v2[0]/wire_dist+0.5);
   int wirestobridge=0;
-  
+
+  if (wire1>wire2) {
+    unsigned int wire = wire1;
+    wire1 = wire2;
+    wire2 = wire;
+  }
+
   for(unsigned int i=wire1;i<wire2;i++)
   {
-  if(chanFilt.BadChannel(i))
-  wirestobridge++;
+    if(chanFilt.BadChannel(i))
+      wirestobridge++;
   }    
   
-  double cmtobridge=wirestobridge*0.4;  
+  double cmtobridge=wirestobridge*wire_dist;  
   //---------------------------------------------------------------------
-  return (( v2[0]-v1[0]-cmtobridge)*( v2[0]-v1[0]-cmtobridge)); //for ellipse
+  return (( fabs(v2[0]-v1[0])-cmtobridge)*( fabs(v2[0]-v1[0])-cmtobridge)); //for ellipse
 }
 
 //----------------------------------------------------------------
@@ -138,7 +149,39 @@ double cluster::DBScanService::getSimilarity2(const std::vector<double> v1, cons
   //-------------------------------------------
   //return fabs( v2[1]-v1[1]);//for rectangle
   //------------------------------------------
-  return (( v2[1]-v1[1])*( v2[1]-v1[1]));//for ellipse
+
+  //time bridging capability added by tjyang following Josh's code
+  filter::ChannelFilter chanFilt;
+  // get services
+  art::ServiceHandle<geo::Geometry> geom;
+
+  double wire_dist = geom->WirePitch(0,1,0);
+  //std::cout<<wire_dist<<std::endl;
+
+  unsigned int wire1=(unsigned int)(v1[0]/wire_dist+0.5); //to make sure to get desired integer
+  unsigned int wire2=(unsigned int)(v2[0]/wire_dist+0.5);
+  int wirestobridge=0;
+
+  if (wire1>wire2) {
+    unsigned int wire = wire1;
+    wire1 = wire2;
+    wire2 = wire;
+  }
+
+  for(unsigned int i=wire1;i<wire2;i++)
+  {
+    if(chanFilt.BadChannel(i))
+      wirestobridge++;
+  }    
+  
+  double cmtobridge=wirestobridge*wire_dist;  
+  
+  if (fabs(v2[0]-v1[0])>1e-10){
+    cmtobridge *= fabs((v2[1]-v1[1])/(v2[0]-v1[0]));
+  }
+  else cmtobridge = 0;
+
+  return (( fabs(v2[1]-v1[1])-cmtobridge)*( fabs(v2[1]-v1[1])-cmtobridge));//for ellipse
   
   
 }
