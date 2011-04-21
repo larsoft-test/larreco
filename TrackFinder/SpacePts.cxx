@@ -47,11 +47,10 @@ struct SortByWire
 } // end namespace
 
 //-------------------------------------------------
-trkf::SpacePts::SpacePts(fhicl::ParameterSet const& pset) :
-   fPreSamplings           (pset.get< double >("TicksOffset")),
-   ftmatch                 (pset.get< int    >("TMatch")),
-   fClusterModuleLabel     (pset.get< std::string >("ClusterModuleLabel"))
+trkf::SpacePts::SpacePts(fhicl::ParameterSet const& pset)
 {
+  this->reconfigure(pset);
+
    produces< std::vector<recob::Track> >();
 }
 
@@ -60,11 +59,17 @@ trkf::SpacePts::~SpacePts()
 {
 }
 
+void trkf::SpacePts::reconfigure(fhicl::ParameterSet pset) 
+{
+  fPreSamplings           = pset.get< double >("TicksOffset");
+  ftmatch                 = pset.get< int    >("TMatch");
+  fClusterModuleLabel     = pset.get< std::string >("ClusterModuleLabel");
+
+}
+
 //-------------------------------------------------
 void trkf::SpacePts::beginJob()
 {
-  
-
 }
 
 void trkf::SpacePts::endJob()
@@ -249,7 +254,7 @@ void trkf::SpacePts::produce(art::Event& evt)
          art::PtrVector<recob::Hit> hitsItrk = IclusHitlists[inductionIter];
 
 	 // My 1000s below. EC, 11-Apr-2011
-         if((fabs(Ct0-It0)<1000*ftmatch*timepitch) && (fabs(Ct1-It1)<1000*ftmatch*timepitch)){ 
+         if((fabs(Ct0-It0)<ftmatch*timepitch) && (fabs(Ct1-It1)<ftmatch*timepitch)){ 
             //std::cout<<"-----> Track "<<collectionIter<< " Collection associated with track "<<inductionIter<< " Induction"<<std::endl;
 	
        
@@ -366,8 +371,8 @@ void trkf::SpacePts::produce(art::Event& evt)
                Double_t hitcoord[3];       
                hitcoord[0] = hit3d.X();
                hitcoord[1] = hit3d.Y();
-               hitcoord[2] = hit3d.Z();           
-	       std::cout<<"SpacePts: SpacePoint adding xyz ..." << hitcoord[0] <<","<< hitcoord[1] <<","<< hitcoord[2] <<std::endl;
+               hitcoord[2] = hit3d.Z();         
+	       mf::LogInfo("SpacePts: ") << "SpacePoint adding xyz ..." << hitcoord[0] <<","<< hitcoord[1] <<","<< hitcoord[2];
                recob::SpacePoint mysp(sp_hits);//3d point at end of track
                mysp.SetXYZ(hitcoord);
                mysp.SetID(spacepoints.size());

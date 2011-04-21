@@ -42,12 +42,10 @@
 
 
 //-------------------------------------------------
-trkf::Track3Dreco::Track3Dreco(fhicl::ParameterSet const& pset) :
-   fClusterModuleLabel     (pset.get< std::string >("ClusterModuleLabel")),
-   ftmatch                 (pset.get< int    >("TMatch")),
-   fchi2dof                (pset.get< double >("Chi2DOFmax"))
+trkf::Track3Dreco::Track3Dreco(fhicl::ParameterSet const& pset)
 {
-   produces< std::vector<recob::Track> >();
+  this->reconfigure(pset);
+  produces< std::vector<recob::Track> >();
 }
 
 //-------------------------------------------------
@@ -55,6 +53,13 @@ trkf::Track3Dreco::~Track3Dreco()
 {
 }
 
+void trkf::Track3Dreco::reconfigure(fhicl::ParameterSet pset)
+{
+
+  fClusterModuleLabel     = pset.get< std::string >("ClusterModuleLabel");
+  ftmatch                 = pset.get< int    >("TMatch");
+  fchi2dof                = pset.get< double >("Chi2DOFmax");
+}
 //-------------------------------------------------
 void trkf::Track3Dreco::beginJob()
 {
@@ -395,7 +400,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                mysp.SetXYZ(hitcoord);
                mysp.SetID(spacepoints.size());
                spacepoints.push_back(mysp);
-	  
+	       
             }//loop over min-hits
       
 
