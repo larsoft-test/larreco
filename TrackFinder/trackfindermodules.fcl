@@ -30,7 +30,7 @@ argoneut_spacepts:
 {
  module_type:        "SpacePts"
  TicksOffset:        60.0
- ClusterModuleLabel: "dbscan"
+ ClusterModuleLabel: "dbcluster"
  TMatch:             11.0
 }
 
@@ -46,7 +46,7 @@ microboone_spacepts:
 {
  module_type:        "SpacePts"
  TicksOffset:        0.0
- ClusterModuleLabel: "dbscan"
+ ClusterModuleLabel: "dbcluster"
  TMatch:             11.0
 }
 
