@@ -14,13 +14,13 @@ argoneut_dbclusterana:
  LArGeantModuleLabel:      "largeant"
  CalDataModuleLabel:       "caldataCal"
  GenieGenModuleLabel:      "singlegen"
- ClusterFinderModuleLabel: "dbscan"
+ ClusterFinderModuleLabel: "dbcluster"
 }
 
 argoneut_houghlinefinder:
 {
  module_type:          "HoughLineFinder"
- DBScanModuleLabel:    "dbscan"
+ DBScanModuleLabel:    "dbcluster"
  MaxLines:             5
  MinHits:              3
  SaveAccumulator:      0
@@ -38,14 +38,14 @@ argoneut_houghlinefinderana:
  module_type:         "HoughLineFinderAna"
  DigitModuleLabel:    "wiresim"
  HitsModuleLabel:     "ffthit"
- DBScanModuleLabel:   "dbscan"
+ DBScanModuleLabel:   "dbcluster"
  HoughModuleLabel:    "hough"
 }
 
 argoneut_houghlinemod:
 {
  module_type:          "HoughLineModule"
- DBScanModuleLabel:    "dbscan"
+ DBScanModuleLabel:    "dbcluster"
 }
 
 argoneut_linemerger:
@@ -59,7 +59,7 @@ argoneut_linemerger:
 argoneut_endpointmod:
 {
  module_type:       "EndPointModule"
- DBScanModuleLabel: "dbscan"
+ DBScanModuleLabel: "dbcluster"
 }
 
 microboone_dbcluster:
@@ -76,13 +76,13 @@ microboone_dbclusterana:
  LArGeantModuleLabel:      "largeant"
  CalDataModuleLabel:       "caldataCal"
  GenieGenModuleLabel:      "singlegen"
- ClusterFinderModuleLabel: "dbscan"
+ ClusterFinderModuleLabel: "dbcluster"
 }
 
 microboone_houghlinefinder:
 {
  module_type:          "HoughLineFinder"
- DBScanModuleLabel:    "dbscan"
+ DBScanModuleLabel:    "dbcluster"
  MaxLines:             5
  MinHits:              3
  SaveAccumulator:      0
@@ -100,14 +100,14 @@ microboone_houghlinefinderana:
  module_type:         "HoughLineFinderAna"
  DigitModuleLabel:    "wiresim"
  HitsModuleLabel:     "ffthit"
- DBScanModuleLabel:   "dbscan"
+ DBScanModuleLabel:   "dbcluster"
  HoughModuleLabel:    "hough"
 }
 
 microboone_houghlinemod:
 {
  module_type:          "HoughLineModule"
- DBScanModuleLabel:    "dbscan"
+ DBScanModuleLabel:    "dbcluster"
 }
 
 microboone_linemerger:
@@ -122,7 +122,7 @@ microboone_linemerger:
 microboone_endpointmod:
 {
  module_type:       "EndPointModule"
- DBScanModuleLabel: "dbscan"
+ DBScanModuleLabel: "dbcluster"
 }
 
 argoneut_kingacluster:
