@@ -75,8 +75,8 @@ void shwf::ShowerReco::beginJob()
     fplane_pitch.push_back(geo->PlanePitch(i,i+1));
     fwires.push_back(geo->Nwires(i));
     for (unsigned int j=0;j<fwires[i]-1;++j){
-      fwire_pitch.push_back(geo->WirePitch(j,j+1,i));
-      mean_wirepitch+=geo->WirePitch(j,j+1,i);
+      fwire_pitch.push_back(geo->WirePitch());
+      mean_wirepitch+=geo->WirePitch();
     }
     fmean_wire_pitch.push_back(mean_wirepitch/geo->Nwires(i));
   }
