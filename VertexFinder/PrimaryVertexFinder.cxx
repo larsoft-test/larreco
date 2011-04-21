@@ -248,7 +248,7 @@ namespace vertex{
 	std::cout << std::endl;
 
 	//if(StartPointSeperation(startpoints_vec[i], startpoints_vec[j])<fVertexWindow){ ///// correct this
-	if(MINDIST<2 && trackpair[i].first->SpacePoints().size() >30 && trackpair[j].first->SpacePoints().size() >30){
+	if(MINDIST<2 && trackpair[i].second >30 && trackpair[j].second >30){
 
 
 	  if((!IsInVertexCollection(i, vertex_collection_int)) && (!IsInVertexCollection(j, vertex_collection_int))){
@@ -256,10 +256,10 @@ namespace vertex{
 	    std::vector <TVector3> vertexcand;
 	    newvertex_int.push_back(i);
 	    newvertex_int.push_back(j);
-	    vertexcand.push_back(TRACK1POINT);
-	    vertexcand.push_back(TRACK2POINT);
 	    vertex_collection_int.push_back(newvertex_int);
 	    //newvertex.clear();
+	    vertexcand.push_back(TRACK1POINT);
+	    vertexcand.push_back(TRACK2POINT);
 	    vertexcand_vec.push_back(vertexcand);
 	  }
 	  else
@@ -304,10 +304,11 @@ namespace vertex{
       int elemsize = 0.;
       for(std::vector<int>::iterator itr = vertex_collection_int[i].begin(); itr < vertex_collection_int[i].end(); ++itr){
 	std::cout << "vector elements at index " << i << " are " << *itr <<std::endl;
+	//	std::cout << "the number of elements at index " << i << " are " << vertex_collection_int[i].size() <<std::endl;
 	std::cout << "track original ID = " << (trackpair[*itr].first)->ID() << std::endl;
 	vTracks_vec.push_back(trackpair[*itr].first);
       }
-      std::cout << "----hehe----" <<std::endl;
+      std::cout << "------------" <<std::endl;
 
       
       for(std::vector<TVector3>::iterator itr = vertexcand_vec[i].begin(); itr < vertexcand_vec[i].end(); ++itr){
