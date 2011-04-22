@@ -473,6 +473,7 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 		    dircosL[ii] = fpRECL[ii];
 		  }
 		the3DTrack.SetDirection(dircosF,dircosL);
+		the3DTrack.SetID(tcol->size());
 		tcol->push_back(the3DTrack);
 	      } // getStatusFlag 
 	  } // spacepoints.size()>0
