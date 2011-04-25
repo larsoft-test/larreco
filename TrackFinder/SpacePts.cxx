@@ -268,7 +268,15 @@ void trkf::SpacePts::produce(art::Event& evt)
 
             //compute track (normalized) cosine directions in the TPC co-ordinate system
             TVector3 DirCos = endpointVec - startpointVec;
+            
+            //SetMag casues a crash if the magnitude of the vector is zero
+            try
+            {
             DirCos.SetMag(1.0);//normalize vector
+            }
+            catch(...){std::cout<<"The Spacepoint is infinitely small"<<std::endl;
+            continue;
+            }
 
             art::Ptr <recob::Cluster> cl1(clusterListHandle,Icluster_count[inductionIter]);
             art::Ptr <recob::Cluster> cl2(clusterListHandle,Ccluster_count[collectionIter]);
