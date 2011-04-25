@@ -179,6 +179,7 @@ namespace vertex{
       std::cout << "track id is  = " << (trackpair[i].first)->ID() << " track length = " << (trackpair[i].second) << std::endl;
     }
     
+    if(trackpair.size()>0)
     fLength_1stTrack->Fill(trackpair[0].second);
 
     if(trackpair.size()>1)
