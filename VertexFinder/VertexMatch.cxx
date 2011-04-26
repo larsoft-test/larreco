@@ -113,7 +113,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
   double starttime, endtime;
   int startwire, endwire;
   double strength; //the strength of a strong vertex
-  for(int p = 0; p < geom->Nplanes(); p++) {
+  for(unsigned int p = 0; p < geom->Nplanes(); p++) {
     //create the vector of vertex hits 
     art::PtrVectorItr<recob::EndPoint2D> vertexIter = vertIn.begin();
     art::PtrVectorItr<recob::Cluster> houghIter = houghIn.begin();
@@ -253,14 +253,16 @@ void vertex::VertexMatch::produce(art::Event& evt)
 
 	//find the strong vertices, those vertices that have been associated with more than one hough line  
 	if(i>0)
+	{
 	if(matchedvertex[i].first==matchedvertex[i-1].first)	
 	  {
 	    if(strongvertex[0]==(strongestvertex[0].first)&&strongestvertex.size()>0)
 	      vertex.SetID(4);//the strongest strong vertex is given a vertex id=4
 	    else
 	      vertex.SetID(3);//strong vertices are given vertex id=3
-	  } 	  
-	else	
+	  } 
+	 } 
+	else
 	  {
 	    vertex.SetID(2);//weak vertices that have been associated with an endpoint of a single Hough line are given vertex id=2
 	  } 

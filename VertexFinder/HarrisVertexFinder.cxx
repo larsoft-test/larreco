@@ -146,7 +146,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
   }
   
   unsigned int channel,plane,wire,wire2;
-  for(int p = 0; p < geom->Nplanes(); p++) 
+  for(unsigned int p = 0; p < geom->Nplanes(); p++) 
     {
       art::PtrVector<recob::Hit> vHits;
       art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
@@ -156,7 +156,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 	cHits = (*clusterIter)->Hits(p);
 	if(cHits.size() > 0)
 	  //hit.insert(hit.end(),cHits.begin(),cHits.end());
-      for(int i = 0; i < cHits.size(); i++)
+      for(unsigned int i = 0; i < cHits.size(); i++)
       hit.push_back(cHits[i]);
       
 	clusterIter++;  
@@ -220,7 +220,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 	  }
      
       //calculate the cornerness of each pixel while making sure not to fall off the hit map.
-      for(int wire=1;wire < numberwires-1; wire++)
+      for(unsigned int wire=1;wire < numberwires-1; wire++)
 	for(int timebin=1;timebin < fTimeBins-1; timebin++)
 	  {     
 	    MatrixAAsum=0;
