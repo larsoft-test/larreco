@@ -127,7 +127,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
   int windex=0;//the wire index to make sure the vertex finder does not fall off the edge of the hit map
   int tindex=0;//the time index to make sure the vertex finder does not fall off the edge of the hit map
   int n=0; //index of window cell. There are 49 cells in the 7X7 Gaussian and Gaussian derivative windows
-  int numberwires;
+  unsigned int numberwires;
   double numbertimesamples;
   double MatrixAAsum,MatrixBBsum,MatrixCCsum;
   std::vector<double> Cornerness2;
@@ -172,7 +172,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
       int hit_loc[numberwires][fTimeBins];//the index of the hit that corresponds to the potential corner
       double Cornerness[numberwires][fTimeBins];//the "weight" of a corner
   
-      for(int wi=0;wi < numberwires; wi++)
+      for(unsigned int wi=0;wi < numberwires; wi++)
 	for(int timebin=0;timebin < fTimeBins; timebin++)
 	  {
 	    hit_map[wi][timebin]=0.;
@@ -192,7 +192,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 	}
 	
       ////Gaussian derivative convolution  
-      for(int wire=1;wire < numberwires-1; wire++)
+      for(unsigned int wire=1;wire < numberwires-1; wire++)
 	for(int timebin=1;timebin < fTimeBins-1; timebin++)
 	  {
 	    MatrixAsum[wire][timebin]=0.;
@@ -278,7 +278,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
       for(int vertexnum=0;vertexnum<fMaxCorners;vertexnum++)
 	{
 	  flag=0;
-	  for(int wire=0;wire < numberwires && flag==0; wire++)
+	  for(unsigned int wire=0;wire < numberwires && flag==0; wire++)
 	    for(int timebin=0;timebin < fTimeBins && flag==0; timebin++)
 	      {    
 		if(Cornerness2.size()>(unsigned int)vertexnum)
@@ -304,7 +304,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 		      // converted to time ticks so that the window is truly square. 
 		      // Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), 
 		      // assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
-		      for(int wireout=wire-(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5);
+		      for(unsigned int wireout=wire-(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5);
 			  wireout <= wire+(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5) ; wireout++)
 			for(int timebinout=timebin-fWindow;timebinout <= timebin+fWindow; timebinout++)
 			  if(sqrt(pow(wire-wireout,2)+pow(timebin-timebinout,2))<fWindow)//circular window 
@@ -316,14 +316,14 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
       hit.clear();
       if(clusterIter!=clusIn.end()) clusterIter++;
 
-      if(p==fSaveVertexMap)
+      if(p==(unsigned int)fSaveVertexMap)
 	{ 
 	  unsigned char *outPix = new unsigned char [fTimeBins*numberwires];
 	  //finds the maximum cell in the map for image scaling
 	  int cell, pix=0, maxCell=0;
 	  int xmaxx, ymaxx;
 	  for (int y=0; y<fTimeBins; y++)
-	    for (int x=0; x<numberwires; x++)
+	    for (unsigned int x=0; x<numberwires; x++)
 	      {
 		cell = (int)(hit_map[x][y]*1000);
 		if (cell > maxCell){
@@ -333,8 +333,8 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 		}
 	      }
        
-	  for (int y=0; y<fTimeBins; y++)
-	    for (int x=0; x<numberwires; x++)
+	  for (unsigned int y=0; y<(unsigned int)fTimeBins; y++)
+	    for (unsigned int x=0; x<numberwires; x++)
 	      { 
 		//scales the pixel weights based on the maximum cell value     
 		if(maxCell>0)
