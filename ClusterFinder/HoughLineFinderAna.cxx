@@ -49,19 +49,19 @@ extern "C" {
 
 cluster::HoughLineFinderAna::HoughLineFinderAna(fhicl::ParameterSet const& pset) : 
   fHoughModuleLabel (pset.get< std::string >("HoughModuleLabel")),
-  fDBScanModuleLabel(pset.get< std::string >("DBScanModuleLabel")),
   fDigitModuleLabel (pset.get< std::string >("DigitModuleLabel")),
   fHitsModuleLabel  (pset.get< std::string >("HitsModuleLabel")),
+  fDBScanModuleLabel(pset.get< std::string >("DBScanModuleLabel")),
   fm_run(0), 
   fm_event(0), 
   fm_plane(0),
   fm_dbsize(0),
-  fm_clusterslope(0), 
-  fm_clusterintercept(0),
   fm_clusterid(0), 
   fm_wirespan(0), 
   fm_sizeClusterZ(10000), 
-  fm_sizeHitZ(10000)
+  fm_sizeHitZ(10000),
+  fm_clusterslope(0), 
+  fm_clusterintercept(0)
 {
 }
 

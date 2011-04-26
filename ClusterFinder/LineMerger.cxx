@@ -147,7 +147,7 @@ namespace cluster{
 
     mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
     mf::LogVerbatim("Summary") << "LineMerger Summary:";
-    for(int i = 0; i<SuperClusters->size(); ++i) mf::LogVerbatim("Summary") << SuperClusters->at(i) ;
+    for(unsigned int i = 0; i<SuperClusters->size(); ++i) mf::LogVerbatim("Summary") << SuperClusters->at(i) ;
 
     evt.put(SuperClusters);
      

@@ -41,14 +41,13 @@
 
  
 //-------------------------------------------------
-cluster::DBclusterAna::DBclusterAna(fhicl::ParameterSet const& pset) : 
-  
-  fDigitModuleLabel         (pset.get< std::string >("DigitModuleLabel")        ),
-  fHitsModuleLabel          (pset.get< std::string >("HitsModuleLabel")         ),
-  fLArG4ModuleLabel         (pset.get< std::string >("LArGeantModuleLabel")     ),
-  fCalDataModuleLabel       (pset.get< std::string >("CalDataModuleLabel")      ),
-  fGenieGenModuleLabel      (pset.get< std::string >("GenieGenModuleLabel")     ),
-  fClusterFinderModuleLabel (pset.get< std::string >("ClusterFinderModuleLabel"))
+cluster::DBclusterAna::DBclusterAna(fhicl::ParameterSet const& pset)  
+  : fDigitModuleLabel         (pset.get< std::string >("DigitModuleLabel")        )
+  , fHitsModuleLabel          (pset.get< std::string >("HitsModuleLabel")         )
+  , fLArG4ModuleLabel         (pset.get< std::string >("LArGeantModuleLabel")     )
+  , fClusterFinderModuleLabel (pset.get< std::string >("ClusterFinderModuleLabel"))
+  , fCalDataModuleLabel       (pset.get< std::string >("CalDataModuleLabel")      )
+  , fGenieGenModuleLabel      (pset.get< std::string >("GenieGenModuleLabel")     )
 {
 
 
@@ -319,7 +318,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 		for(unsigned int scs = 0; scs < simchans.size(); ++scs)
 		  if(simchans[scs]->Channel() == channel) sc = simchans[scs];
 		
-		int numberOfElectrons = sc->NumberOfElectrons();
+		unsigned int numberOfElectrons = sc->NumberOfElectrons();
 		
 		//std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
 
@@ -770,7 +769,6 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   unsigned int plane_k=0;
   double total_eng_hits_p0=0;
   double total_eng_hits_p1=0;
-  unsigned int w=0;
   _electrons=0;
   electrons=0;
   // if(hits.size()!=0){
@@ -1062,7 +1060,6 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   double no_ele_p0=0;
   double no_ele_p1=0;
   unsigned int plane=0;
-  unsigned int w_=0;
   double Tno_ele_p0=0;
   double Tno_ele_p1=0;
 	  

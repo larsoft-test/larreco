@@ -10,7 +10,7 @@
 //  Niblack, W. and Petkovic, D. On Improving the Accuracy of the Hough Transform", Machine Vision and Applications 3, 87 (1990)  
 ////////////////////////////////////////////////////////////////////////
 
-#include "HoughLineService.h"
+#include "ClusterFinder/HoughLineService.h"
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -48,10 +48,10 @@ cluster::HoughLineService::HoughLineService(fhicl::ParameterSet const& pset, art
   fMinHits                 (pset.get< int >("MinHits")),
   fSaveAccumulator         (pset.get< int >("SaveAccumulator")),
   fNumAngleCells           (pset.get< int >("NumAngleCells")),
-  fRhoResolutionFactor     (pset.get< int >("RhoResolutionFactor")),
   fMaxDistance             (pset.get< double >("MaxDistance")),
   fRhoZeroOutRange         (pset.get< int >("RhoZeroOutRange")),
   fThetaZeroOutRange       (pset.get< int >("ThetaZeroOutRange")),
+  fRhoResolutionFactor     (pset.get< int >("RhoResolutionFactor")),
   fPerCluster              (pset.get< int >("HitsPerCluster"))
 {
 }
@@ -93,7 +93,7 @@ void cluster::HoughLineService::HoughTransform::Init(int dx, int dy, int rhores,
   m_dy = dy;
   m_rowLength = (int)(m_rhoResolutionFactor*2. * sqrt(dx*dx + dy*dy));
   
-  unsigned int angleIndex;
+  int angleIndex;
   double a, angleStep = TMath::Pi()/m_numAngleCells;
   for (a=0.0, angleIndex=0; angleIndex<m_numAngleCells; angleIndex++)
     {
@@ -142,7 +142,6 @@ bool cluster::HoughLineService::HoughTransform::DoAddPoint(int x, int y)
 	    {
 	      // fill in all values in row a, not just a single cell
 	      stepDir = dist>lastDist ? 1 : -1;
-	      cell;
 	      for (cell=lastDist; cell!=dist; cell+=stepDir)
 		{   
 		  m_accum[a][cell]++;//maybe add weight of hit here?
@@ -203,7 +202,7 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
   art::PtrVector<recob::Hit> cHits;
   art::PtrVector<recob::Hit> hit;
 
-  for(int p = 0; p < geom->Nplanes(); p++) {
+  for(unsigned int p = 0; p < geom->Nplanes(); p++) {
     art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
     int clusterID=0;//the unique ID of the cluster
     // This is the loop over clusters. The algorithm searches for lines on a (DBSCAN) cluster-by-cluster basis. 

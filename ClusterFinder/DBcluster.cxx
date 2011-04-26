@@ -85,7 +85,7 @@ void cluster::DBcluster::produce(art::Event& evt)
   art::ServiceHandle<cluster::DBScanService> dbscan;
       
   unsigned int p(0),w(0), channel(0);
-  for(int plane=0; plane<geom->Nplanes(); plane++)
+  for(unsigned int plane=0; plane<geom->Nplanes(); plane++)
     {
       for(unsigned int i = 0; i< hitcol->size(); ++i){
   
@@ -181,7 +181,7 @@ void cluster::DBcluster::produce(art::Event& evt)
 
   mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
   mf::LogVerbatim("Summary") << "DBcluster Summary:";
-  for(int i = 0; i<ccol->size(); ++i) mf::LogVerbatim("Summary") << ccol->at(i) ;
+  for(unsigned int i = 0; i<ccol->size(); ++i) mf::LogVerbatim("Summary") << ccol->at(i) ;
 
   evt.put(ccol);
   return;

@@ -147,7 +147,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
   int windex=0;//the wire index to make sure the end point finder does not fall off the edge of the hit map
   int tindex=0;//the time index to make sure the end point finder does not fall off the edge of the hit map
   int n=0; //index of window cell. There are 49 cells in the 7X7 Gaussian and Gaussian derivative windows
-  int numberwires;
+  unsigned int numberwires;
   double numbertimesamples;
   double MatrixAAsum,MatrixBBsum,MatrixCCsum;
   std::vector<double> Cornerness2;
@@ -166,7 +166,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
   }
   
   unsigned int channel,plane,wire,wire2;
-  for(int p = 0; p < geom->Nplanes(); p++) 
+  for(unsigned int p = 0; p < geom->Nplanes(); p++) 
     {
       art::PtrVector<recob::Hit> vHits;
       art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
@@ -178,7 +178,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 	  cHits = (*clusterIter)->Hits();
 	  if(cHits.size() > 0)
 	    //hit.insert(hit.end(),cHits.begin(),cHits.end());
-	    for(int i = 0; i < cHits.size(); i++)
+	    for(unsigned int i = 0; i < cHits.size(); i++)
 	      hit.push_back(cHits[i]);
 	}//end if cluster is in the correct view
 	clusterIter++;  
@@ -194,7 +194,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
       int hit_loc[numberwires][fTimeBins];//the index of the hit that corresponds to the potential corner
       double Cornerness[numberwires][fTimeBins];//the "weight" of a corner
   
-      for(int wi=0;wi < numberwires; wi++)
+      for(unsigned int wi=0;wi < numberwires; wi++)
 	for(int timebin=0;timebin < fTimeBins; timebin++)
 	  {
 	    hit_map[wi][timebin]=0.;
@@ -214,7 +214,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 	}
 	
       ////Gaussian derivative convolution  
-      for(int wire=1;wire < numberwires-1; wire++)
+      for(unsigned int wire=1;wire < numberwires-1; wire++)
 	for(int timebin=1;timebin < fTimeBins-1; timebin++)
 	  {
 	    MatrixAsum[wire][timebin]=0.;
@@ -242,7 +242,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 	  }
      
       //calculate the cornerness of each pixel while making sure not to fall off the hit map.
-      for(int wire=1;wire < numberwires-1; wire++)
+      for(unsigned int wire=1;wire < numberwires-1; wire++)
 	for(int timebin=1;timebin < fTimeBins-1; timebin++)
 	  {     
 	    MatrixAAsum=0;
@@ -300,7 +300,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
       for(int vertexnum=0;vertexnum<fMaxCorners;vertexnum++)
 	{
 	  flag=0;
-	  for(int wire=0;wire < numberwires && flag==0; wire++)
+	  for(unsigned int wire=0;wire < numberwires && flag==0; wire++)
 	    for(int timebin=0;timebin < fTimeBins && flag==0; timebin++)
 	      {    
 		if(Cornerness2.size()>(unsigned int)vertexnum)
@@ -345,7 +345,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 	  int cell, pix=0, maxCell=0;
 	  int xmaxx, ymaxx;
 	  for (int y=0; y<fTimeBins; y++)
-	    for (int x=0; x<numberwires; x++)
+	    for (unsigned int x=0; x<numberwires; x++)
 	      {
 		cell = (int)(hit_map[x][y]*1000);
 		if (cell > maxCell){
@@ -356,7 +356,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 	      }
        
 	  for (int y=0; y<fTimeBins; y++)
-	    for (int x=0; x<numberwires; x++)
+	    for (unsigned int x=0; x<numberwires; x++)
 	      { 
 		//scales the pixel weights based on the maximum cell value     
 		if(maxCell>0)
