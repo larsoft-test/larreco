@@ -16,6 +16,7 @@
 
 class TH1F;
 class TH2F;
+namespace recob { class Hit; }
 ///Cluster finding and building 
 namespace cluster {
 
@@ -32,13 +33,18 @@ namespace cluster {
     void beginJob();
 
   private:
-   std::string fKingaModuleLabel;
-    std::string fDigitModuleLabel;
-    std::string fHitsModuleLabel;
-    std::string fLArG4ModuleLabel;
-    std::string fClusterFinderModuleLabel;
-    //std::string fCalDataModuleLabel;
-    std::string fGenieGenModuleLabel;
+  art::PtrVector<recob::Hit> allhits;
+  std::vector<unsigned int> fwire_vertex;
+  std::vector<unsigned int> ftime_vertex;
+  double ftimetick;
+  double fdriftvelocity; 
+  std::string fKingaModuleLabel;
+  std::string fGenieGenModuleLabel;
+  std::string fLArG4ModuleLabel;
+  std::string fHitsModuleLabel;
+  std::string fClusterFinderModuleLabel;
+   
+    
     
     TH1F* Mu_theta;
     TH1F* Mu_phi;
@@ -47,7 +53,14 @@ namespace cluster {
     TH1F* pion_theta;
     TH1F* pion_phi;
     TH1F* pion_phi_oneside;
+    
+    TH1F* Energy_in_Sphere;
+    TH1F* M_Delta_plus_plus;
+    TH1F* M_Delta_plus_plus2;
+    TH1F* Number_protons;
 
+TH1F* Ind_eng_rectangle;
+TH1F* Coll_eng_rectangle;
   }; // class KingaClusterAna
 
 }

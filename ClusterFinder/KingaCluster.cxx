@@ -65,7 +65,7 @@ void cluster::KingaCluster::beginJob(){
   // get access to the TFile service
   art::ServiceHandle<art::TFileService> tfs;
   art::ServiceHandle<geo::Geometry> geo;
-  unsigned int planes = geo->Nplanes();
+  //unsigned int planes = geo->Nplanes();
  
  
   fh_theta_ind= tfs->make<TH1F>("fh_theta_ind","theta angle in degrees, Induction Plane", 180,-180 ,180  );
@@ -103,7 +103,7 @@ std::cout << " Event: " << evt.id().event() << std::endl;
  int RunNo= evt.run();
  int EventNo=evt.id().event();
  art::ServiceHandle<util::LArProperties> larp;
- double electronlifetime=larp->ElectronLifetime();
+// double electronlifetime=larp->ElectronLifetime();
  
 
 
@@ -113,14 +113,14 @@ if (evt.isRealData())
     {
       std::cout<<" YOU ARE WORKING WITH DATA !!!!!!!!!!!!!!!!!!!!! "<<std::endl;
     //let's see if this Run has been scanned and thus we can find vertex info for it:
-    DIR *pDIR;
-    struct dirent *entry;
+    DIR *pDIR=0;
+    struct dirent *entry=0;
     const char path[60]="/argoneut/data/simplescan_data/simplescan_text/";
   char path_[60];
   strcpy(path_,path);
-    if(pDIR=opendir(path))
+    if(pDIR==opendir(path))
     {
-       while(entry=readdir(pDIR))
+       while(entry==readdir(pDIR))
        {
          if(strcmp(entry->d_name,".")!=0 && strcmp(entry->d_name, "..")!=0)
          {
@@ -229,7 +229,8 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
     MCvertex[0] =neut.Vx();
     MCvertex[1] =neut.Vy();
     MCvertex[2] =neut.Vz();
-    
+    std::cout<<"MCvertex[0]= "<<MCvertex[0]<<std::endl;
+    std::cout<<"driftvelocity= "<<larp->DriftVelocity(larp->Efield(),larp->Temperature())<<std::endl;
     double drifttick=(MCvertex[0]/larp->DriftVelocity(larp->Efield(),larp->Temperature()))*(1./.198);
     
     std::cout<<"%%%%%%%%%%%%%%%%%%   drifttick= "<<drifttick<<std::endl;
@@ -279,7 +280,7 @@ std::cout<<"No of DBSCAN clusters= "<<clusIn.size()<<std::endl;
 unsigned int p(0),w(0), channel(0);
 
 std::cout<<"No of planes = "<<geom->Nplanes()<<std::endl;
-  for(int plane = 0; plane < geom->Nplanes(); plane++) {
+  for(unsigned int plane = 0; plane < geom->Nplanes(); plane++) {
 
     for(unsigned int j=0; j<clusIn.size();++j) {
    
@@ -333,9 +334,9 @@ std::cout<<"No of planes = "<<geom->Nplanes()<<std::endl;
     //FinalPeaks();
     FindClusters(plane);
     std::cout<<"HitsWithClusterID.size()= "<<HitsWithClusterID.size()<< "compare with allhits.size()= "<<allhits.size()<<std::endl;
-    for(int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++) {
+    for(unsigned int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++) {
     
-       for(int j=0; j<HitsWithClusterID.size();j++){
+       for(unsigned int j=0; j<HitsWithClusterID.size();j++){
      
        if(HitsWithClusterID[j]==(ClusterNo+1)){
        
@@ -349,7 +350,7 @@ std::cout<<"No of planes = "<<geom->Nplanes()<<std::endl;
 // let's look at the clusters produced:
 std::cout<<"For Cluster # "<<ClusterNo<<" we have "<<clusterHits.size()<<" hits :"<<std::endl;
 if(ClusterNo==4){
-for(int i=0; i<clusterHits.size();i++){
+for(unsigned int i=0; i<clusterHits.size();i++){
 channel=clusterHits[i]->Wire()->RawDigit()->Channel();
     geom->ChannelToWire(channel,p,w);
 std::cout<<"wire ="<<w<<"  "<<clusterHits[i]->PeakTime();
@@ -653,7 +654,7 @@ void cluster::KingaCluster::FindMax(int plane){
     fpeaks_found=0;}
  if(maxBin.size()>0){     
      
- for(int i=0;i<maxBin.size();i++){
+ for(unsigned int i=0;i<maxBin.size();i++){
   std::cout<<"maxTime is at bin = "<<maxBin[i]<<" and its value is "<<fh_theta_coll_2D->GetBinContent(maxBin[i])<<std::endl;
   }
   
@@ -661,7 +662,7 @@ void cluster::KingaCluster::FindMax(int plane){
   // Lets make sure that the first bin in the maxBin corresponds to the highest peak:
 
 //std::vector<double> maxBinValues;
-  for(int i=0;i<maxBin.size();i++){
+  for(unsigned int i=0;i<maxBin.size();i++){
   maxBinValues.push_back(fh_theta_coll_2D->GetBinContent(maxBin[i]));
   OriginalmaxBinValues.push_back(fh_theta_coll_2D->GetBinContent(maxBin[i]));
   }
@@ -671,19 +672,19 @@ void cluster::KingaCluster::FindMax(int plane){
   
   sort(maxBinValues.begin(),maxBinValues.end());
  std::cout<<"maxBinValues after sort:"<<std::endl;
- for(int i=0;i<maxBinValues.size();i++){
+ for(unsigned int i=0;i<maxBinValues.size();i++){
 
    std::cout<<maxBinValues[i]<<std::endl;
  }
 
 reverse (maxBinValues.begin(),maxBinValues.end());
  std::cout<<"maxBinValues in the correct order are now:"<<std::endl;
- for(int i=0;i<maxBinValues.size();i++){
+ for(unsigned int i=0;i<maxBinValues.size();i++){
 
    std::cout<<maxBinValues[i]<<std::endl;
  }
 
- for(int i=0; i<maxBinValues.size();i++){
+ for(unsigned int i=0; i<maxBinValues.size();i++){
 
    std::vector<double>::iterator pos=std::find( OriginalmaxBinValues.begin(), OriginalmaxBinValues.end(),maxBinValues[i]);
    SortedMaxBin.push_back(maxBin[pos-OriginalmaxBinValues.begin()]);
@@ -701,7 +702,7 @@ reverse (maxBinValues.begin(),maxBinValues.end());
 //   }
   
   std::cout<<"SortexMaxBin elements are: "<<std::endl;
-for(int i=0; i<SortedMaxBin.size(); i++)
+for(unsigned int i=0; i<SortedMaxBin.size(); i++)
 {
 
 std::cout<<SortedMaxBin[i]<<std::endl;
@@ -710,12 +711,12 @@ std::cout<<SortedMaxBin[i]<<std::endl;
 // int ValidPeak=0;
   // loop over maxima and find where they start on the left and right side, form cluster for each:
   
-  for(int maxNo=0; maxNo<SortedMaxBin.size();maxNo++){
+  for(unsigned int maxNo=0; maxNo<SortedMaxBin.size();maxNo++){
   
   //loop over the ranges and make sure that your peaks don't fall into already formed clusters
   //std::cout<<"Right now we have "<<MaxStartPoint.size()<<" ranges"<<std::endl;
   if(MaxStartPoint.size()==0){ValidPeak=1;}
-  for(int NoRange=0; NoRange<MaxStartPoint.size();NoRange++){
+  for(unsigned int NoRange=0; NoRange<MaxStartPoint.size();NoRange++){
   //std::cout<<"Checking peak "<<SortedMaxBin[maxNo]<<std::endl;
   if(SortedMaxBin[maxNo]>MaxStartPoint[NoRange] && SortedMaxBin[maxNo]<MaxEndPoint[NoRange]){
   //maxNo++;
@@ -832,7 +833,7 @@ for(int bin=1; bin<fh_theta_ind_2D->GetNbinsX()+1;bin++){
     
  if(maxBin.size()>0){   
  std::cout<<"maxBin.size()= "<<maxBin.size()<<std::endl;
-  for(int i=0;i<maxBin.size();i++){
+  for(unsigned int i=0;i<maxBin.size();i++){
   std::cout<<"maxTime is at bin = "<<maxBin[i]<<" ("<<-180+2*maxBin[i]<<" degrees)"<<" and its value is "<<fh_theta_ind_2D->GetBinContent(maxBin[i])<<std::endl;
 std::cout<<"...................................."<<std::endl;
  }//maxBin
@@ -846,7 +847,7 @@ std::cout<<"...................................."<<std::endl;
 // Lets make sure that the first bin in the maxBin corresponds to the highest peak:
 
 //std::vector<double> maxBinValues;
-  for(int i=0;i<maxBin.size();i++){
+  for(unsigned int i=0;i<maxBin.size();i++){
   maxBinValues.push_back(fh_theta_ind_2D->GetBinContent(maxBin[i]));
   OriginalmaxBinValues.push_back(fh_theta_ind_2D->GetBinContent(maxBin[i]));
 
@@ -857,19 +858,19 @@ std::cout<<"...................................."<<std::endl;
   
   sort(maxBinValues.begin(),maxBinValues.end());
  std::cout<<"maxBinValues after sort:"<<std::endl;
- for(int i=0;i<maxBinValues.size();i++){
+ for(unsigned int i=0;i<maxBinValues.size();i++){
 
    std::cout<<maxBinValues[i]<<std::endl;
  }
 
 reverse (maxBinValues.begin(),maxBinValues.end());
  std::cout<<"maxBinValues in the correct order are now:"<<std::endl;
- for(int i=0;i<maxBinValues.size();i++){
+ for(unsigned int i=0;i<maxBinValues.size();i++){
 
    std::cout<<maxBinValues[i]<<std::endl;
  }
 
- for(int i=0; i<maxBinValues.size();i++){
+ for(unsigned int i=0; i<maxBinValues.size();i++){
 
    std::vector<double>::iterator pos=std::find( OriginalmaxBinValues.begin(), OriginalmaxBinValues.end(),maxBinValues[i]);
    SortedMaxBin.push_back(maxBin[pos-OriginalmaxBinValues.begin()]);
@@ -895,7 +896,7 @@ reverse (maxBinValues.begin(),maxBinValues.end());
 //   }
   
   std::cout<<"SortexMaxBin elements are: "<<std::endl;
-for(int i=0; i<SortedMaxBin.size(); i++)
+for(unsigned int i=0; i<SortedMaxBin.size(); i++)
 {
 
 std::cout<<SortedMaxBin[i]<<std::endl;
@@ -904,11 +905,11 @@ std::cout<<SortedMaxBin[i]<<std::endl;
 
   // loop over maxima and find where they start on the left and right side, form cluster for each:
   
-  for(int maxNo=0; maxNo<SortedMaxBin.size();maxNo++){
+  for(unsigned int maxNo=0; maxNo<SortedMaxBin.size();maxNo++){
   
   //loop over the ranges and make sure that your peaks don't fall into already formed clusters
   if(MaxStartPoint.size()==0){ValidPeak=1;}
-  for(int NoRange=0; NoRange<MaxStartPoint.size();NoRange++){
+  for(unsigned int NoRange=0; NoRange<MaxStartPoint.size();NoRange++){
   if(SortedMaxBin[maxNo]>MaxStartPoint[NoRange] && SortedMaxBin[maxNo]<MaxEndPoint[NoRange]){
   ValidPeak=0;
   break;}
@@ -999,7 +1000,7 @@ void cluster::KingaCluster::FindClusters(int plane){
 
 std::cout<<"FORMING CLUSTERS NOW :) "<<std::endl;
 std::cout<<"FinalPeaks are at bin(s):  ";
-for(int i=0; i<FinalPeaks.size();i++)
+for(unsigned int i=0; i<FinalPeaks.size();i++)
 {
 std::cout<<FinalPeaks[i]<<" which corresponds to angle=  "<<-180+2*FinalPeaks[i]<<std::endl;
 
@@ -1011,7 +1012,7 @@ unsigned int channel=0, w=0;
 unsigned int p=plane;
 
 
-int no_noise_hits=0;
+//int no_noise_hits=0;
 std::cout<<"In FindClusters(int plane), we should be producing "<<MaxStartPoint.size()<<" clusters"<<std::endl;
 double a_polar, b_polar,theta_polar;
 
@@ -1031,7 +1032,7 @@ b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
       a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
       theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
       theta_polar = 180*theta_polar/fpi; /** in deg*/
-for(int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++){
+for(unsigned int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++){
 
   if(theta_polar>=(-180+2*MaxStartPoint[ClusterNo]) && theta_polar<=(-180+2*MaxEndPoint[ClusterNo])){
   //want to start counting from 1, O is reserved for hits that will be marked as noise
@@ -1044,7 +1045,7 @@ for(int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++){
 //    std::cout<<"Noise hit at w= "<<w<<" t= "<<allhits[i]->PeakTime()<<" with theta_polar= "<<theta_polar;
 //   // std::cout<<"FinalPeaks.size()= "<<FinalPeaks.size()<<std::endl;
 //   }
-   for(int peakNo=0;peakNo<FinalPeaks.size();peakNo++){
+   for(unsigned int peakNo=0;peakNo<FinalPeaks.size();peakNo++){
    DiffAngles.push_back(fabs(-180+2*FinalPeaks[peakNo]-theta_polar));
    // if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
 //    std::cout<<"diff for peak "<<peakNo<<" is "<<fabs(-180+2*FinalPeaks[peakNo]-theta_polar)<<std::endl;
