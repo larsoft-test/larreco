@@ -49,21 +49,21 @@
 #include "TGeoManager.h"
 
 
-// //------------------------------------------------------------------------------
-static bool sp_sort_z(const recob::SpacePoint& sp1, const recob::SpacePoint& sp2)
-{
-  const double* xyz1 = sp1.XYZ();
-  const double* xyz2 = sp2.XYZ();
-  return xyz1[2] < xyz2[2];
-}
-// //------------------------------------------------------------------------------
-static bool sp_sort_zz(const std::vector<recob::SpacePoint>& sp_vec1, const std::vector<recob::SpacePoint>& sp_vec2)
-{
-  const double* xyz1 = sp_vec1[0].XYZ();
-  const double* xyz2 = sp_vec2[0].XYZ();
-  return xyz1[2] < xyz2[2];
-}
-// //------------------------------------------------------------------------------
+// // //------------------------------------------------------------------------------ // not needed for now
+// static bool sp_sort_z(const recob::SpacePoint& sp1, const recob::SpacePoint& sp2)
+// {
+//   const double* xyz1 = sp1.XYZ();
+//   const double* xyz2 = sp2.XYZ();
+//   return xyz1[2] < xyz2[2];
+// }
+// // //------------------------------------------------------------------------------ // not needed for now
+// static bool sp_sort_zz(const std::vector<recob::SpacePoint>& sp_vec1, const std::vector<recob::SpacePoint>& sp_vec2)
+// {
+//   const double* xyz1 = sp_vec1[0].XYZ();
+//   const double* xyz2 = sp_vec2[0].XYZ();
+//   return xyz1[2] < xyz2[2];
+// }
+// // //------------------------------------------------------------------------------
 bool sort_pred2(const std::pair<art::Ptr<recob::Track>,double>& left, const std::pair<art::Ptr<recob::Track>,double>& right)
 {
   return left.second < right.second;
@@ -282,7 +282,7 @@ namespace vertex{
 
     
     //now add the unmatched track IDs to the collection
-    for(int i=0; i<trackpair.size(); i++){
+    for(unsigned int i=0; i<trackpair.size(); i++){
       if(!IsInVertexCollection(i, vertex_collection_int)){
 	if(trackpair[i].second>30){
 	std::vector<int> temp;
@@ -298,7 +298,7 @@ namespace vertex{
     art::PtrVector<recob::Track> vTracks_vec;
     art::PtrVector<recob::Shower> vShowers_vec;
 
-    for(int i=0; i<vertex_collection_int.size(); i++){
+    for(unsigned int i=0; i<vertex_collection_int.size(); i++){
       double x = 0.;
       double y = 0.;
       double z = 0.;
@@ -337,7 +337,7 @@ namespace vertex{
 
     mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
     mf::LogVerbatim("Summary") << "PrimaryVertexFinder Summary:";
-    for(int i = 0; i<vcol->size(); ++i) mf::LogVerbatim("Summary") << vcol->at(i) ;
+    for(unsigned int i = 0; i<vcol->size(); ++i) mf::LogVerbatim("Summary") << vcol->at(i) ;
 
     evt.put(vcol);
     
@@ -358,7 +358,7 @@ bool vertex::PrimaryVertexFinder::IsInVertexCollection(int a, std::vector<std::v
 {
   int flag = 0;
   
-  for(int i = 0; i < vertex_collection.size() ; i++){
+  for(unsigned int i = 0; i < vertex_collection.size() ; i++){
     for(std::vector<int>::iterator itr = vertex_collection[i].begin(); itr < vertex_collection[i].end(); ++itr){
       if (a == *itr){
 	flag = 1;
@@ -374,7 +374,7 @@ bool vertex::PrimaryVertexFinder::IsInVertexCollection(int a, std::vector<std::v
 int vertex::PrimaryVertexFinder::IndexInVertexCollection(int a, int b, std::vector<std::vector<int> > vertex_collection)
 {
   int index;
-  for(int i = 0; i < vertex_collection.size() ; i++){
+  for(unsigned int i = 0; i < vertex_collection.size() ; i++){
     for(std::vector<int>::iterator itr = vertex_collection[i].begin(); itr < vertex_collection[i].end(); ++itr){
       if (a == *itr || b == *itr)
 	index = i; 
@@ -386,7 +386,7 @@ int vertex::PrimaryVertexFinder::IndexInVertexCollection(int a, int b, std::vect
 bool vertex::PrimaryVertexFinder::IsInNewVertex(int a, std::vector<int> newvertex)
 {
   int flag = 0;
-  for(int i = 0; i < newvertex.size() ; i++){
+  for(unsigned int i = 0; i < newvertex.size() ; i++){
     if (a == newvertex[i]){
       flag = 1;
       break;
