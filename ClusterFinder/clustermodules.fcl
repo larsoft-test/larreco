@@ -134,6 +134,8 @@ argoneut_kingacluster:
 argoneut_kingaclusterana:
 { 
  module_type:              "KingaClusterAna"
+ GenieGenModuleLabel:      "generator"
+ LArGeantModuleLabel:      "largeant"
  HitsModuleLabel:          "ffthit"
  ClusterFinderModuleLabel: "dbcluster"
  KingaModuleLabel:         "kingacluster"
