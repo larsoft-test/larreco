@@ -95,10 +95,6 @@ void trkf::SpacePts::produce(art::Event& evt)
    TString tpcName = geom->GetLArTPCVolumeName();
 
    //TPC dimensions
-   //double m_TPCHalfZ = m_tpcVolumeUtility->GetHalfZ();
-   double m_TPCHalfZ = geom->DetLength()-5.0;
-
-   //  double YC =  (m_TPCHalfZ-5.)*2.; // TPC height in cm
    double YC =  (geom->DetHalfHeight()-0.5715)*2.; // TPC height in cm
    double Angle = geom->Plane(1).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to the vertical direction
    // Parameters temporary defined here, but possibly to be retrieved somewhere in the code
@@ -152,12 +148,15 @@ void trkf::SpacePts::produce(art::Event& evt)
       art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
       
       // Figure out which View the cluster belongs to 
+      /*
       int clPlane = cl->View()-1;
+      std::cout << "SpacePts: Plane/View/SignalType ..." << clPlane <<" "<<cl->View()<<" "<<geom->Plane(clPlane).SignalType() << std::endl; 
+      */
       // Gaaaaaah! Change me soon!!! But, for now, 
       // let's just chuck one plane's worth of info. EC, 30-Mar-2011.
       if (cl->View() == geo::kW) continue; //kW, you'd think.
 
-      //      std::cout << "SpacePts: Plane/View/SignalType ..." << clPlane <<" "<<cl->View()<<" "<<geom->Plane(clPlane).SignalType() << std::endl;
+
       // Some variables for the hit
       unsigned int channel;  //channel number
       float time;            //hit time at maximum
@@ -408,7 +407,7 @@ void trkf::SpacePts::produce(art::Event& evt)
 
    mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
    mf::LogVerbatim("Summary") << "SpacePts Summary:";
-   for(int i = 0; i<tcol->size(); ++i) mf::LogVerbatim("Summary") << tcol->at(i) ;
+   for(unsigned int i = 0; i<tcol->size(); ++i) mf::LogVerbatim("Summary") << tcol->at(i) ;
  
    evt.put(tcol);
   

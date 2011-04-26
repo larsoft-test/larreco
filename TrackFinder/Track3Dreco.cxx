@@ -415,7 +415,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 
    mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
    mf::LogVerbatim("Summary") << "Track3Dreco Summary:";
-   for(int i = 0; i<tcol->size(); ++i) mf::LogVerbatim("Summary") << tcol->at(i) ;
+   for(unsigned int i = 0; i<tcol->size(); ++i) mf::LogVerbatim("Summary") << tcol->at(i) ;
  
    evt.put(tcol);
   
