@@ -360,6 +360,7 @@ genf::GFKalman::calcGain(const TMatrixT<Double_t>& cov,
 
   // calculate covsum (V + HCH^T)
 
+  // Comment next 3 out for normal running.
   //cov.Print();
   //H.Print();
   //HitCov.Print();
