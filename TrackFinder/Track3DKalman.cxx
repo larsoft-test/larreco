@@ -61,12 +61,6 @@ static bool sp_sort_3dz(const recob::SpacePoint& h1, const recob::SpacePoint& h2
   const double* xyz2 = h2.XYZ();
   return xyz1[2] < xyz2[2];
 }
-static bool sp_sort_3dx(const recob::SpacePoint& h1, const recob::SpacePoint& h2)
-{
-  const double* xyz1 = h1.XYZ();
-  const double* xyz2 = h2.XYZ();
-  return xyz1[0] > xyz2[0];
-}
 
 //-------------------------------------------------
 trkf::Track3DKalman::Track3DKalman(fhicl::ParameterSet const& pset) 
@@ -201,32 +195,6 @@ void trkf::Track3DKalman::produce(art::Event& evt)
   // define TPC parameters
   TString tpcName = geom->GetLArTPCVolumeName();
 
-  //TPC dimensions
-  //double m_TPCHalfZ = m_tpcVolumeUtility->GetHalfZ();
-  double m_TPCHalfZ = geom->DetLength()-5.0;
-
-  //  double YC =  (m_TPCHalfZ-5.)*2.; // TPC height in cm
-  double YC =  (geom->DetHalfHeight()-0.5715)*2.; // TPC height in cm
-  double Angle = geom->Plane(1).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to the vertical direction
-  // Parameters temporary defined here, but possibly to be retrieved somewhere in the code
-  double timetick = 0.198;    //time sample in us
-  double presamplings = 60.;
-  const double wireShift=50.; // half the number of wires from the Induction(Collection) plane intersecting with a wire from the Collection(Induction) plane.
-  double plane_pitch = geom->PlanePitch(0,1);   //wire plane pitch in cm 
-  double wire_pitch = geom->WirePitch(0,1,0);    //wire pitch in cm
-  double Efield_drift = 0.5;  // Electric Field in the drift region in kV/cm
-  double Efield_SI = 0.7;     // Electric Field between Shield and Induction planes in kV/cm
-  double Efield_IC = 0.9;     // Electric Field between Induction and Collection planes in kV/cm
-  double Temperature = 87.6;  // LAr Temperature in K
-
-  double driftvelocity = larprop->DriftVelocity(Efield_drift,Temperature);    //drift velocity in the drift region (cm/us)
-
-  double driftvelocity_SI = larprop->DriftVelocity(Efield_SI,Temperature);    //drift velocity between shield and induction (cm/us)
-  double driftvelocity_IC = larprop->DriftVelocity(Efield_IC,Temperature);    //drift velocity between induction and collection (cm/us)
-  double timepitch = driftvelocity*timetick;                         //time sample (cm) 
-  double tSI = plane_pitch/driftvelocity_SI/timetick;    //drift time between Shield and Induction planes (time samples)
-  double tIC = plane_pitch/driftvelocity_IC/timetick;    //drift time between Induction and Collection planes (time samples)
-
 
   // get input Hit object(s).
   art::Handle< std::vector<recob::Track> > trackListHandle;
@@ -323,9 +291,6 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 	if(spacepoints.size()>0)
 	  {
       // Insert the GENFIT/Kalman stuff here then make the tracks. Units are cm, GeV.
-	    const double posSmearXY = 0.1;
-	    const double posSmearZ = .2;
-	    const double momSmear = .2;
 	    const double resolution = 0.5; // dunno, 5 mm
 	    const int numIT = 9; // 3->1, EC, 6-Jan-2011. Back, 7-Jan-2011.
 

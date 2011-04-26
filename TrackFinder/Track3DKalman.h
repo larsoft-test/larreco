@@ -66,7 +66,7 @@ namespace trkf {
     Float_t *fshx;
     Float_t *fshy;
     Float_t *fshz;
-    Int_t fDimSize; // if necessary will get this from pset in constructor.
+    unsigned int fDimSize; // if necessary will get this from pset in constructor.
   
     std::vector<double> fPosErr;
     std::vector<double> fMomErr;
