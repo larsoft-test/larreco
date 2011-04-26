@@ -89,10 +89,6 @@ void trkf::Track3Dreco::produce(art::Event& evt)
    // define TPC parameters
    TString tpcName = geom->GetLArTPCVolumeName();
 
-   //TPC dimensions
-   //double m_TPCHalfZ = m_tpcVolumeUtility->GetHalfZ();
-   double m_TPCHalfZ = geom->DetLength()-5.0;
-
    //  double YC =  (m_TPCHalfZ-5.)*2.; // TPC height in cm
    double YC =  (geom->DetHalfHeight()-0.5715)*2.; // TPC height in cm
    double Angle = geom->Plane(1).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to the vertical direction
@@ -150,8 +146,6 @@ void trkf::Track3Dreco::produce(art::Event& evt)
       //////////// 2D track FIT
       /////////////////////////
       
-      // Figure out which View the cluster belongs to 
-      int clPlane = cl->View()-1;
       // Gaaaaaah! Change me soon!!! But, for now, 
       // let's just chuck one plane's worth of info. EC, 30-Mar-2011.
       if (cl->View() == geo::kW) continue;
@@ -209,8 +203,6 @@ void trkf::Track3Dreco::produce(art::Event& evt)
       }
       
       TF1 *pol1=(TF1*) the2Dtrack->GetFunction("pol1");
-      double Chi2 = pol1->GetChisquare();
-      double NDF = pol1->GetNDF();
       double par[2];
       pol1->GetParameters(par);
       double intercept = par[0];
