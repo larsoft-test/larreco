@@ -166,12 +166,12 @@ void shwf::ShowerReco::produce(art::Event& evt)
     hitlist_helpplane.clear();
     for(unsigned int iwire=0; iwire<fwires[iplane];++iwire){//Loop over wires
       hitlist_helpwire.clear();
-      for(int iclust = 0; iclust < clusterListHandle->size(); iclust++){//Loop over cluster
+      for(unsigned int iclust = 0; iclust < clusterListHandle->size(); iclust++){//Loop over cluster
         art::Ptr<recob::Cluster> clust(clusterListHandle, iclust);
         if(view == clust->View()){//If correct plane
           hitlist_helpplane = clust->Hits(iplane,iwire);//Fill with Hits from the wire (hitlist_help is automatically sorted)
         }
-      for (int ihits =0; ihits<hitlist_helpplane.size(); ++ihits){//work around since clust->Hits return a std::vector,recob::Hit*> object
+      for (unsigned int ihits =0; ihits<hitlist_helpplane.size(); ++ihits){//work around since clust->Hits return a std::vector,recob::Hit*> object
         art::Ptr<recob::Hit> hit_help ;
         hit_help = hitlist_helpplane[ihits];
         hitlist_helpwire.push_back(hit_help);
@@ -207,7 +207,7 @@ void shwf::ShowerReco::AngularDistribution(std::vector<art::PtrVector<recob::Hit
 
   for(unsigned int iplane = 0; iplane < planes; ++iplane){/**Loop over planes*/
     art::PtrVector<recob::Hit> hitlist = hitlist_all[iplane];
-    for (int ihits=0;ihits<hitlist.size();++ihits){
+    for (unsigned int ihits=0;ihits<hitlist.size();++ihits){
       art::Ptr<recob::Hit> hit_help ;
       hit_help = hitlist[ihits]; 
       const recob::Hit* hit = hit_help.get(); /** Retrieve info of the hits*/
@@ -313,7 +313,7 @@ void shwf::ShowerReco::LongTransEnergy(std::vector<art::PtrVector<recob::Hit> > 
   for(unsigned int iplane = 0; iplane < planes; ++iplane){/**Loop over planes*/
     totcharge =0.;
     art::PtrVector<recob::Hit> hitlist = hitlist_all[iplane];
-    for (int ihits=0;ihits<hitlist.size();++ihits){
+    for (unsigned int ihits=0;ihits<hitlist.size();++ihits){
       art::Ptr<recob::Hit> hit_help ;
       hit_help = hitlist[ihits]; 
       const recob::Hit* hit = hit_help.get(); /** Retrieve info of the hits*/

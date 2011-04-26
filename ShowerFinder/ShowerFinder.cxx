@@ -141,18 +141,18 @@ namespace shwf{
     std::cout << "Cone Opening Angle: " << (180.0*cone_angle)/TMath::Pi() << std::endl;
     double compl_angle = 0;  
     
-    int n_scan =1 + (int)(TMath::Pi() / (2.0*cone_angle)); 
+    unsigned int n_scan =1 + (int)(TMath::Pi() / (2.0*cone_angle)); 
     std::cout << "N scan: " << n_scan << std::endl;
     
     double x_hit = 0; //x coordinate of hit
     double y_hit = 0; //y coordinate of hit
     
     int hits_cluster_counter = 0; //count the number of hits in a cluster that is inside a cone
-    int hits_cluster_Total = 0; //The total number of hits in a cluster  
+    //int hits_cluster_Total = 0; //The total number of hits in a cluster  
     
     //For EVERY vertex, the algorithm is going to scan the plane to find clusters contained in the scanning cones
     
-    for(int p = 0; p < geom->Nplanes(); p++) {  
+    for(unsigned int p = 0; p < geom->Nplanes(); p++) {  
 
       //  std::cout << "AT PLANE: " << p << std::endl;
       //for(unsigned int ivert = 0; ivert < vertSel.size(); ++ivert){
@@ -168,7 +168,7 @@ namespace shwf{
 	std::cout << "Vertex at: (" << xa_cone << ", " << ya_cone << ")" <<std::endl;
 	
 	//Beginning of the scan!
-	for(int iscan = 0; iscan < n_scan; iscan++){
+	for(unsigned int iscan = 0; iscan < n_scan; iscan++){
 	  std::cout << ">>>> Start SCAN: " << iscan << std::endl;  
 	  
 	  //define the scan anlge
@@ -192,7 +192,7 @@ namespace shwf{
 	  //std::cout << "cone top: ("<< x2_cone << ", " << y2_cone << ")"<< std::endl;
 	  
 	  //Looking if a cluster is in this cone (loop over all hits of all clusters)
-	  for(int iclust = 0; iclust < clusterListHandle->size(); iclust++){
+	  for(int unsigned iclust = 0; iclust < clusterListHandle->size(); iclust++){
 	  
 	    art::Ptr<recob::Cluster> clust(clusterListHandle, iclust);
 	    //std::cout << "Number of clusters: " << clusterListHandle->size() << std::endl;
@@ -204,7 +204,7 @@ namespace shwf{
 	    //std::cout << "Cluster ID : " << clust->ID()<< std::endl;
 	    //std::cout << "Got the clusterhits vector : iclust = " << iclust << "  : size = " << clusterhits.size() << std::endl;
 	    //Loop over ALL hits in the cluster. Looking if the cluster's hit is comprised in the cone
-	    for(int ihits = 0; ihits < clusterhits.size(); ihits++){
+	    for(unsigned int ihits = 0; ihits < clusterhits.size(); ihits++){
 	      
 	      //std::cout << "Nhits in cluster: " << clusterhits.size() << std::endl;
 	      channel = clusterhits[ihits]->Wire()->RawDigit()->Channel();
