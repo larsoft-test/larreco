@@ -29,7 +29,7 @@ services:
   {
     destinations: ["detailedInfo"]
     categories:   ["Summary"]
-    debugModules: ["*"]
+   	debugModules: ["*"]
     detailedInfo: {threshold: "Summary"}
   }
 }

@@ -402,9 +402,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                hitcoord[0] = hit3d.X();
                hitcoord[1] = hit3d.Y();
                hitcoord[2] = hit3d.Z();           
-	       // mf::LogVerbatim("AddingSpacePoint") <<"Track3Dreco: SpacePoint adding xyz ..." 
-		   //  			   << hitcoord[0] <<","<< hitcoord[1] <<","
-		   //  			   << hitcoord[2];
+    
                recob::SpacePoint mysp(sp_hits);//3d point at end of track
                mysp.SetXYZ(hitcoord);
                mysp.SetID(spacepoints.size());
@@ -428,11 +426,16 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 
       }//close loop over Induction view 2D tracks
     
-   }//close loop over Collection xxview 2D tracks
+   }//close loop over Collection view 2D tracks
 
    mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
    mf::LogVerbatim("Summary") << "Track3Dreco Summary:";
-   for(unsigned int i = 0; i<tcol->size(); ++i) mf::LogVerbatim("Summary") << tcol->at(i) ;
+   for(unsigned int i = 0; i<tcol->size(); ++i){
+      mf::LogVerbatim("Summary") << tcol->at(i) ;
+      for(unsigned int j = 0; j<tcol->at(i).SpacePoints().size();++j){
+         mf::LogDebug("Summary") << tcol->at(i).SpacePoints().at(j);
+      }
+   } 
  
    evt.put(tcol);
   
