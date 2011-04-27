@@ -93,7 +93,7 @@ void trkf::LArTracker::produce(art::Event& evt)
 
         //now make sure the hit wasn't already included in some other track we created
         bool result1 = false;
-        for(int t = 0; t<tcol->size(); ++t){
+        for(unsigned int t = 0; t<tcol->size(); ++t){
            if(FindHit(tcol->at(t),*hit1)) result1 = true;
         }
         if(result1) continue;
@@ -121,7 +121,7 @@ void trkf::LArTracker::produce(art::Event& evt)
               if(FindHit(spacepoints,*hit2)) continue;
                 
               bool result2 = false;
-              for(int t = 0; t<tcol->size(); ++t){
+              for(unsigned int t = 0; t<tcol->size(); ++t){
                  result2 = FindHit(tcol->at(t),*hit2);
               }
               if(result2) continue;
@@ -180,9 +180,9 @@ void trkf::LArTracker::produce(art::Event& evt)
   //print out some summary information for the new track collection
   mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
   mf::LogVerbatim("Summary") << "LArTracker Summary:";
-  for(int i = 0; i<tcol->size(); ++i){
+  for(unsigned int i = 0; i<tcol->size(); ++i){
      std::cout << tcol->at(i) << std::endl;
-     for(int j = 0; j<tcol->at(i).SpacePoints().size();++j){
+     for(unsigned int j = 0; j<tcol->at(i).SpacePoints().size();++j){
         std::cout << tcol->at(i).SpacePoints().at(j) << std::endl;
         tcol->at(i).SpacePoints().at(j).PrintHits();
         // for(int k = 0; k<tcol->at(i).SpacePoints().at(j).Hits(-1).size(); ++k){
@@ -207,7 +207,6 @@ double trkf::LArTracker::DriftCoordinate(int plane, double time)
    double presamplings = 60.;
  
    double plane_pitch = geom->PlanePitch(0,1);   //wire plane pitch in cm 
-   double wire_pitch = geom->WirePitch(0,1,0);    //wire pitch in cm
    double Efield_drift = 0.5;  // Electric Field in the drift region in kV/cm
    double Efield_SI = 0.7;     // Electric Field between Shield and Induction planes in kV/cm
    double Efield_IC = 0.9;     // Electric Field between Induction and Collection planes in kV/cm
@@ -257,6 +256,8 @@ bool trkf::LArTracker::MultiPlane(art::PtrVector<recob::Hit> hitList)
       }
       return false;
    }
+
+   return true;
 }
 
 //------------------------------------------------------------------------------------//
@@ -268,6 +269,8 @@ bool trkf::LArTracker::MultiPlane(art::PtrVector<recob::Cluster> clusterList)
       }
       return false;
    }
+
+   return true;
 }
 
 //------------------------------------------------------------------------------------//
@@ -293,7 +296,7 @@ bool trkf::LArTracker::FindHit(art::PtrVector<recob::Hit> hitList, art::Ptr<reco
 //------------------------------------------------------------------------------------//
 bool trkf::LArTracker::FindHit(std::vector<recob::SpacePoint> spList, art::Ptr<recob::Hit> h)
 {   
-   for(int i=0;i<spList.size();++i){
+   for(unsigned int i=0;i<spList.size();++i){
       art::PtrVector<recob::Hit> hitList = spList[i].Hits(-1);//get all Hits in the spacepoint
       bool result = FindHit(hitList,h);
       if(result) return true;

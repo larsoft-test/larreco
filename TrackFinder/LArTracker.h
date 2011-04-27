@@ -28,9 +28,9 @@ namespace trkf {
       ~LArTracker();
     
       //////////////////////////////////////////////////////////
-      void produce(art::Event& evt); 
       void beginJob();
       void endJob();
+      void produce(art::Event& evt); 
 
    private:
 
@@ -48,9 +48,9 @@ namespace trkf {
       bool   FindHit     (art::PtrVector<recob::Hit> hitList,         art::Ptr<recob::Hit> h);
       bool   FindHit     (std::vector<recob::SpacePoint> spList,      art::Ptr<recob::Hit> h);
       bool   FindHit     (recob::Track track,                         art::Ptr<recob::Hit> h);
-        
-      double          ftmatch; // tolerance for time matching (in cm) 
+         
       std::string     fClusterModuleLabel;// label for input cluster collection
+      double          ftmatch; // tolerance for time matching (in cm)
    protected: 
     
   
