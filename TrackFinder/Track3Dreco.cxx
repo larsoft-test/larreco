@@ -103,12 +103,17 @@ void trkf::Track3Dreco::produce(art::Event& evt)
    double Efield_IC = 0.9;     // Electric Field between Induction and Collection planes in kV/cm
    double Temperature = 87.6;  // LAr Temperature in K
 
-   double driftvelocity = larprop->DriftVelocity(Efield_drift,Temperature);    //drift velocity in the drift region (cm/us)
-   double driftvelocity_SI = larprop->DriftVelocity(Efield_SI,Temperature);    //drift velocity between shield and induction (cm/us)
-   double driftvelocity_IC = larprop->DriftVelocity(Efield_IC,Temperature);    //drift velocity between induction and collection (cm/us)
-   double timepitch = driftvelocity*timetick;                         //time sample (cm) 
-   double tSI = plane_pitch/driftvelocity_SI/timetick;                   //drift time between Shield and Collection planes (time samples)
-   double tIC = plane_pitch/driftvelocity_IC/timetick;                //drift time between Induction and Collection planes (time samples)
+   double driftvelocity = larprop->DriftVelocity(Efield_drift,Temperature); //drift velocity in the drift 
+                                                                            //region (cm/us)
+   double driftvelocity_SI = larprop->DriftVelocity(Efield_SI,Temperature); //drift velocity between shield 
+                                                                            //and induction (cm/us)
+   double driftvelocity_IC = larprop->DriftVelocity(Efield_IC,Temperature); //drift velocity between induction 
+                                                                            //and collection (cm/us)
+   double timepitch = driftvelocity*timetick;                               //time sample (cm) 
+   double tSI = plane_pitch/driftvelocity_SI/timetick;                      //drift time between Shield and 
+                                                                            //Collection planes (time samples)
+   double tIC = plane_pitch/driftvelocity_IC/timetick;                      //drift time between Induction and 
+                                                                            //Collection planes (time samples)
 
 
    // get input Cluster object(s).
@@ -168,7 +173,8 @@ void trkf::Track3Dreco::produce(art::Event& evt)
      
       
       int np=0;
-      for(art::PtrVectorItr<recob::Hit> theHit = hitlist.begin(); theHit != hitlist.end();  theHit++) //loop over cluster hits
+      //loop over cluster hits
+      for(art::PtrVectorItr<recob::Hit> theHit = hitlist.begin(); theHit != hitlist.end();  theHit++) 
       {
          //recover the Hit
          //      recob::Hit* theHit = (recob::Hit*)(*hitIter);
@@ -248,7 +254,8 @@ void trkf::Track3Dreco::produce(art::Event& evt)
    /////// 2D Track Matching and 3D Track Reconstruction
    /////////////////////////////////////////////////////
 
-   for(unsigned int collectionIter=0; collectionIter < CclusHitlists.size();collectionIter++){  //loop over Collection view 2D tracks
+   //loop over Collection view 2D tracks
+   for(unsigned int collectionIter=0; collectionIter < CclusHitlists.size();collectionIter++){  
       // Recover previously stored info
       double Cw0 = Cwirefirsts[collectionIter];
       double Cw1 = Cwirelasts[collectionIter];
@@ -258,7 +265,8 @@ void trkf::Track3Dreco::produce(art::Event& evt)
       double Ct1_line = Ctimelasts_line[collectionIter];
       art::PtrVector<recob::Hit> hitsCtrk = CclusHitlists[collectionIter];
 
-      for(unsigned int inductionIter=0;inductionIter<IclusHitlists.size();inductionIter++){   //loop over Induction view 2D tracks
+      //loop over Induction view 2D tracks
+      for(unsigned int inductionIter=0;inductionIter<IclusHitlists.size();inductionIter++){   
          // Recover previously stored info
          double Iw0 = Iwirefirsts[inductionIter];
          double Iw1 = Iwirelasts[inductionIter];
@@ -269,17 +277,21 @@ void trkf::Track3Dreco::produce(art::Event& evt)
          art::PtrVector<recob::Hit> hitsItrk = IclusHitlists[inductionIter];
 
          // match 2D tracks
-         if((fabs(Ct0_line-It0_line)<ftmatch*timepitch) && (fabs(Ct1_line-It1_line)<ftmatch*timepitch)){ 
-            //std::cout<<"-----> Track "<<collectionIter<< " Collection associated with track "<<inductionIter<< " Induction"<<std::endl;
-	
+         if((fabs(Ct0_line-It0_line)<ftmatch*timepitch) && (fabs(Ct1_line-It1_line)<ftmatch*timepitch)){ 	
        
             // Reconstruct the 3D track
             TVector3 XYZ0;  // track origin or interaction vertex
-            XYZ0.SetXYZ(Ct0_line,(Cw0-Iw0)/(2.*TMath::Sin(Angle)),(Cw0+Iw0)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
+            XYZ0.SetXYZ(Ct0_line,
+			(Cw0-Iw0)/(2.*TMath::Sin(Angle)),
+			(Cw0+Iw0)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
 
             //compute track startpoint and endpoint in Local co-ordinate system 
-            TVector3 startpointVec(XYZ0.X(),XYZ0.Y(),XYZ0.Z());
-            TVector3 endpointVec(Ct1_line,(Cw1-Iw1)/(2.*TMath::Sin(Angle)),(Cw1+Iw1)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
+            TVector3 startpointVec(XYZ0.X(),
+				   XYZ0.Y(),
+				   XYZ0.Z());
+            TVector3 endpointVec(Ct1_line,
+				 (Cw1-Iw1)/(2.*TMath::Sin(Angle)),
+				 (Cw1+Iw1)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
 
             //compute track (normalized) cosine directions in the TPC co-ordinate system
             TVector3 DirCos = endpointVec - startpointVec;
@@ -336,11 +348,14 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                double t2_last =plane2==1?Ct1:It1;
 	  
                // compute the track length in the two views
-               double minLength = TMath::Sqrt(TMath::Power(t1_last-minVtx2D.X(),2)+TMath::Power(w1_last-minVtx2D.Y(),2));
-               double maxLength = TMath::Sqrt(TMath::Power(t2_last-maxVtx2D.X(),2)+TMath::Power(w2_last-maxVtx2D.Y(),2));
+               double minLength = TMath::Sqrt(TMath::Power(t1_last-minVtx2D.X(),2)
+					      +TMath::Power(w1_last-minVtx2D.Y(),2));
+               double maxLength = TMath::Sqrt(TMath::Power(t2_last-maxVtx2D.X(),2)
+					      +TMath::Power(w2_last-maxVtx2D.Y(),2));
 	  
                //compute the distance of the hit (imin) from the relative track origin
-               double minDistance = maxLength* TMath::Sqrt(TMath::Power(t1-minVtx2D.X(),2)+TMath::Power(w1-minVtx2D.Y(),2))/minLength;
+               double minDistance = maxLength*TMath::Sqrt(TMath::Power(t1-minVtx2D.X(),2)
+							  +TMath::Power(w1-minVtx2D.Y(),2))/minLength;
 	  
                //core matching algorithm
                double difference = 9999999.;	  
@@ -387,7 +402,9 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                hitcoord[0] = hit3d.X();
                hitcoord[1] = hit3d.Y();
                hitcoord[2] = hit3d.Z();           
-	       std::cout<<"Track3Dreco: SpacePoint adding xyz ..." << hitcoord[0] <<","<< hitcoord[1] <<","<< hitcoord[2] <<std::endl;
+	       mf::LogVerbatim("AddingSpacePoint") <<"Track3Dreco: SpacePoint adding xyz ..." 
+						   << hitcoord[0] <<","<< hitcoord[1] <<","
+						   << hitcoord[2];
                recob::SpacePoint mysp(sp_hits);//3d point at end of track
                mysp.SetXYZ(hitcoord);
                mysp.SetID(spacepoints.size());
