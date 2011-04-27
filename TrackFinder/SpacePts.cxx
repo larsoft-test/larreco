@@ -95,7 +95,7 @@ void trkf::SpacePts::produce(art::Event& evt)
    TString tpcName = geom->GetLArTPCVolumeName();
 
    //TPC dimensions
-   double YC =  (geom->DetHalfHeight()-0.5715)*2.; // TPC height in cm
+   double YC =  (geom->DetHalfHeight()-5.0)*2.; // TPC height in cm
    double Angle = geom->Plane(1).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to the vertical direction
    // Parameters temporary defined here, but possibly to be retrieved somewhere in the code
    double timetick = 0.198;    //time sample in us
