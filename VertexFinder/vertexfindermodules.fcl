@@ -27,4 +27,11 @@ argoneut_primaryvertex:
  VertexWindow:       5.
 }
 
+argoneut_vertex2d:
+{
+ module_type:       "VertexFinder2D"
+ ClusterModuleLabel:  "linemerger"
+}
+
+
 END_PROLOG
