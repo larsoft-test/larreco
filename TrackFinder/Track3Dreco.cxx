@@ -402,9 +402,9 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                hitcoord[0] = hit3d.X();
                hitcoord[1] = hit3d.Y();
                hitcoord[2] = hit3d.Z();           
-	       mf::LogVerbatim("AddingSpacePoint") <<"Track3Dreco: SpacePoint adding xyz ..." 
-						   << hitcoord[0] <<","<< hitcoord[1] <<","
-						   << hitcoord[2];
+	       // mf::LogVerbatim("AddingSpacePoint") <<"Track3Dreco: SpacePoint adding xyz ..." 
+		   //  			   << hitcoord[0] <<","<< hitcoord[1] <<","
+		   //  			   << hitcoord[2];
                recob::SpacePoint mysp(sp_hits);//3d point at end of track
                mysp.SetXYZ(hitcoord);
                mysp.SetID(spacepoints.size());
