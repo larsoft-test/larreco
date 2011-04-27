@@ -33,16 +33,22 @@
 
 
 //-------------------------------------------------
-trkf::LArTracker::LArTracker(fhicl::ParameterSet const& pset) :
-  fClusterModuleLabel     (pset.get< std::string >("ClusterModuleLabel")),
-  ftmatch                 (pset.get< double >("TMatch"))
+trkf::LArTracker::LArTracker(fhicl::ParameterSet const& pset) 
 {
-  produces< std::vector<recob::Track> >();
+   this->reconfigure(pset);
+   produces< std::vector<recob::Track> >();
 }
 
 //-------------------------------------------------
 trkf::LArTracker::~LArTracker()
 {
+}
+
+//-------------------------------------------------
+void trkf::LArTracker::reconfigure(fhicl::ParameterSet pset)
+{
+   fClusterModuleLabel     = pset.get< std::string >("ClusterModuleLabel");
+   ftmatch                 = pset.get< double >("TMatch");
 }
 
 //-------------------------------------------------

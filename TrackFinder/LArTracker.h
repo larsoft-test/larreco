@@ -28,6 +28,7 @@ namespace trkf {
       ~LArTracker();
     
       //////////////////////////////////////////////////////////
+      void reconfigure(fhicl::ParameterSet p);
       void beginJob();
       void endJob();
       void produce(art::Event& evt); 
