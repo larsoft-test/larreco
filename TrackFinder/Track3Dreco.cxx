@@ -164,6 +164,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
       
       art::PtrVector<recob::Hit> hitlist;
       hitlist = cl->Hits();
+      if(hitlist.size()==1) continue;//only one Hit in this Cluster...will cause TGraph fit to fail.
       // std::sort(hitlist.begin(), hitlist.end(), hit_sort_2d); //sort hit by wire
       
       TGraph *the2Dtrack = new TGraph(hitlist.size());
