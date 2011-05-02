@@ -116,7 +116,7 @@ double cluster::DBScanService::getSimilarity(const std::vector<double> v1, const
   //wire bridging capability added by spitz
   filter::ChannelFilter chanFilt;
 
-  ///!todo this code assumes that all planes have the same wire pitch
+  /// \todo this code assumes that all planes have the same wire pitch
   double wire_dist = fWirePitch[0];
   //std::cout<<wire_dist<<std::endl;
 
@@ -151,7 +151,7 @@ double cluster::DBScanService::getSimilarity2(const std::vector<double> v1, cons
   //time bridging capability added by tjyang following Josh's code
   filter::ChannelFilter chanFilt;
 
-  ///!todo: this code assumes all planes have the same wire pitch
+  /// \todo this code assumes all planes have the same wire pitch
   double wire_dist = fWirePitch[0];
 
   unsigned int wire1=(unsigned int)(v1[0]/wire_dist+0.5); //to make sure to get desired integer
