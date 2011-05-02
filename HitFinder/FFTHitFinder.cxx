@@ -237,7 +237,7 @@ namespace hit{
 	  gSum.SetParLimits(2,0.0,10.0*width);
 	}
 
-	//\todo - just get the integral from the fit for totSig
+	/// \todo - just get the integral from the fit for totSig
 	hitSignal.Fit(&gSum,"WQNR","", startT, endT);
 	for(int hitNumber = 0; hitNumber < numHits; hitNumber++) {
 	  if(gSum.GetParameter(3*hitNumber) > threshold/2.0) { 
@@ -268,7 +268,7 @@ namespace hit{
                            chargeErr,                
 			   amplitude,
                            amplitudeErr,
-			   1,                  //!todo - mulitplicity has to be determined
+			   1,                  /// \todo - mulitplicity has to be determined
 			   goodnessOfFit);               	    
 	    hcol->push_back(hit);
 	    
