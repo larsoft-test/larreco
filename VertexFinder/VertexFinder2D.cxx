@@ -91,7 +91,7 @@ namespace vertex{
     // Parameters temporary defined here, but possibly to be retrieved somewhere in the code
     double timetick = 0.198;    //time sample in us
     double presamplings = 60.;
-    const double wireShift=50.; // half the number of wires from the Induction(Collection) plane intersecting with a wire from the Collection(Induction) plane.
+    //const double wireShift=50.; // half the number of wires from the Induction(Collection) plane intersecting with a wire from the Collection(Induction) plane.
     double plane_pitch = geom->PlanePitch(0,1);   //wire plane pitch in cm 
     double wire_pitch = geom->WirePitch(0,1,0);    //wire pitch in cm
     double Efield_drift = 0.5;  // Electric Field in the drift region in kV/cm
@@ -159,7 +159,7 @@ namespace vertex{
       art::PtrVector<recob::Hit> hit;
       hit = clusters[iclu]->Hits();
       int n = 0;
-      for (int i = 0; i<hit.size(); i++){
+      for (unsigned int i = 0; i<hit.size(); i++){
 	time = hit[i]->PeakTime();
 	channel = hit[i]->Channel();
 	geom->ChannelToWire(channel,plane,wire);
@@ -207,7 +207,7 @@ namespace vertex{
 	  bool rev = false;
 	  if (c1!=-1){
 	    double wb = clusters[Cls[i][j]]->StartPos()[0];
-	    double we = clusters[Cls[i][j]]->EndPos()[0];
+	    //double we = clusters[Cls[i][j]]->EndPos()[0];
 	    double tt = clusters[Cls[i][j]]->StartPos()[1];
 	    double dtdw = dtdwstart[Cls[i][j]];
 	    tt0 = (dtdw1*dtdw*(wb1-wb)+dtdw1*tt-dtdw*tt1)/(dtdw1-dtdw);
