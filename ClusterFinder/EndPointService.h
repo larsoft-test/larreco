@@ -46,7 +46,7 @@ namespace cluster {
     double       fGsigma;
     int          fWindow;
     double       fThreshold;
-    unsigned int fSaveVertexMap;
+    int          fSaveVertexMap;
   };
     
 }

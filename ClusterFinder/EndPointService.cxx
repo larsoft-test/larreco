@@ -51,12 +51,12 @@ extern "C" {
 //-----------------------------------------------------------------------------
 cluster::EndPointService::EndPointService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg) :
  
-  fTimeBins        (pset.get< int          >("TimeBins")      ),
-  fMaxCorners      (pset.get< int          >("MaxCorners")    ),
-  fGsigma          (pset.get< double       >("Gsigma")        ),
-  fWindow          (pset.get< int          >("Window")        ),
-  fThreshold       (pset.get< double       >("Threshold")     ),
-  fSaveVertexMap   (pset.get< unsigned int >("SaveVertexMap") )
+  fTimeBins        (pset.get< int    >("TimeBins")      ),
+  fMaxCorners      (pset.get< int    >("MaxCorners")    ),
+  fGsigma          (pset.get< double >("Gsigma")        ),
+  fWindow          (pset.get< int    >("Window")        ),
+  fThreshold       (pset.get< double >("Threshold")     ),
+  fSaveVertexMap   (pset.get< int    >("SaveVertexMap") )
 {
 }
 
@@ -338,7 +338,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
       hit.clear();
       if(clusterIter!=clusIn.end()) clusterIter++;
 
-      if(p==fSaveVertexMap)
+      if((int)p==fSaveVertexMap)
 	{ 
 	  unsigned char *outPix = new unsigned char [fTimeBins*numberwires];
 	  //finds the maximum cell in the map for image scaling

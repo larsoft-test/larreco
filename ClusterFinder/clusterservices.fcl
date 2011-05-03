@@ -40,6 +40,6 @@ BEGIN_PROLOG
 
  lbne_dbscanservice:    @local::standard_dbscanservice
  lbne_houghlineservice: @local::standard_houghlineservice
- lbne_endpointservice:  @local::standard_endpointservice
+ lbne_endpointservice:  @local::standard_endpointservice 
 
 END_PROLOG
