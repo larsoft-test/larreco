@@ -792,12 +792,12 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
     for(unsigned int scs = 0; scs < simchans.size(); ++scs)
       if(simchans[scs]->Channel() == channel) sc = simchans[scs];
     
-    int numberOfElectrons = sc->NumberOfElectrons();
+    unsigned int numberOfElectrons = sc->NumberOfElectrons();
     //  std::cout<<"Hits only, numberOfElectrons= "<< numberOfElectrons<<std::endl;
     //    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
     //std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
     //  std::cout<<"simdigit is: "<<simdigit<<std::endl;
-    for ( int i = 0; i != numberOfElectrons; ++i )
+    for (size_t i = 0; i != numberOfElectrons; ++i )
       {
 	       
 	_electrons = sc->GetElectrons(i);
@@ -1077,12 +1077,12 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
     for(unsigned int scs = 0; scs < simchans.size(); ++scs)
       if(simchans[scs]->Channel() == channel) sc2 = simchans[scs];
 
-    int numberOfElectrons = sc2->NumberOfElectrons();
+    unsigned int numberOfElectrons = sc2->NumberOfElectrons();
 	    
     //    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
     // std::cout<<"# of elec: "<<"for plane: "<<plane<<" is: "<<numberOfElectrons<<std::endl;
     //  std::cout<<"simdigit is: "<<simdigit<<std::endl;
-    for ( int i = 0; i != numberOfElectrons; ++i )
+    for (size_t i = 0; i != numberOfElectrons; ++i )
       {
 		
 	_electrons = sc2->GetElectrons(i);
@@ -1176,12 +1176,12 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
     for(unsigned int scs = 0; scs < simchans.size(); ++scs)
       if(simchans[scs]->Channel() == channel) sc = simchans[scs];
     
-    int numberOfElectrons = sc->NumberOfElectrons();
+    unsigned int numberOfElectrons = sc->NumberOfElectrons();
 	    
     //    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
     //std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
 
-    for ( int i = 0; i!=numberOfElectrons; ++i )
+    for (size_t i = 0; i!=numberOfElectrons; ++i )
       {
 		
 	_electrons = sc->GetElectrons(i);

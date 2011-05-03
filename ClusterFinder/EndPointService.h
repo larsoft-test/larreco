@@ -41,12 +41,12 @@ namespace cluster {
     void VSSaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy);
 
     
-    int         fTimeBins;
-    int         fMaxCorners;
-    double      fGsigma;
-    int         fWindow;
-    double      fThreshold;
-    int         fSaveVertexMap;
+    int          fTimeBins;
+    int          fMaxCorners;
+    double       fGsigma;
+    int          fWindow;
+    double       fThreshold;
+    unsigned int fSaveVertexMap;
   };
     
 }

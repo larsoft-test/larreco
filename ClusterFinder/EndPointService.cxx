@@ -51,12 +51,12 @@ extern "C" {
 //-----------------------------------------------------------------------------
 cluster::EndPointService::EndPointService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg) :
  
-  fTimeBins        (pset.get< int         >("TimeBins")      ),
-  fMaxCorners      (pset.get< int         >("MaxCorners")    ),
-  fGsigma          (pset.get< double      >("Gsigma")        ),
-  fWindow          (pset.get< int         >("Window")        ),
-  fThreshold       (pset.get< double      >("Threshold")     ),
-  fSaveVertexMap   (pset.get< int         >("SaveVertexMap") )
+  fTimeBins        (pset.get< int          >("TimeBins")      ),
+  fMaxCorners      (pset.get< int          >("MaxCorners")    ),
+  fGsigma          (pset.get< double       >("Gsigma")        ),
+  fWindow          (pset.get< int          >("Window")        ),
+  fThreshold       (pset.get< double       >("Threshold")     ),
+  fSaveVertexMap   (pset.get< unsigned int >("SaveVertexMap") )
 {
 }
 
@@ -326,8 +326,8 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 		      // converted to time ticks so that the window is truly square. 
 		      // Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), 
 		      // assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
-		      for(int wireout=wire-(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5);
-			  wireout <= wire+(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5) ; wireout++)
+		      for(int wireout=(int)wire-(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5);
+			  wireout <= (int)wire+(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5) ; wireout++)
 			for(int timebinout=timebin-fWindow;timebinout <= timebin+fWindow; timebinout++)
 			  if(sqrt(pow(wire-wireout,2)+pow(timebin-timebinout,2))<fWindow)//circular window 
 			    Cornerness[wireout][timebinout]=0;	  
