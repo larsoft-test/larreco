@@ -61,6 +61,19 @@ namespace cluster {
 
 TH1F* Ind_eng_rectangle;
 TH1F* Coll_eng_rectangle;
+TH1F* Ind_eng_rectangle2;
+TH1F* Coll_eng_rectangle2;
+TH1F* Ind_eng_rectangle3;
+TH1F* Coll_eng_rectangle3;
+
+TH1F* Vertex_x;
+TH1F* Vertex_y;
+TH1F* Vertex_z;
+
+
+
+
+
   }; // class KingaClusterAna
 
 }

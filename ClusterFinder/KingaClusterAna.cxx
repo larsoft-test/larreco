@@ -87,8 +87,18 @@ M_Delta_plus_plus2=tfs->make<TH1F>("M_Delta_plus_plus2","Inv Mass of delta++", 1
 Ind_eng_rectangle=tfs->make<TH1F>("Ind_eng_rectangle","Energy contained within a rectangle", 1000,0 ,40000);
 Coll_eng_rectangle=tfs->make<TH1F>("Coll_eng_rectangle","Energy contained within a rectangle", 1000,0 ,40000);
 
+Ind_eng_rectangle2=tfs->make<TH1F>("Ind_eng_rectangle2","Energy contained within a rectangle", 1000,0 ,40000);
+Coll_eng_rectangle2=tfs->make<TH1F>("Coll_eng_rectangle2","Energy contained within a rectangle", 1000,0 ,40000);
+
+Ind_eng_rectangle3=tfs->make<TH1F>("Ind_eng_rectangle3","Energy contained within a rectangle", 1000,0 ,40000);
+Coll_eng_rectangle3=tfs->make<TH1F>("Coll_eng_rectangle3","Energy contained within a rectangle", 1000,0 ,40000);
+
 
 Number_protons=tfs->make<TH1F>("Number_protons","Number of protons with StatusCode=1 for each Event", 15,0 ,15);
+
+Vertex_x=tfs->make<TH1F>("Vertex_x","vertex X coordinate value", 60,0 ,60);
+Vertex_y=tfs->make<TH1F>("Vertex_y","vertex Y coordinate value", 60,-30 ,30);
+Vertex_z=tfs->make<TH1F>("Vertex_z","vertex Z coordinate value", 100,0 ,100);
 
   
 }
@@ -162,7 +172,7 @@ double MC_Total_Eng=0;
     simb::MCParticle part(mc->GetParticle(j));
     
     if(part.PdgCode()==2212 && part.StatusCode()==1){
-    std::cout<<"and its mother = "<<part.Mother()<<std::endl;
+    //std::cout<<"and its mother = "<<part.Mother()<<std::endl;
     no_protons++;
     }
     
@@ -176,12 +186,12 @@ double MC_Total_Eng=0;
     
     //now let's check for delta++ and get its daughters (should be a proton and pi+)
     if(part.PdgCode()==2224){
-    std::cout<<"Have a delta++ and it has this many daughters: "<<part.NumberDaughters()<<std::endl;
-     for(int k=0; k<part.NumberDaughters(); k++){
-     std::cout<<"No of Daughters= "<<part.NumberDaughters()<<std::endl;
-     
-     
-     }//for each daughter
+    //std::cout<<"Have a delta++ and it has this many daughters: "<<part.NumberDaughters()<<std::endl;
+    //  for(int k=0; k<part.NumberDaughters(); k++){
+//      std::cout<<"No of Daughters= "<<part.NumberDaughters()<<std::endl;
+//      
+//      
+//      }//for each daughter
     
     
     
@@ -200,6 +210,8 @@ double MC_Total_Eng=0;
  double mu_theta_true, mu_phi_true;
  double pion_theta_true, pion_phi_true;
  
+ std::cout<<"mclist.size() = "<<mclist.size()<<std::endl;
+ 
  for( unsigned int i = 0; i < mclist.size(); ++i ){
     art::Ptr<simb::MCTruth> mc(mclist[i]);
     
@@ -208,6 +220,11 @@ double MC_Total_Eng=0;
     vertex[0] =neut.Vx();
     vertex[1] =neut.Vy();
     vertex[2] =neut.Vz();
+    std::cout<<"neut.Vx()= "<<neut.Vx()<<" ,y= "<<neut.Vy()<<" ,z= "<<neut.Vz()<<std::endl;
+    
+    Vertex_x->Fill(neut.Vx());
+    Vertex_y->Fill(neut.Vy());
+    Vertex_z->Fill(neut.Vz());
    
     
   
@@ -377,10 +394,31 @@ INV_MASS+=part.Mass();
    
    if( _particleList.IsPrimary( trackID )){
   // std::cout<<"pdg= "<<pdg<<" trackID= "<<trackID<<" Primary"<<" with Energy= "<<particle->E()<<" and p= "<<particle->P()<<" P(3mom)="<<p<<" sqrt(pow(part.E(),2.)-pow(p,2.))= "<<sqrt(pow(particle->E(),2.)-pow(p,2.))<<" Mass= "<<particle->Mass()<< std::endl;
+  
+   int mother = particle->Mother();
+//      particle = _particleList.at( trackID );
+//      int MPDG=particle->PdgCode();
+    //std::cout<<"Primary,Mother is now (if -1 then no mother)= "<<mother<<std::endl; 
+//      
    }
    
     if(! _particleList.IsPrimary( trackID )){
    //std::cout<<"pdg= "<<pdg<<" trackID= "<<trackID<<" NOT Primary"<<" with Energy= "<<particle->E()<<" and p= "<<particle->P()<<" P(3mom)="<<p<<" sqrt(pow(part.E(),2.)-pow(p,2.))= "<<sqrt(pow(particle->E(),2.)-pow(p,2.))<<" Mass= "<<particle->Mass()<<std::endl;
+   //std::cout<<"BEFORE *********************"<<std::endl;
+   while(! _particleList.IsPrimary( trackID ))
+   {
+     trackID = particle->Mother();
+     particle = _particleList.at( trackID );
+     int MPDG=particle->PdgCode();
+     if(MPDG==2224){std::cout<<"ATTENTION, FOUND D++"<<std::endl;}
+std::cout<<"MPDG is now = "<<MPDG<<std::endl;   
+   
+   }
+      //std::cout<<"AFTER *********************"<<std::endl;
+
+   
+   
+   
    }
    
    
@@ -573,8 +611,8 @@ art::PtrVector<recob::Cluster> clusIn;
 art::PtrVector<recob::Hit> hits;
 ftimetick      =  0.198; 
 fdriftvelocity =  0.157; 
-double ind_hits_eng_rectangle=0;
-double coll_hits_eng_rectangle=0;
+double ind_hits_eng_rectangle=0, ind_hits_eng_rectangle2=0, ind_hits_eng_rectangle3=0;
+double coll_hits_eng_rectangle=0, coll_hits_eng_rectangle2=0,coll_hits_eng_rectangle3=0;
 //double MCvertex [3];
 
 
@@ -634,34 +672,87 @@ if(plane==0){
     coll_hits_eng_rectangle+=allhits[i]->Charge();
     
     }
+    //................................
     
+    if(p==plane && p==0 && fabs(w*0.4-fwire_vertex[plane]*0.4)<3 && fabs(((allhits[i]->StartTime()+allhits[i]->EndTime())/2.)-ftime_vertex[0])* ftimetick *fdriftvelocity<6){
+    std::cout<<"filling Ind_eng_rectangle2"<<std::endl;
+    ind_hits_eng_rectangle2+=allhits[i]->Charge();
+
+    }
     
+     if(p==plane && p==1 && fabs(w*0.4-fwire_vertex[plane]*0.4)<3 && fabs(((allhits[i]->StartTime()+allhits[i]->EndTime())/2.)-ftime_vertex[0])* ftimetick *fdriftvelocity<6){
+    std::cout<<"filling Coll_eng_rectangle2"<<std::endl;
+    coll_hits_eng_rectangle2+=allhits[i]->Charge();
     
     }
+    
+    
+     //................................
+    
+    if(p==plane && p==0 && fabs(w*0.4-fwire_vertex[plane]*0.4)<6 && fabs(((allhits[i]->StartTime()+allhits[i]->EndTime())/2.)-ftime_vertex[0])* ftimetick *fdriftvelocity<7){
+    std::cout<<"filling Ind_eng_rectangle2"<<std::endl;
+    ind_hits_eng_rectangle3+=allhits[i]->Charge();
+
+    }
+    
+     if(p==plane && p==1 && fabs(w*0.4-fwire_vertex[plane]*0.4)<6 && fabs(((allhits[i]->StartTime()+allhits[i]->EndTime())/2.)-ftime_vertex[0])* ftimetick *fdriftvelocity<7){
+    std::cout<<"filling Coll_eng_rectangle2"<<std::endl;
+    coll_hits_eng_rectangle3+=allhits[i]->Charge();
+    
+    }
+    
+    
+    
+    
+    
+    }//if p==plane
    
-    }
+    }//loop through hits for each cluster
    // std::cout<<"hits.size()= "<<hits.size()<<std::endl;
-    }
+    }//loop through each cluster
    
     std::cout<<"allhits.size()="<<allhits.size()<<std::endl;
    
    
     //Now we have hits for the plane that we are on right now, so let's do some work:
+    if(allhits.size()>10){
+if(plane==0){
+std::cout<<"Final ind_hits_eng_rectangle= "<<ind_hits_eng_rectangle<<std::endl;
+Ind_eng_rectangle->Fill(ind_hits_eng_rectangle);
 
+std::cout<<"Final ind_hits_eng_rectangle2= "<<ind_hits_eng_rectangle2<<std::endl;
+Ind_eng_rectangle2->Fill(ind_hits_eng_rectangle2);
 
+std::cout<<"Final ind_hits_eng_rectangle3= "<<ind_hits_eng_rectangle3<<std::endl;
+Ind_eng_rectangle3->Fill(ind_hits_eng_rectangle3);
+}
+    
+if(plane==1){
+std::cout<<"Final coll_hits_eng_rectangle= "<<coll_hits_eng_rectangle<<std::endl;
+ Coll_eng_rectangle->Fill(coll_hits_eng_rectangle);
+ 
+ std::cout<<"Final coll_hits_eng_rectangle2= "<<coll_hits_eng_rectangle2<<std::endl;
+ Coll_eng_rectangle2->Fill(coll_hits_eng_rectangle2);
+ 
+ std::cout<<"Final coll_hits_eng_rectangle3= "<<coll_hits_eng_rectangle3<<std::endl;
+ Coll_eng_rectangle3->Fill(coll_hits_eng_rectangle3);
 
+}
+}//if allhits.size()>10
 allhits.clear();
 
 }//for each plane
 
 
-std::cout<<"Final ind_hits_eng_rectangle= "<<ind_hits_eng_rectangle<<std::endl;
-std::cout<<"Final coll_hits_eng_rectangle= "<<coll_hits_eng_rectangle<<std::endl;
-    Ind_eng_rectangle->Fill(ind_hits_eng_rectangle);
-    Coll_eng_rectangle->Fill(coll_hits_eng_rectangle);
-    
+std::cout<<"ORIG,Final ind_hits_eng_rectangle= "<<ind_hits_eng_rectangle<<std::endl;
+std::cout<<"ORIG,Final coll_hits_eng_rectangle= "<<coll_hits_eng_rectangle<<std::endl;
+   
     ind_hits_eng_rectangle=0;
     coll_hits_eng_rectangle=0;
+    ind_hits_eng_rectangle2=0;
+    coll_hits_eng_rectangle2=0;
+    ind_hits_eng_rectangle3=0;
+    coll_hits_eng_rectangle3=0;
     allhits.clear();
     ftime_vertex.clear();
     fwire_vertex.clear();
