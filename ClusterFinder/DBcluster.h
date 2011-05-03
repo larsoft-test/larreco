@@ -20,6 +20,7 @@ namespace cluster{
     ~DBcluster();
     void produce(art::Event& evt);
     void beginJob();
+    void reconfigure(fhicl::ParameterSet p);
     
   private:
        

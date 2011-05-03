@@ -25,6 +25,7 @@ namespace cluster{
     DBScanService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg);
     virtual ~DBScanService();
     
+    void reconfigure(fhicl::ParameterSet p);
     void InitScan(art::PtrVector<recob::Hit>& allhits);
     double getSimilarity(const std::vector<double> v1, const std::vector<double> v2); 
     std::vector<unsigned int> findNeighbors( unsigned int pid, double threshold, double threshold2);

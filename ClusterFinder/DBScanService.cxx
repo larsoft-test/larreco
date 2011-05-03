@@ -35,11 +35,9 @@
 #include "TH1.h"
 
 //----------------------------------------------------------
-cluster::DBScanService::DBScanService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg):
-  fEps   (pset.get< double      >("eps")   ),
-  fEps2  (pset.get< double      >("epstwo")  ),
-  fMinPts(pset.get< int         >("minPts"))
+cluster::DBScanService::DBScanService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg)
 {
+ this->reconfigure(pset); 
 }
 
 //----------------------------------------------------------
@@ -48,6 +46,15 @@ cluster::DBScanService::~DBScanService()
 }
 
 //----------------------------------------------------------
+void cluster::DBScanService::reconfigure(fhicl::ParameterSet p)
+{
+  fEps    = p.get< double >("eps");
+  fEps2   = p.get< double >("epstwo");
+  fMinPts = p.get< int >("minPts");
+}
+
+//----------------------------------------------------------
+
 void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits)
 {
 

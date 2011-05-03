@@ -39,15 +39,23 @@
 #include "TH1.h"
 
 //-------------------------------------------------
-cluster::DBcluster::DBcluster(fhicl::ParameterSet const& pset) : 
-  fhitsModuleLabel(pset.get< std::string >("HitsModuleLabel"))  
+cluster::DBcluster::DBcluster(fhicl::ParameterSet const& pset)
+   
 {  
+  this->reconfigure(pset);
   produces<std::vector<recob::Cluster> >();  
 }
 
 //-------------------------------------------------
 cluster::DBcluster::~DBcluster()
 {
+}
+
+//-------------------------------------------------
+void cluster::DBcluster::reconfigure(fhicl::ParameterSet p)
+{
+  fhitsModuleLabel=p.get< std::string >("HitsModuleLabel");
+
 }
 
 //-------------------------------------------------
