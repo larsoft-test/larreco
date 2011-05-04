@@ -33,16 +33,14 @@
 #include <TVector3.h>
 #include <vector>
 
-
-
 #include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
 #include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
 #include "Utilities/LArProperties.h"
-#include "TH1.h"
-#include "TH2.h"
+
+#include "TH1D.h"
 #include "TVectorD.h"
 #include "TGeoManager.h"
 #include "TMath.h"
@@ -72,6 +70,8 @@ namespace vertex{
   void VertexFinder2D::beginJob(){
     // get access to the TFile service
     art::ServiceHandle<art::TFileService> tfs;
+    dtIC = tfs->make<TH1D>("dtIC","It0-Ct0",100,-5,5);
+    dtIC->Sumw2();
   }
 
 // //-----------------------------------------------------------------------------
@@ -166,7 +166,7 @@ namespace vertex{
 	wires.push_back(wire);
 	times.push_back(time);
 	n++;
-	//if (n==10) break;
+	//if (n==20) break;
       }
       if (n>=2){
 	TGraph *the2Dtrack = new TGraph(n,&wires[0],&times[0]);
@@ -205,18 +205,47 @@ namespace vertex{
 	for (unsigned j = 0; j<Cls[i].size(); j++){
 	  double lclu = sqrt(pow((clusters[Cls[i][j]]->StartPos()[0]-clusters[Cls[i][j]]->EndPos()[0])*13.5,2)+pow(clusters[Cls[i][j]]->StartPos()[1]-clusters[Cls[i][j]]->EndPos()[1],2));
 	  bool rev = false;
+	  bool deltaraylike = false;
+	  bool enoughhits = false;
 	  if (c1!=-1){
 	    double wb = clusters[Cls[i][j]]->StartPos()[0];
-	    //double we = clusters[Cls[i][j]]->EndPos()[0];
+	    double we = clusters[Cls[i][j]]->EndPos()[0];
 	    double tt = clusters[Cls[i][j]]->StartPos()[1];
 	    double dtdw = dtdwstart[Cls[i][j]];
+	    int nhits = clusters[Cls[i][j]]->Hits().size();
 	    tt0 = (dtdw1*dtdw*(wb1-wb)+dtdw1*tt-dtdw*tt1)/(dtdw1-dtdw);
 	    ww0 = (tt-tt1+dtdw1*wb1-dtdw*wb)/(dtdw1-dtdw);
 	    if (fabs(wb1-ww0)>fabs(we1-ww0)) rev = true;//reverse cluster dir
+	    if ((!rev&&ww0>wb1+15)||(rev&&ww0<we1-15)) deltaraylike = true;
+	    if (((!rev&&ww0>wb1+10)||(rev&&ww0<we1-10))&&nhits<5) deltaraylike = true;
+	    if (wb>wb1+20&&nhits<10) deltaraylike = true;
+	    if (wb>wb1+50&&nhits<20) deltaraylike = true;
+	    if (wb>wb1+8&&TMath::Abs(dtdw1-dtdw)<0.15) deltaraylike = true;
+	    if (TMath::Abs(wb-wb1)>30&&TMath::Abs(we-we1)>30) deltaraylike = true;
+	    //std::cout<<rev<<" "<<ww0<<" "<<wb1<<" "<<wb<<" "<<we<<" "<<we1<<" "<<nhits<<std::endl;
+	    //make sure there are enough hits in the cluster
+	    //at leaset 2 hits if goes horizentally, at leaset 4 hits if goes vertically
+	    double alpha = TMath::ATan(dtdw);
+	    if (nhits>=int(2+3*(1-TMath::Abs(TMath::Cos(alpha))))) enoughhits = true;
+	    if (nhits<5&&(ww0<wb1-20||ww0>we1+20)) enoughhits = false;
+	    //std::cout<<nhits<<" "<<int(2+3*(1-TMath::Abs(TMath::Cos(alpha))))<<" "<<alpha<<std::endl;
+	    //std::cout<<Cls[i][j]<<" "<<deltaraylike<<" "<<enoughhits<<" "<<dtdw<<" "<<dtdw1<<std::endl;
+	  }
+	  //do not replace the second cluster if the 3rd cluster is not consistent with the existing 2
+	  bool replace = true;
+	  if (c1!=-1&&c2!=-1){
+	    double wb = clusters[Cls[i][j]]->StartPos()[0];
+	    double we = clusters[Cls[i][j]]->EndPos()[0];
+	    tt0 = (dtdw1*dtdw2*(wb1-wb2)+dtdw1*tt2-dtdw2*tt1)/(dtdw1-dtdw2);
+	    ww0 = (tt2-tt1+dtdw1*wb1-dtdw2*wb2)/(dtdw1-dtdw2);
+	    if ((TMath::Abs(ww0-wb1)<10||TMath::Abs(ww0-we1)<10)&&
+		(TMath::Abs(ww0-wb2)<10||TMath::Abs(ww0-we2)<10)){
+	      if (TMath::Abs(ww0-wb)>15&&TMath::Abs(ww0-we)>15) replace = false;
+	    }
+	    //std::cout<<c1<<" "<<c2<<" "<<ww0<<" "<<wb1<<" "<<wb2<<" "<<wb<<" "<<we<<std::endl;
 	  }
 	  if (lclu1<lclu){
-	    //this is to remove delta rays from the muon cluster
-	    if (c1!=-1&&((!rev&&ww0<wb1+15)||(rev&&ww0>we1-15))){
+	    if (c1!=-1&&!deltaraylike&&enoughhits){
 	      lclu2 = lclu1;
 	      c2 = c1;
 	      wb2 = wb1;
@@ -232,9 +261,13 @@ namespace vertex{
 	    dtdw1 = dtdwstart[Cls[i][j]];
 	  }
 	  else if (lclu2<lclu){
-	    if (ww0<wb1+15){
+	    if (!deltaraylike&&enoughhits&&replace){
 	      lclu2 = lclu;
 	      c2 = Cls[i][j];
+	      wb2 = clusters[Cls[i][j]]->StartPos()[0];
+	      we2 = clusters[Cls[i][j]]->EndPos()[0];
+	      tt2 = clusters[Cls[i][j]]->StartPos()[1];
+	      dtdw2 = dtdwstart[Cls[i][j]];
 	    }
 	  }
 	}
@@ -257,9 +290,16 @@ namespace vertex{
 	  vtx_t.push_back(t0);
 	}
 	else if (Cls[i].size()>=1){
-	  cluvtx[i].push_back(Cls[i][0]);
-	  vtx_w.push_back(clusters[Cls[i][0]]->StartPos()[0]);
-	  vtx_t.push_back(clusters[Cls[i][0]]->StartPos()[1]);
+	  if (c1!=-1){
+	    cluvtx[i].push_back(c1);
+	    vtx_w.push_back(clusters[c1]->StartPos()[0]);
+	    vtx_t.push_back(clusters[c1]->StartPos()[1]);
+	  }
+	  else{
+	    cluvtx[i].push_back(Cls[i][0]);
+	    vtx_w.push_back(clusters[Cls[i][0]]->StartPos()[0]);
+	    vtx_t.push_back(clusters[Cls[i][0]]->StartPos()[1]);
+	  }
 	}
       }
       else {//no cluster found
@@ -267,6 +307,7 @@ namespace vertex{
 	vtx_t.push_back(-1);
       }
     }
+    //std::cout<<vtx_w[0]<<" "<<vtx_t[0]<<" "<<vtx_w[1]<<" "<<vtx_t[1]<<std::endl;
 
     Double_t vtxcoord[3];
     if (Cls[0].size()>0&&Cls[1].size()>0){//ignore w view
@@ -281,6 +322,7 @@ namespace vertex{
       vtxcoord[0] = Ct0;
       vtxcoord[1] = (Cw0-Iw0)/(2.*TMath::Sin(Angle));
       vtxcoord[2] = (Cw0+Iw0)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle);
+      dtIC->Fill(It0-Ct0);
     }
     else{
       vtxcoord[0] = -99999;
@@ -288,6 +330,7 @@ namespace vertex{
       vtxcoord[2] = -99999;
     }
     
+    //std::cout<<vtxcoord[0]<<" "<<vtxcoord[1]<<" "<<vtxcoord[2]<<std::endl;
     //need to implement this
     art::PtrVector<recob::Track> vTracks_vec;
     art::PtrVector<recob::Shower> vShowers_vec;

@@ -14,8 +14,7 @@
 #include <string>
 #include "RecoBase/recobase.h"
 
-class TH1F;
-class TH2F;
+class TH1D;
 
 ///vertex reconstruction
 namespace vertex {
@@ -33,7 +32,8 @@ namespace vertex {
     void produce(art::Event& evt);
 
   private:
-
+    
+    TH1D *dtIC;
   
     std::string fClusterModuleLabel;
 
