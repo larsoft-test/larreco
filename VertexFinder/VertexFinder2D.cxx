@@ -54,6 +54,7 @@ namespace vertex{
   {  
     this->reconfigure(pset);    
     produces< std::vector<recob::Vertex> >();
+    produces< std::vector<recob::EndPoint2D> >();
   }
 //-----------------------------------------------------------------------------
   VertexFinder2D::~VertexFinder2D()
@@ -123,8 +124,8 @@ namespace vertex{
 
 
     //Point to a collection of vertices to output.
-    std::auto_ptr<std::vector<recob::Vertex> > vcol(new std::vector<recob::Vertex>);
-
+    std::auto_ptr<std::vector<recob::Vertex> > vcol(new std::vector<recob::Vertex>);          //3D vertex
+    std::auto_ptr<std::vector<recob::EndPoint2D> >epcol(new std::vector<recob::EndPoint2D>);  //2D vertex
     int nplanes = geom->Nplanes();
     
     std::vector<int> Cls[nplanes]; //index to clusters in each view
@@ -186,7 +187,7 @@ namespace vertex{
     std::vector<double> vtx_t;
     
     for (int i = 0; i<nplanes; i++){
-      if (Cls[i].size()>=1){
+      if (Cls[i].size()>=1){//at least one cluster
 	//find the longest two clusters
 	int c1 = -1;
 	int c2 = -1;
@@ -301,6 +302,12 @@ namespace vertex{
 	    vtx_t.push_back(clusters[Cls[i][0]]->StartPos()[1]);
 	  }
 	}
+	//save 2D vertex
+	recob::EndPoint2D vertex;
+	vertex.SetWireNum(int(vtx_w.back()));
+	vertex.SetDriftTime(vtx_t.back());
+	vertex.SetView(clusters[Cls[i][0]]->View());
+	epcol->push_back(vertex);
       }
       else {//no cluster found
 	vtx_w.push_back(-1);
@@ -338,6 +345,7 @@ namespace vertex{
     recob::Vertex the3Dvertex(vTracks_vec, vShowers_vec, vtxcoord);
     vcol->push_back(the3Dvertex);
 
+    evt.put(epcol);
     evt.put(vcol);
     
   } // end of produce
