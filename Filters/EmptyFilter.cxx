@@ -36,17 +36,22 @@ extern "C" {
 namespace filt{
 
   //-------------------------------------------------
-  EmptyFilter::EmptyFilter(fhicl::ParameterSet const & pset) 
-    : fHitsModuleLabel(pset.get< std::string > ("HitsModuleLabel")) 
-    , fMinIonization  (pset.get< double      > ("MinIonization")  )
-    , fMinNumHits     (pset.get< int         > ("MinHits")        )   
+  EmptyFilter::EmptyFilter(fhicl::ParameterSet const & pset)  
   {   
+    this->reconfigure(pset);
   }
 
   //-------------------------------------------------
   EmptyFilter::~EmptyFilter()
   {
   }
+  
+  void EmptyFilter::reconfigure(fhicl::ParameterSet p)
+  {
+    fHitsModuleLabel = p.get< std::string > ("HitsModuleLabel"); 
+    fMinIonization =   p.get< double      > ("MinIonization"); 
+    fMinNumHits =      p.get< int         > ("MinHits");        
+  } 
 
   void EmptyFilter::beginJob()
   {
