@@ -84,14 +84,14 @@ Energy_in_Sphere=tfs->make<TH1F>("Energy_in_Sphere","Energy contained within a s
 
 M_Delta_plus_plus=tfs->make<TH1F>("M_Delta_plus_plus","Inv Mass of delta++", 1000,0 ,10);
 M_Delta_plus_plus2=tfs->make<TH1F>("M_Delta_plus_plus2","Inv Mass of delta++", 1000,0 ,10);
-Ind_eng_rectangle=tfs->make<TH1F>("Ind_eng_rectangle","Energy contained within a rectangle", 1000,0 ,40000);
-Coll_eng_rectangle=tfs->make<TH1F>("Coll_eng_rectangle","Energy contained within a rectangle", 1000,0 ,40000);
+Ind_eng_rectangle=tfs->make<TH1F>("Ind_eng_rectangle","Energy contained within a rectangle", 2000,0 ,80000);
+Coll_eng_rectangle=tfs->make<TH1F>("Coll_eng_rectangle","Energy contained within a rectangle", 2000,0 ,80000);
 
-Ind_eng_rectangle2=tfs->make<TH1F>("Ind_eng_rectangle2","Energy contained within a rectangle", 1000,0 ,40000);
-Coll_eng_rectangle2=tfs->make<TH1F>("Coll_eng_rectangle2","Energy contained within a rectangle", 1000,0 ,40000);
+Ind_eng_rectangle2=tfs->make<TH1F>("Ind_eng_rectangle2","Energy contained within a rectangle", 2000,0 ,80000);
+Coll_eng_rectangle2=tfs->make<TH1F>("Coll_eng_rectangle2","Energy contained within a rectangle", 2000,0 ,80000);
 
-Ind_eng_rectangle3=tfs->make<TH1F>("Ind_eng_rectangle3","Energy contained within a rectangle", 1000,0 ,40000);
-Coll_eng_rectangle3=tfs->make<TH1F>("Coll_eng_rectangle3","Energy contained within a rectangle", 1000,0 ,40000);
+Ind_eng_rectangle3=tfs->make<TH1F>("Ind_eng_rectangle3","Energy contained within a rectangle", 2000,0 ,80000);
+Coll_eng_rectangle3=tfs->make<TH1F>("Coll_eng_rectangle3","Energy contained within a rectangle", 2000,0 ,80000);
 
 
 Number_protons=tfs->make<TH1F>("Number_protons","Number of protons with StatusCode=1 for each Event", 15,0 ,15);
@@ -137,7 +137,17 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
  
   
   
-  
+  for ( sim::ParticleList::const_iterator i = _particleList.begin();
+	i != _particleList.end(); ++i )
+    {
+       const sim::Particle* particle = (*i).second;
+      int pdgcode=particle->PdgCode();
+        std::cout<<" QQQQ.... pdg= "<<pdgcode<<std::endl;
+        if(pdgcode==2224){std::cout<<"Victory"<<std::endl;}
+      int trackID = (*i).first;
+      //std::cout<<"trackID= "<<trackID<<std::endl;
+     // mc_trackids.push_back(trackID);      
+    }
   
    //................................................................
 double vertex [3] = { 0, 0, 0 };
@@ -186,7 +196,7 @@ double MC_Total_Eng=0;
     
     //now let's check for delta++ and get its daughters (should be a proton and pi+)
     if(part.PdgCode()==2224){
-    //std::cout<<"Have a delta++ and it has this many daughters: "<<part.NumberDaughters()<<std::endl;
+    std::cout<<"Have a delta++ and it has this many daughters: "<<part.NumberDaughters()<<std::endl;
     //  for(int k=0; k<part.NumberDaughters(); k++){
 //      std::cout<<"No of Daughters= "<<part.NumberDaughters()<<std::endl;
 //      
