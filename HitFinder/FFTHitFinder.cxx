@@ -215,12 +215,15 @@ namespace hit{
 					      maxTimes[hitIndex+i],
 					      width);
 	  }//end loop over hits
-        
+      try
+      {
 	  TMatrixD h(numHits,numHits);
 	  h.Use(numHits,numHits,data.GetArray());
 	  TDecompSVD a(h);
 	  a.Solve(amps);
-         
+      }
+      catch(...){std::cout<<"TDcompSVD failed"<<std::endl;hitIndex+=numHits;continue;}
+      
 	  for(int i = 0;i < numHits; i++) {
 	    gSum.SetParameter(3*i, amps[i]);
 	    gSum.SetParameter(1+3*i, maxTimes[hitIndex+i]);
