@@ -170,13 +170,17 @@ namespace vertex{
 	//if (n==20) break;
       }
       if (n>=2){
-	TGraph *the2Dtrack = new TGraph(n,&wires[0],&times[0]);
+	TGraph *the2Dtrack = new TGraph(n,&wires[0],&times[0]);           
+	try
+    {
 	the2Dtrack->Fit("pol1","Q");
 	TF1 *pol1=(TF1*) the2Dtrack->GetFunction("pol1");
 	double par[2];
 	pol1->GetParameters(par);
 	//std::cout<<iclu<<" "<<par[1]<<" "<<clusters[iclu]->dTdW()<<std::endl;
 	dtdwstart.push_back(par[1]);
+	}
+	catch(...){std::cout<<"Fitter failed"<<std::endl;delete the2Dtrack;continue;}
 	delete the2Dtrack;
       }
       else dtdwstart.push_back(clusters[iclu]->dTdW());
