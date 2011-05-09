@@ -64,7 +64,8 @@ void trkf::SpacePts::reconfigure(fhicl::ParameterSet pset)
   fPreSamplings           = pset.get< double >("TicksOffset");
   ftmatch                 = pset.get< int    >("TMatch");
   fClusterModuleLabel     = pset.get< std::string >("ClusterModuleLabel");
-
+  fEndPoint2DModuleLabel  = pset.get< std::string >("EndPoint2DModuleLabel");
+  fvertexclusterWindow    = pset.get< double >("vertexclusterWindow");
 }
 
 //-------------------------------------------------
@@ -120,7 +121,17 @@ void trkf::SpacePts::produce(art::Event& evt)
    art::Handle< std::vector<recob::Cluster> > clusterListHandle;
    evt.getByLabel(fClusterModuleLabel,clusterListHandle);
 
-  
+   // get input EndPoint2D object(s).
+   art::Handle< std::vector<recob::EndPoint2D> > endpointListHandle;
+   evt.getByLabel(fEndPoint2DModuleLabel,endpointListHandle); 
+   
+   art::PtrVector<recob::EndPoint2D> endpointlist;
+   if(evt.getByLabel(fEndPoint2DModuleLabel,endpointListHandle))
+    for (unsigned int i = 0; i < endpointListHandle->size(); ++i){
+      art::Ptr<recob::EndPoint2D> endpointHolder(endpointListHandle,i);
+      endpointlist.push_back(endpointHolder);
+    }
+   
    // Declare some vectors..
    // Induction
    std::vector<double> Iwirefirsts;       // in cm
@@ -155,9 +166,32 @@ void trkf::SpacePts::produce(art::Event& evt)
       // Gaaaaaah! Change me soon!!! But, for now, 
       // let's just chuck one plane's worth of info. EC, 30-Mar-2011.
       if (cl->View() == geo::kW) continue; //kW, you'd think.
-
-
-      // Some variables for the hit
+              
+       //only consider merged-lines that are associated with the vertex.
+       //this helps get rid of through-going muon background -spitz                  
+       int vtx2d_w = -99999;
+       double vtx2d_t = -99999;
+       bool found2dvtx = false;
+       
+      for (unsigned int j = 0; j<endpointlist.size();j++){
+	   if (endpointlist[j]->View() == cl->View()){
+	   vtx2d_w = endpointlist[j]->WireNum();
+	   vtx2d_t = endpointlist[j]->DriftTime();
+	   found2dvtx = true;
+	   break;
+	   }
+      }
+      if (found2dvtx){
+	  double w = cl->StartPos()[0];
+	  double t = cl->StartPos()[1];
+	  double dtdw = cl->dTdW();
+	  double t_vtx = t+dtdw*(vtx2d_w-w);
+	  double dis = TMath::Abs(vtx2d_t-t_vtx);
+	  if (dis>fvertexclusterWindow)	  continue;	
+      }
+      else continue;
+    
+     // Some variables for the hit
       unsigned int channel;  //channel number
       float time;            //hit time at maximum
       unsigned int wire;              //hit wire number

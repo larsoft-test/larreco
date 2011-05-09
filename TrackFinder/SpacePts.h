@@ -33,7 +33,9 @@ namespace trkf {
         
     int             ftmatch; // tolerance for time matching (in time samples) 
     double          fPreSamplings; // in ticks
+    double fvertexclusterWindow;
     std::string     fClusterModuleLabel;// label for input cluster collection
+    std::string     fEndPoint2DModuleLabel;//label for input EndPoint2D collection
   protected: 
     
   
