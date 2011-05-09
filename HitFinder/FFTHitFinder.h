@@ -1,7 +1,6 @@
 #ifndef FFTHITFINDER_H
 #define FFTHITFINDER_H
 
-#include <vector>
 #include <string>
 
 #include "art/Framework/Core/EDProducer.h" 
@@ -24,13 +23,11 @@ namespace hit {
   private:
         
     std::string     fCalDataModuleLabel;
-    double          fMinSigInd;     ///>Induction signal height threshold 
-    double          fMinSigCol;     ///>Collection signal height threshold 
-    double          fIndWidth;      ///>Initial width for induction fit
-    double          fColWidth;      ///>Initial width for collection fit
-    double          fPOffset;       ///>Time delay between planes
-    double          fOOffset;       ///>Distance(cm) from induction plane to origin
-    int             fMaxMultiHit;   ///>maximum hits for multi fit   
+    double          fMinSigInd;     ///<Induction signal height threshold 
+    double          fMinSigCol;     ///<Collection signal height threshold 
+    double          fIndWidth;      ///<Initial width for induction fit
+    double          fColWidth;      ///<Initial width for collection fit
+    int             fMaxMultiHit;   ///<maximum hits for multi fit   
   protected: 
     
   

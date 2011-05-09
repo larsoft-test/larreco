@@ -12,9 +12,6 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 }
-#include <sstream>
-#include <math.h>
-#include <algorithm>
 
 // Framework includes
 #include "art/Framework/Core/Event.h" 
@@ -31,13 +28,12 @@ extern "C" {
 #include "HitFinder/FFTHitFinder.h"
 #include "Geometry/geo.h"
 #include "RecoBase/recobase.h"
-#include "Utilities/LArFFT.h"
 
 // ROOT 
-#include "TMath.h"
-#include "TF1.h"
 #include "TH1D.h"
 #include "TDecompSVD.h"
+#include "TMath.h"
+#include "TF1.h"
 
 namespace hit{
 
@@ -61,9 +57,7 @@ namespace hit{
     fMinSigInd          = p.get< double       >("MinSigInd");
     fMinSigCol          = p.get< double       >("MinSigCol"); 
     fIndWidth           = p.get< double       >("IndWidth");  
-    fColWidth           = p.get< double       >("ColWidth");  
-    fPOffset            = p.get< double       >("POffset");	  
-    fOOffset            = p.get< double       >("OOffset");	  
+    fColWidth           = p.get< double       >("ColWidth");  	  	  
     fMaxMultiHit        = p.get< int          >("MaxMultiHit");
   }  
   //-------------------------------------------------
@@ -154,8 +148,8 @@ namespace hit{
       //All code below does the fitting, adding of hits
       //to the hit vector and when all wires are complete 
       //saving them 
-      //std::cout <<channel<<" "<< startTimes.size() <<" "<<maxTimes.size() 
-      //<< " "<< endTimes.size()<<std::endl;
+      mf::LogDebug("FFTHitFinder") <<channel<<" "<< startTimes.size() <<" "<<maxTimes.size() 
+      << " "<< endTimes.size();
 
       double totSig(0); //stoes the total hit signal
       double startT(0); //stores the start time
@@ -209,12 +203,14 @@ namespace hit{
 	  TVectorD amps(numHits); 
 	  for(int i = 0; i < numHits; i++) {
 	    amps[i]=signal[maxTimes[hitIndex+i]];
-	    //std::cout <<" ai: " <<amps[i] ;
+	    mf::LogDebug("FFTHitFinder") <<" ai: " <<amps[i] ;
 	    for(int j = 0; j < numHits;j++) 
 	      data[i+numHits*j] = TMath::Gaus(maxTimes[hitIndex+j],
 					      maxTimes[hitIndex+i],
 					      width);
 	  }//end loop over hits
+      //This section uses a linear approximation in order to get an
+      //initial value of the individual hit amplitudes 
       try
       {
 	  TMatrixD h(numHits,numHits);
@@ -222,7 +218,7 @@ namespace hit{
 	  TDecompSVD a(h);
 	  a.Solve(amps);
       }
-      catch(...){std::cout<<"TDcompSVD failed"<<std::endl;hitIndex+=numHits;continue;}
+      catch(...){mf::LogInfo("FFTHitFinder")<<"TDcompSVD failed";hitIndex+=numHits;continue;}
       
 	  for(int i = 0;i < numHits; i++) {
 	    gSum.SetParameter(3*i, amps[i]);
