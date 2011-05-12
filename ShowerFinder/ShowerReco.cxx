@@ -48,9 +48,16 @@ extern "C" {
 
 
 // ***************** //
+static bool hit_sort_2d(const recob::Hit* h1, const recob::Hit* h2)
+{
+  return h1->Wire()->RawDigit()->Channel() < h2->Wire()->RawDigit()->Channel();
+}
+
+
 shwf::ShowerReco::ShowerReco(fhicl::ParameterSet const& pset) : 
 
-  fclusterModuleLabel (pset.get< std::string >("clusters"))
+  fClusterModuleLabel (pset.get< std::string >("ClusterModuleLabel")),
+  fShwrOutput (pset.get< std::string >("ShowerOutputTxtFile"))
   
 {
   produces< std::vector<recob::Shower> >();
@@ -61,25 +68,25 @@ shwf::ShowerReco::~ShowerReco()
 {
 }
 
+namespace shwf {
+struct SortByWire 
+{
+  bool operator() (recob::Hit const& h1, recob::Hit const& h2) const 
+  { return 
+      h1.Wire()->RawDigit()->Channel() < 
+      h2.Wire()->RawDigit()->Channel() ;
+  }
+};
+}
+
 // ***************** //
 void shwf::ShowerReco::beginJob()
 {
   /** Get Geometry*/
   art::ServiceHandle<geo::Geometry> geo;
   unsigned int planes = geo->Nplanes();
-  
-  double mean_wirepitch;
+  fmean_wire_pitch = geo->WirePitch(0,1,0);    //wire pitch in cm
 
-  for (unsigned int i=0;i<planes;++i){
-    mean_wirepitch = 0.;
-    fplane_pitch.push_back(geo->PlanePitch(i,i+1));
-    fwires.push_back(geo->Nwires(i));
-    for (unsigned int j=0;j<fwires[i]-1;++j){
-      fwire_pitch.push_back(geo->WirePitch());
-      mean_wirepitch+=geo->WirePitch();
-    }
-    fmean_wire_pitch.push_back(mean_wirepitch/geo->Nwires(i));
-  }
   /**Get TFileService and define output Histograms*/
   art::ServiceHandle<art::TFileService> tfs;
 
@@ -95,27 +102,28 @@ void shwf::ShowerReco::beginJob()
 
     /**Histos for the angular distribution theta of the shower*/
     sprintf(&tit_h_theta[0],"fh_theta_%i",i);
-    fh_theta.push_back(tfs->make<TH1F>(tit_h_theta,"Theta distribution",180,-180., 180.));
+    fh_theta[i] = tfs->make<TH1F>(tit_h_theta,"Theta distribution",720,-180., 180.);
 
     /**Histos for the angular distribution theta wire of the shower*/
     sprintf(&tit_h_theta[0],"ftheta_wire_%i",i);
-    fh_theta_wt.push_back(tfs->make<TH1F>(tit_h_theta_wt,"Theta wire distribution",45,-180., 180.));
+    fh_theta_wt[i] = tfs->make<TH1F>(tit_h_theta_wt,"Theta wire distribution",720,-180., 180.);
  
     /**Histos for the longitudinal energy distribution of the shower */
     sprintf(&sh_tit[0],"fsh_nrg1_%i",i);                   /**number of wires used,min wire,max_wire you need for the anlysis*/
-    fsh_nrg.push_back(tfs->make<TH1F>(sh_tit,"energy reco",fwires[i],               0.,      fwires[i]*fmean_wire_pitch[i]));
+    fsh_nrg[i] = tfs->make<TH1F>(sh_tit,"energy reco",240,0.,240*fmean_wire_pitch);
 
     /**Histos for the transverse energy distribution of the shower*/
     sprintf(&shT_tit[0],"fshT_nrg1_%i",i);                   /**units are ticks most lickely, but how did Biagio get size of it???*/
-    fsh_Tnrg.push_back(tfs->make<TH1F>(shT_tit,"energy reco",80,-40.,40.));
+    fsh_Tnrg[i] = tfs->make<TH1F>(shT_tit,"energy reco",80,-40.,40.);
   
     /**Histos for the Transverse HIT distribution of the shower*/
-    nbins = (int)(fwires[i]*fmean_wire_pitch[i]);
+    nbins = (int)(240*fmean_wire_pitch);
     sprintf(&sh_long_tit[0],"fsh_long_hit_%i",i);                           /**nbins,min wire,max_wire you need for the analysis*/
-    fsh_long_hit.push_back(tfs->make<TH1F>(sh_long_tit,"longitudinal hit reco",nbins, 0.,     fwires[i]*fmean_wire_pitch[i]));
+    fsh_long_hit[i] = tfs->make<TH1F>(sh_long_tit,"longitudinal hit reco",nbins, 0.,     240*fmean_wire_pitch);
   }
 
   ftree_shwf =tfs->make<TTree>("ShowerReco","Results");/**All-knowing tree with reconstruction information*/
+  /*
   ftree_shwf->Branch("ftheta_Mean","std::vector<double>", &ftheta_Mean);
   ftree_shwf->Branch("ftheta_RMS","std::vector<double>", &ftheta_RMS);
   ftree_shwf->Branch("ftheta","double",&ftheta);
@@ -126,7 +134,7 @@ void shwf::ShowerReco::beginJob()
   ftree_shwf->Branch("ftime_vertex","std::vector<float>", &ftime_vertex);
   ftree_shwf->Branch("fslope_2d"," std::vector<double>", &fslope_2d);
   ftree_shwf->Branch("fintercept_2d","std::vector<double>", &fintercept_2d);
-
+  */
 
 }
 
@@ -145,97 +153,76 @@ void shwf::ShowerReco::produce(art::Event& evt)
   art::ServiceHandle<geo::Geometry> geo;
   //art::ServiceHandle<util::LArProperties> larprop;
   unsigned int planes = geo->Nplanes();
-  /**TODO GET THESE FROM A PARAMETERSET/DATABASE*/
-  ftimetick      =  0.198; //get from parameterset
-  fdriftvelocity =  0.157;  //get from paramtereset 9either k and V) 
   //fdriftvelocity = larprob->DriftVelocity(Efield_SI,Temperature);
   
   /**Get Clusters*/
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
-  evt.getByLabel(fclusterModuleLabel,clusterListHandle);
+  evt.getByLabel(fClusterModuleLabel,clusterListHandle);
 
+   art::PtrVector < recob::Hit> hitlistCol;
+   art::PtrVector < recob::Hit> hitlistInd;
 
-  art::PtrVector<recob::Hit> hitlist_helpwire; /** Define hitlist of all hits per wire*/
-  art::PtrVector<recob::Hit> hitlist_helpplane; /** Define hitlist to sort by #wire in hitlist_helpwire*/
-  std::vector<art::PtrVector<recob::Hit> > hitlist_plane; // Define vector of hitslists for each Induction and Collection planes
+    std::auto_ptr<std::vector<recob::Shower> > Shower3DVector(new std::vector<recob::Shower>);
 
-  /**Loop to fill the std::vector<edm:PtrVector<recob::Hit>> with the hits of each plane*/
-  for(unsigned int iplane = 0; iplane < planes; ++iplane){//Loop over planes
-    geo::View_t view = geo->Plane(iplane).View();
+  for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
+    {
 
-    hitlist_helpplane.clear();
-    for(unsigned int iwire=0; iwire<fwires[iplane];++iwire){//Loop over wires
-      hitlist_helpwire.clear();
-      for(unsigned int iclust = 0; iclust < clusterListHandle->size(); iclust++){//Loop over cluster
-        art::Ptr<recob::Cluster> clust(clusterListHandle, iclust);
-        if(view == clust->View()){//If correct plane
-          hitlist_helpplane = clust->Hits(iplane,iwire);//Fill with Hits from the wire (hitlist_help is automatically sorted)
-        }
-      for (unsigned int ihits =0; ihits<hitlist_helpplane.size(); ++ihits){//work around since clust->Hits return a std::vector,recob::Hit*> object
-        art::Ptr<recob::Hit> hit_help ;
-        hit_help = hitlist_helpplane[ihits];
-        hitlist_helpwire.push_back(hit_help);
-        }
+      art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
+      
+      // Figure out which View the cluster belongs to 
+      
+      int clPlane = cl->View()-1;
+
+      art::PtrVector<recob::Hit> hitlist;
+      hitlist = cl->Hits();
+      hitlist.sort(shwf::SortByWire());
+      unsigned int p(0),w(0), c(0); //c=channel, p=plane, w=wire
+
+      for(art::PtrVectorItr<recob::Hit> a = hitlist.begin(); a != hitlist.end();  a++
+) //loop over cluster hits
+      {
+	c=(*a)->Wire()->RawDigit()->Channel(); 
+	geo->ChannelToWire(c,p,w);
+
+	if(geo->Plane(p).SignalType() == geo::kCollection)
+	  {	  
+	    hitlistCol.push_back(*a);
+
+	  }
+	else if (geo->Plane(p).SignalType() == geo::kInduction)
+	  {
+	    hitlistInd.push_back(*a);
+	  } 
       }
-    }
-    hitlist_plane.push_back(hitlist_helpplane);
-  }
 
-  /**Get the angular distribution of the shower*/
-  AngularDistribution(hitlist_plane);
-  /**Fit the angular distributions*/
-  FitAngularDistributions();
-  /**Get the 3d axis of the shower cone */
-  Get3Daxis();
-  /**Determine the enrgy release in each plane*/
-  LongTransEnergy(hitlist_plane);
-  /**Get back the 2d variables*/
-  Get2Dvariables();
+      hitlistInd.sort(shwf::SortByWire());
+      hitlistCol.sort(shwf::SortByWire());
+
+
+    } // End loop on clusters.
+
+
+     
+  // Save energy in a file
+  myfile.open (fShwrOutput.c_str(), std::ios::app);
+  
+  AngularDistributionI(hitlistInd); // 2D Direction of the shower Induction
+  AngularDistributionC(hitlistCol); // 2D Direction of the shower Collection
+  FitAngularDistributions();              // Fit of 2d distributions (for both planes)
+  Get3Daxis(theta_Mean[0], theta_Mean[1], wireI1, wire1C, time1C); 
+  LongTransEnergyI(hitlistInd); //Longitudinal and Transverse energy profile of the Shower induction
+  LongTransEnergyC(hitlistCol); //Longitudinal and Transverse energy profile of the Shower induction
+  Get2Dvariables(wireI1, wire1C, timeI1, time1C);
+
   /**Fill the output tree with all information */
-  ftree_shwf->Fill();
+  //  ftree_shwf->Fill();
+
+  // This needs work, clearly.  
+  //for(int p=0;p<2;p++)Shower3DVector->push_back(shower);
+  //evt.put(Shower3DVector)
+
 }
 
-// ***************** //
-void shwf::ShowerReco::AngularDistribution(std::vector<art::PtrVector<recob::Hit> > hitlist_all){ 
-
-  /** Determine the angular distribution of the shower energy in each plane */
-  art::ServiceHandle<geo::Geometry> geo;
-  unsigned int planes = geo->Nplanes();
-  unsigned int iplane_hit,iwire_hit,ichannel_hit;
-  float ftime_hit;
-  double a_polar,b_polar,theta_polar;
-
-  for(unsigned int iplane = 0; iplane < planes; ++iplane){/**Loop over planes*/
-    art::PtrVector<recob::Hit> hitlist = hitlist_all[iplane];
-    for (unsigned int ihits=0;ihits<hitlist.size();++ihits){
-      art::Ptr<recob::Hit> hit_help ;
-      hit_help = hitlist[ihits]; 
-      const recob::Hit* hit = hit_help.get(); /** Retrieve info of the hits*/
-      ftime_hit = hit->PeakTime(); /** Hit crossing time*/
-      ichannel_hit = hit->Wire()->RawDigit()->Channel();
-      geo->ChannelToWire(ichannel_hit, iplane_hit, iwire_hit); /** Get Information of wire/plane of the hit */
-
-      /** Determine the vertex*/
-      if (ihits==0) {    
-        fwire_vertex.push_back(iwire_hit); 
-        ftime_vertex.push_back(ftime_hit);
-        }
-
-      /** moving to polar coordinates (cm,cm coordinate) */
-      b_polar = (iwire_hit - fwire_vertex[iplane])* fmean_wire_pitch[iplane]+ fmean_wire_pitch[iplane]; /**in cm*/
-      a_polar = (ftime_hit - ftime_vertex[iplane])* ftimetick *fdriftvelocity; /** in cm*/ 
-      theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
-      theta_polar = 180*theta_polar/fpi; /** in deg*/
-
-      /** Filling the histo (angle, energy of the hit)*/
-      fh_theta[iplane]->Fill(theta_polar, hit_help->Charge()); /** angle in deg (cm,cm) coordinate*/
-      }
-
-    std::cout << "Plane " << iplane << "VertexWire= " << fwire_vertex[iplane] << "   Time= " << ftime_vertex[iplane] << std::endl;
-
-    }
-  return;
-}
 
 // ***************** //
 void shwf::ShowerReco::FitAngularDistributions(){
@@ -244,124 +231,324 @@ void shwf::ShowerReco::FitAngularDistributions(){
   unsigned int planes = geo->Nplanes();
   TF1 *gau = new TF1("gaus","gaus",-60, 60);
 
+  /*
   for(unsigned int iplane = 0; iplane < planes; ++iplane){
-    fh_theta[iplane]->Fit("gaus","QR");        /** Fit of the angular distribution*/
-    ftheta_Mean[iplane] = gau->GetParameter(1);/** Mean value of the fit */
-    ftheta_RMS[iplane] = gau->GetParameter(2); /** RMS of the fit of the angular distribution in deg*/
+    fh_theta[iplane]->Fit("gaus","QR");        // Fit of the angular distribution
+    ftheta_Mean[iplane] = gau->GetParameter(1);// Mean value of the fit 
+    ftheta_RMS[iplane] = gau->GetParameter(2); // RMS of the fit of the angular distribution in deg
   }
+*/
 }
 
 // ***************** //
-void shwf::ShowerReco::Get3Daxis(){
+
+
+// ***************** //
+int shwf::ShowerReco::Get2Dvariables(float Wire_vertexI_wt, float Wire_vertexC_wt, float Time_I_wt, float Time_C_wt){
+  
   art::ServiceHandle<geo::Geometry> geo;
-  unsigned int planes = geo->Nplanes();
-  double a_polar,b_polar,theta_polar;
-  float wire_help,time_help;
-  double slope[2];         /** Need only 2 * 2d information to reconstruct 3d for line in 3d*/
-  double intercept[2];     /** with form time = slope * wire + interceptin cm, cm */
+  // only needed for drawing the axis of the shower in the event display
 
-  for(unsigned int iplane = 0; iplane < planes; ++iplane){/**Loop over planes*/
-    /** moving to polar coordinates (cm,cm coordinate) */
-    b_polar = fwire_vertex[iplane]* fmean_wire_pitch[iplane]+ fmean_wire_pitch[iplane]; /**in cm*/
-    a_polar = ftime_vertex[iplane]* ftimetick *fdriftvelocity; /** in cm*/ 
-    theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
-    theta_polar = 180*theta_polar/fpi; /** in deg*/
+  Wire_vertexI_wt = Wire_vertexI_wt /0.4;
+  Wire_vertexC_wt = Wire_vertexC_wt /0.4;
+  Time_I_wt = Time_I_wt /(fdriftvelocity*ftimetick);
+  Time_C_wt = Time_C_wt /(fdriftvelocity*ftimetick);
+ 
+  // Making the two lines in the two views
+  slope_wt[0] = (LastTime[0]-Time_I_wt)/(LastWire[0]-Wire_vertexI_wt);
+  slope_wt[1] = (LastTime[1]-Time_C_wt)/(LastWire[1]-Wire_vertexC_wt);
+ 
+  intercept_wt[0] = Time_I_wt - Wire_vertexI_wt*slope_wt[0];
+  intercept_wt[1] = Time_C_wt - Wire_vertexC_wt*slope_wt[1];
 
-    /**Calculate the shower cone direction in each plane time=slope[plane]*wire + intercept[plane]*/
-    if(geo->Plane(iplane).SignalType() == geo::kCollection){
-      slope[1] = tan((theta_polar*fpi/180));
-      wire_help = fwire_vertex[iplane] *fmean_wire_pitch[iplane]; // in cm 
-      time_help = ftime_vertex[iplane] *ftimetick *fdriftvelocity; // in cm
-      intercept[1] = time_help-(slope[1]*fwire_vertex[iplane]);
-      }
-    else if (geo->Plane(iplane).SignalType() == geo::kInduction) {
-      slope[0] = tan((theta_polar*fpi/180));
-      wire_help = fwire_vertex[iplane] *fmean_wire_pitch[iplane]; // in cm 
-      time_help = ftime_vertex[iplane] *ftimetick *fdriftvelocity; // in cm
-      intercept[0] = time_help-(slope[0]*fwire_vertex[iplane]);
-      }
-    }
+  myfile << std::endl;
+  myfile.close(); 
+  return 0;
+}
+ 
+int shwf::ShowerReco::Get3Daxis(float thetaI, float thetaC, float Wire_vertexI, float Wire_vertexC, float Time_vertex){
+  
+  //Get theta and phi (polar angles "direction of the shower")
 
-  /**Calculate 3d axis*/
-  double l(0),m(0),n(0);
-  double angle_rad = 30* fpi /180;
+  //float ftimetick = 0.198;    //time sample in microsec
+ 
+  slope[0] = tan((thetaI*pi/180));
+  slope[1] = tan((thetaC*pi/180));
+
+  Wire_vertexI = Wire_vertexI *0.4; // in cm 
+  Wire_vertexC = Wire_vertexC *0.4; // in cm
+  Time_vertex  = Time_vertex  *ftimetick*fdriftvelocity; // in cm
+
+  intercept[0] = Time_vertex - (slope[0]*Wire_vertexI);
+  intercept[1] = Time_vertex - (slope[1]*Wire_vertexC);
+
+ 
+  float l(0),m(0),n(0);
+  // Get Geometry
+  art::ServiceHandle<geo::Geometry> geom;
+ 
+  float Angle = geom->Plane(1).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to the vertical direction
+  std::cout << "Angle= " <<  Angle<<std::endl;
+  
+  float angle_rad = 30* pi /180;
+  angle_rad = Angle;
+  
   l = 1;
   m = (1/(2*sin(angle_rad)))*((1/slope[1])-(1/slope[0]));
   n = (1/(2*cos(angle_rad)))*((1/slope[1])+(1/slope[0]));
  
-  fphi   = atan(n/l);
-  ftheta = acos(m/(sqrt(pow(l,2)+pow(m,2)+pow(n,2))));
+  std::cout << "________________m= " << m << std::endl;
 
-  fphi = fphi<0. ? fphi+TMath::Pi() : fphi ; /** solve the ambiguities due to tangent periodicity*/
+  // Director angles
+  phi   = atan(n/l);
+  theta = acos(m/(sqrt(pow(l,2)+pow(m,2)+pow(n,2))));
 
-  fphi = fphi*180/fpi;
-  ftheta = ftheta*180/fpi;
-  std::cout << "Shower axis: fphi=" <<fphi << "   ftheta=" << ftheta <<std::endl;
-  return;
-}
+  float Phi = phi>0. ? (TMath::Pi()/2)-phi : fabs(phi)-(TMath::Pi()/2) ; // solve the ambiguities due to tangent periodicity
+  float Theta=0;
+  if(Phi>0)Theta = theta-(TMath::Pi()/2);
+  if(Phi<0)Theta = (TMath::Pi()/2)-theta;
 
-// ***************** //
-void shwf::ShowerReco::LongTransEnergy(std::vector<art::PtrVector<recob::Hit> > hitlist_all){
-
-  art::ServiceHandle<geo::Geometry> geo;
-  unsigned int planes = geo->Nplanes();
-  unsigned int iplane_hit,iwire_hit,ichannel_hit;
-  float ftime_hit;
-  double a_polar,b_polar,theta_polar, wire_rot, time_rot;
-  double low_th, high_th, theta_sh, totcharge;   /** thresholds for adding up only the energy of the shower in a cone of falpha*RMS the angular distribution of the shower itself*/
-
-  for(unsigned int iplane = 0; iplane < planes; ++iplane){/**Loop over planes*/
-    totcharge =0.;
-    art::PtrVector<recob::Hit> hitlist = hitlist_all[iplane];
-    for (unsigned int ihits=0;ihits<hitlist.size();++ihits){
-      art::Ptr<recob::Hit> hit_help ;
-      hit_help = hitlist[ihits]; 
-      const recob::Hit* hit = hit_help.get(); /** Retrieve info of the hits*/
-      ftime_hit = hit->PeakTime(); /** Hit crossing time*/
-      ichannel_hit = hit->Wire()->RawDigit()->Channel();
-      geo->ChannelToWire(ichannel_hit, iplane_hit, iwire_hit); /** Get Information of wire/plane of the hit */
-
-      b_polar = (iwire_hit - fwire_vertex[iplane])* fmean_wire_pitch[iplane]+ fmean_wire_pitch[iplane]; /**in cm*/
-      a_polar = (ftime_hit - ftime_vertex[iplane])* ftimetick *fdriftvelocity; /** in cm*/ 
-      theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
-      theta_polar = 180*theta_polar/fpi; /** in deg*/
-
-      low_th  = ftheta_Mean[iplane]-(falpha*ftheta_RMS[iplane]);
-      high_th = ftheta_Mean[iplane]+(falpha*ftheta_RMS[iplane]);
-
-      if((theta_polar<low_th) || (theta_polar>high_th)) continue;
-
-      if( (theta_polar>(ftheta_Mean[iplane]-0.1))&&(theta_polar<(ftheta_Mean[iplane]+0.1)) ){
-        fLastWire[iplane] = iwire_hit;
-        fLastTime[iplane] = ftime_hit; 
-      }
-
-      theta_sh  = ftheta_Mean[iplane]*fpi/180; // in radians
-      wire_rot = (iwire_hit - fwire_vertex[iplane])* fmean_wire_pitch[iplane] *cos(theta_sh) + (ftime_hit - ftime_vertex[iplane])* ftimetick *fdriftvelocity *sin(theta_sh);
-      time_rot = (ftime_hit - ftime_vertex[iplane])* ftimetick *fdriftvelocity /cos(theta_sh) - (iwire_hit - fwire_vertex[iplane])* fmean_wire_pitch[iplane] *sin(theta_sh) 
-                 - (ftime_hit - ftime_vertex[iplane])* ftimetick *fdriftvelocity *tan(theta_sh) *sin(theta_sh);   
-    
-      totcharge +=hit->Charge(); // Sum the energy of all the hits
-    
-      fsh_nrg[iplane]->Fill(wire_rot, hit->Charge()); // Fill histo longitudinal distr of the energy (IND)
-      fsh_Tnrg[iplane]->Fill(time_rot, hit->Charge());// Fill histo transverse   distr of the energy (IND)
-      fsh_long_hit[iplane]->Fill(wire_rot, 1);
-    
-    }
-    ftotCharge.push_back(totcharge);
-    std::cout << "In plane" << iplane << "ftotCharge (Mips)= " << totcharge<< std::endl;
+  if(slope[0]==0 || slope[1]==0){
+    Phi   = 0;
+    Theta = 0;
+    theta = 0;
+    phi = 0;
   }
-  return;
+  
+  std::cout << " Phi=" <<Phi*180/pi << "   theta=" << Theta*180/pi <<std::endl;
+  myfile << "   " <<Phi*180/pi << "   ";
+  myfile << "   " <<Theta*180/pi << "   ";
+  
+  GetPitchLength(theta, phi); //Get pitch of (two) wire planes (only for Argoneut)
+  return 0;
 }
 
-// ***************** //
-void shwf::ShowerReco::Get2Dvariables(){
-  art::ServiceHandle<geo::Geometry> geo;
-  unsigned int planes = geo->Nplanes();
-  for(unsigned int iplane = 0; iplane < planes; ++iplane){/**Loop over planes*/  
-    fslope_2d.push_back((fLastTime[iplane]-ftime_vertex[iplane]) /(fLastWire[iplane]-fwire_vertex[iplane])); 
-    fintercept_2d.push_back(ftime_vertex[iplane] - fwire_vertex[iplane]*fslope_2d[iplane]);
-    std::cout << "Cone in plane " << iplane << "slope " << fslope_2d[iplane] << "intercept " << fintercept_2d[iplane] << std::endl;
+int counterI =0;
+void shwf::ShowerReco::LongTransEnergyI(art::PtrVector < recob::Hit> hitlistInd){
+  
+
+  // Longitudinal energy of the shower (roto-translation) - Induction plane
+  float thetaI_sh;
+  float wireI_rot, timeI_rot; // New coordinate after roto-transl
+  float wireI_cm, timeI_cm;   // Wire and time info in cm
+  float totInrg   = 0;        // tot enegry of the shower in induction
+  int    loop_nrgI = 0;        // flag
+  float Low_thI, High_thI; // thresholds for adding up only the energy of the shower in a cone of alpha*RMS the angular distribution of the shower itself
+  IdEdx4cm = 0; // dedx|cm of the shower in Induction
+  IdedxCounter = 0;
+  art::ServiceHandle<geo::Geometry> geom;
+ 
+  for(art::PtrVectorItr<recob::Hit> hitIterInd = hitlistInd.begin(); hitIterInd != hitlistInd.end();  hitIterInd++){
+    art::Ptr<recob::Hit> theHit_I = (*hitIterInd);
+    time_I = theHit_I->PeakTime() ;  
+    //time_I -= presamplings;
+    art::Ptr<recob::Wire> theWire_I = theHit_I->Wire();
+    channel_I = theWire_I->RawDigit()->Channel();
+    geom->ChannelToWire(channel_I, plane, wire_I);
+
+    //   if(wire_I>218)continue;
+   
+    wireI_cm = wire_I * 0.4; //in cm
+    if(loop_nrgI==0)wireI1 = wireI1 * 0.4; //in cm
+    timeI_cm = time_I *ftimetick*fdriftvelocity; //im cm
+    if(loop_nrgI==0)timeI1 = timeI1 *ftimetick*fdriftvelocity; //in cm
+ 
+    // moving to polar coordinates
+    BI = (wireI_cm - wireI1)+0.4; //in cm
+    AI = (timeI_cm - timeI1); // in cm 
+    thetaI = asin(AI/sqrt(pow(AI,2)+pow(BI,2)));
+    thetaI = 180*thetaI/3.14; // in deg
+    //std::cout << " WireI1=" << wireI1 << " BI= " << BI << "    ThetaI = " << thetaI <<std::endl;
+    
+    Low_thI  = theta_Mean[0]-(alpha*theta_RMS[0]);
+    High_thI = theta_Mean[0]+(alpha*theta_RMS[0]);
+       
+    counterI++;
+    if(counterI==1)std::cout << "IND-thresholds= " << Low_thI << "   " << High_thI << std::endl;
+    /*  if((thetaI<Low_thI) || (thetaI>High_thI)){
+      //std::cout << " skipping hits outside 5*RMS out of the cone" << loop_nrgI++ << std::endl; 
+      continue;
+      }*/
+    
+    if( (thetaI>(theta_Mean[0]-1.0))&&(thetaI<(theta_Mean[0]+1.0)) ){
+      LastWire[0] = (int)wire_I;
+      LastTime[0] = (int)time_I; 
     }
-  return;
+    thetaI_sh  = theta_Mean[0]*3.14/180; // in radians
+    wireI_rot = (wireI_cm - wireI1)*cos(thetaI_sh) + (timeI_cm-timeI1)*sin(thetaI_sh);
+    
+    timeI_rot = timeI_cm*(1/cos(thetaI_sh)) - timeI1*(1/cos(thetaI_sh)) +(wireI1 -wireI_cm)*sin(thetaI_sh) + (timeI1-timeI_cm)*tan(thetaI_sh)*sin(thetaI_sh);   
+    
+    totInrg +=theHit_I->Charge(); // Sum the energy of all the hits
+    
+    fsh_nrg[0]->Fill(wireI_rot, theHit_I->Charge()); // Fill histo longitudinal distr of the energy (IND)
+    fsh_Tnrg[0]->Fill(timeI_rot, theHit_I->Charge());// Fill histo transverse   distr of the energy (IND)
+    loop_nrgI++;
+
+    if( ((((wireI_cm-wireI1)/0.4)*Pitch[0])<10.8)&&((((wireI_cm-wireI1)/0.4)*Pitch[0])>0.8)){ 
+      //      if(IdedxCounter<=10)
+      IdEdx4cm+=theHit_I->Charge();//Sum the energy of all the hits
+      IdedxCounter++;
+      std::cout << "dedxI= " << IdEdx4cm<<std::endl;
+      //if(theHit_I->Charge()<0)std::cout << "Inrg= " << theHit_I->Charge()<<std::endl;
+    }
+  }
+  
+  myfile << "   " << totInrg << "   ";
+  
+  std::cout<< "    TotInrg(GeV)= " << totInrg<< std::endl;
+  
+  //std::cout << " Last_wire Ind= " << LastWire[0] << " Last_timeI  " << LastTime[0]<< std::endl;
+}
+
+int counter=0;   
+ // -------------------------- //
+void shwf::ShowerReco::LongTransEnergyC(art::PtrVector < recob::Hit> hitlistCol){
+  // alogorithm for energy vs dx of the shower (roto-translation) COLLECTION VIEW
+  float thetaC_sh, wireC_rot, timeC_rot, wireC_cm, timeC_cm;
+  int loop_nrgC = 0;
+  float Low_thC, High_thC;
+  
+  float totCnrg = 0; // tot enegry of the shower in collection
+  CdEdx4cm = 0; // tot enegry of the shower in collection
+  CdedxCounter = 0;
+  art::ServiceHandle<geo::Geometry> geom;
+
+  for(art::PtrVectorItr<recob::Hit> hitIterCol = hitlistCol.begin(); hitIterCol != hitlistCol.end();  hitIterCol++){
+    art::Ptr<recob::Hit> theHit_C = (*hitIterCol);
+    time_C = theHit_C->PeakTime() ;  
+    //time_C -= (presamplings+10.1);
+    art::Ptr<recob::Wire> theWire_C = theHit_C->Wire();
+    channel_C = theWire_C->RawDigit()->Channel();
+    geom->ChannelToWire(channel_C, plane, wire_C);
+
+    //    if(time_C<1020)continue;
+
+    wireC_cm = wire_C * 0.4; //in cm
+    if(loop_nrgC==0)wire1C = wire1C * 0.4; //in cm
+    timeC_cm = time_C *ftimetick*fdriftvelocity; //in cm
+    if(loop_nrgC==0)time1C = time1C *ftimetick*fdriftvelocity; //in cmm
+    //std::cout << "Vertex wire1C= " << wire1C << " VerTimeC=" << time1C << std::endl;
+    //std::cout << "wire_C= " << wireC_cm << " TimeC=" << timeC_cm << std::endl;
+    
+    // moving to polar coordinates
+    BC = (wireC_cm - wire1C)+0.4; //in cm
+    AC = (timeC_cm - time1C); // in cm 
+    thetaC = asin(AC/sqrt(pow(AC,2)+pow(BC,2)));
+    thetaC = 180*thetaC/3.14; // in deg
+    //std::cout << " WireI1=" << wireI1 << " BI= " << BI << "    ThetaI = " << thetaI <<std::endl;
+    
+    Low_thC  = theta_Mean[1]-(alpha*theta_RMS[1]);
+    High_thC = theta_Mean[1]+(alpha*theta_RMS[1]);
+ 
+    counter++;
+    if(counter==1)std::cout << "CoLL-thresholds= " << Low_thC << "   " << High_thC << std::endl;
+    //if((thetaC<Low_thC) || (thetaC>High_thC)) continue;
+     
+    if( (thetaC>(theta_Mean[1]-1.0))&&(thetaC<(theta_Mean[1]+1.0)) ){
+      LastWire[1] = wire_C;
+      LastTime[1] = time_C;
+    }
+    thetaC_sh = theta_Mean[1]*3.14/180;    
+    wireC_rot = (wireC_cm - wire1C)*cos(thetaC_sh) + (timeC_cm-time1C)*sin(thetaC_sh);  
+    
+    timeC_rot = timeC_cm*(1/cos(thetaC_sh)) - time1C*(1/cos(thetaC_sh)) +(wire1C -wireC_cm)*sin(thetaC_sh) + (time1C-timeC_cm)*tan(thetaC_sh)*sin(thetaC_sh);   
+    
+    double lifetime = exp(-time_C*ftimetick/735);
+
+    totCnrg +=(theHit_C->Charge()/lifetime); // Sum the energy of all the hits
+    fsh_Tnrg[1]->Fill(timeC_rot,theHit_C->Charge());
+    fsh_nrg[1]->Fill(wireC_rot, theHit_C->Charge());
+    loop_nrgC++;
+    
+    if( ((((wireC_cm-wire1C)/0.4)*Pitch[1])<40.4)&&((((wireC_cm-wire1C)/0.4)*Pitch[1])>0.8)){ 
+      //if(CdedxCounter<=10)
+      CdEdx4cm+=(theHit_C->Charge()/lifetime);//Sum the energy of all the hits
+      CdedxCounter++;
+      std::cout << " COLL- hit-Vertex=" << ((wireC_cm-wire1C)/0.4)*Pitch[1] << " dedx|(MIPs/cm)=" << theHit_C->Charge()/Pitch[1]<< std::endl;
+      fh_dedx[1]->Fill( ((wireC_cm-wire1C)/0.4)*Pitch[1], ((((theHit_C->Charge()/lifetime)/Pitch[1])*10/7)/7.6)*6250*23.6*pow(10,-6) )  ;
+
+
+    }
+    
+  }
+  //  std::cout << "COLECTION - dEdx|4cm= " << CdEdx4cm<< "   TotCnrg= " << totCnrg << "  in GeV="  <<(((((totCnrg/7.3)*6300)*100)/60)*23.6)*pow(10,-9)<< std::endl;
+  myfile << "   " << totCnrg;
+}
+
+//------------------------------------------------------------------------------------//  
+
+
+void shwf::ShowerReco::AngularDistributionI(art::PtrVector < recob::Hit>  hitlistInd){ 
+  art::ServiceHandle<geo::Geometry> geom;
+  // Angular distribution of the energy of the shower - Induction plane
+  int   loopI = 0; // Flag
+  // this should changed on the loop on the cluster of the shower
+  for(art::PtrVectorItr<recob::Hit> hitIterInd = hitlistInd.begin(); hitIterInd != hitlistInd.end();  hitIterInd++){
+    art::Ptr<recob::Hit> theHit_I = (*hitIterInd); // Retrieve info of the hits
+    
+    time_I = theHit_I->PeakTime(); // Hit crossing time
+    //time_I -= presamplings;
+    art::Ptr<recob::Wire> theWire_I = theHit_I->Wire(); // Retrive info from the Wire
+    channel_I = theWire_I->RawDigit()->Channel();
+    geom->ChannelToWire(channel_I, plane, wire_I);
+    
+    //Here we should take GetVertex function to retrieve the vertex of the shower
+    // Determine the vertex
+    if(loopI==0){
+      wireI1 = wire_I;
+      timeI1 = time_I; 
+    } 
+    
+    // moving to polar coordinates (cm,cm coordinate)
+    BI = (wire_I - wireI1)*0.4+0.4; //in cm
+    AI = (time_I - timeI1)*ftimetick*0.158; // in cm 
+    thetaI = asin( (AI/sqrt(pow(AI,2)+pow(BI,2)))); //in rad
+    thetaI = 180*thetaI/3.14; // in deg
+    // Filling the histo (angle, energy of the hit)
+    fh_theta[0]->Fill(thetaI, theHit_I->Charge()); // angle in cm,cm coordinate
+    
+  
+    loopI++; // flag increment
+  }
+  
+}
+  
+
+// ******************************* //
+
+// Angular distribution of the energy of the shower - Collection view
+void shwf::ShowerReco::AngularDistributionC(art::PtrVector < recob::Hit>  hitlistCol){
+  
+  int    loopC = 0; // flag
+  art::ServiceHandle<geo::Geometry> geom;
+  // this should changed on the loop on the cluster of the shower
+  for(art::PtrVectorItr<recob::Hit> hitIterCol = hitlistCol.begin(); hitIterCol != hitlistCol.end();  hitIterCol++){
+    art::Ptr<recob::Hit> theHit_C = (*hitIterCol);
+    time_C = theHit_C->PeakTime();  
+    //time_C -= (presamplings+10.1);
+    art::Ptr<recob::Wire> theWire_C = theHit_C->Wire();
+    channel_C = theWire_C->RawDigit()->Channel();
+    geom->ChannelToWire(channel_C, plane, wire_C);
+    
+    //Here we should take GetVertex function to retrieve the vertex of the shower
+    if(loopC==0){
+      wire1C = wire_C;
+      time1C = time_C;
+    }
+
+    //    std::cout << "VertexWireC= " << wire1C << "   VerTimeC= " << time1C << std::endl;
+    
+    // moving to polar coordinate
+    BC = (wire_C - wire1C)*0.4 + 0.4; // in cm
+    AC = (time_C - time1C)*ftimetick*0.158; //in cm 
+    thetaC = asin(  AC/sqrt(pow(AC,2)+pow(BC,2)) );
+    thetaC = 180*thetaC/3.14;
+    fh_theta[1]->Fill(thetaC, theHit_C->Charge()); // Filling the histo (angle, energy of the hit)
+    
+    loopC++; // flag counter
+  }
+  std::cout << "VertexWireC= " << wire1C << "   VerTimeC= " << time1C << std::endl;
+
+  return (void)0;
 }

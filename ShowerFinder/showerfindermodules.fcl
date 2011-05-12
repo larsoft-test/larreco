@@ -1,0 +1,11 @@
+BEGIN_PROLOG
+
+argoneut_shower:
+{
+ module_type:        "ShowerReco"
+ ClusterModuleLabel: "dbcluster"
+ ShowerOutputTxtFile: "./Shower_energy.txt"
+}
+
+
+END_PROLOG
