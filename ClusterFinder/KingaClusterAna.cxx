@@ -144,7 +144,7 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
       int pdgcode=particle->PdgCode();
         std::cout<<" QQQQ.... pdg= "<<pdgcode<<std::endl;
         if(pdgcode==2224){std::cout<<"Victory"<<std::endl;}
-      int trackID = (*i).first;
+      //int trackID = (*i).first;
       //std::cout<<"trackID= "<<trackID<<std::endl;
      // mc_trackids.push_back(trackID);      
     }
@@ -197,11 +197,11 @@ double MC_Total_Eng=0;
     //now let's check for delta++ and get its daughters (should be a proton and pi+)
     if(part.PdgCode()==2224){
     std::cout<<"Have a delta++ and it has this many daughters: "<<part.NumberDaughters()<<std::endl;
-    //  for(int k=0; k<part.NumberDaughters(); k++){
-//      std::cout<<"No of Daughters= "<<part.NumberDaughters()<<std::endl;
+     for(int k=0; k<part.NumberDaughters(); k++){
+    std::cout<<"No of Daughters= "<<part.NumberDaughters()<<std::endl;
 //      
 //      
-//      }//for each daughter
+     }//for each daughter
     
     
     
@@ -241,7 +241,7 @@ double MC_Total_Eng=0;
       for(int j = 0; j < mc->NParticles(); ++j){
     simb::MCParticle part(mc->GetParticle(j));
  //std::cout<<"Process="<<part.Process()<<std::endl;
-    std::cout<<"pdg= "<<part.PdgCode()<<" ,Process="<<part.Process()<<" StatusCode= "<<part.StatusCode()<<" mass= "<<part.Mass()<<" p= "<<part.P()<<" E= "<<part.E()<<" trackID= "<<part.TrackId()<<std::endl;
+    std::cout<<"pdg= "<<part.PdgCode()<<" ,Process="<<part.Process()<<" StatusCode= "<<part.StatusCode()<<" mass= "<<part.Mass()<<" p= "<<part.P()<<" E= "<<part.E()<<" trackID= "<<part.TrackId()<<" ND= "<<part.NumberDaughters()<<std::endl;
     //std::cout<<"P()= "<<part.P()<<" sqrt(pow(part.Px(),2)+pow(part.Py(),2.)+pow(part.Pz(),2.))= "<<sqrt(pow(part.Px(),2.)+pow(part.Py(),2.)+pow(part.Pz(),2.))<<std::endl;
     
     //std::cout<<"Mass()= "<<part.Mass()<<" sqrt(pow(part.E(),2.)-pow(part.P(),2.))= "<<sqrt(pow(part.E(),2.)-pow(part.P(),2.))<<std::endl;
@@ -405,7 +405,7 @@ INV_MASS+=part.Mass();
    if( _particleList.IsPrimary( trackID )){
   // std::cout<<"pdg= "<<pdg<<" trackID= "<<trackID<<" Primary"<<" with Energy= "<<particle->E()<<" and p= "<<particle->P()<<" P(3mom)="<<p<<" sqrt(pow(part.E(),2.)-pow(p,2.))= "<<sqrt(pow(particle->E(),2.)-pow(p,2.))<<" Mass= "<<particle->Mass()<< std::endl;
   
-   int mother = particle->Mother();
+//   int mother = particle->Mother();
 //      particle = _particleList.at( trackID );
 //      int MPDG=particle->PdgCode();
     //std::cout<<"Primary,Mother is now (if -1 then no mother)= "<<mother<<std::endl; 
