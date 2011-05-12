@@ -48,19 +48,18 @@ extern "C" {
 
 
 // ***************** //
-static bool hit_sort_2d(const recob::Hit* h1, const recob::Hit* h2)
+
+
+shwf::ShowerReco::ShowerReco(fhicl::ParameterSet const& pset)
 {
-  return h1->Wire()->RawDigit()->Channel() < h2->Wire()->RawDigit()->Channel();
+  this->reconfigure(pset);
+  produces< std::vector<recob::Shower> >();
 }
 
-
-shwf::ShowerReco::ShowerReco(fhicl::ParameterSet const& pset) : 
-
-  fClusterModuleLabel (pset.get< std::string >("ClusterModuleLabel")),
-  fShwrOutput (pset.get< std::string >("ShowerOutputTxtFile"))
-  
+void shwf::ShowerReco::reconfigure(fhicl::ParameterSet pset) 
 {
-  produces< std::vector<recob::Shower> >();
+  fClusterModuleLabel = pset.get< std::string >("ClusterModuleLabel");
+  fShwrOutput = pset.get< std::string >("ShowerOutputTxtFile");
 }
 
 // ***************** //
@@ -91,6 +90,7 @@ void shwf::ShowerReco::beginJob()
   art::ServiceHandle<art::TFileService> tfs;
 
   /** Create Histos names*/
+  char tit_dedx[128] = {0};
   char tit_h_theta[128] = {0};
   char tit_h_theta_wt[128] = {0};
   char sh_long_tit[128] = {0};
@@ -99,6 +99,11 @@ void shwf::ShowerReco::beginJob()
   
   int nbins;
   for(unsigned int i=0;i<planes;++i){
+
+
+    //    sprintf(&tit_dedx[0],"fh_dedx_%.4i_%.4i_%i",i);
+    sprintf(&tit_dedx[0],"fh_dedx_._%i",i);
+    fh_dedx[i] = tfs->make<TH1F>(tit_dedx,"dEdx vs distance from vertex",120,0, 40);
 
     /**Histos for the angular distribution theta of the shower*/
     sprintf(&tit_h_theta[0],"fh_theta_%i",i);
@@ -171,7 +176,7 @@ void shwf::ShowerReco::produce(art::Event& evt)
       
       // Figure out which View the cluster belongs to 
       
-      int clPlane = cl->View()-1;
+      ///      int clPlane = cl->View()-1;
 
       art::PtrVector<recob::Hit> hitlist;
       hitlist = cl->Hits();
@@ -549,6 +554,51 @@ void shwf::ShowerReco::AngularDistributionC(art::PtrVector < recob::Hit>  hitlis
     loopC++; // flag counter
   }
   std::cout << "VertexWireC= " << wire1C << "   VerTimeC= " << time1C << std::endl;
+
+  return (void)0;
+}
+
+// automatically called by Get3Daxis
+void shwf::ShowerReco::GetPitchLength(float theta, float phi){
+  
+  //Get pitch of 2 wire planes 
+  //for generalization to n planes, different formulas for the geometrical transofrmation are needed (this is ArgoNeuT specific)
+
+  // Get Geometry
+  art::ServiceHandle<geo::Geometry> geom;
+
+  // TPC parameters
+  TString tpcName = geom->GetLArTPCVolumeName();
+
+  float Angle = geom->Plane(1).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to the vertical direction
+
+  std::cout << "theta_input=" <<theta << " Phi=" << phi <<std::endl;  
+  
+  float angle_rad = (180+30)* pi /180;
+  Pitch[1] = fabs(fmean_wire_pitch/((cos(angle_rad)*sin(theta)*sin(phi))+(sin(angle_rad)*cos(theta))));
+  Pitch[0] = fabs(fmean_wire_pitch/((cos(angle_rad)*sin(theta)*sin(phi))-(sin(angle_rad)*cos(theta))));
+
+  std::cout << "IND-Pitch[0]=" <<Pitch[0] << " COL-Pitch[1]=" << Pitch[1] <<std::endl;   
+
+  myfile << Pitch[0] << "   ";
+  myfile << Pitch[1] << "   ";
+  myfile << "dEdxI=" <<IdEdx4cm<< "   ";
+  myfile << CdEdx4cm<< "   "; 
+
+  std::cout << "INDUCTION  - dEdx|4cm= " << IdEdx4cm<< "   " <<IdedxCounter<<std::endl;
+  std::cout << "COLLECTION - dEdx|4cm= " << CdEdx4cm<< "   " <<CdedxCounter<<std::endl;
+
+  return (void)0;
+}
+
+
+/*****************************************************/
+void GetVertex(){
+
+  // here we should GetThe verteces list
+  // then understand which one belongs to a shower
+  // getting the cluster that contain that vertex and pass everything to the main routine for the pghysical variables determination
+
 
   return (void)0;
 }

@@ -32,8 +32,9 @@ namespace shwf {
 
     /**METHODS global*/
     explicit ShowerReco(fhicl::ParameterSet const& pset);/**Constructor*/
-    virtual ~ShowerReco();                               /**Deconstructor*/
-    void beginJob();                                     /**Needed by Art as initialzer*/ 
+    virtual ~ShowerReco();                               /**Destructor*/
+    void beginJob();                                     
+    void reconfigure(fhicl::ParameterSet pset);
     void produce(art::Event& evt);                       /**Actual routine that reconstruct the shower*/
    
     int    Get3Daxis(float thetaI, float thetaC, float Wire_vertexI, float Wire_vertexC, float Time_vertex); // in rad
@@ -77,7 +78,7 @@ namespace shwf {
 
  private:
 
-    std::string fShwrOutput;
+  std::string fShwrOutput;
   std::string fClusterModuleLabel;
   float IdEdx4cm; // dedx of the first 4cm of the shower
   float CdEdx4cm; //dedx of the first 4cm of the shower 
