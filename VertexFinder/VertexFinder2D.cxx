@@ -180,7 +180,10 @@ namespace vertex{
 	//std::cout<<iclu<<" "<<par[1]<<" "<<clusters[iclu]->dTdW()<<std::endl;
 	dtdwstart.push_back(par[1]);
 	}
-	catch(...){std::cout<<"Fitter failed"<<std::endl;delete the2Dtrack;continue;}
+	catch(...){std::cout<<"Fitter failed"<<std::endl;
+	delete the2Dtrack;
+	dtdwstart.push_back(clusters[iclu]->dTdW());
+	continue;}
 	delete the2Dtrack;
       }
       else dtdwstart.push_back(clusters[iclu]->dTdW());
