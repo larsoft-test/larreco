@@ -479,9 +479,9 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 }
 
 //------------------------------------------------------------------------------
-size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Hit>& hits,
-					    float &slope,
-					    float &intercept)
+size_t cluster::HoughLineService::Transform(std::vector< art::Ptr<recob::Hit> >& hits,
+					    double &slope,
+					    double &intercept)
 {
   HoughTransform c;
 

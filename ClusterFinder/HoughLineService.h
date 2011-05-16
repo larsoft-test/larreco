@@ -79,9 +79,9 @@ namespace cluster {
     size_t Transform(art::PtrVector<recob::Cluster>& clusIn,
      	             std::vector<recob::Cluster>& ccol);
 
-    size_t Transform(art::PtrVector<recob::Hit>& hits,
-		     float &slope,
-		     float &intercept);
+    size_t Transform(std::vector< art::Ptr<recob::Hit> >& hits,
+		     double &slope,
+		     double &intercept);
 
     void reconfigure(fhicl::ParameterSet pset);
           
