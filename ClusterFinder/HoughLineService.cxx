@@ -45,31 +45,44 @@ extern "C" {
 #include "Geometry/geo.h"
 
 
-cluster::HoughLineService::HoughLineService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg) : 
-  fMaxLines                (pset.get< int >("MaxLines")),
-  fMinHits                 (pset.get< int >("MinHits")),
-  fSaveAccumulator         (pset.get< int >("SaveAccumulator")),
-  fNumAngleCells           (pset.get< int >("NumAngleCells")),
-  fMaxDistance             (pset.get< double >("MaxDistance")),
-  fRhoZeroOutRange         (pset.get< int >("RhoZeroOutRange")),
-  fThetaZeroOutRange       (pset.get< int >("ThetaZeroOutRange")),
-  fRhoResolutionFactor     (pset.get< int >("RhoResolutionFactor")),
-  fPerCluster              (pset.get< int >("HitsPerCluster"))
+//------------------------------------------------------------------------------
+cluster::HoughLineService::HoughLineService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg)
 {
+  this->reconfigure(pset);
 }
 
+//------------------------------------------------------------------------------
 cluster::HoughLineService::~HoughLineService()
 {
 }
 
+//------------------------------------------------------------------------------
+void cluster::HoughLineService::reconfigure(fhicl::ParameterSet pset)
+{
+  fMaxLines            = pset.get< int    >("MaxLines"           );
+  fMinHits             = pset.get< int    >("MinHits"            );
+  fSaveAccumulator     = pset.get< int    >("SaveAccumulator"    );
+  fNumAngleCells       = pset.get< int    >("NumAngleCells"      );
+  fMaxDistance         = pset.get< double >("MaxDistance"        );
+  fRhoZeroOutRange     = pset.get< int    >("RhoZeroOutRange"    );
+  fThetaZeroOutRange   = pset.get< int    >("ThetaZeroOutRange"  );
+  fRhoResolutionFactor = pset.get< int    >("RhoResolutionFactor");
+  fPerCluster          = pset.get< int    >("HitsPerCluster"     );
+
+  return;
+}
+
+//------------------------------------------------------------------------------
 cluster::HoughTransform::HoughTransform()
 {  
 }
 
+//------------------------------------------------------------------------------
 cluster::HoughTransform::~HoughTransform()
 {  
 }
 
+//------------------------------------------------------------------------------
 bool cluster::HoughTransform::AddPoint(int x, int y)
 {
   if (x>m_dx || y>m_dy || x<0.0 || y<0.0)
@@ -77,6 +90,7 @@ bool cluster::HoughTransform::AddPoint(int x, int y)
   return DoAddPoint(x, y);
 }
  
+//------------------------------------------------------------------------------
 void cluster::HoughTransform::Init(int dx, int dy, int rhores,
 				   int numACells)
 {
@@ -104,6 +118,7 @@ void cluster::HoughTransform::Init(int dx, int dy, int rhores,
   }
 }
 
+//------------------------------------------------------------------------------
 int cluster::HoughTransform::GetMax(int &xmax, int &ymax)
 {
   std::map<int,int>::iterator rhoIter;
@@ -121,6 +136,7 @@ int cluster::HoughTransform::GetMax(int &xmax, int &ymax)
   return maxVal;
 }
 
+//------------------------------------------------------------------------------
 bool cluster::HoughTransform::DoAddPoint(int x, int y)
 {
   distCenter = (int)(m_rowLength/2.);
@@ -151,6 +167,7 @@ bool cluster::HoughTransform::DoAddPoint(int x, int y)
   return true;
 }
 
+//------------------------------------------------------------------------------
 //this method saves a BMP image of the Hough Accumulator, which can be viewed with gimp
 void cluster::HoughLineService::HLSSaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy)
 {
@@ -186,7 +203,9 @@ void cluster::HoughLineService::HLSSaveBMPFile(const char *fileName, unsigned ch
   bmpFile.write((const char *)pix, dx*dy);
 }
  
-size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clusIn, std::vector<recob::Cluster>& ccol)
+//------------------------------------------------------------------------------
+size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clusIn, 
+					    std::vector<recob::Cluster>& ccol)
 {
 
   std::vector<int> skip;  
@@ -331,9 +350,9 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 	slope=-1./tan(theta);    
 	intercept=(rho/sin(theta));
 	double distance;
-	//\todo: the collection plane's characteristic hit width's are, 
-	//\todo: on average, about 5 time samples wider than the induction plane's. 
-	//\todo: this is hard-coded for now.
+	/// \todo: the collection plane's characteristic hit width's are, 
+	/// \todo: on average, about 5 time samples wider than the induction plane's. 
+	/// \todo: this is hard-coded for now.
 	if(p==0)
 	  indcolscaling=5.;
 	else
@@ -345,12 +364,12 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 	  for(unsigned int i=0;i<hit.size();i++){
 	    channel=hit[i]->Wire()->RawDigit()->Channel();
 	    geom->ChannelToWire(channel,plane,wire);
-	    //\todo: Note that there are 1/0.0743=13.46 time samples per 4.0 mm 
+	    // \todo: Note that there are 1/0.0743=13.46 time samples per 4.0 mm 
 	    //(wire pitch in ArgoNeuT), assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
 	    distance=(TMath::Abs(hit[i]->PeakTime()-slope*(double)(wire)-intercept)/(sqrt(pow(.0743*slope,2)+1)));
 	    
-	    //\todo: is there any reason to have 2 separate conditionals here, as they both do
-	    //\todo: the same thing, for the only 2 options available with fPerCluster
+	    // \todo: is there any reason to have 2 separate conditionals here, as they both do
+	    // \todo: the same thing, for the only 2 options available with fPerCluster
 	    if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling 
 	       && fPerCluster==1 && skip[i]!=1){
 	      hitTemp.push_back(i);
@@ -457,6 +476,68 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
   }//end loop over planes
 
   return ccol.size(); 
+}
+
+//------------------------------------------------------------------------------
+size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Hit>& hits,
+					    float &slope,
+					    float &intercept)
+{
+  HoughTransform c;
+
+  art::ServiceHandle<geo::Geometry> geom;
+  int dx = geom->Nwires(0);               //number of wires 
+  int dy = hits[0]->Wire()->fSignal.size();//number of time samples. 
+
+  c.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
+
+  unsigned int plane = 0;
+  unsigned int wire  = 0;
+  for(unsigned int i=0;i < hits.size(); ++i){
+    unsigned short channel = hits[i]->Wire()->RawDigit()->Channel();
+    geom->ChannelToWire(channel, plane, wire);
+    c.AddPoint(wire, (int)(hits[i]->PeakTime()));
+  }// end loop over hits
+
+  //gets the actual two-dimensional size of the accumulator
+  int accDx = 0;
+  int accDy = 0;
+  c.GetAccumSize(accDy, accDx);
+
+  //find the weightiest cell in the accumulator.
+  int maxCell = 0;
+  int xMax = 0;
+  int yMax = 0;
+  maxCell = c.GetMax(yMax,xMax);
+
+  //find the center of mass of the 3x3 cell system (with maxCell at the center). 
+  double centerofmassx = 0.;
+  double centerofmassy = 0.;
+  double denom         = 0.;
+    
+  if(xMax > 0 && yMax > 0 && xMax+1 < accDx && yMax+1 < accDy){  
+    for(int i = -1; i < 2; ++i){
+      for(int j = -1; j < 2; ++j){
+	denom         += c.GetCell(yMax+i,xMax+j);
+	centerofmassx += j*c.GetCell(yMax+i,xMax+j);
+	centerofmassy += i*c.GetCell(yMax+i,xMax+j);
+      }
+    }
+    centerofmassx /= denom;
+    centerofmassy /= denom;      
+  }
+  else  centerofmassx = centerofmassy = 0;
+
+  double rho   = 0.;
+  double theta = 0.;
+  c.GetEquation(yMax+centerofmassy, xMax+centerofmassx, rho, theta);
+  slope     = -1./tan(theta);    
+  intercept = rho/sin(theta);
+  
+  // \todo could eventually refine this method to throw out hits that are 
+  // \todo far from the hough line and refine the fit
+
+  return hits.size();
 }
 
 

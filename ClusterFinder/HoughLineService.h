@@ -18,7 +18,10 @@
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 
 
-namespace recob { class Cluster; }
+namespace recob { 
+  class Hit;
+  class Cluster; 
+}
 
 namespace cluster {
    
@@ -75,6 +78,12 @@ namespace cluster {
          
     size_t Transform(art::PtrVector<recob::Cluster>& clusIn,
      	             std::vector<recob::Cluster>& ccol);
+
+    size_t Transform(art::PtrVector<recob::Hit>& hits,
+		     float &slope,
+		     float &intercept);
+
+    void reconfigure(fhicl::ParameterSet pset);
           
   private:
   
