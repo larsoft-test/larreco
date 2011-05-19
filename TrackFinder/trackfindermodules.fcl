@@ -33,7 +33,7 @@ argoneut_spacepts:
  ClusterModuleLabel:    "linemerger"
  EndPoint2DModuleLabel: "vertex2d"
  TMatch:                50.0
- vertexclusterWindow:       100.
+ vertexclusterWindow:   100.
 }
 
 microboone_track:
@@ -51,7 +51,7 @@ microboone_spacepts:
  ClusterModuleLabel:       "dbcluster"
  EndPoint2DModuleLabel:    "vertex2d"
  TMatch:                   11.0
- vertexclusterWindow:       10000000.
+ vertexclusterWindow:      10000000.
 }
 
 microboone_kalman:

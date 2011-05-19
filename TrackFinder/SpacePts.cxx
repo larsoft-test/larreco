@@ -189,7 +189,7 @@ void trkf::SpacePts::produce(art::Event& evt)
 	  double dis = TMath::Abs(vtx2d_t-t_vtx);
 	  if (dis>fvertexclusterWindow)	  continue;	
       }
-      else continue;
+      //else continue; //what to do if a 2D vertex is not found? perhaps vertex finder was not even run.
     
      // Some variables for the hit
       unsigned int channel;  //channel number
@@ -298,6 +298,9 @@ void trkf::SpacePts::produce(art::Event& evt)
             //compute track startpoint and endpoint in Local co-ordinate system 
             TVector3 startpointVec(XYZ0.X(),XYZ0.Y(),XYZ0.Z());
             TVector3 endpointVec(Ct1,(Cw1-Iw1)/(2.*TMath::Sin(Angle)),(Cw1+Iw1)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
+            
+            
+
 
             //compute track (normalized) cosine directions in the TPC co-ordinate system
             TVector3 DirCos = endpointVec - startpointVec;
