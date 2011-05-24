@@ -107,7 +107,7 @@ void trkf::SpacePts::produce(art::Event& evt)
    double Efield_drift = 0.5;  // Electric Field in the drift region in kV/cm
    double Efield_SI = 0.7;     // Electric Field between Shield and Induction planes in kV/cm
    double Efield_IC = 0.9;     // Electric Field between Induction and Collection planes in kV/cm
-   double Temperature = 87.6;  // LAr Temperature in K
+   double Temperature = 92.;  // LAr Temperature in K
 
    double driftvelocity = larprop->DriftVelocity(Efield_drift,Temperature);    //drift velocity in the drift region (cm/us)
    double driftvelocity_SI = larprop->DriftVelocity(Efield_SI,Temperature);    //drift velocity between shield and induction (cm/us)
@@ -219,14 +219,19 @@ void trkf::SpacePts::produce(art::Event& evt)
 	  
          channel = (*theHit)->Channel();
          geom->ChannelToWire(channel,plane,wire);
-	  
 
          //correct for the distance between wire planes
-         if(plane==0) time -= tSI;         // Induction
-         if(plane==1) time -= (tSI+tIC);   // Collection
-	
+//          if(plane==0) time -= tSI;         // Induction
+//          if(plane==1) time -= (tSI+tIC);   // Collection
+	     
+         if(plane==1) time += tIC;   // Collection
          //transform hit wire and time into cm
-         double wire_cm = (double)((wire+1) * wire_pitch); 
+         double wire_cm = 0.; 
+         if(plane==0)
+         wire_cm = (double)((wire+3.95) * wire_pitch);          
+         else
+         wire_cm = (double)((wire+1.84) * wire_pitch);
+         
          double time_cm = (double)(time * timepitch);
          wires.push_back(wire_cm);
          times.push_back(time_cm);
@@ -298,9 +303,6 @@ void trkf::SpacePts::produce(art::Event& evt)
             //compute track startpoint and endpoint in Local co-ordinate system 
             TVector3 startpointVec(XYZ0.X(),XYZ0.Y(),XYZ0.Z());
             TVector3 endpointVec(Ct1,(Cw1-Iw1)/(2.*TMath::Sin(Angle)),(Cw1+Iw1)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
-            
-            
-
 
             //compute track (normalized) cosine directions in the TPC co-ordinate system
             TVector3 DirCos = endpointVec - startpointVec;
@@ -345,7 +347,15 @@ void trkf::SpacePts::produce(art::Event& evt)
                channel = minhits[imin]->Channel();
                geom->ChannelToWire(channel,plane1,wire);
                // get the wire-time co-ordinates of the hit to be matched
-               double w1 = (double)((wire+1)*wire_pitch);
+               //double w1 = (double)((wire+1)*wire_pitch);
+               double w1=0;
+               
+               //the 3.95 and 1.84 below are the ArgoNeuT TPC offsets for the induction and collection plane, respectively and are in units of wire pitch.
+               if(plane1==0)
+               w1 = (double)((wire+3.95) * wire_pitch);          
+               else
+               w1 = (double)((wire+1.84) * wire_pitch);
+               
                double t1 = plane1==1?(double)((minhits[imin]->PeakTime()-presamplings-(tSI+tIC))*timepitch):(double)((minhits[imin]->PeakTime()-presamplings-tSI)*timepitch); //in cm	  
 
                //get the track origin co-ordinates in the two views
@@ -379,7 +389,13 @@ void trkf::SpacePts::produce(art::Event& evt)
                      //get wire - time coordinate of the hit
                      channel = maxhits[imax]->Channel();
                      geom->ChannelToWire(channel,plane2,wire);
-                     double w2 = (double)((wire+1)*wire_pitch);
+                     //double w2 = (double)((wire+1)*wire_pitch);
+                     double w2=0.;
+                     if(plane2==0)
+                     w2 = (double)((wire+3.95) * wire_pitch);          
+                     else
+                     w2 = (double)((wire+1.84) * wire_pitch);
+                     
                      double t2 = plane2==1?(double)((maxhits[imax]->PeakTime()-presamplings-(tSI+tIC))*timepitch):(double)((maxhits[imax]->PeakTime()-presamplings-tSI)*timepitch); //in cm
 	      
                      bool timematch = (fabs(t1-t2)<ftmatch*timepitch);
@@ -403,7 +419,15 @@ void trkf::SpacePts::produce(art::Event& evt)
                // Get the time-wire co-ordinates of the matched hit
                channel =  maxhits[imaximum]->Channel();
                geom->ChannelToWire(channel,plane2,wire);
-               double w1_match = (double)((wire+1)*wire_pitch);
+             
+               //double w1_match = (double)((wire+1)*wire_pitch);  
+               double w1_match=0.;
+               if(plane2==0)
+               w1_match = (double)((wire+3.95) * wire_pitch);          
+               else
+               w1_match = (double)((wire+1.84) * wire_pitch);
+               
+               
                double t1_match = plane2==1?(double)((maxhits[imaximum]->PeakTime()-presamplings-(tSI+tIC))*timepitch):(double)((maxhits[imaximum]->PeakTime()-presamplings-tSI)*timepitch);
 
                // create the 3D hit, compute its co-ordinates and add it to the 3D hits list	  
@@ -412,11 +436,27 @@ void trkf::SpacePts::produce(art::Event& evt)
                double Iw = plane1==1?w1_match:w1;
 
                const TVector3 hit3d(Ct,(Cw-Iw)/(2.*TMath::Sin(Angle)),(Cw+Iw)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle)); 
+               
+               
                Double_t hitcoord[3];       
                hitcoord[0] = hit3d.X();
                hitcoord[1] = hit3d.Y();
                hitcoord[2] = hit3d.Z();         
-	       mf::LogInfo("SpacePts: ") << "SpacePoint adding xyz ..." << hitcoord[0] <<","<< hitcoord[1] <<","<< hitcoord[2];
+
+	         
+               double yy,zz;
+               if(geom->ChannelsIntersect(geom->PlaneWireToChannel(0,(int)((Iw/wire_pitch)-3.95)),      geom->PlaneWireToChannel(1,(int)((Cw/wire_pitch)-1.84)),yy,zz))
+               {
+               //channelsintersect provides a slightly more accurate set of y and z coordinates. use channelsintersect in case the wires in question do cross.
+               hitcoord[1] = yy;
+               hitcoord[2] = zz;               
+               mf::LogInfo("SpacePts: ") << "SpacePoint adding xyz ..." << hitcoord[0] <<","<< hitcoord[1] <<","<< hitcoord[2];	       
+// 	           std::cout<<"wire 1: "<<(Iw/wire_pitch)-3.95<<" "<<(Cw/wire_pitch)-1.84<<std::endl;
+//                std::cout<<"Intersect: "<<yy<<" "<<zz<<std::endl;
+	           }
+	           else
+	           continue;
+           
                recob::SpacePoint mysp(sp_hits);//3d point at end of track
                mysp.SetXYZ(hitcoord);
                mysp.SetID(spacepoints.size());

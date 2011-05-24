@@ -29,7 +29,7 @@ argoneut_lartracker:
 argoneut_spacepts:
 {
  module_type:           "SpacePts"
- TicksOffset:           60.0
+ TicksOffset:           75.0
  ClusterModuleLabel:    "linemerger"
  EndPoint2DModuleLabel: "vertex2d"
  TMatch:                50.0
