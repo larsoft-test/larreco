@@ -91,14 +91,14 @@ namespace vertex{
     double Angle = geom->Plane(1).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to the vertical direction
     // Parameters temporary defined here, but possibly to be retrieved somewhere in the code
     double timetick = 0.198;    //time sample in us
-    double presamplings = 60.;
+    double presamplings = 75.;
     //const double wireShift=50.; // half the number of wires from the Induction(Collection) plane intersecting with a wire from the Collection(Induction) plane.
     double plane_pitch = geom->PlanePitch(0,1);   //wire plane pitch in cm 
     double wire_pitch = geom->WirePitch(0,1,0);    //wire pitch in cm
     double Efield_drift = 0.5;  // Electric Field in the drift region in kV/cm
     double Efield_SI = 0.7;     // Electric Field between Shield and Induction planes in kV/cm
     double Efield_IC = 0.9;     // Electric Field between Induction and Collection planes in kV/cm
-    double Temperature = 87.6;  // LAr Temperature in K
+    double Temperature = 92.;  // LAr Temperature in K
     
     double driftvelocity = larprop->DriftVelocity(Efield_drift,Temperature); //drift velocity in the drift 
     //region (cm/us)
@@ -325,17 +325,27 @@ namespace vertex{
 
     Double_t vtxcoord[3];
     if (Cls[0].size()>0&&Cls[1].size()>0){//ignore w view
-      double Iw0 = (vtx_w[0]+1)*wire_pitch;
-      double Cw0 = (vtx_w[1]+1)*wire_pitch;
+      double Iw0 = (vtx_w[0]+3.95)*wire_pitch;
+      double Cw0 = (vtx_w[1]+1.84)*wire_pitch;
+
       double It0 = vtx_t[0] - presamplings;
       It0 -= tSI;
       It0 *= timepitch;
       double Ct0 = vtx_t[1] - presamplings;
-      Ct0 -= tSI+tIC;
       Ct0 *= timepitch;
       vtxcoord[0] = Ct0;
       vtxcoord[1] = (Cw0-Iw0)/(2.*TMath::Sin(Angle));
       vtxcoord[2] = (Cw0+Iw0)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle);
+
+       double yy,zz;       
+       if(vtx_w[0]>=0&&vtx_w[0]<=239&&vtx_w[1]>=0&&vtx_w[1]<=239)
+       if(geom->ChannelsIntersect(geom->PlaneWireToChannel(0,(int)((Iw0/wire_pitch)-3.95)),      geom->PlaneWireToChannel(1,(int)((Cw0/wire_pitch)-1.84)),yy,zz))
+       {
+       //channelsintersect provides a slightly more accurate set of y and z coordinates. use channelsintersect in case the wires in question do cross.
+       vtxcoord[1] = yy;
+       vtxcoord[2] = zz;
+       }
+     
       dtIC->Fill(It0-Ct0);
     }
     else{
