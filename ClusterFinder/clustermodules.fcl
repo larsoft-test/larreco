@@ -12,8 +12,8 @@ argoneut_dbclusterana:
  DigitModuleLabel:         "daq"
  HitsModuleLabel:          "ffthit"
  LArGeantModuleLabel:      "largeant"
- CalDataModuleLabel:       "caldataCal"
- GenieGenModuleLabel:      "singlegen"
+ CalDataModuleLabel:       "caldata"
+ GenieGenModuleLabel:      "generator"
  ClusterFinderModuleLabel: "dbcluster"
 }
 
