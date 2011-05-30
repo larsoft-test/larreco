@@ -249,8 +249,8 @@ namespace vertex{
 	std::cout << std::endl;
 
 	//if(StartPointSeperation(startpoints_vec[i], startpoints_vec[j])<fVertexWindow){ ///// correct this
-	if(MINDIST<2 && trackpair[i].second >30 && trackpair[j].second >30){
-
+	//if(MINDIST<2 && trackpair[i].second >30 && trackpair[j].second >30){
+	  if(MINDIST<fVertexWindow && ((TRACK1POINT-startvec[i]).Mag())<fVertexWindow){
 
 	  if((!IsInVertexCollection(i, vertex_collection_int)) && (!IsInVertexCollection(j, vertex_collection_int))){
 	    std::vector<int> newvertex_int;
@@ -284,14 +284,14 @@ namespace vertex{
     //now add the unmatched track IDs to the collection
     for(unsigned int i=0; i<trackpair.size(); i++){
       if(!IsInVertexCollection(i, vertex_collection_int)){
-	if(trackpair[i].second>30){
+	//if(trackpair[i].second>30){
 	std::vector<int> temp;
 	std::vector <TVector3> temp1;
 	temp.push_back(i);
 	temp1.push_back(startvec[i]);	
 	vertex_collection_int.push_back(temp);
 	vertexcand_vec.push_back(temp1);
-	}
+	//}
       }
     }
 
