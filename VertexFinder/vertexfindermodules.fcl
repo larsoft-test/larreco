@@ -24,7 +24,7 @@ argoneut_primaryvertex:
 {
  module_type:       "PrimaryVertexFinder"
  TrackModuleLabel:  "track3d"
- VertexWindow:       5.
+ VertexWindow:       2.
 }
 
 argoneut_vertex2d:
