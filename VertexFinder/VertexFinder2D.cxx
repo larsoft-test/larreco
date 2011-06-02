@@ -329,9 +329,8 @@ namespace vertex{
       double Cw0 = (vtx_w[1]+1.84)*wire_pitch;
 
       double It0 = vtx_t[0] - presamplings;
-      It0 -= tSI;
       It0 *= timepitch;
-      double Ct0 = vtx_t[1] - presamplings;
+      double Ct0 = vtx_t[1] - presamplings ;
       Ct0 *= timepitch;
       vtxcoord[0] = Ct0;
       vtxcoord[1] = (Cw0-Iw0)/(2.*TMath::Sin(Angle));
@@ -345,6 +344,11 @@ namespace vertex{
        vtxcoord[1] = yy;
        vtxcoord[2] = zz;
        }
+       else{
+      vtxcoord[0] = -99999;
+      vtxcoord[1] = -99999;
+      vtxcoord[2] = -99999;
+      }
      
       dtIC->Fill(It0-Ct0);
     }
