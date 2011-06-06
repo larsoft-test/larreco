@@ -313,7 +313,7 @@ art::fill_ptr_vector(hits, hitListHandle);
 	  //	std::cout<<"I AM ON PLANE #"<<plane<<std::endl;
 	  if( clusters[j]->View() == view){
 	  
-	  std::cout<<"working on cluster # "<<j<<std::endl;
+	  //std::cout<<"working on cluster # "<<j<<std::endl;
 	    art::PtrVector<recob::Hit> _hits; 
 	    art::Ptr<recob::Hit> _hits_ptr; //
 	    
@@ -321,11 +321,11 @@ art::fill_ptr_vector(hits, hitListHandle);
 	    _hits=clusters[j]->Hits();
 	    
 	    //delete
-	    std::cout<<"_hits.size()= "<<_hits.size()<<std::endl;
+	    //std::cout<<"_hits.size()= "<<_hits.size()<<std::endl;
 	    for(int p =0; p<_hits.size();++p){
 	    	_hits_ptr=_hits[p];
 	    	hits_vec.push_back(_hits_ptr);
-	    	std::cout<<"hit # "<<p<<" charge= "<<_hits[p]->Charge()<<std::endl;
+	    	//std::cout<<"hit # "<<p<<" charge= "<<_hits[p]->Charge()<<std::endl;
 	    	total_Q_cluster_hits+=_hits[p]->Charge();
 	    	}	
 	    
@@ -333,11 +333,11 @@ art::fill_ptr_vector(hits, hitListHandle);
 	    std::vector< art::Ptr<recob::Hit> >::iterator itr = hits_vec.begin();
 	    
 	    
-	    std::cout<<"hits_vec.size()= "<<hits_vec.size()<<std::endl;
+	    //std::cout<<"hits_vec.size()= "<<hits_vec.size()<<std::endl;
 	      while(itr != hits_vec.end()) {
-		std::cout<<"working on hit # "<<itr-hits_vec.begin()<<" charge= "<<_hits[itr-hits_vec.begin()]->Charge()<<std::endl;
+		//std::cout<<"working on hit # "<<itr-hits_vec.begin()<<" charge= "<<_hits[itr-hits_vec.begin()]->Charge()<<std::endl;
 		diff_vec.clear();
-		std::cout<<"same?, q= "<<hits_vec[itr-hits_vec.begin()]->Charge()<<std::endl;
+		//std::cout<<"same?, q= "<<hits_vec[itr-hits_vec.begin()]->Charge()<<std::endl;
 		
 		hit_energy=_hits[itr-hits_vec.begin()]->Charge();
 		
@@ -356,7 +356,7 @@ art::fill_ptr_vector(hits, hitListHandle);
 		    
 		    int eveID = _particleList.EveId( (*idesitr).trackID );
 		    
-		     std::cout<<"track id: " << (*idesitr).trackID<<" contributed " << (*idesitr).energyFrac<< " to the current hit and has eveID: " << eveID<<std::endl;
+		    // std::cout<<"track id: " << (*idesitr).trackID<<" contributed " << (*idesitr).energyFrac<< " to the current hit and has eveID: " << eveID<<std::endl;
 		     
 		     // double energy=voxelData.Energy(i);
 		     // std::cout<<"check4-3"<<std::endl;
@@ -376,7 +376,7 @@ art::fill_ptr_vector(hits, hitListHandle);
 			  const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
 // 			  
     		  int pdg = particle->PdgCode();
-    		  std::cout<<"pdg= "<<pdg<<std::endl;
+    		 // std::cout<<"pdg= "<<pdg<<std::endl;
 // 			  
 // 			  double energy2=voxelData.Energy(i);
 // 			  // std::cout<<"energy2= "<<energy2<<std::endl;
@@ -783,7 +783,7 @@ art::fill_ptr_vector(hits, hitListHandle);
    const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
 		  
     		  int pdg = particle->PdgCode();
-    		  std::cout<<"pdg= "<<pdg<<std::endl;
+    		  //std::cout<<"pdg= "<<pdg<<std::endl;
   
   
 
@@ -849,8 +849,8 @@ art::fill_ptr_vector(hits, hitListHandle);
   
 
 
-  std::cout<<"TOTAL ENERGY FROM HITS for P=0 = "<<total_eng_hits_p0<<std::endl;
-  std::cout<<"TOTAL ENERGY FROM HITS for P=1 = "<<total_eng_hits_p1<<std::endl;
+  //std::cout<<"TOTAL ENERGY FROM HITS for P=0 = "<<total_eng_hits_p0<<std::endl;
+  //std::cout<<"TOTAL ENERGY FROM HITS for P=1 = "<<total_eng_hits_p1<<std::endl;
 
 
 
@@ -932,7 +932,7 @@ art::fill_ptr_vector(hits, hitListHandle);
 
   //-------------------------------------------------------------------
 
-  std::cout<<"hello for Brian-->>>"<<std::endl;
+  //std::cout<<"hello for Brian-->>>"<<std::endl;
   //------------------------------------------------------------  
   //  std::vector<const recob::Wire*> wirelist;
   //   try{
