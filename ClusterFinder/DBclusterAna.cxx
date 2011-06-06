@@ -25,6 +25,7 @@
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Persistency/Common/OrphanHandle.h"
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "art/Framework/Core/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
@@ -37,10 +38,11 @@
 #include "Simulation/SimListUtils.h"
 #include "RecoBase/recobase.h"
 #include "RawData/RawDigit.h"
+#include "MCCheater/BackTracker.h"
 
 
  
-//-------------------------------------------------
+//--------------------------------------------------------------------
 cluster::DBclusterAna::DBclusterAna(fhicl::ParameterSet const& pset)  
   : fDigitModuleLabel         (pset.get< std::string >("DigitModuleLabel")        )
   , fHitsModuleLabel          (pset.get< std::string >("HitsModuleLabel")         )
@@ -54,7 +56,7 @@ cluster::DBclusterAna::DBclusterAna(fhicl::ParameterSet const& pset)
 
 }
 
-//-------------------------------------------------
+//------------------------------------------------------------------
 cluster::DBclusterAna::~DBclusterAna()
 {
 
@@ -151,8 +153,10 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   //----------------------------------------------------------------
 
   //----------------------------------------------------------------   
-
- 
+ art::Handle< std::vector<sim::SimChannel> > sccol;
+ evt.getByLabel(fDigitModuleLabel, sccol);
+ std::vector< art::Ptr<sim::SimChannel> > scs;
+ art::fill_ptr_vector(scs, sccol);
   
   art::PtrVector<raw::RawDigit> rawdigits;
   
@@ -212,13 +216,19 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
       mclist.push_back(mctparticle);
     }
 
-  art::PtrVector<recob::Hit> hits;
-  for (unsigned int ii = 0; ii <  hitListHandle->size(); ++ii)
-    {
-      art::Ptr<recob::Hit> hitHolder(hitListHandle,ii);
-      hits.push_back(hitHolder);
-    }
+  // art::PtrVector<recob::Hit> hits;
+//   for (unsigned int ii = 0; ii <  hitListHandle->size(); ++ii)
+//     {
+//       art::Ptr<recob::Hit> hitHolder(hitListHandle,ii);
+//       hits.push_back(hitHolder);
+//     }
+//--------------------------------------------------
+std::vector< art::Ptr<recob::Hit> > hits_vec;
 
+//--------------------------------------------------
+std::vector< art::Ptr<recob::Hit> > hits;
+art::fill_ptr_vector(hits, hitListHandle);
+//---------------------------------------------------
 
   art::PtrVector<recob::Cluster> clusters;
   for (unsigned int ii = 0; ii <  clusterListHandle->size(); ++ii)
@@ -239,6 +249,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
       wirelist.push_back(wireHolder);
       
     }
+    
   
   
   //...........................................................................
@@ -252,6 +263,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   // take each TrackID and count in how many clusters it appears
   //.........................................................................
   
+  _particleList.AdoptEveIdCalculator(new sim::EmEveIdCalculator);
   
   double no_of_particles_in_cluster=0;
   double sum_vec_trackid=0;
@@ -280,170 +292,145 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   double _en_13=0,_en_11=0,_en_m11=0,_en_111=0,_en_22=0,_en_211=0,_en_m211=0,_en_2212=0,_en_2112=0;
   std::vector<double> diff_vec;
   
+  double hit_energy=0;
+  double total_Q_cluster_hits=0;
+  
+  
   art::ServiceHandle<geo::Geometry> geom;  
   /*
     for(unsigned int i = 0; i < hits.size(); ++i) {
     std::cout<<"channel: "<<hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(hits[i]->StartTime()+hits[i]->EndTime())/2.<<" X time= "<<hits[i]-> CrossingTime()<<std::endl;
     }
   */
+  
   if(clusters.size()!=0 && hits.size()!=0){
     for(unsigned int plane=0;plane<geom->Nplanes();++plane){
       geo::View_t view = geom->Plane(plane).View();
       //art::PtrVectorItr<recob::Cluster> clusterIter = clusters.begin();      
       for(unsigned int j=0; j<clusters.size();++j) 
-	//while (clusterIter != clusters.end()) 
 	{
+	 
 	  //	std::cout<<"I AM ON PLANE #"<<plane<<std::endl;
 	  if( clusters[j]->View() == view){
+	  
+	  std::cout<<"working on cluster # "<<j<<std::endl;
 	    art::PtrVector<recob::Hit> _hits; 
-	    
-	    //if (hits.size() <= 0) {clusterIter++; continue;}
-	    //_hits = (*clusterIter)->Hits();
-	    _hits=clusters[j]->Hits();
-	    
-	    if(_hits.size()!=0){ //need this b/c of plane
-	      
-	      for(unsigned int i = 0; i < _hits.size(); ++i) {
-		
-		
-		//std::cout<<"channel: "<<_hits[i]->Wire()->RawDigit()->Channel()<<"  time= "<<(_hits[i]->StartTime()+_hits[i]->EndTime())/2.<<" X time= "<<_hits[i]-> CrossingTime()<<std::endl;
-		
-		double XTime=_hits[i]->PeakTime();
-		
-		// grab the channel from this hit
-		unsigned int channel = _hits[i]->Wire()->RawDigit()->Channel();
-		
-		// loop over the SimChannels to find this one
-		art::Ptr<sim::SimChannel> sc;
-		for(unsigned int scs = 0; scs < simchans.size(); ++scs)
-		  if(simchans[scs]->Channel() == channel) sc = simchans[scs];
-		
-		unsigned int numberOfElectrons = sc->NumberOfElectrons();
-		
-		//std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
-
-		for ( unsigned int ii = 0; ii != numberOfElectrons; ++ii )
-		  {
-		    
-		    _electrons = sc->GetElectrons(ii);
-		    double ArrivalTime=(_electrons->ArrivalT())/200;
-		    double diff=XTime-ArrivalTime;
-		    
-		    //	std::cout<<"e's ArrivalT = "<<ArrivalTime<<" diff= "<<diff<<std::endl;
-		    diff_vec.push_back(diff);
-		    
-		    /* Below should be generalized for N planes. EC, 5-Oct-2010. */
-		    
-		    if(plane==0)  { 
-		      if((diff<22)&&(diff>13))
-			{
-			  electrons = sc->GetElectrons(ii);
-			  // double _ArrivalTime=(electrons->ArrivalT())/200;
-			  // double _diff=XTime-_ArrivalTime;
-			  // std::cout<<"PLANE 0,diff= "<<_diff<<std::endl;
-			}
-		    }
-		    if(plane==1)  { 
-		      if((diff<36)&&(diff>27))
-			{
-			  electrons = sc->GetElectrons(ii);
-			  //double _ArrivalTime=(electrons->ArrivalT())/200;
-			  //double _diff=XTime-_ArrivalTime;
-			  // std::cout<<"PLANE 1,diff= "<<_diff<<std::endl;
-			}
-		    }
-		    
-		  }//for
-	     
-		//   std::cout<<"MIN of DIFF= "<<*min_element(diff_vec.begin(),diff_vec.end())<<" MAX of DIFF= "<<*max_element(diff_vec.begin(),diff_vec.end())<<std::endl;
-		diff_vec.clear();
+	    art::Ptr<recob::Hit> _hits_ptr; //
 	    
 	   
-		if(electrons!=0){
-		  const sim::LArVoxelID voxelIDval = electrons->Voxel()->VoxelID(); 
+	    _hits=clusters[j]->Hits();
+	    
+	    //delete
+	    std::cout<<"_hits.size()= "<<_hits.size()<<std::endl;
+	    for(int p =0; p<_hits.size();++p){
+	    	_hits_ptr=_hits[p];
+	    	hits_vec.push_back(_hits_ptr);
+	    	std::cout<<"hit # "<<p<<" charge= "<<_hits[p]->Charge()<<std::endl;
+	    	total_Q_cluster_hits+=_hits[p]->Charge();
+	    	}	
+	    
+
+	    std::vector< art::Ptr<recob::Hit> >::iterator itr = hits_vec.begin();
+	    
+	    
+	    std::cout<<"hits_vec.size()= "<<hits_vec.size()<<std::endl;
+	      while(itr != hits_vec.end()) {
+		std::cout<<"working on hit # "<<itr-hits_vec.begin()<<" charge= "<<_hits[itr-hits_vec.begin()]->Charge()<<std::endl;
+		diff_vec.clear();
+		std::cout<<"same?, q= "<<hits_vec[itr-hits_vec.begin()]->Charge()<<std::endl;
+		
+		hit_energy=_hits[itr-hits_vec.begin()]->Charge();
+		
+		std::vector<cheat::TrackIDE> trackides = cheat::BackTracker::HitToTrackID(scs, *itr);
+		
+		
+		std::vector<cheat::TrackIDE> eveides   = cheat::BackTracker::HitToEveID(_particleList, scs, *itr);
+		
+	std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
+		
+			   
+
 		  
-		  const sim::LArVoxelID* voxelID = &voxelIDval;
-		  
-		  if(voxelID==0){std::cout<<"voxelID =0!!!!!!!!! ************"<<std::endl;}
-		  // sim::LArVoxelData& voxelData =const_cast<sim::LArVoxelList*> (voxelList)->at(*voxelID);
-		  
-		  const sim::LArVoxelData& voxelData = voxelList.at(*voxelID);
-		  
-		  
-		  int numberParticles = voxelData.NumberParticles();
-		  
-		  
-		  for ( int i = 0; i != numberParticles; ++i )
+		  while( idesitr != trackides.end() )
 		    {
-		      int trackID = voxelData.TrackID(i);
-		      //	std::cout<<"trackID= "<<trackID<<std::endl;
-		      //
-		      double energy=voxelData.Energy(i);
+		    
+		    int eveID = _particleList.EveId( (*idesitr).trackID );
+		    
+		     std::cout<<"track id: " << (*idesitr).trackID<<" contributed " << (*idesitr).energyFrac<< " to the current hit and has eveID: " << eveID<<std::endl;
+		     
+		     // double energy=voxelData.Energy(i);
+		     // std::cout<<"check4-3"<<std::endl;
 		      // std::cout<<"energy= "<<energy<<std::endl;
 		      // fEnergy->Fill(energy);
 		      
-		      vec_trackid.push_back(trackID);
+		      vec_trackid.push_back((*idesitr).trackID);
 		      
-		      for( unsigned int i=0; i<_particleList.size(); ++i )
-			{
-			  // const sim::ParticleList* particleList = _particleList[i];
-			  //particleList = _particleList[i];
-			  
-			  
-			  // 	double energyTrackID=voxelData.Energy[trackID];
-			  //  	std::cout<<"ENERGY OF PRIMARY TRACKID= "<<energyTrackID<<std::endl;
-			  
-			  const sim::Particle* particle = _particleList.at( trackID );
-			  
-			  int pdg = particle->PdgCode();
-			  
-			  double energy2=voxelData.Energy(i);
-			  // std::cout<<"energy2= "<<energy2<<std::endl;
-			  
-			  // std::cout<<"part eng= "<<particle->E()<<std::endl;
-			  if(pdg==13){_hit_13++;
-			    _en_13+=energy2;}
-			  if(pdg==11){_hit_11++;
-			    _en_11+=energy2;
-			    // std::cout<<"in clus: _en_11="<<_en_11<<std::endl;
-			  }
-			  if(pdg==-11){_hit_m_11++;
-			    _en_m11+=energy2;}
-			  if(pdg==111){_hit_111++;
-			    _en_111+=energy2;}
-			  if(pdg==22){_hit_22++;
-			    _en_22+=energy2;}
-			  if(pdg==211){_hit_211++;
-			    _en_211+=energy2;}
-			  if(pdg==-211){_hit_m211++;
-			    _en_m211+=energy2;}
-			  if(pdg==2212){_hit_2212++;
-			    _en_2212+=energy2;}
-			  if(pdg==2112){_hit_2112++;
-			    _en_2112+=energy2;}
-		    
-			  //std::cout<<"True PDG= "<<pdg<<std::endl;
-			  vec_pdg.push_back(pdg);
-			  // std::cout<<"_en_11= "<<_en_11<<std::endl;
-			  //while particle is not a primary particle and going up in a chain of trackIDs is not going to change its pdg code, go up the chain.
-			  while ( (! _particleList.IsPrimary( trackID )) && (((_particleList.at(particle->Mother()))->PdgCode())==pdg))
-			    {
-			      trackID = particle->Mother();
-			      //std::cout<<"((NOt a PRIMARY ORIGINALLY!!! ) trackID= "<<trackID<<std::endl;
-			      particle = _particleList.at( trackID );
-			      pdg= particle->PdgCode();
-			      //	 std::cout<<"(NOt a PRIMARY ORIGINALLY!!! ) The PDG from HIT is: "<<pdg<<std::endl;
-			  
-			    }
-		    
-			  // std::cout<<"The PDG from HIT is: "<<pdg<<std::endl;
-			  //std::cout<<"after mother trackid= "<<trackID<<std::endl;
-			  vec_trackid_mother.push_back(trackID);
-			  if(energy>(7e-5)){ vec_trackid_mother_en.push_back(trackID);}
-			}
+		      //for( unsigned int i=0; i<_particleList.size(); ++i )
+			// {
+// 			  // const sim::ParticleList* particleList = _particleList[i];
+// 			  //particleList = _particleList[i];
+// 			  
+// 			  
+// 			  // 	double energyTrackID=voxelData.Energy[trackID];
+// 			  //  	std::cout<<"ENERGY OF PRIMARY TRACKID= "<<energyTrackID<<std::endl;
+			  const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+// 			  
+    		  int pdg = particle->PdgCode();
+    		  std::cout<<"pdg= "<<pdg<<std::endl;
+// 			  
+// 			  double energy2=voxelData.Energy(i);
+// 			  // std::cout<<"energy2= "<<energy2<<std::endl;
+// 			  
+// 			  // std::cout<<"part eng= "<<particle->E()<<std::endl;
+ 			  if(pdg==13 || pdg==-13){_hit_13++;
+ 			    _en_13+=hit_energy*((*idesitr).energyFrac);
+ 			   // std::cout<<"_en_13= "<<_en_13<<std::endl;
+ 			    }
+// 			  if(pdg==11){_hit_11++;
+// 			    _en_11+=energy2;
+// 			    // std::cout<<"in clus: _en_11="<<_en_11<<std::endl;
+// 			  }
+// 			  if(pdg==-11){_hit_m_11++;
+// 			    _en_m11+=energy2;}
+// 			  if(pdg==111){_hit_111++;
+// 			    _en_111+=energy2;}
+// 			  if(pdg==22){_hit_22++;
+// 			    _en_22+=energy2;}
+// 			  if(pdg==211){_hit_211++;
+// 			    _en_211+=energy2;}
+// 			  if(pdg==-211){_hit_m211++;
+// 			    _en_m211+=energy2;}
+// 			  if(pdg==2212){_hit_2212++;
+// 			    _en_2212+=energy2;}
+// 			  if(pdg==2112){_hit_2112++;
+// 			    _en_2112+=energy2;}
+// 		    
+// 			  //std::cout<<"True PDG= "<<pdg<<std::endl;
+// 			  vec_pdg.push_back(pdg);
+// 			  // std::cout<<"_en_11= "<<_en_11<<std::endl;
+// 			  //while particle is not a primary particle and going up in a chain of trackIDs is not going to change its pdg code, go up the chain.
+// 			  while ( (! _particleList.IsPrimary( trackID )) && (((_particleList.at(particle->Mother()))->PdgCode())==pdg))
+// 			    {
+// 			      trackID = particle->Mother();
+// 			      //std::cout<<"((NOt a PRIMARY ORIGINALLY!!! ) trackID= "<<trackID<<std::endl;
+// 			      particle = _particleList.at( trackID );
+// 			      pdg= particle->PdgCode();
+// 			      //	 std::cout<<"(NOt a PRIMARY ORIGINALLY!!! ) The PDG from HIT is: "<<pdg<<std::endl;
+// 			  
+// 			    }
+// 		    
+// 			  // std::cout<<"The PDG from HIT is: "<<pdg<<std::endl;
+// 			  //std::cout<<"after mother trackid= "<<trackID<<std::endl;
+// 			  vec_trackid_mother.push_back(trackID);
+// 			  if(energy>(7e-5)){ vec_trackid_mother_en.push_back(trackID);}
+// 			}
+		
+		
+		
+		idesitr++;
 		
 		    }
-		}//if electrons!=0
+		
 		////////////////////////////////////////////
 	    
 		// int numberPrimaries = particleList->NumberOfPrimaries();
@@ -462,9 +449,13 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 		_electrons=0;
 	   
 		electrons=0;
-	   
-	      }//for hits
-	
+	  // std::cout<<"check--3"<<std::endl;
+	  
+	  itr++;
+	  
+	      }//loop thru hits
+		  //std::cout<<"check--4"<<std::endl;
+
 	      //  std::cout<<"vec_pdg("<<vec_pdg.size()<<")= " ;
 	      for(unsigned int i=0;i<vec_pdg.size();++i){
 	    
@@ -537,7 +528,6 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 	  
 	      //same for vec_trackid:
 	  
-	  
 	      sort( vec_trackid.begin(), vec_trackid.end() );
 	      vec_trackid.erase( unique( vec_trackid.begin(), vec_trackid.end() ), vec_trackid.end() );
 	      //  std::cout<<" NO OF DIFFERENT TRACKIDS IN THIS CLUSTER IS: "<<vec_trackid.size()<<std::endl;
@@ -583,7 +573,6 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 	  
 	  
 	      // Q: How many clusters it takes to contain a certain particle?
-	  
 	      for(unsigned int ii=0;ii<mc_trackids.size();++ii){
 		it5=find(vec_trackid.begin(),vec_trackid.end(),mc_trackids[ii]);
 		if(it5!=vec_trackid.end()){
@@ -620,21 +609,21 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 	   
 	      vec_trackid_mother_en.clear();
 	  
-	    }//non-zero hits
+	    
 	  }//end if cluster is in correct view
 	  //clusterIter++;
 	
+	hits_vec.clear();
 	}//for each cluster
       
       // std::cout<<"sum_vec_trackid= "<<sum_vec_trackid<<std::endl;
      
-      
       sort( all_trackids.begin(), all_trackids.end() );
       all_trackids.erase( unique( all_trackids.begin(), all_trackids.end() ), all_trackids.end() );
       //	  std::cout<<" NO OF DIFFERENT TRACKIDS IN THIS EVENT IS: "<<all_trackids.size()<<std::endl;
       // std::cout<<"They are: ";
       for(unsigned int ii=0;ii<all_trackids.size();++ii){
-	 std::cout<<all_trackids[ii]<<" ";
+	// std::cout<<all_trackids[ii]<<" ";
    
       }
       // std::cout<<std::endl;
@@ -771,129 +760,81 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   double total_eng_hits_p1=0;
   _electrons=0;
   electrons=0;
-  // if(hits.size()!=0){
-  // for( int plane_k=0;plane_k<2;++plane_k){
-  // std::cout<<"plane: "<<plane_k<<"  ";
-  for(unsigned int j = 0; j < hits.size(); ++j) {
-	 
-    no_hits++;
-    unsigned int channel = hits[j]->Wire()->RawDigit()->Channel();
-
+ 
+  // geo::View_t view_ind = geom->Plane(0).View();
+//   geo::View_t view_coll = geom->Plane(1).View();
+  
+  std::vector< art::Ptr<recob::Hit> >::iterator itr = hits.begin();
+	  while(itr != hits.end()) {
+   
+      std::vector<cheat::TrackIDE> trackides = cheat::BackTracker::HitToTrackID(scs, *itr);
+	  std::vector<cheat::TrackIDE> eveides   = cheat::BackTracker::HitToEveID(_particleList, scs, *itr);
+		
+	  std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
+		
+		hit_energy=hits[itr-hits.begin()]->Charge();
+		
+    while( idesitr != trackides.end() ){
+    
     //std::cout<<"0:TOTAL ENERGY FROM HITS for P=0 = "<<total_eng_hits_p0<<std::endl;
     //std::cout<<"0:TOTAL ENERGY FROM HITS for P=1 = "<<total_eng_hits_p1<<std::endl;
 
 
-    // std::cout<<"channel: "<<hits[j]->Wire()->RawDigit()->Channel()<<"  time= "<<(hits[j]->StartTime()+hits[j]->EndTime())/2.<<" w= "<<w<<" plane= "<<plane_k<<std::endl;
-    double XTime=hits[j]->PeakTime();
-    //if(XTime >1650){std::cout<<"possible fake hit line ***********"<<std::endl;}
+   const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+		  
+    		  int pdg = particle->PdgCode();
+    		  std::cout<<"pdg= "<<pdg<<std::endl;
+  
+  
 
-    // loop over the SimChannels to find this one
-    art::Ptr<sim::SimChannel> sc;
-    for(unsigned int scs = 0; scs < simchans.size(); ++scs)
-      if(simchans[scs]->Channel() == channel) sc = simchans[scs];
-    
-    unsigned int numberOfElectrons = sc->NumberOfElectrons();
-    //  std::cout<<"Hits only, numberOfElectrons= "<< numberOfElectrons<<std::endl;
-    //    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
-    //std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
-    //  std::cout<<"simdigit is: "<<simdigit<<std::endl;
-    for (size_t i = 0; i != numberOfElectrons; ++i )
-      {
-	       
-	_electrons = sc->GetElectrons(i);
-	double ArrivalTime=(_electrons->ArrivalT())/200;
-	double diff=XTime-ArrivalTime;
-	//	std::cout<<"e's ArrivalT = "<<ArrivalTime<<" diff= "<<diff<<std::endl;
-	diff_vec.push_back(diff);
-	if(plane_k==0)  { 
-	  if((diff<22)&&(diff>13))
-	    {
-	      electrons = sc->GetElectrons(i);
-	      // double _ArrivalTime=(electrons->ArrivalT())/200;
-	      // double _diff=XTime-_ArrivalTime;
-		     
-		     
-	      // std::cout<<"PLANE 0,diff= "<<_diff<<std::endl;
-	    }
-	}
-	if(plane_k==1)  { 
-	  if((diff<36)&&(diff>27))
-	    {
-	      electrons = sc->GetElectrons(i);
-	      //double _ArrivalTime=(electrons->ArrivalT())/200;
-	      //double _diff=XTime-_ArrivalTime;
-		     
-		     
-	    }
-	}
-	       
-	       
-      }//numberofElectrons
-	   
-	   
-    //	std::cout<<"MIN of DIFF= "<<*min_element(diff_vec.begin(),diff_vec.end())<<" MAX of DIFF= "<<*max_element(diff_vec.begin(),diff_vec.end())<<std::endl;
+   
     diff_vec.clear();
 	   
-    if(electrons!=0){
-      const sim::LArVoxelID voxelIDval = electrons->Voxel()->VoxelID(); 
-      const sim::LArVoxelID* voxelID = &voxelIDval;
-      if(voxelID==0){std::cout<<"voxelID =0!!!!!!!!! ************"<<std::endl;}
-      // sim::LArVoxelData& voxelData =const_cast<sim::LArVoxelList*> (voxelList)->at(*voxelID);
-      const sim::LArVoxelData& voxelData = voxelList.at(*voxelID);
+    
+     
 	     
-	     
-      int numberParticles = voxelData.NumberParticles();
-      //  std::cout<<"numberParticles= "<<numberParticles<<std::endl;
-      for ( int i = 0; i != numberParticles; ++i )
-	{
-	  int trackID = voxelData.TrackID(i);
-	  //	 std::cout<<"trackid= "<<trackID<<std::endl;
-		 
-	  for( unsigned int i=0; i<_particleList.size(); ++i )
-	    {
-	      //art::Ptr<sim::ParticleList> particleList(partListHandle,i);
-	      // This barfs, EC, 6-Oct-2010.
-	      //const sim::ParticleList particleList = _particleList;
-	      
-	      const sim::Particle* particle = _particleList.at( trackID );
-	      int pdg = particle->PdgCode();
-	      //  std::cout<<"pdg= "<<pdg<<std::endl;
 		     
-	      double energy3=voxelData.Energy(i);
-	      //std::cout<<"plane= "<<plane_k<<std::endl;
-	      if(plane_k==0){total_eng_hits_p0+=energy3;}
-	      if(plane_k==1){total_eng_hits_p1+=energy3;}
+	     //  double energy3=voxelData.Energy(i);
+// 	      //std::cout<<"plane= "<<plane_k<<std::endl;
+// 	      if(plane_k==0){total_eng_hits_p0+=energy3;}
+// 	      if(plane_k==1){total_eng_hits_p1+=energy3;}
 
 
-	      if(pdg==13){hit_13++;
-		en_13+=energy3;}
-	      if(pdg==11){hit_11++;
-		en_11+=energy3;
-		//  std::cout<<"in hits: en_11="<<en_11<<std::endl;
-	      }
-	      if(pdg==-11){hit_m_11++;
-		en_m11+=energy3;}
-	      if(pdg==111){hit_111++;
-		en_111+=energy3;}
-	      if(pdg==22){hit_22++;
-		en_22+=energy3;}
-	      if(pdg==211){hit_211++;
-		en_211+=energy3;}
-	      if(pdg==-211){hit_m211++;
-		en_m211+=energy3;}
-	      if(pdg==2212){hit_2212++;
-		en_2212+=energy3;}
-	      if(pdg==2112){hit_2112++;
-		en_2112+=energy3;}
-	      if(pdg !=22 && pdg!=111 && pdg!=-11 && pdg !=11 && pdg!=13 && pdg!=211 && pdg!=-211 && pdg!=2212 && pdg!=2112){
-		       
-		std::cout<<"SOMETHING ELSE!!! PDG= "<<pdg<<std::endl;
-	      }
-		     
+	      if(pdg==13 || pdg==-13){hit_13++;
+		en_13+=hit_energy*((*idesitr).energyFrac);}
+	     //  if(pdg==11){hit_11++;
+// 		en_11+=energy3;
+// 		//  std::cout<<"in hits: en_11="<<en_11<<std::endl;
+// 	      }
+// 	      if(pdg==-11){hit_m_11++;
+// 		en_m11+=energy3;}
+// 	      if(pdg==111){hit_111++;
+// 		en_111+=energy3;}
+// 	      if(pdg==22){hit_22++;
+// 		en_22+=energy3;}
+// 	      if(pdg==211){hit_211++;
+// 		en_211+=energy3;}
+// 	      if(pdg==-211){hit_m211++;
+// 		en_m211+=energy3;}
+// 	      if(pdg==2212){hit_2212++;
+// 		en_2212+=energy3;}
+// 	      if(pdg==2112){hit_2112++;
+// 		en_2112+=energy3;}
+// 	      if(pdg !=22 && pdg!=111 && pdg!=-11 && pdg !=11 && pdg!=13 && pdg!=211 && pdg!=-211 && pdg!=2212 && pdg!=2112){
+// 		       
+// 		std::cout<<"SOMETHING ELSE!!! PDG= "<<pdg<<std::endl;
+// 	      }
+	     
+	     idesitr++;
+	     
+	   } //trackIDs  
+	   
+	   itr++;
+  }  //hits
 	      //  std::cout<<"True PDG= "<<pdg<<std::endl;
 		     
-	    }
-	}
+	    
+	
       // std::cout<<"hit_13= "<<hit_13<<"  "<<"hit_11= "<<hit_11<<"  "<<"hit_m_11= "<<hit_m_11<<"  "<<"hit_111= "<<hit_111<<"  "<<"hit_22= "<<hit_22<<"  ";
 	     
       // int sum=hit_13+hit_11+hit_m_11+hit_111+hit_22;
@@ -901,11 +842,11 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 	     
 	     
 	     
-    }//non-zero elec
+    
     _electrons=0;
     electrons=0;
     // std::cout<<"PLANE_K= "<<plane_k<<std::endl;
-  }//hits
+  
 
 
   std::cout<<"TOTAL ENERGY FROM HITS for P=0 = "<<total_eng_hits_p0<<std::endl;
@@ -965,6 +906,9 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   // 	std::cout<<"WE MISSED % of 2112 energy= "<<100-((_en_2112/en_2112)*100)<<"%"<<std::endl;
   // if(en_13==0){std::cout<<"NO MU IN THIS EVENT (en) $$$$$$$$$$$$$$$$$"<<std::endl;}
   //if(hit_13==0){std::cout<<"NO MU IN THIS EVENT (hit)$$$$$$$$$$$$$$$$$"<<std::endl;}
+  std::cout<<"****** mu E from clusters = "<<_en_13<<std::endl;
+  std::cout<<"****** mu E from hits = "<<en_13<<std::endl;
+  
   if(en_13!=0){	fPercent_lost_muon_energy->Fill(100-((_en_13/en_13)*100));}
   if(en_11!=0){	fPercent_lost_electron_energy->Fill(100-((_en_11/en_11)*100));}
   if(en_m11!=0){	fPercent_lost_positron_energy->Fill(100-((_en_m11/en_m11)*100));
@@ -1049,208 +993,208 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   //----------------------------------------------------------------------------------------
 	  
 	  
-  _electrons=0;
-  electrons=0;
-	  
-  double sum=0;
-  double sum0=0;
-	  
-	  
-	  
-  double no_ele_p0=0;
-  double no_ele_p1=0;
-  unsigned int plane=0;
-  double Tno_ele_p0=0;
-  double Tno_ele_p1=0;
-	  
-	  
-  for(unsigned int j = 0; j < hits.size(); ++j) {
-
-	    
-    unsigned int channel = hits[j]->Wire()->RawDigit()->Channel();
-	    
-    // std::cout<<"channel= "<<w_<<std::endl;
-    double XTime=hits[j]->PeakTime();
-
-    // loop over the SimChannels to find this one
-    art::Ptr<sim::SimChannel> sc2;
-    for(unsigned int scs = 0; scs < simchans.size(); ++scs)
-      if(simchans[scs]->Channel() == channel) sc2 = simchans[scs];
-
-    unsigned int numberOfElectrons = sc2->NumberOfElectrons();
-	    
-    //    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
-    // std::cout<<"# of elec: "<<"for plane: "<<plane<<" is: "<<numberOfElectrons<<std::endl;
-    //  std::cout<<"simdigit is: "<<simdigit<<std::endl;
-    for (size_t i = 0; i != numberOfElectrons; ++i )
-      {
-		
-	_electrons = sc2->GetElectrons(i);
-		
-	double ArrivalTime=(_electrons->ArrivalT())/200;
-		
-	double diff=XTime-ArrivalTime;
-	//	std::cout<<"e's ArrivalT = "<<ArrivalTime<<" diff= "<<diff<<std::endl;
-		
-	if(plane==0)  { 
-	  if((diff<22)&&(diff>13))
-	    {
-		      
-	      electrons = sc2->GetElectrons(i);
-		      
-	      no_ele_p0= electrons-> NumElectrons();
-	      // std::cout<<"p0,channel= "<<w_<<" e= "<<no_ele_p0<<" Hits "<<std::endl;
-	      Tno_ele_p0+= no_ele_p0;
-	      sum0=Tno_ele_p0;
-
-	      //std::cout<<"sum= "<<sum0<<std::endl;
-		
-	    }
-	  //std::cout<<" no_ele_p0= "<< no_ele_p0<<std::endl;
-	}
-		
-		
-	
-	if(plane==1)  { 
-	  if((diff<36)&&(diff>27))
-	    {
-	      electrons = sc2->GetElectrons(i);
-	      no_ele_p1= electrons-> NumElectrons();
-	      //double _ArrivalTime=(electrons->ArrivalT())/200;
-	      //double _diff=XTime-_ArrivalTime;
-	      // std::cout<<"p1,channel= "<<w_<<" e= "<<no_ele_p1<<" Hits"<<std::endl;
-	      Tno_ele_p1+= no_ele_p1;
-	      sum=Tno_ele_p1;
-
-	      //std::cout<<"sum= "<<sum<<std::endl;
-	    }
-	  //std::cout<<" no_ele_p1= "<< no_ele_p1<<std::endl;
-	}
-		
-	
-		
-      }//numberofElectrons
-    //  std::cout<<"TOTAL for p0 is: "<< Tno_ele_p0<<std::endl;
-    // 	    std::cout<<"TOTAL for p1 is: "<< Tno_ele_p1<<std::endl;
-    sum=0;
-    sum0=0;
-  }//hits
+ //  _electrons=0;
+//   electrons=0;
+// 	  
+//   double sum=0;
+//   double sum0=0;
+// 	  
+// 	  
+// 	  
+//   double no_ele_p0=0;
+//   double no_ele_p1=0;
+//   unsigned int plane=0;
+//   double Tno_ele_p0=0;
+//   double Tno_ele_p1=0;
 	  
 	  
-  std::cout<<"***TOTAL for p0 is: "<< Tno_ele_p0<<std::endl;
-  std::cout<<"***TOTAL for p1 is: "<< Tno_ele_p1<<std::endl;
+  //for(unsigned int j = 0; j < hits.size(); ++j) // {
+// 
+// 	    
+//     unsigned int channel = hits[j]->Wire()->RawDigit()->Channel();
+// 	    
+//     // std::cout<<"channel= "<<w_<<std::endl;
+//     double XTime=hits[j]->PeakTime();
+// 
+//     // loop over the SimChannels to find this one
+//     art::Ptr<sim::SimChannel> sc2;
+//     for(unsigned int scs = 0; scs < simchans.size(); ++scs)
+//       if(simchans[scs]->Channel() == channel) sc2 = simchans[scs];
+// 
+//     unsigned int numberOfElectrons = sc2->NumberOfElectrons();
+// 	    
+//     //    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
+//     // std::cout<<"# of elec: "<<"for plane: "<<plane<<" is: "<<numberOfElectrons<<std::endl;
+//     //  std::cout<<"simdigit is: "<<simdigit<<std::endl;
+//     for (size_t i = 0; i != numberOfElectrons; ++i )
+//       {
+// 		
+// 	_electrons = sc2->GetElectrons(i);
+// 		
+// 	double ArrivalTime=(_electrons->ArrivalT())/200;
+// 		
+// 	double diff=XTime-ArrivalTime;
+// 	//	std::cout<<"e's ArrivalT = "<<ArrivalTime<<" diff= "<<diff<<std::endl;
+// 		
+// 	if(plane==0)  { 
+// 	  if((diff<22)&&(diff>13))
+// 	    {
+// 		      
+// 	      electrons = sc2->GetElectrons(i);
+// 		      
+// 	      no_ele_p0= electrons-> NumElectrons();
+// 	      // std::cout<<"p0,channel= "<<w_<<" e= "<<no_ele_p0<<" Hits "<<std::endl;
+// 	      Tno_ele_p0+= no_ele_p0;
+// 	      sum0=Tno_ele_p0;
+// 
+// 	      //std::cout<<"sum= "<<sum0<<std::endl;
+// 		
+// 	    }
+// 	  //std::cout<<" no_ele_p0= "<< no_ele_p0<<std::endl;
+// 	}
+// 		
+// 		
+// 	
+// 	if(plane==1)  { 
+// 	  if((diff<36)&&(diff>27))
+// 	    {
+// 	      electrons = sc2->GetElectrons(i);
+// 	      no_ele_p1= electrons-> NumElectrons();
+// 	      //double _ArrivalTime=(electrons->ArrivalT())/200;
+// 	      //double _diff=XTime-_ArrivalTime;
+// 	      // std::cout<<"p1,channel= "<<w_<<" e= "<<no_ele_p1<<" Hits"<<std::endl;
+// 	      Tno_ele_p1+= no_ele_p1;
+// 	      sum=Tno_ele_p1;
+// 
+// 	      //std::cout<<"sum= "<<sum<<std::endl;
+// 	    }
+// 	  //std::cout<<" no_ele_p1= "<< no_ele_p1<<std::endl;
+// 	}
+// 		
+// 	
+// 		
+//       }//numberofElectrons
+//     //  std::cout<<"TOTAL for p0 is: "<< Tno_ele_p0<<std::endl;
+//     // 	    std::cout<<"TOTAL for p1 is: "<< Tno_ele_p1<<std::endl;
+//     sum=0;
+//     sum0=0;
+//   }//hits
+	  
+	  
+ //  std::cout<<"***TOTAL for p0 is: "<< Tno_ele_p0<<std::endl;
+//   std::cout<<"***TOTAL for p1 is: "<< Tno_ele_p1<<std::endl;
 	  
 
   //-------------------first part FOR BRIAN done---------------------------
 
   //------------------------------------------------------------  
-  no_ele_p0=0;
-  no_ele_p1=0;
-  double Tno_ele_p0_w=0;
-  double Tno_ele_p1_w=0;
-  sum=0;
-  sum0=0;
-  std::cout<<"hi"<<std::endl;
-  _electrons=0;
-  electrons=0;
-  // int  Total_Elec_p0=0;
-  // int  Total_Elec_p1=0;
-  unsigned int wire=0;             
-  unsigned int pl=0;
-  unsigned int channel=0; 
-
-  //loop through all wires:
+ //  no_ele_p0=0;
+//   no_ele_p1=0;
+//   double Tno_ele_p0_w=0;
+//   double Tno_ele_p1_w=0;
+//   sum=0;
+//   sum0=0;
+//   std::cout<<"hi"<<std::endl;
+//   _electrons=0;
+//   electrons=0;
+//   // int  Total_Elec_p0=0;
+//   // int  Total_Elec_p1=0;
+//   unsigned int wire=0;             
+//   unsigned int pl=0;
+//   unsigned int channel=0; 
+// 
+//   //loop through all wires:
+// 	  
+//   for(art::PtrVectorItr<recob::Wire> wireIter2 = wirelist.begin();
+//       wireIter2 != wirelist.end();  wireIter2++) // {
+// // 	    
+// 	    
+// 	    
+//     channel=(*wireIter2)->RawDigit()->Channel();
+// 	   
+//     geom->ChannelToWire(channel,pl,wire);
+//     // std::cout<<"channel: "<<wire<<std::endl;
+// 	    
+//     // loop over the SimChannels to find this one
+//     art::Ptr<sim::SimChannel> sc;
+//     for(unsigned int scs = 0; scs < simchans.size(); ++scs)
+//       if(simchans[scs]->Channel() == channel) sc = simchans[scs];
+//     
+//     unsigned int numberOfElectrons = sc->NumberOfElectrons();
+// 	    
+//     //    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
+//     //std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
+// 
+//     for (size_t i = 0; i!=numberOfElectrons; ++i )
+//       {
+// 		
+// 	_electrons = sc->GetElectrons(i);
+// 		
+// 	
+// 	if(pl==0)  { 
+// 		 
+// 		      
+// 	  electrons = sc->GetElectrons(i);
+// 		      
+// 	  no_ele_p0= electrons-> NumElectrons();
+// 	  // std::cout<<"p0,channel= "<<wire<<" e= "<<no_ele_p0<<" Wires"<<std::endl;
+// 		    
+// 	  //std::cout<<" no_ele_p0= "<< no_ele_p0<<std::endl;
+// 	  Tno_ele_p0_w+= no_ele_p0;
+// 	  sum0=Tno_ele_p0;
+// 
+// 	  //	std::cout<<"sum= "<<sum0<<std::endl;
+// 	}
+// 		
+// 		
+// 	
+// 	//	std::cout<<"sum= "<<	Tno_ele_p0<<std::endl;
+// 
+// 
+// 
+// 	if(pl==1)  { 
+// 		 
+// 	    
+// 	  electrons = sc->GetElectrons(i);
+// 	  no_ele_p1= electrons-> NumElectrons();
+// 	      
+// 	  //std::cout<<"p1,channel= "<<wire<<" e= "<<no_ele_p1<<" Wires"<<std::endl;
+// 	    
+// 	  //std::cout<<" no_ele_p1= "<< no_ele_p1<<std::endl;
+// 	  Tno_ele_p1_w+= no_ele_p1;
+// 	  sum=Tno_ele_p1;
+// 
+// 	  //std::cout<<"sum= "<<sum<<std::endl;
+// 		
+// 	}
+// 		
+// 	
+//       }//numberofElectrons
+//     // std::cout<<"TOTAL for p0 is: "<< Tno_ele_p0_w<<std::endl;
+//     //    std::cout<<"TOTAL for p1 is: "<< Tno_ele_p1_w<<std::endl;
+// 
+//     no_ele_p0=0;
+//     no_ele_p1=0;
+// 
+// 
+// 
+// 
+// 
+//     //--------------------------------------
+//     //  if(pl==0)  { 
+//     // 	      Total_Elec_p0 += numberOfElectrons;}
+//     // 	    if(pl==1)  { 
+//     // 	      Total_Elec_p1 += numberOfElectrons;}
+//     // 	    //------------------------------------
+// 	    
+//     sum=0;
+//     sum0=0;
+//   }//loop wires
 	  
-  for(art::PtrVectorItr<recob::Wire> wireIter2 = wirelist.begin();
-      wireIter2 != wirelist.end();  wireIter2++) {
-	    
-	    
-	    
-    channel=(*wireIter2)->RawDigit()->Channel();
-	   
-    geom->ChannelToWire(channel,pl,wire);
-    // std::cout<<"channel: "<<wire<<std::endl;
-	    
-    // loop over the SimChannels to find this one
-    art::Ptr<sim::SimChannel> sc;
-    for(unsigned int scs = 0; scs < simchans.size(); ++scs)
-      if(simchans[scs]->Channel() == channel) sc = simchans[scs];
-    
-    unsigned int numberOfElectrons = sc->NumberOfElectrons();
-	    
-    //    if(numberOfElectrons==0){std::cout<<"  ZERO ELEC!!!"<<std::endl;}
-    //std::cout<<"# of elec: "<<numberOfElectrons<<"  ";
-
-    for (size_t i = 0; i!=numberOfElectrons; ++i )
-      {
-		
-	_electrons = sc->GetElectrons(i);
-		
-	
-	if(pl==0)  { 
-		 
-		      
-	  electrons = sc->GetElectrons(i);
-		      
-	  no_ele_p0= electrons-> NumElectrons();
-	  // std::cout<<"p0,channel= "<<wire<<" e= "<<no_ele_p0<<" Wires"<<std::endl;
-		    
-	  //std::cout<<" no_ele_p0= "<< no_ele_p0<<std::endl;
-	  Tno_ele_p0_w+= no_ele_p0;
-	  sum0=Tno_ele_p0;
-
-	  //	std::cout<<"sum= "<<sum0<<std::endl;
-	}
-		
-		
-	
-	//	std::cout<<"sum= "<<	Tno_ele_p0<<std::endl;
-
-
-
-	if(pl==1)  { 
-		 
-	    
-	  electrons = sc->GetElectrons(i);
-	  no_ele_p1= electrons-> NumElectrons();
-	      
-	  //std::cout<<"p1,channel= "<<wire<<" e= "<<no_ele_p1<<" Wires"<<std::endl;
-	    
-	  //std::cout<<" no_ele_p1= "<< no_ele_p1<<std::endl;
-	  Tno_ele_p1_w+= no_ele_p1;
-	  sum=Tno_ele_p1;
-
-	  //std::cout<<"sum= "<<sum<<std::endl;
-		
-	}
-		
-	
-      }//numberofElectrons
-    // std::cout<<"TOTAL for p0 is: "<< Tno_ele_p0_w<<std::endl;
-    //    std::cout<<"TOTAL for p1 is: "<< Tno_ele_p1_w<<std::endl;
-
-    no_ele_p0=0;
-    no_ele_p1=0;
-
-
-
-
-
-    //--------------------------------------
-    //  if(pl==0)  { 
-    // 	      Total_Elec_p0 += numberOfElectrons;}
-    // 	    if(pl==1)  { 
-    // 	      Total_Elec_p1 += numberOfElectrons;}
-    // 	    //------------------------------------
-	    
-    sum=0;
-    sum0=0;
-  }//loop wires
-	  
-  std::cout<<"(wires)TOTAL for p0 is: "<< Tno_ele_p0_w<<std::endl;
-  std::cout<<"(wires)TOTAL for p1 is: "<< Tno_ele_p1_w<<std::endl;
-  fbrian_in->Fill(Tno_ele_p0_w, Tno_ele_p0 );
-  fbrian_coll->Fill(Tno_ele_p1_w, Tno_ele_p1 );
+ //  std::cout<<"(wires)TOTAL for p0 is: "<< Tno_ele_p0_w<<std::endl;
+//   std::cout<<"(wires)TOTAL for p1 is: "<< Tno_ele_p1_w<<std::endl;
+//   fbrian_in->Fill(Tno_ele_p0_w, Tno_ele_p0 );
+//   fbrian_coll->Fill(Tno_ele_p1_w, Tno_ele_p1 );
 
       
 }

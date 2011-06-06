@@ -84,6 +84,9 @@ Energy_in_Sphere=tfs->make<TH1F>("Energy_in_Sphere","Energy contained within a s
 
 M_Delta_plus_plus=tfs->make<TH1F>("M_Delta_plus_plus","Inv Mass of delta++", 1000,0 ,10);
 M_Delta_plus_plus2=tfs->make<TH1F>("M_Delta_plus_plus2","Inv Mass of delta++", 1000,0 ,10);
+
+M_Delta_plus_plus_Mother=tfs->make<TH1F>("M_Delta_plus_plus_Mother","Inv Mass of delta++ by using Mother()", 1000,0 ,5);
+
 Ind_eng_rectangle=tfs->make<TH1F>("Ind_eng_rectangle","Energy contained within a rectangle", 2000,0 ,80000);
 Coll_eng_rectangle=tfs->make<TH1F>("Coll_eng_rectangle","Energy contained within a rectangle", 2000,0 ,80000);
 
@@ -156,7 +159,7 @@ int have_pion=0;
 double E_p, E_pion;
 int event_has_pi0=0;
 int event_has_pi_plus=0;
-double INV_MASS=0;
+double INV_MASS=0,INV_MASS_Mother=0;
 double MC_Total_Eng=0;
 
    art::PtrVector<simb::MCTruth> mclist;
@@ -175,6 +178,7 @@ double MC_Total_Eng=0;
     //First determine what kind of event we are dealing with, and select only the ones you want:
  //..........................................................
  int no_protons=0;
+ int delta_index=-999;
  
  for( unsigned int i = 0; i < mclist.size(); ++i ){
     art::Ptr<simb::MCTruth> mc(mclist[i]);
@@ -196,6 +200,10 @@ double MC_Total_Eng=0;
     
     //now let's check for delta++ and get its daughters (should be a proton and pi+)
     if(part.PdgCode()==2224){
+    //pick it's trackID, remember that here it was set to be negative and they start from -1 instead of 0 so we need to account for this in order to agree with Daughter() from genie :
+    
+    delta_index=abs(part.TrackId())-1;
+    std::cout<<"delta_index= "<<delta_index<<std::endl;
     std::cout<<"Have a delta++ and it has this many daughters: "<<part.NumberDaughters()<<std::endl;
      for(int k=0; k<part.NumberDaughters(); k++){
     std::cout<<"No of Daughters= "<<part.NumberDaughters()<<std::endl;
@@ -241,13 +249,21 @@ double MC_Total_Eng=0;
       for(int j = 0; j < mc->NParticles(); ++j){
     simb::MCParticle part(mc->GetParticle(j));
  //std::cout<<"Process="<<part.Process()<<std::endl;
-    std::cout<<"pdg= "<<part.PdgCode()<<" ,Process="<<part.Process()<<" StatusCode= "<<part.StatusCode()<<" mass= "<<part.Mass()<<" p= "<<part.P()<<" E= "<<part.E()<<" trackID= "<<part.TrackId()<<" ND= "<<part.NumberDaughters()<<std::endl;
+    std::cout<<"pdg= "<<part.PdgCode()<<" ,Process="<<part.Process()<<" StatusCode= "<<part.StatusCode()<<" mass= "<<part.Mass()<<" p= "<<part.P()<<" E= "<<part.E()<<" trackID= "<<part.TrackId()<<" ND= "<<part.NumberDaughters()<<" Mother= "<<part.Mother()<<std::endl;
     //std::cout<<"P()= "<<part.P()<<" sqrt(pow(part.Px(),2)+pow(part.Py(),2.)+pow(part.Pz(),2.))= "<<sqrt(pow(part.Px(),2.)+pow(part.Py(),2.)+pow(part.Pz(),2.))<<std::endl;
     
     //std::cout<<"Mass()= "<<part.Mass()<<" sqrt(pow(part.E(),2.)-pow(part.P(),2.))= "<<sqrt(pow(part.E(),2.)-pow(part.P(),2.))<<std::endl;
     MC_Total_Eng+=part.E();
    
+//now we know which proton and pion come from delta++ so let's pick them to do invariant mass:
+  if(part.Mother()==delta_index){
+std::cout<<"FOUND DECAY PRODUCT OF DELTA++, PDG= "<<part.PdgCode()<<" mass= "<<part.Mass()<<" sqrt(pow(part.E(),2.)-pow(part.P(),2.))= "<<sqrt(pow(part.E(),2.)-pow(part.P(),2.))<<std::endl;
+   INV_MASS_Mother+=sqrt(pow(part.E(),2.)-pow(part.P(),2.));
 
+
+
+
+   }
     
    
     
@@ -334,6 +350,8 @@ INV_MASS+=part.Mass();
  std::cout<<"INVARIANT MASS (BY USING STATUS CODES)= "<<INV_MASS<<" GeV"<<std::endl;
  M_Delta_plus_plus2->Fill(INV_MASS);
  
+ if(INV_MASS_Mother!=0) {M_Delta_plus_plus_Mother->Fill(INV_MASS_Mother);}
+ 
  }
  
  
@@ -355,6 +373,7 @@ INV_MASS+=part.Mass();
   std::vector<int>::iterator it,it2;
   std::vector<int> trackIDs;
   double Inv_Mass=0;
+  INV_MASS_Mother=0;
   double Eng_211=0, Eng_211_2=0;
   double Eng_13=0;
   double Tot_Energy_Event=0;

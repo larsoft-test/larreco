@@ -57,6 +57,7 @@ namespace cluster {
     TH1F* Energy_in_Sphere;
     TH1F* M_Delta_plus_plus;
     TH1F* M_Delta_plus_plus2;
+   TH1F* M_Delta_plus_plus_Mother;
     TH1F* Number_protons;
 
 TH1F* Ind_eng_rectangle;
