@@ -87,7 +87,7 @@ namespace vertex{
     TString tpcName = geom->GetLArTPCVolumeName();
     
     //  double YC =  (m_TPCHalfZ-5.)*2.; // TPC height in cm
-    double YC =  (geom->DetHalfHeight()-5.0)*2.; // *ArgoNeuT* TPC active-volume height in cm
+    double YC =  (geom->DetHalfHeight())*2.; // *ArgoNeuT* TPC active-volume height in cm
     double Angle = geom->Plane(1).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to the vertical direction
     // Parameters temporary defined here, but possibly to be retrieved somewhere in the code
     double timetick = 0.198;    //time sample in us
