@@ -356,7 +356,7 @@ void trkf::SpacePts::produce(art::Event& evt)
                else
                w1 = (double)((wire+1.84) * wire_pitch);
                
-               double t1 = plane1==1?(double)((minhits[imin]->PeakTime()-presamplings-(tSI+tIC))*timepitch):(double)((minhits[imin]->PeakTime()-presamplings-tSI)*timepitch); //in cm	  
+               double t1 = plane1==1?(double)((minhits[imin]->PeakTime()-presamplings+tIC)*timepitch):(double)((minhits[imin]->PeakTime()-presamplings)*timepitch); //in cm	  
 
                //get the track origin co-ordinates in the two views
                TVector2 minVtx2D;
@@ -396,7 +396,7 @@ void trkf::SpacePts::produce(art::Event& evt)
                      else
                      w2 = (double)((wire+1.84) * wire_pitch);
                      
-                     double t2 = plane2==1?(double)((maxhits[imax]->PeakTime()-presamplings-(tSI+tIC))*timepitch):(double)((maxhits[imax]->PeakTime()-presamplings-tSI)*timepitch); //in cm
+                     double t2 = plane2==1?(double)((maxhits[imax]->PeakTime()-presamplings+tIC)*timepitch):(double)((maxhits[imax]->PeakTime()-presamplings)*timepitch); //in cm
 	      
                      bool timematch = (fabs(t1-t2)<ftmatch*timepitch);
                      bool wirematch = (fabs(w1-w2)<wireShift*wire_pitch);
@@ -428,7 +428,7 @@ void trkf::SpacePts::produce(art::Event& evt)
                w1_match = (double)((wire+1.84) * wire_pitch);
                
                
-               double t1_match = plane2==1?(double)((maxhits[imaximum]->PeakTime()-presamplings-(tSI+tIC))*timepitch):(double)((maxhits[imaximum]->PeakTime()-presamplings-tSI)*timepitch);
+               double t1_match = plane2==1?(double)((maxhits[imaximum]->PeakTime()-presamplings+tIC)*timepitch):(double)((maxhits[imaximum]->PeakTime()-presamplings)*timepitch);
 
                // create the 3D hit, compute its co-ordinates and add it to the 3D hits list	  
                double Ct = plane1==1?t1:t1_match;
