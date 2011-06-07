@@ -425,9 +425,8 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 		mf::LogInfo("Track3DKalman: ") << "Track3DKalman about to do tree->Fill(). Chi2/ndf is " << chi2/ndf << ". All in volTPC coords .... pMCT[0-3] is " << fpMCT[0] << ", " << fpMCT[1] << ", " << fpMCT[2] << ", " << fpMCT[3] << ". pREC[0-3] is " << fpREC[0] << ", "<< fpREC[1] << ", " << fpREC[2] << ", " << fpREC[3] << ".";
 	  
 		tree->Fill();
-		
 
-	  //Get the clusters associated to each track in induction and collection view
+	// Get the clusters associated to each track in induction and collection view
      		art::PtrVector<recob::Cluster> Icluster;
 		art::PtrVector<recob::Cluster> Ccluster;
 		
