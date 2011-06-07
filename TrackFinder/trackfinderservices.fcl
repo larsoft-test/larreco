@@ -1,0 +1,59 @@
+BEGIN_PROLOG
+
+argoneut_spacepointservice:
+{
+  Debug: 0
+  Hist: false
+  MCHist: false
+  UseMC: false
+  MClabel: daq
+  MaxDT: 25.
+  MaxS:  2.
+  TimeOffsetU: 0.
+  TimeOffsetV: 9.
+  TimeOffsetW: 18.
+  MinViews: 2
+  EnableU: true
+  EnableV: true
+  EnableW: false
+}
+
+microboone_spacepointservice:
+{
+  Debug: 0
+  Hist: false
+  MCHist: false
+  UseMC: false
+  MClabel: daq
+  MaxDT: 25.
+  MaxS:  2.
+  TimeOffsetU: -90.
+  TimeOffsetV: -81.
+  TimeOffsetW: -72.
+  MinViews: 3
+  EnableU: true
+  EnableV: true
+  EnableW: true
+}
+
+
+lbne_spacepointservice:
+{
+  Debug: 0
+  Hist: false
+  MCHist: false
+  UseMC: false
+  MClabel: daq
+  MaxDT: 25.
+  MaxS:  2.
+  TimeOffsetU: 0.
+  TimeOffsetV: 9.
+  TimeOffsetW: 18.
+  MinViews: 3
+  EnableU: true
+  EnableV: true
+  EnableW: true
+}
+
+
+END_PROLOG
