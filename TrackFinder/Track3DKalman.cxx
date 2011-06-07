@@ -425,11 +425,34 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 		mf::LogInfo("Track3DKalman: ") << "Track3DKalman about to do tree->Fill(). Chi2/ndf is " << chi2/ndf << ". All in volTPC coords .... pMCT[0-3] is " << fpMCT[0] << ", " << fpMCT[1] << ", " << fpMCT[2] << ", " << fpMCT[3] << ". pREC[0-3] is " << fpREC[0] << ", "<< fpREC[1] << ", " << fpREC[2] << ", " << fpREC[3] << ".";
 	  
 		tree->Fill();
+		
 
+	  //Get the clusters associated to each track in induction and collection view
+     		art::PtrVector<recob::Cluster> Icluster;
+		art::PtrVector<recob::Cluster> Ccluster;
+		
+		art::ServiceHandle<geo::Geometry> geo;
 
-      // Use new Track constructor... EC, 21-Apr-2011.
-		art::PtrVector<recob::Cluster> dummy;
-		recob::Track  the3DTrack(dummy,spacepoints);
+		Icluster = (*trackIter)->Clusters(geo::kU); // induction
+		Ccluster = (*trackIter)->Clusters(geo::kV); // collection
+		
+		art::PtrVector<recob::Cluster> clusters;
+		clusters.clear();
+		
+		art::PtrVectorItr<recob::Cluster> IclusterIter = Icluster.begin();
+		while(IclusterIter!= Icluster.end() ){
+		  clusters.push_back(*IclusterIter);
+		  IclusterIter++;
+		}
+		
+		art::PtrVectorItr<recob::Cluster> CclusterIter = Ccluster.begin();
+		while(CclusterIter!= Ccluster.end() ){
+		  clusters.push_back(*CclusterIter);
+		  CclusterIter++;
+		}
+
+	// Use new Track constructor... EC, 21-Apr-2011.	
+		recob::Track  the3DTrack(clusters,spacepoints);
 		double dircosF[3];
 		double dircosL[3];
 		for (int ii=0;ii<3;++ii)
@@ -448,8 +471,8 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 	if(trackIter!=trackIn.end()) trackIter++;
 	
       } // end loop over Track3Dreco/SpacePt tracks/groups (whichever) we brought into this event.
-    
+   
     evt.put(tcol);
-  
 
+   
 }
