@@ -9,9 +9,9 @@ argoneut_spacepointservice:
   MClabel: daq
   MaxDT: 25.
   MaxS:  2.
-  TimeOffsetU: 0.
-  TimeOffsetV: 9.
-  TimeOffsetW: 18.
+  TimeOffsetU: -4.5
+  TimeOffsetV: 13.5
+  TimeOffsetW: 0.
   MinViews: 2
   EnableU: true
   EnableV: true
