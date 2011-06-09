@@ -107,7 +107,7 @@ void trkf::SpacePts::produce(art::Event& evt)
    double Efield_drift = 0.5;  // Electric Field in the drift region in kV/cm
    double Efield_SI = 0.7;     // Electric Field between Shield and Induction planes in kV/cm
    double Efield_IC = 0.9;     // Electric Field between Induction and Collection planes in kV/cm
-   double Temperature = 92.;  // LAr Temperature in K
+   double Temperature = 90.;  // LAr Temperature in K
 
    double driftvelocity = larprop->DriftVelocity(Efield_drift,Temperature);    //drift velocity in the drift region (cm/us)
    double driftvelocity_SI = larprop->DriftVelocity(Efield_SI,Temperature);    //drift velocity between shield and induction (cm/us)
