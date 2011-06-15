@@ -949,7 +949,7 @@ art::fill_ptr_vector(hits, hitListHandle);
   // 	  int  Total_Elec_p0=0;
   // 	  int  Total_Elec_p1=0;
   // 	  int wire;             
-  // 	  int pl=0;
+  // 	  int pl=0,t;
   // 	  unsigned int channel; 
   // 	  //loop through all wires:
 	  
@@ -960,7 +960,7 @@ art::fill_ptr_vector(hits, hitListHandle);
 	    
   // 	    channel=(*wireIter)->RawDigit()->Channel();
 	    
-  // 	    geom->ChannelToWire(channel,pl,wire);
+  // 	    geom->ChannelToWire(channel,t,pl,wire);
 	    
 	    
   // 	    _rawdigit2 = (*wireIter)->RawDigit();
@@ -1112,7 +1112,7 @@ art::fill_ptr_vector(hits, hitListHandle);
 // 	    
 //     channel=(*wireIter2)->RawDigit()->Channel();
 // 	   
-//     geom->ChannelToWire(channel,pl,wire);
+//     geom->ChannelToWire(channel,t,pl,wire);
 //     // std::cout<<"channel: "<<wire<<std::endl;
 // 	    
 //     // loop over the SimChannels to find this one

@@ -143,61 +143,57 @@ void cluster::HoughLineFinderAna::analyze(const art::Event& evt)
   fm_run_timestamp=evt.time().value(); // won't cast, EC, 7-Oct-2010.
   unsigned int firstwire=0;
   unsigned int lastwire=0;
-  unsigned int p;
+  unsigned int p, t;
   fm_sizeClusterZ=0;
   fm_sizeHitZ=0;
   unsigned int wire=0;
   fm_dbsize=0;  
   art::ServiceHandle<geo::Geometry> geo;
 
-  for(unsigned int plane=0;plane < geo->Nplanes();++plane)
-    {
+  for(size_t tpc = 0; tpc < geo->NTPC(); ++tpc){
+    for(unsigned int plane=0;plane < geo->Nplanes(tpc);++plane){
       fm_dbsize=0;
       fm_plane=plane;
       fm_sizeClusterZ=clusters.size();
       
-      geo::View_t view = geo->Plane(plane).View();
+      geo::View_t view = geo->Plane(plane,tpc).View();
 
-      for(unsigned int j=0; j<dbclusters.size();++j) 
-	{
-	  if(dbclusters[j]->View() == view){
-	    art::PtrVector<recob::Hit> _dbhits=dbclusters[j]->Hits();
-	    fm_dbsize+=_dbhits.size();
-	  } 
-	}
+      for(unsigned int j=0; j<dbclusters.size();++j) {
+	if(dbclusters[j]->View() == view){
+	  art::PtrVector<recob::Hit> _dbhits=dbclusters[j]->Hits();
+	  fm_dbsize+=_dbhits.size();
+	} 
+      }
     
-      for(unsigned int j=0; j<clusters.size();++j) 
-	{
-	  if(clusters[j]->View() == view){
-	    fm_clusterid=clusters[j]->ID();
-	    art::PtrVector<recob::Hit> _hits=clusters[j]->Hits();
-	    fm_clusterslope=(double)clusters[j]->dTdW();
-	    fm_clusterintercept=(double)clusters[j]->StartPos()[1];
-	    if(_hits.size()!=0)
-	      {
-		geo->ChannelToWire(_hits[0]->Wire()->RawDigit()->Channel(), p, firstwire);
-		geo->ChannelToWire(_hits[_hits.size()-1]->Wire()->RawDigit()->Channel(), p, lastwire);
-		fm_wirespan=lastwire-firstwire;
-		fm_sizeHitZ=_hits.size();
+      for(unsigned int j=0; j<clusters.size();++j) {
+	if(clusters[j]->View() == view){
+	  fm_clusterid=clusters[j]->ID();
+	  art::PtrVector<recob::Hit> _hits=clusters[j]->Hits();
+	  fm_clusterslope=(double)clusters[j]->dTdW();
+	  fm_clusterintercept=(double)clusters[j]->StartPos()[1];
+	  if(_hits.size()!=0){
+	    geo->ChannelToWire(_hits[0]->Wire()->RawDigit()->Channel(), t, p, firstwire);
+	    geo->ChannelToWire(_hits[_hits.size()-1]->Wire()->RawDigit()->Channel(), t, p, lastwire);
+	    fm_wirespan=lastwire-firstwire;
+	    fm_sizeHitZ=_hits.size();
+	    
+	    for(unsigned int i = 0; i < _hits.size(); ++i){	     
+	      
+	      geo->ChannelToWire(_hits[i]->Wire()->RawDigit()->Channel(), t, p, wire);
+	      fm_hitidZ[i]=i;         
+	      fm_wireZ[i]=wire;
+	      fm_mipZ[i]=(double)_hits[i]->Charge();
+	      fm_drifttimeZ[i]= (double)_hits[i]->PeakTime();
+	      fm_widthZ[i]=(double)_hits[i]->EndTime()-_hits[i]->StartTime();
+	      fm_upadcZ[i]=(double)_hits[i]->Charge();
+	    } 
 		
-		for(unsigned int i = 0; i < _hits.size(); ++i) 
-		  {	     
-		    
-		    geo->ChannelToWire(_hits[i]->Wire()->RawDigit()->Channel(), p, wire);
-		    fm_hitidZ[i]=i;         
-		    fm_wireZ[i]=wire;
-		    fm_mipZ[i]=(double)_hits[i]->Charge();
-		    fm_drifttimeZ[i]= (double)_hits[i]->PeakTime();
-		    fm_widthZ[i]=(double)_hits[i]->EndTime()-_hits[i]->StartTime();
-		    fm_upadcZ[i]=(double)_hits[i]->Charge();
-		  } 
-		
-		ftree->Fill();  
-	      }
-	  }//end if in the correct view
-	}
-    }
-
+	    ftree->Fill();  
+	  }
+	}//end if in the correct view
+      }
+    }//end loop over planes
+  }//end loop over tpc
 
 }
 

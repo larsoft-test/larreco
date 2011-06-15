@@ -92,21 +92,20 @@ void cluster::DBcluster::produce(art::Event& evt)
   // get the DBScan service
   art::ServiceHandle<cluster::DBScanService> dbscan;
       
-  unsigned int p(0),w(0), channel(0);
-  for(unsigned int plane=0; plane<geom->Nplanes(); plane++)
-    {
+  unsigned int p(0),w(0), t(0), channel(0);
+  for(unsigned int tpc = 0; tpc < geom->NTPC(); ++tpc){
+    for(unsigned int plane=0; plane<geom->Nplanes(tpc); plane++){
       for(unsigned int i = 0; i< hitcol->size(); ++i){
-  
+      
 	art::Ptr<recob::Hit> hit(hitcol, i);
-  
-  
+      
 	channel=hit->Wire()->RawDigit()->Channel();
-	geom->ChannelToWire(channel,p,w);
+	geom->ChannelToWire(channel,t,p,w);
     
-	if(p == plane) allhits.push_back(hit);
-   
+	if(p == plane && t == tpc) allhits.push_back(hit);
+	
       }  
-  
+      
       dbscan->InitScan(allhits);
 
       // std::cout<<"number of hits is: "<<hit.size()<<std::endl;
@@ -136,54 +135,47 @@ void cluster::DBcluster::produce(art::Event& evt)
       //std::cout<<"DBSCAN found "<<dbscan->fclusters.size()<<" cluster(s)."<<std::endl;
 
 
-      for(unsigned int i=0; i<dbscan->fclusters.size();i++)
-	{
-	  //recob::Cluster* reco_cl= new recob::Cluster();
-	  for(unsigned int j=0;j<dbscan->fpointId_to_clusterId.size();j++){
-
-	    if(dbscan->fpointId_to_clusterId[j]==(i+1)){
-
-	      // reco_cl->Add(allhits[j]);
-	      clusterHits.push_back(allhits[j]);
-	    }
-       
+      for(unsigned int i=0; i<dbscan->fclusters.size();i++){
+	//recob::Cluster* reco_cl= new recob::Cluster();
+	for(unsigned int j=0;j<dbscan->fpointId_to_clusterId.size();j++){
+	  
+	  if(dbscan->fpointId_to_clusterId[j]==(i+1)){
+	    
+	    // reco_cl->Add(allhits[j]);
+	    clusterHits.push_back(allhits[j]);
 	  }
-         
-	  ////////
-	  if (clusterHits.size()>0)
-	    {
-	      /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
-	      unsigned int p = 0; 
-	      unsigned int sw = 0;
-	      unsigned int ew = 0;
-	      geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), p, sw);
-	      geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), p, ew);
-
-	      
-	      
-	      recob::Cluster cluster(clusterHits, 
-				     sw*1., 0.,
-				     clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
-				     ew*1., 0.,
-				     clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
-				     -999., 0., 
-				     -999., 0.,
-				     i);
-
-	      ccol->push_back(cluster);
-	      //std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
-	      clusterHits.clear();
-	      //////
-	    }
-   
-   
-   
-   
+       
 	}
+         
+	////////
+	if (clusterHits.size()>0){
 
- 
+	  /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
+	  unsigned int sw = 0;
+	  unsigned int ew = 0;
+	  geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), t, p, sw);
+	  geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), t, p, ew);
+	  	      
+	  recob::Cluster cluster(clusterHits, 
+				 sw*1., 0.,
+				 clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
+				 ew*1., 0.,
+				 clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
+				 -999., 0., 
+				 -999., 0.,
+				 i);
+
+	  ccol->push_back(cluster);
+	  //std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
+	  clusterHits.clear();
+	  //////
+	}//end if clusterHits has at least one hit
+   
+      }//end loop over fclusters
+
       allhits.clear();
-    }
+    }//end loop over planes
+  }//end loop over tpcs
 
   std::sort(ccol->begin(),ccol->end());//sort before Putting
 

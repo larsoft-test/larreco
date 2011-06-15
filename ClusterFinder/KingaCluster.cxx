@@ -277,64 +277,67 @@ std::cout<<"No of DBSCAN clusters= "<<clusIn.size()<<std::endl;
 
 
 
-unsigned int p(0),w(0), channel(0);
+ unsigned int p(0),w(0),t(0), channel(0);
 
-std::cout<<"No of planes = "<<geom->Nplanes()<<std::endl;
-  for(unsigned int plane = 0; plane < geom->Nplanes(); plane++) {
+ for(size_t tpc = 0; tpc < geom->NTPC(); ++tpc){
+   std::cout<<"No of planes = "<<geom->Nplanes(tpc)<<std::endl;
 
-    for(unsigned int j=0; j<clusIn.size();++j) {
-   
-    hits=clusIn[j]->Hits();
-    for(unsigned int i = 0; i< hits.size(); ++i){
-    channel=hits[i]->Wire()->RawDigit()->Channel();
-    geom->ChannelToWire(channel,p,w);
+   for(unsigned int plane = 0; plane < geom->Nplanes(tpc); plane++) {
 
-    if(p == plane){
-    allhits.push_back(hits[i]);
-    //std::cout<<"plane= "<<plane<<" wire= "<<w<<" time= "<<hits[i]->PeakTime()<<std::endl; 
-    }
+     for(unsigned int j=0; j<clusIn.size();++j) {
    
-    }
-   // std::cout<<"hits.size()= "<<hits.size()<<std::endl;
-    }
+       hits=clusIn[j]->Hits();
+       for(unsigned int i = 0; i< hits.size(); ++i){
+	 channel=hits[i]->Wire()->RawDigit()->Channel();
+	 geom->ChannelToWire(channel,t,p,w);
+
+	 if(p == plane && t == tpc){
+	   allhits.push_back(hits[i]);
+	   //std::cout<<"plane= "<<plane<<" wire= "<<w<<" time= "<<hits[i]->PeakTime()<<std::endl; 
+	 }
    
-    std::cout<<"allhits.size()="<<allhits.size()<<std::endl;
+       }
+       // std::cout<<"hits.size()= "<<hits.size()<<std::endl;
+     }
+   
+     std::cout<<"allhits.size()="<<allhits.size()<<std::endl;
    
    
-    //Now we have hits for the plane that we are on right now, so let's do some work:
-   //maxBin.clear();
-   std::cout<<"ATTENTION, STARTING WORK ON PLANE# "<<plane<<std::endl;
-    AngularDistribution(plane);
-    FindMax(plane);
-    if(fpeaks_found==0){
-    std::cout<<"KingaClusters FAILED on this event because no peaks were found. Perhaps your threshold for peak's height is too big. Goodbye! "<<std::endl;
-    allhits.clear();
-     maxBin.clear();
-     maxBinValues.clear();
-     SortedMaxBin.clear();
-     MaxStartPoint.clear();
-     MaxEndPoint.clear();
-     MaxStartPointTheta.clear();
-     MaxEndPointTheta.clear();
-     HitsWithClusterID.clear();
-     FinalPeaks.clear();
-     OriginalmaxBinValues.clear();
-     for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
-   
-   fh_theta_ind_2D->SetBinContent(bin,0);
-   fh_theta_coll_2D->SetBinContent(bin,0);
-   fh_theta_ind->SetBinContent(bin,0);
-   fh_theta_coll->SetBinContent(bin,0);
-   fh_theta_coll_Area->SetBinContent(bin,0);
-   fh_theta_ind_Area->SetBinContent(bin,0);
-   }
-     
-    return;
-    }
-    //FinalPeaks();
-    FindClusters(plane);
-    std::cout<<"HitsWithClusterID.size()= "<<HitsWithClusterID.size()<< "compare with allhits.size()= "<<allhits.size()<<std::endl;
-    for(unsigned int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++) {
+     //Now we have hits for the plane that we are on right now, so let's do some work:
+     //maxBin.clear();
+     std::cout<<"ATTENTION, STARTING WORK ON PLANE# "<<plane<<std::endl;
+     AngularDistribution(tpc,plane);
+     FindMax(tpc,plane);
+     if(fpeaks_found==0){
+       std::cout<<"KingaClusters FAILED on this event because no peaks were found. Perhaps your threshold for peak's height is too big. Goodbye! "<<std::endl;
+       allhits.clear();
+       maxBin.clear();
+       maxBinValues.clear();
+       SortedMaxBin.clear();
+       MaxStartPoint.clear();
+       MaxEndPoint.clear();
+       MaxStartPointTheta.clear();
+       MaxEndPointTheta.clear();
+       HitsWithClusterID.clear();
+       FinalPeaks.clear();
+       OriginalmaxBinValues.clear();
+       for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
+	 
+	 fh_theta_ind_2D->SetBinContent(bin,0);
+	 fh_theta_coll_2D->SetBinContent(bin,0);
+	 fh_theta_ind->SetBinContent(bin,0);
+	 fh_theta_coll->SetBinContent(bin,0);
+	 fh_theta_coll_Area->SetBinContent(bin,0);
+	 fh_theta_ind_Area->SetBinContent(bin,0);
+       }
+       
+       return;
+     }
+     //FinalPeaks();
+     FindClusters(tpc,plane);
+     std::cout<<"HitsWithClusterID.size()= "<<HitsWithClusterID.size()
+	      << "compare with allhits.size()= "<<allhits.size()<<std::endl;
+     for(unsigned int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++) {
     
        for(unsigned int j=0; j<HitsWithClusterID.size();j++){
      
@@ -352,7 +355,7 @@ std::cout<<"For Cluster # "<<ClusterNo<<" we have "<<clusterHits.size()<<" hits 
 if(ClusterNo==4){
 for(unsigned int i=0; i<clusterHits.size();i++){
 channel=clusterHits[i]->Wire()->RawDigit()->Channel();
-    geom->ChannelToWire(channel,p,w);
+ geom->ChannelToWire(channel,t,p,w);
 std::cout<<"wire ="<<w<<"  "<<clusterHits[i]->PeakTime();
 
 }
@@ -365,10 +368,11 @@ std::cout<<std::endl;
 	    {
 	      /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
 	      unsigned int p = 0; 
+	      unsigned int t = 0; 
 	      unsigned int sw = 0;
 	      unsigned int ew = 0;
-	      geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), p, sw);
-	      geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), p, ew);
+	      geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), t, p, sw);
+	      geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), t, p, ew);
 
 	      
 	      
@@ -406,10 +410,10 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
      OriginalmaxBinValues.clear();
      std::cout<<"Should be starting to work on the other plane now"<<std::endl;
     }//Planes
-   
-   evt.put(ccol);
-   
-  for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
+ }// end loop over tpcs 
+ evt.put(ccol);
+ 
+ for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
    
    fh_theta_ind_2D->SetBinContent(bin,0);
    fh_theta_coll_2D->SetBinContent(bin,0);
@@ -417,18 +421,18 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
    fh_theta_coll->SetBinContent(bin,0);
    fh_theta_coll_Area->SetBinContent(bin,0);
    fh_theta_ind_Area->SetBinContent(bin,0);
-   }
+ }
    
-  return;
-    }
+ return;
+}
     
 //..............................................................  
 
-void cluster::KingaCluster::AngularDistribution(int plane){   
+ void cluster::KingaCluster::AngularDistribution(unsigned int tpc, unsigned int plane){   
  
  art::ServiceHandle<geo::Geometry> geom;
  if(fMC==1){
-unsigned int channel2,plane2,wire2;  
+   unsigned int channel2,plane2,wire2,tpc2;  
 plane2=plane;
 
   if(plane==0){
@@ -438,7 +442,7 @@ plane2=plane;
 	MCvertex[0]=-.3;//force time coordinate to be closer to collection plane
      }
       channel2 = geom->NearestChannel(MCvertex);
-      geom->ChannelToWire(channel2,plane2,wire2);   
+      geom->ChannelToWire(channel2,tpc2,plane2,wire2);   
    std::cout<<"%%%%%%%%%%%%%%%%%%   WIRE VERTEX IS: "<<wire2<<std::endl;
    fwire_vertex.push_back(wire2);
    
@@ -504,7 +508,7 @@ double a_polar, b_polar,theta_polar;
 
 
 unsigned int channel=0, w=0;
-unsigned int p=plane;
+ unsigned int p=plane, t=tpc;
 
 //std::cout<<"for PLANE "<<plane<<" fwire_vertex= "<<fwire_vertex[plane]<<" ftime_vertex= "<<ftime_vertex[plane]<<std::endl;
 
@@ -520,7 +524,7 @@ unsigned int p=plane;
 //           }   
  
  channel=allhits[i]->Wire()->RawDigit()->Channel();
- geom->ChannelToWire(channel,p,w);
+ geom->ChannelToWire(channel,t,p,w);
  
   
       b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
@@ -571,7 +575,7 @@ fh_theta_coll_Area->Fill(theta_polar,(allhits[i]->EndTime()-allhits[i]->StartTim
     
     
 //..............................................................   
-void cluster::KingaCluster::FindMax(int plane){  
+ void cluster::KingaCluster::FindMax(unsigned int tpc, unsigned int plane){  
 
  std::cout<<"No of bins= "<<fh_theta_ind->GetNbinsX()<<std::endl;
   std::cout<<" Bincontent= "<<fh_theta_ind->GetBinContent(48)<<std::endl;
@@ -996,7 +1000,7 @@ void cluster::KingaCluster::FitAngularDistributions(){
 //..............................................................   
 
 
-void cluster::KingaCluster::FindClusters(int plane){ 
+void cluster::KingaCluster::FindClusters(unsigned int tpc, unsigned int plane){ 
 
 std::cout<<"FORMING CLUSTERS NOW :) "<<std::endl;
 std::cout<<"FinalPeaks are at bin(s):  ";
@@ -1010,6 +1014,7 @@ std::cout<<FinalPeaks[i]<<" which corresponds to angle=  "<<-180+2*FinalPeaks[i]
 art::ServiceHandle<geo::Geometry> geom;
 unsigned int channel=0, w=0;
 unsigned int p=plane;
+ unsigned int t=tpc;
 
 
 //int no_noise_hits=0;
@@ -1026,53 +1031,53 @@ DiffAngles.clear();
 for(unsigned int i = 0; i< allhits.size(); ++i){
 
  channel=allhits[i]->Wire()->RawDigit()->Channel();
- geom->ChannelToWire(channel,p,w);
+ geom->ChannelToWire(channel,t,p,w);
  
-b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
-      a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
-      theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
-      theta_polar = 180*theta_polar/fpi; /** in deg*/
-for(unsigned int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++){
+ b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
+ a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
+ theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
+ theta_polar = 180*theta_polar/fpi; /** in deg*/
+ for(unsigned int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++){
 
-  if(theta_polar>=(-180+2*MaxStartPoint[ClusterNo]) && theta_polar<=(-180+2*MaxEndPoint[ClusterNo])){
-  //want to start counting from 1, O is reserved for hits that will be marked as noise
-   HitsWithClusterID.push_back(ClusterNo+1);
-   break;}
+   if(theta_polar>=(-180+2*MaxStartPoint[ClusterNo]) && theta_polar<=(-180+2*MaxEndPoint[ClusterNo])){
+     //want to start counting from 1, O is reserved for hits that will be marked as noise
+     HitsWithClusterID.push_back(ClusterNo+1);
+     break;}
    else if(ClusterNo==MaxStartPoint.size()-1){
-   //decide where noise hits go
+     //decide where noise hits go
+     
+     //  if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
+     //    std::cout<<"Noise hit at w= "<<w<<" t= "<<allhits[i]->PeakTime()<<" with theta_polar= "<<theta_polar;
+     //   // std::cout<<"FinalPeaks.size()= "<<FinalPeaks.size()<<std::endl;
+     //   }
+     for(unsigned int peakNo=0;peakNo<FinalPeaks.size();peakNo++){
+       DiffAngles.push_back(fabs(-180+2*FinalPeaks[peakNo]-theta_polar));
+       // if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
+       //    std::cout<<"diff for peak "<<peakNo<<" is "<<fabs(-180+2*FinalPeaks[peakNo]-theta_polar)<<std::endl;
+       //    }
+     }
+     //now take minimum of DiffAngles and find at which position it is at, this position corresponds to clusterNo +1 , because we don't want to mark hits with zero 
+     
+     int position=std::distance(DiffAngles.begin(),std::min_element(DiffAngles.begin(),DiffAngles.end()));
    
-  //  if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
-//    std::cout<<"Noise hit at w= "<<w<<" t= "<<allhits[i]->PeakTime()<<" with theta_polar= "<<theta_polar;
-//   // std::cout<<"FinalPeaks.size()= "<<FinalPeaks.size()<<std::endl;
-//   }
-   for(unsigned int peakNo=0;peakNo<FinalPeaks.size();peakNo++){
-   DiffAngles.push_back(fabs(-180+2*FinalPeaks[peakNo]-theta_polar));
-   // if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
-//    std::cout<<"diff for peak "<<peakNo<<" is "<<fabs(-180+2*FinalPeaks[peakNo]-theta_polar)<<std::endl;
-//    }
+     HitsWithClusterID.push_back(position+1);
+     // if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
+     //    std::cout<<"  This hit is closest to cluster # "<<position+1<<std::endl;
+     //    }
+     //no_noise_hits++;
+     DiffAngles.clear();
    }
-   //now take minimum of DiffAngles and find at which position it is at, this position corresponds to clusterNo +1 , because we don't want to mark hits with zero 
-   
-   int position=std::distance(DiffAngles.begin(),std::min_element(DiffAngles.begin(),DiffAngles.end()));
-   
-   HitsWithClusterID.push_back(position+1);
-   // if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
-//    std::cout<<"  This hit is closest to cluster # "<<position+1<<std::endl;
-//    }
-   //no_noise_hits++;
-   DiffAngles.clear();
-   }
 
 
-} //loop over all ranges
+ } //loop over all ranges
 
 
-} //allhits
+ } //allhits
 
 
 //std::cout<<"In FindClusters(int plane), marked "<<no_noise_hits<<" hits as NOISE"<<std::endl;
 //std::cout<<"HitsWithClusterID contains the following clusterIDs:"<<std::endl;
-
+ 
 //for(int i=0; i<HitsWithClusterID.size();i++){
 
 //std::cout<<HitsWithClusterID[i]<<"  ";
