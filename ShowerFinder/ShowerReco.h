@@ -90,6 +90,7 @@ namespace shwf {
   float time_I,time_C; // hit time at maximum
   unsigned int wire_I, wire_C;    //hit wire number
   unsigned int plane;    //hit plane number
+  unsigned int tpc;    //hit plane number
   
   TH1F* fh_theta[3]; 
   TH1F* fh_theta_wt[3]; 

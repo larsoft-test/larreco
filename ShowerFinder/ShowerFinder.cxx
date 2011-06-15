@@ -105,7 +105,7 @@ namespace shwf{
 
     art::ServiceHandle<geo::Geometry> geom;
     
-    unsigned int channel,plane,wire;
+    unsigned int channel,plane,wire,tpc;
     
     //This vector will contain all strong and strongest vertices
     art::PtrVector<recob::EndPoint2D> vertSel;
@@ -208,7 +208,7 @@ namespace shwf{
 	      
 	      //std::cout << "Nhits in cluster: " << clusterhits.size() << std::endl;
 	      channel = clusterhits[ihits]->Wire()->RawDigit()->Channel();
-	      geom->ChannelToWire(channel,plane,wire);
+	      geom->ChannelToWire(channel,tpc,plane,wire);
 	      x_hit = channel;
 	      y_hit = clusterhits[ihits]->PeakTime();
 	      

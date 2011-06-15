@@ -181,20 +181,19 @@ void shwf::ShowerReco::produce(art::Event& evt)
       art::PtrVector<recob::Hit> hitlist;
       hitlist = cl->Hits();
       hitlist.sort(shwf::SortByWire());
-      unsigned int p(0),w(0), c(0); //c=channel, p=plane, w=wire
+      unsigned int p(0),w(0), c(0), t(0); //c=channel, p=plane, w=wire
 
-      for(art::PtrVectorItr<recob::Hit> a = hitlist.begin(); a != hitlist.end();  a++
-) //loop over cluster hits
+      for(art::PtrVectorItr<recob::Hit> a = hitlist.begin(); a != hitlist.end();  a++) //loop over cluster hits
       {
 	c=(*a)->Wire()->RawDigit()->Channel(); 
-	geo->ChannelToWire(c,p,w);
+	geo->ChannelToWire(c,t,p,w);
 
-	if(geo->Plane(p).SignalType() == geo::kCollection)
+	if(geo->Plane(p,t).SignalType() == geo::kCollection)
 	  {	  
 	    hitlistCol.push_back(*a);
 
 	  }
-	else if (geo->Plane(p).SignalType() == geo::kInduction)
+	else if (geo->Plane(p,t).SignalType() == geo::kInduction)
 	  {
 	    hitlistInd.push_back(*a);
 	  } 
@@ -349,7 +348,7 @@ void shwf::ShowerReco::LongTransEnergyI(art::PtrVector < recob::Hit> hitlistInd)
     //time_I -= presamplings;
     art::Ptr<recob::Wire> theWire_I = theHit_I->Wire();
     channel_I = theWire_I->RawDigit()->Channel();
-    geom->ChannelToWire(channel_I, plane, wire_I);
+    geom->ChannelToWire(channel_I, tpc, plane, wire_I);
 
     //   if(wire_I>218)continue;
    
@@ -425,7 +424,7 @@ void shwf::ShowerReco::LongTransEnergyC(art::PtrVector < recob::Hit> hitlistCol)
     //time_C -= (presamplings+10.1);
     art::Ptr<recob::Wire> theWire_C = theHit_C->Wire();
     channel_C = theWire_C->RawDigit()->Channel();
-    geom->ChannelToWire(channel_C, plane, wire_C);
+    geom->ChannelToWire(channel_C, tpc, plane, wire_C);
 
     //    if(time_C<1020)continue;
 
@@ -496,7 +495,7 @@ void shwf::ShowerReco::AngularDistributionI(art::PtrVector < recob::Hit>  hitlis
     //time_I -= presamplings;
     art::Ptr<recob::Wire> theWire_I = theHit_I->Wire(); // Retrive info from the Wire
     channel_I = theWire_I->RawDigit()->Channel();
-    geom->ChannelToWire(channel_I, plane, wire_I);
+    geom->ChannelToWire(channel_I, tpc, plane, wire_I);
     
     //Here we should take GetVertex function to retrieve the vertex of the shower
     // Determine the vertex
@@ -534,7 +533,7 @@ void shwf::ShowerReco::AngularDistributionC(art::PtrVector < recob::Hit>  hitlis
     //time_C -= (presamplings+10.1);
     art::Ptr<recob::Wire> theWire_C = theHit_C->Wire();
     channel_C = theWire_C->RawDigit()->Channel();
-    geom->ChannelToWire(channel_C, plane, wire_C);
+    geom->ChannelToWire(channel_C, tpc, plane, wire_C);
     
     //Here we should take GetVertex function to retrieve the vertex of the shower
     if(loopC==0){
