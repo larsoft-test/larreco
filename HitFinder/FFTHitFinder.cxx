@@ -92,6 +92,7 @@ namespace hit{
     unsigned int channel = 0;                // channel number
     unsigned int wire    = 0;                // wire number
     unsigned int plane   = 0;                // plane number
+    unsigned int tpc     = 0;                // tpc number
     bool maxFound        = false;            // Flag for whether a value > threshold 
                                              // has been found
     double threshold     = 0.;               // minimum signal size for id'ing a hit
@@ -111,8 +112,8 @@ namespace hit{
       minTimeHolder = 0;
       maxFound      = false;
       channel       = wireVec->RawDigit()->Channel();
-      geom->ChannelToWire(channel,plane,wire);
-      sigType       = geom->Plane(plane).SignalType();
+      geom->ChannelToWire(channel,tpc, plane,wire);
+      sigType       = geom->Plane(plane,tpc).SignalType();
       threshold     = fMinSigInd;
       if(sigType == geo::kCollection) threshold = fMinSigCol;
 
