@@ -194,8 +194,9 @@ void trkf::SpacePts::produce(art::Event& evt)
      // Some variables for the hit
       unsigned int channel;  //channel number
       float time;            //hit time at maximum
-      unsigned int wire;              //hit wire number
-      unsigned int plane;             //hit plane number
+      unsigned int wire;     //hit wire number
+      unsigned int plane;    //hit plane number
+      unsigned int tpc;      //hit tpc number
       
       
       art::PtrVector<recob::Hit> hitlist;
@@ -218,7 +219,7 @@ void trkf::SpacePts::produce(art::Event& evt)
          time -= presamplings;
 	  
          channel = (*theHit)->Channel();
-         geom->ChannelToWire(channel,plane,wire);
+         geom->ChannelToWire(channel,tpc,plane,wire);
 
          //correct for the distance between wire planes
 //          if(plane==0) time -= tSI;         // Induction
@@ -343,9 +344,9 @@ void trkf::SpacePts::produce(art::Event& evt)
             unsigned int imaximum = 0;
             for(unsigned int imin=0;imin<minhits.size();imin++){ //loop over hits
                //get wire - time coordinate of the hit
-               unsigned int channel,wire,plane1,plane2;
+	      unsigned int channel,wire,plane1,plane2,tpc;
                channel = minhits[imin]->Channel();
-               geom->ChannelToWire(channel,plane1,wire);
+               geom->ChannelToWire(channel,tpc,plane1,wire);
                // get the wire-time co-ordinates of the hit to be matched
                //double w1 = (double)((wire+1)*wire_pitch);
                double w1=0;
@@ -366,11 +367,11 @@ void trkf::SpacePts::produce(art::Event& evt)
 	  
                // get the track last hit co-ordinates in the two views
                channel = minhits[minhits.size()-1]->Channel();
-               geom->ChannelToWire(channel,plane1,wire);
+               geom->ChannelToWire(channel,tpc,plane1,wire);
                double w1_last = plane1==1?Cw1:Iw1;
                double t1_last = plane1==1?Ct1:It1;  
                channel = maxhits[maxhits.size()-1]->Channel();
-               geom->ChannelToWire(channel,plane2,wire);
+               geom->ChannelToWire(channel,tpc,plane2,wire);
                double w2_last =plane2==1?Cw1:Iw1;
                double t2_last =plane2==1?Ct1:It1;
 	  
@@ -388,7 +389,7 @@ void trkf::SpacePts::produce(art::Event& evt)
                   if(!maxhitsMatch[imax]){
                      //get wire - time coordinate of the hit
                      channel = maxhits[imax]->Channel();
-                     geom->ChannelToWire(channel,plane2,wire);
+                     geom->ChannelToWire(channel,tpc,plane2,wire);
                      //double w2 = (double)((wire+1)*wire_pitch);
                      double w2=0.;
                      if(plane2==0)
@@ -418,7 +419,7 @@ void trkf::SpacePts::produce(art::Event& evt)
 	  
                // Get the time-wire co-ordinates of the matched hit
                channel =  maxhits[imaximum]->Channel();
-               geom->ChannelToWire(channel,plane2,wire);
+               geom->ChannelToWire(channel,tpc,plane2,wire);
              
                //double w1_match = (double)((wire+1)*wire_pitch);  
                double w1_match=0.;

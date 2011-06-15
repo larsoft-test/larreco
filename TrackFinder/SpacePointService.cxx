@@ -431,13 +431,14 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits)
       double time[3];
       unsigned int wire[3];
       unsigned int plane[3];
+      unsigned int tpc;
       for(int i=0; i<3; ++i) {
 	geo::View_t v = hits[i]->View();
 	assert(v >= 1 && v <= 3);
 	view[i] = v;
 	time[i] = hits[i]->PeakTime() - fTimeOffset[v-1];
 	unsigned short channel = hits[i]->Channel();
-	fGeom->ChannelToWire(channel, plane[i], wire[i]);
+	fGeom->ChannelToWire(channel, tpc, plane[i], wire[i]);
       }
 
       // Get distance with offset correction.
@@ -607,9 +608,12 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
     
       unsigned int plane;
       unsigned int wire;
+      unsigned int tpc;
       unsigned short channel = hit.Channel();
-      fGeom->ChannelToWire(channel, plane, wire);
+      fGeom->ChannelToWire(channel, tpc, plane, wire);
       double u = wire * fWirePitch[v-1] + fWireOffset[v-1];
+
+      // \todo probably need to account for different TPCs somehow here.
 
       // Summations
 

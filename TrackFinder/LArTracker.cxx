@@ -105,8 +105,8 @@ void trkf::LArTracker::produce(art::Event& evt)
         if(result1) continue;
 
         unsigned short channel1 = (*hit1)->Channel();
-        unsigned int wire1,p1;
-        geom->ChannelToWire(channel1,p1,wire1);
+        unsigned int wire1,p1, t1;
+        geom->ChannelToWire(channel1,t1, p1,wire1);
         double time1 = (*hit1)->PeakTime() ;
         
         art::PtrVector<recob::Hit> matched_hits;
@@ -137,8 +137,8 @@ void trkf::LArTracker::produce(art::Event& evt)
               if(!geom->ChannelsIntersect(channel1,channel2,y,z) && plane1!=plane2) continue;//wires for the 2 hits come from different planes.
               //and they don't intersect.
               
-              unsigned int wire2,p2;
-              geom->ChannelToWire(channel2,p2,wire2);
+              unsigned int wire2,p2,t2;
+              geom->ChannelToWire(channel2,t2,p2,wire2);
               double time2 = (*hit2)->PeakTime() ;
               if(channel1==channel2 && time1==time2) continue;//don't compare a hit to itself
               

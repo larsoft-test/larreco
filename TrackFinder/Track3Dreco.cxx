@@ -142,6 +142,13 @@ void trkf::Track3Dreco::produce(art::Event& evt)
    std::vector< art::PtrVector < recob::Hit> > CclusHitlists;
    std::vector<unsigned int> Ccluster_count; 
 
+   // Some variables for the hit
+   unsigned int channel;  //channel number
+   float time;            //hit time at maximum
+   unsigned int wire;              //hit wire number
+   unsigned int plane;             //hit plane number
+   unsigned int tpc;             //hit plane number
+      
    for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
    {
 
@@ -153,14 +160,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
       
       // Gaaaaaah! Change me soon!!! But, for now, 
       // let's just chuck one plane's worth of info. EC, 30-Mar-2011.
-      if (cl->View() == geo::kW) continue;
-
-      // Some variables for the hit
-      unsigned int channel;  //channel number
-      float time;            //hit time at maximum
-      unsigned int wire;              //hit wire number
-      unsigned int plane;             //hit plane number
-      
+      if (cl->View() == geo::kW) continue;      
       
       art::PtrVector<recob::Hit> hitlist;
       hitlist = cl->Hits();
@@ -184,7 +184,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
          time -= presamplings;
 	  
          channel = (*theHit)->Channel();
-         geom->ChannelToWire(channel,plane,wire);
+         geom->ChannelToWire(channel,tpc,plane,wire);
 	  
          //correct for the distance between wire planes
          if(plane==0) time -= tSI;         // Induction
@@ -327,7 +327,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                //get wire - time coordinate of the hit
                unsigned int channel,wire,plane1,plane2;
                channel = minhits[imin]->Channel();
-               geom->ChannelToWire(channel,plane1,wire);
+               geom->ChannelToWire(channel,tpc,plane1,wire);
                // get the wire-time co-ordinates of the hit to be matched
                double w1 = (double)((wire+1)*wire_pitch);
                double t1 = plane1==1?(double)((minhits[imin]->PeakTime()-presamplings-(tSI+tIC))*timepitch):(double)((minhits[imin]->PeakTime()-presamplings-tSI)*timepitch); //in cm	  
@@ -340,11 +340,11 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	  
                // get the track last hit co-ordinates in the two views
                channel = minhits[minhits.size()-1]->Channel();
-               geom->ChannelToWire(channel,plane1,wire);
+               geom->ChannelToWire(channel,tpc,plane1,wire);
                double w1_last = plane1==1?Cw1:Iw1;
                double t1_last = plane1==1?Ct1:It1;  
                channel = maxhits[maxhits.size()-1]->Channel();
-               geom->ChannelToWire(channel,plane2,wire);
+               geom->ChannelToWire(channel,tpc,plane2,wire);
                double w2_last =plane2==1?Cw1:Iw1;
                double t2_last =plane2==1?Ct1:It1;
 	  
@@ -365,7 +365,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                   if(!maxhitsMatch[imax]){
                      //get wire - time coordinate of the hit
                      channel = maxhits[imax]->Channel();
-                     geom->ChannelToWire(channel,plane2,wire);
+                     geom->ChannelToWire(channel,tpc,plane2,wire);
                      double w2 = (double)((wire+1)*wire_pitch);
                      double t2 = plane2==1?(double)((maxhits[imax]->PeakTime()-presamplings-(tSI+tIC))*timepitch):(double)((maxhits[imax]->PeakTime()-presamplings-tSI)*timepitch); //in cm
 	      
@@ -389,7 +389,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	  
                // Get the time-wire co-ordinates of the matched hit
                channel =  maxhits[imaximum]->Channel();
-               geom->ChannelToWire(channel,plane2,wire);
+               geom->ChannelToWire(channel,tpc,plane2,wire);
                double w1_match = (double)((wire+1)*wire_pitch);
                double t1_match = plane2==1?(double)((maxhits[imaximum]->PeakTime()-presamplings-(tSI+tIC))*timepitch):(double)((maxhits[imaximum]->PeakTime()-presamplings-tSI)*timepitch);
 
