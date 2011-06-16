@@ -44,7 +44,7 @@ extern "C" {
 #include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
-#include "RecoBase/HoughLineService.h"
+#include "ClusterFinder/HoughLineService.h"
 #include "ClusterFinder/HoughLineFinder.h"
 
 
