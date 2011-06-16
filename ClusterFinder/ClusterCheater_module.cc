@@ -7,12 +7,12 @@
 //
 ////////////////////////////////////////////////////////////////////////
 // LArSoft includes
-#include "MCCheater/ClusterCheater.h"
+#include "ClusterFinder/ClusterCheater.h"
 
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h"
 
-namespace cheat{
+namespace cluster{
 
   DEFINE_ART_MODULE(ClusterCheater);
 

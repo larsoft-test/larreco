@@ -4,13 +4,13 @@
 /// \author  brebel@fnal.gov
 /// \version $Id: GeometryTest.h,v 1.1 2011/02/17 01:45:48 brebel Exp $
 ///////////////////////////////////////////////////////////////////////
-#ifndef CHEAT_CLUSTERCHEATER_H
-#define CHEAT_CLUSTERCHEATER_H
+#ifndef CLUSTER_CLUSTERCHEATER_H
+#define CLUSTER_CLUSTERCHEATER_H
 #include <string>
 
 #include "art/Framework/Core/EDProducer.h"
 
-namespace cheat {
+namespace cluster {
   class ClusterCheater : public art::EDProducer {
   public:
     explicit ClusterCheater(fhicl::ParameterSet const& pset);

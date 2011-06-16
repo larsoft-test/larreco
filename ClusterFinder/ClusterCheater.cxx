@@ -11,11 +11,11 @@
 // LArSoft includes
 #include "Geometry/geo.h"
 #include "MCCheater/BackTracker.h"
-#include "MCCheater/ClusterCheater.h"
+#include "ClusterFinder/ClusterCheater.h"
 #include "RecoBase/recobase.h"
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
-#include "RecoBase/HoughLineService.h"
+#include "ClusterFinder/HoughLineService.h"
 
 // Framework includes
 #include "art/Framework/Core/Event.h"
@@ -27,7 +27,7 @@
 #include "art/Framework/Core/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-namespace cheat{
+namespace cluster{
 
   //--------------------------------------------------------------------
   ClusterCheater::ClusterCheater(fhicl::ParameterSet const& pset)
