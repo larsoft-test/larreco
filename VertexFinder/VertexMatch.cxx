@@ -108,68 +108,70 @@ void vertex::VertexMatch::produce(art::Event& evt)
       art::Ptr<recob::Cluster> cluster(houghListHandle, ii);
       houghIn.push_back(cluster);
     }
-  unsigned int channel,tpc,plane,wire;
+  unsigned int channel,plane,wire,tpc;
   double slope,intercept,distance;
   double starttime, endtime;
   int startwire, endwire;
   double strength; //the strength of a strong vertex
-  for(unsigned int p = 0; p < geom->Nplanes(); p++) {
-    //create the vector of vertex hits 
-    art::PtrVectorItr<recob::EndPoint2D> vertexIter = vertIn.begin();
-    art::PtrVectorItr<recob::Cluster> houghIter = houghIn.begin();
-    while(vertexIter!= vertIn.end() ) 
-      {
-	// vHits = (*vertexIter)->Hits(p,-1);
-	//      if(vHits.size() > 0){
-	//  	 vertexhit.insert(vertexhit.end(),vHits.begin(),vHits.end());
-	//  	 weakvertexstrength.push_back((*vertexIter)->Strength());
-	//  	 }
-	vHits = (*vertexIter)->Hits(p);
-	if(vHits.size() > 0)
-	  {
-	    art::PtrVectorItr<recob::Hit> vertexhitIter = vHits.begin();
-	    while (vertexhitIter!=vHits.end())
-	      {
-		vertexhit.push_back((*vertexhitIter));
-		weakvertexstrength.push_back((*vertexIter)->Strength());
-		vertexhitIter++;
-	      }       
-	  }
-	vertexIter++;
 
-      } 
-    
+  for(unsigned int t = 0; t < geom->NTPC(); ++t){
+    for(unsigned int p = 0; p < geom->Nplanes(t); p++) {
+      //create the vector of vertex hits 
+      art::PtrVectorItr<recob::EndPoint2D> vertexIter = vertIn.begin();
+      art::PtrVectorItr<recob::Cluster> houghIter = houghIn.begin();
+      while(vertexIter!= vertIn.end() ) 
+	{
+	  // vHits = (*vertexIter)->Hits(p,-1);
+	  //      if(vHits.size() > 0){
+	  //  	 vertexhit.insert(vertexhit.end(),vHits.begin(),vHits.end());
+	  //  	 weakvertexstrength.push_back((*vertexIter)->Strength());
+	  //  	 }
+	  vHits = (*vertexIter)->Hits(p);
+	  if(vHits.size() > 0)
+	    {
+	      art::PtrVectorItr<recob::Hit> vertexhitIter = vHits.begin();
+	      while (vertexhitIter!=vHits.end())
+		{
+		  vertexhit.push_back((*vertexhitIter));
+		  weakvertexstrength.push_back((*vertexIter)->Strength());
+		  vertexhitIter++;
+		}       
+	    }
+	  vertexIter++;
+
+	} 
       
-    if(vHits.size() == 0)
-      continue;
-    
-    vHits.clear();
-    //loop over vector of hough lines and find the vertex hits that are associated with the hough line(s)
-    houghIter = houghIn.begin();  
-    while(houghIter!= houghIn.end()) 
-      { 
-	houghhit.clear();
-	hHits.clear();
-	plane=-1; 
-	distance=-1.;
-	//create vector of hits associated with hough line
-	hHits = (*houghIter)->Hits(p);
+      
+      if(vHits.size() == 0)
+	continue;
+      
+      vHits.clear();
+      //loop over vector of hough lines and find the vertex hits that are associated with the hough line(s)
+      houghIter = houghIn.begin();  
+      while(houghIter!= houghIn.end()) 
+	{ 
+	  houghhit.clear();
+	  hHits.clear();
+	  plane=-1; 
+	  distance=-1.;
+	  //create vector of hits associated with hough line
+	  hHits = (*houghIter)->Hits(p);
 	
-        if(hHits.size() > 0)
-	  {
-
- 	    art::PtrVectorItr<recob::Hit> hitIter = hHits.begin();
-	    while (hitIter!=hHits.end())
-	      {
-		houghhit.push_back((*hitIter));
-		hitIter++;
-	      }  
-	  }
-        if(houghhit.size()){
-	  channel=houghhit[0]->Wire()->RawDigit()->Channel();
-	  geom->ChannelToWire(channel,tpc,plane,wire);
+	  if(hHits.size() > 0)
+	    {
+	      
+	      art::PtrVectorItr<recob::Hit> hitIter = hHits.begin();
+	      while (hitIter!=hHits.end())
+		{
+		  houghhit.push_back((*hitIter));
+		  hitIter++;
+		}  
+	    }
+	  if(houghhit.size()){
+	    channel=houghhit[0]->Wire()->RawDigit()->Channel();
+	    geom->ChannelToWire(channel,tpc,plane,wire);
 	}
-	if(p==plane)
+	if(p==plane && t == tpc)
 	  {
 	    slope=(*houghIter)->dTdW();
 	    intercept=(*houghIter)->StartPos()[1] - slope*(*houghIter)->StartPos()[0];
@@ -190,94 +192,95 @@ void vertex::VertexMatch::produce(art::Event& evt)
 		//(within a window) of a Hough line. A strong vertex matches up with at least two Hough lines. 
 		if(((TMath::Abs((int)(wire-startwire))<fMaxDistance*.0743)
 		    ||(TMath::Abs((int)(wire-endwire))<fMaxDistance*.0743)
-		   )
+		    )
 		   &&((TMath::Abs(vertexhit[i]->PeakTime()-starttime)<fMaxDistance)
 		      ||(TMath::Abs(vertexhit[i]->PeakTime()-endtime)<fMaxDistance)
-		     ))          		  distance=(TMath::Abs(vertexhit[i]->PeakTime()-slope*(double)wire-intercept)/(sqrt(pow(.0743*slope,2)+1))); 
-
+		      ))          		  distance=(TMath::Abs(vertexhit[i]->PeakTime()-slope*(double)wire-intercept)/(sqrt(pow(.0743*slope,2)+1))); 
+		
 		if(distance<(fMaxDistance+((vertexhit[i]->EndTime()-vertexhit[i]->StartTime())/2.))&&distance>-1)
 		  matchedvertex.push_back(std::pair<art::Ptr<recob::Hit>,double>(vertexhit[i], weakvertexstrength[i]*sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
 		//ala strongestvertex.push_back(std::pair<art::PtrVector<recob::Hit>,double>(matchedvertex[i].first,strength));
 	      }
 	  }
-  
+	
 	if(vertexhit.size() == 0 || houghhit.size() == 0) 
 	  {
 	    houghIter++;
 	    continue;
 	  }
-   
+	
 	if(vertexIter!=vertIn.end()) vertexIter++;
 	if(houghIter!=houghIn.end()) houghIter++;    
-      }
-   
-    //sort matchedvertex vector to make it easy to find duplicate entries (strong vertices)
-    std::sort(matchedvertex.rbegin(), matchedvertex.rend(),sort_pred);
-
-    // the "strength" of a strong vertex is defined as 
-    // (HarrisVertexStrength*LengthofHoughLine)_1+(HarrisVertexStrength*LengthofHoughLine)_2+...
-    // ...+(HarrisVertexStrength*LengthofHoughLine)_n, where n is the number of vertices 
-    // associated with a Hough Line
-    for(unsigned int i=0;i < matchedvertex.size(); i++) 
-      {
-	strength=matchedvertex[i].second;
-  
-	for(unsigned int n=1;n < matchedvertex.size() && i>=n; n++)
-	  if(matchedvertex[i].first==matchedvertex[i-n].first)	
-	    strength+=matchedvertex[i-n].second;
-  
-	strongvertexstrength.push_back(strength);
-	//make sure there is more than one Hough Line associated with the vertex 
-          
-	if(strength>matchedvertex[i].second)
-	  strongestvertex.push_back(std::pair<art::Ptr<recob::Hit>,double>(matchedvertex[i].first,strength));
-      }
-  
-  
-    //sort the strength of the strong vertices to find the strongest vertex
-    std::sort(strongestvertex.rbegin(), strongestvertex.rend(),sort_pred2);
-    for(unsigned int i=0;i < matchedvertex.size(); i++)
-      {      
-	// I think this is grabbing first item in pair, itself a pointer then grabbing first 
-	// (.begin()) one of those. EC, 18-Oct-2010.
-	channel=(matchedvertex[i].first)->Wire()->RawDigit()->Channel();
-	geom->ChannelToWire(channel,tpc,plane,wire);
-
-	// strongvertex, despite name, is a hit vector.
-	strongvertex.push_back(matchedvertex[i].first);
-	recob::EndPoint2D vertex(strongvertex);      
-	vertex.SetWireNum(wire);
-	vertex.SetStrength(strongvertexstrength[i]);
-	//vertex->SetDriftTime(matchedvertex[i].first->PeakTime());
-	vertex.SetDriftTime((matchedvertex[i].first)->PeakTime());
-
-	//find the strong vertices, those vertices that have been associated with more than one hough line  
-	if(i>0)
+	}
+      
+      //sort matchedvertex vector to make it easy to find duplicate entries (strong vertices)
+      std::sort(matchedvertex.rbegin(), matchedvertex.rend(),sort_pred);
+      
+      // the "strength" of a strong vertex is defined as 
+      // (HarrisVertexStrength*LengthofHoughLine)_1+(HarrisVertexStrength*LengthofHoughLine)_2+...
+      // ...+(HarrisVertexStrength*LengthofHoughLine)_n, where n is the number of vertices 
+      // associated with a Hough Line
+      for(unsigned int i=0;i < matchedvertex.size(); i++) 
 	{
-	if(matchedvertex[i].first==matchedvertex[i-1].first)	
-	  {
-	    if(strongvertex[0]==(strongestvertex[0].first)&&strongestvertex.size()>0)
-	      vertex.SetID(4);//the strongest strong vertex is given a vertex id=4
-	    else
-	      vertex.SetID(3);//strong vertices are given vertex id=3
-	  } 
-	 } 
-	else
-	  {
-	    vertex.SetID(2);//weak vertices that have been associated with an endpoint of a single Hough line are given vertex id=2
-	  } 
-	mvertexcol->push_back(vertex);
-	strongvertex.clear();
-
-      }
-
-    strongestvertex.clear();
-    matchedvertex.clear();
-    vertexhit.clear();  
-  }
-
+	  strength=matchedvertex[i].second;
+	  
+	  for(unsigned int n=1;n < matchedvertex.size() && i>=n; n++)
+	    if(matchedvertex[i].first==matchedvertex[i-n].first)	
+	      strength+=matchedvertex[i-n].second;
+	  
+	  strongvertexstrength.push_back(strength);
+	  //make sure there is more than one Hough Line associated with the vertex 
+          
+	  if(strength>matchedvertex[i].second)
+	    strongestvertex.push_back(std::pair<art::Ptr<recob::Hit>,double>(matchedvertex[i].first,strength));
+	}
+      
+      
+      //sort the strength of the strong vertices to find the strongest vertex
+      std::sort(strongestvertex.rbegin(), strongestvertex.rend(),sort_pred2);
+      for(unsigned int i=0;i < matchedvertex.size(); i++)
+	{      
+	  // I think this is grabbing first item in pair, itself a pointer then grabbing first 
+	  // (.begin()) one of those. EC, 18-Oct-2010.
+	  channel=(matchedvertex[i].first)->Wire()->RawDigit()->Channel();
+	  geom->ChannelToWire(channel,tpc,plane,wire);
+	  
+	  // strongvertex, despite name, is a hit vector.
+	  strongvertex.push_back(matchedvertex[i].first);
+	  recob::EndPoint2D vertex(strongvertex);      
+	  vertex.SetWireNum(wire);
+	  vertex.SetStrength(strongvertexstrength[i]);
+	  //vertex->SetDriftTime(matchedvertex[i].first->PeakTime());
+	  vertex.SetDriftTime((matchedvertex[i].first)->PeakTime());
+	  
+	  //find the strong vertices, those vertices that have been associated with more than one hough line  
+	  if(i>0)
+	    {
+	      if(matchedvertex[i].first==matchedvertex[i-1].first)	
+		{
+		  if(strongvertex[0]==(strongestvertex[0].first)&&strongestvertex.size()>0)
+		    vertex.SetID(4);//the strongest strong vertex is given a vertex id=4
+		  else
+		    vertex.SetID(3);//strong vertices are given vertex id=3
+		} 
+	    } 
+	  else
+	    {
+	      vertex.SetID(2);//weak vertices that have been associated with an endpoint of a single Hough line are given vertex id=2
+	    } 
+	  mvertexcol->push_back(vertex);
+	  strongvertex.clear();
+	  
+	}
+      
+      strongestvertex.clear();
+      matchedvertex.clear();
+      vertexhit.clear();  
+    }
+  }//end loop over tpc
+    
   evt.put(mvertexcol);
-
 }
+  
 
 
