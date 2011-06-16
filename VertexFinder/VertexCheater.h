@@ -4,13 +4,13 @@
 /// \author  brebel@fnal.gov
 /// \version $Id: GeometryTest.h,v 1.1 2011/02/17 01:45:48 brebel Exp $
 ///////////////////////////////////////////////////////////////////////
-#ifndef CHEAT_VERTEXCHEATER_H
-#define CHEAT_VERTEXCHEATER_H
+#ifndef VERTEX_VERTEXCHEATER_H
+#define VERTEX_VERTEXCHEATER_H
 #include <string>
 
 #include "art/Framework/Core/EDProducer.h"
 
-namespace cheat {
+namespace vertex {
   class VertexCheater : public art::EDProducer {
   public:
     explicit VertexCheater(fhicl::ParameterSet const& pset);

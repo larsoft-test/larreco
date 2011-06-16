@@ -10,7 +10,7 @@
 
 // LArSoft includes
 #include "MCCheater/BackTracker.h"
-#include "MCCheater/VertexCheater.h"
+#include "VertexFinder/VertexCheater.h"
 #include "RecoBase/recobase.h"
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
@@ -25,7 +25,7 @@
 #include "art/Framework/Core/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-namespace cheat{
+namespace vertex{
 
   //--------------------------------------------------------------------
   VertexCheater::VertexCheater(fhicl::ParameterSet const& pset)

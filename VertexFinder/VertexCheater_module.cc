@@ -7,12 +7,12 @@
 //
 ////////////////////////////////////////////////////////////////////////
 // LArSoft includes
-#include "MCCheater/VertexCheater.h"
+#include "VertexFinder/VertexCheater.h"
 
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h"
 
-namespace cheat{
+namespace vertex{
 
   DEFINE_ART_MODULE(VertexCheater);
 
