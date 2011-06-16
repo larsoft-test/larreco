@@ -7,12 +7,12 @@
 //
 ////////////////////////////////////////////////////////////////////////
 // LArSoft includes
-#include "MCCheater/ShowerCheater.h"
+#include "ShowerFinder/ShowerCheater.h"
 
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h"
 
-namespace cheat{
+namespace shwf{
 
   DEFINE_ART_MODULE(ShowerCheater);
 
