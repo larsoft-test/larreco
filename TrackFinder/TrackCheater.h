@@ -4,13 +4,13 @@
 /// \author  brebel@fnal.gov
 /// \version $Id: GeometryTest.h,v 1.1 2011/02/17 01:45:48 brebel Exp $
 ///////////////////////////////////////////////////////////////////////
-#ifndef CHEAT_TRACKCHEATER_H
-#define CHEAT_TRACKCHEATER_H
+#ifndef TRKF_TRACKCHEATER_H
+#define TRKF_TRACKCHEATER_H
 #include <string>
 
 #include "art/Framework/Core/EDProducer.h"
 
-namespace cheat {
+namespace trkf {
   class TrackCheater : public art::EDProducer {
   public:
     explicit TrackCheater(fhicl::ParameterSet const& pset);

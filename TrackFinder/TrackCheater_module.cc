@@ -7,12 +7,12 @@
 //
 ////////////////////////////////////////////////////////////////////////
 // LArSoft includes
-#include "MCCheater/TrackCheater.h"
+#include "TrackFinder/TrackCheater.h"
 
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h"
 
-namespace cheat{
+namespace trkf{
 
   DEFINE_ART_MODULE(TrackCheater);
 
