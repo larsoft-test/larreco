@@ -108,7 +108,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
       art::Ptr<recob::Cluster> cluster(houghListHandle, ii);
       houghIn.push_back(cluster);
     }
-  unsigned int channel,plane,wire;
+  unsigned int channel,tpc,plane,wire;
   double slope,intercept,distance;
   double starttime, endtime;
   int startwire, endwire;
@@ -167,7 +167,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	  }
         if(houghhit.size()){
 	  channel=houghhit[0]->Wire()->RawDigit()->Channel();
-	  geom->ChannelToWire(channel,plane,wire);
+	  geom->ChannelToWire(channel,tpc,plane,wire);
 	}
 	if(p==plane)
 	  {
@@ -179,7 +179,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
 
 		distance=-1;
 		channel=vertexhit[i]->Wire()->RawDigit()->Channel();
-		geom->ChannelToWire(channel,plane,wire);
+		geom->ChannelToWire(channel,tpc,plane,wire);
 
 		starttime=(*houghIter)->StartPos()[1];
 		endtime=(*houghIter)->EndPos()[1];
@@ -241,7 +241,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	// I think this is grabbing first item in pair, itself a pointer then grabbing first 
 	// (.begin()) one of those. EC, 18-Oct-2010.
 	channel=(matchedvertex[i].first)->Wire()->RawDigit()->Channel();
-	geom->ChannelToWire(channel,plane,wire);
+	geom->ChannelToWire(channel,tpc,plane,wire);
 
 	// strongvertex, despite name, is a hit vector.
 	strongvertex.push_back(matchedvertex[i].first);

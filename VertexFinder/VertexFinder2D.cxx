@@ -152,6 +152,7 @@ namespace vertex{
       unsigned int channel;
       unsigned int wire;
       unsigned int plane;
+      unsigned int tpc;
       double time;
       
       std::vector<double> wires;
@@ -163,7 +164,7 @@ namespace vertex{
       for (unsigned int i = 0; i<hit.size(); i++){
 	time = hit[i]->PeakTime();
 	channel = hit[i]->Channel();
-	geom->ChannelToWire(channel,plane,wire);
+	geom->ChannelToWire(channel,tpc,plane,wire);
 	wires.push_back(wire);
 	times.push_back(time);
 	n++;

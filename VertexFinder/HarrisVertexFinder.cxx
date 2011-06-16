@@ -145,7 +145,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
     }
   }
   
-  unsigned int channel,plane,wire,wire2;
+  unsigned int channel,plane,tpc,wire,wire2;
   for(unsigned int p = 0; p < geom->Nplanes(); p++) 
     {
       art::PtrVector<recob::Hit> vHits;
@@ -185,7 +185,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
       for(unsigned int i=0;i < hit.size(); i++)
 	{
 	  channel=hit[i]->Wire()->RawDigit()->Channel();
-	  geom->ChannelToWire(channel,plane,wire);
+	  geom->ChannelToWire(channel,tpc,plane,wire);
 	  //pixelization using a Gaussian
 	  for(int j=0;j <= (int)(hit[i]->EndTime()-hit[i]->StartTime()+.5); j++)    
 	    hit_map[wire][(int)((hit[i]->StartTime()+j)*(fTimeBins/numbertimesamples)+.5)]+=Gaussian((int)(j-((hit[i]->EndTime()-hit[i]->StartTime())/2.)+.5),0,hit[i]->EndTime()-hit[i]->StartTime());      
@@ -260,7 +260,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 		for(unsigned int i=0;i < hit.size(); i++)
 		  {
 		    channel=hit[i]->Wire()->RawDigit()->Channel();
-		    geom->ChannelToWire(channel,plane,wire2);	 
+		    geom->ChannelToWire(channel,tpc,plane,wire2);	 
 		    //make sure the vertex candidate coincides with an actual hit.
 		    if(wire==wire2 && hit[i]->StartTime()<timebin*(numbertimesamples/fTimeBins) 
 		       && hit[i]->EndTime()>timebin*(numbertimesamples/fTimeBins))
