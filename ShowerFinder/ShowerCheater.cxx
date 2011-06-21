@@ -167,7 +167,7 @@ namespace shwf{
 			   initmom.Py()/initmom.Mag(),
 			   initmom.Pz()/initmom.Mag() };
 
-	showercol->at(showercol->size() - 1).SetDirection(dcos, dcos);
+	showercol->back().SetDirection(dcos, dcos);
 
 	mf::LogInfo("ShowerCheater") << "adding shower: \n" 
 				     << showercol->back()
