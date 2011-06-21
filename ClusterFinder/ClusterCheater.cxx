@@ -148,7 +148,7 @@ namespace cluster{
 
 	    geo->ChannelToWire(eveHits[h]->Channel(), tpc, plane, wire);
 
-	    if(plane != pl && tpc != t) continue;
+	    if(plane != pl || tpc != t) continue;
 	  
 	    ptrvs.push_back(eveHits[h]);
 
