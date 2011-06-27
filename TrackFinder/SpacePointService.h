@@ -94,15 +94,16 @@ namespace trkf {
 			recob::SpacePoint& spt) const;
 
     // Fill a vector of space points from an unsorted collection of hits.
-    // Space points are generted for all compatible combinations of hits.
+    // Space points are generated for all compatible combinations of hits.
     // The event pointer is only needed if fcl parameter MCHist = true or
     // UseMC = true.
     void makeSpacePoints(const art::Handle< std::vector<recob::Hit> >& hith,
 			 std::vector<recob::SpacePoint>& spts,
 			 const art::Event* pevt = 0) const;
-    void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
+    void makeSpacePoints(art::PtrVector<recob::Hit>& hits,
 			 std::vector<recob::SpacePoint>& spts,
-			 const art::Event* pevt = 0) const;
+			 const art::Event* pevt) const;
+
 
   private:
 

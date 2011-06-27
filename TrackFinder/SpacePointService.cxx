@@ -22,6 +22,7 @@
 #include "Simulation/Electrons.h"
 #include "Simulation/LArVoxelData.h"
 #include "art/Framework/Core/Event.h"
+#include "art/Framework/Core/View.h"
 #include "Utilities/DetectorProperties.h"
 #include "TH1F.h"
 
@@ -163,9 +164,9 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
 	    << "  fMClabel = " << fMClabel << "\n"
 	    << "  MaxDT = " << fMaxDT << "\n"
 	    << "  MaxS = " << fMaxS << "\n"
-	    << "  TiemOffsetU = " << timeOffsetU << "\n"
-	    << "  TiemOffsetV = " << timeOffsetV << "\n"
-	    << "  TiemOffsetW = " << timeOffsetW << "\n" 
+	    << "  TimeOffsetU = " << timeOffsetU << "\n"
+	    << "  TimeOffsetV = " << timeOffsetV << "\n"
+	    << "  TimeOffsetW = " << timeOffsetW << "\n" 
 	    << "  MinViews = " << fMinViews << "\n"
 	    << "  EnableU = " << enableU << "\n"
 	    << "  EnableV = " << enableV << "\n"
@@ -274,18 +275,19 @@ void trkf::SpacePointService::update()
 	    << "  sin(W-U) = " << fSin[1] << "\n"
 	    << "  sin(U-V) = " << fSin[2] << "\n";
 
-  // Update detector properties.
 
+  // Update detector properties.
   art::ServiceHandle<util::DetectorProperties> detprop;
+
   fSamplingRate = detprop->SamplingRate();
   fTriggerOffset = detprop->TriggerOffset();
-  std::cout << "\nDetector propertoes:\n"
+  std::cout << "\nDetector properties:\n"
 	    << "  Sampling Rate = " << fSamplingRate << " ns/tick\n"
 	    << "  Trigger offset = " << fTriggerOffset << " ticks\n" << std::endl;
 
   // Update LArProperties.
-
   art::ServiceHandle<util::LArProperties> larprop;
+  //  art::ServiceHandle<util::LArProperties> larprop;
   fEfield = larprop->Efield();
   fTemperature = larprop->Temperature();
   fDriftVelocity = larprop->DriftVelocity(fEfield, fTemperature);
@@ -688,7 +690,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::Handle< std::vector<rec
 //
 // See remarks for previous method.
 //
-void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
+void trkf::SpacePointService::makeSpacePoints(art::PtrVector<recob::Hit>& hits,
 					      std::vector<recob::SpacePoint>& spts,
 					      const art::Event* pevt) const
 {
@@ -744,8 +746,14 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
   fElecMap.clear();
   fMCPosMap.clear();
 
-  for(art::PtrVector<recob::Hit>::const_iterator ihit = hits.begin();
-      ihit != hits.end(); ++ihit) {
+  /*
+  art::View<art::PtrVector<recob::Hit> >  lhits = hits; 
+  for(art::PtrVector<recob::Hit>::const_iterator ihit = lhits::begin();
+      ihit != lhits::end(); ++ihit) {
+  */
+
+    for(art::PtrVector<recob::Hit>::const_iterator ihit = hits.begin();
+	ihit != hits.end(); ++ihit) {
     const art::Ptr<recob::Hit>& phit = *ihit;
     geo::View_t view = phit->View();
     if(view < 1 || view > 3)

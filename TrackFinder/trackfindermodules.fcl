@@ -54,10 +54,11 @@ microboone_spacepts:
  vertexclusterWindow:      10000000.
 }
 
+
 microboone_kalman:
 {
- module_type:         "Track3DKalman"
- SpacePtsModuleLabel: "spacepts"
+ module_type:         "Track3DKalmanSPS"
+ ClusterModuleLabel:  "dbscan"
  GenieGenModuleLabel: "generator"     # comment out for real data.
  PosErr3:             [0.05,0.05,0.05]   #  position resolution, cm.
  MomErr3:             [0.10,0.10,0.20]   #  momentum resolution, GeV/c.
