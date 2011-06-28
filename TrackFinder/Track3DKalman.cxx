@@ -34,6 +34,8 @@
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
 
+#include "CLHEP/Random/RandFlat.h"
+#include "CLHEP/Random/RandGaussQ.h"
 
 // ROOT includes
 #include "TVectorD.h"
@@ -68,14 +70,16 @@ trkf::Track3DKalman::Track3DKalman(fhicl::ParameterSet const& pset)
 
     this->reconfigure(pset);
 
-    produces< std::vector<recob::Track> >();
+    // get the random number seed, use a random default if not specified    
+    // in the configuration file.  maximum allowed seed for RandomNumberGenerator
+    // is 900000000. Use the system random number generator to get a pseudo-random
+    // number for the seed value, and take the modulus of the maximum allowed 
+    // seed to ensure we don't ever go over that maximum
+    unsigned int seed = pset.get< unsigned int >("Seed", rand()%900000000);
 
-    // set the random number seed
-    fRandom = dynamic_cast<TRandom3*>(gRandom);
-    if ( fRandom == 0 ){
-      fRandom = new TRandom3(time(0));
-      gRandom = fRandom;
-    }
+    createEngine(seed);
+
+    produces< std::vector<recob::Track> >();
 }
 
 void trkf::Track3DKalman::reconfigure(fhicl::ParameterSet pset) 
@@ -185,6 +189,10 @@ void trkf::Track3DKalman::produce(art::Event& evt)
   // get services
   art::ServiceHandle<geo::Geometry> geom;
   art::ServiceHandle<util::LArProperties> larprop;
+  // get the random number generator service and make some CLHEP generators
+  art::ServiceHandle<art::RandomNumberGenerator> rng;
+  CLHEP::HepRandomEngine &engine = rng->getEngine();
+  CLHEP::RandGaussQ gauss(engine);
 
   //////////////////////////////////////////////////////
   // Make a std::auto_ptr<> for the thing you want to put into the event
@@ -299,9 +307,9 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 	    TVector3 mom(fMomStart[0],fMomStart[1],fMomStart[2]);
 	    //mom.SetMag(1.);
 	    TVector3 momM(mom);
-	    momM.SetX(gRandom->Gaus(momM.X(),momErr.X()/* *momM.X() */));
-	    momM.SetY(gRandom->Gaus(momM.Y(),momErr.Y()/* *momM.Y() */));
-	    momM.SetZ(gRandom->Gaus(momM.Z(),momErr.Z()/* *momM.Z() */));
+	    momM.SetX(gauss.fire(momM.X(),momErr.X()/* *momM.X() */));
+	    momM.SetY(gauss.fire(momM.Y(),momErr.Y()/* *momM.Y() */));
+	    momM.SetZ(gauss.fire(momM.Z(),momErr.Z()/* *momM.Z() */));
 	    //std::cout << "Track3DKalman: sort spacepoints by x (volTPC coords) for tracker's sake." << std::endl;
 
 

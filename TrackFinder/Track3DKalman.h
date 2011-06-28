@@ -13,7 +13,6 @@
 #include "art/Framework/Core/EDProducer.h"
 #include <TTree.h>
 #include <TMatrixT.h>
-#include <TRandom3.h>
 
 #include "Genfit/GFAbsTrackRep.h"
 
@@ -41,7 +40,6 @@ namespace trkf {
         
     std::string     fSpacePtsModuleLabel;// label for input collection
     std::string     fGenieGenModuleLabel;// label for input MC single particle generator
-    TRandom3*              fRandom;           //< random number generator 
     bool fGenfPRINT;
       
     TFile *fileGENFIT;
