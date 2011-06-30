@@ -61,7 +61,6 @@ namespace filt{
     fMaxIon             = p.get< double       >("MaxIon");
     fIonFactor          = p.get< double       >("IonFactor");
     fCuts               = p.get< std::vector<double> >("Cuts");
- 
   }
 
   void MuonFilter::beginJob()
@@ -75,8 +74,6 @@ namespace filt{
   //-------------------------------------------------
   bool MuonFilter::filter(art::Event &evt)
   { 
-    //numEventHist->Fill(0);
-    //int event = evt.id().event(); 
     art::ServiceHandle<geo::Geometry> geom;
     art::ServiceHandle<util::LArProperties> larprop;
     art::ServiceHandle<util::DetectorProperties> detprop;
@@ -87,21 +84,6 @@ namespace filt{
     geo::View_t vView = geom->Plane(vPlane).View();
     int uPlane = vPlane-1;
     geo::View_t uView = geom->Plane(uPlane).View();
-    double uNumWires = ((double)(geom->Plane(uPlane).Nwires()-1))/2.0;
-    double vNumWires = ((double)(geom->Plane(vPlane).Nwires()-1))/2.0;
-    double uTheta = geom->Plane(uPlane).Wire(0).ThetaZ();
-    double vTheta = geom->Plane(vPlane).Wire(0).ThetaZ();
-    //This assumes that the 2 planes are reflections of one another across z
-    double theta = 0.5*(TMath::Pi()-TMath::Abs(uTheta-vTheta));
-    double temp[3];
-    geom->Plane(uPlane).Wire(20).GetCenter(temp,0.0);
-    TVector3 p1(temp);
-    geom->Plane(uPlane).Wire(21).GetCenter(temp,0.0);
-    TVector3 p2(temp);
-    geom->Plane(uPlane).Wire(20).GetCenter(temp,1.0);
-    TVector3 p3(temp);
-    double spacing = TMath::Abs((((p1-p3).Cross((p1-p3).Cross(p1-p2))).Unit()).Dot(p1-p2));
-    mf::LogInfo("MuonFilter") << "Spacing " << spacing;
     art::Handle< std::vector< recob::Cluster > > clustHandle;
     evt.getByLabel(fClusterModuleLabel,clustHandle);
     art::PtrVector<recob::Cluster> clusters;
@@ -110,9 +92,6 @@ namespace filt{
       clusters.push_back(prod);
     }
     double indIon(0),colIon(0);
-    // double indDEDX(0), colDEDX(0);
-    //unsigned int channel;
-    //int plane, wire;
     std::map<int,int> indMap;
     std::map<int,int> colMap;
     std::vector<std::pair<int,int> > rLook;
@@ -145,11 +124,15 @@ namespace filt{
       else if(clusters[cl]->Hits().size()>0 && clusters[cl]->View() == vView) collectionSegments.push_back(clusters[cl]);
     } 
     if(inductionSegments.size() ==0 || collectionSegments.size() == 0) { 
-      //resultTable->Fill(event, 1);
       mf::LogInfo("MuonFilter") << "At least one plane with no track";
     }
     else {  
-      double x1,x2,y1,y2,z1,z2,uPos1,vPos1,uPos2,vPos2;
+      double x1,x2,y1,y2,z1,z2;
+      int uPos1,vPos1,uPos2,vPos2;
+      std::vector<double> w1Start(3);
+      std::vector<double> w1End(3);
+      std::vector<double> w2Start(3);
+      std::vector<double> w2End(3);
       for(unsigned int i = 0; i < inductionSegments.size(); i++) { 
 	if(indMap[i]) continue;
 	for(unsigned int j = 0; j < collectionSegments.size(); j++) {
@@ -163,33 +146,42 @@ namespace filt{
 	  double trk2Start =colSeg->StartPos()[1];
 	  double trk2End =colSeg->EndPos()[1];
 	  
-	  uPos1 = ((double)indSeg->StartPos()[0])-uNumWires;
-	  uPos2 = ((double)indSeg->EndPos()[0])-uNumWires; 
-	  vPos1 = ((double) colSeg->StartPos()[0])-vNumWires;
-	  vPos2 = ((double)colSeg->EndPos()[0])-vNumWires;
+	  uPos1 = indSeg->StartPos()[0];
+	  uPos2 = indSeg->EndPos()[0]; 
+	  vPos1 = colSeg->StartPos()[0];
+	  vPos2 = colSeg->EndPos()[0];
 	  mf::LogInfo("MuonFilter") << "I J " << i <<" " << j ;
 	  mf::LogInfo("MuonFilter") << "Start/end " << indSeg->StartPos()[0] <<" "<< colSeg->StartPos()[0] <<" "<< indSeg->EndPos()[0] <<" "<< colSeg->EndPos()[0] ;
           mf::LogInfo("MuonFilter")<<"U's "<< uPos1 <<" " << uPos2 <<"V's "<< vPos1 <<" " << vPos2 << " times " << trk1End <<" "<< trk2End <<" "<< trk1Start <<" "<< trk2Start ;
+          //need to have the corresponding endpoints matched
+          //check if they match in this order else switch
+          //todo 51 should be an adjustable paramter
+          //really should use the crossing function and then have limits
+          //on distance outide tpc, or some other way of dealing with
+          //imperfect matches
 	  if((TMath::Abs(uPos1-vPos1)>51||TMath::Abs(uPos2-vPos2)>51) &&
 	     (TMath::Abs(uPos1-vPos2)<=51&&TMath::Abs(uPos2-vPos1)<=51)) {
 	    mf::LogInfo("MuonFilter") << "Swapped1" ;
 	    Swap(uPos1,uPos2);
 	  }
-	  
+	  //check for time tolerance 
           if((TMath::Abs(trk1Start-trk2Start) > fTolerance && TMath::Abs(trk1End-trk2End) > fTolerance) &&  (TMath::Abs(trk1Start-trk2End) < fTolerance && TMath::Abs(trk1End-trk2Start) < fTolerance)) {
             Swap(trk1Start,trk1End);
             Swap(uPos1,uPos2);
             mf::LogInfo("MuonFilter") << "Swapped2" ;
           }
 	  mf::LogInfo("MuonFilter") << "Times: " << trk1Start <<" "<< trk2Start <<" "<<trk1End <<" "<<trk2End;
+          //again needs to be fixed
           if((TMath::Abs(trk1Start-trk2Start) < fTolerance && TMath::Abs(trk1End-trk2End) < fTolerance) && (TMath::Abs(uPos1-vPos1) <=53 && TMath::Abs(uPos2-vPos2) <= 53))  {
-	    z1 = spacing/(2*TMath::Sin(theta))*(uPos1+ vPos1);
-	    z2 = spacing/(2*TMath::Sin(theta))*(uPos2+ vPos2);
-	    y1 = spacing/(2*TMath::Cos(theta))*(uPos1-vPos1)+1;
-	    y2 = spacing/(2*TMath::Cos(theta))*(uPos2-vPos2)+1;
+            geom->WireEndPoints(0,uPlane,uPos1,&w1Start[0],&w1End[0]);
+            geom->WireEndPoints(0,vPlane,vPos1,&w2Start[0],&w2End[0]);
+            geom->IntersectionPoint(uPos1,vPos1,uPlane,vPlane,0,0,&w1Start[0],&w1End[0],&w2Start[0],&w2End[0],y1,z1);
+            geom->WireEndPoints(0,uPlane,uPos2,&w1Start[0],&w1End[0]);
+            geom->WireEndPoints(0,vPlane,vPos2,&w2Start[0],&w2End[0]);
+            geom->IntersectionPoint(uPos2,vPos2,uPlane,vPlane,0,0,&w1Start[0],&w1End[0],&w2Start[0],&w2End[0],y2,z2);
 	    x1 = (trk1Start+trk2Start)/2.0*drift-fDCenter;
 	    x2 = (trk1End+trk2End)/2.0*drift-fDCenter;
-	    mf::LogInfo("MuonFilter") <<"Match " << matchNum <<" "<< x1 << " "<< y1 << " "<< z1 << " "<< x2 << " "<< y2 << " "<< z2 ;
+	    mf::LogInfo("MuonFilter") <<"Match " << matchNum <<" "<< x1 << " "<< y1 << " "<< z1 << " "<< x2 << " "<< y2 << " "<< z2;
 	    bool x1edge,x2edge,y1edge, y2edge,z1edge,z2edge;
 	    indMap[i]=matchNum;
 	    colMap[j]=matchNum;
@@ -249,6 +241,7 @@ namespace filt{
 	}
       }
     }
+    //after all matches are made, remove deltas
     double distance=0;
     for(unsigned int i = 0; i < tGoing.size(); i++) 
       for(unsigned int j = 0; j < matched.size();j++){
@@ -273,18 +266,20 @@ namespace filt{
 	}
       } 
     mf::LogInfo("MuonFilter") <<"indIon "<<indIon*fIonFactor <<" colIon " << colIon ;
-    if((indIon*fIonFactor > fMaxIon) && (colIon > fMaxIon)) {
-      //resultTable->Fill(0);
-      //numEventHist->Fill(1);
-      //totIonSelHist->Fill(indIon, colIon);
-      //seldEdXHist->Fill(indDEDX, colDEDX);
+    if((indIon*fIonFactor > fMaxIon) && (colIon > fMaxIon)) 
       return true;
-    }
-    //totIonRejHist->Fill(indIon, colIon);
-    //rejdEdXHist->Fill(indDEDX, colDEDX);
-    return false;
+    else return false;
   }
  
+  void MuonFilter::Swap(int & x, int &y)  {
+
+    int temp;
+    temp = x;
+    x=y;
+    y=temp;
+
+    return;
+  }
   void MuonFilter::Swap(double & x, double &y)  {
 
     double temp;
