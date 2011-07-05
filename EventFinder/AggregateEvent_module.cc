@@ -7,7 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 // LArSoft includes
-#include "VertexFinder/AggregateEvent.h"
+#include "EventFinder/AggregateEvent.h"
 
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h"
