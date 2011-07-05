@@ -8,18 +8,6 @@
 #define AGGREGATEVERTEX_H
 
 // Framework includes
-#include "art/Framework/Core/Event.h" 
-#include "fhiclcpp/ParameterSet.h" 
-#include "art/Persistency/Common/Handle.h" 
-#include "art/Persistency/Common/View.h" 
-#include "art/Persistency/Common/Ptr.h" 
-#include "art/Persistency/Common/PtrVector.h" 
-#include "art/Framework/Core/ModuleMacros.h" 
-#include "art/Framework/Services/Registry/ServiceHandle.h" 
-#include "art/Framework/Services/Optional/TFileService.h" 
-#include "art/Framework/Core/TFileDirectory.h" 
-#include "messagefacility/MessageLogger/MessageLogger.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
 #include "art/Framework/Core/EDProducer.h" 
 
 // LArSoft includes
@@ -51,9 +39,9 @@ namespace vertex {
     std::string fTrack3DModuleLabel;
     std::string fEndPointModuleLabel;
 
-    art::PtrVector<recob::Vertex>  feplist;
-    art::PtrVector<recob::Track>   ftracklist;
-    art::PtrVector<recob::Vertex>  feplistStrong;
+    art::PtrVector<recob::EndPoint2D> feplist;
+    art::PtrVector<recob::Track>      ftracklist;
+    art::PtrVector<recob::EndPoint2D> feplistStrong;
 
   }; // class AggregateVertex
 

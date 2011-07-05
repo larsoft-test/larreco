@@ -19,7 +19,6 @@ extern "C" {
 #include "art/Framework/Core/Event.h" 
 #include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Handle.h" 
-#include "art/Persistency/Common/View.h" 
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 
 #include "art/Framework/Core/ModuleMacros.h" 
@@ -27,9 +26,8 @@ extern "C" {
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "art/Framework/Core/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
 
-#include "AggregateEvent/AggregateVertexAna.h"
+#include "VertexFinder/AggregateVertexAna.h"
 #include "TH1.h"
 
 namespace vertex{
@@ -52,7 +50,7 @@ namespace vertex{
 
     HnVtxes   = tfs->make<TH1F>("Num Vertices","Num Vertices",8,-0.5,7.5);
     HVtxSep   = tfs->make<TH1F>("Vertices spacing","Vertices spacing",20,0.001,5.0);
-    HVtxRZ    = tfs->make<TH1F>("Vtx in RZ","Vtx in RZ",20,-50.0,+50.0,20,0.0,50.0);
+    HVtxRZ    = tfs->make<TH2F>("Vtx in RZ","Vtx in RZ",20,-50.0,+50.0,20,0.0,50.0);
     HnTrksVtx = tfs->make<TH1F>("Tracks per vtx","Tracks per vtx",8,-0.5,7.5);
 
 
@@ -60,7 +58,7 @@ namespace vertex{
   }
 
   //-----------------------------------------------
-  void AggregateVertexAna::analyze(const art::Event& evt, art::EventSetup const&) 
+  void AggregateVertexAna::analyze(const art::Event& evt) 
   {
     art::Handle< std::vector<recob::Hit> > hitListHandle;
     evt.getByLabel(fHitModuleLabel,hitListHandle);
@@ -80,7 +78,7 @@ namespace vertex{
     evt.getByLabel(fTrack3DModuleLabel,trackListHandle);
     for(unsigned int ii = 0; ii < trackListHandle->size(); ++ii){
       art::Ptr<recob::Track> track(trackListHandle, ii);
-      tracklist.push_back(track); // class member
+      ftracklist.push_back(track); // class member
     }
 
     art::Handle< std::vector<recob::Vertex> > vertexListHandle;
@@ -113,8 +111,8 @@ namespace vertex{
       for(unsigned int t = 0;t < geom->NTPC(); ++t){
 	for(unsigned int ii = 0; ii < geom->TPC(t).Nplanes(); ++ii){
 	  geo::View_t view = geom->Plane(ii).View();
-	  bv = tvlist[0]->Hits(view);
-	  for (int jj = 0; jj<bv.size(); jj++) {hitvlist.push_back(bv[jj]);}
+	  bv = tvlist[0]->Clusters(view)[0]->Hits();
+	  for (unsigned int jj = 0; jj<bv.size(); jj++) {hitvlist.push_back(bv[jj]);}
 	}
       }
       
@@ -126,30 +124,31 @@ namespace vertex{
 	art::PtrVector<recob::Hit> bv2;
 	art::PtrVector<recob::Hit> hitvlist2;
 	for(unsigned int t = 0; t < geom->NTPC(); ++t){
-	  for(int ii = 0; ii < geom->TPC(t).Nplanes(); ++ii){
+	  for(unsigned int ii = 0; ii < geom->TPC(t).Nplanes(); ++ii){
 	    geo::View_t view = geom->Plane(ii).View();
-	    bv2 = tvlist[0]->Hits(view);
-	    for (int jj = 0; jj<bv2.size(); jj++) {hitvlist2.push_back(bv2[jj]);}
+	    bv2 = tvlist[0]->Clusters(view)[0]->Hits();
+	    for (size_t jj = 0; jj<bv2.size(); jj++) {hitvlist2.push_back(bv2[jj]);}
 	  }
-	  art::PtrVector<recob::Hit>::const_iterator hitv2 = hitvlist2.begin();
-
-	  // These two whiles should be each precisely one iteration long.
-	  while(hitv != hitvlist.end()){
-	    while(hitv2 != hitvlist2.end()){
-	      //	  TVector3 dist = (TVector3 )(hitv2->XYZ()) - (TVector3 )(hitv->XYZ());
-	      TVector3 dist;
-	      std::cout << "AggregateVertexAna: dist is " << dist.Mag() << "." << std::endl;
-	      HVtxSep->Fill(dist.Mag(),1);
-	      hitv2++;
-	    }
-	    hitv++;
-	  }
-	  avIter2++;
 	}
-
-	avIter++;
+	art::PtrVector<recob::Hit>::const_iterator hitv2 = hitvlist2.begin();
+	
+	// These two whiles should be each precisely one iteration long.
+	while(hitv != hitvlist.end()){
+	  while(hitv2 != hitvlist2.end()){
+	    //	  TVector3 dist = (TVector3 )(hitv2->XYZ()) - (TVector3 )(hitv->XYZ());
+	    TVector3 dist;
+	    std::cout << "AggregateVertexAna: dist is " << dist.Mag() << "." << std::endl;
+	    HVtxSep->Fill(dist.Mag(),1);
+	    hitv2++;
+	  }
+	  hitv++;
+	}
+	avIter2++;
       }
       
+      avIter++;
+    }
+    
   }
 
 }// end namespace

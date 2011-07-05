@@ -19,7 +19,6 @@ extern "C" {
 #include "art/Framework/Core/Event.h" 
 #include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Handle.h" 
-#include "art/Persistency/Common/View.h" 
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 
 #include "art/Framework/Core/ModuleMacros.h" 
@@ -27,9 +26,8 @@ extern "C" {
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "art/Framework/Core/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
-#include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
 
-#include "AggregateEvent/AggregateVertex.h"
+#include "VertexFinder/AggregateVertex.h"
 #include "TH1.h"
 
 namespace vertex {
@@ -59,7 +57,7 @@ namespace vertex {
 
 
     art::Handle< std::vector<recob::EndPoint2D> > epListHandle;
-    evt.getByLabel(fVertexModuleLabel,epListHandle);
+    evt.getByLabel(fEndPointModuleLabel,epListHandle);
     for(unsigned int ii = 0; ii < epListHandle->size(); ++ii)
       {
 	art::Ptr<recob::EndPoint2D> ep(epListHandle, ii);
@@ -76,9 +74,9 @@ namespace vertex {
 
 
     // Only match strong vertices to tracks.
-    art::PtrVector<recob::EndPoint2D>::const_iterator epIter = eplist.begin();
+    art::PtrVector<recob::EndPoint2D>::const_iterator epIter = feplist.begin();
 
-    while (epIter != vertexlist.end())  
+    while (epIter != feplist.end())  
       {            
 	art::Ptr <recob::EndPoint2D> ep = (*epIter);  
 	if (ep->ID() < 3) feplistStrong.push_back(ep); // -- cuz there's one less
@@ -99,7 +97,7 @@ namespace vertex {
   {
     mf::LogInfo("AggregateVertex") << "AggregateEvent::MatchV2T(): (strong) vertexlistStrong"
 				   << " and tracklist lengths are " 
-				   << eplistStrong.size() << " and " <<  tracklist.size() << ".";
+				   << feplistStrong.size() << " and " <<  ftracklist.size() << ".";
 
 
     // Bail if there are no tracks or vertices.
@@ -110,10 +108,10 @@ namespace vertex {
 
     art::ServiceHandle<geo::Geometry> geom;
     // Loop on the vertices, and all the hits in each
-    art::PtrVector<recob::EndPoint2D>::const_iterator epIter = eplistStrong.begin();
+    art::PtrVector<recob::EndPoint2D>::const_iterator epIter = feplistStrong.begin();
     std::auto_ptr< std::vector<recob::Vertex> > verts(new std::vector<recob::Vertex>);
 
-    while (epIter != eplistStrong.end()){            
+    while (epIter != feplistStrong.end()){            
       art::PtrVector<recob::Track>  tlistAssoc; // Will fill with matching tracks.
       art::PtrVector<recob::Shower> slistAssoc; // Will fill with matching tracks.
       art::Ptr <recob::EndPoint2D> ep = (*epIter);
@@ -125,7 +123,7 @@ namespace vertex {
 	  geo::View_t view = geom->TPC(t).Plane(ii).View();
 	  // std::cout << "AggregateEvent::MatchV2T(): Vtx hit view is " << view << std::endl;
 	  bv = ep->Hits(view);
-	  for (int jj=0; jj < bv.size(); jj++) hitvertexlistStrong.push_back(bv[jj]);
+	  for (size_t jj=0; jj < bv.size(); jj++) hitvertexlistStrong.push_back(bv[jj]);
 	}
       }// end loop over tpcs
 
@@ -135,9 +133,9 @@ namespace vertex {
 	art::Ptr<recob::Hit> hitv = (*hvIter);
 	// Now loop on the tracks and all the clusters in each, and all
 	// the hits in each of those.
-	art::PtrVector<recob::Track>::const_iterator tIter = tracklist.begin();
+	art::PtrVector<recob::Track>::const_iterator tIter = ftracklist.begin();
       
-	while (tIter != tracklist.end()){
+	while (tIter != ftracklist.end()){
 	
 	  art::Ptr<recob::Track> trk = (*tIter);
 	
@@ -147,8 +145,8 @@ namespace vertex {
 	  art::PtrVector<recob::Cluster>clustlistU = trk->Clusters(geo::kU);
 	  art::PtrVector<recob::Cluster>clustlistV = trk->Clusters(geo::kV);
 	  art::PtrVector<recob::Cluster>clustlist;
-	  for (int jj=0; jj < clustlistU.size(); jj++) {clustlist.push_back(clustlistU[jj]);}
-	  for (int jj=0; jj < clustlistV.size(); jj++) {clustlist.push_back(clustlistV[jj]);}
+	  for (size_t jj=0; jj < clustlistU.size(); jj++) {clustlist.push_back(clustlistU[jj]);}
+	  for (size_t jj=0; jj < clustlistV.size(); jj++) {clustlist.push_back(clustlistV[jj]);}
 	
 	  art::PtrVector<recob::Cluster>::const_iterator cIter = clustlist.begin();
 	
@@ -162,7 +160,7 @@ namespace vertex {
 	      for(unsigned int ii = 0; ii < geom->TPC(t).Nplanes(); ++ii){
 		geo::View_t view = geom->Plane(ii).View();
 		b = cls->Hits(view);
-		for (int jj=0; jj < b.size(); jj++) hittlist.push_back(b[jj]);
+		for (size_t jj=0; jj < b.size(); jj++) hittlist.push_back(b[jj]);
 	      }
 	    }  
 	    /*
