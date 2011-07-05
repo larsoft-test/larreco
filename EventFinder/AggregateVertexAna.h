@@ -3,28 +3,22 @@
 #define AGGREGATEVTXANA_H
 
 // Framework includes
-#include "FWCore/Framework/interface/Event.h" 
-#include "FWCore/ParameterSet/interface/ParameterSet.h" 
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
-#include "DataFormats/Common/interface/Handle.h" 
-#include "DataFormats/Common/interface/View.h" 
-#include "DataFormats/Common/interface/Ptr.h" 
-#include "DataFormats/Common/interface/PtrVector.h" 
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/Service.h" 
-#include "FWCore/Services/interface/TFileService.h" 
-#include "FWCore/Framework/interface/TFileDirectory.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
+#include "art/Framework/Core/Event.h" 
+#include "fhiclcpp/ParameterSet.h" 
+#include "art/Persistency/Common/Handle.h" 
+#include "art/Persistency/Common/View.h" 
+#include "art/Persistency/Common/Ptr.h" 
+#include "art/Persistency/Common/PtrVector.h" 
+#include "art/Framework/Core/ModuleMacros.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Optional/TFileService.h" 
+#include "art/Framework/Core/TFileDirectory.h" 
+#include "messagefacility/MessageLogger/MessageLogger.h" 
 #include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
-#include "FWCore/Framework/interface/EDAnalyzer.h"
+#include "art/Framework/Core/EDAnalyzer.h"
 
 // LArSoft includes
-#include "RecoBase/Hit.h"
-#include "RecoBase/Track.h"
-#include "RecoBase/Vertex.h"
-#include "RecoBase/Cluster.h"
-#include "RecoBase/Shower.h"
-#include "AggregateEvent/AggVertex.h"
+#include "RecoBase/recobase.h"
 
 #include "TH2F.h"
 #include "TH1F.h"
@@ -33,19 +27,19 @@
 #include <string>
 
 
-namespace aggr {
+namespace vertex {
 
 
-  class AggregateVertexAna : edm::EDAnalyzer 
+  class AggregateVertexAna : art::EDAnalyzer 
   {
 
   public:
 
-    explicit AggregateVertexAna(edm::ParameterSet const& pset);
+    explicit AggregateVertexAna(fhicl::ParameterSet const& pset);
     ~AggregateVertexAna();
 
-    void analyze (const edm::Event& evt, edm::EventSetup const&);
-    void beginJob(const edm::EventSetup&); 
+    void analyze (const art::Event& evt);
+    void beginJob(); 
 
   private:
 
@@ -58,13 +52,13 @@ namespace aggr {
     std::string fHoughModuleLabel;
     std::string fHitModuleLabel;
     std::string fTrack3DModuleLabel;
+    std::string fEndPointModuleLabel;
     std::string fVertexModuleLabel;
-    std::string fAggVertexModuleLabel;
 
-    edm::PtrVector<recob::Hit> hitlist;
-    edm::PtrVector<recob::Vertex> vertexlist;
-    edm::PtrVector<recob::Track> tracklist;
-    edm::PtrVector<aggr::AggVertex> aggVertexlist;
+    art::PtrVector<recob::Hit>        fhitlist;
+    art::PtrVector<recob::EndPoint2D> feplist;
+    art::PtrVector<recob::Track>      ftracklist;
+    art::PtrVector<recob::Vertex>     fVertexlist;
 
 
   }; // class AggregateVertexAna

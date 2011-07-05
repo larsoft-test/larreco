@@ -1,50 +1,39 @@
+////////////////////////////////////////////////////////////////////////
+/// \file  AggregateEvent.h
+/// \brief Module to find recob::Event objects
+///
+/// echurch@fnal.gov
+////////////////////////////////////////////////////////////////////////
 #ifndef AGGREGATEEVENT_H
 #define AGGREGATEEVENT_H
 
-#include "FWCore/Framework/interface/EDProducer.h"
+#include "art/Framework/Core/EDProducer.h"
 
-#include "RecoBase/Hit.h"
-#include "RecoBase/Track.h"
-#include "RecoBase/Vertex.h"
-#include "RecoBase/Cluster.h"
-#include "RecoBase/Shower.h"
-#include "AggregateEvent/AggVertex.h"
+#include "RecoBase/recobase.h"
+
 #include "TH2F.h"
 #include "TF1.h"
 #include <vector>
 #include <string>
 
-namespace aggr {
+namespace event {
    
-  class AggregateEvent : public edm::EDProducer {
+  class AggregateEvent : public art::EDProducer {
     
   public:
     
-    explicit AggregateEvent(edm::ParameterSet const& );
+    explicit AggregateEvent(fhicl::ParameterSet const& );
     ~AggregateEvent();
 
-    void produce(edm::Event& evt, edm::EventSetup const&);
+    void produce(art::Event& evt);
     void beginJob();
     
   private:
 
-    std::string fHitModuleLabel;
-    std::string fT3DModuleLabel;
-    std::string fDBScanModuleLabel;
-    std::string fHCModuleLabel;
     std::string fVertexModuleLabel;
-    std::string fShowerModuleLabel;
-    std::string fCalorimetryModuleLabel;
 
+    art::PtrVector<recob::Vertex> fvertexlist;
 
-    edm::PtrVector<recob::Cluster> clusterlist;
-    edm::PtrVector<recob::Cluster> hclusterlist;
-    edm::PtrVector<recob::Hit> hitlist;
-    edm::PtrVector<recob::Vertex> vertexlist;
-    edm::PtrVector<recob::Track> tracklist;
-    edm::PtrVector<recob::Shower> showerlist;
-    unsigned int runNum;
-    unsigned int evtNum;
   }; // class AggregateEvent
 
 }

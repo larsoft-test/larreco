@@ -1,74 +1,62 @@
-
-#ifndef AGGREGATEVTX_H
-#define AGGREGATEVTX_H
+////////////////////////////////////////////////////////////////////////
+/// \file  AggregateVertex.h
+/// \brief Module to find vertices based on 2-d clusters
+///
+/// echurch@fnal.gov
+////////////////////////////////////////////////////////////////////////
+#ifndef AGGREGATEVERTEX_H
+#define AGGREGATEVERTEX_H
 
 // Framework includes
-#include "FWCore/Framework/interface/Event.h" 
-#include "FWCore/ParameterSet/interface/ParameterSet.h" 
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h" 
-#include "DataFormats/Common/interface/Handle.h" 
-#include "DataFormats/Common/interface/View.h" 
-#include "DataFormats/Common/interface/Ptr.h" 
-#include "DataFormats/Common/interface/PtrVector.h" 
-#include "FWCore/Framework/interface/MakerMacros.h" 
-#include "FWCore/ServiceRegistry/interface/Service.h" 
-#include "FWCore/Services/interface/TFileService.h" 
-#include "FWCore/Framework/interface/TFileDirectory.h" 
-#include "FWCore/MessageLogger/interface/MessageLogger.h" 
+#include "art/Framework/Core/Event.h" 
+#include "fhiclcpp/ParameterSet.h" 
+#include "art/Persistency/Common/Handle.h" 
+#include "art/Persistency/Common/View.h" 
+#include "art/Persistency/Common/Ptr.h" 
+#include "art/Persistency/Common/PtrVector.h" 
+#include "art/Framework/Core/ModuleMacros.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Optional/TFileService.h" 
+#include "art/Framework/Core/TFileDirectory.h" 
+#include "messagefacility/MessageLogger/MessageLogger.h" 
 #include "FWCore/ServiceRegistry/interface/ServiceMaker.h" 
-#include "FWCore/Framework/interface/EDProducer.h" 
+#include "art/Framework/Core/EDProducer.h" 
 
 // LArSoft includes
-#include "RecoBase/Hit.h"
-#include "RecoBase/Track.h"
-#include "RecoBase/Vertex.h"
-#include "RecoBase/Cluster.h"
-#include "RecoBase/Shower.h"
+#include "RecoBase/recobase.h"
+
 #include <vector>
 #include <string>
 
-namespace edm {
-  class Event;
-  class ParameterSet;
-}
- 
-namespace aggr {
+namespace vertex {
 
 
-  class AggregateVertex : public edm::EDProducer
+  class AggregateVertex : public art::EDProducer
   {
 
   public:
 
-    explicit AggregateVertex(edm::ParameterSet const& pset);
+    explicit AggregateVertex(fhicl::ParameterSet const& pset);
     virtual ~AggregateVertex();
 
-    void produce(edm::Event& evt, edm::EventSetup const&); 
-    void beginJob(const edm::EventSetup&); 
+    void produce(art::Event& evt); 
+    void beginJob(); 
 
-    //std::vector<aggr::AggVertex *> MatchV2T(edm::PtrVector<recob::Vertex> , edm::PtrVector<recob::Track>);    
-    std::auto_ptr< std::vector<aggr::AggVertex> >  MatchV2T();
+    std::auto_ptr< std::vector<recob::Vertex> >  MatchV2T();
 
   private:
 
     std::string fDBScanModuleLabel;
     std::string fHoughModuleLabel;
     std::string fTrack3DModuleLabel;
-    std::string fVertexModuleLabel;
+    std::string fEndPointModuleLabel;
 
-    edm::PtrVector<recob::Cluster> clusterlist;
-    edm::PtrVector<recob::Cluster> hclusterlist;
-    edm::PtrVector<recob::Hit> hitlist;
-    edm::PtrVector<recob::Vertex> vertexlist;
-    edm::PtrVector<recob::Track> tracklist;
-    edm::PtrVector<recob::Shower> showerlist;
-    edm::PtrVector<recob::Vertex> vertexlistStrong;
-
-    const recob::Vertex* copiedVert;
-    std::vector<const recob::Track*> matchedTracks;
+    art::PtrVector<recob::Vertex>  feplist;
+    art::PtrVector<recob::Track>   ftracklist;
+    art::PtrVector<recob::Vertex>  feplistStrong;
 
   }; // class AggregateVertex
 
-}  // Namespace aggr
+}  // Namespace vertex
 
-#endif // AGGREGATEVTX_H
+#endif // AGGREGATEVERTEX_H
