@@ -47,7 +47,7 @@ namespace event {
 
   //-------------------------------------------------
   AggregateEvent::AggregateEvent(fhicl::ParameterSet const& pset) : 
-    fCalorimetryModuleLabel(pset.get< std::string >("VertexModuleLabel"))
+    fVertexModuleLabel(pset.get< std::string >("VertexModuleLabel"))
   {
 
     produces< std::vector<recob::Event> >();
