@@ -7,12 +7,12 @@
 //
 ////////////////////////////////////////////////////////////////////////
 // LArSoft includes
-#include "MCCheater/EventCheater.h"
+#include "EventFinder/EventCheater.h"
 
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h"
 
-namespace cheat{
+namespace event{
 
   DEFINE_ART_MODULE(EventCheater);
 
