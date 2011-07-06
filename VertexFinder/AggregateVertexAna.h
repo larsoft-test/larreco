@@ -1,6 +1,12 @@
+///////////////////////////////////////////////////////////////////////
+/// \file    AggregateVertexAna.h
+/// \brief   
+/// \author  echurch@fnal.gov
+/// \version $Id: GeometryTest.h,v 1.1 2011/02/17 01:45:48 brebel Exp $
+///////////////////////////////////////////////////////////////////////
 
-#ifndef AGGREGATEVTXANA_H
-#define AGGREGATEVTXANA_H
+#ifndef VERTEX_AGGREGATEVERTEXANA_H
+#define VERTEX_AGGREGATEVERTEXANA_H
 
 // Framework includes
 #include "art/Framework/Core/EDAnalyzer.h"
@@ -17,9 +23,7 @@
 
 namespace vertex {
 
-
-  class AggregateVertexAna : public art::EDAnalyzer 
-  {
+  class AggregateVertexAna : public art::EDAnalyzer {
 
   public:
 

@@ -41,7 +41,18 @@ namespace vertex {
   {
     produces< std::vector<recob::Vertex> >();
   }
+  
+  //-----------------------------------------------
+  AggregateVertex::~AggregateVertex()
+  {
+  }
 
+  //-----------------------------------------------
+  void AggregateVertex::beginJob()
+  {
+  }
+
+  //-----------------------------------------------
   void AggregateVertex::produce(art::Event& evt) 
   {
 

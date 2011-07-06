@@ -44,6 +44,11 @@ namespace vertex{
   }
 
   //-----------------------------------------------
+  AggregateVertexAna::~AggregateVertexAna()
+  {
+  }
+
+  //-----------------------------------------------
   void AggregateVertexAna::beginJob()
   {
     art::ServiceHandle<art::TFileService> tfs;
@@ -52,7 +57,6 @@ namespace vertex{
     HVtxSep   = tfs->make<TH1F>("Vertices spacing","Vertices spacing",20,0.001,5.0);
     HVtxRZ    = tfs->make<TH2F>("Vtx in RZ","Vtx in RZ",20,-50.0,+50.0,20,0.0,50.0);
     HnTrksVtx = tfs->make<TH1F>("Tracks per vtx","Tracks per vtx",8,-0.5,7.5);
-
 
     return;
   }
