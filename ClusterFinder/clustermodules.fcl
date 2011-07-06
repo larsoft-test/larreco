@@ -1,12 +1,12 @@
 BEGIN_PROLOG
 
-argoneut_dbcluster:
+standard_dbcluster:
 {
  module_type:     "DBcluster"
  HitsModuleLabel: "ffthit"
 }
 
-argoneut_dbclusterana:
+standard_dbclusterana:
 { 
  module_type:              "DBclusterAna"
  DigitModuleLabel:         "daq"
@@ -17,7 +17,7 @@ argoneut_dbclusterana:
  ClusterFinderModuleLabel: "dbcluster"
 }
 
-argoneut_houghlinefinder:
+standard_houghlinefinder:
 {
  module_type:          "HoughLineFinder"
  DBScanModuleLabel:    "dbcluster"
@@ -33,7 +33,7 @@ argoneut_houghlinefinder:
  HitsPerCluster:       1
 }
 
-argoneut_houghlinefinderana:
+standard_houghlinefinderana:
 {
  module_type:         "HoughLineFinderAna"
  DigitModuleLabel:    "wiresim"
@@ -42,96 +42,33 @@ argoneut_houghlinefinderana:
  HoughModuleLabel:    "hough"
 }
 
-argoneut_houghlinemod:
+standard_houghlinemod:
 {
  module_type:          "HoughLineModule"
  DBScanModuleLabel:    "dbcluster"
 }
 
-argoneut_linemerger:
+standard_linemerger:
 {
  module_type:        "LineMerger"
  ClusterModuleLabel: "hough"
- Slope:              .35
+ Slope:              0.35
  EndpointWindow:     50.
 }
 
-argoneut_endpointmod:
+standard_endpointmod:
 {
  module_type:       "EndPointModule"
  DBScanModuleLabel: "dbcluster"
 }
 
-microboone_dbcluster:
-{
- module_type:     "DBcluster"
- HitsModuleLabel: "ffthit"
-}
-
-microboone_dbclusterana:
-{ 
- module_type:              "DBclusterAna"
- DigitModuleLabel:         "daq"
- HitsModuleLabel:          "ffthit"
- LArGeantModuleLabel:      "largeant"
- CalDataModuleLabel:       "caldataCal"
- GenieGenModuleLabel:      "singlegen"
- ClusterFinderModuleLabel: "dbcluster"
-}
-
-microboone_houghlinefinder:
-{
- module_type:          "HoughLineFinder"
- DBScanModuleLabel:    "dbcluster"
- MaxLines:             5
- MinHits:              3
- SaveAccumulator:      0
- NumAngleCells:        5000
- RhoResolutionFactor:  5
- SmootherSigma:        0.
- MaxDistance:          5.
- RhoZeroOutRange:      0
- ThetaZeroOutRange:    0
- HitsPerCluster:       1
-}
-
-microboone_houghlinefinderana:
-{
- module_type:         "HoughLineFinderAna"
- DigitModuleLabel:    "wiresim"
- HitsModuleLabel:     "ffthit"
- DBScanModuleLabel:   "dbcluster"
- HoughModuleLabel:    "hough"
-}
-
-microboone_houghlinemod:
-{
- module_type:          "HoughLineModule"
- DBScanModuleLabel:    "dbcluster"
-}
-
-microboone_linemerger:
-{
- module_type:        "LineMerger"
- ClusterModuleLabel: "hough"
- Slope:              1.5
- EndpointWindow:     50.
-}
- 
-
-microboone_endpointmod:
-{
- module_type:       "EndPointModule"
- DBScanModuleLabel: "dbcluster"
-}
-
-argoneut_kingacluster:
+standard_kingacluster:
 {
  module_type:          "KingaCluster"
  DBScanModuleLabel:    "dbcluster"
 }
 
-argoneut_kingaclusterana:
+standard_kingaclusterana:
 { 
  module_type:              "KingaClusterAna"
  GenieGenModuleLabel:      "generator"
@@ -140,4 +77,35 @@ argoneut_kingaclusterana:
  ClusterFinderModuleLabel: "dbcluster"
  KingaModuleLabel:         "kingacluster"
 }
+
+argoneut_dbcluster:          @local::standard_dbcluster
+argoneut_dbclusterana:       @local::standard_dbclusterana
+argoneut_kingacluster:       @local::standard_kingacluster
+argoneut_kingaclusterana:    @local::standard_kingaclusterana
+argoneut_houghlinefinder:    @local::standard_houghlinefinder
+argoneut_houghlinefinderana: @local::standard_houghlinefinderana
+argoneut_houghlinemod:       @local::standard_houghlinemod
+argoneut_linemerger:         @local::standard_linemerger
+argoneut_endpointmod:        @local::standard_endpointmod
+
+microboone_dbcluster:          @local::standard_dbcluster
+microboone_dbclusterana:       @local::standard_dbclusterana
+microboone_kingacluster:       @local::standard_kingacluster
+microboone_kingaclusterana:    @local::standard_kingaclusterana
+microboone_houghlinefinder:    @local::standard_houghlinefinder
+microboone_houghlinefinderana: @local::standard_houghlinefinderana
+microboone_houghlinemod:       @local::standard_houghlinemod
+microboone_linemerger:         @local::standard_linemerger
+microboone_endpointmod:        @local::standard_endpointmod
+
+lbne_dbcluster:          @local::standard_dbcluster
+lbne_dbclusterana:       @local::standard_dbclusterana
+lbne_kingacluster:       @local::standard_kingacluster
+lbne_kingaclusterana:    @local::standard_kingaclusterana
+lbne_houghlinefinder:    @local::standard_houghlinefinder
+lbne_houghlinefinderana: @local::standard_houghlinefinderana
+lbne_houghlinemod:       @local::standard_houghlinemod
+lbne_linemerger:         @local::standard_linemerger
+lbne_endpointmod:        @local::standard_endpointmod
+
 END_PROLOG
