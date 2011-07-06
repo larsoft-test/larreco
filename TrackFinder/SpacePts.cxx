@@ -210,7 +210,7 @@ void trkf::SpacePts::produce(art::Event& evt)
      
       
       int np=0;
-      for(art::PtrVectorItr<recob::Hit> theHit = hitlist.begin(); theHit != hitlist.end();  theHit++) //loop over cluster hits
+      for(art::PtrVector<recob::Hit>::const_iterator theHit = hitlist.begin(); theHit != hitlist.end();  theHit++) //loop over cluster hits
       {
          //recover the Hit
          //      recob::Hit* theHit = (recob::Hit*)(*hitIter);

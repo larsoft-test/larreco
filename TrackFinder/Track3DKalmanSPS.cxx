@@ -282,13 +282,13 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
       // loop over tracks is obsolesced here in SPS. Instead, loop over clusters.
       // Take its hits, call makeSpacePoints(), out of which we'll get our spacepoints.
 
-      for (art::PtrVectorItr<recob::Cluster> iclus = clusterIn.begin();
+      for (art::PtrVector<recob::Cluster>::const_iterator iclus = clusterIn.begin();
 	   iclus != clusterIn.end(); ++iclus)
 	{
-	  for (art::PtrVectorItr<recob::Cluster> jclus = iclus+1;
+	  for (art::PtrVector<recob::Cluster>::const_iterator jclus = iclus+1;
 	       jclus != clusterIn.end(); ++jclus)
 	    {
-	      for (art::PtrVectorItr<recob::Cluster> kclus = jclus+1;
+	      for (art::PtrVector<recob::Cluster>::const_iterator kclus = jclus+1;
 		   kclus != clusterIn.end(); ++kclus)
 		{
 		  spacepoints.clear();
@@ -304,15 +304,15 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  hitsj = (*jclus)->Hits();
 		  hitsk = (*kclus)->Hits();
 		  
-		  for (art::PtrVectorItr<recob::Hit> ihit = hitsi.begin(); ihit != hitsi.end(); ++ihit)
+		  for (art::PtrVector<recob::Hit>::const_iterator ihit = hitsi.begin(); ihit != hitsi.end(); ++ihit)
 		    {
 		      hits.push_back(*ihit);
 		    }
-		  for (art::PtrVectorItr<recob::Hit> ihit = hitsj.begin(); ihit != hitsj.end(); ++ihit)
+		  for (art::PtrVector<recob::Hit>::const_iterator ihit = hitsj.begin(); ihit != hitsj.end(); ++ihit)
 		    {
 		      hits.push_back(*ihit);
 		    }
-		  for (art::PtrVectorItr<recob::Hit> ihit = hitsk.begin(); ihit != hitsk.end(); ++ihit)
+		  for (art::PtrVector<recob::Hit>::const_iterator ihit = hitsk.begin(); ihit != hitsk.end(); ++ihit)
 		    {
 		      hits.push_back(*ihit);
 		    }

@@ -93,7 +93,7 @@ void trkf::LArTracker::produce(art::Event& evt)
      art::PtrVector<recob::Cluster> clusters;//create a vector for clusters associated with the track we create
      std::vector<recob::SpacePoint> spacepoints;//create a vector for spacepoints we may find within this cluster.
 
-     for(art::PtrVectorItr<recob::Hit> hit1 = hits1.begin(); hit1 != hits1.end();  hit1++) //loop over cluster #1 hits
+     for(art::PtrVector<recob::Hit>::const_iterator hit1 = hits1.begin(); hit1 != hits1.end();  hit1++) //loop over cluster #1 hits
      {
         if(FindHit(spacepoints,*hit1)) continue;//this hit already associated with a spacepoint
 
@@ -121,7 +121,7 @@ void trkf::LArTracker::produce(art::Event& evt)
            
            art::PtrVector<recob::Hit> hits2 = cl2->Hits();
            
-           for(art::PtrVectorItr<recob::Hit> hit2 = hits2.begin(); hit2 != hits2.end();  hit2++) //loop over cluster #2 hits
+           for(art::PtrVector<recob::Hit>::const_iterator hit2 = hits2.begin(); hit2 != hits2.end();  hit2++) //loop over cluster #2 hits
            {
 
               if(FindHit(spacepoints,*hit2)) continue;
@@ -256,8 +256,8 @@ bool trkf::LArTracker::ClusterEndPointsMatch(art::Ptr<recob::Cluster> c1, art::P
 //------------------------------------------------------------------------------------//
 bool trkf::LArTracker::MultiPlane(art::PtrVector<recob::Hit> hitList)
 { 
-   for(art::PtrVectorItr<recob::Hit> hit = hitList.begin(); hit != hitList.end(); hit++){
-      for(art::PtrVectorItr<recob::Hit> hit1 = hitList.begin()+1; hit1 != hitList.end(); hit1++){
+  for(art::PtrVector<recob::Hit>::const_iterator hit = hitList.begin(); hit != hitList.end(); hit++){
+    for(art::PtrVector<recob::Hit>::const_iterator hit1 = hitList.begin()+1; hit1 != hitList.end(); hit1++){
          if((*hit)->View() != (*hit1)->View() ) return true;
       }
       return false;
@@ -269,8 +269,8 @@ bool trkf::LArTracker::MultiPlane(art::PtrVector<recob::Hit> hitList)
 //------------------------------------------------------------------------------------//
 bool trkf::LArTracker::MultiPlane(art::PtrVector<recob::Cluster> clusterList)
 { 
-   for(art::PtrVectorItr<recob::Cluster> cluster = clusterList.begin(); cluster != clusterList.end(); cluster++){
-      for(art::PtrVectorItr<recob::Cluster> cluster1 = clusterList.begin()+1; cluster1 != clusterList.end(); cluster1++){
+  for(art::PtrVector<recob::Cluster>::const_iterator cluster = clusterList.begin(); cluster != clusterList.end(); cluster++){
+    for(art::PtrVector<recob::Cluster>::const_iterator cluster1 = clusterList.begin()+1; cluster1 != clusterList.end(); cluster1++){
          if((*cluster)->View() != (*cluster1)->View()) return true;
       }
       return false;
@@ -282,7 +282,7 @@ bool trkf::LArTracker::MultiPlane(art::PtrVector<recob::Cluster> clusterList)
 //------------------------------------------------------------------------------------//
 bool trkf::LArTracker::FindCluster(art::PtrVector<recob::Cluster> clusterList, art::Ptr<recob::Cluster> c)
 { 
-   for(art::PtrVectorItr<recob::Cluster> cluster = clusterList.begin(); cluster != clusterList.end(); cluster++){
+  for(art::PtrVector<recob::Cluster>::const_iterator cluster = clusterList.begin(); cluster != clusterList.end(); cluster++){
       if( ((*cluster)->View()==c->View()) && ((*cluster)->ID()==c->ID()) ) return true;
    }
 
@@ -292,7 +292,7 @@ bool trkf::LArTracker::FindCluster(art::PtrVector<recob::Cluster> clusterList, a
 //------------------------------------------------------------------------------------//
 bool trkf::LArTracker::FindHit(art::PtrVector<recob::Hit> hitList, art::Ptr<recob::Hit> h)
 { 
-   for(art::PtrVectorItr<recob::Hit> hit = hitList.begin(); hit != hitList.end(); hit++){
+  for(art::PtrVector<recob::Hit>::const_iterator hit = hitList.begin(); hit != hitList.end(); hit++){
       if( ((*hit)->Channel()==h->Channel()) && ((*hit)->PeakTime() == h->PeakTime())) return true;
    }
 

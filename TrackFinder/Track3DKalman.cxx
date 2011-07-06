@@ -280,7 +280,7 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 
 	} // !isRealData
       
-      art::PtrVectorItr<recob::Track> trackIter = trackIn.begin();
+      art::PtrVector<recob::Track>::const_iterator trackIter = trackIn.begin();
       
       nTrks=0;
     while(trackIter!=trackIn.end()) 
@@ -443,13 +443,13 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 		art::PtrVector<recob::Cluster> clusters;
 		clusters.clear();
 		
-		art::PtrVectorItr<recob::Cluster> IclusterIter = Icluster.begin();
+		art::PtrVector<recob::Cluster>::const_iterator IclusterIter = Icluster.begin();
 		while(IclusterIter!= Icluster.end() ){
 		  clusters.push_back(*IclusterIter);
 		  IclusterIter++;
 		}
 		
-		art::PtrVectorItr<recob::Cluster> CclusterIter = Ccluster.begin();
+		art::PtrVector<recob::Cluster>::const_iterator CclusterIter = Ccluster.begin();
 		while(CclusterIter!= Ccluster.end() ){
 		  clusters.push_back(*CclusterIter);
 		  CclusterIter++;

@@ -175,7 +175,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
       
       int np=0;
       //loop over cluster hits
-      for(art::PtrVectorItr<recob::Hit> theHit = hitlist.begin(); theHit != hitlist.end();  theHit++) 
+      for(art::PtrVector<recob::Hit>::const_iterator theHit = hitlist.begin(); theHit != hitlist.end();  theHit++) 
       {
          //recover the Hit
          //      recob::Hit* theHit = (recob::Hit*)(*hitIter);
