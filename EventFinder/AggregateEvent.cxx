@@ -57,6 +57,10 @@ namespace event {
   {
   }
 
+  //-------------------------------------------------
+  void AggregateEvent::beginJob()
+  {
+  }
 
   //------------------------------------------------------------------------------------//
   void AggregateEvent::produce(art::Event& evt)
