@@ -169,7 +169,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
   for(unsigned int t = 0; t < geom->NTPC(); ++t){
     for(unsigned int p = 0; p < geom->Nplanes(t); p++) {
       art::PtrVector<recob::Hit> vHits;
-      art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
+      art::PtrVector<recob::Cluster>::const_iterator clusterIter = clusIn.begin();
       geo::View_t view = geom->Plane(p,t).View();
       hit.clear();
       cHits.clear();      

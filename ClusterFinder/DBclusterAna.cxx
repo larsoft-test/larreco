@@ -306,7 +306,7 @@ art::fill_ptr_vector(hits, hitListHandle);
   if(clusters.size()!=0 && hits.size()!=0){
     for(unsigned int plane=0;plane<geom->Nplanes();++plane){
       geo::View_t view = geom->Plane(plane).View();
-      //art::PtrVectorItr<recob::Cluster> clusterIter = clusters.begin();      
+      //art::PtrVector<recob::Cluster>::const_iterator clusterIter = clusters.begin();      
       for(unsigned int j=0; j<clusters.size();++j) 
 	{
 	 
@@ -1105,7 +1105,7 @@ art::fill_ptr_vector(hits, hitListHandle);
 // 
 //   //loop through all wires:
 // 	  
-//   for(art::PtrVectorItr<recob::Wire> wireIter2 = wirelist.begin();
+//   for(art::PtrVector<recob::Wire>::const_iterator wireIter2 = wirelist.begin();
 //       wireIter2 != wirelist.end();  wireIter2++) // {
 // // 	    
 // 	    

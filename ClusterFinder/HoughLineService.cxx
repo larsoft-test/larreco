@@ -220,7 +220,7 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 
   for(size_t t = 0; t < geom->NTPC(); ++t){
     for(unsigned int p = 0; p < geom->Nplanes(t); ++p) {
-      art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
+      art::PtrVector<recob::Cluster>::const_iterator clusterIter = clusIn.begin();
       int clusterID=0;//the unique ID of the cluster
       // This is the loop over clusters. The algorithm searches for lines on a 
       // (DBSCAN) cluster-by-cluster basis. 
@@ -239,7 +239,7 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 	      cHits = (*clusterIter)->Hits();
 	      if(cHits.size() > 0){
 		// hit.insert(hit.end(),cHits.begin(),cHits.end());
-		art::PtrVectorItr<recob::Hit> hitIter = cHits.begin();
+		art::PtrVector<recob::Hit>::const_iterator hitIter = cHits.begin();
 		while (hitIter!=cHits.end()){
 		  hit.push_back((*hitIter));
 		  hitIter++;

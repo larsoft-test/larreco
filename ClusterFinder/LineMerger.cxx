@@ -103,7 +103,7 @@ namespace cluster{
     for(int i = 0; i<nplanes; ++i){
       int clustersfound = 0;//how many merged clusters found in each plane
       int clsnum1 = 0;
-      for(art::PtrVectorItr<recob::Cluster> clusIter1 = Cls[i].begin(); clusIter1!=Cls[i].end();++clusIter1){
+      for(art::PtrVector<recob::Cluster>::const_iterator clusIter1 = Cls[i].begin(); clusIter1!=Cls[i].end();++clusIter1){
 	art::Ptr<recob::Cluster> cl1 = *clusIter1;
 	if(Cls_matches[i][clsnum1]==1){
 	  clsnum1++;
@@ -116,7 +116,7 @@ namespace cluster{
 	// recob::Cluster SCl= SuperClusters->back(); //spitz commented this out and moved it inside the for loop.
 	
 	int clsnum2 = 0;
-	for(art::PtrVectorItr<recob::Cluster> clusIter2 = Cls[i].begin(); clusIter2!=Cls[i].end();++clusIter2){
+	for(art::PtrVector<recob::Cluster>::const_iterator clusIter2 = Cls[i].begin(); clusIter2!=Cls[i].end();++clusIter2){
 	  art::Ptr<recob::Cluster> cl2 = *clusIter2;
 	  recob::Cluster SCl= SuperClusters->back(); //spitz moved this inside the for loop.
 	  if(Cls_matches[i][clsnum2]==1){
