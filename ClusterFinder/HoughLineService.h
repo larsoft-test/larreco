@@ -83,7 +83,7 @@ namespace cluster {
 		     double &slope,
 		     double &intercept);
 
-    void reconfigure(fhicl::ParameterSet pset);
+    void reconfigure(fhicl::ParameterSet const& pset);
           
   private:
   

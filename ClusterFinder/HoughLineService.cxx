@@ -57,7 +57,7 @@ cluster::HoughLineService::~HoughLineService()
 }
 
 //------------------------------------------------------------------------------
-void cluster::HoughLineService::reconfigure(fhicl::ParameterSet pset)
+void cluster::HoughLineService::reconfigure(fhicl::ParameterSet const& pset)
 {
   fMaxLines            = pset.get< int    >("MaxLines"           );
   fMinHits             = pset.get< int    >("MinHits"            );

@@ -52,10 +52,9 @@ cluster::DBcluster::~DBcluster()
 }
 
 //-------------------------------------------------
-void cluster::DBcluster::reconfigure(fhicl::ParameterSet p)
+void cluster::DBcluster::reconfigure(fhicl::ParameterSet const& p)
 {
   fhitsModuleLabel=p.get< std::string >("HitsModuleLabel");
-
 }
 
 //-------------------------------------------------

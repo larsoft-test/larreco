@@ -46,7 +46,7 @@ cluster::DBScanService::~DBScanService()
 }
 
 //----------------------------------------------------------
-void cluster::DBScanService::reconfigure(fhicl::ParameterSet p)
+void cluster::DBScanService::reconfigure(fhicl::ParameterSet const& p)
 {
   fEps    = p.get< double >("eps");
   fEps2   = p.get< double >("epstwo");

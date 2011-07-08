@@ -43,7 +43,7 @@ namespace cluster{
   }
 
   //--------------------------------------------------------------------
-  void ClusterCheater::reconfigure(fhicl::ParameterSet pset)
+  void ClusterCheater::reconfigure(fhicl::ParameterSet const& pset)
   {
     fHitModuleLabel    = pset.get< std::string >("HitModuleLabel",    "ffthit"  );
     fG4ModuleLabel     = pset.get< std::string >("G4ModuleLabel",     "largeant");
