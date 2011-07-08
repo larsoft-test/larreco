@@ -41,7 +41,7 @@ namespace event{
   }
 
   //--------------------------------------------------------------------
-  void EventCheater::reconfigure(fhicl::ParameterSet pset)
+  void EventCheater::reconfigure(fhicl::ParameterSet const& pset)
   {
     fCheatedVertexLabel = pset.get< std::string >("CheatedVertexLabel", "prong" );
     fG4ModuleLabel      = pset.get< std::string >("G4ModuleLabel",      "largeant");
