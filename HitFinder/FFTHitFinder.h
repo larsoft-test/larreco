@@ -18,7 +18,7 @@ namespace hit {
     void produce(art::Event& evt); 
     void beginJob(); 
     void endJob(); 
-    void reconfigure(fhicl::ParameterSet p);                
+    void reconfigure(fhicl::ParameterSet const& p);                
 
   private:
         

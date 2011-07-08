@@ -51,7 +51,7 @@ namespace hit{
   }
   
   //-------------------------------------------------
-  void FFTHitFinder::reconfigure(fhicl::ParameterSet p)
+  void FFTHitFinder::reconfigure(fhicl::ParameterSet const& p)
   {
     fCalDataModuleLabel = p.get< std::string  >("CalDataModuleLabel");
     fMinSigInd          = p.get< double       >("MinSigInd");
