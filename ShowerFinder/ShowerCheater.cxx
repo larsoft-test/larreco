@@ -41,7 +41,7 @@ namespace shwf{
   }
 
   //--------------------------------------------------------------------
-  void ShowerCheater::reconfigure(fhicl::ParameterSet pset)
+  void ShowerCheater::reconfigure(fhicl::ParameterSet const& pset)
   {
     fCheatedClusterLabel = pset.get< std::string >("CheatedClusterLabel", "cluster" );
     fG4ModuleLabel       = pset.get< std::string >("G4ModuleLabel",       "largeant");

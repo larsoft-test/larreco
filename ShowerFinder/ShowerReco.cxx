@@ -56,7 +56,7 @@ shwf::ShowerReco::ShowerReco(fhicl::ParameterSet const& pset)
   produces< std::vector<recob::Shower> >();
 }
 
-void shwf::ShowerReco::reconfigure(fhicl::ParameterSet pset) 
+void shwf::ShowerReco::reconfigure(fhicl::ParameterSet const& pset) 
 {
   fClusterModuleLabel = pset.get< std::string >("ClusterModuleLabel");
   fShwrOutput = pset.get< std::string >("ShowerOutputTxtFile");

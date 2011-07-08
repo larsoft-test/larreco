@@ -34,7 +34,7 @@ namespace shwf {
     explicit ShowerReco(fhicl::ParameterSet const& pset);/**Constructor*/
     virtual ~ShowerReco();                               /**Destructor*/
     void beginJob();                                     
-    void reconfigure(fhicl::ParameterSet pset);
+    void reconfigure(fhicl::ParameterSet const& pset);
     void produce(art::Event& evt);                       /**Actual routine that reconstruct the shower*/
    
     int    Get3Daxis(float thetaI, float thetaC, float Wire_vertexI, float Wire_vertexC, float Time_vertex); // in rad
