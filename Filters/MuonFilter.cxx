@@ -51,7 +51,7 @@ namespace filt{
   }
 
   //------------------------------------------------
-  void MuonFilter::reconfigure(fhicl::ParameterSet p)
+  void MuonFilter::reconfigure(fhicl::ParameterSet const& p)
   {
     fClusterModuleLabel = p.get< std::string  >("ClusterModuleLabel");
     fLineModuleLabel    = p.get< std::string  >("LineModuleLabel");

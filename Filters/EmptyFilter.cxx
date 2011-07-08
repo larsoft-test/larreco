@@ -46,13 +46,15 @@ namespace filt{
   {
   }
   
-  void EmptyFilter::reconfigure(fhicl::ParameterSet p)
+  //-------------------------------------------------
+  void EmptyFilter::reconfigure(fhicl::ParameterSet const& p)
   {
     fHitsModuleLabel = p.get< std::string > ("HitsModuleLabel"); 
     fMinIonization =   p.get< double      > ("MinIonization"); 
     fMinNumHits =      p.get< int         > ("MinHits");        
   } 
 
+  //-------------------------------------------------
   void EmptyFilter::beginJob()
   {
     art::ServiceHandle<art::TFileService> tfs;

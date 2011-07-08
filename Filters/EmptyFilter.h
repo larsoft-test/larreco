@@ -26,7 +26,7 @@ namespace filt {
          
     
     bool filter(art::Event& evt);
-    void reconfigure(fhicl::ParameterSet p);
+    void reconfigure(fhicl::ParameterSet const& p);
     void beginJob();
    
 
