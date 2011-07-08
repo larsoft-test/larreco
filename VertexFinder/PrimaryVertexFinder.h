@@ -27,7 +27,7 @@ namespace vertex {
     explicit PrimaryVertexFinder(fhicl::ParameterSet const& pset); 
     virtual ~PrimaryVertexFinder();        
     void beginJob();
-    void reconfigure(fhicl::ParameterSet p);
+    void reconfigure(fhicl::ParameterSet const& p);
 
     
     void produce(art::Event& evt);

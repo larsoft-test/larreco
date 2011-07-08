@@ -41,7 +41,7 @@ namespace vertex{
   }
 
   //--------------------------------------------------------------------
-  void VertexCheater::reconfigure(fhicl::ParameterSet pset)
+  void VertexCheater::reconfigure(fhicl::ParameterSet const& pset)
   {
     fCheatedTrackLabel  = pset.get< std::string >("CheatedTrackLabel",  "track"   );
     fCheatedShowerLabel = pset.get< std::string >("CheatedShowerLabel", "shower"  );

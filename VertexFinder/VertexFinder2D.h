@@ -26,7 +26,7 @@ namespace vertex {
     explicit VertexFinder2D(fhicl::ParameterSet const& pset); 
     virtual ~VertexFinder2D();        
     void beginJob();
-    void reconfigure(fhicl::ParameterSet p);
+    void reconfigure(fhicl::ParameterSet const& p);
 
     
     void produce(art::Event& evt);

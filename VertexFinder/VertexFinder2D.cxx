@@ -62,7 +62,7 @@ namespace vertex{
   }
 
   //---------------------------------------------------------------------------
-  void VertexFinder2D::reconfigure(fhicl::ParameterSet p) 
+  void VertexFinder2D::reconfigure(fhicl::ParameterSet const& p) 
   {
     fClusterModuleLabel  = p.get< std::string >("ClusterModuleLabel");
     return;
