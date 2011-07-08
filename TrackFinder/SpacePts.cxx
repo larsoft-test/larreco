@@ -7,8 +7,6 @@
 // C++ includes
 #include <math.h>
 #include <algorithm>
-#include <iostream>
-#include <fstream>
 
 // Framework includes
 #include "art/Framework/Core/Event.h" 
@@ -31,8 +29,6 @@
 
 // ROOT includes
 #include "TVectorD.h"
-#include "TF1.h"
-#include "TGraph.h"
 #include "TMath.h"
 
 namespace trkf {
@@ -291,7 +287,13 @@ void trkf::SpacePts::produce(art::Event& evt)
          double It0 = Itimefirsts[inductionIter];
          double It1 = Itimelasts[inductionIter];
          art::PtrVector<recob::Hit> hitsItrk = IclusHitlists[inductionIter];
-
+         //if original order doesn't work and the reversed does, switch the order of one
+         if(!((fabs(Ct0-It0)<ftmatch*timepitch) && (fabs(Ct1-It1)<ftmatch*timepitch)) && ((fabs(Ct0-It1)<ftmatch*timepitch) && (fabs(Ct1-It0)<ftmatch*timepitch))) 
+	   {
+	     double temp = It1;
+	     It1=It0;
+	     It0=temp;
+	   }
 	 // My 1000s below. EC, 11-Apr-2011
          if((fabs(Ct0-It0)<ftmatch*timepitch) && (fabs(Ct1-It1)<ftmatch*timepitch)){ 
             //std::cout<<"-----> Track "<<collectionIter<< " Collection associated with track "<<inductionIter<< " Induction"<<std::endl;
