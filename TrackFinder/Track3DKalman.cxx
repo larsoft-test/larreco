@@ -79,7 +79,7 @@ trkf::Track3DKalman::Track3DKalman(fhicl::ParameterSet const& pset)
     produces< std::vector<recob::Track> >();
 }
 
-void trkf::Track3DKalman::reconfigure(fhicl::ParameterSet pset) 
+void trkf::Track3DKalman::reconfigure(fhicl::ParameterSet const& pset) 
   {
 
     fSpacePtsModuleLabel   = pset.get< std::string >("SpacePtsModuleLabel");

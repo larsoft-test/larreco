@@ -24,7 +24,7 @@ namespace trkf {
     ~Track3Dreco();
     
     //////////////////////////////////////////////////////////
-    void reconfigure(fhicl::ParameterSet p);
+    void reconfigure(fhicl::ParameterSet const& p);
     void produce(art::Event& evt); 
     void beginJob();
     void endJob();

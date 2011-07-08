@@ -53,13 +53,13 @@ trkf::Track3Dreco::~Track3Dreco()
 {
 }
 
-void trkf::Track3Dreco::reconfigure(fhicl::ParameterSet pset)
+void trkf::Track3Dreco::reconfigure(fhicl::ParameterSet const& pset)
 {
-
   fClusterModuleLabel     = pset.get< std::string >("ClusterModuleLabel");
   ftmatch                 = pset.get< int    >("TMatch");
   fchi2dof                = pset.get< double >("Chi2DOFmax");
 }
+
 //-------------------------------------------------
 void trkf::Track3Dreco::beginJob()
 {

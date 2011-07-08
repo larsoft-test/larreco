@@ -79,7 +79,7 @@ trkf::Track3DKalmanSPS::Track3DKalmanSPS(fhicl::ParameterSet const& pset)
     }
 }
 
-void trkf::Track3DKalmanSPS::reconfigure(fhicl::ParameterSet pset) 
+void trkf::Track3DKalmanSPS::reconfigure(fhicl::ParameterSet const& pset) 
   {
 
     fClusterModuleLabel   = pset.get< std::string >("ClusterModuleLabel");

@@ -41,7 +41,7 @@ namespace trkf{
   }
 
   //--------------------------------------------------------------------
-  void TrackCheater::reconfigure(fhicl::ParameterSet pset)
+  void TrackCheater::reconfigure(fhicl::ParameterSet const& pset)
   {
     fCheatedClusterLabel = pset.get< std::string >("CheatedClusterLabel", "cluster" );
     fG4ModuleLabel       = pset.get< std::string >("G4ModuleLabel",       "largeant");

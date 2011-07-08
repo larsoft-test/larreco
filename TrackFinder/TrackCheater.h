@@ -18,7 +18,7 @@ namespace trkf {
 
     void produce(art::Event& evt);
 
-    void reconfigure(fhicl::ParameterSet pset);
+    void reconfigure(fhicl::ParameterSet const& pset);
 
  private:
 

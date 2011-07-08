@@ -59,7 +59,7 @@ trkf::SpacePts::~SpacePts()
 {
 }
 
-void trkf::SpacePts::reconfigure(fhicl::ParameterSet pset) 
+void trkf::SpacePts::reconfigure(fhicl::ParameterSet const& pset) 
 {
   fPreSamplings           = pset.get< double >("TicksOffset");
   ftmatch                 = pset.get< int    >("TMatch");
