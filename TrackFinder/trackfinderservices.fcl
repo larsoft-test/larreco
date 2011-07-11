@@ -27,9 +27,9 @@ microboone_spacepointservice:
   MClabel: daq
   MaxDT: 25.
   MaxS:  2.
-  TimeOffsetU: -90.
-  TimeOffsetV: -81.
-  TimeOffsetW: -72.
+  TimeOffsetU: -28.7
+  TimeOffsetV: -37.7
+  TimeOffsetW: -46.7
   MinViews: 3
   EnableU: true
   EnableV: true
