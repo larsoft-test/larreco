@@ -1,6 +1,6 @@
 BEGIN_PROLOG
 
-argoneut_hitfinder:
+standard_hitfinder:
 {
  module_type:         "FFTHitFinder"
  CalDataModuleLabel:  "caldata"      #Induction signal height threshold 
@@ -8,31 +8,14 @@ argoneut_hitfinder:
  MinSigCol:            11.0          #Initial width for induction fit
  IndWidth:             6.0           #Iitial width for induction fit
  ColWidth:             7.8           #Initial width for collection fit
+ MinWidth:             4.0           #Hit width threshold
  MaxMultiHit:          3             #maximum hits for multi fit   
 }
 
-#microboone version is same as argoneut for now
-microboone_hitfinder:
-{
- module_type:         "FFTHitFinder"
- CalDataModuleLabel:  "caldata"      #Induction signal height threshold 
- MinSigInd:            6.0           #Collection signal height threshold 
- MinSigCol:            11.0          #Initial width for induction fit
- IndWidth:             5.0           #Iitial width for induction fit
- ColWidth:             7.5           #Initial width for collection fit
- MaxMultiHit:          3             #maximum hits for multi fit   
-}
+argoneut_hitfinder:   @local::standard_hitfinder
 
-#lbne version is same as argoneut for now
-lbne_hitfinder:
-{
- module_type:         "FFTHitFinder"
- CalDataModuleLabel:  "caldata"      #Induction signal height threshold 
- MinSigInd:            6.0           #Collection signal height threshold 
- MinSigCol:            11.0          #Initial width for induction fit
- IndWidth:             5.0           #Iitial width for induction fit
- ColWidth:             7.5           #Initial width for collection fit
- MaxMultiHit:          3             #maximum hits for multi fit   
-}
+microboone_hitfinder: @local::standard_hitfinder
+
+lbne_hitfinder:       @local::standard_hitfinder
 
 END_PROLOG

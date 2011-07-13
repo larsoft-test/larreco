@@ -57,7 +57,8 @@ namespace hit{
     fMinSigInd          = p.get< double       >("MinSigInd");
     fMinSigCol          = p.get< double       >("MinSigCol"); 
     fIndWidth           = p.get< double       >("IndWidth");  
-    fColWidth           = p.get< double       >("ColWidth");  	  	  
+    fColWidth           = p.get< double       >("ColWidth");
+    fMinWidth           = p.get< double       >("IndMinWidth");	  	  
     fMaxMultiHit        = p.get< int          >("MaxMultiHit");
   }  
   //-------------------------------------------------
@@ -161,6 +162,7 @@ namespace hit{
       double amplitude(0), position(0), width(0);  //fit parameters
       double amplitudeErr(0), positionErr(0), widthErr(0);  //fit errors
       double goodnessOfFit(0), chargeErr(0);  //Chi2/NDF and error on charge
+      double minPeakHeight(0);  //lowest peak height in multi-hit fit
      
       //stores gaussian paramters first index is the hit number
       //the second refers to height, position, and width respectively
@@ -176,20 +178,22 @@ namespace hit{
 	      && numHits+hitIndex < (signed)endTimes.size() 
 	      && signal[endTimes[hitIndex+numHits-1]] >threshold/2.0 
 	      && startTimes[hitIndex+numHits] - endTimes[hitIndex+numHits-1] < 2) 
-	  numHits++;
-
+	  {
+	    numHits++;
+            if(signal[maxTimes[hitIndex+numHits-1]] > minPeakHeight) 
+              minPeakHeight=signal[maxTimes[hitIndex+numHits-1]];
+          }
 	//finds the first point >0
 	startT=startTimes[hitIndex];
-	while(signal[(int)startT] < 0) startT++;
+	while(signal[(int)startT] < minPeakHeight/2.0) startT++;
 	//finds the first point from the end >0
 	endT=endTimes[hitIndex+numHits-1];
-	while(signal[(int)endT] <0) endT--;
+	while(signal[(int)endT] <minPeakHeight/2.0) endT--;
 	size = (int)(endT-startT);
 	TH1D hitSignal("hitSignal","",size,startT,endT);
 
 	for(int i = (int)startT; i < (int)endT; i++)
-	  hitSignal.Fill(i,signal[i]);
-	
+	  hitSignal.Fill(i,signal[i]);	
 
 	for(int i = 3; i < numHits*3; i+=3) {
 	  eqn.append("+gaus(");
@@ -240,7 +244,7 @@ namespace hit{
 	/// \todo - just get the integral from the fit for totSig
 	hitSignal.Fit(&gSum,"WQNR","", startT, endT);
 	for(int hitNumber = 0; hitNumber < numHits; hitNumber++) {
-	  if(gSum.GetParameter(3*hitNumber) > threshold/2.0) { 
+	  if(gSum.GetParameter(3*hitNumber) > threshold/2.0 || gSum.GetParameter(3*hitNumber+2) > fMinWidth) { 
 	    amplitude = gSum.GetParameter(3*hitNumber);
 	    position = gSum.GetParameter(3*hitNumber+1);
 	    width = gSum.GetParameter(3*hitNumber+2);

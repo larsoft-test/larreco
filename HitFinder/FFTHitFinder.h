@@ -27,6 +27,7 @@ namespace hit {
     double          fMinSigCol;     ///<Collection signal height threshold 
     double          fIndWidth;      ///<Initial width for induction fit
     double          fColWidth;      ///<Initial width for collection fit
+    double          fMinWidth;      ///<Minimum hit width
     int             fMaxMultiHit;   ///<maximum hits for multi fit   
   protected: 
     
