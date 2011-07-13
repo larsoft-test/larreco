@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////
-// $Id: HoughLineFinderAna.cxx,v 1.36 2010/09/15  bpage Exp $
+// $Id: HoughLineService.h,v 1.36 2010/09/15  bpage Exp $
 //
-// HoughLineFinderAna class
+// HoughLineService class
 //
 // josh
 //
@@ -11,7 +11,6 @@
 
 #include "TMath.h"
 #include <vector>
-#include <string>
 
 #include "art/Framework/Services/Registry/ActivityRegistry.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
@@ -95,10 +94,12 @@ namespace cluster {
     int    fSaveAccumulator;  //Save bitmap image of accumulator for debugging?
     int    fNumAngleCells;    //Number of angle cells in the accumulator (a measure of the angular resolution of the line finder). If this number is too large than the number of votes that fall into the "correct" bin will be small and consistent with noise.
     double fMaxDistance;
+    double fMaxSlope;
     int fRhoZeroOutRange;
     int fThetaZeroOutRange;
     int fRhoResolutionFactor;
     int fPerCluster;
+    int fMissedHits;
       
   protected:
 

@@ -3,21 +3,23 @@ BEGIN_PROLOG
  standard_dbscanservice:
  {
   eps:             1.0
-  epstwo:          1.0
+  epstwo:          1.5
   minPts:          2
  }
 
  standard_houghlineservice:
  {
-  MaxLines:             5
+  MaxLines:             15
   MinHits:              3
   SaveAccumulator:      0
   NumAngleCells:        5000
   RhoResolutionFactor:  5
-  MaxDistance:          5.
+  MaxDistance:          5.0
+  MaxSlope:             80.0
   RhoZeroOutRange:      0
   ThetaZeroOutRange:    0
   HitsPerCluster:       1
+  MissedHits:           1
  }
 
  standard_endpointservice:

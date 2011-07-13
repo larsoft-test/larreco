@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////
 //
-// HoughLineFinder class
+// HoughLineService class
 //
 // joshua.spitz@yale.edu
 //
@@ -17,10 +17,6 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 }
-// ROOT includes
-#include <TCanvas.h>
-#include "TDatabasePDG.h"
-#include "TSystem.h"
 
 #include <sstream>
 #include <fstream>
@@ -38,11 +34,11 @@ extern "C" {
 #include "art/Framework/Core/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
  
-#include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
-#include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
+#include "Utilities/LArProperties.h"
+#include "Utilities/DetectorProperties.h"
 
 
 //------------------------------------------------------------------------------
@@ -64,10 +60,12 @@ void cluster::HoughLineService::reconfigure(fhicl::ParameterSet const& pset)
   fSaveAccumulator     = pset.get< int    >("SaveAccumulator"    );
   fNumAngleCells       = pset.get< int    >("NumAngleCells"      );
   fMaxDistance         = pset.get< double >("MaxDistance"        );
+  fMaxSlope            = pset.get< double >("MaxSlope"           );
   fRhoZeroOutRange     = pset.get< int    >("RhoZeroOutRange"    );
   fThetaZeroOutRange   = pset.get< int    >("ThetaZeroOutRange"  );
   fRhoResolutionFactor = pset.get< int    >("RhoResolutionFactor");
   fPerCluster          = pset.get< int    >("HitsPerCluster"     );
+  fMissedHits          = pset.get< int    >("MissedHits"         );
 
   return;
 }
@@ -211,6 +209,8 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
   std::vector<int> skip;  
 
   art::ServiceHandle<geo::Geometry> geom;
+  art::ServiceHandle<util::LArProperties> larprop;
+  art::ServiceHandle<util::DetectorProperties> detprop;
   filter::ChannelFilter chanFilt;
   HoughTransform c;
 
@@ -238,7 +238,6 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 	    if( (*clusterIter)->View() == view ){
 	      cHits = (*clusterIter)->Hits();
 	      if(cHits.size() > 0){
-		// hit.insert(hit.end(),cHits.begin(),cHits.end());
 		art::PtrVector<recob::Hit>::const_iterator hitIter = cHits.begin();
 		while (hitIter!=cHits.end()){
 		  hit.push_back((*hitIter));
@@ -253,6 +252,8 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 	  if(fPerCluster) clusterIter++;
 	  continue;
 	}
+        //factor to make x and y scale the same units
+        double xyScale = .001*larprop->DriftVelocity(larprop->Efield(),larprop->Temperature())*detprop->SamplingRate()/geom->WirePitch(0,1,p,t);
 
 	int x, y;
 	unsigned int channel, plane, wire, tpc;
@@ -366,22 +367,13 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 	    for(unsigned int i=0;i<hit.size();i++){
 	      channel=hit[i]->Wire()->RawDigit()->Channel();
 	      geom->ChannelToWire(channel,tpc,plane,wire);
-	      // \todo: Note that there are 1/0.0743=13.46 time samples per 4.0 mm 
-	      //(wire pitch in ArgoNeuT), assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
-	      distance=(TMath::Abs(hit[i]->PeakTime()-slope*(double)(wire)-intercept)/(sqrt(pow(.0743*slope,2)+1)));
+	      distance=(TMath::Abs(hit[i]->PeakTime()-slope*(double)(wire)-intercept)/(sqrt(pow(xyScale*slope,2)+1)));
 	    
-	      // \todo: is there any reason to have 2 separate conditionals here, as they both do
-	      // \todo: the same thing, for the only 2 options available with fPerCluster
-	      if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling 
-		 && fPerCluster==1 && skip[i]!=1){
+	      if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling  && skip[i]!=1){
 		hitTemp.push_back(i);
 		sequenceHolder.push_back(channel);
 	      }
-	      else if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling 
-		      && fPerCluster==0 && skip[i]!=1){
-		hitTemp.push_back(i);
-		sequenceHolder.push_back(channel);
-	      }
+	     
 	    }// end loop over hits
 	    
 	    if(hitTemp.size() < 2) continue;
@@ -392,7 +384,7 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 	    for(unsigned int i=0;i+1<sequenceHolder.size();i++) {  
 	      j = 1;
 	      while((chanFilt.BadChannel(sequenceHolder[i]+j))==true) j++;
-	      if(sequenceHolder[i+1]-sequenceHolder[i]<=j+1) currentHits.push_back(i+1);
+	      if(sequenceHolder[i+1]-sequenceHolder[i]<=j+fMissedHits) currentHits.push_back(i+1);
 	      else if(currentHits.size() > lastHits.size()) {
 		lastHits = currentHits;
 		currentHits.clear();
@@ -407,7 +399,7 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 	      skip[hitTemp[lastHits[i]]]=1;
 	    } 
 	    //protection against very steep uncorrelated hits
-	    if(TMath::Abs(slope)>75. 
+	    if(TMath::Abs(slope)>fMaxSlope 
 	       && TMath::Abs((*clusterHits.begin())->Wire()->RawDigit()->Channel()-
 			     clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel())>=0
 	       )
@@ -415,12 +407,14 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 	    
 	    unsigned int sw = 0;
 	    unsigned int ew = 0;
-	    channel = (*clusterHits.begin())->Wire()->RawDigit()->Channel(); 
-	    geom->ChannelToWire(channel,tpc,plane,sw);
+            unsigned int sc = 0;
+            unsigned int ec = 0;
+	    sc = (*clusterHits.begin())->Wire()->RawDigit()->Channel(); 
+	    geom->ChannelToWire(sc,tpc,plane,sw);
 	    
 	  //there doesn't seem to be a std::vector::back() method to get the last element of the vector here
-	    channel = (clusterHits[clusterHits.size()-1])->Wire()->RawDigit()->Channel(); 
-	    geom->ChannelToWire(channel,tpc,plane,ew);
+	    ec = (*(clusterHits.end()-1))->Wire()->RawDigit()->Channel(); 
+	    geom->ChannelToWire(ec,tpc,plane,ew);
 	  
 	    recob::Cluster cluster(clusterHits,
 				   sw, 0.,
@@ -433,6 +427,14 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 	    
 	    clusterID++;
 	    ccol.push_back(cluster);
+            //allow double assignment of first and last hits
+            for(unsigned int i = 0; i < lastHits.size(); i++) if(skip[hitTemp[lastHits[i]]] ==1) 
+            {
+	      channel = hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();  
+              if( channel == sc || channel == ec) skip[i] = 0;
+            }
+    
+              
 	  }// end if !isnan
 
 	}// end loop over number of lines found
@@ -443,18 +445,12 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 	  unsigned char *outPix = new unsigned char [accDx*accDy];
 	  //finds the maximum cell in the accumulator for image scaling
 	  int cell, pix=0, maxCell=0;
-	  int xmaxx, ymaxx;
-	  for (y=0; y<accDy; y++){
-	    for (x=0; x<accDx; x++){
-	      cell = c.GetCell(y,x);
-	      if (cell > maxCell){
-		maxCell = cell;
-		xmaxx=x;
-		ymaxx=y;
+	  for (y=0; y<accDy; y++) 
+            for (x=0; x<accDx; x++)
+	      {
+		cell = c.GetCell(y,x);
+		if (cell > maxCell) maxCell = cell;
 	      }
-	    }
-	  }
-	  
 	  for (y=0; y<accDy; y++){
 	    for (x=0; x<accDx; x++){ 
 	      //scales the pixel weights based on the maximum cell value     
@@ -509,10 +505,9 @@ size_t cluster::HoughLineService::Transform(std::vector< art::Ptr<recob::Hit> >&
   c.GetAccumSize(accDy, accDx);
 
   //find the weightiest cell in the accumulator.
-  int maxCell = 0;
   int xMax = 0;
   int yMax = 0;
-  maxCell = c.GetMax(yMax,xMax);
+  c.GetMax(yMax,xMax);
 
   //find the center of mass of the 3x3 cell system (with maxCell at the center). 
   double centerofmassx = 0.;
