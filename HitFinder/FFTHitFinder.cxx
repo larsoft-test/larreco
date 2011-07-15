@@ -4,8 +4,8 @@
 //
 // pagebri3@msu.edu
 //
-//  This algorithm is designed to find hits on wires after deconvolution
-//  with an average shape used as the input response.
+//  This algorithm is designed to find hits on wires after deconvolution.
+//  
 ////////////////////////////////////////////////////////////////////////
 
 extern "C" {
@@ -58,7 +58,8 @@ namespace hit{
     fMinSigCol          = p.get< double       >("MinSigCol"); 
     fIndWidth           = p.get< double       >("IndWidth");  
     fColWidth           = p.get< double       >("ColWidth");
-    fMinWidth           = p.get< double       >("IndMinWidth");	  	  
+    fIndMinWidth        = p.get< double       >("IndMinWidth");
+    fColMinWidth        = p.get< double       >("ColMinWidth"); 	  	
     fMaxMultiHit        = p.get< int          >("MaxMultiHit");
   }  
   //-------------------------------------------------
@@ -69,9 +70,9 @@ namespace hit{
   {
   }
 
-  //  This algorithm uses the fact that deconvoluted signals are very smooth 
-  //  and looks for hits 
-  //  as areas between local minima that have signal above threshold.
+  //  This algorithm uses the fact that deconvolved signals are very smooth 
+  //  and looks for hits as areas between local minima that have signal above 
+  //  threshold.
   //-------------------------------------------------
   void FFTHitFinder::produce(art::Event& evt)
   { 
@@ -80,79 +81,88 @@ namespace hit{
     // Read in the wire List object(s).
     art::Handle< std::vector<recob::Wire> > wireVecHandle;
     evt.getByLabel(fCalDataModuleLabel,wireVecHandle);
-    
     art::ServiceHandle<geo::Geometry> geom;
-    
+   
     std::vector<double> signal;            
     std::vector<int> startTimes;             // stores time of 1st local minimum
     std::vector<int> maxTimes;    	     // stores time of local maximum    
     std::vector<int> endTimes;    	     // stores time of 2nd local minimum
     std::vector<double>::iterator timeIter;  // iterator for time bins
-    int minTimeHolder    = 0;                // hold position of minTime for hit region
     int time             = 0;                // current time bin
+    int minTimeHolder    = 0;                // current start time
     unsigned int channel = 0;                // channel number
-    unsigned int wire    = 0;                // wire number
-    unsigned int plane   = 0;                // plane number
-    unsigned int tpc     = 0;                // tpc number
-    bool maxFound        = false;            // Flag for whether a value > threshold 
-                                             // has been found
+    unsigned int w       = 0;                // wire number
+    unsigned int p       = 0;                // plane number
+    unsigned int t       = 0;                // tpc number
+    bool maxFound        = false;            // Flag for whether a peak > threshold has been found
     double threshold     = 0.;               // minimum signal size for id'ing a hit
+    double fitWidth      = 0.;               //hit fit width initial value
+    double minWidth      = 0.;               //minimum hit width
     std::string eqn      = "gaus(0)";        // string for equation to fit
     std::stringstream numConv;
     geo::SigType_t sigType = geo::kInduction;// type of plane we are looking at
 
     //loop over wires
-
     for(unsigned int wireIter=0; wireIter<wireVecHandle->size(); wireIter++) {
-      art::Ptr<recob::Wire> wireVec(wireVecHandle, wireIter);
+      art::Ptr<recob::Wire> wire(wireVecHandle, wireIter);
       startTimes.clear();
       maxTimes.clear();
       endTimes.clear();
-      signal        = wireVec->fSignal;
+      signal        = wire->fSignal;
       time          = 0;
       minTimeHolder = 0;
       maxFound      = false;
-      channel       = wireVec->RawDigit()->Channel();
-      geom->ChannelToWire(channel,tpc, plane,wire);
-      sigType       = geom->Plane(plane,tpc).SignalType();
-      threshold     = fMinSigInd;
-      if(sigType == geo::kCollection) threshold = fMinSigCol;
-
+      channel       = wire->RawDigit()->Channel();
+      geom->ChannelToWire(channel,t, p,w);
+      sigType       = geom->Plane(p,t).SignalType();
+      if(sigType == geo::kInduction)
+        {
+	  threshold     = fMinSigInd;
+	  fitWidth      = fIndWidth;
+	  minWidth      = fIndMinWidth;
+	}
+      else if(sigType == geo::kCollection) 
+	{
+          threshold = fMinSigCol;
+          fitWidth  = fColWidth;
+          minWidth  = fColMinWidth;
+        }
       // loop over signal
-      for(timeIter = signal.begin();timeIter+2!=signal.end();timeIter++) {    
-	//test if timeIter2 is a local minimum
-	if(*timeIter>*(timeIter+1) && *(timeIter+1)<*(timeIter+2)) {
-	  //only add points if we've already found a local max above threshold.
-	  if(maxFound) {
-	    endTimes.push_back(time+1);
-	    maxFound = false;
-	    //keep these in case new hit starts right away
-	    minTimeHolder = time+2; 
-	  }
-	  else minTimeHolder = time+1; 
-	}
-	//if not a minimum test if we are at a local maximum 
-	//if so and the max value is above threshold add it and proceed.
-	else if(*timeIter<*(timeIter+1) && 
-		*(timeIter+1)>*(timeIter+2) && 
-		*(timeIter+1) > threshold) { 
-	  maxFound = true;
-	  maxTimes.push_back(time+1);
-	  startTimes.push_back(minTimeHolder);          
-	}
-	time++;
-      }//end loop over signal vec
-
-      //if no inflection found before end, add end point
-      if(maxFound&&maxTimes.size()>endTimes.size()) 
-	endTimes.push_back(signal.size()-1); 	  
-    
+      for(timeIter = signal.begin();timeIter+2<signal.end();timeIter++) 
+	{    
+	  //test if timeIter+1 is a local minimum
+	  if(*timeIter > *(timeIter+1) && *(timeIter+1) < *(timeIter+2)) 
+	    {
+	      //only add points if already found a local max above threshold.
+	      if(maxFound) 
+		{
+		  endTimes.push_back(time+1);
+		  maxFound = false;
+		  //keep these in case new hit starts right away
+		  minTimeHolder = time+2; 
+		}
+	      else minTimeHolder = time+1; 
+	    }
+	  //if not a minimum, test if we are at a local maximum 
+	  //if so, and the max value is above threshold, add it and proceed.
+	  else if(*timeIter < *(timeIter+1) && 
+			      *(timeIter+1) > *(timeIter+2) && 
+	    *(timeIter+1) > threshold) 
+	    { 
+	      maxFound = true;
+	      maxTimes.push_back(time+1);
+	      startTimes.push_back(minTimeHolder);          
+	    }
+	  time++;
+	}//end loop over signal vec
+     
+      //if no inflection found before end, but peak found add end point
+      if(maxTimes.size()>endTimes.size()) 
+	endTimes.push_back(signal.size()-1); 
+       if(startTimes.size() == 0) continue;
       //All code below does the fitting, adding of hits
       //to the hit vector and when all wires are complete 
       //saving them 
-      mf::LogDebug("FFTHitFinder") <<channel<<" "<< startTimes.size() <<" "<<maxTimes.size() 
-      << " "<< endTimes.size();
-
       double totSig(0); //stoes the total hit signal
       double startT(0); //stores the start time
       double endT(0);  //stores the end time
@@ -170,20 +180,24 @@ namespace hit{
       //add found hits to hit vector
       while(hitIndex<(signed)startTimes.size()) {
 	eqn="gaus(0)";
-	if(sigType==geo::kInduction) width=fIndWidth;
-	else width= fColWidth;
 	startT=endT=0;
 	numHits=1;
-	while(numHits < fMaxMultiHit 
-	      && numHits+hitIndex < (signed)endTimes.size() 
-	      && signal[endTimes[hitIndex+numHits-1]] >threshold/2.0 
-	      && startTimes[hitIndex+numHits] - endTimes[hitIndex+numHits-1] < 2) 
+        minPeakHeight=signal[maxTimes[hitIndex]];
+	//consider adding pulse to group of consecutive hits if:
+        //1 less than max consecutive hits
+        //2 we are not at the last point in the signal vector
+        //3 the height of the dip between the two is greater than threshold/2
+        //4 and there is no gap between them
+        while(numHits < fMaxMultiHit &&
+	      numHits+hitIndex < (signed)endTimes.size() && 
+				 signal[endTimes[hitIndex+numHits-1]] >threshold/2.0 &&  
+	  startTimes[hitIndex+numHits] - endTimes[hitIndex+numHits-1] < 2) 
 	  {
+            if(signal[maxTimes[hitIndex+numHits]] < minPeakHeight) 
+              minPeakHeight=signal[maxTimes[hitIndex+numHits]];
 	    numHits++;
-            if(signal[maxTimes[hitIndex+numHits-1]] > minPeakHeight) 
-              minPeakHeight=signal[maxTimes[hitIndex+numHits-1]];
           }
-	//finds the first point >0
+	//finds the first point > 0.5 *minimum peak height
 	startT=startTimes[hitIndex];
 	while(signal[(int)startT] < minPeakHeight/2.0) startT++;
 	//finds the first point from the end >0
@@ -191,10 +205,8 @@ namespace hit{
 	while(signal[(int)endT] <minPeakHeight/2.0) endT--;
 	size = (int)(endT-startT);
 	TH1D hitSignal("hitSignal","",size,startT,endT);
-
 	for(int i = (int)startT; i < (int)endT; i++)
 	  hitSignal.Fill(i,signal[i]);	
-
 	for(int i = 3; i < numHits*3; i+=3) {
 	  eqn.append("+gaus(");
 	  numConv.str("");
@@ -208,43 +220,47 @@ namespace hit{
 	  TVectorD amps(numHits); 
 	  for(int i = 0; i < numHits; i++) {
 	    amps[i]=signal[maxTimes[hitIndex+i]];
-	    mf::LogDebug("FFTHitFinder") <<" ai: " <<amps[i] ;
 	    for(int j = 0; j < numHits;j++) 
 	      data[i+numHits*j] = TMath::Gaus(maxTimes[hitIndex+j],
 					      maxTimes[hitIndex+i],
-					      width);
+					      fitWidth);
 	  }//end loop over hits
-      //This section uses a linear approximation in order to get an
-      //initial value of the individual hit amplitudes 
-      try
-      {
-	  TMatrixD h(numHits,numHits);
-	  h.Use(numHits,numHits,data.GetArray());
-	  TDecompSVD a(h);
-	  a.Solve(amps);
-      }
-      catch(...){mf::LogInfo("FFTHitFinder")<<"TDcompSVD failed";hitIndex+=numHits;continue;}
+	  
+          //This section uses a linear approximation in order to get an
+	  //initial value of the individual hit amplitudes 
+	  try
+	    {
+	      TMatrixD h(numHits,numHits);
+	      h.Use(numHits,numHits,data.GetArray());
+	      TDecompSVD a(h);
+	      a.Solve(amps);
+	    }
+	  catch(...){mf::LogInfo("FFTHitFinder")<<"TDcompSVD failed";hitIndex+=numHits;continue;}
       
 	  for(int i = 0;i < numHits; i++) {
-	    gSum.SetParameter(3*i, amps[i]);
+	    //if the approximation makes a peak vanish
+            //set initial height as average of threshold and
+            //raw peak height
+            if(amps[i] > 0 ) amplitude = amps[i];
+            else amplitude = 0.5*(threshold+signal[maxTimes[hitIndex+i]]);
+            gSum.SetParameter(3*i,amplitude);
 	    gSum.SetParameter(1+3*i, maxTimes[hitIndex+i]);
-	    gSum.SetParameter(2+3*i, width);
-	    gSum.SetParLimits(3*i, 0.0, 10.0*amps[i]);
+	    gSum.SetParameter(2+3*i, fitWidth);
+	    gSum.SetParLimits(3*i, 0.0, 3.0*amplitude);
 	    gSum.SetParLimits(1+3*i, startT , endT);
-	    gSum.SetParLimits(2+3*i, 0.0, 10.0*width);
+	    gSum.SetParLimits(2+3*i, 0.0, 10.0*fitWidth);
 	  }//end loop over hits
 	}//end if numHits > 1
 	else {
-	  gSum.SetParameters(signal[maxTimes[hitIndex]],maxTimes[hitIndex],width);
+	  gSum.SetParameters(signal[maxTimes[hitIndex]],maxTimes[hitIndex],fitWidth);
 	  gSum.SetParLimits(0,0.0,1.5*signal[maxTimes[hitIndex]]);
 	  gSum.SetParLimits(1, startT , endT);
-	  gSum.SetParLimits(2,0.0,10.0*width);
+	  gSum.SetParLimits(2,0.0,10.0*fitWidth);
 	}
-
 	/// \todo - just get the integral from the fit for totSig
-	hitSignal.Fit(&gSum,"WQNR","", startT, endT);
+	hitSignal.Fit(&gSum,"QWNR","", startT, endT);
 	for(int hitNumber = 0; hitNumber < numHits; hitNumber++) {
-	  if(gSum.GetParameter(3*hitNumber) > threshold/2.0 || gSum.GetParameter(3*hitNumber+2) > fMinWidth) { 
+	  if(gSum.GetParameter(3*hitNumber) > threshold/2.0 || gSum.GetParameter(3*hitNumber+2) > minWidth) { 
 	    amplitude = gSum.GetParameter(3*hitNumber);
 	    position = gSum.GetParameter(3*hitNumber+1);
 	    width = gSum.GetParameter(3*hitNumber+2);
@@ -261,7 +277,7 @@ namespace hit{
 	    }              	    
 
 	    // make the hit
-	    recob::Hit hit(wireVec, 
+	    recob::Hit hit(wire, 
 			   position-width, 
                            widthErr,
 			   position+width, 
@@ -281,10 +297,10 @@ namespace hit{
 	hitIndex+=numHits;
 
       } // end while on hitIndex<(signed)startTimes.size()
-    } // while on Wires
+  } // while on Wires
 
     evt.put(hcol);
 
-  } // End of produce()
+} // End of produce()
   
-} // end of hit namespace
+  } // end of hit namespace

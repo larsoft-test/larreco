@@ -8,7 +8,8 @@ standard_hitfinder:
  MinSigCol:            11.0          #Initial width for induction fit
  IndWidth:             6.0           #Iitial width for induction fit
  ColWidth:             7.8           #Initial width for collection fit
- MinWidth:             4.0           #Hit width threshold
+ IndMinWidth:          4.0           #Induction Hit width threshold
+ ColMinWidth:          6.0           #Collection hit width threshold
  MaxMultiHit:          3             #maximum hits for multi fit   
 }
 
