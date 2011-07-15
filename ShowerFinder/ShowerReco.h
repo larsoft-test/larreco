@@ -4,7 +4,7 @@
 ///
 ///
 /// \version $Id: SingleGen.cxx,v 1.4 2010/03/29 09:54:01 brebel Exp $
-/// \author:  biagio, ART port: echurch
+/// \author:  biagio, ART port: echurch, detector agnostic: andrzejs
 ////////////////////////////////////////////////////////////////////////
 #ifndef SHOWERRECO_H
 #define SHOWERRECO_H
@@ -38,23 +38,29 @@ namespace shwf {
     void produce(art::Event& evt);                       /**Actual routine that reconstruct the shower*/
    
     int    Get3Daxis(float thetaI, float thetaC, float Wire_vertexI, float Wire_vertexC, float Time_vertex); // in rad
-    int    Get2Dvariables(float Wire_vertexI_wt, float Wire_vertexC_wt, float Time_I_wt, float Time_C_wt); // in rad
-    void   GetVertex(); // Get shower vertex
-    void   GetPitchLength(float theta, float phi); //Get pitch length of both planes
-    void   AngularDistributionI(art::PtrVector < recob::Hit> hitlistInd); //Get angular distribution of the shower (Induction plane)
-    void   AngularDistributionC(art::PtrVector < recob::Hit> hitlistCol);  //Get angular distribution of the shower (Collection plane) 
-    void   FitAngularDistributions(); 
-    void   LongTransEnergyI(art::PtrVector < recob::Hit> hitlistInd); //Longtudinal and transverse enegry of the shower (Induction plane)
-    void   LongTransEnergyC(art::PtrVector < recob::Hit> hitlistCol); //Longtudinal and transverse enegry of the shower (Collection plane)
+
+    int Get3DaxisN(int iplane0,int iplane1);
+
+    int Get3Daxis_coords();
+
+    //int    Get2Dvariables(float Wire_vertexI_wt, float Wire_vertexC_wt, float Time_I_wt, float Time_C_wt); // in rad
+    void   GetVertex(art::Event& evt); // Get shower vertex
+    void   GetVertexN(art::Event& evt); // Get shower vertex
+    void   GetPitchLength(); //Get pitch length of both planes
+  //  void   AngularDistributionI(art::PtrVector < recob::Hit> hitlistInd); //Get angular distribution of the shower (Induction plane)
+    void   AngularDistribution(art::PtrVector < recob::Hit> hitlist);  //Get angular distribution of the shower (Collection plane) 
+    void   Get2DVariables(art::PtrVector < recob::Hit> hitlist);   
+
+    void   FitAngularDistributions(int plane); 
+ //   void   LongTransEnergyI(art::PtrVector < recob::Hit> hitlistInd); //Longtudinal and transverse enegry of the shower (Induction plane)
+    void   LongTransEnergy(art::PtrVector < recob::Hit> hitlist); //Longtudinal and transverse enegry of the shower (Collection plane)
+   double ProjectedLength(geo::View_t view ) 	 const;
 
 
-    float theta_Mean[2];    // Mean value of the angular distribution (0=Ind - 1=Coll) cm,cm
-    float theta_RMS[2];     // RMS of the angular distribution  (0=Ind - 1=Coll) cm, cm
-    float theta_wt_Mean[2]; // Mean value of the angular distribution (0=Ind - 1=Coll) wire,time
-    float theta_wt_RMS[2];  // RMS of the angular distribution  (0=Ind - 1=Coll) wire,time
-   
-    float LastWire[2];  // last wire of the shower
-    float LastTime[2];  // last t_hit of the shower
+
+    
+//    float LastWire[2];  // last wire of the shower
+//    float LastTime[2];  // last t_hit of the shower
     
     // 2D slope and intercept of the shower axis
     float slope[3];       // in cm, cm
@@ -62,15 +68,16 @@ namespace shwf {
     float slope_wt[3];       // in wire, tick
     float intercept_wt[3];   // in wire,tick
 
-    float Pitch[3];
+
       
-    float theta, phi; // Director angles
-    float wireI1; // Wire Vertex position (Induction)
-    float timeI1; // Time Vertex position (Induction)
-    float wire1C; // Wire Vertex poistion (Collection)
-    float time1C; // Time Vertex position (Collection)
+    //double fTotCharge;  
+
+   // float wireI1; // Wire Vertex position (Induction)
+  //  float timeI1; // Time Vertex position (Induction)
+  //  float wire1C; // Wire Vertex poistion (Collection)
+   // float time1C; // Time Vertex position (Collection)
     const static float pi            = 3.141519;
-    float fmean_wire_pitch ;   // wire pitch in cm
+    
     const static float ftimetick      =  0.198; // time sample in us
     const static float presamplings  = 60.;
     const static float fdriftvelocity =  0.157;
@@ -78,34 +85,114 @@ namespace shwf {
 
  private:
 
+  double BirksCorrection(double dQdx_e);
+
+   int fRun,fEvent,fSubRun;
+   
+   
+
   std::string fShwrOutput;
   std::string fClusterModuleLabel;
+  std::string fHoughLineModuleLabel;
+std::string fLineMergerModuleLabel;
   float IdEdx4cm; // dedx of the first 4cm of the shower
   float CdEdx4cm; //dedx of the first 4cm of the shower 
-  int IdedxCounter; // dedx of the first 4cm of the shower
-  int CdedxCounter; //dedx of the first 4cm of the shower 
+  double CdEdx4cm_corr; //dedx of the first 4cm of the shower 
+  double totCnrg,totCnrg_corr;
+  double fMean_wire_pitch ;   // wire pitch in cm
+
+    std::vector<double> fOmega_Mean;    // Mean value of the 2D angular distribution (0=Ind - 1=Coll) cm,cm
+    std::vector<double> fOmega_RMS;     // RMS of the 2D angular distribution  (0=Ind - 1=Coll) cm, cm
+
+    std::vector<double> fOmega_Mean_reb;    // Mean value of the 2D angular Rebinned by 4
+    std::vector<double> fOmega_RMS_reb;     // RMS of the 2D angular distribution  Rebinned by 4
+    std::vector<double> fOmega_Mean_Mean;    // Mean value of the 2D angular use mean instead of maximum
+ //   std::vector<double> fOmega_Mean_RMS;     // RMS of the 2D angular distribution use mean instead of maximum
+
+   
+
+    std::vector<double> fOmega_wt_Mean; // Mean value of the angular distribution (0=Ind - 1=Coll) wire,time
+    std::vector<double> fOmega_wt_RMS;  // RMS of the angular distribution  (0=Ind - 1=Coll) wire,time
+
+  std::vector<double> fTotChargeADC;   //Total charge in ADC/cm for each plane
+  std::vector<double> fTotChargeMeV;  //Total charge in MeV/cm for each plane
+
+  std::vector<double> fChargeADC_4cm;   //Initial charge in ADC/cm for each plane first 4cm
+  std::vector<double> fChargeMeV_4cm;  //initial charge in MeV/cm for each plane first 4cm
+
+  std::vector<double> fChargeADC_6cm;   //Initial charge in ADC/cm for each plane first 6cm
+  std::vector<double> fChargeMeV_6cm;  //initial charge in MeV/cm for each plane first 6cm
+
+  std::vector<double> fChargeADC_8cm;   //Initial charge in ADC/cm for each plane first 8cm
+  std::vector<double> fChargeMeV_8cm;  //initial charge in MeV/cm for each plane first 8cm
+
+  std::vector<double> fChargeADC_10cm;   //Initial charge in ADC/cm for each plane first 10cm
+  std::vector<double> fChargeMeV_10cm;  //initial charge in MeV/cm for each plane first 10cm
+
+  std::vector<std::vector<double> > fDistribChargeADC;  //vector with the first De/Dx points
+  std::vector<std::vector<double> > fDistribChargeposition;  //vector with the first De/Dx points' positions 
+
+std::vector<std::vector<double> > fSingleEvtAngle;  //vector with the first De/Dx points
+std::vector<std::vector<double> > fSingleEvtAngleVal;  //vector with the first De/Dx points
+
+
+    std::vector<unsigned int> fWire_vertex;  // wire coordinate of vertex for each plane
+    std::vector<double> fTime_vertex;  // time coordinate of vertex for each plane
+
+    std::vector<unsigned int> fWire_last;  // wire coordinate of last point for each plane
+    std::vector<double> fTime_last;  // time coordinate of last point for each plane
+
+ std::vector<unsigned int> fChannel_vertex;  // channel coordinate of vertex for each plane
+ std::vector<unsigned int> fChannel_last;  // channel coordinate of vertex for each plane
+
+   std::vector< double > fThetaN, fPhiN; // 3d angles calculated using a new "det independent" method
+   std::vector< double > fThetaN_ang, fPhiN_ang; // 3d angles calculated using a new "det"// independent method degrees
+
+ std::vector< double > fThetaNC, fPhiNC; // 3d angles calculated using a new "det independent" method
+ std::vector< double > fThetaNC_ang, fPhiNC_ang; // 3d angles calculated using a new "det"
+ std::vector< double > fXvertex,fYvertex,fZvertex;
+ std::vector< double > fXlast,fYlast,fZlast;
+
+        double fTheta, fPhi; // Director angles
+	double fTheta_ang, fPhi_ang; // Director angles in degrees
+
+
+
+  //  std::vector<double> fPitch;
+    std::vector<double> fNPitch;
+
+
+  //int IdedxCounter; // dedx of the first 4cm of the shower
+  //int CdedxCounter; //dedx of the first 4cm of the shower 
   
   // Some variables for the hit
-  unsigned int channel_I, channel_C;  // channel number
-  float time_I,time_C; // hit time at maximum
-  unsigned int wire_I, wire_C;    //hit wire number
-  unsigned int plane;    //hit plane number
-  unsigned int tpc;    //hit plane number
-  
+  //unsigned int channel_I, channel_C;  // channel number
+  //float time_I,time_C; // hit time at maximum
+ // unsigned int wire_I, wire_C;    //hit wire number
+ // unsigned int plane;    //hit plane number
+  unsigned int tpc;    //tpc type
+  unsigned int fNPlanes; // number of planes  
+
   TH1F* fh_theta[3]; 
+  std::vector< TH1F * > fh_omega_evt_reb;
+  std::vector< TH1F * > fh_omega_evt; 
   TH1F* fh_theta_wt[3]; 
   TH1F* fh_dedx[3]; 
   TH1F* fsh_nrg[3];
   TH1F* fsh_Tnrg[3];
   TH1F* fsh_long_hit[3];
   TTree* ftree_shwf;
-
+TH1F *fh_phi_act;
+TH1F *fh_thet_act;
   // Save enegry in a file
   std::ofstream myfile;
   
   // Variables to get the angular distribution of the hits
-  float AI, BI, thetaI; // Induction  plane
-  float AC, BC, thetaC; // Collection plane
+ // float AI, BI, thetaI; // Induction  plane
+  
+
+   const static double calFactor=700.54;  // in ADC/fC
+ const static double eCharge=1.6e-4;  // electron charge in fC
 
 
   }; // class ShowerReco

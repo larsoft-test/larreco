@@ -8,4 +8,13 @@ argoneut_shower:
 }
 
 
+microboone_shower:
+{
+ module_type:        "ShowerReco"
+ ClusterModuleLabel: "dbcluster"
+ HoughLineModuleLabel: "hough" 
+ LineMergerModuleLabel: "linemerger"
+ ShowerOutputTxtFile: "./Shower_energy_ub.txt"
+}
+
 END_PROLOG
