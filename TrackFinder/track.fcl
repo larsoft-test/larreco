@@ -2,6 +2,7 @@
 
 #include "job/geometry.fcl"
 #include "job/larproperties.fcl"
+#include "job/detectorproperties.fcl"
 #include "job/larfft.fcl"
 
 #include "job/caldata.fcl"
@@ -9,6 +10,7 @@
 #include "job/clustermodules.fcl"
 #include "job/clusterservices.fcl"
 #include "job/trackfindermodules.fcl"
+#include "job/caloitaliano.fcl"
 
 
 process_name: FindTracks
@@ -20,6 +22,7 @@ services:
   user:         
   { 
    Geometry:	     @local::argoneut_geo
+   DetectorProperties: @local::argoneut_detproperties
    LArProperties:    @local::argoneut_properties
    LArFFT:           @local::argoneut_larfft
    DBScanService:    @local::argoneut_dbscanservice
@@ -32,6 +35,7 @@ services:
    	debugModules: ["*"]
     detailedInfo: {threshold: "Summary"}
   }
+  RandomNumberGenerator: {}
 }
 
 
@@ -62,14 +66,17 @@ physics:
    hough:      @local::argoneut_houghlinefinder
    linemerger: @local::argoneut_linemerger
    track3d:    @local::argoneut_track
+ 
   }
 
   analyzers:{}
 
   recopath: [caldata, ffthit, dbcluster, hough, linemerger, track3d]
+  anapath:  [calo]
   stream1:  [out1]
-
   trigger_paths: [recopath]
-  end_paths:     [stream1]
+  end_paths:     [stream1, anapath]
 }
+
+physics.analyzers.calo:  @local::argoneut_calo
 

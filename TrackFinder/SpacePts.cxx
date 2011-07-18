@@ -30,6 +30,8 @@
 // ROOT includes
 #include "TVectorD.h"
 #include "TMath.h"
+#include "TGraph.h"
+#include "TF1.h"
 
 namespace trkf {
 struct SortByWire 
@@ -199,7 +201,7 @@ void trkf::SpacePts::produce(art::Event& evt)
       hitlist = cl->Hits();
       hitlist.sort(trkf::SortByWire());
       
-
+      TGraph *the2Dtrack = new TGraph(hitlist.size());
       
       std::vector<double> wires;
       std::vector<double> times;
@@ -229,19 +231,40 @@ void trkf::SpacePts::produce(art::Event& evt)
          else
          wire_cm = (double)((wire+1.84) * wire_pitch);
          
-         double time_cm = (double)(time * timepitch);
+         //double time_cm = (double)(time * timepitch);
+         double time_cm;
+         if(time>tSI) time_cm = (double)( (time-tSI)*timepitch + tSI*driftvelocity_SI*timetick);
+         else time_cm = time*driftvelocity_SI*timetick;
+
          wires.push_back(wire_cm);
          times.push_back(time_cm);
-	
+
+         the2Dtrack->SetPoint(np,wire_cm,time_cm);
          np++;
       }//end of loop over cluster hits
     
+      // fit the 2Dtrack and get some info to store
+      try{
+         the2Dtrack->Fit("pol1","Q");
+      }
+      catch(...){
+         std::cout<<"The 2D track fit failed"<<std::endl;
+         continue;
+      }
+      
+      TF1 *pol1=(TF1*) the2Dtrack->GetFunction("pol1");
+      double par[2];
+      pol1->GetParameters(par);
+      double intercept = par[0];
+      double slope = par[1];
       
   
       double w0 = wires.front();      // first hit wire (cm)
       double w1 = wires.back();        // last hit wire (cm)
       double t0 = times.front();      // first hit time (cm)
       double t1 = times.back();        // last hit time (cm)
+      double t0_line = intercept + (w0)*slope;// time coordinate at wire w0 on the fit line (cm)  
+      double t1_line = intercept + (w1)*slope;// time coordinate at wire w1 on the fit line (cm)
     
 
 
@@ -252,6 +275,8 @@ void trkf::SpacePts::produce(art::Event& evt)
             Iwirelasts.push_back(w1);
             Itimefirsts.push_back(t0);
             Itimelasts.push_back(t1); 
+            Itimefirsts_line.push_back(t0_line);
+            Itimelasts_line.push_back(t1_line);    
             IclusHitlists.push_back(hitlist);
             Icluster_count.push_back(ii);
             break;
@@ -260,12 +285,13 @@ void trkf::SpacePts::produce(art::Event& evt)
             Cwirelasts.push_back(w1);
             Ctimefirsts.push_back(t0);
             Ctimelasts.push_back(t1);
+            Ctimefirsts_line.push_back(t0_line);
+            Ctimelasts_line.push_back(t1_line);
             CclusHitlists.push_back(hitlist);
             Ccluster_count.push_back(ii);
             break;   
       }
-
-
+      delete pol1;
    }// end of loop over all input clusters
   
    /////////////////////////////////////////////////////
@@ -278,7 +304,11 @@ void trkf::SpacePts::produce(art::Event& evt)
       double Cw1 = Cwirelasts[collectionIter];
       double Ct0 = Ctimefirsts[collectionIter];
       double Ct1 = Ctimelasts[collectionIter];
+      double Ct0_line = Ctimefirsts_line[collectionIter];
+      double Ct1_line = Ctimelasts_line[collectionIter];
       art::PtrVector<recob::Hit> hitsCtrk = CclusHitlists[collectionIter];
+
+      double collLength = TMath::Sqrt( TMath::Power(Ct1_line - Ct0_line,2) + TMath::Power(Cw1 - Cw0,2));
 
       for(unsigned int inductionIter=0;inductionIter<IclusHitlists.size();inductionIter++){   //loop over Induction view 2D tracks
          // Recover previously stored info
@@ -286,26 +316,56 @@ void trkf::SpacePts::produce(art::Event& evt)
          double Iw1 = Iwirelasts[inductionIter];
          double It0 = Itimefirsts[inductionIter];
          double It1 = Itimelasts[inductionIter];
+         double It0_line = Itimefirsts_line[inductionIter];
+         double It1_line = Itimelasts_line[inductionIter];
          art::PtrVector<recob::Hit> hitsItrk = IclusHitlists[inductionIter];
-         //if original order doesn't work and the reversed does, switch the order of one
-         if(!((fabs(Ct0-It0)<ftmatch*timepitch) && (fabs(Ct1-It1)<ftmatch*timepitch)) && ((fabs(Ct0-It1)<ftmatch*timepitch) && (fabs(Ct1-It0)<ftmatch*timepitch))) 
-	   {
-	     double temp = It1;
-	     It1=It0;
-	     It0=temp;
-	   }
-	 // My 1000s below. EC, 11-Apr-2011
-         if((fabs(Ct0-It0)<ftmatch*timepitch) && (fabs(Ct1-It1)<ftmatch*timepitch)){ 
-            //std::cout<<"-----> Track "<<collectionIter<< " Collection associated with track "<<inductionIter<< " Induction"<<std::endl;
-	
-       
-            // Reconstruct the 3D track
-            TVector3 XYZ0;  // track origin or interaction vertex
-            XYZ0.SetXYZ(Ct0,(Cw0-Iw0)/(2.*TMath::Sin(Angle)),(Cw0+Iw0)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
 
-            //compute track startpoint and endpoint in Local co-ordinate system 
-            TVector3 startpointVec(XYZ0.X(),XYZ0.Y(),XYZ0.Z());
-            TVector3 endpointVec(Ct1,(Cw1-Iw1)/(2.*TMath::Sin(Angle)),(Cw1+Iw1)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
+         double indLength = TMath::Sqrt( TMath::Power(It1_line - It0_line,2) + TMath::Power(Iw1 - Iw0,2)); 
+
+         bool forward_match = ((fabs(Ct0_line-It0_line)<ftmatch*timepitch) && (fabs(Ct1_line-It1_line)<ftmatch*timepitch));
+         bool backward_match = ((fabs(Ct0_line-It1_line)<ftmatch*timepitch) && (fabs(Ct1_line-It0_line)<ftmatch*timepitch));
+	 
+
+         if(forward_match || backward_match ){ 	
+
+            // Reconstruct the 3D track
+            TVector3 XYZ0, XYZ1;  // track endpoints
+            if(forward_match){
+               XYZ0.SetXYZ(Ct0_line,(Cw0-Iw0)/(2.*TMath::Sin(Angle)),(Cw0+Iw0)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
+               XYZ1.SetXYZ(Ct1_line,(Cw1-Iw1)/(2.*TMath::Sin(Angle)),(Cw1+Iw1)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
+            }
+            else{
+               XYZ0.SetXYZ(Ct0_line,(Cw0-Iw1)/(2.*TMath::Sin(Angle)),(Cw0+Iw1)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
+               XYZ1.SetXYZ(Ct1_line,(Cw1-Iw0)/(2.*TMath::Sin(Angle)),(Cw1+Iw0)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle));
+            }
+
+            //compute track direction in Local co-ordinate system
+            //WARNING:  There is an ambiguity introduced here for the case of backwards-going tracks.  
+            //If available, vertex info. could sort this out.
+            TVector3 startpointVec,endpointVec;
+            TVector2 collVtx, indVtx;
+            if(XYZ0.Z() <= XYZ1.Z()){
+                startpointVec.SetXYZ(XYZ0.X(),XYZ0.Y(),XYZ0.Z());
+                endpointVec.SetXYZ(XYZ1.X(),XYZ1.Y(),XYZ1.Z());
+                if(forward_match){
+                    collVtx.Set(Ct0_line,Cw0);
+                    indVtx.Set(It0_line,Iw0);
+                }else{
+                    collVtx.Set(Ct0_line,Cw0);
+                    indVtx.Set(It1_line,Iw1);
+                }
+            }
+            else{
+                startpointVec.SetXYZ(XYZ1.X(),XYZ1.Y(),XYZ1.Z());
+                endpointVec.SetXYZ(XYZ0.X(),XYZ0.Y(),XYZ0.Z());
+                if(forward_match){
+                    collVtx.Set(Ct1_line,Cw1);
+                    indVtx.Set(It1_line,Iw1);
+                }else{
+                    collVtx.Set(Ct1_line,Cw1);
+                    indVtx.Set(It0_line,Iw0);
+                }
+            }
 
             //compute track (normalized) cosine directions in the TPC co-ordinate system
             TVector3 DirCos = endpointVec - startpointVec;
@@ -359,30 +419,23 @@ void trkf::SpacePts::produce(art::Event& evt)
                else
                w1 = (double)((wire+1.84) * wire_pitch);
                
-               double t1 = plane1==1?(double)((minhits[imin]->PeakTime()-presamplings+tIC)*timepitch):(double)((minhits[imin]->PeakTime()-presamplings)*timepitch); //in cm	  
+               double temptime1 = minhits[imin]->PeakTime()-presamplings;
+               if(plane1==1) temptime1 -= tIC;
+               double t1;// = plane1==1?(double)((minhits[imin]->PeakTime()-presamplings-tIC)*timepitch):(double)((minhits[imin]->PeakTime()-presamplings)*timepitch); //in cm
+               if(temptime1>tSI) t1 = (double)( (temptime1-tSI)*timepitch + tSI*driftvelocity_SI*timetick);
+               else t1 = temptime1*driftvelocity_SI*timetick;
 
                //get the track origin co-ordinates in the two views
                TVector2 minVtx2D;
-               plane1==1 ? minVtx2D.Set(Ct0,Cw0): minVtx2D.Set(It0,Iw0);
+               plane1==1 ? minVtx2D.Set(collVtx.X(),collVtx.Y()): minVtx2D.Set(indVtx.X(),indVtx.Y());
                TVector2 maxVtx2D;
-               plane1==1 ? maxVtx2D.Set(It0,Iw0): maxVtx2D.Set(Ct0,Cw0);
-	  
-               // get the track last hit co-ordinates in the two views
-               channel = minhits[minhits.size()-1]->Channel();
-               geom->ChannelToWire(channel,tpc,plane1,wire);
-               double w1_last = plane1==1?Cw1:Iw1;
-               double t1_last = plane1==1?Ct1:It1;  
-               channel = maxhits[maxhits.size()-1]->Channel();
-               geom->ChannelToWire(channel,tpc,plane2,wire);
-               double w2_last =plane2==1?Cw1:Iw1;
-               double t2_last =plane2==1?Ct1:It1;
-	  
-               // compute the track length in the two views
-               double minLength = TMath::Sqrt(TMath::Power(t1_last-minVtx2D.X(),2)+TMath::Power(w1_last-minVtx2D.Y(),2));
-               double maxLength = TMath::Sqrt(TMath::Power(t2_last-maxVtx2D.X(),2)+TMath::Power(w2_last-maxVtx2D.Y(),2));
-	  
+               plane1==1 ? maxVtx2D.Set(indVtx.X(),indVtx.Y()): maxVtx2D.Set(collVtx.X(),collVtx.Y());
+               
+               double ratio = (collLength>indLength) ? collLength/indLength : indLength/collLength;	  
+
                //compute the distance of the hit (imin) from the relative track origin
-               double minDistance = maxLength* TMath::Sqrt(TMath::Power(t1-minVtx2D.X(),2)+TMath::Power(w1-minVtx2D.Y(),2))/minLength;
+               double minDistance = ratio*TMath::Sqrt(TMath::Power(t1-minVtx2D.X(),2) + TMath::Power(w1-minVtx2D.Y(),2));
+	  
 	  
                //core matching algorithm
                double difference = 9999999.;	  
@@ -399,8 +452,12 @@ void trkf::SpacePts::produce(art::Event& evt)
                      else
                      w2 = (double)((wire+1.84) * wire_pitch);
                      
-                     double t2 = plane2==1?(double)((maxhits[imax]->PeakTime()-presamplings+tIC)*timepitch):(double)((maxhits[imax]->PeakTime()-presamplings)*timepitch); //in cm
-	      
+                     double temptime2 = maxhits[imax]->PeakTime()-presamplings;
+                     if(plane2==1) temptime2 -= tIC;
+                     double t2;
+                     if(temptime2>tSI) t2 = (double)( (temptime2-tSI)*timepitch + tSI*driftvelocity_SI*timetick);
+                     else t2 = temptime2*driftvelocity_SI*timetick;
+                   
                      bool timematch = (fabs(t1-t2)<ftmatch*timepitch);
                      bool wirematch = (fabs(w1-w2)<wireShift*wire_pitch);
 	      
@@ -430,9 +487,12 @@ void trkf::SpacePts::produce(art::Event& evt)
                else
                w1_match = (double)((wire+1.84) * wire_pitch);
                
-               
-               double t1_match = plane2==1?(double)((maxhits[imaximum]->PeakTime()-presamplings+tIC)*timepitch):(double)((maxhits[imaximum]->PeakTime()-presamplings)*timepitch);
-
+               double temptime3 = maxhits[imaximum]->PeakTime()-presamplings;
+               if(plane2==1) temptime3 -= tIC;
+               double t1_match;
+               if(temptime3>tSI) t1_match = (double)( (temptime3-tSI)*timepitch + tSI*driftvelocity_SI*timetick);
+               else t1_match = temptime3*driftvelocity_SI*timetick;
+             
                // create the 3D hit, compute its co-ordinates and add it to the 3D hits list	  
                double Ct = plane1==1?t1:t1_match;
                double Cw = plane1==1?w1:w1_match;

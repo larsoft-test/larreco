@@ -9,7 +9,7 @@
 #ifndef TRACK3DRECO_H
 #define TRACK3DRECO_H
 
-#include "art/Framework/Core/EDProducer.h" //
+#include "art/Framework/Core/EDProducer.h"
 
 #include <vector>
 #include <string>
@@ -34,6 +34,7 @@ namespace trkf {
     int             ftmatch; // tolerance for time matching (in time samples) 
     double          fchi2dof;// tolerance for chi2/dof of cluster fit to function
     std::string     fClusterModuleLabel;// label for input cluster collection
+
   protected: 
     
   
