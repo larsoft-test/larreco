@@ -504,9 +504,9 @@ void trkf::SpacePts::produce(art::Event& evt)
                Double_t hitcoord[3];       
                hitcoord[0] = hit3d.X();
                hitcoord[1] = hit3d.Y();
-               hitcoord[2] = hit3d.Z();         
+               hitcoord[2] = hit3d.Z();
 
-	         
+               /*
                double yy,zz;
                if(geom->ChannelsIntersect(geom->PlaneWireToChannel(0,(int)((Iw/wire_pitch)-3.95)),      geom->PlaneWireToChannel(1,(int)((Cw/wire_pitch)-1.84)),yy,zz))
                {
@@ -519,7 +519,8 @@ void trkf::SpacePts::produce(art::Event& evt)
 	           }
 	           else
 	           continue;
-           
+               */
+                   
                recob::SpacePoint mysp(sp_hits);//3d point at end of track
                mysp.SetXYZ(hitcoord);
                mysp.SetID(spacepoints.size());
