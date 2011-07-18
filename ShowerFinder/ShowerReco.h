@@ -90,11 +90,19 @@ namespace shwf {
    int fRun,fEvent,fSubRun;
    
    
-
+//input labels:
   std::string fShwrOutput;
   std::string fClusterModuleLabel;
-  std::string fHoughLineModuleLabel;
-std::string fLineMergerModuleLabel;
+  std::string fVertexCLusterModuleLabel;
+    std::string fMCGeneratorLabel;
+    std::string fLarGeantlabel;
+  int fUseMCVertex;
+
+ 
+
+  double xyz_vertex[3];
+
+
   float IdEdx4cm; // dedx of the first 4cm of the shower
   float CdEdx4cm; //dedx of the first 4cm of the shower 
   double CdEdx4cm_corr; //dedx of the first 4cm of the shower 

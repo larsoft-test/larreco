@@ -69,8 +69,13 @@ void shwf::ShowerReco::reconfigure(fhicl::ParameterSet const& pset)
 {
   fClusterModuleLabel = pset.get< std::string >("ClusterModuleLabel");
   fShwrOutput = pset.get< std::string >("ShowerOutputTxtFile");
-  fHoughLineModuleLabel=pset.get<std::string > ("HoughLineModuleLabel");
-  fLineMergerModuleLabel=pset.get<std::string > ("LineMergerModuleLabel");
+  //fHoughLineModuleLabel=pset.get<std::string > ("HoughLineModuleLabel");
+  fVertexCLusterModuleLabel=pset.get<std::string > ("VertexClusterModuleLabel");
+  fMCGeneratorLabel=pset.get<std::string > ("MCGeneratorLabel");
+  fLarGeantlabel=pset.get<std::string > ("LarGeantlabel");     
+  fUseMCVertex=pset.get<int > ("UseMCVertex");
+ 
+
 }
 
 // ***************** //
@@ -340,21 +345,19 @@ fChargeADC_4cm.resize(fNPlanes);   //Initial charge in ADC/cm for each plane fir
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fClusterModuleLabel,clusterListHandle);
 
+
    std::vector< art::PtrVector < recob::Hit> > hitlist_all;
    //art::PtrVector < recob::Hit> hitlistInd;
    hitlist_all.resize(fNPlanes);
 
  
-    std::auto_ptr<std::vector<recob::Shower> > Shower3DVector(new std::vector<recob::Shower>);
+    //std::auto_ptr<std::vector<recob::Shower> > Shower3DVector(new std::vector<recob::Shower>);
 
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
     {
 
       art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
       
-      // Figure out which View the cluster belongs to 
-      
-      ///      int clPlane = cl->View()-1;
 
       art::PtrVector<recob::Hit> hitlist;
       hitlist = cl->Hits();
@@ -395,14 +398,19 @@ fChargeADC_4cm.resize(fNPlanes);   //Initial charge in ADC/cm for each plane fir
 
 
 
+
+
      
   // Save energy in a file
 
   myfile.open (fShwrOutput.c_str(), std::ios::app);
 std::cout << "######## in main loop " << myfile.is_open() <<std::endl;
 
-  GetVertex(evt);
-//  GetVertexN(evt);
+
+if(!fUseMCVertex)
+    GetVertex(evt);
+else
+    GetVertexN(evt);
 
 
 
@@ -450,6 +458,57 @@ for(int i=0;i<fNPlanes;i++)
  ///////////////// !!! this has to be plane independent 
  
 
+//////create spacepoints, and direction cosines for Shower creation
+
+//std::vector< recob::SpacePoint > 	spacepoints = std::vector<recob::SpacePoint>()	
+
+
+         
+// make an art::PtrVector of the clusters
+ art::PtrVector<recob::Cluster> prodvec;
+ for(unsigned int i = 0; i < clusterListHandle->size(); ++i){
+   art::Ptr<recob::Cluster> prod(clusterListHandle, i);
+   prodvec.push_back(prod);
+ }
+
+//create a singleSpacePoint at vertex.
+std::vector< recob::SpacePoint > spcpts;
+
+//art::PtrVector< recob::Hit > hits;
+
+//for(int pl=0;pl<fNPlanes;pl++)
+ //{
+ //for each plane create or find hit closest to the vertex... 
+ //recob::Hit  sinhit(art::Ptr< recob::Wire > &wire, 0., 0., 0., 0., fTime_vertex[pl], 0., 0., 0., 0., 0., 0., 0.)
+
+ //}
+
+//double xyz[3]={};
+
+recob::SpacePoint singlepoint;
+singlepoint.SetXYZ(xyz_vertex);
+spcpts.push_back(singlepoint);
+
+
+recob::Shower  singShower(prodvec,spcpts);
+
+
+double dcosstart[3]={TMath::Cos(fPhi*pi/180)*TMath::Sin(fTheta*pi/180),TMath::Cos(fTheta*pi/180),TMath::Sin(fPhi*pi/180)*TMath::Sin(fTheta*pi/180)};
+
+
+singShower.SetDirection(dcosstart,dcosstart);
+
+
+std::auto_ptr<std::vector<recob::Shower> > Shower3DVector(new std::vector<recob::Shower>);
+Shower3DVector->push_back(singShower);
+
+//get direction cosines and set them for the shower
+
+
+
+
+//
+
 
 myfile << std::endl;
   myfile.close(); 
@@ -460,7 +519,7 @@ myfile << std::endl;
   //fh_theta[iplane]->Write(Form("fh_theta_%d_%d",iplane,evt.id().event()));
   // This needs work, clearly.  
   //for(int p=0;p<2;p++)Shower3DVector->push_back(shower);
-  //evt.put(Shower3DVector)
+  evt.put(Shower3DVector);
 
 }
 
@@ -1128,7 +1187,10 @@ void shwf::ShowerReco::GetVertex(art::Event& evt){
 //     evt.getByLabel(fHoughLineModuleLabel,houghListHandle);
 
 art::Handle< std::vector<recob::Cluster> > lineListHandle;
-    evt.getByLabel(fLineMergerModuleLabel,lineListHandle);
+    evt.getByLabel(fVertexCLusterModuleLabel,lineListHandle);
+
+
+    
 
   /* // Read in the cluster List object(s).
     art::Handle< std::vector<recob::Cluster> > clusterListHandle;
@@ -1200,7 +1262,10 @@ fTime_vertex[i]=time_low[i];
 void shwf::ShowerReco::GetVertexN(art::Event& evt){
 
  art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
-  evt.getByLabel("generator",mctruthListHandle);
+  evt.getByLabel(fMCGeneratorLabel,mctruthListHandle);
+
+
+
 
  art::PtrVector<simb::MCTruth> mclist;
   for (unsigned int ii = 0; ii <  mctruthListHandle->size(); ++ii)
@@ -1219,7 +1284,7 @@ void shwf::ShowerReco::GetVertexN(art::Event& evt){
         //event_has_pi_plus=1;
       
 
-double vertex[3]={0,0,0};
+//double vertex[3]={0,0,0};
 //for( unsigned int i = 0; i < mclist.size(); ++i )
   //  art::Ptr<simb::MCTruth> mc(mclist[0]);
 
@@ -1232,7 +1297,7 @@ std::cout << "%%%%%%% mc size size,  "<<mclist.size() <<    std::endl;
 if((neut.PdgCode()==22)&& neut.StatusCode()==1) //photon - need first electron.
      { 
      art::Handle< std::vector<sim::Particle> > parHandle;
-     evt.getByLabel("largeant", parHandle);
+     evt.getByLabel(fLarGeantlabel, parHandle);
 
      art::PtrVector<simb::MCParticle> pvec;
     int fpart=0;
@@ -1293,9 +1358,9 @@ if((neut.PdgCode()==22)&& neut.StatusCode()==1) //photon - need first electron.
     //if((neut.PdgCode()==11 || neut.PdgCode()==-11 )&& neut.StatusCode()==1){
   
     
-    vertex[0] =neut.Vx();
-    vertex[1] =neut.Vy();
-    vertex[2] =neut.Vz();
+    xyz_vertex[0] =neut.Vx();
+    xyz_vertex[1] =neut.Vy();
+    xyz_vertex[2] =neut.Vz();
 	
     std::cout<<"neut.Vx()= "<<neut.Vx()<<" ,y= "<<neut.Vy()<<" ,z= "<<neut.Vz()<<std::endl;
 //if(((neut.PdgCode()==11 || neut.PdgCode()==-11 )&& neut.StatusCode()==1))
@@ -1305,7 +1370,7 @@ if((neut.PdgCode()==22)&& neut.StatusCode()==1) //photon - need first electron.
     
    art::ServiceHandle<geo::Geometry> geom;
 art::ServiceHandle<util::LArProperties> larp;
-double drifttick=(vertex[0]/larp->DriftVelocity(larp->Efield(),larp->Temperature()))*(1./.198);
+double drifttick=(xyz_vertex[0]/larp->DriftVelocity(larp->Efield(),larp->Temperature()))*(1./.198);
 
 const double origin[3] = {0.};
 for(unsigned int p=0;p<fNPlanes;p++)
@@ -1315,8 +1380,10 @@ unsigned int  wirevertex, t;
 geom->Plane(p).LocalToWorld(origin, pos);
 	//planex[p] = pos[0];
 std::cout << "plane X positionp " << p << " " << pos[0] << std::endl;
-vertex[0]=pos[0];
- unsigned int channel2 = geom->NearestChannel(vertex);
+
+pos[1]=xyz_vertex[1];
+pos[2]=xyz_vertex[2];
+ unsigned int channel2 = geom->NearestChannel(pos);
        geom->ChannelToWire(channel2,t,p,wirevertex); 
        
 fWire_vertex[p]=wirevertex;

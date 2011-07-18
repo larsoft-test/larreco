@@ -1,20 +1,24 @@
 BEGIN_PROLOG
 
-argoneut_shower:
+
+standard_shower:
 {
  module_type:        "ShowerReco"
  ClusterModuleLabel: "dbcluster"
- ShowerOutputTxtFile: "./Shower_energy.txt"
+ VertexClusterModuleLabel: "linemerger" 
+ MCGeneratorLabel:	   "generator"
+ LarGeantlabel:    "largeant"
+ UseMCVertex:	0
 }
 
 
-microboone_shower:
-{
- module_type:        "ShowerReco"
- ClusterModuleLabel: "dbcluster"
- HoughLineModuleLabel: "hough" 
- LineMergerModuleLabel: "linemerger"
- ShowerOutputTxtFile: "./Shower_energy_ub.txt"
-}
+
+argoneut_shower:     @local::standard_shower
+argoneut_shower.ShowerOutputTxtFile: "./Shower_energy.txt"
+
+
+microboone_shower:   @local::standard_shower 
+microboone_shower.ShowerOutputTxtFile: "./Shower_energy_ub.txt"
+microboone_shower.UseMCVertex:    1     # whether to use the vertex obtained from MC - if exists.
 
 END_PROLOG
