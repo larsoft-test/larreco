@@ -223,7 +223,7 @@ void trkf::SpacePts::produce(art::Event& evt)
 //          if(plane==0) time -= tSI;         // Induction
 //          if(plane==1) time -= (tSI+tIC);   // Collection
 	     
-         if(plane==1) time += tIC;   // Collection
+         if(plane==1) time -= tIC;   // Collection
          //transform hit wire and time into cm
          double wire_cm = 0.; 
          if(plane==0)

@@ -337,7 +337,15 @@ void trkf::Track3Dreco::produce(art::Event& evt)
             
             //compute track (normalized) cosine directions in the TPC co-ordinate system
             TVector3 DirCos = endpointVec - startpointVec;
+
+            //SetMag casues a crash if the magnitude of the vector is zero
+            try
+            {
             DirCos.SetMag(1.0);//normalize vector
+            }
+            catch(...){std::cout<<"The Spacepoint is infinitely small"<<std::endl;
+            continue;
+            }
 
             art::Ptr <recob::Cluster> cl1(clusterListHandle,Icluster_count[inductionIter]);
             art::Ptr <recob::Cluster> cl2(clusterListHandle,Ccluster_count[collectionIter]);
@@ -455,6 +463,19 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                hitcoord[1] = hit3d.Y();
                hitcoord[2] = hit3d.Z();           
     
+               double yy,zz;
+               if(geom->ChannelsIntersect(geom->PlaneWireToChannel(0,(int)((Iw/wire_pitch)-3.95)),      geom->PlaneWireToChannel(1,(int)((Cw/wire_pitch)-1.84)),yy,zz))
+               {
+                  //channelsintersect provides a slightly more accurate set of y and z coordinates. use channelsintersect in case the wires in question do cross.
+                  hitcoord[1] = yy;
+                  hitcoord[2] = zz;               
+                  mf::LogInfo("SpacePts: ") << "SpacePoint adding xyz ..." << hitcoord[0] <<","<< hitcoord[1] <<","<< hitcoord[2];	       
+// 	           std::cout<<"wire 1: "<<(Iw/wire_pitch)-3.95<<" "<<(Cw/wire_pitch)-1.84<<std::endl;
+//                std::cout<<"Intersect: "<<yy<<" "<<zz<<std::endl;
+	           }
+	           else
+                  continue;
+
                recob::SpacePoint mysp(sp_hits);//3d point at end of track
                mysp.SetXYZ(hitcoord);
                mysp.SetID(spacepoints.size());
