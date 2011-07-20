@@ -96,13 +96,13 @@ namespace cluster{
       std::vector<cheat::TrackIDE> eveides = cheat::BackTracker::HitToEveID(plist, scs, *itr);
 
       // loop over all eveides for this hit
-      for(std::vector<cheat::TrackIDE>::iterator eitr = eveides.begin(); eitr != eveides.end(); eitr++){
+      for(size_t e = 0; e < eveides.size(); ++e){
 
 	// don't worry about eve particles that contribute less than 10% of the
 	// energy in the current hit
-	if( (*eitr).energyFrac < 0.1) continue;
+	if( eveides[e].energyFrac < 0.1) continue;
 	  
-	hitMapItr = eveHitMap.find( (*eitr).trackID );
+	hitMapItr = eveHitMap.find( eveides[e].trackID );
 	
 	// is this id already in the map, if so extend the collection 
 	// by one hit, otherwise make a new collection and put it in
@@ -113,7 +113,7 @@ namespace cluster{
 	else{
 	  std::vector< art::Ptr<recob::Hit> > hitvec;
 	  hitvec.push_back(*itr);
-	  eveHitMap[(*eitr).trackID] = hitvec;
+	  eveHitMap[eveides[e].trackID] = hitvec;
 	}
 
       } // end loop over eve IDs for this hit
