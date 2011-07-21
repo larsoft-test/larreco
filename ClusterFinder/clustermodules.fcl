@@ -78,6 +78,21 @@ standard_kingaclusterana:
  KingaModuleLabel:         "kingacluster"
 }
 
+
+standard_showeranglecluster:
+{
+ module_type:        "ShowerAngleCluster"
+ ClusterModuleLabel: "dbcluster"
+ VertexClusterModuleLabel: "linemerger" 
+ MCGeneratorLabel:         "generator"    #needed for MC vertex extraction
+ LarGeantlabel:    "largeant"            #needed for MC vertex extraction
+ UseMCVertex:   1                        #needed for MC vertex extraction
+}
+
+
+
+
+
 argoneut_dbcluster:          @local::standard_dbcluster
 argoneut_dbclusterana:       @local::standard_dbclusterana
 argoneut_kingacluster:       @local::standard_kingacluster
@@ -87,6 +102,8 @@ argoneut_houghlinefinderana: @local::standard_houghlinefinderana
 argoneut_houghlinemod:       @local::standard_houghlinemod
 argoneut_linemerger:         @local::standard_linemerger
 argoneut_endpointmod:        @local::standard_endpointmod
+argoneut_showeranglecluster:       @local::standard_showeranglecluster
+
 
 microboone_dbcluster:          @local::standard_dbcluster
 microboone_dbclusterana:       @local::standard_dbclusterana
@@ -97,6 +114,9 @@ microboone_houghlinefinderana: @local::standard_houghlinefinderana
 microboone_houghlinemod:       @local::standard_houghlinemod
 microboone_linemerger:         @local::standard_linemerger
 microboone_endpointmod:        @local::standard_endpointmod
+microboone_showeranglecluster:       @local::standard_showeranglecluster
+
+
 
 lbne_dbcluster:          @local::standard_dbcluster
 lbne_dbclusterana:       @local::standard_dbclusterana
@@ -107,5 +127,7 @@ lbne_houghlinefinderana: @local::standard_houghlinefinderana
 lbne_houghlinemod:       @local::standard_houghlinemod
 lbne_linemerger:         @local::standard_linemerger
 lbne_endpointmod:        @local::standard_endpointmod
+lbne_showeranglecluster:       @local::standard_showeranglecluster
+
 
 END_PROLOG
