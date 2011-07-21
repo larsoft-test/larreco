@@ -44,11 +44,14 @@ namespace shwf {
     int Get3Daxis_coords();
 
     //int    Get2Dvariables(float Wire_vertexI_wt, float Wire_vertexC_wt, float Time_I_wt, float Time_C_wt); // in rad
-    void   GetVertex(art::Event& evt); // Get shower vertex
-    void   GetVertexN(art::Event& evt); // Get shower vertex
+   // void   GetVertex(art::Event& evt); // Get shower vertex
+   // void   GetVertexN(art::Event& evt); // Get shower vertex
+
+    void   GetVertexAndAnglesFromCluster(art::Ptr< recob::Cluster > clust); // Get shower vertex and slopes.
+
     void   GetPitchLength(); //Get pitch length of both planes
   //  void   AngularDistributionI(art::PtrVector < recob::Hit> hitlistInd); //Get angular distribution of the shower (Induction plane)
-    void   AngularDistribution(art::PtrVector < recob::Hit> hitlist);  //Get angular distribution of the shower (Collection plane) 
+  //  void   AngularDistribution(art::PtrVector < recob::Hit> hitlist);  //Get angular distribution of the shower (Collection plane) 
     void   Get2DVariables(art::PtrVector < recob::Hit> hitlist);   
 
     void   FitAngularDistributions(int plane); 
@@ -91,7 +94,7 @@ namespace shwf {
    
    
 //input labels:
-  std::string fShwrOutput;
+  
   std::string fClusterModuleLabel;
   std::string fVertexCLusterModuleLabel;
     std::string fMCGeneratorLabel;
@@ -109,13 +112,13 @@ namespace shwf {
   double totCnrg,totCnrg_corr;
   double fMean_wire_pitch ;   // wire pitch in cm
 
-    std::vector<double> fOmega_Mean;    // Mean value of the 2D angular distribution (0=Ind - 1=Coll) cm,cm
-    std::vector<double> fOmega_RMS;     // RMS of the 2D angular distribution  (0=Ind - 1=Coll) cm, cm
-
-    std::vector<double> fOmega_Mean_reb;    // Mean value of the 2D angular Rebinned by 4
-    std::vector<double> fOmega_RMS_reb;     // RMS of the 2D angular distribution  Rebinned by 4
-    std::vector<double> fOmega_Mean_Mean;    // Mean value of the 2D angular use mean instead of maximum
- //   std::vector<double> fOmega_Mean_RMS;     // RMS of the 2D angular distribution use mean instead of maximum
+//     std::vector<double> fOmega_Mean;    // Mean value of the 2D angular distribution (0=Ind - 1=Coll) cm,cm
+//     std::vector<double> fOmega_RMS;     // RMS of the 2D angular distribution  (0=Ind - 1=Coll) cm, cm
+// 
+//     std::vector<double> fOmega_Mean_reb;    // Mean value of the 2D angular Rebinned by 4
+//     std::vector<double> fOmega_RMS_reb;     // RMS of the 2D angular distribution  Rebinned by 4
+//     std::vector<double> fOmega_Mean_Mean;    // Mean value of the 2D angular use mean instead of maximum
+//  //   std::vector<double> fOmega_Mean_RMS;     // RMS of the 2D angular distribution use mean instead of maximum
 
    
 
@@ -193,7 +196,7 @@ std::vector<std::vector<double> > fSingleEvtAngleVal;  //vector with the first D
 TH1F *fh_phi_act;
 TH1F *fh_thet_act;
   // Save enegry in a file
-  std::ofstream myfile;
+  //std::ofstream myfile;
   
   // Variables to get the angular distribution of the hits
  // float AI, BI, thetaI; // Induction  plane
