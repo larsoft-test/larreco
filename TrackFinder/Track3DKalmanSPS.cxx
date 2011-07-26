@@ -203,6 +203,8 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   art::ServiceHandle<trkf::SpacePointService> sps;
 
   art::PtrVector<simb::MCTruth> mclist;
+  art::Handle< std::vector<sim::SimChannel> > simChannelHandle;
+  
   if (!evt.isRealData())
     {
 
@@ -217,6 +219,8 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 	  art::Ptr<simb::MCTruth> mctparticle(mctruthListHandle,ii);
 	  mclist.push_back(mctparticle);
 	}
+
+      evt.getByLabel("daq", simChannelHandle);      
     }
 
   //create collection of spacepoints that will be used when creating the Track object
@@ -319,7 +323,10 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  
 		  if (hits.size()==0) break;
 		  // Add the 3D track to the vector of the reconstructed tracks
-		  sps->makeSpacePoints(hits,spacepoints,&evt);
+		  if(simChannelHandle.isValid())
+		    sps->makeSpacePoints(hits,spacepoints,*simChannelHandle);
+		  else
+		    sps->makeSpacePoints(hits,spacepoints);
 		  // Insert the GENFIT/Kalman stuff here then make the tracks. Units are cm, GeV.
 		  mf::LogInfo("Track3DKalmanSPS: ") << "found "<< spacepoints.size() <<" 3D spacepoint(s) for Cluster combo ", iclus, jclus, kclus, " .";
 		  

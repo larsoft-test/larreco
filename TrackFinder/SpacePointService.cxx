@@ -21,7 +21,6 @@
 #include "Simulation/SimChannel.h"
 #include "Simulation/Electrons.h"
 #include "Simulation/LArVoxelData.h"
-#include "art/Framework/Core/Event.h"
 #include "art/Framework/Core/View.h"
 #include "Utilities/DetectorProperties.h"
 #include "TH1F.h"
@@ -67,7 +66,13 @@ trkf::SpacePointService::SpacePointService(const fhicl::ParameterSet& pset,
   fUseMC(false),
   fMaxDT(0.),
   fMaxS(0.),
+  fTimeOffsetU(0.),
+  fTimeOffsetV(0.),
+  fTimeOffsetW(0.),
   fMinViews(1000),
+  fEnableU(false),
+  fEnableV(false),
+  fEnableW(false),
   fGeom(0),
   fSamplingRate(0.),
   fTriggerOffset(0),
@@ -91,8 +96,9 @@ trkf::SpacePointService::SpacePointService(const fhicl::ParameterSet& pset,
   fHMCdz(0)
 {
   for(int i=0; i<3; ++i) {
-    fTimeOffset[i] = 0.;
+    fView[i] = geo::kUnknown;
     fEnable[i] = false;
+    fTimeOffset[i] = 0.;
     fWirePitch[i] = 0.;
     fWireOffset[i] = 0.;
     fTheta[i] = 0.;
@@ -116,15 +122,6 @@ trkf::SpacePointService::~SpacePointService()
 //
 void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
 {
-  // Verify view numbering convention that views are numbered 1-3.
-
-  assert(geo::kU >= 1 && geo::kU <= 3);
-  assert(geo::kV >= 1 && geo::kV <= 3);
-  assert(geo::kW >= 1 && geo::kW <= 3);
-  assert(geo::kU != geo::kV);
-  assert(geo::kU != geo::kW);
-  assert(geo::kV != geo::kW);
-
   // Get configuration parameters.
 
   fDebug = pset.get<int>("Debug", 0);
@@ -135,21 +132,15 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
   fMaxDT = pset.get<double>("MaxDT", 0.);
   fMaxS = pset.get<double>("MaxS", 0.);
 
-  double timeOffsetU = pset.get<double>("TimeOffsetU", 0.);
-  double timeOffsetV = pset.get<double>("TimeOffsetV", 0.);
-  double timeOffsetW = pset.get<double>("TimeOffsetW", 0.);
-  fTimeOffset[geo::kU-1] = timeOffsetU;
-  fTimeOffset[geo::kV-1] = timeOffsetV;
-  fTimeOffset[geo::kW-1] = timeOffsetW;
+  fTimeOffsetU = pset.get<double>("TimeOffsetU", 0.);
+  fTimeOffsetV = pset.get<double>("TimeOffsetV", 0.);
+  fTimeOffsetW = pset.get<double>("TimeOffsetW", 0.);
 
   fMinViews = pset.get<int>("MinViews", 1000);
 
-  bool enableU = pset.get<bool>("EnableU", false);
-  bool enableV = pset.get<bool>("EnableV", false);
-  bool enableW = pset.get<bool>("EnableW", false);
-  fEnable[geo::kU-1] = enableU;
-  fEnable[geo::kV-1] = enableV;
-  fEnable[geo::kW-1] = enableW;
+  fEnableU = pset.get<bool>("EnableU", false);
+  fEnableV = pset.get<bool>("EnableV", false);
+  fEnableW = pset.get<bool>("EnableW", false);
 
   fGDMLPath = "";
   fROOTPath = "";
@@ -164,13 +155,13 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
 	    << "  fMClabel = " << fMClabel << "\n"
 	    << "  MaxDT = " << fMaxDT << "\n"
 	    << "  MaxS = " << fMaxS << "\n"
-	    << "  TimeOffsetU = " << timeOffsetU << "\n"
-	    << "  TimeOffsetV = " << timeOffsetV << "\n"
-	    << "  TimeOffsetW = " << timeOffsetW << "\n" 
+	    << "  TimeOffsetU = " << fTimeOffsetU << "\n"
+	    << "  TimeOffsetV = " << fTimeOffsetV << "\n"
+	    << "  TimeOffsetW = " << fTimeOffsetW << "\n" 
 	    << "  MinViews = " << fMinViews << "\n"
-	    << "  EnableU = " << enableU << "\n"
-	    << "  EnableV = " << enableV << "\n"
-	    << "  EnableW = " << enableW << "\n"
+	    << "  EnableU = " << fEnableU << "\n"
+	    << "  EnableV = " << fEnableV << "\n"
+	    << "  EnableW = " << fEnableW << "\n"
 	    << std::endl;
 }
 
@@ -214,6 +205,9 @@ void trkf::SpacePointService::update()
   // constants from the previous geometry.
 
   for(int i=0; i<3; ++i) {
+    fView[i] = geo::kUnknown;
+    fEnable[i] = false;
+    fTimeOffset[i] = 0.;
     fWirePitch[i] = 0.;
     fWireOffset[i] = 0.;
     fTheta[i] = 0.;
@@ -225,6 +219,8 @@ void trkf::SpacePointService::update()
   // Calculate and print geometry information.
 
   std::cout << "SpacePointService updating geometry constants." << std::endl;
+
+  // Loop over planes.
 
   int n = fGeom->Nplanes();
   for(int i=0; i<n; ++i) {
@@ -250,13 +246,28 @@ void trkf::SpacePointService::update()
     double pitch = (dist[1] - dist[0]) / (wire[1] - wire[0]);
     double offset = dist[0] - pitch * wire[0];
 
-    int view = pgeom.View();
-    assert(view >= 1 && view <= 3);
-    fTheta[view-1] = theta;
-    fSinTheta[view-1] = std::sin(theta);
-    fCosTheta[view-1] = std::cos(theta);
-    fWirePitch[view-1] = pitch;
-    fWireOffset[view-1] = offset;
+    geo::View_t view = pgeom.View();
+    fView[i] = view;
+    if(view == geo::kU) {
+      fEnable[i] = fEnableU;
+      fTimeOffset[i] = fTimeOffsetU;
+    }
+    else if(view == geo::kV) {
+      fEnable[i] = fEnableV;
+      fTimeOffset[i] = fTimeOffsetV;
+    }
+    else if(view == geo::kW) {
+      fEnable[i] = fEnableW;
+      fTimeOffset[i] = fTimeOffsetW;
+    }
+    else
+      throw cet::exception("SPTError") << "Bad view = " << view << "\n";
+
+    fWirePitch[i] = pitch;
+    fWireOffset[i] = offset;
+    fTheta[i] = theta;
+    fSinTheta[i] = std::sin(theta);
+    fCosTheta[i] = std::cos(theta);
 
     std::cout << "Plane " << i << "\n"
 	      << "  View " << view << "\n"
@@ -313,9 +324,14 @@ void trkf::SpacePointService::bookHistograms()
 
     art::ServiceHandle<art::TFileService> tfs;
     art::TFileDirectory dir = tfs->mkdir("sptsvc", "SpacePointService histograms");
-    fHDTUV = dir.make<TH1F>("DTUV", "U-V time difference", 100, -50, 50);
-    fHDTVW = dir.make<TH1F>("DTVW", "V-W time difference", 100, -50, 50);
-    fHDTWU = dir.make<TH1F>("DTWU", "W-U time difference", 100, -50, 50);
+    if(fMCHist) {
+      fHDTUE = dir.make<TH1F>("MCDTUE", "U-Drift Electrons Time Difference", 100, -50., 50.);
+      fHDTVE = dir.make<TH1F>("MCDTVE", "V-Drift Electrons Time Difference", 100, -50., 50.);
+      fHDTWE = dir.make<TH1F>("MCDTWE", "W-Drift Electrons Time Difference", 100, -50., 50.);
+    }
+    fHDTUV = dir.make<TH1F>("DTUV", "U-V time difference", 100, -50., 50.);
+    fHDTVW = dir.make<TH1F>("DTVW", "V-W time difference", 100, -50., 50.);
+    fHDTWU = dir.make<TH1F>("DTWU", "W-U time difference", 100, -50., 50.);
     fHS = dir.make<TH1F>("DS", "Wire Coincidence", 100, -10., 10.);
     fHDTUVC = dir.make<TH1F>("DTUVC", "U-V time difference (space compatible hits)",
 			      100, -50., 50.);
@@ -356,12 +372,14 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits)
     // First do pairwise tests.
     // Do double loop over hits.
 
-    for(int ihit1 = 0; ihit1 < nhits-1; ++ihit1) {
+    for(int ihit1 = 0; result && ihit1 < nhits-1; ++ihit1) {
       const recob::Hit& hit1 = *(hits[ihit1]);
       geo::View_t view1 = hit1.View();
-      if(view1 < 1 || view1 > 3)
-	throw cet::exception("SPTError") << "Bad view = " << view1 << "\n";
-      double t1 = hit1.PeakTime() - fTimeOffset[view1-1];
+      int plane1 = (fView[0] == view1 ? 0 :
+		    (fView[1] == view1 ? 1 :
+		     (fView[2] == view1 ? 2 :
+		      throw cet::exception("SPTError") << "Bad view = " << view1 << "\n")));
+      double t1 = hit1.PeakTime() - fTimeOffset[plane1];
 
       // If using mc information, make a collection of electrons for hit 1.
 
@@ -369,56 +387,64 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits)
 
       // Loop over second hit.
 
-      for(int ihit2 = ihit1+1; ihit2 < nhits; ++ihit2) {
+      for(int ihit2 = ihit1+1; result && ihit2 < nhits; ++ihit2) {
 	const recob::Hit& hit2 = *(hits[ihit2]);
 	geo::View_t view2 = hit2.View();
-	if(view2 < 1 || view2 > 3)
-	  throw cet::exception("SPTError") << "Bad view = " << view2 << "\n";
-	double t2 = hit2.PeakTime() - fTimeOffset[view2-1];
+
+	// Test for different views.
+
+	result = result && view1 != view2;
+	if(result) {
+	  int plane2 = (fView[0] == view2 ? 0 :
+			(fView[1] == view2 ? 1 :
+			 (fView[2] == view2 ? 2 :
+			  throw cet::exception("SPTError") << "Bad view = " << view2 << "\n")));
+	  double t2 = hit2.PeakTime() - fTimeOffset[plane2];
     
-	// Test for different views and maximum time difference.
+	  // Test maximum time difference.
 
-	result = view1 != view2 && std::abs(t1-t2) <= fMaxDT;
+	  result = result && std::abs(t1-t2) <= fMaxDT;
 
-	// If using mc information, make a collection of electrons for hit 2.
+	  // If using mc information, make a collection of electrons for hit 2.
 
-	if(fUseMC) {
+	  if(fUseMC) {
 
-	  // Find electrons that are in time with hit 2.
+	    // Find electrons that are in time with hit 2.
 
-	  std::vector<const sim::Electrons*> electrons2 = fElecMap[&hit2];
-	  std::vector<const sim::Electrons*>::iterator it =
-	    std::set_intersection(electrons1.begin(), electrons1.end(),
-				  electrons2.begin(), electrons2.end(),
-				  electrons2.begin(), ElectronsLess());
-	  electrons2.resize(it - electrons2.begin());
+	    std::vector<const sim::Electrons*> electrons2 = fElecMap[&hit2];
+	    std::vector<const sim::Electrons*>::iterator it =
+	      std::set_intersection(electrons1.begin(), electrons1.end(),
+				    electrons2.begin(), electrons2.end(),
+				    electrons2.begin(), ElectronsLess());
+	    electrons2.resize(it - electrons2.begin());
 
-	  // Hits are compatible if they have points in common.
+	    // Hits are compatible if they have points in common.
 
-	  mc_ok = electrons2.size() > 0;
-	  result = result && mc_ok;
-	}
-
-	// Fill histograms.
-
-	if(fHist && mc_ok) {
-	  if(view1 == geo::kU) {
-	    if(view2 == geo::kV)
-	      fHDTUV->Fill(t1-t2);
-	    if(view2 == geo::kW)
-	      fHDTWU->Fill(t2-t1);
+	    mc_ok = electrons2.size() > 0;
+	    result = result && mc_ok;
 	  }
-	  if(view1 == geo::kV) {
-	    if(view2 == geo::kW)
-	      fHDTVW->Fill(t1-t2);
-	    if(view2 == geo::kU)
-	      fHDTUV->Fill(t2-t1);
-	  }
-	  if(view1 == geo::kW) {
-	    if(view2 == geo::kU)
-	      fHDTWU->Fill(t1-t2);
-	    if(view2 == geo::kV)
-	      fHDTVW->Fill(t2-t1);
+
+	  // Fill histograms.
+
+	  if(fHist && mc_ok) {
+	    if(view1 == geo::kU) {
+	      if(view2 == geo::kV)
+		fHDTUV->Fill(t1-t2);
+	      if(view2 == geo::kW)
+		fHDTWU->Fill(t2-t1);
+	    }
+	    if(view1 == geo::kV) {
+	      if(view2 == geo::kW)
+		fHDTVW->Fill(t1-t2);
+	      if(view2 == geo::kU)
+		fHDTUV->Fill(t2-t1);
+	    }
+	    if(view1 == geo::kW) {
+	      if(view2 == geo::kU)
+		fHDTWU->Fill(t1-t2);
+	      if(view2 == geo::kV)
+		fHDTVW->Fill(t2-t1);
+	    }
 	  }
 	}
       }
@@ -429,33 +455,44 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits)
 
     if(result && nhits == 3) {
 
-      geo::View_t view[3];
-      double time[3];
-      unsigned int wire[3];
-      unsigned int plane[3];
-      unsigned int tpc;
-      for(int i=0; i<3; ++i) {
-	geo::View_t v = hits[i]->View();
-	assert(v >= 1 && v <= 3);
-	view[i] = v;
-	time[i] = hits[i]->PeakTime() - fTimeOffset[v-1];
-	unsigned short channel = hits[i]->Channel();
-	fGeom->ChannelToWire(channel, tpc, plane[i], wire[i]);
-      }
-
-      // Get distance with offset correction.
+      // Loop over hits.
 
       double dist[3] = {0., 0., 0.};
-      for(int i = 0; i < 3; ++i) {
-	geo::View_t v = view[i];
-	assert(v >= 1 && v <= 3);
-	dist[v-1] = fWirePitch[v-1] * wire[i] + fWireOffset[v-1];
+      double time[3];
+      geo::View_t view[3];
+
+      for(int i=0; i<3; ++i) {
+
+	// Get plane index.
+
+	geo::View_t v = hits[i]->View();
+	view[i] = v;
+	int p = (fView[0] == v ? 0 :
+		 (fView[1] == v ? 1 :
+		  (fView[2] == v ? 2 :
+		   throw cet::exception("SPTError") << "Bad view = " << v << "\n")));
+
+	// Get corrected time.
+
+	time[i] = hits[i]->PeakTime() - fTimeOffset[p];
+
+	// Get wire number.
+
+	unsigned int tpc;
+	unsigned int plane;
+	unsigned int wire;
+	unsigned short channel = hits[i]->Channel();
+	fGeom->ChannelToWire(channel, tpc, plane, wire);
+
+	// Get distance with offset correction.
+
+	dist[p] = fWirePitch[p] * wire + fWireOffset[p];
       }
 
       // Do space cut.
 
       double S = fSin[0]*dist[0] + fSin[1]*dist[1] + fSin[2]*dist[2];
-      result = std::abs(S) < fMaxS;
+      result = result && std::abs(S) < fMaxS;
 
       // Fill histograms.
 
@@ -566,12 +603,15 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
     const recob::Hit& hit = **ihit;
 
     geo::View_t v = hit.View();
-    assert(v >= 1 && v <= 3);
+    int p = (fView[0] == v ? 0 :
+	     (fView[1] == v ? 1 :
+	      (fView[2] == v ? 2 :
+	       throw cet::exception("SPTError") << "Bad view = " << v << "\n")));
 
     // Correct time for trigger offset and view-dependent time offsets.
     // Assume time error is proportional to (end time - start time).
 
-    double t = hit.PeakTime() - fTriggerOffset - fTimeOffset[v-1];
+    double t = hit.PeakTime() - fTriggerOffset - fTimeOffset[p];
     double et = hit.EndTime() - hit.StartTime();
     double w = 1./(et*et);
 
@@ -604,23 +644,26 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
       const recob::Hit& hit = **ihit;
 
       geo::View_t v = hit.View();
-      assert(v >= 1 && v <= 3);
+      int p = (fView[0] == v ? 0 :
+	       (fView[1] == v ? 1 :
+		(fView[2] == v ? 2 :
+		 throw cet::exception("SPTError") << "Bad view = " << v << "\n")));
 
       // Calculate wire coordinate in this view.
     
+      unsigned int tpc;
       unsigned int plane;
       unsigned int wire;
-      unsigned int tpc;
       unsigned short channel = hit.Channel();
       fGeom->ChannelToWire(channel, tpc, plane, wire);
-      double u = wire * fWirePitch[v-1] + fWireOffset[v-1];
+      double u = wire * fWirePitch[p] + fWireOffset[p];
 
       // \todo probably need to account for different TPCs somehow here.
 
       // Summations
 
-      double s = fSinTheta[v-1];
-      double c = fCosTheta[v-1];
+      double s = fSinTheta[p];
+      double c = fCosTheta[p];
       sus += u*s;
       suc += u*c;
       sc2 += c*c;
@@ -668,11 +711,10 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
 
 //----------------------------------------------------------------------
 // Fill a vector of space points for all compatible combinations of hits
-// from an input vector of hits.
+// from an input vector of hits (non-mc-truth version).
 //
 void trkf::SpacePointService::makeSpacePoints(const art::Handle< std::vector<recob::Hit> >& hith,
-					      std::vector<recob::SpacePoint>& spts,
-					      const art::Event* pevt) const
+					      std::vector<recob::SpacePoint>& spts) const
 {
   art::PtrVector<recob::Hit> hits;
   int nhits = hith->size();
@@ -681,18 +723,45 @@ void trkf::SpacePointService::makeSpacePoints(const art::Handle< std::vector<rec
   for(int i = 0; i < nhits; ++i)
     hits.push_back(art::Ptr<recob::Hit>(hith, i));
 
-  makeSpacePoints(hits, spts, pevt);
+  makeSpacePoints(hits, spts);
 }
 
 //----------------------------------------------------------------------
 // Fill a vector of space points for all compatible combinations of hits
-// from an input vector of hits.
+// from an input vector of hits (non-mc-truth version).
 //
-// See remarks for previous method.
+void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
+					      std::vector<recob::SpacePoint>& spts) const
+{
+  std::vector<sim::SimChannel> empty;
+  makeSpacePoints(hits, spts, empty);
+}
+
+//----------------------------------------------------------------------
+// Fill a vector of space points for all compatible combinations of hits
+// from an input vector of hits (mc truth version).
 //
-void trkf::SpacePointService::makeSpacePoints(art::PtrVector<recob::Hit>& hits,
+void trkf::SpacePointService::makeSpacePoints(const art::Handle< std::vector<recob::Hit> >& hith,
 					      std::vector<recob::SpacePoint>& spts,
-					      const art::Event* pevt) const
+					      const std::vector<sim::SimChannel>& simchans) const
+{
+  art::PtrVector<recob::Hit> hits;
+  int nhits = hith->size();
+  hits.reserve(nhits);
+
+  for(int i = 0; i < nhits; ++i)
+    hits.push_back(art::Ptr<recob::Hit>(hith, i));
+
+  makeSpacePoints(hits, spts, simchans);
+}
+
+//----------------------------------------------------------------------
+// Fill a vector of space points for all compatible combinations of hits
+// from an input vector of hits (mc truth version).
+//
+void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
+					      std::vector<recob::SpacePoint>& spts,
+					      const std::vector<sim::SimChannel>& simchans) const
 {
   // First make result vector is empty.
 
@@ -703,36 +772,14 @@ void trkf::SpacePointService::makeSpacePoints(art::PtrVector<recob::Hit>& hits,
   int n2 = 0;  // Number of two-hit space points.
   int n3 = 0;  // Number of three-hit space points.
 
-  // If fUseMC pr fMCHist is true, extract SimChannel's from event.
+  // If fUseMC pr fMCHist is true, verify that channels are sorted by
+  // channel number.
 
-  fSCHandle.clear();
-  assert(!fSCHandle.isValid());
   if(fUseMC || fMCHist) {
-    if(pevt == 0)
-      throw cet::exception("SPTError") << "Event can not be null when requesting to use MC.\n";
 
-    // Get SimChannels.
-
-    pevt->getByLabel(fMClabel, fSCHandle);
-    if(!fSCHandle.isValid())
-      throw cet::exception("SPTError") << "Did not find any SimChannel's.\n";
-
-    unsigned int nsc = fSCHandle->size();
-    if(fDebug) {
-      std::cout << "SpacePointService:\n"
-		<< "  Found " << nsc << " SimChannel's." << std::endl;
-    }
-    if(nsc != fGeom->Nchannels()) {
-      throw cet::exception("SPTError") 
-	<< "Number of channels does not agree with geometry: " 
-	<< fGeom->Nchannels() << "\n";
-    }
-
-    // Loop over SimChannels.  Verify that channels are sorted by channel
-    // number.
-
+    unsigned int nsc = simchans.size();
     for(unsigned int isc = 0; isc < nsc; ++isc) {
-      const sim::SimChannel& sc = (*fSCHandle)[isc];
+      const sim::SimChannel& sc = simchans[isc];
       if(isc != sc.Channel())
 	throw cet::exception("SPTError") << "MC channels not sorted.\n";
     }
@@ -752,22 +799,24 @@ void trkf::SpacePointService::makeSpacePoints(art::PtrVector<recob::Hit>& hits,
       ihit != lhits::end(); ++ihit) {
   */
 
-    for(art::PtrVector<recob::Hit>::const_iterator ihit = hits.begin();
-	ihit != hits.end(); ++ihit) {
+  for(art::PtrVector<recob::Hit>::const_iterator ihit = hits.begin();
+      ihit != hits.end(); ++ihit) {
     const art::Ptr<recob::Hit>& phit = *ihit;
     geo::View_t view = phit->View();
-    if(view < 1 || view > 3)
-      throw cet::exception("SPTError") << "Bad view = " << view << "\n";
-    if(fEnable[view-1]) {
-      double t = phit->PeakTime() - fTimeOffset[view-1];
-      hitmap[view-1][t] = phit;
+    int p = (fView[0] == view ? 0 :
+	     (fView[1] == view ? 1 :
+	      (fView[2] == view ? 2 :
+	       throw cet::exception("SPTError") << "Bad view = " << view << "\n")));
+    if(fEnable[p]) {
+      double t = phit->PeakTime() - fTimeOffset[p];
+      hitmap[p][t] = phit;
       const recob::Hit& hit = *phit;
 
       // Get Electrons.
 
       if(fUseMC || fMCHist) {
 	std::vector<const sim::Electrons*>& electrons = fElecMap[&hit];   // Empty vector.
-	HitToElectrons(hit, electrons);
+	HitToElectrons(hit, simchans, electrons);
 	fMCPosMap[&hit] = ElectronsToXYZ(electrons);
 	std::sort(electrons.begin(), electrons.end(), ElectronsLess());
 	std::vector<const sim::Electrons*>::iterator it = 
@@ -824,7 +873,6 @@ void trkf::SpacePointService::makeSpacePoints(art::PtrVector<recob::Hit>& hits,
 	    ihit1 != hitmap[index1].end(); ++ihit1) {
 
 	  const art::Ptr<recob::Hit>& phit1 = ihit1->second;
-	  assert(phit1->View() == index1+1);
 
 	  double t1 = phit1->PeakTime() - fTimeOffset[index1];
 	  double t2min = t1 - fMaxDT;
@@ -835,7 +883,6 @@ void trkf::SpacePointService::makeSpacePoints(art::PtrVector<recob::Hit>& hits,
 	      ihit2 != hitmap[index2].upper_bound(t2max); ++ihit2) {
 
 	    const art::Ptr<recob::Hit>& phit2 = ihit2->second;
-	    assert(phit2->View() == index2+1);
 
 	    // Check current pair of hits for compatibility.
 	    // By construction, hits should always have compatible views 
@@ -875,7 +922,6 @@ void trkf::SpacePointService::makeSpacePoints(art::PtrVector<recob::Hit>& hits,
 	ihit1 != hitmap[index[0]].end(); ++ihit1) {
 
       const art::Ptr<recob::Hit>& phit1 = ihit1->second;
-      assert(phit1->View() == index[0]+1);
 
       double t1 = phit1->PeakTime() - fTimeOffset[index[0]];
       double t2min = t1 - fMaxDT;
@@ -886,7 +932,6 @@ void trkf::SpacePointService::makeSpacePoints(art::PtrVector<recob::Hit>& hits,
 	  ihit2 != hitmap[index[1]].upper_bound(t2max); ++ihit2) {
 
 	const art::Ptr<recob::Hit>& phit2 = ihit2->second;
-	assert(phit2->View() == index[1]+1);
 
 	// Test first two hits for compatibility before looping 
 	// over third hit.
@@ -906,7 +951,6 @@ void trkf::SpacePointService::makeSpacePoints(art::PtrVector<recob::Hit>& hits,
 	      ihit3 != hitmap[index[2]].upper_bound(t3max); ++ihit3) {
 
 	    const art::Ptr<recob::Hit>& phit3 = ihit3->second;
-	    assert(phit3->View() == index[2]+1);
 
 	    // Test triplet for compatibility.
 
@@ -942,23 +986,36 @@ void trkf::SpacePointService::makeSpacePoints(art::PtrVector<recob::Hit>& hits,
 // Extract Electrons associated with Hit.
 // (Similar as BackTracker::HitToXYZ in MCCheater.)
 void trkf::SpacePointService::HitToElectrons(const recob::Hit& hit,
+					     const std::vector<sim::SimChannel>& simchans,
 					     std::vector<const sim::Electrons*>& electrons) const
 {
   // Find SimChannel associated with Hit.
 
   unsigned short channel = hit.Channel();
-  const sim::SimChannel& sc = (*fSCHandle)[channel];
+  const sim::SimChannel& sc = simchans[channel];
   assert(sc.Channel() == channel);
 
   // Find electrons in time with Hit.
 
   double tstart = hit.StartTime();
+  double tpeak = hit.PeakTime();
   double tend = hit.EndTime();
   int nelec = sc.NumberOfElectrons();
   for(int ie = 0; ie < nelec; ++ie) {
     const sim::Electrons* elec = sc.GetElectrons(ie);
     assert(elec != 0);
     double tdc = floor(elec->ArrivalT()/fSamplingRate) + fTriggerOffset;
+    if(fMCHist) {
+      geo::View_t view = hit.View();
+      if(view == geo::kU)
+	fHDTUE->Fill(tpeak - tdc);
+      else if(view == geo::kV)
+	fHDTVE->Fill(tpeak - tdc);
+      else if(view == geo::kW)
+	fHDTWE->Fill(tpeak - tdc);
+      else
+	throw cet::exception("SPTError") << "Bad view = " << view << "\n";
+    }
     if(tdc >= tstart && tdc <= tend)
       electrons.push_back(elec);
   }

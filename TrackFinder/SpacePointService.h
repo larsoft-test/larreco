@@ -55,11 +55,10 @@
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "Geometry/geo.h"
 #include "RecoBase/SpacePoint.h"
+#include "Simulation/SimChannel.h"
 
 class TH1F;
-namespace art{class Event;}
-namespace sim{
-  class SimChannel;
+namespace sim {
   class Electrons;
 }
 
@@ -95,14 +94,20 @@ namespace trkf {
 
     // Fill a vector of space points from an unsorted collection of hits.
     // Space points are generated for all compatible combinations of hits.
-    // The event pointer is only needed if fcl parameter MCHist = true or
-    // UseMC = true.
+    void makeSpacePoints(const art::Handle< std::vector<recob::Hit> >& hith,
+			 std::vector<recob::SpacePoint>& spts) const;
+    void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
+			 std::vector<recob::SpacePoint>& spts) const;
+
+    // The following versions of the makeSpacePoints methods can be used
+    // to fill only those space points that are compatible with mc truth
+    // information contained in SimChannels.
     void makeSpacePoints(const art::Handle< std::vector<recob::Hit> >& hith,
 			 std::vector<recob::SpacePoint>& spts,
-			 const art::Event* pevt = 0) const;
-    void makeSpacePoints(art::PtrVector<recob::Hit>& hits,
+			 const std::vector<sim::SimChannel>& simchans) const;
+    void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 			 std::vector<recob::SpacePoint>& spts,
-			 const art::Event* pevt) const;
+			 const std::vector<sim::SimChannel>& simchans) const;
 
 
   private:
@@ -110,6 +115,7 @@ namespace trkf {
     // Extract Electrons associated with Hit.
     // (Similar as BackTracker::HitToXYZ in MCCheater.)
     void HitToElectrons(const recob::Hit& hit,
+			const std::vector<sim::SimChannel>& simchans,
 			std::vector<const sim::Electrons*>& electrons) const;
 
     // Extract average position of vector of electrons.
@@ -125,21 +131,31 @@ namespace trkf {
     std::string fMClabel;   ///< MC label for SimChannel.
     double fMaxDT;          ///< Maximum time difference between planes.
     double fMaxS;           ///< Maximum space separation between wires.
-    double fTimeOffset[3];  ///< Time offset corrections (indexed by view-1).
+    double fTimeOffsetU;    ///< Time offset corrections (U)
+    double fTimeOffsetV;    ///< Time offset corrections (V)
+    double fTimeOffsetW;    ///< Time offset corrections (W)
     int fMinViews;          ///< Mininum number of views per space point.
-    bool fEnable[3];        ///< Enable flag for three views (indexed by view-1).
+    bool fEnableU;          ///< Enable flag (U).
+    bool fEnableV;          ///< Enable flag (V).
+    bool fEnableW;          ///< Enable flag (W).
 
     // Geometry and LAr constants.
 
     const geo::Geometry* fGeom;  ///< Geometry service.
     std::string fGDMLPath;   ///< Used to determine if geometry has changed.
     std::string fROOTPath;   ///< Used to determine if geometry has changed.
-    double fWirePitch[3];    ///< Wire pitch (cm) [view-1].
-    double fWireOffset[3];   ///< Distance of wire 0 from origin (cm) [view-1].
-    double fTheta[3];        ///< theta[view-1].
-    double fSinTheta[3];     ///< Sin(theta[view-1]).
-    double fCosTheta[3];     ///< Cos(theta[view-1]).
-    double fSin[3];          ///< Sin(delta theta) [view-1].
+
+    // The following attributes are indexed by plane index.
+
+    geo::View_t fView[3];    ///< View for each plane.
+    bool fEnable[3];         ///< Enable flag for each plane.
+    double fTimeOffset[3];   ///< Time offset corrections.
+    double fWirePitch[3];    ///< Wire pitch (cm).
+    double fWireOffset[3];   ///< Distance of wire 0 from origin (cm).
+    double fTheta[3];        ///< theta.
+    double fSinTheta[3];     ///< Sin(theta).
+    double fCosTheta[3];     ///< Cos(theta).
+    double fSin[3];          ///< Sin(delta theta).
 
     // From Detector properties.
 
@@ -156,6 +172,9 @@ namespace trkf {
     // Histograms.
 
     bool fBooked;   // Have histograms been booked yet?
+    TH1F* fHDTUE;   // U-drift electrons time difference.
+    TH1F* fHDTVE;   // V-drift electrons time difference.
+    TH1F* fHDTWE;   // W-drift electrons time difference.
     TH1F* fHDTUV;   // U-V time difference.
     TH1F* fHDTVW;   // V-W time difference.
     TH1F* fHDTWU;   // W-U time difference.
@@ -172,7 +191,6 @@ namespace trkf {
 
     // Temporary variables.
 
-    mutable art::Handle<std::vector<sim::SimChannel> > fSCHandle;
     mutable std::map<const recob::Hit*, std::vector<const sim::Electrons*> > fElecMap;
     mutable std::map<const recob::Hit*, TVector3> fMCPosMap;
   };
