@@ -95,17 +95,6 @@ trkf::SpacePointService::SpacePointService(const fhicl::ParameterSet& pset,
   fHMCdy(0),
   fHMCdz(0)
 {
-  for(int i=0; i<3; ++i) {
-    fView[i] = geo::kUnknown;
-    fEnable[i] = false;
-    fTimeOffset[i] = 0.;
-    fWirePitch[i] = 0.;
-    fWireOffset[i] = 0.;
-    fTheta[i] = 0.;
-    fSinTheta[i] = 0.;
-    fCosTheta[i] = 0.;
-    fSin[i] = 0.;
-  }
   reg.watchPostBeginRun(this, &SpacePointService::postBeginRun);
   reconfigure(pset);
 }
@@ -200,91 +189,116 @@ void trkf::SpacePointService::maybe_update()
 //
 void trkf::SpacePointService::update()
 {
-  // First reset all geometry constants to null values.
-  // We do this to make sure we don't accidentally inherit geomerty
-  // constants from the previous geometry.
+  // Reset geometry constants so that we don't
+  // accidentally inherit from previous update.
 
-  for(int i=0; i<3; ++i) {
-    fView[i] = geo::kUnknown;
-    fEnable[i] = false;
-    fTimeOffset[i] = 0.;
-    fWirePitch[i] = 0.;
-    fWireOffset[i] = 0.;
-    fTheta[i] = 0.;
-    fSinTheta[i] = 0.;
-    fCosTheta[i] = 0.;
-    fSin[i] = 0.;
-  }
+  fEnable.clear();
+  fTimeOffset.clear();
+  fWirePitch.clear();
+  fWireOffset.clear();
+  fTheta.clear();
+  fSinTheta.clear();
+  fCosTheta.clear();
+  fSin.clear();
 
   // Calculate and print geometry information.
 
   std::cout << "SpacePointService updating geometry constants." << std::endl;
 
-  // Loop over planes.
+  // Loop over TPCs.
 
-  int n = fGeom->Nplanes();
-  for(int i=0; i<n; ++i) {
-    const geo::PlaneGeo& pgeom = fGeom->Plane(i);
-    double theta = pgeom.Wire(0).ThetaZ();
+  int ntpc = fGeom->NTPC();
 
-    // Calculate the perpendicular distance of the first and last wires
-    // from the origin in the (y,z) plane.  Use this information to
-    // calculate the wire pitch and offset.
+  fEnable.resize(ntpc);
+  fTimeOffset.resize(ntpc);
+  fWirePitch.resize(ntpc);
+  fWireOffset.resize(ntpc);
+  fTheta.resize(ntpc);
+  fSinTheta.resize(ntpc);
+  fCosTheta.resize(ntpc);
+  fSin.resize(ntpc);
 
-    int wire[2] = {0, 0};
-    wire[1] = pgeom.Nwires() - 1;
-    double dist[2] = {0., 0.};
-    for(int j=0; j<2; ++j) {
-      double xyz1[3], xyz2[3];
-      double z1 = -100;
-      double z2 = 100.;
-      const geo::WireGeo& wgeom = pgeom.Wire(wire[j]);
-      wgeom.GetCenter(xyz1, z1);
-      wgeom.GetCenter(xyz2, z2);
-      dist[j] = (xyz2[1] * xyz1[2] - xyz1[1] * xyz2[2]) / (z2 - z1);
+  for(int tpc = 0; tpc < ntpc; ++tpc) {
+    const geo::TPCGeo& tpcgeom = fGeom->TPC(tpc);
+
+    // Loop over planes.
+
+    int nplane = tpcgeom.Nplanes();
+
+    fEnable[tpc].resize(nplane, false);
+    fTimeOffset[tpc].resize(nplane, 0.);
+    fWirePitch[tpc].resize(nplane, 0.);
+    fWireOffset[tpc].resize(nplane, 0.);
+    fTheta[tpc].resize(nplane, 0.);
+    fSinTheta[tpc].resize(nplane, 0.);
+    fCosTheta[tpc].resize(nplane, 0.);
+    fSin[tpc].resize(nplane, 0.);
+
+    for(int plane = 0; plane < nplane; ++plane) {
+      const geo::PlaneGeo& pgeom = fGeom->Plane(plane);
+      double theta = pgeom.Wire(0).ThetaZ();
+
+      // Calculate the perpendicular distance of the first and last wires
+      // from the origin in the (y,z) plane.  Use this information to
+      // calculate the wire pitch and offset.
+
+      int wire[2] = {0, 0};
+      wire[1] = pgeom.Nwires() - 1;
+      double dist[2] = {0., 0.};
+      for(int j=0; j<2; ++j) {
+	double xyz1[3], xyz2[3];
+	double z1 = -100;
+	double z2 = 100.;
+	const geo::WireGeo& wgeom = pgeom.Wire(wire[j]);
+	wgeom.GetCenter(xyz1, z1);
+	wgeom.GetCenter(xyz2, z2);
+	dist[j] = (xyz2[1] * xyz1[2] - xyz1[1] * xyz2[2]) / (z2 - z1);
+      }
+      double pitch = (dist[1] - dist[0]) / (wire[1] - wire[0]);
+      double offset = dist[0] - pitch * wire[0];
+
+      geo::View_t view = pgeom.View();
+      if(view == geo::kU) {
+	fEnable[tpc][plane] = fEnableU;
+	fTimeOffset[tpc][plane] = fTimeOffsetU;
+      }
+      else if(view == geo::kV) {
+	fEnable[tpc][plane] = fEnableV;
+	fTimeOffset[tpc][plane] = fTimeOffsetV;
+      }
+      else if(view == geo::kW) {
+	fEnable[tpc][plane] = fEnableW;
+	fTimeOffset[tpc][plane] = fTimeOffsetW;
+      }
+      else
+	throw cet::exception("SPTError") << "Bad view = " << view << "\n";
+
+      fWirePitch[tpc][plane] = pitch;
+      fWireOffset[tpc][plane] = offset;
+      fTheta[tpc][plane] = theta;
+      fSinTheta[tpc][plane] = std::sin(theta);
+      fCosTheta[tpc][plane] = std::cos(theta);
+
+      std::cout << "TPC " << tpc << "\n"
+		<< "Plane " << plane << "\n"
+		<< "  View " << view << "\n"
+		<< "  SignalType " << pgeom.SignalType() << "\n"
+		<< "  Orientation " << pgeom.Orientation() << "\n"
+		<< "  Theta = " << theta << "\n"
+		<< "  Wire pitch = " << pitch << "cm\n"
+		<< "  Wire offset = " << offset << "\n";
     }
-    double pitch = (dist[1] - dist[0]) / (wire[1] - wire[0]);
-    double offset = dist[0] - pitch * wire[0];
 
-    geo::View_t view = pgeom.View();
-    fView[i] = view;
-    if(view == geo::kU) {
-      fEnable[i] = fEnableU;
-      fTimeOffset[i] = fTimeOffsetU;
+    if(fTheta[tpc].size() == 3) {
+      fSin[tpc][0] = std::sin(fTheta[tpc][1] - fTheta[tpc][2]);
+      fSin[tpc][1] = std::sin(fTheta[tpc][2] - fTheta[tpc][0]);
+      fSin[tpc][2] = std::sin(fTheta[tpc][0] - fTheta[tpc][1]);
     }
-    else if(view == geo::kV) {
-      fEnable[i] = fEnableV;
-      fTimeOffset[i] = fTimeOffsetV;
-    }
-    else if(view == geo::kW) {
-      fEnable[i] = fEnableW;
-      fTimeOffset[i] = fTimeOffsetW;
-    }
-    else
-      throw cet::exception("SPTError") << "Bad view = " << view << "\n";
 
-    fWirePitch[i] = pitch;
-    fWireOffset[i] = offset;
-    fTheta[i] = theta;
-    fSinTheta[i] = std::sin(theta);
-    fCosTheta[i] = std::cos(theta);
-
-    std::cout << "Plane " << i << "\n"
-	      << "  View " << view << "\n"
-	      << "  SignalType " << pgeom.SignalType() << "\n"
-	      << "  Orientation " << pgeom.Orientation() << "\n"
-	      << "  Theta = " << theta << "\n"
-	      << "  Wire pitch = " << pitch << "cm\n"
-	      << "  Wire offset = " << offset << "\n";
+    std::cout << "  sin(V-W) = " << fSin[tpc][0] << "\n"
+	      << "  sin(W-U) = " << fSin[tpc][1] << "\n"
+	      << "  sin(U-V) = " << fSin[tpc][2] << "\n";
   }
-
-  fSin[0] = std::sin(fTheta[1] - fTheta[2]);
-  fSin[1] = std::sin(fTheta[2] - fTheta[0]);
-  fSin[2] = std::sin(fTheta[0] - fTheta[1]);
-
-  std::cout << "  sin(V-W) = " << fSin[0] << "\n"
-	    << "  sin(W-U) = " << fSin[1] << "\n"
-	    << "  sin(U-V) = " << fSin[2] << "\n";
 
 
   // Update detector properties.
@@ -366,6 +380,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits)
 
   bool result = nhits >= 2 && nhits <= 3;
   bool mc_ok = true;
+  unsigned int tpc = 0;
 
   if(result) {
 
@@ -374,12 +389,11 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits)
 
     for(int ihit1 = 0; result && ihit1 < nhits-1; ++ihit1) {
       const recob::Hit& hit1 = *(hits[ihit1]);
+      unsigned short channel1 = hit1.Channel();
+      unsigned int tpc1, plane1, wire1;
+      fGeom->ChannelToWire(channel1, tpc1, plane1, wire1);
       geo::View_t view1 = hit1.View();
-      int plane1 = (fView[0] == view1 ? 0 :
-		    (fView[1] == view1 ? 1 :
-		     (fView[2] == view1 ? 2 :
-		      throw cet::exception("SPTError") << "Bad view = " << view1 << "\n")));
-      double t1 = hit1.PeakTime() - fTimeOffset[plane1];
+      double t1 = hit1.PeakTime() - fTimeOffset[tpc1][plane1];
 
       // If using mc information, make a collection of electrons for hit 1.
 
@@ -389,17 +403,21 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits)
 
       for(int ihit2 = ihit1+1; result && ihit2 < nhits; ++ihit2) {
 	const recob::Hit& hit2 = *(hits[ihit2]);
+	unsigned short channel2 = hit2.Channel();
+	unsigned int tpc2, plane2, wire2;
+	fGeom->ChannelToWire(channel2, tpc2, plane2, wire2);
 	geo::View_t view2 = hit2.View();
 
-	// Test for different views.
+	// Test for same tpc and different views.
 
-	result = result && view1 != view2;
+	result = result && tpc1 == tpc2 && view1 != view2;
 	if(result) {
-	  int plane2 = (fView[0] == view2 ? 0 :
-			(fView[1] == view2 ? 1 :
-			 (fView[2] == view2 ? 2 :
-			  throw cet::exception("SPTError") << "Bad view = " << view2 << "\n")));
-	  double t2 = hit2.PeakTime() - fTimeOffset[plane2];
+
+	  // Remember which tpc we are in.
+
+	  tpc = tpc1;
+
+	  double t2 = hit2.PeakTime() - fTimeOffset[tpc2][plane2];
     
 	  // Test maximum time difference.
 
@@ -463,35 +481,27 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits)
 
       for(int i=0; i<3; ++i) {
 
-	// Get plane index.
+	// Get tpc, plane, wire.
 
-	geo::View_t v = hits[i]->View();
-	view[i] = v;
-	int p = (fView[0] == v ? 0 :
-		 (fView[1] == v ? 1 :
-		  (fView[2] == v ? 2 :
-		   throw cet::exception("SPTError") << "Bad view = " << v << "\n")));
+	const recob::Hit& hit = *(hits[i]);
+	unsigned short channel = hit.Channel();
+	unsigned int tpc0, plane, wire;
+	fGeom->ChannelToWire(channel, tpc0, plane, wire);
+	assert(tpc0 == tpc);
+	view[i] = hit.View();
 
 	// Get corrected time.
 
-	time[i] = hits[i]->PeakTime() - fTimeOffset[p];
-
-	// Get wire number.
-
-	unsigned int tpc;
-	unsigned int plane;
-	unsigned int wire;
-	unsigned short channel = hits[i]->Channel();
-	fGeom->ChannelToWire(channel, tpc, plane, wire);
+	time[i] = hit.PeakTime() - fTimeOffset[tpc][plane];
 
 	// Get distance with offset correction.
 
-	dist[p] = fWirePitch[p] * wire + fWireOffset[p];
+	dist[plane] = fWirePitch[tpc][plane] * wire + fWireOffset[tpc][plane];
       }
 
       // Do space cut.
 
-      double S = fSin[0]*dist[0] + fSin[1]*dist[1] + fSin[2]*dist[2];
+      double S = fSin[tpc][0]*dist[0] + fSin[tpc][1]*dist[1] + fSin[tpc][2]*dist[2];
       result = result && std::abs(S) < fMaxS;
 
       // Fill histograms.
@@ -601,17 +611,14 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
       ihit != hits.end(); ++ihit) {
 
     const recob::Hit& hit = **ihit;
-
-    geo::View_t v = hit.View();
-    int p = (fView[0] == v ? 0 :
-	     (fView[1] == v ? 1 :
-	      (fView[2] == v ? 2 :
-	       throw cet::exception("SPTError") << "Bad view = " << v << "\n")));
+    unsigned short channel = hit.Channel();
+    unsigned int tpc, plane, wire;
+    fGeom->ChannelToWire(channel, tpc, plane, wire);
 
     // Correct time for trigger offset and view-dependent time offsets.
     // Assume time error is proportional to (end time - start time).
 
-    double t = hit.PeakTime() - fTriggerOffset - fTimeOffset[p];
+    double t = hit.PeakTime() - fTriggerOffset - fTimeOffset[tpc][plane];
     double et = hit.EndTime() - hit.StartTime();
     double w = 1./(et*et);
 
@@ -642,28 +649,18 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
 	ihit != hits.end(); ++ihit) {
 
       const recob::Hit& hit = **ihit;
-
-      geo::View_t v = hit.View();
-      int p = (fView[0] == v ? 0 :
-	       (fView[1] == v ? 1 :
-		(fView[2] == v ? 2 :
-		 throw cet::exception("SPTError") << "Bad view = " << v << "\n")));
+      unsigned short channel = hit.Channel();
+      unsigned int tpc, plane, wire;
+      fGeom->ChannelToWire(channel, tpc, plane, wire);
 
       // Calculate wire coordinate in this view.
     
-      unsigned int tpc;
-      unsigned int plane;
-      unsigned int wire;
-      unsigned short channel = hit.Channel();
-      fGeom->ChannelToWire(channel, tpc, plane, wire);
-      double u = wire * fWirePitch[p] + fWireOffset[p];
-
-      // \todo probably need to account for different TPCs somehow here.
+      double u = wire * fWirePitch[tpc][plane] + fWireOffset[tpc][plane];
 
       // Summations
 
-      double s = fSinTheta[p];
-      double c = fCosTheta[p];
+      double s = fSinTheta[tpc][plane];
+      double c = fCosTheta[tpc][plane];
       sus += u*s;
       suc += u*c;
       sc2 += c*c;
@@ -785,13 +782,20 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
     }
   }
 
-  // Sort hits into maps indexed by time for each view.
+  // Sort hits into maps indexed by [tpc][plane][time].
   // If using mc information, also generate maps of electrons and mc 
   // position indexed by hit.
 
-  std::map<double, art::Ptr<recob::Hit> > hitmap[3];
+  std::vector<std::vector<std::map<double, art::Ptr<recob::Hit> > > > hitmap;
   fElecMap.clear();
   fMCPosMap.clear();
+
+  int ntpc = fEnable.size();
+  hitmap.resize(ntpc);
+  for(int tpc = 0; tpc < ntpc; ++tpc) {
+    int nplane = fEnable[tpc].size();
+    hitmap[tpc].resize(nplane);
+  }
 
   /*
   art::View<art::PtrVector<recob::Hit> >  lhits = hits; 
@@ -802,14 +806,13 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
   for(art::PtrVector<recob::Hit>::const_iterator ihit = hits.begin();
       ihit != hits.end(); ++ihit) {
     const art::Ptr<recob::Hit>& phit = *ihit;
-    geo::View_t view = phit->View();
-    int p = (fView[0] == view ? 0 :
-	     (fView[1] == view ? 1 :
-	      (fView[2] == view ? 2 :
-	       throw cet::exception("SPTError") << "Bad view = " << view << "\n")));
-    if(fEnable[p]) {
-      double t = phit->PeakTime() - fTimeOffset[p];
-      hitmap[p][t] = phit;
+    unsigned short channel = phit->Channel();
+    unsigned int tpc, plane, wire;
+    fGeom->ChannelToWire(channel, tpc, plane, wire);
+
+    if(fEnable[tpc][plane]) {
+      double t = phit->PeakTime() - fTimeOffset[tpc][plane];
+      hitmap[tpc][plane][t] = phit;
       const recob::Hit& hit = *phit;
 
       // Get Electrons.
@@ -828,145 +831,161 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
   if(fDebug) {
     std::cout << "\nSpacePointService:\n"
-	      << "  Total hits = " << hits.size() << "\n"
-	      << "  U hits = " << hitmap[0].size() << "\n"
-	      << "  V hits = " << hitmap[1].size() << "\n"
-	      << "  W hits = " << hitmap[2].size() << "\n"
-	      << std::endl;
-  }
+	      << "  Total hits = " << hits.size() << std::endl;
 
-  // Sort maps in increasing order of number of hits.
-  // This is so that we can do the outer loops over hits 
-  // over the views with fewer hits.
-
-  int index[3] = {0, 1, 2};
-  for(int i=0; i<2; ++i) {
-    for(int j=i+1; j<3; ++j) {
-      if(hitmap[index[i]].size() > hitmap[index[j]].size()) {
-	int temp = index[i];
-	index[i] = index[j];
-	index[j] = temp;
+    for(int tpc = 0; tpc < ntpc; ++tpc) {
+      std::cout << "  TPC " << tpc << std::endl;
+      
+      int nplane=hitmap[tpc].size();
+      for(int plane = 0; plane < nplane; ++plane) {
+	std::cout << "  Plane " << plane << " hits = " << hitmap[tpc][plane].size()
+		  << std::endl;
       }
     }
   }
 
-  // If two-view space points are allowed, make a double loop
-  // over hits and produce space points for compatible hit-pairs.
+  // Loop over TPCs.
 
-  if(fMinViews <= 2) {
+  for(int tpc = 0; tpc < ntpc; ++tpc) {
 
-    // Loop over pairs of views.
+    // Sort maps in increasing order of number of hits.
+    // This is so that we can do the outer loops over hits 
+    // over the views with fewer hits.
 
+    int index[3] = {0, 1, 2};
     for(int i=0; i<2; ++i) {
-      int index1 = index[i];
       for(int j=i+1; j<3; ++j) {
-	int index2 = index[j];
+	if(hitmap[tpc][index[i]].size() > hitmap[tpc][index[j]].size()) {
+	  int temp = index[i];
+	  index[i] = index[j];
+	  index[j] = temp;
+	}
+      }
+    }
 
-	assert(hitmap[index1].size() <= hitmap[index2].size());
+    // If two-view space points are allowed, make a double loop
+    // over hits and produce space points for compatible hit-pairs.
 
-	// Loop over pairs of hits.
+    if(fMinViews <= 2) {
 
-	art::PtrVector<recob::Hit> hitvec;
-	hitvec.reserve(2);
+      // Loop over pairs of views.
 
-	for(std::map<double, art::Ptr<recob::Hit> >::const_iterator ihit1 = hitmap[index1].begin();
-	    ihit1 != hitmap[index1].end(); ++ihit1) {
+      for(int i=0; i<2; ++i) {
+	int plane1 = index[i];
+	for(int j=i+1; j<3; ++j) {
+	  int plane2 = index[j];
 
-	  const art::Ptr<recob::Hit>& phit1 = ihit1->second;
+	  assert(hitmap[tpc][plane1].size() <= hitmap[tpc][plane2].size());
 
-	  double t1 = phit1->PeakTime() - fTimeOffset[index1];
-	  double t2min = t1 - fMaxDT;
-	  double t2max = t1 + fMaxDT;
+	  // Loop over pairs of hits.
 
-	  for(std::map<double, art::Ptr<recob::Hit> >::const_iterator 
-		ihit2 = hitmap[index2].lower_bound(t2min);
-	      ihit2 != hitmap[index2].upper_bound(t2max); ++ihit2) {
+	  art::PtrVector<recob::Hit> hitvec;
+	  hitvec.reserve(2);
 
-	    const art::Ptr<recob::Hit>& phit2 = ihit2->second;
+	  for(std::map<double, art::Ptr<recob::Hit> >::const_iterator
+		ihit1 = hitmap[tpc][plane1].begin();
+	      ihit1 != hitmap[tpc][plane1].end(); ++ihit1) {
 
-	    // Check current pair of hits for compatibility.
-	    // By construction, hits should always have compatible views 
-	    // and times, but may not have compatible mc information.
-	    // Calling method has the side effect of filling
-	    // histograms if enabled.
+	    const art::Ptr<recob::Hit>& phit1 = ihit1->second;
 
-	    hitvec.clear();
-	    hitvec.push_back(phit1);
-	    hitvec.push_back(phit2);
-	    bool ok = compatible(hitvec);
-	    if(ok) {
+	    double t1 = phit1->PeakTime() - fTimeOffset[tpc][plane1];
+	    double t2min = t1 - fMaxDT;
+	    double t2max = t1 + fMaxDT;
 
-	      // Add a space point.
+	    for(std::map<double, art::Ptr<recob::Hit> >::const_iterator 
+		  ihit2 = hitmap[tpc][plane2].lower_bound(t2min);
+		ihit2 != hitmap[tpc][plane2].upper_bound(t2max); ++ihit2) {
 
-	      ++n2;
-	      spts.push_back(recob::SpacePoint());
-	      fillSpacePoint(hitvec, spts.back());
+	      const art::Ptr<recob::Hit>& phit2 = ihit2->second;
+
+	      // Check current pair of hits for compatibility.
+	      // By construction, hits should always have compatible views 
+	      // and times, but may not have compatible mc information.
+	      // Calling method has the side effect of filling
+	      // histograms if enabled.
+
+	      hitvec.clear();
+	      hitvec.push_back(phit1);
+	      hitvec.push_back(phit2);
+	      bool ok = compatible(hitvec);
+	      if(ok) {
+
+		// Add a space point.
+
+		++n2;
+		spts.push_back(recob::SpacePoint());
+		fillSpacePoint(hitvec, spts.back());
+	      }
 	    }
 	  }
 	}
       }
     }
-  }
 
-  // If three-view space points are allowed, make a tripe loop
-  // over hits and produce space points for compatible triplets.
+    // If three-view space points are allowed, make a tripe loop
+    // over hits and produce space points for compatible triplets.
 
-  if(fMinViews <= 3) {
+    if(fMinViews <= 3) {
 
-    // Loop over triplets of hits.
+      // Loop over triplets of hits.
 
-    art::PtrVector<recob::Hit> hitvec;
-    hitvec.reserve(3);
+      art::PtrVector<recob::Hit> hitvec;
+      hitvec.reserve(3);
 
-    for(std::map<double, art::Ptr<recob::Hit> >::const_iterator ihit1 = hitmap[index[0]].begin();
-	ihit1 != hitmap[index[0]].end(); ++ihit1) {
+      int plane1 = index[0];
+      for(std::map<double, art::Ptr<recob::Hit> >::const_iterator
+	    ihit1 = hitmap[tpc][plane1].begin();
+	  ihit1 != hitmap[tpc][plane1].end(); ++ihit1) {
 
-      const art::Ptr<recob::Hit>& phit1 = ihit1->second;
+	const art::Ptr<recob::Hit>& phit1 = ihit1->second;
 
-      double t1 = phit1->PeakTime() - fTimeOffset[index[0]];
-      double t2min = t1 - fMaxDT;
-      double t2max = t1 + fMaxDT;
+	double t1 = phit1->PeakTime() - fTimeOffset[tpc][plane1];
+	double t2min = t1 - fMaxDT;
+	double t2max = t1 + fMaxDT;
 
-      for(std::map<double, art::Ptr<recob::Hit> >::const_iterator 
-	    ihit2 = hitmap[index[1]].lower_bound(t2min);
-	  ihit2 != hitmap[index[1]].upper_bound(t2max); ++ihit2) {
+	int plane2 = index[1];
+	for(std::map<double, art::Ptr<recob::Hit> >::const_iterator 
+	      ihit2 = hitmap[tpc][plane2].lower_bound(t2min);
+	    ihit2 != hitmap[tpc][plane2].upper_bound(t2max); ++ihit2) {
 
-	const art::Ptr<recob::Hit>& phit2 = ihit2->second;
+	  const art::Ptr<recob::Hit>& phit2 = ihit2->second;
 
-	// Test first two hits for compatibility before looping 
-	// over third hit.
+	  // Test first two hits for compatibility before looping 
+	  // over third hit.
 
-	hitvec.clear();
-	hitvec.push_back(phit1);
-	hitvec.push_back(phit2);
-	bool ok = compatible(hitvec);
-	if(ok) {
+	  hitvec.clear();
+	  hitvec.push_back(phit1);
+	  hitvec.push_back(phit2);
+	  bool ok = compatible(hitvec);
+	  if(ok) {
 
-	  double t2 = phit2->PeakTime() - fTimeOffset[index[1]];
-	  double t3min = std::max(t1, t2) - fMaxDT;
-	  double t3max = std::min(t1, t2) + fMaxDT;
+	    double t2 = phit2->PeakTime() - fTimeOffset[tpc][plane2];
+	    double t3min = std::max(t1, t2) - fMaxDT;
+	    double t3max = std::min(t1, t2) + fMaxDT;
 
-	  for(std::map<double, art::Ptr<recob::Hit> >::const_iterator 
-		ihit3 = hitmap[index[2]].lower_bound(t3min);
-	      ihit3 != hitmap[index[2]].upper_bound(t3max); ++ihit3) {
+	    int plane3 = index[2];
+	    for(std::map<double, art::Ptr<recob::Hit> >::const_iterator 
+		  ihit3 = hitmap[tpc][plane3].lower_bound(t3min);
+		ihit3 != hitmap[tpc][plane3].upper_bound(t3max); ++ihit3) {
 
-	    const art::Ptr<recob::Hit>& phit3 = ihit3->second;
+	      const art::Ptr<recob::Hit>& phit3 = ihit3->second;
 
-	    // Test triplet for compatibility.
+	      // Test triplet for compatibility.
 
-	    hitvec.clear();
-	    hitvec.push_back(phit1);
-	    hitvec.push_back(phit2);
-	    hitvec.push_back(phit3);
-	    bool ok = compatible(hitvec);
+	      hitvec.clear();
+	      hitvec.push_back(phit1);
+	      hitvec.push_back(phit2);
+	      hitvec.push_back(phit3);
+	      bool ok = compatible(hitvec);
 
-	    if(ok) {
+	      if(ok) {
 
-	      // Add a space point.
+		// Add a space point.
 
-	      ++n3;
-	      spts.push_back(recob::SpacePoint());
-	      fillSpacePoint(hitvec, spts.back());
+		++n3;
+		spts.push_back(recob::SpacePoint());
+		fillSpacePoint(hitvec, spts.back());
+	      }
 	    }
 	  }
 	}

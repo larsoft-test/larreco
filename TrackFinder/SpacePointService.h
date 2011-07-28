@@ -145,17 +145,16 @@ namespace trkf {
     std::string fGDMLPath;   ///< Used to determine if geometry has changed.
     std::string fROOTPath;   ///< Used to determine if geometry has changed.
 
-    // The following attributes are indexed by plane index.
+    // The following attributes are indexed by [tpc][plane].
 
-    geo::View_t fView[3];    ///< View for each plane.
-    bool fEnable[3];         ///< Enable flag for each plane.
-    double fTimeOffset[3];   ///< Time offset corrections.
-    double fWirePitch[3];    ///< Wire pitch (cm).
-    double fWireOffset[3];   ///< Distance of wire 0 from origin (cm).
-    double fTheta[3];        ///< theta.
-    double fSinTheta[3];     ///< Sin(theta).
-    double fCosTheta[3];     ///< Cos(theta).
-    double fSin[3];          ///< Sin(delta theta).
+    std::vector<std::vector<bool> > fEnable;        ///< Enable flag.
+    std::vector<std::vector<double> > fTimeOffset;  ///< Time offset correction.
+    std::vector<std::vector<double> > fWirePitch;   ///< Wire pitch (cm).
+    std::vector<std::vector<double> > fWireOffset;  ///< Distance of wire 0 from origin (cm).
+    std::vector<std::vector<double> > fTheta;       ///< theta.
+    std::vector<std::vector<double> > fSinTheta;    ///< Sin(theta).
+    std::vector<std::vector<double> > fCosTheta;    ///< Cos(theta).
+    std::vector<std::vector<double> > fSin;         ///< Sin(delta theta).
 
     // From Detector properties.
 
