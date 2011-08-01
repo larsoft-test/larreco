@@ -22,6 +22,9 @@
 #include "TH1F.h"
 #include "TTree.h"
 #include "TMath.h"
+#include "TF1.h"
+#include "TH2F.h"
+
 
 #include "RecoBase/Cluster.h"
 
@@ -50,9 +53,6 @@ namespace cluster {
 //    float LastWire[2];  // last wire of the shower
 //    float LastTime[2];  // last t_hit of the shower
     
-   
-
-
       
   
     const static float pi            = 3.1415;
@@ -69,10 +69,10 @@ namespace cluster {
    
 
  // 2D slope and intercept of the shower axis
-    double slope[3];       // in cm, cm
- //   float intercept[3];   // in cm, cm
- //   float slope_wt[3];       // in wire, tick
- //   float intercept_wt[3];   // in wire,tick
+    std::vector <double> slope;       // in cm, cm
+    std::vector <double> lineslope;
+   std::vector <double> calcslope;
+     double lineinterc[3];   
 
    
 //input labels:
@@ -99,6 +99,9 @@ namespace cluster {
     std::vector<double> fOmega_Mean_Mean;    // Mean value of the 2D angular use mean instead of maximum
  //   std::vector<double> fOmega_Mean_RMS;     // RMS of the 2D angular distribution use mean instead of maximum
 
+    std::vector<double> fOmega_Mean_line;    // Mean value of the 2D angular distribution obtained from linear fit
+    std::vector<double> fOmega_RMS_line;     // RMS of the 2D angular distribution obtained from linear fit
+
    
     std::vector<double> fOmega_wt_Mean; // Mean value of the angular distribution (0=Ind - 1=Coll) wire,time
     std::vector<double> fOmega_wt_RMS;  // RMS of the angular distribution  (0=Ind - 1=Coll) wire,time
@@ -107,6 +110,10 @@ namespace cluster {
 std::vector<std::vector<double> > fSingleEvtAngle;  // vector to show the plane omega distributions 
 std::vector<std::vector<double> > fSingleEvtAngleVal;  //vector to show the plane omega distributions
 
+
+std::vector<std::vector<double> > fShowerWidthProfile2D;  // vector to show the plane shower Width distribution 
+std::vector<std::vector<double> > fShowerChargeProfile2D;  //vector to show the plane shower Charge distribution
+std::vector<std::vector<double> > fShowerPosition2D;  //vector to store the positions of hit values stored in the previous two vectors.
 
     std::vector<unsigned int> fWire_vertex;  // wire coordinate of vertex for each plane
     std::vector<double> fTime_vertex;  // time coordinate of vertex for each plane
@@ -117,7 +124,20 @@ std::vector<std::vector<double> > fSingleEvtAngleVal;  //vector to show the plan
  std::vector<unsigned int> fChannel_vertex;  // channel coordinate of vertex for each plane
  std::vector<unsigned int> fChannel_last;  // channel coordinate of vertex for each plane
 
+ std::vector<double>  wire_start,wire_end;
+ std::vector<double>  time_start,time_end;
  
+std::vector<double> fRMS_wire;
+std::vector<double> fRMS_time;
+std::vector<double> fChisq;
+std::vector<double> fminwir;
+std::vector<double> fmaxwir;
+std::vector<double> fmintime;
+std::vector<double> fmaxtime;
+std::vector<double> fcorrelation;
+std::vector<double> fcovariance;
+
+
 
   unsigned int tpc;    //tpc type
   unsigned int fNPlanes; // number of planes  
@@ -127,8 +147,10 @@ std::vector<std::vector<double> > fSingleEvtAngleVal;  //vector to show the plan
   std::vector< TH1F * > fh_omega_evt;
   TH1F* fh_theta_wt[3]; 
   TTree* ftree_cluster;
-
-
+  TF1 *linefit[3];
+  TF1 *linefit2[3];	
+  TH2F *tgx[3];
+  TH2F *tgx2[3];
 
   }; // class ShowerAngleCluster
 
