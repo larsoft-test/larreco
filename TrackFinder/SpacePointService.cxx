@@ -9,10 +9,12 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
+#include <sstream>
 #include <cmath>
 #include <map>
 #include <algorithm>
 #include "cetlib/exception.h"
+#include "messagefacility/MessageLogger/MessageLogger.h"
 #include "TrackFinder/SpacePointService.h"
 #include "Geometry/geo.h"
 #include "Utilities/LArProperties.h"
@@ -60,7 +62,6 @@ namespace {
 //
 trkf::SpacePointService::SpacePointService(const fhicl::ParameterSet& pset,
 					   art::ActivityRegistry& reg) :
-  fDebug(0),
   fHist(false),
   fMCHist(false),
   fUseMC(false),
@@ -113,11 +114,9 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
 {
   // Get configuration parameters.
 
-  fDebug = pset.get<int>("Debug", 0);
   fHist = pset.get<bool>("Hist", false);
   fMCHist = pset.get<bool>("MCHist", false);
   fUseMC = pset.get<bool>("UseMC", false);
-  fMClabel = pset.get<std::string>("MClabel", "daq");
   fMaxDT = pset.get<double>("MaxDT", 0.);
   fMaxS = pset.get<double>("MaxS", 0.);
 
@@ -136,22 +135,20 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
 
   // Report.
 
-  std::cout << "\nSpacePointService configured with the following parameters:\n"
-	    << "  Debug = " << fDebug << "\n"
-	    << "  Hist = " << fHist << "\n"
-	    << "  MC Hist = " << fMCHist << "\n"
-	    << "  UseMC = " << fUseMC << "\n"
-	    << "  fMClabel = " << fMClabel << "\n"
-	    << "  MaxDT = " << fMaxDT << "\n"
-	    << "  MaxS = " << fMaxS << "\n"
-	    << "  TimeOffsetU = " << fTimeOffsetU << "\n"
-	    << "  TimeOffsetV = " << fTimeOffsetV << "\n"
-	    << "  TimeOffsetW = " << fTimeOffsetW << "\n" 
-	    << "  MinViews = " << fMinViews << "\n"
-	    << "  EnableU = " << fEnableU << "\n"
-	    << "  EnableV = " << fEnableV << "\n"
-	    << "  EnableW = " << fEnableW << "\n"
-	    << std::endl;
+  mf::LogInfo("SpacePointService") 
+    << "SpacePointService configured with the following parameters:\n"
+    << "  Hist = " << fHist << "\n"
+    << "  MC Hist = " << fMCHist << "\n"
+    << "  UseMC = " << fUseMC << "\n"
+    << "  MaxDT = " << fMaxDT << "\n"
+    << "  MaxS = " << fMaxS << "\n"
+    << "  TimeOffsetU = " << fTimeOffsetU << "\n"
+    << "  TimeOffsetV = " << fTimeOffsetV << "\n"
+    << "  TimeOffsetW = " << fTimeOffsetW << "\n" 
+    << "  MinViews = " << fMinViews << "\n"
+    << "  EnableU = " << fEnableU << "\n"
+    << "  EnableV = " << fEnableV << "\n"
+    << "  EnableW = " << fEnableW;
 }
 
 //----------------------------------------------------------------------
@@ -203,7 +200,8 @@ void trkf::SpacePointService::update()
 
   // Calculate and print geometry information.
 
-  std::cout << "SpacePointService updating geometry constants." << std::endl;
+  mf::LogInfo log("SpacePointService");
+  log << "Updating geometry constants.\n";
 
   // Loop over TPCs.
 
@@ -258,20 +256,24 @@ void trkf::SpacePointService::update()
       double offset = dist[0] - pitch * wire[0];
 
       geo::View_t view = pgeom.View();
+      std::string viewname = "?";
       if(view == geo::kU) {
 	fEnable[tpc][plane] = fEnableU;
 	fTimeOffset[tpc][plane] = fTimeOffsetU;
+	viewname = "U";
       }
       else if(view == geo::kV) {
 	fEnable[tpc][plane] = fEnableV;
 	fTimeOffset[tpc][plane] = fTimeOffsetV;
+	viewname = "V";
       }
       else if(view == geo::kW) {
 	fEnable[tpc][plane] = fEnableW;
 	fTimeOffset[tpc][plane] = fTimeOffsetW;
+	viewname = "W";
       }
       else
-	throw cet::exception("SPTError") << "Bad view = " << view << "\n";
+	throw cet::exception("SpacePointService") << "Bad view = " << view << "\n";
 
       fWirePitch[tpc][plane] = pitch;
       fWireOffset[tpc][plane] = offset;
@@ -279,14 +281,13 @@ void trkf::SpacePointService::update()
       fSinTheta[tpc][plane] = std::sin(theta);
       fCosTheta[tpc][plane] = std::cos(theta);
 
-      std::cout << "TPC " << tpc << "\n"
-		<< "Plane " << plane << "\n"
-		<< "  View " << view << "\n"
-		<< "  SignalType " << pgeom.SignalType() << "\n"
-		<< "  Orientation " << pgeom.Orientation() << "\n"
-		<< "  Theta = " << theta << "\n"
-		<< "  Wire pitch = " << pitch << "cm\n"
-		<< "  Wire offset = " << offset << "\n";
+      log << "\nTPC, Plane: " << tpc << ", " << plane << "\n"
+	  << "  View " << view << " (" << viewname << ")\n"
+	  << "  SignalType " << pgeom.SignalType() << "\n"
+	  << "  Orientation " << pgeom.Orientation() << "\n"
+	  << "  Theta = " << theta << "\n"
+	  << "  Wire pitch = " << pitch << "cm\n"
+	  << "  Wire offset = " << offset << "cm\n";
     }
 
     if(fTheta[tpc].size() == 3) {
@@ -295,9 +296,9 @@ void trkf::SpacePointService::update()
       fSin[tpc][2] = std::sin(fTheta[tpc][0] - fTheta[tpc][1]);
     }
 
-    std::cout << "  sin(V-W) = " << fSin[tpc][0] << "\n"
-	      << "  sin(W-U) = " << fSin[tpc][1] << "\n"
-	      << "  sin(U-V) = " << fSin[tpc][2] << "\n";
+    log << "  sin(V-W) = " << fSin[tpc][0] << "\n"
+	<< "  sin(W-U) = " << fSin[tpc][1] << "\n"
+	<< "  sin(U-V) = " << fSin[tpc][2] << "\n";
   }
 
 
@@ -306,9 +307,9 @@ void trkf::SpacePointService::update()
 
   fSamplingRate = detprop->SamplingRate();
   fTriggerOffset = detprop->TriggerOffset();
-  std::cout << "\nDetector properties:\n"
-	    << "  Sampling Rate = " << fSamplingRate << " ns/tick\n"
-	    << "  Trigger offset = " << fTriggerOffset << " ticks\n" << std::endl;
+  log << "\nDetector properties:\n"
+      << "  Sampling Rate = " << fSamplingRate << " ns/tick\n"
+      << "  Trigger offset = " << fTriggerOffset << " ticks\n";
 
   // Update LArProperties.
   art::ServiceHandle<util::LArProperties> larprop;
@@ -317,11 +318,11 @@ void trkf::SpacePointService::update()
   fTemperature = larprop->Temperature();
   fDriftVelocity = larprop->DriftVelocity(fEfield, fTemperature);
   fTimePitch = 0.001 * fDriftVelocity * fSamplingRate;
-  std::cout << "\nLAr propertoes:\n"
-	    << "  E field = " << fEfield << " kV/cm\n"
-	    << "  Temperature = " << fTemperature << " K\n"
-	    << "  Drift velocity = " << fDriftVelocity << " cm/us\n"
-	    << "  Time pitch = " << fTimePitch << " cm/tick\n" << std::endl;
+  log << "\nLAr propertoes:\n"
+      << "  E field = " << fEfield << " kV/cm\n"
+      << "  Temperature = " << fTemperature << " K\n"
+      << "  Drift velocity = " << fDriftVelocity << " cm/us\n"
+      << "  Time pitch = " << fTimePitch << " cm/tick";
 
   // Make sure histograms have been booked.
 
@@ -692,17 +693,6 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
 	fHMCdz->Fill(xyz[2] - mcxyz[2]);
       }
     }
-
-    // Debugging printout.
-
-    if(fDebug >= 2) {
-      std::cout << "\nmc   x=" << mcxyz[0] 
-		<< ", y=" << mcxyz[1] 
-		<< ", z=" << mcxyz[2] << std::endl;
-      std::cout << "reco x=" << xyz[0]
-		<< ", y=" << xyz[1] 
-		<< ", z=" << xyz[2] << std::endl;
-    }
   }
 }
 
@@ -778,7 +768,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
     for(unsigned int isc = 0; isc < nsc; ++isc) {
       const sim::SimChannel& sc = simchans[isc];
       if(isc != sc.Channel())
-	throw cet::exception("SPTError") << "MC channels not sorted.\n";
+	throw cet::exception("SpacePointService") << "MC channels not sorted.\n";
     }
   }
 
@@ -829,18 +819,14 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
     }
   }
 
-  if(fDebug) {
-    std::cout << "\nSpacePointService:\n"
-	      << "  Total hits = " << hits.size() << std::endl;
+  mf::LogDebug debug("SpacePointService");
+  debug << "Total hits = " << hits.size() << "\n\n";
 
-    for(int tpc = 0; tpc < ntpc; ++tpc) {
-      std::cout << "  TPC " << tpc << std::endl;
-      
-      int nplane=hitmap[tpc].size();
-      for(int plane = 0; plane < nplane; ++plane) {
-	std::cout << "  Plane " << plane << " hits = " << hitmap[tpc][plane].size()
-		  << std::endl;
-      }
+  for(int tpc = 0; tpc < ntpc; ++tpc) {
+    int nplane=hitmap[tpc].size();
+    for(int plane = 0; plane < nplane; ++plane) {
+      debug << "TPC, Plane: " << tpc << ", " << plane 
+	    << ", hits = " << hitmap[tpc][plane].size() << "\n";
     }
   }
 
@@ -993,12 +979,8 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
     }
   }
 
-  if(fDebug) {
-    std::cout << "SpacePointService:\n"
-	      << "  2-hit space points = " << n2 << "\n"
-	      << "  3-hit space points = " << n3 << "\n" 
-	      << std::endl;
-  }
+  debug << "\n2-hit space points = " << n2 << "\n"
+	<< "3-hit space points = " << n3;
 }
 
 //----------------------------------------------------------------------
@@ -1033,7 +1015,7 @@ void trkf::SpacePointService::HitToElectrons(const recob::Hit& hit,
       else if(view == geo::kW)
 	fHDTWE->Fill(tpeak - tdc);
       else
-	throw cet::exception("SPTError") << "Bad view = " << view << "\n";
+	throw cet::exception("SpacePointService") << "Bad view = " << view << "\n";
     }
     if(tdc >= tstart && tdc <= tend)
       electrons.push_back(elec);

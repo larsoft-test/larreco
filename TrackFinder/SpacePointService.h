@@ -124,11 +124,9 @@ namespace trkf {
 
     // Configuration paremeters.
 
-    int fDebug;             ///< Debugging level.
     bool fHist;             ///< Enable histograms.
     bool fMCHist;           ///< Enable histograms involving MC information.
     bool fUseMC;            ///< Use MC truth information.
-    std::string fMClabel;   ///< MC label for SimChannel.
     double fMaxDT;          ///< Maximum time difference between planes.
     double fMaxS;           ///< Maximum space separation between wires.
     double fTimeOffsetU;    ///< Time offset corrections (U)
