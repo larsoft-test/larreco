@@ -297,7 +297,7 @@ fDistribChargeposition.resize(fNPlanes);
 fSingleEvtAngle.resize(fNPlanes); 
 fSingleEvtAngleVal.resize(fNPlanes); 
 
- for(int ii=0;ii<fNPlanes;ii++)
+ for(unsigned int ii=0;ii<fNPlanes;ii++)
   {  fDistribChargeADC[ii].resize(0);  //vector with the first De/Dx points
   fDistribChargeposition[ii].resize(0);  //vector with the first De/Dx points' positions 
   fSingleEvtAngle[ii].resize(180); 
@@ -420,7 +420,7 @@ fChargeADC_4cm.resize(fNPlanes);   //Initial charge in ADC/cm for each plane fir
 
 
 
-   for(int i=0;i<fNPlanes;i++)
+   for(unsigned int i=0;i<fNPlanes;i++)
       {
        hitlist_all[i].sort(shwf::SortByWire());
       fh_omega_evt[i]->Reset();
@@ -446,7 +446,7 @@ fChargeADC_4cm.resize(fNPlanes);   //Initial charge in ADC/cm for each plane fir
 // Get3Daxis_coords();  
 
 
-for(int i=0;i<fNPlanes;i++)
+for(unsigned int i=0;i<fNPlanes;i++)
   LongTransEnergy(hitlist_all[i]); //Longitudinal and Transverse energy profile of the Shower induction
   
 // LongTransEnergy(hitlistCol); //Longitudinal and Transverse energy profile of the Shower induction
@@ -488,11 +488,13 @@ spcpts.push_back(singlepoint);
 recob::Shower  singShower(prodvec,spcpts);
 
 
+
+
 double dcosstart[3]={TMath::Cos(fPhi*pi/180)*TMath::Sin(fTheta*pi/180),TMath::Cos(fTheta*pi/180),TMath::Sin(fPhi*pi/180)*TMath::Sin(fTheta*pi/180)};
 
 
 singShower.SetDirection(dcosstart,dcosstart);
-
+singShower.SetID(1);
 
 std::auto_ptr<std::vector<recob::Shower> > Shower3DVector(new std::vector<recob::Shower>);
 Shower3DVector->push_back(singShower);
@@ -562,7 +564,7 @@ void shwf::ShowerReco::Get2DVariables(art::PtrVector < recob::Hit> hitlist) {
   // only needed for drawing the axis of the shower in the event display
   
   unsigned int channel;
-  double omega_sh, wire_cm, time_cm;
+  double  wire_cm, time_cm;
 
 
  double AC, BC, omega; 
@@ -607,7 +609,7 @@ for(art::PtrVectorItr<recob::Hit> hitIter = hitlist.begin(); hitIter != hitlist.
 
   
   // Making the two lines in the two views
-for (int pl=0;pl<fNPlanes;pl++)
+for (unsigned int pl=0;pl<fNPlanes;pl++)
   {
   slope_wt[pl] = (fTime_last[pl]-fTime_vertex[pl])/(ftimetick*fdriftvelocity)/((fWire_last[pl]-fWire_vertex[pl])/ fMean_wire_pitch);
   //slope_wt[0] = (fTime_last[0]-Time_C_wt)/(fWire_last[0]-Wire_vertexC_wt);
@@ -625,7 +627,7 @@ int shwf::ShowerReco::Get3DaxisN(int iplane0,int iplane1){
 
  double l(0),m(0),n(0);
  double angle[3];
-  double Wire_vertex[3];
+ // double Wire_vertex[3];
  //std::vector< double > angle;
   // Get Geometry
   art::ServiceHandle<geo::Geometry> geom;
@@ -780,7 +782,7 @@ std::cout << "+++++ new calc first test angles tests, Phi, Thet: " << fPhiN[fPhi
 
 
 
-
+return 0;
 
 }
 
@@ -868,7 +870,7 @@ std::cout << "^^^^^ angle calculation  theta: " << XYZ2.Theta() << " " << XYZ2.P
 
  //  }
 
-
+return 0;
 }
 
 
@@ -954,13 +956,13 @@ std::cout << "$$$$$$$$$$$ slopes " <<  slope[0] << " " << slope[1] << "  " << th
 void shwf::ShowerReco::LongTransEnergy(art::PtrVector < recob::Hit> hitlist)
 {
   // alogorithm for energy vs dx of the shower (roto-translation) COLLECTION VIEW
-  double omega_sh, wire_rot, time_rot, wire_cm, time_cm;
+  double  wire_cm, time_cm;
  // int loop_nrg = 0;
 
   
   double totCnrg = 0,totCnrg_corr =0 ; // tot enegry of the shower in collection
-  double CdEdx4cm = 0; // tot enegry of the shower in collection
-  int CdedxCounter = 0;
+  //double CdEdx4cm = 0; // tot enegry of the shower in collection
+  //int CdedxCounter = 0;
   art::ServiceHandle<geo::Geometry> geom;
 
   int channel;
@@ -1130,7 +1132,7 @@ void shwf::ShowerReco::GetPitchLength(){
 //// Obtain pitch using the ProjectedLength method obtained from prong; 
  art::ServiceHandle<geo::Geometry> geom;
 
-for(int pl=0;pl<fNPlanes;pl++)  
+for(unsigned int pl=0;pl<fNPlanes;pl++)  
    {fNPitch[pl]=ProjectedLength(geom->Plane(pl).View());
     std::cout << "++++++ calculating  -Pitch[" <<pl<<"] =" <<fNPitch[pl] << std::endl;
 
