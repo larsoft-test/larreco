@@ -355,7 +355,7 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 		fptsNo++;
 
 
-		mf::LogDebug("Track3DKalman: ") << "ihit xyz..." << spt3[0]<<","<< spt3[1]<<","<< spt3[2];
+		LOG_DEBUG("Track3DKalman: ") << "ihit xyz..." << spt3[0]<<","<< spt3[1]<<","<< spt3[2];
 		fitTrack.addHit(new genf::PointHit(spt3,resolution),
 				1,//dummy detector id
 				ihit++
@@ -383,20 +383,20 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 
 	    if(rep->getStatusFlag()==0) // 0 is successful completion
 	      {
-		mf::LogDebug("Track3DKalman: ") << __FILE__ << " " << __LINE__ ;
-		mf::LogDebug("Track3DKalman: ") << "Track3DKalman.cxx: Original plane:";
+		LOG_DEBUG("Track3DKalman: ") << __FILE__ << " " << __LINE__ ;
+		LOG_DEBUG("Track3DKalman: ") << "Track3DKalman.cxx: Original plane:";
 	  
 		if(fGenfPRINT) planeG.Print();
-		mf::LogDebug("Track3DKalman: ") << "Current (fit) reference Plane:";
+		LOG_DEBUG("Track3DKalman: ") << "Current (fit) reference Plane:";
 		if(fGenfPRINT) rep->getReferencePlane().Print();
 		
-		mf::LogDebug("Track3DKalman: ") << "Track3DKalman.cxx: Last reference Plane:";
+		LOG_DEBUG("Track3DKalman: ") << "Track3DKalman.cxx: Last reference Plane:";
 		if(fGenfPRINT) rep->getLastPlane().Print();
 		
 		if(fGenfPRINT) 
 		  {
 		    if(planeG!=rep->getReferencePlane()) 
-		      mf::LogDebug("Track3DKalman: ")	<<"Track3DKalman: Original hit plane (not surprisingly) not current reference Plane!"<<std::endl;
+		      LOG_DEBUG("Track3DKalman: ")	<<"Track3DKalman: Original hit plane (not surprisingly) not current reference Plane!"<<std::endl;
 		  }
 
 		stREC->ResizeTo(rep->getState());
@@ -405,7 +405,7 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 		*covREC = rep->getCov();
 		if(fGenfPRINT)
 		  {
-		    mf::LogDebug("Track3DKalman: ") << " Final State and Cov:";
+		    LOG_DEBUG("Track3DKalman: ") << " Final State and Cov:";
 		    stREC->Print();
 		    covREC->Print();
 		  }

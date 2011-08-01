@@ -390,7 +390,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 			  fptsNo++;
 
 
-			  mf::LogDebug("Track3DKalmanSPS: ") << "ihit xyz..." << spt3[0]<<","<< spt3[1]<<","<< spt3[2];
+			  LOG_DEBUG("Track3DKalmanSPS: ") << "ihit xyz..." << spt3[0]<<","<< spt3[1]<<","<< spt3[2];
 			  fitTrack.addHit(new genf::PointHit(spt3,resolution),
 					  1,//dummy detector id
 					  ihit++
@@ -418,20 +418,20 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 
 		      if(rep->getStatusFlag()==0) // 0 is successful completion
 			{
-			  mf::LogDebug("Track3DKalmanSPS: ") << __FILE__ << " " << __LINE__ ;
-			  mf::LogDebug("Track3DKalmanSPS: ") << "Track3DKalmanSPS.cxx: Original plane:";
+			  LOG_DEBUG("Track3DKalmanSPS: ") << __FILE__ << " " << __LINE__ ;
+			  LOG_DEBUG("Track3DKalmanSPS: ") << "Track3DKalmanSPS.cxx: Original plane:";
 			  
 			  if(fGenfPRINT) planeG.Print();
-			  mf::LogDebug("Track3DKalmanSPS: ") << "Current (fit) reference Plane:";
+			  LOG_DEBUG("Track3DKalmanSPS: ") << "Current (fit) reference Plane:";
 			  if(fGenfPRINT) rep->getReferencePlane().Print();
 		
-			  mf::LogDebug("Track3DKalmanSPS: ") << "Track3DKalmanSPS.cxx: Last reference Plane:";
+			  LOG_DEBUG("Track3DKalmanSPS: ") << "Track3DKalmanSPS.cxx: Last reference Plane:";
 			  if(fGenfPRINT) rep->getLastPlane().Print();
 		
 			  if(fGenfPRINT) 
 			    {
 			      if(planeG!=rep->getReferencePlane()) 
-				mf::LogDebug("Track3DKalmanSPS: ")	<<"Track3DKalmanSPS: Original hit plane (not surprisingly) not current reference Plane!"<<std::endl;
+				LOG_DEBUG("Track3DKalmanSPS: ")	<<"Track3DKalmanSPS: Original hit plane (not surprisingly) not current reference Plane!"<<std::endl;
 			    }
 
 			  stREC->ResizeTo(rep->getState());
@@ -440,7 +440,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 			  *covREC = rep->getCov();
 			  if(fGenfPRINT)
 			    {
-			      mf::LogDebug("Track3DKalmanSPS: ") << " Final State and Cov:";
+			      LOG_DEBUG("Track3DKalmanSPS: ") << " Final State and Cov:";
 			      stREC->Print();
 			      covREC->Print();
 			    }
