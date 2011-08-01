@@ -87,7 +87,7 @@ void cluster::EndPointModule::produce(art::Event& evt)
   
   size_t numvtx = vs->EndPoint(clusIn, vtxOut);
 
-  mf::LogDebug("Vertex") << "found " << numvtx << "vertices with VertexService";
+  LOG_DEBUG("Vertex") << "found " << numvtx << "vertices with VertexService";
 
   //Point to a collection of vertices to output.
   std::auto_ptr<std::vector<recob::EndPoint2D> > vtxcol(new std::vector<recob::EndPoint2D>(vtxOut));

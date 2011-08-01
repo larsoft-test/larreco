@@ -87,7 +87,7 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
   
   size_t numclus = hls->Transform(clusIn, clusOut);
 
-  mf::LogDebug("HoughLineClusters") << "found " << numclus << "clusters with HoughLineService";
+  LOG_DEBUG("HoughLineClusters") << "found " << numclus << "clusters with HoughLineService";
 
   //Point to a collection of clusters to output.
   std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>(clusOut));
