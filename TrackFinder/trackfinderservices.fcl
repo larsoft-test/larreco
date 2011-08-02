@@ -6,8 +6,8 @@ argoneut_spacepointservice:
   Hist: false
   MCHist: false
   UseMC: false
-  MaxDT: 25.
-  MaxS:  2.
+  MaxDT: 2.5
+  MaxS:  0.5
   TimeOffsetU: -4.5
   TimeOffsetV: 13.5
   TimeOffsetW: 0.
@@ -23,8 +23,8 @@ microboone_spacepointservice:
   Hist: false
   MCHist: false
   UseMC: false
-  MaxDT: 25.
-  MaxS:  2.
+  MaxDT: 2.5
+  MaxS:  0.5
   TimeOffsetU: -28.7
   TimeOffsetV: -37.7
   TimeOffsetW: -46.7
@@ -41,8 +41,8 @@ lbne_spacepointservice:
   Hist: false
   MCHist: false
   UseMC: false
-  MaxDT: 25.
-  MaxS:  2.
+  MaxDT: 2.5
+  MaxS:  0.5
   TimeOffsetU: 0.
   TimeOffsetV: 9.
   TimeOffsetW: 18.
