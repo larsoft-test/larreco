@@ -273,7 +273,28 @@ void trkf::SpacePointService::update()
 	viewname = "W";
       }
       else
-	throw cet::exception("SpacePointService") << "Bad view = " << view << "\n";
+	throw cet::exception("SpacePointService") << "Bad view = " 
+						  << view << "\n";
+
+      std::string sigtypename = "?";
+      geo::SigType_t sigtype = pgeom.SignalType();
+      if(sigtype == geo::kInduction)
+	sigtypename = "Induction";
+      else if(sigtype == geo::kCollection)
+	sigtypename = "Collection";
+      else
+	throw cet::exception("SpacePointService") << "Bad signal type = " 
+						  << sigtype << "\n";
+
+      std::string orientname = "?";
+      geo::Orient_t orient = pgeom.Orientation();
+      if(orient == geo::kVertical)
+	orientname = "Vertical";
+      else if(orient == geo::kHorizontal)
+	orientname = "Horizontal";
+      else
+	throw cet::exception("SpacePointService") << "Bad orientation = " 
+						  << orient << "\n";
 
       fWirePitch[tpc][plane] = pitch;
       fWireOffset[tpc][plane] = offset;
@@ -282,12 +303,15 @@ void trkf::SpacePointService::update()
       fCosTheta[tpc][plane] = std::cos(theta);
 
       log << "\nTPC, Plane: " << tpc << ", " << plane << "\n"
-	  << "  View " << view << " (" << viewname << ")\n"
-	  << "  SignalType " << pgeom.SignalType() << "\n"
-	  << "  Orientation " << pgeom.Orientation() << "\n"
+	  << "  View: " << viewname << "\n"
+	  << "  SignalType: " << sigtypename << "\n"
+	  << "  Orientation: " << orientname << "\n"
 	  << "  Theta = " << theta << "\n"
 	  << "  Wire pitch = " << pitch << "cm\n"
 	  << "  Wire offset = " << offset << "cm\n";
+
+      //      if(orient != geo::kVertical)
+      //	LogError("SpacePointService") << "Horizontal wire geometry not implemented."
     }
 
     if(fTheta[tpc].size() == 3) {
@@ -296,9 +320,9 @@ void trkf::SpacePointService::update()
       fSin[tpc][2] = std::sin(fTheta[tpc][0] - fTheta[tpc][1]);
     }
 
-    log << "  sin(V-W) = " << fSin[tpc][0] << "\n"
-	<< "  sin(W-U) = " << fSin[tpc][1] << "\n"
-	<< "  sin(U-V) = " << fSin[tpc][2] << "\n";
+    log << "\nsin(V-W) = " << fSin[tpc][0] << "\n"
+	<< "sin(W-U) = " << fSin[tpc][1] << "\n"
+	<< "sin(U-V) = " << fSin[tpc][2] << "\n";
   }
 
 
