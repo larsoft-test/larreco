@@ -25,9 +25,9 @@ microboone_spacepointservice:
   UseMC: false
   MaxDT: 2.5
   MaxS:  0.5
-  TimeOffsetU: -28.7
+  TimeOffsetU: -46.7
   TimeOffsetV: -37.7
-  TimeOffsetW: -46.7
+  TimeOffsetW: -28.7
   MinViews: 3
   EnableU: true
   EnableV: true
