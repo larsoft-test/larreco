@@ -323,8 +323,14 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  
 		  if (hits.size()==0) break;
 		  // Add the 3D track to the vector of the reconstructed tracks
-		  if(simChannelHandle.isValid())
-		    sps->makeSpacePoints(hits,spacepoints,*simChannelHandle);
+		  if(simChannelHandle.isValid()) {
+		    std::vector<art::Ptr<sim::SimChannel> > simchans;
+		    int nsimchan = simChannelHandle->size();
+		    simchans.reserve(nsimchan);
+		    for(int i = 0; i < nsimchan; ++i)
+		      simchans.push_back(art::Ptr<sim::SimChannel>(simChannelHandle, i));
+		    sps->makeSpacePoints(hits,spacepoints,simchans);
+		  }
 		  else
 		    sps->makeSpacePoints(hits,spacepoints);
 		  // Insert the GENFIT/Kalman stuff here then make the tracks. Units are cm, GeV.

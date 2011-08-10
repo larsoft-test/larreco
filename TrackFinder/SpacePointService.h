@@ -13,8 +13,6 @@
 /// FCL parameters:
 ///
 /// Debug - Enable debugging messages (0=none, 1=some, 2=more).
-/// Hist - Enable histograms.
-/// MCHist - Fill histograms involving MC information.
 /// UseMC - Use MC truth information to find only true space points.
 /// MaxDT - The maximum time difference (ticks) between any pair of hits.
 /// MaxS  - The maximum 3-view wire separation parameter S (cm).
@@ -52,7 +50,6 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "art/Persistency/Common/PtrVector.h"
 #include "art/Framework/Services/Registry/ActivityRegistry.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "Geometry/geo.h"
 #include "RecoBase/SpacePoint.h"
 #include "Simulation/SimChannel.h"
@@ -81,11 +78,18 @@ namespace trkf {
     void maybe_update();    ///< Update constants if geometry has changed..
     void update();          ///< Update constants unconditionally.
 
-    // Book histograms.
-    void bookHistograms();
+    // Corrected time accessors.
+    double getTimeOffset(geo::View_t view);
+    double getCorrectedTime(const recob::Hit& hit);
+
+    // Spatial separation of hits (zero if two or fewer).
+    double separation(const art::PtrVector<recob::Hit>& hits);
 
     // Test whether the specified hits are compatible with a space point.
-    bool compatible(const art::PtrVector<recob::Hit>& hits) const;
+    // The last two arguments can be used to override the default cuts.
+    bool compatible(const art::PtrVector<recob::Hit>& hits,
+		    double maxDT = 0.,
+		    double maxS = 0.) const;
 
     // Fill a single space point using the specified hits.
     // Hits are assumed to be compatible.
@@ -94,38 +98,26 @@ namespace trkf {
 
     // Fill a vector of space points from an unsorted collection of hits.
     // Space points are generated for all compatible combinations of hits.
-    void makeSpacePoints(const art::Handle< std::vector<recob::Hit> >& hith,
-			 std::vector<recob::SpacePoint>& spts) const;
+    // The last two arguments can be used to override the default cuts.
     void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
-			 std::vector<recob::SpacePoint>& spts) const;
+			 std::vector<recob::SpacePoint>& spts,
+			 double maxDT = 0.,
+			 double maxS = 0.) const;
 
     // The following versions of the makeSpacePoints methods can be used
     // to fill only those space points that are compatible with mc truth
     // information contained in SimChannels.
-    void makeSpacePoints(const art::Handle< std::vector<recob::Hit> >& hith,
-			 std::vector<recob::SpacePoint>& spts,
-			 const std::vector<sim::SimChannel>& simchans) const;
+    // The last two arguments can be used to override the default cuts.
     void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 			 std::vector<recob::SpacePoint>& spts,
-			 const std::vector<sim::SimChannel>& simchans) const;
-
+			 const std::vector<art::Ptr<sim::SimChannel> >& simchans,
+			 double maxDT = 0.,
+			 double maxS = 0.) const;
 
   private:
 
-    // Extract Electrons associated with Hit.
-    // (Similar as BackTracker::HitToXYZ in MCCheater.)
-    void HitToElectrons(const recob::Hit& hit,
-			const std::vector<sim::SimChannel>& simchans,
-			std::vector<const sim::Electrons*>& electrons) const;
-
-    // Extract average position of vector of electrons.
-    // (Similar as BackTracker::HitToXYZ in MCCheater.)
-    TVector3 ElectronsToXYZ(const std::vector<const sim::Electrons*>& electrons) const;
-
     // Configuration paremeters.
 
-    bool fHist;             ///< Enable histograms.
-    bool fMCHist;           ///< Enable histograms involving MC information.
     bool fUseMC;            ///< Use MC truth information.
     double fMaxDT;          ///< Maximum time difference between planes.
     double fMaxS;           ///< Maximum space separation between wires.
@@ -166,30 +158,9 @@ namespace trkf {
     double fDriftVelocity;   ///< Drift velocity (cm/us).
     double fTimePitch;       ///< Time pitch (cm/tick).
 
-    // Histograms.
-
-    bool fBooked;   // Have histograms been booked yet?
-    TH1F* fHDTUE;   // U-drift electrons time difference.
-    TH1F* fHDTVE;   // V-drift electrons time difference.
-    TH1F* fHDTWE;   // W-drift electrons time difference.
-    TH1F* fHDTUV;   // U-V time difference.
-    TH1F* fHDTVW;   // V-W time difference.
-    TH1F* fHDTWU;   // W-U time difference.
-    TH1F* fHS;      // Spatial separation parameter.
-    TH1F* fHDTUVC;  // U-V time difference (spatially compatible hits).
-    TH1F* fHDTVWC;  // V-W time difference (spatially compatible hits).
-    TH1F* fHDTWUC;  // W-U time difference (spatially compatible hits).
-    TH1F* fHx;      // X position.
-    TH1F* fHy;      // Y position.
-    TH1F* fHz;      // Z position.
-    TH1F* fHMCdx;   // X residual (reco vs. mc truth).
-    TH1F* fHMCdy;   // Y residual (reco vs. mc truth).
-    TH1F* fHMCdz;   // Z residual (reco vs. mc truth).
-
     // Temporary variables.
 
     mutable std::map<const recob::Hit*, std::vector<const sim::Electrons*> > fElecMap;
-    mutable std::map<const recob::Hit*, TVector3> fMCPosMap;
   };
 }
 

@@ -3,8 +3,6 @@ BEGIN_PROLOG
 argoneut_spacepointservice:
 {
   Debug: 0
-  Hist: false
-  MCHist: false
   UseMC: false
   MaxDT: 2.5
   MaxS:  0.5
@@ -20,8 +18,6 @@ argoneut_spacepointservice:
 microboone_spacepointservice:
 {
   Debug: 0
-  Hist: false
-  MCHist: false
   UseMC: false
   MaxDT: 2.5
   MaxS:  0.5
@@ -38,8 +34,6 @@ microboone_spacepointservice:
 lbne_spacepointservice:
 {
   Debug: 0
-  Hist: false
-  MCHist: false
   UseMC: false
   MaxDT: 2.5
   MaxS:  0.5

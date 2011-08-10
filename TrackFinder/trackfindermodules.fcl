@@ -36,6 +36,17 @@ argoneut_spacepts:
  vertexclusterWindow:   100.
 }
 
+argoneut_spacepoint:
+{
+  module_type:        "SpacePointAna"
+  HitModuleLabel:     "ffthit"
+  ClusterModuleLabel: "dbcluster"
+  DetSimModuleLabel:  "daq"
+  UseClusterHits:     true
+  MaxDT:              50.
+  MaxS:               10.
+}
+
 microboone_track:
 {
  module_type:        "Track3Dreco"
@@ -66,5 +77,15 @@ microboone_kalman:
  GenfPRINT:           true
 }
 
+microboone_spacepoint:
+{
+  module_type:        "SpacePointAna"
+  HitModuleLabel:     "ffthit"
+  ClusterModuleLabel: "dbcluster"
+  DetSimModuleLabel:  "daq"
+  UseClusterHits:     true
+  MaxDT:              50.
+  MaxS:               10.
+}
 
 END_PROLOG
