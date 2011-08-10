@@ -23,7 +23,7 @@
 /// EnableV - Use V view hits.
 /// EnableW - Use W view hits.
 ///
-/// The first two parameters are used to implement a notion of whether
+/// The parameters fMaxDT and fMaxS are used to implement a notion of whether
 /// the input hits are compatible with being a space point.  Parameter
 /// MaxS is a cut on the 3-plane wire separation parameter S, which is
 /// defined as follows:
@@ -79,7 +79,7 @@ namespace trkf {
 
     // Corrected time accessors.
     double getTimeOffset(geo::View_t view);
-    double getCorrectedTime(const recob::Hit& hit);
+    double correctedTime(const recob::Hit& hit);
 
     // Spatial separation of hits (zero if two or fewer).
     double separation(const art::PtrVector<recob::Hit>& hits);

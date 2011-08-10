@@ -22,7 +22,6 @@
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "Simulation/SimChannel.h"
 #include "Simulation/Electrons.h"
-#include "Simulation/LArVoxelData.h"
 #include "art/Framework/Core/View.h"
 #include "Utilities/DetectorProperties.h"
 #include "MCCheater/BackTracker.h"
@@ -346,7 +345,7 @@ double trkf::SpacePointService::getTimeOffset(geo::View_t view)
 
 //----------------------------------------------------------------------
 // Get corrected time for the specified hit.
-double trkf::SpacePointService::getCorrectedTime(const recob::Hit& hit)
+double trkf::SpacePointService::correctedTime(const recob::Hit& hit)
 {
   return hit.PeakTime() - getTimeOffset(hit.View());
 }

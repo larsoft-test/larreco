@@ -300,7 +300,7 @@ namespace trkf {
 	unsigned int tpc1, plane1, wire1;
 	geom->ChannelToWire(channel1, tpc1, plane1, wire1);
 	geo::View_t view1 = hit1.View();
-	double t1 = sptsvc->getCorrectedTime(hit1);
+	double t1 = sptsvc->correctedTime(hit1);
 
 	for(art::PtrVector<recob::Hit>::const_iterator jhit = spthits.begin();
 	    jhit != spthits.end(); ++jhit) {
@@ -315,7 +315,7 @@ namespace trkf {
 	  if(tpc1 == tpc2 && plane1 != plane2) {
 
 	    geo::View_t view2 = hit2.View();
-	    double t2 = sptsvc->getCorrectedTime(hit2);
+	    double t2 = sptsvc->correctedTime(hit2);
 
 	    if(view1 == geo::kU) {
 	      if(view2 == geo::kV)
