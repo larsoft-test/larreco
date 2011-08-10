@@ -12,7 +12,6 @@
 ///
 /// FCL parameters:
 ///
-/// Debug - Enable debugging messages (0=none, 1=some, 2=more).
 /// UseMC - Use MC truth information to find only true space points.
 /// MaxDT - The maximum time difference (ticks) between any pair of hits.
 /// MaxS  - The maximum 3-view wire separation parameter S (cm).
