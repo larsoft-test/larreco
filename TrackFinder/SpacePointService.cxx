@@ -703,7 +703,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
   debug << "Total hits = " << hits.size() << "\n\n";
 
   for(int tpc = 0; tpc < ntpc; ++tpc) {
-    int nplane=hitmap[tpc].size();
+    int nplane = hitmap[tpc].size();
     for(int plane = 0; plane < nplane; ++plane) {
       debug << "TPC, Plane: " << tpc << ", " << plane 
 	    << ", hits = " << hitmap[tpc][plane].size() << "\n";
@@ -718,9 +718,14 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
     // This is so that we can do the outer loops over hits 
     // over the views with fewer hits.
 
-    int index[3] = {0, 1, 2};
-    for(int i=0; i<2; ++i) {
-      for(int j=i+1; j<3; ++j) {
+    int nplane = hitmap[tpc].size();
+    std::vector<int> index(nplane);
+
+    for(int i=0; i<nplane; ++i)
+      index[i] = i;
+
+    for(int i=0; i<nplane-1; ++i) {
+      for(int j=i+1; j<nplane; ++j) {
 	if(hitmap[tpc][index[i]].size() > hitmap[tpc][index[j]].size()) {
 	  int temp = index[i];
 	  index[i] = index[j];
@@ -736,9 +741,9 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
       // Loop over pairs of views.
 
-      for(int i=0; i<2; ++i) {
+      for(int i=0; i<nplane-1; ++i) {
 	int plane1 = index[i];
-	for(int j=i+1; j<3; ++j) {
+	for(int j=i+1; j<nplane; ++j) {
 	  int plane2 = index[j];
 
 	  assert(hitmap[tpc][plane1].size() <= hitmap[tpc][plane2].size());
@@ -789,7 +794,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
     // If three-view space points are allowed, make a tripe loop
     // over hits and produce space points for compatible triplets.
 
-    if(fMinViews <= 3) {
+    if(nplane >= 3 && fMinViews <= 3) {
 
       // Loop over triplets of hits.
 

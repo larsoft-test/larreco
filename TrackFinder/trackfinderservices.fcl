@@ -5,8 +5,8 @@ argoneut_spacepointservice:
   UseMC: false
   MaxDT: 2.5
   MaxS:  0.5
-  TimeOffsetU: -4.5
-  TimeOffsetV: 13.5
+  TimeOffsetU: 1.0
+  TimeOffsetV: -6.6
   TimeOffsetW: 0.
   MinViews: 2
   EnableU: true
