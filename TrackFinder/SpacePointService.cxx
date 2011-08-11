@@ -1,4 +1,4 @@
-////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
 ///
 /// \file   SpacePointService.cxx
 ///
@@ -72,15 +72,8 @@ trkf::SpacePointService::SpacePointService(const fhicl::ParameterSet& pset,
   fEnableU(false),
   fEnableV(false),
   fEnableW(false),
-  fGeom(0),
-  fSamplingRate(0.),
-  fTriggerOffset(0),
-  fEfield(0.),
-  fTemperature(0.),
-  fDriftVelocity(0.),
   fTimePitch(0.)
 {
-  reg.watchPostBeginRun(this, &SpacePointService::postBeginRun);
   reconfigure(pset);
 }
 
@@ -112,9 +105,6 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
   fEnableV = pset.get<bool>("EnableV", false);
   fEnableW = pset.get<bool>("EnableW", false);
 
-  fGDMLPath = "";
-  fROOTPath = "";
-
   // Report.
 
   mf::LogInfo("SpacePointService") 
@@ -132,123 +122,62 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
 }
 
 //----------------------------------------------------------------------
-// ART signal.  We check here if geometry needs to be updated.
-// The Geometry service also updates in the same signal, so this service
-// should come after geometry in service list.  There should be a way
-// to register with the geometry service (as opposed to the framework)
-// to be notified if the geometry has been updated...
-//
-void trkf::SpacePointService::postBeginRun(art::Run const& run)
-{
-  maybe_update();
-}
-
-//----------------------------------------------------------------------
-// This method updates geometry constants, if needed.
-//
-void trkf::SpacePointService::maybe_update()
-{
-  art::ServiceHandle<geo::Geometry> geom;
-
-  std::string gdml_path = geom->GetGDMLPath();
-  std::string root_path = geom->GetROOTPath();
-
-  if(fGeom == 0 || gdml_path != fGDMLPath || root_path != fROOTPath) {
-    fGeom = &*geom;
-    fGDMLPath = gdml_path;
-    fROOTPath = root_path;
-    update();
-  }
-}
-
-//----------------------------------------------------------------------
 // Update geometry constants.
 //
-void trkf::SpacePointService::update()
+void trkf::SpacePointService::update() const
 {
+  // Generate info report on first call only.
+
+  bool report = (fTimePitch == 0.);
+
+  // Get services.
+
+  art::ServiceHandle<geo::Geometry> geom;
+  art::ServiceHandle<util::DetectorProperties> detprop;
+  art::ServiceHandle<util::LArProperties> larprop;
+
   // Reset geometry constants so that we don't
   // accidentally inherit from previous update.
 
-  fEnable.clear();
   fTimeOffset.clear();
-  fWirePitch.clear();
-  fWireOffset.clear();
-  fTheta.clear();
-  fSinTheta.clear();
-  fCosTheta.clear();
-  fSin.clear();
+  fTimePitch = 0.;
 
   // Calculate and print geometry information.
 
   mf::LogInfo log("SpacePointService");
-  log << "Updating geometry constants.\n";
+  if(report)
+    log << "Updating geometry constants.\n";
 
   // Loop over TPCs.
 
-  int ntpc = fGeom->NTPC();
+  int ntpc = geom->NTPC();
 
-  fEnable.resize(ntpc);
   fTimeOffset.resize(ntpc);
-  fWirePitch.resize(ntpc);
-  fWireOffset.resize(ntpc);
-  fTheta.resize(ntpc);
-  fSinTheta.resize(ntpc);
-  fCosTheta.resize(ntpc);
-  fSin.resize(ntpc);
 
   for(int tpc = 0; tpc < ntpc; ++tpc) {
-    const geo::TPCGeo& tpcgeom = fGeom->TPC(tpc);
+    const geo::TPCGeo& tpcgeom = geom->TPC(tpc);
 
     // Loop over planes.
 
     int nplane = tpcgeom.Nplanes();
-
-    fEnable[tpc].resize(nplane, false);
     fTimeOffset[tpc].resize(nplane, 0.);
-    fWirePitch[tpc].resize(nplane, 0.);
-    fWireOffset[tpc].resize(nplane, 0.);
-    fTheta[tpc].resize(nplane, 0.);
-    fSinTheta[tpc].resize(nplane, 0.);
-    fCosTheta[tpc].resize(nplane, 0.);
-    fSin[tpc].resize(nplane, 0.);
 
     for(int plane = 0; plane < nplane; ++plane) {
-      const geo::PlaneGeo& pgeom = fGeom->Plane(plane);
-      double theta = pgeom.Wire(0).ThetaZ();
+      const geo::PlaneGeo& pgeom = tpcgeom.Plane(plane);
 
-      // Calculate the perpendicular distance of the first and last wires
-      // from the origin in the (y,z) plane.  Use this information to
-      // calculate the wire pitch and offset.
-
-      int wire[2] = {0, 0};
-      wire[1] = pgeom.Nwires() - 1;
-      double dist[2] = {0., 0.};
-      for(int j=0; j<2; ++j) {
-	double xyz1[3], xyz2[3];
-	double z1 = -100;
-	double z2 = 100.;
-	const geo::WireGeo& wgeom = pgeom.Wire(wire[j]);
-	wgeom.GetCenter(xyz1, z1);
-	wgeom.GetCenter(xyz2, z2);
-	dist[j] = (xyz2[1] * xyz1[2] - xyz1[1] * xyz2[2]) / (z2 - z1);
-      }
-      double pitch = (dist[1] - dist[0]) / (wire[1] - wire[0]);
-      double offset = dist[0] - pitch * wire[0];
+      // Fill view-dependent quantities.
 
       geo::View_t view = pgeom.View();
       std::string viewname = "?";
       if(view == geo::kU) {
-	fEnable[tpc][plane] = fEnableU;
 	fTimeOffset[tpc][plane] = fTimeOffsetU;
 	viewname = "U";
       }
       else if(view == geo::kV) {
-	fEnable[tpc][plane] = fEnableV;
 	fTimeOffset[tpc][plane] = fTimeOffsetV;
 	viewname = "V";
       }
       else if(view == geo::kW) {
-	fEnable[tpc][plane] = fEnableW;
 	fTimeOffset[tpc][plane] = fTimeOffsetW;
 	viewname = "W";
       }
@@ -276,57 +205,43 @@ void trkf::SpacePointService::update()
 	throw cet::exception("SpacePointService") << "Bad orientation = " 
 						  << orient << "\n";
 
-      fWirePitch[tpc][plane] = pitch;
-      fWireOffset[tpc][plane] = offset;
-      fTheta[tpc][plane] = theta;
-      fSinTheta[tpc][plane] = std::sin(theta);
-      fCosTheta[tpc][plane] = std::cos(theta);
+      if(report) {
+	log << "\nTPC, Plane: " << tpc << ", " << plane << "\n"
+	    << "  View: " << viewname << "\n"
+	    << "  SignalType: " << sigtypename << "\n"
+	    << "  Orientation: " << orientname << "\n";
+      }
 
-      log << "\nTPC, Plane: " << tpc << ", " << plane << "\n"
-	  << "  View: " << viewname << "\n"
-	  << "  SignalType: " << sigtypename << "\n"
-	  << "  Orientation: " << orientname << "\n"
-	  << "  Theta = " << theta << "\n"
-	  << "  Wire pitch = " << pitch << "cm\n"
-	  << "  Wire offset = " << offset << "cm\n";
-
-      //      if(orient != geo::kVertical)
-      //	LogError("SpacePointService") << "Horizontal wire geometry not implemented."
+      if(orient != geo::kVertical)
+	throw cet::exception("SpacePointService") 
+	  << "Horizontal wire geometry not implemented.\n";
     }
-
-    if(fTheta[tpc].size() == 3) {
-      fSin[tpc][0] = std::sin(fTheta[tpc][1] - fTheta[tpc][2]);
-      fSin[tpc][1] = std::sin(fTheta[tpc][2] - fTheta[tpc][0]);
-      fSin[tpc][2] = std::sin(fTheta[tpc][0] - fTheta[tpc][1]);
-    }
-
-    log << "\nsin(p1-p2) = " << fSin[tpc][0] << "\n"
-	<< "sin(p2-p0) = " << fSin[tpc][1] << "\n"
-	<< "sin(p0-p1) = " << fSin[tpc][2] << "\n";
   }
 
 
   // Update detector properties.
-  art::ServiceHandle<util::DetectorProperties> detprop;
 
-  fSamplingRate = detprop->SamplingRate();
-  fTriggerOffset = detprop->TriggerOffset();
-  log << "\nDetector properties:\n"
-      << "  Sampling Rate = " << fSamplingRate << " ns/tick\n"
-      << "  Trigger offset = " << fTriggerOffset << " ticks\n";
+  double samplingRate = detprop->SamplingRate();
+  double triggerOffset = detprop->TriggerOffset();
+  if(report) {
+    log << "\nDetector properties:\n"
+	<< "  Sampling Rate = " << samplingRate << " ns/tick\n"
+	<< "  Trigger offset = " << triggerOffset << " ticks\n";
+  }
 
   // Update LArProperties.
-  art::ServiceHandle<util::LArProperties> larprop;
-  //  art::ServiceHandle<util::LArProperties> larprop;
-  fEfield = larprop->Efield();
-  fTemperature = larprop->Temperature();
-  fDriftVelocity = larprop->DriftVelocity(fEfield, fTemperature);
-  fTimePitch = 0.001 * fDriftVelocity * fSamplingRate;
-  log << "\nLAr propertoes:\n"
-      << "  E field = " << fEfield << " kV/cm\n"
-      << "  Temperature = " << fTemperature << " K\n"
-      << "  Drift velocity = " << fDriftVelocity << " cm/us\n"
-      << "  Time pitch = " << fTimePitch << " cm/tick";
+
+  double efield = larprop->Efield();
+  double temperature = larprop->Temperature();
+  double driftVelocity = larprop->DriftVelocity(efield, temperature);
+  fTimePitch = 0.001 * driftVelocity * samplingRate;
+  if(report) {
+    log << "\nLAr propertoes:\n"
+	<< "  E field = " << efield << " kV/cm\n"
+	<< "  Temperature = " << temperature << " K\n"
+	<< "  Drift velocity = " << driftVelocity << " cm/us\n"
+	<< "  Time pitch = " << fTimePitch << " cm/tick";
+  }
 }
 
 //----------------------------------------------------------------------
@@ -354,6 +269,10 @@ double trkf::SpacePointService::correctedTime(const recob::Hit& hit)
 // Spatial separation of hits (zero if two or fewer).
 double trkf::SpacePointService::separation(const art::PtrVector<recob::Hit>& hits)
 {
+  // Get geometry service.
+
+  art::ServiceHandle<geo::Geometry> geom;
+
   // Trivial case - fewer than three hits.
 
   if(hits.size() < 3)
@@ -370,9 +289,11 @@ double trkf::SpacePointService::separation(const art::PtrVector<recob::Hit>& hit
 
   assert(hits.size() == 3);
 
-  // Calculate distance of each hit from origin of wire plane.
+  // Calculate angles and distance of each hit from origin.
 
   double dist[3] = {0., 0., 0.};
+  double sinth[3] = {0., 0., 0.};
+  double costh[3] = {0., 0., 0.};
   unsigned int tpcs[3];
   unsigned int planes[3];
 
@@ -383,7 +304,7 @@ double trkf::SpacePointService::separation(const art::PtrVector<recob::Hit>& hit
     const recob::Hit& hit = *(hits[i]);
     unsigned short channel = hit.Channel();
     unsigned int tpc, plane, wire;
-    fGeom->ChannelToWire(channel, tpc, plane, wire);
+    const geo::WireGeo& wgeom = geom->ChannelToWire(channel, tpc, plane, wire);
     tpcs[i] = tpc;
     planes[i] = plane;
 
@@ -402,12 +323,23 @@ double trkf::SpacePointService::separation(const art::PtrVector<recob::Hit>& hit
       }
     }
 
-    // Get distance with offset correction.
+    // Get angles and distance of wire.
 
-    dist[plane] = fWirePitch[tpc][plane] * wire + fWireOffset[tpc][plane];
+    double hl = wgeom.HalfL();
+    double xyz[3];
+    double xyz1[3];
+    wgeom.GetCenter(xyz);
+    wgeom.GetCenter(xyz1, hl);
+    double s  = (xyz1[1] - xyz[1]) / hl;
+    double c = (xyz1[2] - xyz[2]) / hl;
+    sinth[plane] = s;
+    costh[plane] = c;
+    dist[plane] = xyz[2] * s - xyz[1] * c;
   }
 
-  double S = fSin[tpcs[0]][0]*dist[0] + fSin[tpcs[0]][1]*dist[1] + fSin[tpcs[0]][2]*dist[2];
+  double S = ((sinth[1] * costh[2] - costh[1] * sinth[2]) * dist[0] 
+	      +(sinth[2] * costh[0] - costh[2] * sinth[0]) * dist[1] 
+	      +(sinth[0] * costh[1] - costh[0] * sinth[1]) * dist[2]);
   return S;
 }
 
@@ -418,6 +350,10 @@ double trkf::SpacePointService::separation(const art::PtrVector<recob::Hit>& hit
 bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 					 double maxDT, double maxS) const
 {
+  // Get geometry service.
+
+  art::ServiceHandle<geo::Geometry> geom;
+
   // Get cuts.
 
   if(maxDT == 0.)
@@ -442,7 +378,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
       const recob::Hit& hit1 = *(hits[ihit1]);
       unsigned short channel1 = hit1.Channel();
       unsigned int tpc1, plane1, wire1;
-      fGeom->ChannelToWire(channel1, tpc1, plane1, wire1);
+      geom->ChannelToWire(channel1, tpc1, plane1, wire1);
       geo::View_t view1 = hit1.View();
       double t1 = hit1.PeakTime() - fTimeOffset[tpc1][plane1];
 
@@ -456,7 +392,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 	const recob::Hit& hit2 = *(hits[ihit2]);
 	unsigned short channel2 = hit2.Channel();
 	unsigned int tpc2, plane2, wire2;
-	fGeom->ChannelToWire(channel2, tpc2, plane2, wire2);
+	geom->ChannelToWire(channel2, tpc2, plane2, wire2);
 	geo::View_t view2 = hit2.View();
 
 	// Test for same tpc and different views.
@@ -504,6 +440,8 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
       // Loop over hits.
 
       double dist[3] = {0., 0., 0.};
+      double sinth[3] = {0., 0., 0.};
+      double costh[3] = {0., 0., 0.};
       double time[3];
       geo::View_t view[3];
 
@@ -514,7 +452,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 	const recob::Hit& hit = *(hits[i]);
 	unsigned short channel = hit.Channel();
 	unsigned int tpc0, plane, wire;
-	fGeom->ChannelToWire(channel, tpc0, plane, wire);
+	const geo::WireGeo& wgeom = geom->ChannelToWire(channel, tpc0, plane, wire);
 	assert(tpc0 == tpc);
 	view[i] = hit.View();
 
@@ -522,14 +460,26 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 
 	time[i] = hit.PeakTime() - fTimeOffset[tpc][plane];
 
-	// Get distance with offset correction.
+	// Get angles and distance of wire.
 
-	dist[plane] = fWirePitch[tpc][plane] * wire + fWireOffset[tpc][plane];
+	double hl = wgeom.HalfL();
+	double xyz[3];
+	double xyz1[3];
+	wgeom.GetCenter(xyz);
+	wgeom.GetCenter(xyz1, hl);
+	double s  = (xyz1[1] - xyz[1]) / hl;
+	double c = (xyz1[2] - xyz[2]) / hl;
+	sinth[plane] = s;
+	costh[plane] = c;
+	dist[plane] = xyz[2] * s - xyz[1] * c;
       }
 
       // Do space cut.
 
-      double S = fSin[tpc][0]*dist[0] + fSin[tpc][1]*dist[1] + fSin[tpc][2]*dist[2];
+      double S = ((sinth[1] * costh[2] - costh[1] * sinth[2]) * dist[0] 
+		  +(sinth[2] * costh[0] - costh[2] * sinth[0]) * dist[1] 
+		  +(sinth[0] * costh[1] - costh[0] * sinth[1]) * dist[2]);
+
       result = result && std::abs(S) < maxS;
     }
   }
@@ -546,6 +496,16 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
 					     recob::SpacePoint& spt) const
 {
+  // Get services.
+
+  art::ServiceHandle<geo::Geometry> geom;
+  art::ServiceHandle<util::DetectorProperties> detprop;
+  art::ServiceHandle<util::LArProperties> larprop;
+
+  double triggerOffset = detprop->TriggerOffset();
+
+  // Store hits in SpacePoint.
+
   spt = recob::SpacePoint(recob::SpacePoint(hits));
   int nhits = hits.size();
 
@@ -565,12 +525,12 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
     const recob::Hit& hit = **ihit;
     unsigned short channel = hit.Channel();
     unsigned int tpc, plane, wire;
-    fGeom->ChannelToWire(channel, tpc, plane, wire);
+    geom->ChannelToWire(channel, tpc, plane, wire);
 
     // Correct time for trigger offset and view-dependent time offsets.
     // Assume time error is proportional to (end time - start time).
 
-    double t = hit.PeakTime() - fTriggerOffset - fTimeOffset[tpc][plane];
+    double t = hit.PeakTime() - triggerOffset - fTimeOffset[tpc][plane];
     double et = hit.EndTime() - hit.StartTime();
     double w = 1./(et*et);
 
@@ -603,16 +563,21 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
       const recob::Hit& hit = **ihit;
       unsigned short channel = hit.Channel();
       unsigned int tpc, plane, wire;
-      fGeom->ChannelToWire(channel, tpc, plane, wire);
+      const geo::WireGeo& wgeom = geom->ChannelToWire(channel, tpc, plane, wire);
 
-      // Calculate wire coordinate in this view.
+      // Calculate angle and wire coordinate in this view.
     
-      double u = wire * fWirePitch[tpc][plane] + fWireOffset[tpc][plane];
+      double hl = wgeom.HalfL();
+      double xyz[3];
+      double xyz1[3];
+      wgeom.GetCenter(xyz);
+      wgeom.GetCenter(xyz1, hl);
+      double s  = (xyz1[1] - xyz[1]) / hl;
+      double c = (xyz1[2] - xyz[2]) / hl;
+      double u = xyz[2] * s - xyz[1] * c;
 
       // Summations
 
-      double s = fSinTheta[tpc][plane];
-      double c = fCosTheta[tpc][plane];
       sus += u*s;
       suc += u*c;
       sc2 += c*c;
@@ -662,6 +627,14 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
   if(maxS == 0.)
     maxS = fMaxS;  
 
+  // Get geometry service.
+
+  art::ServiceHandle<geo::Geometry> geom;
+
+  // Precalculate certain geometry constants and properties.
+
+  update();
+
   // First make result vector is empty.
 
   spts.erase(spts.begin(), spts.end());
@@ -690,27 +663,25 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
   std::vector<std::vector<std::map<double, art::Ptr<recob::Hit> > > > hitmap;
   fElecMap.clear();
 
-  int ntpc = fEnable.size();
+  int ntpc = geom->NTPC();
   hitmap.resize(ntpc);
   for(int tpc = 0; tpc < ntpc; ++tpc) {
-    int nplane = fEnable[tpc].size();
+    int nplane = geom->Nplanes(tpc);
     hitmap[tpc].resize(nplane);
   }
-
-  /*
-  art::View<art::PtrVector<recob::Hit> >  lhits = hits; 
-  for(art::PtrVector<recob::Hit>::const_iterator ihit = lhits::begin();
-      ihit != lhits::end(); ++ihit) {
-  */
 
   for(art::PtrVector<recob::Hit>::const_iterator ihit = hits.begin();
       ihit != hits.end(); ++ihit) {
     const art::Ptr<recob::Hit>& phit = *ihit;
-    unsigned short channel = phit->Channel();
-    unsigned int tpc, plane, wire;
-    fGeom->ChannelToWire(channel, tpc, plane, wire);
+    geo::View_t view = phit->View();
+    if((view == geo::kU && fEnableU) ||
+       (view == geo::kV && fEnableV) ||
+       (view == geo::kW && fEnableW)) {
 
-    if(fEnable[tpc][plane]) {
+      unsigned short channel = phit->Channel();
+      unsigned int tpc, plane, wire;
+      geom->ChannelToWire(channel, tpc, plane, wire);
+
       double t = phit->PeakTime() - fTimeOffset[tpc][plane];
       hitmap[tpc][plane][t] = phit;
       const recob::Hit& hit = *phit;

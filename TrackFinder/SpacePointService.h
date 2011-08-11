@@ -49,7 +49,6 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "art/Persistency/Common/PtrVector.h"
 #include "art/Framework/Services/Registry/ActivityRegistry.h"
-#include "Geometry/geo.h"
 #include "RecoBase/SpacePoint.h"
 #include "Simulation/SimChannel.h"
 
@@ -72,10 +71,8 @@ namespace trkf {
     // Update configuration parameters.
     void reconfigure(const fhicl::ParameterSet& pset);
 
-    // Update constants obtained from geometry or LAr properties services.
-    void postBeginRun(const art::Run& run);   ///< Same as maybe_update.
-    void maybe_update();    ///< Update constants if geometry has changed..
-    void update();          ///< Update constants unconditionally.
+    // Update constants obtained from geometry and properties services.
+    void update() const;
 
     // Corrected time accessors.
     double getTimeOffset(geo::View_t view);
@@ -128,34 +125,13 @@ namespace trkf {
     bool fEnableV;          ///< Enable flag (V).
     bool fEnableW;          ///< Enable flag (W).
 
-    // Geometry and LAr constants.
+    // Time offsets, indexed by [tpc][plane].
 
-    const geo::Geometry* fGeom;  ///< Geometry service.
-    std::string fGDMLPath;   ///< Used to determine if geometry has changed.
-    std::string fROOTPath;   ///< Used to determine if geometry has changed.
-
-    // The following attributes are indexed by [tpc][plane].
-
-    std::vector<std::vector<bool> > fEnable;        ///< Enable flag.
-    std::vector<std::vector<double> > fTimeOffset;  ///< Time offset correction.
-    std::vector<std::vector<double> > fWirePitch;   ///< Wire pitch (cm).
-    std::vector<std::vector<double> > fWireOffset;  ///< Distance of wire 0 from origin (cm).
-    std::vector<std::vector<double> > fTheta;       ///< theta.
-    std::vector<std::vector<double> > fSinTheta;    ///< Sin(theta).
-    std::vector<std::vector<double> > fCosTheta;    ///< Cos(theta).
-    std::vector<std::vector<double> > fSin;         ///< Sin(delta theta).
-
-    // From Detector properties.
-
-    double fSamplingRate;    ///< ns/tick.
-    int fTriggerOffset;      ///< tick offset (aka presamplings).
+    mutable std::vector<std::vector<double> > fTimeOffset;  ///< Time offset correction.
 
     // From LArProperties.
 
-    double fEfield;          ///< Electric field in drift volume (kV/cm).
-    double fTemperature;     ///< LAr temperature.
-    double fDriftVelocity;   ///< Drift velocity (cm/us).
-    double fTimePitch;       ///< Time pitch (cm/tick).
+    mutable double fTimePitch;       ///< Time pitch (cm/tick).
 
     // Temporary variables.
 
