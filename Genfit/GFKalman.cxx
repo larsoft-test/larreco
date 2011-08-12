@@ -192,6 +192,7 @@ double genf::GFKalman::chi2Increment(const TMatrixT<Double_t>& r,const TMatrixT<
   // chisq= r^TR^(-1)r
   double det=0.;
   TMatrixT<Double_t> Rsave(R);
+  R.SetTol(1.0e-23); // to avoid inversion problem, EC, 8-Aug-2011.
   R.Invert(&det);
   TMatrixT<Double_t> residTranspose(r);
   residTranspose.T();
@@ -377,8 +378,9 @@ genf::GFKalman::calcGain(const TMatrixT<Double_t>& cov,
   
   // invert
   double det=0;
+  covsum.SetTol(1.0e-23); // to avoid inversion problem, EC, 8-Aug-2011.
   covsum.Invert(&det);
-  //  std::cout << "GFKalman:: calGain(), det is  "<< det << std::endl;
+  //    std::cout << "GFKalman:: calGain(), det is  "<< det << std::endl;
   if(TMath::IsNaN(det)) {
     GFException e("Kalman Gain: det of covsum is nan",__LINE__,__FILE__);
     e.setFatal();

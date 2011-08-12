@@ -590,7 +590,8 @@ bool genf::RKTrackRep::RKutta (const GFDetPlane& plane,
   static const double P3     = 1./3.;           // 1/3
   static const double Smax   = 100.0;            // max. step allowed 100->.4 EC, 6-Jan-2-11, 100->1.0
   static const double Wmax   = 1000.;           // max. way allowed.
-  static const double Pmin   = 4.E-3;           // minimum momentum for propagation [GeV]
+  //  static const double Pmin   = 4.E-3;           // minimum momentum for propagation [GeV]
+  static const double Pmin   = 1.E-4;           // minimum momentum for propagation [GeV]
 
   static const int    ND     = 56;              // number of variables for derivatives calculation
   static const int    ND1    = ND-7;            // = 49
