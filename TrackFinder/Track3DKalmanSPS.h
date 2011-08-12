@@ -57,7 +57,8 @@ namespace trkf {
     Float_t *fpRECt3D;    
     Float_t *fpRECL;
     Float_t *fpREC;
-    Float_t *fpMCT;
+    Float_t *fpMCMom;
+    Float_t *fpMCPos;
     int nfail;
     int ndf;
     unsigned int evtt;
