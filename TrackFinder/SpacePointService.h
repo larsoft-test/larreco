@@ -71,25 +71,31 @@ namespace trkf {
     // Update configuration parameters.
     void reconfigure(const fhicl::ParameterSet& pset);
 
-    // Update constants obtained from geometry and properties services.
+    // Print constants obtained from geometry and properties services.
     void update() const;
 
+    // Calculate time offsets.
+    // Results stored in nested vector indexed by [tpc][plane]
+    void fillTimeOffset(std::vector<std::vector<double> >& timeOffset) const;
+
     // Corrected time accessors.
-    double getTimeOffset(geo::View_t view);
-    double correctedTime(const recob::Hit& hit);
+    double correctedTime(const recob::Hit& hit,
+			 const std::vector<std::vector<double> >& timeOffset) const;
 
     // Spatial separation of hits (zero if two or fewer).
-    double separation(const art::PtrVector<recob::Hit>& hits);
+    double separation(const art::PtrVector<recob::Hit>& hits) const;
 
     // Test whether the specified hits are compatible with a space point.
     // The last two arguments can be used to override the default cuts.
     bool compatible(const art::PtrVector<recob::Hit>& hits,
+		    const std::vector<std::vector<double> >& timeOffset,
 		    double maxDT = 0.,
 		    double maxS = 0.) const;
 
     // Fill a single space point using the specified hits.
     // Hits are assumed to be compatible.
     void fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
+			const std::vector<std::vector<double> >& timeOffset,
 			recob::SpacePoint& spt) const;
 
     // Fill a vector of space points from an unsorted collection of hits.
@@ -124,14 +130,6 @@ namespace trkf {
     bool fEnableU;          ///< Enable flag (U).
     bool fEnableV;          ///< Enable flag (V).
     bool fEnableW;          ///< Enable flag (W).
-
-    // Time offsets, indexed by [tpc][plane].
-
-    mutable std::vector<std::vector<double> > fTimeOffset;  ///< Time offset correction.
-
-    // From LArProperties.
-
-    mutable double fTimePitch;       ///< Time pitch (cm/tick).
 
     // Temporary variables.
 

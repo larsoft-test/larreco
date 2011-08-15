@@ -5,8 +5,8 @@ argoneut_spacepointservice:
   UseMC: false
   MaxDT: 2.5
   MaxS:  0.5
-  TimeOffsetU: 1.0
-  TimeOffsetV: -6.6
+  TimeOffsetU: -5.193
+  TimeOffsetV: 0.585
   TimeOffsetW: 0.
   MinViews: 2
   EnableU: true
@@ -19,9 +19,9 @@ microboone_spacepointservice:
   UseMC: false
   MaxDT: 2.5
   MaxS:  0.5
-  TimeOffsetU: -46.7
-  TimeOffsetV: -37.7
-  TimeOffsetW: -28.7
+  TimeOffsetU: 1.056
+  TimeOffsetV: -0.255
+  TimeOffsetW: -0.267
   MinViews: 3
   EnableU: true
   EnableV: true
@@ -35,8 +35,8 @@ lbne_spacepointservice:
   MaxDT: 2.5
   MaxS:  0.5
   TimeOffsetU: 0.
-  TimeOffsetV: 9.
-  TimeOffsetW: 18.
+  TimeOffsetV: 0.
+  TimeOffsetW: 0.
   MinViews: 3
   EnableU: true
   EnableV: true

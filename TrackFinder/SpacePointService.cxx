@@ -71,8 +71,7 @@ trkf::SpacePointService::SpacePointService(const fhicl::ParameterSet& pset,
   fMinViews(1000),
   fEnableU(false),
   fEnableV(false),
-  fEnableW(false),
-  fTimePitch(0.)
+  fEnableW(false)
 {
   reconfigure(pset);
 }
@@ -122,13 +121,15 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
 }
 
 //----------------------------------------------------------------------
-// Update geometry constants.
+// Print geometry and properties constants.
 //
 void trkf::SpacePointService::update() const
 {
   // Generate info report on first call only.
 
-  bool report = (fTimePitch == 0.);
+  static bool first = true;
+  bool report = first;
+  first = false;
 
   // Get services.
 
@@ -136,23 +137,44 @@ void trkf::SpacePointService::update() const
   art::ServiceHandle<util::DetectorProperties> detprop;
   art::ServiceHandle<util::LArProperties> larprop;
 
-  // Reset geometry constants so that we don't
-  // accidentally inherit from previous update.
-
-  fTimeOffset.clear();
-  fTimePitch = 0.;
-
   // Calculate and print geometry information.
 
   mf::LogInfo log("SpacePointService");
   if(report)
     log << "Updating geometry constants.\n";
 
+  // Update detector properties.
+
+  double samplingRate = detprop->SamplingRate();
+  double triggerOffset = detprop->TriggerOffset();
+  if(report) {
+    log << "\nDetector properties:\n"
+	<< "  Sampling Rate = " << samplingRate << " ns/tick\n"
+	<< "  Trigger offset = " << triggerOffset << " ticks\n";
+  }
+
+  // Update LArProperties.
+
+  double efield = larprop->Efield();
+  double temperature = larprop->Temperature();
+  double driftVelocity = larprop->DriftVelocity(efield, temperature);
+  double timePitch = 0.001 * driftVelocity * samplingRate;
+  if(report) {
+    log << "\nLAr propertoes:\n"
+	<< "  E field = " << efield << " kV/cm\n"
+	<< "  Temperature = " << temperature << " K\n"
+	<< "  Drift velocity = " << driftVelocity << " cm/us\n"
+	<< "  Time pitch = " << timePitch << " cm/tick\n";
+  }
+
+  // Get time offsets.
+
+  std::vector<std::vector<double> > timeOffset;
+  fillTimeOffset(timeOffset);
+
   // Loop over TPCs.
 
   int ntpc = geom->NTPC();
-
-  fTimeOffset.resize(ntpc);
 
   for(int tpc = 0; tpc < ntpc; ++tpc) {
     const geo::TPCGeo& tpcgeom = geom->TPC(tpc);
@@ -160,7 +182,6 @@ void trkf::SpacePointService::update() const
     // Loop over planes.
 
     int nplane = tpcgeom.Nplanes();
-    fTimeOffset[tpc].resize(nplane, 0.);
 
     for(int plane = 0; plane < nplane; ++plane) {
       const geo::PlaneGeo& pgeom = tpcgeom.Plane(plane);
@@ -170,15 +191,12 @@ void trkf::SpacePointService::update() const
       geo::View_t view = pgeom.View();
       std::string viewname = "?";
       if(view == geo::kU) {
-	fTimeOffset[tpc][plane] = fTimeOffsetU;
 	viewname = "U";
       }
       else if(view == geo::kV) {
-	fTimeOffset[tpc][plane] = fTimeOffsetV;
 	viewname = "V";
       }
       else if(view == geo::kW) {
-	fTimeOffset[tpc][plane] = fTimeOffsetW;
 	viewname = "W";
       }
       else
@@ -206,10 +224,16 @@ void trkf::SpacePointService::update() const
 						  << orient << "\n";
 
       if(report) {
+	const double* xyz = tpcgeom.PlaneLocation(plane);
 	log << "\nTPC, Plane: " << tpc << ", " << plane << "\n"
 	    << "  View: " << viewname << "\n"
 	    << "  SignalType: " << sigtypename << "\n"
-	    << "  Orientation: " << orientname << "\n";
+	    << "  Orientation: " << orientname << "\n"
+	    << "  Plane location: " << xyz[0] << "\n"
+	    << "  Plane pitch: " << tpcgeom.Plane0Pitch(plane) << "\n"
+	    << "  Wire angle: " << tpcgeom.Plane(plane).Wire(0).ThetaZ() << "\n"
+	    << "  Wire pitch: " << tpcgeom.WirePitch() << "\n"
+	    << "  Time offset: " << timeOffset[tpc][plane] << "\n";
       }
 
       if(orient != geo::kVertical)
@@ -217,57 +241,97 @@ void trkf::SpacePointService::update() const
 	  << "Horizontal wire geometry not implemented.\n";
     }
   }
+}
 
+//----------------------------------------------------------------------
+// Calculate time offsets.
+// Results stored in nested vector indexed by [tpc][plane]
+void trkf::SpacePointService::fillTimeOffset(std::vector<std::vector<double> >& timeOffset) const
+{
+  // Get services.
 
-  // Update detector properties.
+  art::ServiceHandle<geo::Geometry> geom;
+  art::ServiceHandle<util::DetectorProperties> detprop;
+  art::ServiceHandle<util::LArProperties> larprop;
+
+  // Clear result.
+
+  timeOffset.clear();
+
+  // Get properties needed to calculate time offsets.
 
   double samplingRate = detprop->SamplingRate();
   double triggerOffset = detprop->TriggerOffset();
-  if(report) {
-    log << "\nDetector properties:\n"
-	<< "  Sampling Rate = " << samplingRate << " ns/tick\n"
-	<< "  Trigger offset = " << triggerOffset << " ticks\n";
-  }
-
-  // Update LArProperties.
-
   double efield = larprop->Efield();
   double temperature = larprop->Temperature();
   double driftVelocity = larprop->DriftVelocity(efield, temperature);
-  fTimePitch = 0.001 * driftVelocity * samplingRate;
-  if(report) {
-    log << "\nLAr propertoes:\n"
-	<< "  E field = " << efield << " kV/cm\n"
-	<< "  Temperature = " << temperature << " K\n"
-	<< "  Drift velocity = " << driftVelocity << " cm/us\n"
-	<< "  Time pitch = " << fTimePitch << " cm/tick";
+  double timePitch = 0.001 * driftVelocity * samplingRate;
+
+  // Loop over TPCs.
+
+  int ntpc = geom->NTPC();
+  timeOffset.resize(ntpc);
+
+  for(int tpc = 0; tpc < ntpc; ++tpc) {
+    const geo::TPCGeo& tpcgeom = geom->TPC(tpc);
+
+    // Loop over planes.
+
+    int nplane = tpcgeom.Nplanes();
+    timeOffset[tpc].resize(nplane, 0.);
+
+    for(int plane = 0; plane < nplane; ++plane) {
+      const geo::PlaneGeo& pgeom = tpcgeom.Plane(plane);
+
+      // Calculate geometric time offset.
+
+      const double* xyz = tpcgeom.PlaneLocation(0);
+      timeOffset[tpc][plane] =
+	(-xyz[0] + tpcgeom.Plane0Pitch(plane)) / timePitch + triggerOffset;
+
+      // Add view-dependent time offset.
+
+      geo::View_t view = pgeom.View();
+      if(view == geo::kU)
+	timeOffset[tpc][plane] += fTimeOffsetU;
+      else if(view == geo::kV)
+	timeOffset[tpc][plane] += fTimeOffsetV;
+      else if(view == geo::kW)
+	timeOffset[tpc][plane] += fTimeOffsetW;
+      else
+	throw cet::exception("SpacePointService") << "Bad view = " 
+						  << view << "\n";
+    }
   }
 }
 
-//----------------------------------------------------------------------
-// Get time offset for the specified view.
-double trkf::SpacePointService::getTimeOffset(geo::View_t view)
-{
-  if(view == geo::kU)
-    return fTimeOffsetU;
-  else if(view == geo::kV)
-    return fTimeOffsetV;
-  else if(view == geo::kW)
-    return fTimeOffsetW;
-  else
-    throw cet::exception("SpacePointService") << "Bad view = " << view << "\n";
-}
+
 
 //----------------------------------------------------------------------
 // Get corrected time for the specified hit.
-double trkf::SpacePointService::correctedTime(const recob::Hit& hit)
+double trkf::SpacePointService::correctedTime(const recob::Hit& hit,
+					      const std::vector<std::vector<double> >& timeOffset) const
 {
-  return hit.PeakTime() - getTimeOffset(hit.View());
+  // Get services.
+
+  art::ServiceHandle<geo::Geometry> geom;
+
+  // Get tpc, plane.
+
+  unsigned short channel = hit.Channel();
+  unsigned int tpc, plane, wire;
+  geom->ChannelToWire(channel, tpc, plane, wire);
+
+  // Correct time for trigger offset and plane-dependent time offsets.
+
+  double t = hit.PeakTime() - timeOffset[tpc][plane];
+
+  return t;
 }
 
 //----------------------------------------------------------------------
 // Spatial separation of hits (zero if two or fewer).
-double trkf::SpacePointService::separation(const art::PtrVector<recob::Hit>& hits)
+double trkf::SpacePointService::separation(const art::PtrVector<recob::Hit>& hits) const
 {
   // Get geometry service.
 
@@ -348,6 +412,7 @@ double trkf::SpacePointService::separation(const art::PtrVector<recob::Hit>& hit
 // Check hits pairwise for different views and maximum time difference.
 // Check three hits for spatial compatibility.
 bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
+					 const std::vector<std::vector<double> >& timeOffset,
 					 double maxDT, double maxS) const
 {
   // Get geometry service.
@@ -380,7 +445,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
       unsigned int tpc1, plane1, wire1;
       geom->ChannelToWire(channel1, tpc1, plane1, wire1);
       geo::View_t view1 = hit1.View();
-      double t1 = hit1.PeakTime() - fTimeOffset[tpc1][plane1];
+      double t1 = hit1.PeakTime() - timeOffset[tpc1][plane1];
 
       // If using mc information, make a collection of electrons for hit 1.
 
@@ -404,7 +469,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 
 	  tpc = tpc1;
 
-	  double t2 = hit2.PeakTime() - fTimeOffset[tpc2][plane2];
+	  double t2 = hit2.PeakTime() - timeOffset[tpc2][plane2];
     
 	  // Test maximum time difference.
 
@@ -442,7 +507,6 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
       double dist[3] = {0., 0., 0.};
       double sinth[3] = {0., 0., 0.};
       double costh[3] = {0., 0., 0.};
-      double time[3];
       geo::View_t view[3];
 
       for(int i=0; i<3; ++i) {
@@ -455,10 +519,6 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 	const geo::WireGeo& wgeom = geom->ChannelToWire(channel, tpc0, plane, wire);
 	assert(tpc0 == tpc);
 	view[i] = hit.View();
-
-	// Get corrected time.
-
-	time[i] = hit.PeakTime() - fTimeOffset[tpc][plane];
 
 	// Get angles and distance of wire.
 
@@ -494,6 +554,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 // Assume points have already been tested for compatibility.
 //
 void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
+					     const std::vector<std::vector<double> >& timeOffset,
 					     recob::SpacePoint& spt) const
 {
   // Get services.
@@ -502,7 +563,13 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
   art::ServiceHandle<util::DetectorProperties> detprop;
   art::ServiceHandle<util::LArProperties> larprop;
 
-  double triggerOffset = detprop->TriggerOffset();
+  // Calculate time pitch.
+
+  double efield = larprop->Efield();
+  double temperature = larprop->Temperature();
+  double driftVelocity = larprop->DriftVelocity(efield, temperature);
+  double samplingRate = detprop->SamplingRate();
+  double timePitch = 0.001 * driftVelocity * samplingRate;
 
   // Store hits in SpacePoint.
 
@@ -530,7 +597,7 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
     // Correct time for trigger offset and view-dependent time offsets.
     // Assume time error is proportional to (end time - start time).
 
-    double t = hit.PeakTime() - triggerOffset - fTimeOffset[tpc][plane];
+    double t = hit.PeakTime() - timeOffset[tpc][plane];
     double et = hit.EndTime() - hit.StartTime();
     double w = 1./(et*et);
 
@@ -541,7 +608,7 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
   double drift_time = 0.;
   if(sumw != 0.)
     drift_time = sumtw / sumw;
-  xyz[0] = drift_time * fTimePitch;
+  xyz[0] = drift_time * timePitch;
 
   // Calculate y, z using wires (need at least two hits).
 
@@ -631,9 +698,10 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
   art::ServiceHandle<geo::Geometry> geom;
 
-  // Precalculate certain geometry constants and properties.
+  // Get time offsets.
 
-  update();
+  std::vector<std::vector<double> > timeOffset;
+  fillTimeOffset(timeOffset);
 
   // First make result vector is empty.
 
@@ -682,7 +750,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
       unsigned int tpc, plane, wire;
       geom->ChannelToWire(channel, tpc, plane, wire);
 
-      double t = phit->PeakTime() - fTimeOffset[tpc][plane];
+      double t = phit->PeakTime() - timeOffset[tpc][plane];
       hitmap[tpc][plane][t] = phit;
       const recob::Hit& hit = *phit;
 
@@ -759,7 +827,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
 	    const art::Ptr<recob::Hit>& phit1 = ihit1->second;
 
-	    double t1 = phit1->PeakTime() - fTimeOffset[tpc][plane1];
+	    double t1 = phit1->PeakTime() - timeOffset[tpc][plane1];
 	    double t2min = t1 - maxDT;
 	    double t2max = t1 + maxDT;
 
@@ -776,14 +844,14 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	      hitvec.clear();
 	      hitvec.push_back(phit1);
 	      hitvec.push_back(phit2);
-	      bool ok = compatible(hitvec, maxDT, maxS);
+	      bool ok = compatible(hitvec, timeOffset, maxDT, maxS);
 	      if(ok) {
 
 		// Add a space point.
 
 		++n2;
 		spts.push_back(recob::SpacePoint());
-		fillSpacePoint(hitvec, spts.back());
+		fillSpacePoint(hitvec, timeOffset, spts.back());
 	      }
 	    }
 	  }
@@ -808,7 +876,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
 	const art::Ptr<recob::Hit>& phit1 = ihit1->second;
 
-	double t1 = phit1->PeakTime() - fTimeOffset[tpc][plane1];
+	double t1 = phit1->PeakTime() - timeOffset[tpc][plane1];
 	double t2min = t1 - maxDT;
 	double t2max = t1 + maxDT;
 
@@ -825,10 +893,10 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	  hitvec.clear();
 	  hitvec.push_back(phit1);
 	  hitvec.push_back(phit2);
-	  bool ok = compatible(hitvec, maxDT, maxS);
+	  bool ok = compatible(hitvec, timeOffset, maxDT, maxS);
 	  if(ok) {
 
-	    double t2 = phit2->PeakTime() - fTimeOffset[tpc][plane2];
+	    double t2 = phit2->PeakTime() - timeOffset[tpc][plane2];
 	    double t3min = std::max(t1, t2) - maxDT;
 	    double t3max = std::min(t1, t2) + maxDT;
 
@@ -845,7 +913,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	      hitvec.push_back(phit1);
 	      hitvec.push_back(phit2);
 	      hitvec.push_back(phit3);
-	      bool ok = compatible(hitvec, maxDT, maxS);
+	      bool ok = compatible(hitvec, timeOffset, maxDT, maxS);
 
 	      if(ok) {
 
@@ -853,7 +921,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
 		++n3;
 		spts.push_back(recob::SpacePoint());
-		fillSpacePoint(hitvec, spts.back());
+		fillSpacePoint(hitvec, timeOffset, spts.back());
 	      }
 	    }
 	  }

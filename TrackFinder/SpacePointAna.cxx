@@ -126,6 +126,11 @@ namespace trkf {
     art::ServiceHandle<util::DetectorProperties> detprop;
     art::ServiceHandle<geo::Geometry> geom;
 
+    // Get time offsets.
+
+    std::vector<std::vector<double> > timeOffset;
+    sptsvc->fillTimeOffset(timeOffset);
+
     // Get SimChannels.
 
     art::Handle< std::vector<sim::SimChannel> > simchanh;
@@ -198,6 +203,7 @@ namespace trkf {
 	unsigned int tpc, plane, wire;
 	geom->ChannelToWire(channel, tpc, plane, wire);
 	geo::View_t view = hit.View();
+	assert(geom->TPC(tpc).Plane(plane).View() == view);
 	double tpeak = hit.PeakTime();
 
 	// Get SimChan associated with this hit.
@@ -215,6 +221,7 @@ namespace trkf {
 	unsigned int nelec = simchan.NumberOfElectrons();
 	for(unsigned int ielec = 0; ielec < nelec; ++ielec) {
 	  const sim::Electrons* pelec = simchan.GetElectrons(ielec);
+	  assert(pelec->Channel() == channel);
 	  double tdc = floor(pelec->ArrivalT()/detprop->SamplingRate()) + detprop->TriggerOffset();
 	  if(view == geo::kU)
 	    fHDTUE->Fill(tpeak - tdc);
@@ -300,7 +307,7 @@ namespace trkf {
 	unsigned int tpc1, plane1, wire1;
 	geom->ChannelToWire(channel1, tpc1, plane1, wire1);
 	geo::View_t view1 = hit1.View();
-	double t1 = sptsvc->correctedTime(hit1);
+	double t1 = sptsvc->correctedTime(hit1, timeOffset);
 
 	for(art::PtrVector<recob::Hit>::const_iterator jhit = spthits.begin();
 	    jhit != spthits.end(); ++jhit) {
@@ -315,7 +322,7 @@ namespace trkf {
 	  if(tpc1 == tpc2 && plane1 != plane2) {
 
 	    geo::View_t view2 = hit2.View();
-	    double t2 = sptsvc->correctedTime(hit2);
+	    double t2 = sptsvc->correctedTime(hit2, timeOffset);
 
 	    if(view1 == geo::kU) {
 	      if(view2 == geo::kV)
