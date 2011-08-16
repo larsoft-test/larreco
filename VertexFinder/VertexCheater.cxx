@@ -46,7 +46,6 @@ namespace vertex{
     fCheatedTrackLabel  = pset.get< std::string >("CheatedTrackLabel",  "track"   );
     fCheatedShowerLabel = pset.get< std::string >("CheatedShowerLabel", "shower"  );
     fG4ModuleLabel      = pset.get< std::string >("G4ModuleLabel",      "largeant");
-    fDetSimModuleLabel  = pset.get< std::string >("DetSimModuleLabel",  "daq"     );
 
     return;
   }

@@ -25,7 +25,6 @@ namespace vertex {
     std::string fCheatedTrackLabel;  ///< label for module creating recob::Prong objects
     std::string fCheatedShowerLabel; ///< label for module creating recob::Prong objects
     std::string fG4ModuleLabel;      ///< label for module running G4 and making particles, etc
-    std::string fDetSimModuleLabel;  ///< label for module creating sim::SimChannel objects
 
   };
 }
