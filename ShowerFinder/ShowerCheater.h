@@ -24,7 +24,6 @@ namespace shwf {
 
     std::string fCheatedClusterLabel; ///< label for module creating recob::Cluster objects	   
     std::string fG4ModuleLabel;       ///< label for module running G4 and making particles, etc
-    std::string fDetSimModuleLabel;   ///< label for module creating sim::SimChannel objects
 
   };
 }
