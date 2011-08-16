@@ -21,7 +21,6 @@
 #include "art/Persistency/Common/PtrVector.h"
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "Simulation/SimChannel.h"
-#include "Simulation/Electrons.h"
 #include "art/Framework/Core/View.h"
 #include "Utilities/DetectorProperties.h"
 #include "MCCheater/BackTracker.h"
@@ -29,14 +28,14 @@
 
 namespace {
 
-  // Function classes for sorting pointer to Electrons according to
+  // Function classes for sorting pointer to sim::IDEs according to
   // embedded position TVector3.
 
-  class ElectronsLess {
+  class IDELess {
   public:
-    bool operator()(const sim::Electrons* p1, const sim::Electrons* p2) {
-      TVector3 v1 = p1->XYZ();
-      TVector3 v2 = p2->XYZ();
+    bool operator()(const sim::IDE& p1, const sim::IDE& p2) {
+      TVector3 v1(p1.x, p1.y, p1.z);
+      TVector3 v2(p2.x, p2.y, p2.z);
       bool result = (v1.x() < v2.x() || 
 		     (v1.x() == v2.x() && 
 		      (v1.y() < v2.y() || 
@@ -45,11 +44,11 @@ namespace {
     }
   };
 
-  class ElectronsEqual {
+  class IDEEqual {
   public:
-    bool operator()(const sim::Electrons* p1, const sim::Electrons* p2) {
-      TVector3 v1 = p1->XYZ();
-      TVector3 v2 = p2->XYZ();
+    bool operator()(const sim::IDE& p1, const sim::IDE& p2) {
+      TVector3 v1(p1.x, p1.y, p1.z);
+      TVector3 v2(p2.x, p2.y, p2.z);
       bool result = (v1.x() == v2.x() && v1.y() == v2.y() && v1.z() < v2.z());
       return result;
     }
@@ -447,9 +446,9 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
       geo::View_t view1 = hit1.View();
       double t1 = hit1.PeakTime() - timeOffset[tpc1][plane1];
 
-      // If using mc information, make a collection of electrons for hit 1.
+      // If using mc information, make a collection of IDEs for hit 1.
 
-      const std::vector<const sim::Electrons*>& electrons1 = fElecMap[&hit1];
+      const std::vector<sim::IDE>& ide1 = fIDEMap[&hit1];
 
       // Loop over second hit.
 
@@ -475,22 +474,22 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 
 	  result = result && std::abs(t1-t2) <= maxDT;
 
-	  // If using mc information, make a collection of electrons for hit 2.
+	  // If using mc information, make a collection of IDEs for hit 2.
 
 	  if(fUseMC) {
 
 	    // Find electrons that are in time with hit 2.
 
-	    std::vector<const sim::Electrons*> electrons2 = fElecMap[&hit2];
-	    std::vector<const sim::Electrons*>::iterator it =
-	      std::set_intersection(electrons1.begin(), electrons1.end(),
-				    electrons2.begin(), electrons2.end(),
-				    electrons2.begin(), ElectronsLess());
-	    electrons2.resize(it - electrons2.begin());
+	    std::vector<sim::IDE> ide2 = fIDEMap[&hit2];
+	    std::vector<sim::IDE>::iterator it =
+	      std::set_intersection(ide1.begin(), ide1.end(),
+				    ide2.begin(), ide2.end(),
+				    ide2.begin(), IDELess());
+	    ide2.resize(it - ide2.begin());
 
 	    // Hits are compatible if they have points in common.
 
-	    mc_ok = electrons2.size() > 0;
+	    mc_ok = ide2.size() > 0;
 	    result = result && mc_ok;
 	  }
 	}
@@ -674,7 +673,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 					      std::vector<recob::SpacePoint>& spts,
 					      double maxDT, double maxS) const
 {
-  std::vector<art::Ptr<sim::SimChannel> > empty;
+  std::vector<const sim::SimChannel*> empty;
   makeSpacePoints(hits, spts, empty, maxDT, maxS);
 }
 
@@ -684,7 +683,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 //
 void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 					      std::vector<recob::SpacePoint>& spts,
-					      const std::vector<art::Ptr<sim::SimChannel> >& simchans,
+					      const std::vector<const sim::SimChannel*>& simchans,
 					      double maxDT, double maxS) const
 {
   // Get cuts.
@@ -725,11 +724,11 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
   }
 
   // Sort hits into maps indexed by [tpc][plane][time].
-  // If using mc information, also generate maps of electrons and mc 
+  // If using mc information, also generate maps of sim::IDEs and mc 
   // position indexed by hit.
 
   std::vector<std::vector<std::map<double, art::Ptr<recob::Hit> > > > hitmap;
-  fElecMap.clear();
+  fIDEMap.clear();
 
   int ntpc = geom->NTPC();
   hitmap.resize(ntpc);
@@ -754,15 +753,15 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
       hitmap[tpc][plane][t] = phit;
       const recob::Hit& hit = *phit;
 
-      // Get Electrons.
+      // Get IDEs.
 
       if(fUseMC) {
-	std::vector<const sim::Electrons*>& electrons = fElecMap[&hit];   // Empty vector.
-	cheat::BackTracker::HitToElectrons(simchans, phit, electrons);
-	std::sort(electrons.begin(), electrons.end(), ElectronsLess());
-	std::vector<const sim::Electrons*>::iterator it = 
-	  std::unique(electrons.begin(), electrons.end(), ElectronsEqual());
-	electrons.resize(it - electrons.begin());
+	std::vector<sim::IDE>& ide = fIDEMap[&hit];   // Empty vector.
+	cheat::BackTracker::HitToSimIDEs(*simchans[phit->Channel()], phit, ide);
+	std::sort(ide.begin(), ide.end(), IDELess());
+	std::vector<sim::IDE>::iterator it = 
+	  std::unique(ide.begin(), ide.end(), IDEEqual());
+	ide.resize(it - ide.begin());
       }
     }
   }

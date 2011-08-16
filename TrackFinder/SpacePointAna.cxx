@@ -32,7 +32,7 @@ namespace trkf {
     //
     fHitModuleLabel(pset.get<std::string>("HitModuleLabel")),
     fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel")),
-    fDetSimModuleLabel(pset.get<std::string>("DetSimModuleLabel")),
+    fG4ModuleLabel(pset.get<std::string>("G4ModuleLabel")),
     fUseClusterHits(pset.get<bool>("UseClusterHits")),
     fMaxDT(pset.get<double>("MaxDT")),
     fMaxS(pset.get<double>("MaxS")),
@@ -132,17 +132,14 @@ namespace trkf {
     sptsvc->fillTimeOffset(timeOffset);
 
     // Get SimChannels.
-
-    art::Handle< std::vector<sim::SimChannel> > simchanh;
-    std::vector<art::Ptr<sim::SimChannel> > simchanv;
+    // now make a vector where each channel in the detector is an 
+    // entry
+    art::ServiceHandle<geo::Geometry> geo;
+    std::vector<const sim::SimChannel*> simchanh;
+    std::vector<const sim::SimChannel*> simchanv(geo->Nchannels(),0);
     if(mc) {
-      evt.getByLabel(fDetSimModuleLabel, simchanh);
-      if(simchanh.isValid()) {
-	int nsimchan = simchanh->size();
-	simchanv.reserve(nsimchan);
-	for(int i = 0; i < nsimchan; ++i)
-	  simchanv.push_back(art::Ptr<sim::SimChannel>(simchanh, i));
-      }
+      evt.getView(fG4ModuleLabel, simchanh);
+      for(size_t i = 0; i < simchanh.size(); ++i) simchanv[simchanh[i]->Channel()] = simchanh[i];
     }
 
     // Get Hits.
@@ -218,11 +215,11 @@ namespace trkf {
 	// Loop over electrons associated with this hit/channel and fill
 	// hit-electron time difference histograms.
 
-	unsigned int nelec = simchan.NumberOfElectrons();
-	for(unsigned int ielec = 0; ielec < nelec; ++ielec) {
-	  const sim::Electrons* pelec = simchan.GetElectrons(ielec);
-	  assert(pelec->Channel() == channel);
-	  double tdc = floor(pelec->ArrivalT()/detprop->SamplingRate()) + detprop->TriggerOffset();
+	// loop over the map of TDC to sim::IDE to get the TDC for each energy dep
+	const std::map<unsigned short, std::vector<sim::IDE> > &idemap = simchan.TDCIDEMap();
+	std::map<unsigned short, std::vector<sim::IDE> >::const_iterator mitr = idemap.begin();
+	for(mitr = idemap.begin(); mitr != idemap.end(); mitr++) {
+	  double tdc = 1.*(*mitr).first;
 	  if(view == geo::kU)
 	    fHDTUE->Fill(tpeak - tdc);
 	  else if(view == geo::kV)
@@ -243,7 +240,7 @@ namespace trkf {
     // time cut (for time histograms).
 
     if(fMaxDT != 0) {
-      if(simchanh.isValid())
+      if(simchanh.size() > 0)
 	sptsvc->makeSpacePoints(hits, spts1, simchanv, fMaxDT, 0.);
       else
 	sptsvc->makeSpacePoints(hits, spts1, fMaxDT, 0.);
@@ -258,7 +255,7 @@ namespace trkf {
     // separation cut (for separation histogram).
 
     if(fMaxS != 0.) {
-      if(simchanh.isValid())
+      if(simchanh.size() > 0)
 	sptsvc->makeSpacePoints(hits, spts2, simchanv, 0., fMaxS);
       else
 	sptsvc->makeSpacePoints(hits, spts2, 0., fMaxS);
@@ -271,7 +268,7 @@ namespace trkf {
 
     // Make space points using default cuts.
 
-    if(simchanh.isValid())
+    if(simchanh.size() > 0)
       sptsvc->makeSpacePoints(hits, spts3, simchanv);
     else
       sptsvc->makeSpacePoints(hits, spts3);

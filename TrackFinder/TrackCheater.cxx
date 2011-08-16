@@ -45,7 +45,6 @@ namespace trkf{
   {
     fCheatedClusterLabel = pset.get< std::string >("CheatedClusterLabel", "cluster" );
     fG4ModuleLabel       = pset.get< std::string >("G4ModuleLabel",       "largeant");
-    fDetSimModuleLabel   = pset.get< std::string >("DetSimModuleLabel",   "daq"     );
 
     return;
   }
@@ -57,12 +56,15 @@ namespace trkf{
     // grab the sim::ParticleList
     sim::ParticleList plist = sim::SimListUtils::GetParticleList(evt, fG4ModuleLabel);
 
-    // get the sim::SimChannels
-    art::Handle< std::vector<sim::SimChannel> > sccol;
-    evt.getByLabel(fDetSimModuleLabel, sccol);
+    // get the sim::SimChannels as well
+    std::vector<const sim::SimChannel*> sccol;
+    evt.getView(fG4ModuleLabel, sccol);
     
-    std::vector< art::Ptr<sim::SimChannel> > scs;
-    art::fill_ptr_vector(scs, sccol);
+    //now make a vector where each channel in the detector is an 
+    // entry
+    art::ServiceHandle<geo::Geometry> geo;
+    std::vector<const sim::SimChannel*> scs(geo->Nchannels(),0);
+    for(size_t i = 0; i < sccol.size(); ++i) scs[sccol[i]->Channel()] = sccol[i];
 
     // grab the clusters that have been reconstructed
     art::Handle< std::vector<recob::Cluster> > clustercol;
@@ -129,7 +131,7 @@ namespace trkf{
 	art::PtrVector<recob::Hit> hits = eveClusters[c]->Hits();
 	for(size_t h = 0; h < hits.size(); ++h){
 	  art::Ptr<recob::Hit> hit = hits[h];
-	  std::vector<double> xyz = cheat::BackTracker::HitToXYZ(scs, hit);
+	  std::vector<double> xyz = cheat::BackTracker::HitToXYZ(*(scs[hit->Channel()]), hit);
 
 	  // make a PtrVector containing just this hit
 	  art::PtrVector<recob::Hit> sphit;

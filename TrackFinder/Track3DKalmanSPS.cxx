@@ -71,25 +71,26 @@ trkf::Track3DKalmanSPS::Track3DKalmanSPS(fhicl::ParameterSet const& pset)
 
     produces< std::vector<recob::Track> >();
 
-    // set the random number seed
-    fRandom = dynamic_cast<TRandom3*>(gRandom);
-    if ( fRandom == 0 ){
-      fRandom = new TRandom3(time(0));
-      gRandom = fRandom;
-    }
+    // get the random number seed, use a random default if not specified    
+    // in the configuration file.  
+    unsigned int seed = pset.get< unsigned int >("Seed", sim::GetRandomNumberSeed());
+
+    createEngine( seed );
+
 }
 
 void trkf::Track3DKalmanSPS::reconfigure(fhicl::ParameterSet const& pset) 
-  {
-
-    fClusterModuleLabel   = pset.get< std::string >("ClusterModuleLabel");
-    fGenieGenModuleLabel   = pset.get< std::string >("GenieGenModuleLabel");
-    fPosErr                = pset.get< std::vector < double >  >("PosErr3");   // resolution. cm
-    fMomErr                = pset.get< std::vector < double >  >("MomErr3");   // GeV
-    fMomStart              = pset.get< std::vector < double >  >("MomStart3"); // Will be unit norm'd.
-    fGenfPRINT             = pset.get< bool >("GenfPRINT");
-
-  }
+{
+  
+  fClusterModuleLabel    = pset.get< std::string >("ClusterModuleLabel");
+  fGenieGenModuleLabel   = pset.get< std::string >("GenieGenModuleLabel");
+  fG4ModuleLabel         = pset.get< std::string >("G4ModuleLabel");
+  fPosErr                = pset.get< std::vector < double >  >("PosErr3");   // resolution. cm
+  fMomErr                = pset.get< std::vector < double >  >("MomErr3");   // GeV
+  fMomStart              = pset.get< std::vector < double >  >("MomStart3"); // Will be unit norm'd.
+  fGenfPRINT             = pset.get< bool >("GenfPRINT");
+  
+}
 
 //-------------------------------------------------
 trkf::Track3DKalmanSPS::~Track3DKalmanSPS()
@@ -206,7 +207,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   art::ServiceHandle<trkf::SpacePointService> sps;
 
   art::PtrVector<simb::MCTruth> mclist;
-  art::Handle< std::vector<sim::SimChannel> > simChannelHandle;
+  std::vector<const sim::SimChannel*> simChannelHandle;
   
   if (!evt.isRealData())
     {
@@ -223,7 +224,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 	  mclist.push_back(mctparticle);
 	}
 
-      evt.getByLabel("daq", simChannelHandle);      
+      evt.getView(fG4ModuleLabel, simChannelHandle);      
     }
 
   //create collection of spacepoints that will be used when creating the Track object
@@ -232,7 +233,10 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   // std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
   mf::LogInfo("Track3DKalmanSPS: ") << "There are " <<  clusterListHandle->size() << " Clusters in this event (over all the planes).";
 
-
+  art::ServiceHandle<art::RandomNumberGenerator> rng;
+  CLHEP::HepRandomEngine &engine = rng->getEngine();
+  CLHEP::RandGaussQ gauss(engine);
+  
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
     {
       art::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
@@ -329,13 +333,10 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  if (!hits.size()) continue;
 		  
 		  // Add the 3D track to the vector of the reconstructed tracks
-		  if(simChannelHandle.isValid())
-		    {
-		    std::vector<art::Ptr<sim::SimChannel> > simchans;
-		    int nsimchan = simChannelHandle->size();
-		    simchans.reserve(nsimchan);
-		    for(int i = 0; i < nsimchan; ++i)
-		      simchans.push_back(art::Ptr<sim::SimChannel>(simChannelHandle, i));
+		  if(simChannelHandle.size() > 0) {
+		    std::vector<const sim::SimChannel*> simchans(geom->Nchannels(),0);
+		    for(size_t i = 0; i < simChannelHandle.size(); ++i) 
+		      simchans[simChannelHandle[i]->Channel()] = simChannelHandle[i];
 
 		    sps->makeSpacePoints(hits,spacepoints,simchans);
 		    }
@@ -349,13 +350,13 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  const double resolution = 0.5; // dunno, 5 mm
 		  const int numIT = 9; // 3->1, EC, 6-Jan-2011. Back, 7-Jan-2011. Then 9 starting Feb-ish. Now 5, 4-Aug-2011.
 		      
-		  //TVector3 mom(0.0,0.0,2.0);
-		  TVector3 mom(fMomStart[0],fMomStart[1],fMomStart[2]);
-		  //mom.SetMag(1.);
-		  TVector3 momM(mom);
-		  momM.SetX(gRandom->Gaus(momM.X(),momErr.X()/* *momM.X() */));
-		  momM.SetY(gRandom->Gaus(momM.Y(),momErr.Y()/* *momM.Y() */));
-		  momM.SetZ(gRandom->Gaus(momM.Z(),momErr.Z()/* *momM.Z() */));
+	    //TVector3 mom(0.0,0.0,2.0);
+		      TVector3 mom(fMomStart[0],fMomStart[1],fMomStart[2]);
+	    //mom.SetMag(1.);
+		      TVector3 momM(mom);
+		      momM.SetX(gauss.fire(momM.X(),momErr.X()/* *momM.X() */));
+		      momM.SetY(gauss.fire(momM.Y(),momErr.Y()/* *momM.Y() */));
+		      momM.SetZ(gauss.fire(momM.Z(),momErr.Z()/* *momM.Z() */));
 
 		  std::sort(spacepoints.begin(), spacepoints.end(), sp_sort_3dz);
 	   

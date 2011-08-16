@@ -37,7 +37,7 @@ namespace trkf {
 
     std::string fHitModuleLabel;
     std::string fClusterModuleLabel;
-    std::string fDetSimModuleLabel;    // For SimChannel.
+    std::string fG4ModuleLabel;    // For SimChannel.
     bool fUseClusterHits;
     double fMaxDT;
     double fMaxS;

@@ -54,7 +54,7 @@
 
 class TH1F;
 namespace sim {
-  class Electrons;
+  class IDE;
 }
 
 namespace trkf {
@@ -112,7 +112,7 @@ namespace trkf {
     // The last two arguments can be used to override the default cuts.
     void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 			 std::vector<recob::SpacePoint>& spts,
-			 const std::vector<art::Ptr<sim::SimChannel> >& simchans,
+			 const std::vector<const sim::SimChannel*>& simchans,
 			 double maxDT = 0.,
 			 double maxS = 0.) const;
 
@@ -133,7 +133,7 @@ namespace trkf {
 
     // Temporary variables.
 
-    mutable std::map<const recob::Hit*, std::vector<const sim::Electrons*> > fElecMap;
+    mutable std::map<const recob::Hit*, std::vector<sim::IDE> > fIDEMap;
   };
 }
 
