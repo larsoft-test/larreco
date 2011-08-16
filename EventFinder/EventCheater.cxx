@@ -45,7 +45,6 @@ namespace event{
   {
     fCheatedVertexLabel = pset.get< std::string >("CheatedVertexLabel", "prong" );
     fG4ModuleLabel      = pset.get< std::string >("G4ModuleLabel",      "largeant");
-    fDetSimModuleLabel  = pset.get< std::string >("DetSimModuleLabel",  "daq"     );
 
     return;
   }
