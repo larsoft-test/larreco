@@ -47,7 +47,6 @@ namespace cluster{
   {
     fHitModuleLabel    = pset.get< std::string >("HitModuleLabel",    "ffthit"  );
     fG4ModuleLabel     = pset.get< std::string >("G4ModuleLabel",     "largeant");
-    fDetSimModuleLabel = pset.get< std::string >("DetSimModuleLabel", "daq"     );
 
     return;
   }
@@ -55,6 +54,7 @@ namespace cluster{
   //--------------------------------------------------------------------
   void ClusterCheater::produce(art::Event& evt)
   {
+    art::ServiceHandle<geo::Geometry> geo;
 
     // grab the sim::ParticleList
     sim::ParticleList plist = sim::SimListUtils::GetParticleList(evt, fG4ModuleLabel);
@@ -72,11 +72,13 @@ namespace cluster{
     art::fill_ptr_vector(hits, hitcol);
     
     // get the sim::SimChannels as well
-    art::Handle< std::vector<sim::SimChannel> > sccol;
-    evt.getByLabel(fDetSimModuleLabel, sccol);
+    std::vector<const sim::SimChannel*> sccol;
+    evt.getView(fG4ModuleLabel, sccol);
     
-    std::vector< art::Ptr<sim::SimChannel> > scs;
-    art::fill_ptr_vector(scs, sccol);
+    //now make a vector where each channel in the detector is an 
+    // entry
+    std::vector<const sim::SimChannel*> scs(geo->Nchannels(),0);
+    for(size_t i = 0; i < sccol.size(); ++i) scs[sccol[i]->Channel()] = sccol[i];
 
     // loop over the hits and figure out which particle contributed to each one
     std::vector< art::Ptr<recob::Hit> >::iterator itr = hits.begin();
@@ -93,7 +95,7 @@ namespace cluster{
     // loop over all hits and fill in the map
     while( itr != hits.end() ){
 
-      std::vector<cheat::TrackIDE> eveides = cheat::BackTracker::HitToEveID(plist, scs, *itr);
+      std::vector<cheat::TrackIDE> eveides = cheat::BackTracker::HitToEveID(plist, *(scs[(*itr)->Channel()]), *itr);
 
       // loop over all eveides for this hit
       for(size_t e = 0; e < eveides.size(); ++e){
@@ -120,8 +122,6 @@ namespace cluster{
 
       itr++;
     }// end loop over hits
-
-    art::ServiceHandle<geo::Geometry> geo;
 
     // loop over the map and make clusters
     std::auto_ptr< std::vector<recob::Cluster> > clustercol(new std::vector<recob::Cluster>);

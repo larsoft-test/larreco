@@ -81,17 +81,13 @@ standard_kingaclusterana:
 
 standard_showeranglecluster:
 {
- module_type:        "ShowerAngleCluster"
- ClusterModuleLabel: "dbcluster"
+ module_type:              "ShowerAngleCluster"
+ ClusterModuleLabel:       "dbcluster"
  VertexClusterModuleLabel: "linemerger" 
  MCGeneratorLabel:         "generator"    #needed for MC vertex extraction
- LarGeantlabel:    "largeant"            #needed for MC vertex extraction
- UseMCVertex:   1                        #needed for MC vertex extraction
+ LarGeantlabel:            "largeant"     #needed for MC vertex extraction
+ UseMCVertex:              1              #needed for MC vertex extraction
 }
-
-
-
-
 
 argoneut_dbcluster:          @local::standard_dbcluster
 argoneut_dbclusterana:       @local::standard_dbclusterana

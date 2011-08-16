@@ -126,10 +126,9 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
   
   art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
   evt.getByLabel(fGenieGenModuleLabel,mctruthListHandle);
-  
-  art::Handle< std::vector<sim::LArVoxelData> > vxlistHandle;
-  evt.getByLabel(fLArG4ModuleLabel,vxlistHandle);
-  
+
+  sim::LArVoxelList vxlistHandle = sim::SimListUtils::GetLArVoxelList(evt, fLArG4ModuleLabel);
+
   sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
   
   art::Handle< std::vector<recob::Hit> > hitListHandle;
@@ -389,11 +388,11 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
   
   
     //std::cout<<"vxlistHandle->size()= "<<vxlistHandle->size()<<std::endl;
-    for(unsigned int i = 0; i < vxlistHandle->size(); ++i){
-      // Get the reference to the LArVoxelID in the LArVoxelList.
-      art::Ptr<sim::LArVoxelData> voxel(vxlistHandle, i);
+    sim::LArVoxelList::const_iterator vxitr;
+    for(vxitr = vxlistHandle.begin(); vxitr != vxlistHandle.end(); vxitr++){
+      const sim::LArVoxelData &voxel = (*vxitr).second;
       
-      int numberParticles = voxel->NumberParticles();
+      int numberParticles = voxel.NumberParticles();
 	      
       //std::cout<<"numberParticles "<<numberParticles<<std::endl;
       
@@ -404,7 +403,7 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
 	{
       
 
-	  int trackID=voxel->TrackID(i);
+	  int trackID=voxel.TrackID(i);
 	  const sim::Particle* particle = _particleList.at(trackID);
    
   
@@ -478,20 +477,20 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
 	    //  std::cout<<"ADDING INV_MASS of pdg= "<<pdg<<" with trackID= "<<trackID<<" and Mass= "<<particle->Mass()<<std::endl;
   
 	    Inv_Mass+=particle->Mass();
-	    if(pdg==211){ Eng_211+=voxel->Energy(i)*1000.;}
+	    if(pdg==211){ Eng_211+=voxel.Energy(i)*1000.;}
 	  }
 	  //}//only new trackID
   
 	  //      if(_particleList.IsPrimary( trackID )){
 
-	  if(pdg==13 || pdg==-13){ Eng_13+=voxel->Energy(i)*1000.;}
-	  if(pdg==211){ Eng_211_2+=voxel->Energy(i)*1000.;}
-	  if(pdg!=211 && pdg!=13){ Eng_else+=voxel->Energy(i)*1000.;}
-	  Tot_Energy_Event+= (voxel->Energy(i)*1000.);
-	  if(sqrt(pow(TMath::Abs(voxel->VoxelID().X()-vertex[0]),2)+pow(TMath::Abs(voxel->VoxelID().Y()-vertex[1]),2)+pow(TMath::Abs(voxel->VoxelID().Z()-vertex[2]),2))<fActivityRadius){
+	  if(pdg==13 || pdg==-13){ Eng_13+=voxel.Energy(i)*1000.;}
+	  if(pdg==211){ Eng_211_2+=voxel.Energy(i)*1000.;}
+	  if(pdg!=211 && pdg!=13){ Eng_else+=voxel.Energy(i)*1000.;}
+	  Tot_Energy_Event+= (voxel.Energy(i)*1000.);
+	  if(sqrt(pow(TMath::Abs(voxel.VoxelID().X()-vertex[0]),2)+pow(TMath::Abs(voxel.VoxelID().Y()-vertex[1]),2)+pow(TMath::Abs(voxel.VoxelID().Z()-vertex[2]),2))<fActivityRadius){
 	 
 		
-	    Energy+= (voxel->Energy(i)*1000.);
+	    Energy+= (voxel.Energy(i)*1000.);
 		
 	  }
 	  //}//if primary 
