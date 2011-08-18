@@ -10,6 +10,7 @@
 
 #include "art/Framework/Core/EDProducer.h"
 
+///Event finding and building
 namespace event {
   class EventCheater : public art::EDProducer {
   public:
