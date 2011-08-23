@@ -34,8 +34,6 @@
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
 
-#include "CLHEP/Random/RandFlat.h"
-#include "CLHEP/Random/RandGaussQ.h"
 
 // ROOT includes
 #include "TVectorD.h"
@@ -84,6 +82,8 @@ void trkf::Track3DKalman::reconfigure(fhicl::ParameterSet const& pset)
 
     fSpacePtsModuleLabel   = pset.get< std::string >("SpacePtsModuleLabel");
     fGenieGenModuleLabel   = pset.get< std::string >("GenieGenModuleLabel");
+    fG4ModuleLabel         = pset.get< std::string >("G4ModuleLabel");
+
     fPosErr                = pset.get< std::vector < double >  >("PosErr3");   // resolution. cm
     fMomErr                = pset.get< std::vector < double >  >("MomErr3");   // GeV
     fMomStart              = pset.get< std::vector < double >  >("MomStart3"); // Will be unit norm'd.
@@ -206,6 +206,8 @@ void trkf::Track3DKalman::produce(art::Event& evt)
   evt.getByLabel(fSpacePtsModuleLabel,trackListHandle);
 
   art::PtrVector<simb::MCTruth> mclist;
+  std::vector<const sim::SimChannel*> simChannelHandle;
+
   if (!evt.isRealData())
     {
 
@@ -220,6 +222,8 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 	  art::Ptr<simb::MCTruth> mctparticle(mctruthListHandle,ii);
 	  mclist.push_back(mctparticle);
 	}
+      evt.getView(fG4ModuleLabel, simChannelHandle);      
+
     }
 
   //create collection of spacepoints that will be used when creating the Track object

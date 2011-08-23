@@ -16,6 +16,9 @@
 
 #include "Genfit/GFAbsTrackRep.h"
 
+#include "CLHEP/Random/RandFlat.h"
+#include "CLHEP/Random/RandGaussQ.h"
+
 #include <vector>
 #include <string>
 
@@ -40,6 +43,7 @@ namespace trkf {
         
     std::string     fSpacePtsModuleLabel;// label for input collection
     std::string     fGenieGenModuleLabel;// label for input MC single particle generator
+    std::string     fG4ModuleLabel;// label for input MC single particle generator
     bool fGenfPRINT;
       
     TFile *fileGENFIT;

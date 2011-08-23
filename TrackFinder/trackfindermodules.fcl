@@ -13,6 +13,7 @@ argoneut_kalman:
  module_type:         "Track3DKalman"
  SpacePtsModuleLabel: "spacepts"
  GenieGenModuleLabel: "generator"     # comment out for real data.
+ G4ModuleLabel:       "largeant"
  PosErr3:             [0.02,0.02,0.02]   #  position resolution, cm.
  MomErr3:             [0.10,0.10,0.2]   #  momentum resolution, GeV/c.
  MomStart3:           [0.10,0.10,1.5]   #  GeV/c. Will *not* be Unit norm'd.
@@ -71,6 +72,7 @@ microboone_kalman:
  module_type:         "Track3DKalmanSPS"
  ClusterModuleLabel:  "dbscan"
  GenieGenModuleLabel: "generator"     # comment out for real data.
+ G4ModuleLabel:       "largeant"
  PosErr3:             [0.05,0.05,0.05]   #  position resolution, cm.
  MomErr3:             [0.10,0.10,0.20]   #  momentum resolution, GeV/c.
  MomStart3:           [0.10,0.10,1.0]    #  Will be Unit norm'd.
