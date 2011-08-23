@@ -135,9 +135,10 @@ namespace trkf {
 
     struct HitMCInfo
     {
-      std::vector<sim::IDE> ides;            ///< sim::IDE objects associated with hit.
-      std::vector<const recob::Hit*> pchit;  ///< Pointer to closest neighbor hit (indexed by plane).
-      std::vector<double> dist;              ///< Distance to closest neighbor hit (indexed by plane).
+      std::vector<int> trackIDs;       ///< Parent trackIDs.
+      std::vector<double> xyz;         ///< Location of ionization (all tracks).
+      std::vector<const recob::Hit*> pchit;   ///< Pointer to nearest neighbor hit (indexed by plane).
+      std::vector<double> dist2;              ///< Distance to nearest neighbor hit (indexed by plane).
     };
     mutable std::map<const recob::Hit*, HitMCInfo> fHitMCMap;
   };

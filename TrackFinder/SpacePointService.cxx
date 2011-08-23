@@ -30,21 +30,21 @@ namespace {
 
   // Function classes for sorting sim::IDEs according to track id.
 
-  class IDELess {
-  public:
-    bool operator()(const sim::IDE& p1, const sim::IDE& p2) {
-      bool result = p1.trackID < p2.trackID;
-      return result;
-    }
-  };
+  //class IDELess {
+  //public:
+  //  bool operator()(const sim::IDE& p1, const sim::IDE& p2) {
+  //    bool result = p1.trackID < p2.trackID;
+  //    return result;
+  //  }
+  //};
 
-  class IDEEqual {
-  public:
-    bool operator()(const sim::IDE& p1, const sim::IDE& p2) {
-      bool result = p1.trackID == p2.trackID;
-      return result;
-    }
-  };
+  //class IDEEqual {
+  //public:
+  //  bool operator()(const sim::IDE& p1, const sim::IDE& p2) {
+  //    bool result = p1.trackID == p2.trackID;
+  //    return result;
+  //  }
+  //};
 
 }
 
@@ -438,9 +438,11 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
       geo::View_t view1 = hit1.View();
       double t1 = hit1.PeakTime() - timeOffset[tpc1][plane1];
 
-      // If using mc information, make a collection of IDEs for hit 1.
+      // If using mc information, get a collection of track ids for hit 1.
 
-      const std::vector<sim::IDE>& ide1 = fHitMCMap[&hit1].ides;
+      const HitMCInfo& mcinfo1 = fHitMCMap[&hit1];
+      const std::vector<int>& tid1 = mcinfo1.trackIDs;
+      bool only_neg1 = tid1.size() > 0 && tid1.back() < 0;
 
       // Loop over second hit.
 
@@ -466,23 +468,38 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 
 	  result = result && std::abs(t1-t2) <= maxDT;
 
-	  // If using mc information, make a collection of IDEs for hit 2.
+	  // Test mc truth.
 
-	  if(fUseMC) {
+	  if(result && fUseMC) {
 
-	    // Find electrons that are in time with hit 2.
+	    // Test whether hits have a common parent track id.
 
-	    std::vector<sim::IDE> ide2 = fHitMCMap[&hit2].ides;
-	    std::vector<sim::IDE>::iterator it =
-	      std::set_intersection(ide1.begin(), ide1.end(),
-				    ide2.begin(), ide2.end(),
-				    ide2.begin(), IDELess());
-	    ide2.resize(it - ide2.begin());
+	    const HitMCInfo& mcinfo2 = fHitMCMap[&hit2];
+	    std::vector<int> tid2 = mcinfo2.trackIDs;
+	    bool only_neg2 = tid2.size() > 0 && tid2.back() < 0;
+	    std::vector<int>::iterator it =
+	      std::set_intersection(tid1.begin(), tid1.end(),
+				    tid2.begin(), tid2.end(),
+				    tid2.begin());
+	    tid2.resize(it - tid2.begin());
 
-	    // Hits are compatible if they have points in common.
+	    // Hits are compatible if they have parents in common.
+	    // If the only parent id in common is negative (-999),
+	    // then hits are compatible only if both hits have only
+	    // negative parent tracks.
 
-	    mc_ok = ide2.size() > 0;
+	    bool only_neg3 = tid2.size() > 0 && tid2.back() < 0;
+	    mc_ok = tid2.size() > 0 && 
+	      (!only_neg3 || (only_neg1 && only_neg2));
 	    result = result && mc_ok;
+
+	    // If we are still OK, check that either hit is
+	    // the nearest neighbor of the other.
+
+	    if(result) {
+	      result = mcinfo1.pchit[plane2] == &hit2 || 
+		mcinfo2.pchit[plane1] == &hit1;
+	    }
 	  }
 	}
       }
@@ -747,22 +764,16 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
       double t = phit->PeakTime() - timeOffset[tpc][plane];
       hitmap[tpc][plane][t] = phit;
-      const recob::Hit& hit = *phit;
-
-      // Get IDEs.
-
-      if(fUseMC) {
-	HitMCInfo& mcinfo = fHitMCMap[&hit];   // Default HitMCInfo.
-	cheat::BackTracker::HitToSimIDEs(*simchans[phit->Channel()], phit, mcinfo.ides);
-      }
     }
   }
 
-  /*
   // Fill mc information, including IDEs and closest neighbors
   // of each hit.
 
   if(fUseMC) {
+
+    // First loop over hits and fill track ids and mc position.
+
     for(int tpc = 0; tpc < ntpc; ++tpc) {
       int nplane = geom->Nplanes(tpc);
       for(int plane = 0; plane < nplane; ++plane) {
@@ -771,30 +782,68 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	  const art::Ptr<recob::Hit>& phit = ihit->second;
 	  const recob::Hit& hit = *phit;
 	  HitMCInfo& mcinfo = fHitMCMap[&hit];   // Default HitMCInfo.
-	  mcinfo.pchit.resize(nplane);
-	  mcinfo.dist.resize(nplane);
 
-	  // Get IDEs for this hit.
+	  // Fill default nearest neighbor information (i.e. none).
 
-	  cheat::BackTracker::HitToSimIDEs(*simchans[hit.Channel()], phit, mcinfo.ides);
+	  mcinfo.pchit.resize(nplane, 0);
+	  mcinfo.dist2.resize(nplane, 1.e20);
 
-	  // Fill closest neighbor information for this hit.
+	  // Get sim::IDEs for this hit.
+
+	  std::vector<sim::IDE> ides;
+	  cheat::BackTracker::HitToSimIDEs(*simchans[hit.Channel()], phit, ides);
+
+	  // Get sorted track ids. for this hit.
+
+	  mcinfo.trackIDs.reserve(ides.size());
+	  for(std::vector<sim::IDE>::const_iterator i = ides.begin();
+	      i != ides.end(); ++i)
+	    mcinfo.trackIDs.push_back(i->trackID);
+	  sort(mcinfo.trackIDs.begin(), mcinfo.trackIDs.end());
+
+	  // Get position of ionization for this hit.
+
+	  mcinfo.xyz = cheat::BackTracker::SimIDEsToXYZ(ides);
+	}
+      }
+    }
+
+    // Loop over hits again and fill nearest neighbor information for real.
+
+    for(int tpc = 0; tpc < ntpc; ++tpc) {
+      int nplane = geom->Nplanes(tpc);
+      for(int plane = 0; plane < nplane; ++plane) {
+	for(std::map<double, art::Ptr<recob::Hit> >::const_iterator ihit = hitmap[tpc][plane].begin();
+	    ihit != hitmap[tpc][plane].end(); ++ihit) {
+	  const art::Ptr<recob::Hit>& phit = ihit->second;
+	  const recob::Hit& hit = *phit;
+	  HitMCInfo& mcinfo = fHitMCMap[&hit];
+
+	  // Fill nearest neighbor information for this hit.
 
 	  for(int plane2 = 0; plane2 < nplane; ++plane2) {
-	    mcinfo.pchit[plane2] = 0;
-	    mcinfo.dist[plane2] = 1.e10;
-
 	    for(std::map<double, art::Ptr<recob::Hit> >::const_iterator jhit = hitmap[tpc][plane2].begin();
 		jhit != hitmap[tpc][plane2].end(); ++jhit) {
 	      const art::Ptr<recob::Hit>& phit2 = jhit->second;
 	      const recob::Hit& hit2 = *phit2;
+	      const HitMCInfo& mcinfo2 = fHitMCMap[&hit2];
+
+	      assert(mcinfo.xyz.size() == 3);
+	      assert(mcinfo2.xyz.size() == 3);
+	      double dx = mcinfo.xyz[0] - mcinfo2.xyz[0];
+	      double dy = mcinfo.xyz[1] - mcinfo2.xyz[1];
+	      double dz = mcinfo.xyz[2] - mcinfo2.xyz[2];
+	      double dist2 = dx*dx + dy*dy + dz*dz;
+	      if(dist2 < mcinfo.dist2[plane2]) {
+		mcinfo.dist2[plane2] = dist2;
+		mcinfo.pchit[plane2] = &hit2;
+	      }
 	    }
 	  }
 	}
       }
     }
   }
-  */
 
   mf::LogDebug debug("SpacePointService");
   debug << "Total hits = " << hits.size() << "\n\n";
