@@ -134,12 +134,12 @@ namespace trkf {
     // Get SimChannels.
     // now make a vector where each channel in the detector is an 
     // entry
-    art::ServiceHandle<geo::Geometry> geo;
     std::vector<const sim::SimChannel*> simchanh;
-    std::vector<const sim::SimChannel*> simchanv(geo->Nchannels(),0);
+    std::vector<const sim::SimChannel*> simchanv(geom->Nchannels(),0);
     if(mc) {
       evt.getView(fG4ModuleLabel, simchanh);
-      for(size_t i = 0; i < simchanh.size(); ++i) simchanv[simchanh[i]->Channel()] = simchanh[i];
+      for(size_t i = 0; i < simchanh.size(); ++i)
+	simchanv[simchanh[i]->Channel()] = simchanh[i];
     }
 
     // Get Hits.

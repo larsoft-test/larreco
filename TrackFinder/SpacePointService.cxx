@@ -28,18 +28,12 @@
 
 namespace {
 
-  // Function classes for sorting pointer to sim::IDEs according to
-  // embedded position TVector3.
+  // Function classes for sorting sim::IDEs according to track id.
 
   class IDELess {
   public:
     bool operator()(const sim::IDE& p1, const sim::IDE& p2) {
-      TVector3 v1(p1.x, p1.y, p1.z);
-      TVector3 v2(p2.x, p2.y, p2.z);
-      bool result = (v1.x() < v2.x() || 
-		     (v1.x() == v2.x() && 
-		      (v1.y() < v2.y() || 
-		       (v1.y() == v2.y() && v1.z() < v2.z()))));
+      bool result = p1.trackID < p2.trackID;
       return result;
     }
   };
@@ -47,9 +41,7 @@ namespace {
   class IDEEqual {
   public:
     bool operator()(const sim::IDE& p1, const sim::IDE& p2) {
-      TVector3 v1(p1.x, p1.y, p1.z);
-      TVector3 v2(p2.x, p2.y, p2.z);
-      bool result = (v1.x() == v2.x() && v1.y() == v2.y() && v1.z() < v2.z());
+      bool result = p1.trackID == p2.trackID;
       return result;
     }
   };
@@ -448,7 +440,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 
       // If using mc information, make a collection of IDEs for hit 1.
 
-      const std::vector<sim::IDE>& ide1 = fIDEMap[&hit1];
+      const std::vector<sim::IDE>& ide1 = fHitMCMap[&hit1].ides;
 
       // Loop over second hit.
 
@@ -480,7 +472,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 
 	    // Find electrons that are in time with hit 2.
 
-	    std::vector<sim::IDE> ide2 = fIDEMap[&hit2];
+	    std::vector<sim::IDE> ide2 = fHitMCMap[&hit2].ides;
 	    std::vector<sim::IDE>::iterator it =
 	      std::set_intersection(ide1.begin(), ide1.end(),
 				    ide2.begin(), ide2.end(),
@@ -697,6 +689,10 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
   art::ServiceHandle<geo::Geometry> geom;
 
+  // Print diagnostic information.
+
+  update();
+
   // Get time offsets.
 
   std::vector<std::vector<double> > timeOffset;
@@ -717,8 +713,8 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
     unsigned int nsc = simchans.size();
     for(unsigned int isc = 0; isc < nsc; ++isc) {
-      const sim::SimChannel& sc = *simchans[isc];
-      if(isc != sc.Channel())
+      const sim::SimChannel* psc = simchans[isc];
+      if(psc != 0 && isc != psc->Channel())
 	throw cet::exception("SpacePointService") << "MC channels not sorted.\n";
     }
   }
@@ -728,7 +724,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
   // position indexed by hit.
 
   std::vector<std::vector<std::map<double, art::Ptr<recob::Hit> > > > hitmap;
-  fIDEMap.clear();
+  fHitMCMap.clear();
 
   int ntpc = geom->NTPC();
   hitmap.resize(ntpc);
@@ -756,15 +752,49 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
       // Get IDEs.
 
       if(fUseMC) {
-	std::vector<sim::IDE>& ide = fIDEMap[&hit];   // Empty vector.
-	cheat::BackTracker::HitToSimIDEs(*simchans[phit->Channel()], phit, ide);
-	std::sort(ide.begin(), ide.end(), IDELess());
-	std::vector<sim::IDE>::iterator it = 
-	  std::unique(ide.begin(), ide.end(), IDEEqual());
-	ide.resize(it - ide.begin());
+	HitMCInfo& mcinfo = fHitMCMap[&hit];   // Default HitMCInfo.
+	cheat::BackTracker::HitToSimIDEs(*simchans[phit->Channel()], phit, mcinfo.ides);
       }
     }
   }
+
+  /*
+  // Fill mc information, including IDEs and closest neighbors
+  // of each hit.
+
+  if(fUseMC) {
+    for(int tpc = 0; tpc < ntpc; ++tpc) {
+      int nplane = geom->Nplanes(tpc);
+      for(int plane = 0; plane < nplane; ++plane) {
+	for(std::map<double, art::Ptr<recob::Hit> >::const_iterator ihit = hitmap[tpc][plane].begin();
+	    ihit != hitmap[tpc][plane].end(); ++ihit) {
+	  const art::Ptr<recob::Hit>& phit = ihit->second;
+	  const recob::Hit& hit = *phit;
+	  HitMCInfo& mcinfo = fHitMCMap[&hit];   // Default HitMCInfo.
+	  mcinfo.pchit.resize(nplane);
+	  mcinfo.dist.resize(nplane);
+
+	  // Get IDEs for this hit.
+
+	  cheat::BackTracker::HitToSimIDEs(*simchans[hit.Channel()], phit, mcinfo.ides);
+
+	  // Fill closest neighbor information for this hit.
+
+	  for(int plane2 = 0; plane2 < nplane; ++plane2) {
+	    mcinfo.pchit[plane2] = 0;
+	    mcinfo.dist[plane2] = 1.e10;
+
+	    for(std::map<double, art::Ptr<recob::Hit> >::const_iterator jhit = hitmap[tpc][plane2].begin();
+		jhit != hitmap[tpc][plane2].end(); ++jhit) {
+	      const art::Ptr<recob::Hit>& phit2 = jhit->second;
+	      const recob::Hit& hit2 = *phit2;
+	    }
+	  }
+	}
+      }
+    }
+  }
+  */
 
   mf::LogDebug debug("SpacePointService");
   debug << "Total hits = " << hits.size() << "\n\n";

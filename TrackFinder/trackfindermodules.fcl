@@ -42,7 +42,7 @@ argoneut_spacepoint:
   module_type:        "SpacePointAna"
   HitModuleLabel:     "ffthit"
   ClusterModuleLabel: "dbcluster"
-  DetSimModuleLabel:  "daq"
+  G4ModuleLabel:      "largeant"
   UseClusterHits:     true
   MaxDT:              50.
   MaxS:               10.
@@ -84,7 +84,7 @@ microboone_spacepoint:
   module_type:        "SpacePointAna"
   HitModuleLabel:     "ffthit"
   ClusterModuleLabel: "dbcluster"
-  DetSimModuleLabel:  "daq"
+  G4ModuleLabel:      "largeant"
   UseClusterHits:     true
   MaxDT:              50.
   MaxS:               10.
