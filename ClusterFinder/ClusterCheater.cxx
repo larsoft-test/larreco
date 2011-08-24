@@ -177,6 +177,11 @@ namespace cluster{
 
 	  // add a cluster to the collection.  Make the ID be the eve particle
 	  // trackID*1000 + plane number*100 + tpc that the current hits are from
+	  
+	  if(ptrvs.size()==0)
+	      continue;
+	  //do not create clusters with zero size hit arrays, Andrzej
+	  
 	  clustercol->push_back(recob::Cluster(ptrvs, 
 					       startWire, 0.,
 					       startTime, 0.,
@@ -185,7 +190,7 @@ namespace cluster{
 					       dTdW,      0.,
 					       dQdW,      0.,
 					       ((*hitMapItr).first * 1000) + pl*100 + tpc));
-
+          
 	  mf::LogInfo("ClusterCheater") << "adding cluster: \n" 
 					<< clustercol->back()
 					<< "\nto collection.";
