@@ -38,6 +38,7 @@ namespace cluster {
     //void FinalPeaks();
     void FitAngularDistributions();
     void FindClusters(unsigned int tpc, unsigned int plane);
+    void ReassignHitID(unsigned int tpc, unsigned int plane,unsigned int HitPosition,unsigned int WrongPeakNo);
  
   
      
@@ -50,6 +51,8 @@ namespace cluster {
     TH1F *fh_theta_coll_2D;
     TH1F *fh_theta_coll_Area;
     TH1F *fh_theta_ind_Area;
+    TH1F *Hit_Area_Ind;
+    TH1F *Hit_Area_Coll;
      //std::vector<TH1F*> fh_theta;     /**Histo for the angular distribution theta of the shower*/
     art::PtrVector<recob::Hit> allhits;
     std::vector<int> maxBin;    //stores bin # of local maximum
@@ -61,16 +64,17 @@ namespace cluster {
     std::vector<unsigned int> ftime_vertex;
     std::vector<int> HitsWithClusterID;
     double ftimetick; //get from parameterset
-double fdriftvelocity;  //get from paramtereset 9either k and V)
-double fpi;
-int fMC;
-double MCvertex [3];
+    double fdriftvelocity;  //get from paramtereset 9either k and V)
+    double fpi;
+    int fMC;
+    double MCvertex [3];
 
-std::vector<double> maxBinValues;
-std::vector<double> OriginalmaxBinValues;
-std::vector<int> SortedMaxBin;
-std::vector<int> FinalPeaks;
-int fpeaks_found; //flag to determine whether the program should continue or not
+    std::vector<double> maxBinValues;
+    std::vector<double> OriginalmaxBinValues;
+    std::vector<int> SortedMaxBin;
+    std::vector<int> FinalPeaks;
+    int fpeaks_found; //flag to determine whether the program should continue or not
+    bool need_to_reassign_hitsIDs;
   protected:
 
     
