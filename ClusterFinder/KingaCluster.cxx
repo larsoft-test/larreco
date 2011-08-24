@@ -1101,20 +1101,50 @@ for(unsigned int i = 0; i< allhits.size(); ++i){
 //std::cout<<std::endl;
 
 //..............................................................................
-//Now let's pick a minimum number of hits that we require in a cluster, MinHitsInCluster. If just formed cluster containes less than the desired number than it need to be assigned to the nearest cluster according to distance.
+//Now let's pick a minimum number of hits that we require in a cluster, MinHitsInCluster. If just formed cluster containes less than the desired number than it need to be assigned to the nearest cluster according to distance. This is done by removing the peak that corresponded to that cluster and rerunning assignement of hits again. We want to remove all the wrong peaks at once so reassignement is done only once. Put all the wrong peaks into a vector:
 
 std::vector<unsigned int> WrongPeakNo;
 WrongPeakNo.clear();
+std::vector<int> WireNo;
+int span=0;
 
 int MinHitsInCluster=2; //later make it a parameter
 
-for(unsigned int NClus=0; NClus<MaxStartPoint.size(); NClus++){
+for( int NClus=0; NClus<MaxStartPoint.size(); NClus++){
 //search for clusters with too little hits (ie 1 or less than your desired parameter):
 
 int NoHitsInCluster= std::count(HitsWithClusterID.begin(),HitsWithClusterID.end(),NClus+1);
 std::cout<<"*** No of Hits for cluster # "<<NClus+1<<" = "<<NoHitsInCluster<<std::endl;
 
-  if((NoHitsInCluster<MinHitsInCluster) && (NoHitsInCluster!=0))
+//........Check the span for small clusters................
+  if(NoHitsInCluster<5){
+    
+    WireNo.clear();
+    for(unsigned int h=0; h<HitsWithClusterID.size();h++) {
+    
+        if(HitsWithClusterID[h]==NClus+1){
+        
+        WireNo.push_back(allhits[h]->Wire()->RawDigit()->Channel());
+        }
+    
+    }
+
+//now order WireNo and subtract first and last element to get the span in wire number:
+
+std::sort(WireNo.begin(),WireNo.end());
+
+span=WireNo[WireNo.size()-1]-WireNo[0];
+
+  if(span>(NoHitsInCluster+0.66*NoHitsInCluster)){
+    need_to_reassign_hitsIDs=1;
+    WrongPeakNo.push_back(NClus);
+  }
+
+
+  }//if clusters containing less than 5 hits
+
+//......end of checking span for small clusters...............
+  if(NoHitsInCluster<MinHitsInCluster)
   {
   need_to_reassign_hitsIDs=1;
 
