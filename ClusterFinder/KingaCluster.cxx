@@ -106,7 +106,8 @@ std::cout << " Event: " << evt.id().event() << std::endl;
  art::ServiceHandle<util::LArProperties> larp;
 // double electronlifetime=larp->ElectronLifetime();
  
-
+ftime_vertex.clear();
+fwire_vertex.clear();
 
 
 
@@ -303,7 +304,7 @@ std::cout<<"No of DBSCAN clusters= "<<clusIn.size()<<std::endl;
        // std::cout<<"hits.size()= "<<hits.size()<<std::endl;
      }
    
-     std::cout<<"allhits.size()="<<allhits.size()<<std::endl;
+     //std::cout<<"allhits.size()="<<allhits.size()<<std::endl;
    
    
      //Now we have hits for the plane that we are on right now, so let's do some work:
@@ -324,15 +325,15 @@ std::cout<<"No of DBSCAN clusters= "<<clusIn.size()<<std::endl;
        HitsWithClusterID.clear();
        FinalPeaks.clear();
        OriginalmaxBinValues.clear();
-      // for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
-// 	 
-// 	 fh_theta_ind_2D->SetBinContent(bin,0);
-// 	 fh_theta_coll_2D->SetBinContent(bin,0);
-// 	 fh_theta_ind->SetBinContent(bin,0);
-// 	 fh_theta_coll->SetBinContent(bin,0);
-// 	 fh_theta_coll_Area->SetBinContent(bin,0);
-// 	 fh_theta_ind_Area->SetBinContent(bin,0);
-//        }
+     for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
+	 
+	 fh_theta_ind_2D->SetBinContent(bin,0);
+	 fh_theta_coll_2D->SetBinContent(bin,0);
+	 fh_theta_ind->SetBinContent(bin,0);
+	 fh_theta_coll->SetBinContent(bin,0);
+	 fh_theta_coll_Area->SetBinContent(bin,0);
+	 fh_theta_ind_Area->SetBinContent(bin,0);
+       }
        
        return;
      }
@@ -417,15 +418,15 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
  }// end loop over tpcs 
  evt.put(ccol);
  
- // for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
-//    
-//    fh_theta_ind_2D->SetBinContent(bin,0);
-//    fh_theta_coll_2D->SetBinContent(bin,0);
-//    fh_theta_ind->SetBinContent(bin,0);
-//    fh_theta_coll->SetBinContent(bin,0);
-//    fh_theta_coll_Area->SetBinContent(bin,0);
-//    fh_theta_ind_Area->SetBinContent(bin,0);
-//  }
+ for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
+   
+   fh_theta_ind_2D->SetBinContent(bin,0);
+   fh_theta_coll_2D->SetBinContent(bin,0);
+   fh_theta_ind->SetBinContent(bin,0);
+   fh_theta_coll->SetBinContent(bin,0);
+   fh_theta_coll_Area->SetBinContent(bin,0);
+   fh_theta_ind_Area->SetBinContent(bin,0);
+ }
    
  return;
 }
@@ -434,6 +435,17 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
 
  void cluster::KingaCluster::AngularDistribution(unsigned int tpc, unsigned int plane){   
  
+ for(int bin=0; bin< fh_theta_ind_Area->GetNbinsX(); bin++){
+   
+   fh_theta_ind_2D->SetBinContent(bin,0);
+   fh_theta_coll_2D->SetBinContent(bin,0);
+   fh_theta_ind->SetBinContent(bin,0);
+   fh_theta_coll->SetBinContent(bin,0);
+   fh_theta_coll_Area->SetBinContent(bin,0);
+   fh_theta_ind_Area->SetBinContent(bin,0);
+ }
+ 
+  
  art::ServiceHandle<geo::Geometry> geom;
  if(fMC==1){
    unsigned int channel2,plane2,wire2,tpc2;  
@@ -517,7 +529,7 @@ unsigned int channel=0, w=0;
 //std::cout<<"for PLANE "<<plane<<" fwire_vertex= "<<fwire_vertex[plane]<<" ftime_vertex= "<<ftime_vertex[plane]<<std::endl;
 
 
-//std::cout<<"No of HITS for plane "<<plane<<" is: "<<allhits.size()<<std::endl;
+std::cout<<"No of HITS for plane "<<plane<<" is: "<<allhits.size()<<std::endl;
  
   for(unsigned int i = 0; i< allhits.size(); ++i){
   
@@ -530,6 +542,7 @@ unsigned int channel=0, w=0;
  channel=allhits[i]->Wire()->RawDigit()->Channel();
  geom->ChannelToWire(channel,t,p,w);
  
+ //std::cout<<" For hit# "<<i<<" w= "<<w<<" fwire_vertex[plane]= "<<fwire_vertex[plane]<<" ftime_vertex[plane]= "<<ftime_vertex[plane];
   
       b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
       a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
@@ -537,6 +550,7 @@ unsigned int channel=0, w=0;
       theta_polar = 180*theta_polar/fpi; /** in deg*/
      //fh_theta[plane]->Fill(theta_polar,allhits[i]->Charge());
      //std::cout<<"**** theta_polar= "<<theta_polar<<std::endl;
+    // std::cout<<" a_polar= "<<a_polar<<" b_polar= "<<b_polar<<std::endl;
      
 if (plane==0 ) {
 
@@ -578,7 +592,8 @@ Hit_Area_Coll->Fill((allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *
 //   std::cout<<"endTime is at bin = "<<endTimes[i]<<" and its value is "<<fh_theta_ind->GetBinContent(endTimes[i])<<std::endl;
 //   }
  
-
+ 
+ 
     }
     
     
@@ -637,6 +652,7 @@ Hit_Area_Coll->Fill((allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *
  //collection plane:
  if (plane==1){
  
+
   for(int bin=1; bin<fh_theta_coll_Area->GetNbinsX()+1;bin++){
  
   if(fh_theta_coll_Area->GetBinContent(bin)>fh_theta_coll_Area->GetBinContent(bin+1) && fh_theta_coll_Area->GetBinContent(bin+1)<fh_theta_coll_Area->GetBinContent(bin+2)) {
@@ -801,12 +817,12 @@ std::cout<<SortedMaxBin[i]<<std::endl;
 
   } //if maxBin.size()>0
   
-  
+  startTimes.clear();
+  maxBin.clear();
+  endTimes.clear();
   
  } //plane 1
- startTimes.clear();
-  //maxBin.clear();
-  endTimes.clear();
+ 
   time=1;
   ValidPeak=0;
   
@@ -815,6 +831,7 @@ std::cout<<SortedMaxBin[i]<<std::endl;
  
  //induction plane
  if(plane==0){
+ 
  
  std::cout<<"No of bins= "<<fh_theta_ind_Area->GetNbinsX()<<std::endl;
 for(int bin=1; bin<fh_theta_ind_Area->GetNbinsX()+1;bin++){
@@ -985,6 +1002,18 @@ std::cout<<SortedMaxBin[i]<<std::endl;
   
  } //plane 0
  //......................................................... 
+ //Now clear the histograms:
+ 
+ for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
+   
+   fh_theta_ind_2D->SetBinContent(bin,0);
+   fh_theta_coll_2D->SetBinContent(bin,0);
+   fh_theta_ind->SetBinContent(bin,0);
+   fh_theta_coll->SetBinContent(bin,0);
+   fh_theta_coll_Area->SetBinContent(bin,0);
+   fh_theta_ind_Area->SetBinContent(bin,0);
+ }
+ 
 }   
 
 //..............................................................   
