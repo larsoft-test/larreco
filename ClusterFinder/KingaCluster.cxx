@@ -418,15 +418,15 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
  }// end loop over tpcs 
  evt.put(ccol);
  
- for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
-   
-   fh_theta_ind_2D->SetBinContent(bin,0);
-   fh_theta_coll_2D->SetBinContent(bin,0);
-   fh_theta_ind->SetBinContent(bin,0);
-   fh_theta_coll->SetBinContent(bin,0);
-   fh_theta_coll_Area->SetBinContent(bin,0);
-   fh_theta_ind_Area->SetBinContent(bin,0);
- }
+ // for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
+//    
+//    fh_theta_ind_2D->SetBinContent(bin,0);
+//    fh_theta_coll_2D->SetBinContent(bin,0);
+//    fh_theta_ind->SetBinContent(bin,0);
+//    fh_theta_coll->SetBinContent(bin,0);
+//    fh_theta_coll_Area->SetBinContent(bin,0);
+//    fh_theta_ind_Area->SetBinContent(bin,0);
+//  }
    
  return;
 }
@@ -435,15 +435,24 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
 
  void cluster::KingaCluster::AngularDistribution(unsigned int tpc, unsigned int plane){   
  
- for(int bin=0; bin< fh_theta_ind_Area->GetNbinsX(); bin++){
+ if(plane==0){
+    for(int bin=0; bin< fh_theta_ind_Area->GetNbinsX(); bin++){
    
-   fh_theta_ind_2D->SetBinContent(bin,0);
-   fh_theta_coll_2D->SetBinContent(bin,0);
-   fh_theta_ind->SetBinContent(bin,0);
-   fh_theta_coll->SetBinContent(bin,0);
-   fh_theta_coll_Area->SetBinContent(bin,0);
-   fh_theta_ind_Area->SetBinContent(bin,0);
- }
+    fh_theta_ind_2D->SetBinContent(bin,0);
+    fh_theta_ind->SetBinContent(bin,0);
+    fh_theta_ind_Area->SetBinContent(bin,0);
+    }
+   }
+   
+   if(plane==1){
+    for(int bin=0; bin< fh_theta_ind_Area->GetNbinsX(); bin++){
+   
+    fh_theta_coll_2D->SetBinContent(bin,0);
+    fh_theta_coll->SetBinContent(bin,0);
+    fh_theta_coll_Area->SetBinContent(bin,0);
+   
+    }
+   }
  
   
  art::ServiceHandle<geo::Geometry> geom;
@@ -1004,15 +1013,15 @@ std::cout<<SortedMaxBin[i]<<std::endl;
  //......................................................... 
  //Now clear the histograms:
  
- for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
-   
-   fh_theta_ind_2D->SetBinContent(bin,0);
-   fh_theta_coll_2D->SetBinContent(bin,0);
-   fh_theta_ind->SetBinContent(bin,0);
-   fh_theta_coll->SetBinContent(bin,0);
-   fh_theta_coll_Area->SetBinContent(bin,0);
-   fh_theta_ind_Area->SetBinContent(bin,0);
- }
+ // for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
+//    
+//    fh_theta_ind_2D->SetBinContent(bin,0);
+//    fh_theta_coll_2D->SetBinContent(bin,0);
+//    fh_theta_ind->SetBinContent(bin,0);
+//    fh_theta_coll->SetBinContent(bin,0);
+//    fh_theta_coll_Area->SetBinContent(bin,0);
+//    fh_theta_ind_Area->SetBinContent(bin,0);
+//  }
  
 }   
 
