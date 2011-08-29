@@ -94,7 +94,7 @@ namespace trkf{
       clusterMapItr = eveClusterMap.find(eveID);
 	
       // is this id already in the map, if so extend the collection 
-      // by one hit, otherwise make a new collection and put it in
+      // by one cluster, otherwise make a new collection and put it in
       // the map
       if( clusterMapItr != eveClusterMap.end() ){
 	  ((*clusterMapItr).second).push_back((*itr));
@@ -120,32 +120,6 @@ namespace trkf{
 
       std::vector<recob::SpacePoint> spacePoints;
 
-      for(size_t c = 0; c < eveClusters.size(); ++c){
-	ptrvs.push_back(eveClusters[c]);
-	
-	// need to make the space points for this prong
-	// loop over the hits for this cluster and make 
-	// a space point for each one
-	// set the SpacePoint ID to be the cluster ID*10000 
-	// + the hit index in the cluster PtrVector of hits
-	art::PtrVector<recob::Hit> hits = eveClusters[c]->Hits();
-	for(size_t h = 0; h < hits.size(); ++h){
-	  art::Ptr<recob::Hit> hit = hits[h];
-	  std::vector<double> xyz = cheat::BackTracker::HitToXYZ(*(scs[hit->Channel()]), hit);
-
-	  // make a PtrVector containing just this hit
-	  art::PtrVector<recob::Hit> sphit;
-	  sphit.push_back(hits[h]);
-
-	  // make the space point and set its ID and XYZ
-	  recob::SpacePoint sp(sphit);
-	  sp.SetID(eveClusters[c]->ID()*10000 + h);
-	  sp.SetXYZ(&xyz[0]);
-
-	  spacePoints.push_back(sp);
-	}
-      }
-
       // is this prong electro-magnetic in nature or 
       // hadronic/muonic?  EM --> shower, everything else is a track
       if( abs(plist[(*clusterMapItr).first]->PdgCode()) != 11  &&
@@ -156,6 +130,32 @@ namespace trkf{
 				    << " is a track with pdg code "
 				    << plist[(*clusterMapItr).first]->PdgCode();
 
+	for(size_t c = 0; c < eveClusters.size(); ++c){
+	  ptrvs.push_back(eveClusters[c]);
+	  
+	  // need to make the space points for this prong
+	  // loop over the hits for this cluster and make 
+	  // a space point for each one
+	  // set the SpacePoint ID to be the cluster ID*10000 
+	  // + the hit index in the cluster PtrVector of hits
+	  art::PtrVector<recob::Hit> hits = eveClusters[c]->Hits();
+	  for(size_t h = 0; h < hits.size(); ++h){
+	    art::Ptr<recob::Hit> hit = hits[h];
+	    std::vector<double> xyz = cheat::BackTracker::HitToXYZ(*(scs[hit->Channel()]), hit);
+	    
+	    // make a PtrVector containing just this hit
+	    art::PtrVector<recob::Hit> sphit;
+	    sphit.push_back(hits[h]);
+	    
+	    // make the space point and set its ID and XYZ
+	    recob::SpacePoint sp(sphit);
+	    sp.SetID(eveClusters[c]->ID()*10000 + h);
+	    sp.SetXYZ(&xyz[0]);
+	    
+	    spacePoints.push_back(sp);
+	  }
+	}
+	
 	// add a prong to the collection.  Make the prong
 	// ID be the same as the track ID for the eve particle
 	trackcol->push_back(recob::Track(ptrvs, spacePoints));
