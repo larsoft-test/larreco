@@ -75,7 +75,7 @@ namespace cluster{
     std::vector<const sim::SimChannel*> sccol;
     evt.getView(fG4ModuleLabel, sccol);
     
-    //now make a vector where each channel in the detector is an 
+    // now make a vector where each channel in the detector is an 
     // entry
     std::vector<const sim::SimChannel*> scs(geo->Nchannels(),0);
     for(size_t i = 0; i < sccol.size(); ++i) scs[sccol[i]->Channel()] = sccol[i];
@@ -103,7 +103,7 @@ namespace cluster{
 	// don't worry about eve particles that contribute less than 10% of the
 	// energy in the current hit
 	if( eveides[e].energyFrac < 0.1) continue;
-	  
+
 	hitMapItr = eveHitMap.find( eveides[e].trackID );
 	
 	// is this id already in the map, if so extend the collection 
@@ -166,6 +166,10 @@ namespace cluster{
 
 	  } // end loop over hits for this particle	
 
+	  // do not create clusters with zero size hit arrays, Andrzej
+	  if(ptrvs.size()==0)
+	    continue;
+
 	  // figure out the rest of the cluster information using these hits
 	  
 	  // use the HoughLineService to get dTdW for these hits
@@ -177,11 +181,7 @@ namespace cluster{
 
 	  // add a cluster to the collection.  Make the ID be the eve particle
 	  // trackID*1000 + plane number*100 + tpc that the current hits are from
-	  
-	  if(ptrvs.size()==0)
-	      continue;
-	  //do not create clusters with zero size hit arrays, Andrzej
-	  
+	  	  
 	  clustercol->push_back(recob::Cluster(ptrvs, 
 					       startWire, 0.,
 					       startTime, 0.,
