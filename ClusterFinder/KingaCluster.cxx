@@ -339,7 +339,12 @@ std::cout<<"No of DBSCAN clusters= "<<clusIn.size()<<std::endl;
      }
      //FinalPeaks();
      FindClusters(tpc,plane);
-     if(need_to_reassign_hitsIDs==1){FindClusters(tpc,plane);}
+     if(need_to_reassign_hitsIDs==1){
+     std::cout<<"***************************************************************"<<std::endl;
+     std::cout<<"***************  ATTENTION   ***********************"<<std::endl;
+     std::cout<<" WILL NEED TO REASSIGN HIT IDs"<<std::endl;
+     std::cout<<"***************************************************************"<<std::endl;
+     FindClusters(tpc,plane);}
      std::cout<<"HitsWithClusterID.size()= "<<HitsWithClusterID.size()
 	      << "compare with allhits.size()= "<<allhits.size()<<std::endl;
      for(unsigned int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++) {
@@ -550,17 +555,43 @@ std::cout<<"No of HITS for plane "<<plane<<" is: "<<allhits.size()<<std::endl;
  
  channel=allhits[i]->Wire()->RawDigit()->Channel();
  geom->ChannelToWire(channel,t,p,w);
- 
+ //std::cout<<"................................"<<std::endl;
  //std::cout<<" For hit# "<<i<<" w= "<<w<<" fwire_vertex[plane]= "<<fwire_vertex[plane]<<" ftime_vertex[plane]= "<<ftime_vertex[plane];
   
-      b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
+     int diff_w= w - fwire_vertex[plane];
+      b_polar = diff_w*0.4; /**in cm*/
+      
+      //std::cout<<" diff_w= "<<diff_w<<std::endl;
+      //std::cout<<" b_polar= "<<b_polar<<std::endl;
       a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
-      theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
+       double blah=a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2));
+       
+      theta_polar =fabs(asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2)))); /**in rad*/
       theta_polar = 180*theta_polar/fpi; /** in deg*/
+      
+     
+     // We have 4 cases depending on which quater a hit is (origin being defined on a vertex):
+     
+     if(b_polar>0 && a_polar>0){
+     theta_polar = 90-theta_polar;/** in deg*/
+       /** in deg*/
+      }
+      else if(b_polar>0 && a_polar<0){
+       theta_polar = 90+theta_polar;/** in deg*/
+      }
+      else if(b_polar<0 && a_polar>0){
+       theta_polar = -(90-theta_polar);/** in deg*/
+      }
+      else if(b_polar<0 && a_polar<0){
+       theta_polar = -(90+theta_polar);/** in deg*/
+      }
+      
      //fh_theta[plane]->Fill(theta_polar,allhits[i]->Charge());
      //std::cout<<"**** theta_polar= "<<theta_polar<<std::endl;
     // std::cout<<" a_polar= "<<a_polar<<" b_polar= "<<b_polar<<std::endl;
      
+     
+     //std::cout<<"theta_polar= "<<theta_polar<<std::endl;
 if (plane==0 ) {
 
 //std::cout<<"plane= "<<plane<<" theta= "<<theta_polar<<"  channel= "<<allhits[i]->Wire()->RawDigit()->Channel()<<" time= "<<allhits[i]->PeakTime()<<" fwire_vertex[plane]= "<<fwire_vertex[plane]<<" ftime_vertex[plane]= "<<ftime_vertex[plane]<<std::endl;
@@ -649,7 +680,7 @@ Hit_Area_Coll->Fill((allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *
   // double threshold=600;
 //   double MinThreshold=100;
 
-  double threshold=0.4;
+  double threshold=0.3;
   double MinThreshold=0.1;
   
   
@@ -1084,10 +1115,28 @@ for(unsigned int i = 0; i< allhits.size(); ++i){
  channel=allhits[i]->Wire()->RawDigit()->Channel();
  geom->ChannelToWire(channel,t,p,w);
  
- b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
+ int diff_w= w - fwire_vertex[plane];
+      b_polar = diff_w*0.4; /**in cm*/
+ //b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
  a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
- theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
+ theta_polar = fabs(asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2)))); /**in rad*/
  theta_polar = 180*theta_polar/fpi; /** in deg*/
+ 
+ 
+ if(b_polar>0 && a_polar>0){
+     theta_polar = 90-theta_polar;/** in deg*/
+       /** in deg*/
+      }
+      else if(b_polar>0 && a_polar<0){
+       theta_polar = 90+theta_polar;/** in deg*/
+      }
+      else if(b_polar<0 && a_polar>0){
+       theta_polar = -(90-theta_polar);/** in deg*/
+      }
+      else if(b_polar<0 && a_polar<0){
+       theta_polar = -(90+theta_polar);/** in deg*/
+      }
+      
  for(unsigned int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++){
 
    if(theta_polar>=(-180+2*MaxStartPoint[ClusterNo]) && theta_polar<=(-180+2*MaxEndPoint[ClusterNo])){
@@ -1155,7 +1204,7 @@ int NoHitsInCluster= std::count(HitsWithClusterID.begin(),HitsWithClusterID.end(
 std::cout<<"*** No of Hits for cluster # "<<NClus+1<<" = "<<NoHitsInCluster<<std::endl;
 
 //........Check the span for small clusters................
-  if(NoHitsInCluster<5){
+  if(NoHitsInCluster<5 && NoHitsInCluster>0){
     
     WireNo.clear();
     for(unsigned int h=0; h<HitsWithClusterID.size();h++) {
@@ -1188,16 +1237,7 @@ span=WireNo[WireNo.size()-1]-WireNo[0];
 
 
 WrongPeakNo.push_back(NClus);
-//find the hit position for the ones that need to be reassigned:
-//for(unsigned int k=0; k<HitsWithClusterID.size();k++) {
-// 
-//  if(HitsWithClusterID[k]==NClus+1)
-//  {
-//   ReassignHitID(tpc, plane,k, WrongPeakNo);
-//   
-//   }
-// 
-// }
+
 
 
 
@@ -1237,66 +1277,6 @@ MaxEndPoint=MaxEndPointTemporary;
 
 
 }//if need to reassign
-}
-
-//.....................................................................
-void cluster::KingaCluster::ReassignHitID(unsigned int tpc, unsigned int plane,unsigned int HitPosition, unsigned int WrongPeakNo){ 
-
-std::vector<int> TempVector;
-art::ServiceHandle<geo::Geometry> geom;
-unsigned int channel=0, w=0;
-unsigned int p=plane;
- unsigned int t=tpc;
- double a_polar, b_polar,theta_polar;
- std::vector<double> DiffAngles;
- DiffAngles.clear();
- // std::vector<int> TempFinalPeaks;
-//  
-//  for(int peakNo=0;peakNo<FinalPeaks.size();peakNo++){
-//  
-//   if(peakNo!=WrongPeakNo){
-//     TempFinalPeaks.push_back(FinalPeaks[peakNo]);
-//   }
-//  
-//  }
-//  FinalPeaks.clear();
-//  FinalPeaks=TempFinalPeaks;
- 
- 
- channel=allhits[HitPosition]->Wire()->RawDigit()->Channel();
- geom->ChannelToWire(channel,t,p,w);
- 
- b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
- a_polar = (allhits[HitPosition]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
- theta_polar = asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2))); /**in rad*/
- theta_polar = 180*theta_polar/fpi; /** in deg*/
- for(unsigned int peakNo=0;peakNo<FinalPeaks.size();peakNo++){
- 
- 
-       DiffAngles.push_back(fabs(-180+2*FinalPeaks[peakNo]-theta_polar));
-       
-       }
- //now take minimum of DiffAngles and find at which position it is at, this position corresponds to clusterNo +1 , because we don't want to mark hits with zero 
-     
-     int position=std::distance(DiffAngles.begin(),std::min_element(DiffAngles.begin(),DiffAngles.end()));
-     
-     //ok, that was the fake peak, so now get rid of this element and take another minimum
-
-for(int u=0; u<HitsWithClusterID.size();u++){
-
-if(u!=HitPosition){
-TempVector.push_back(HitsWithClusterID[u]);}
-if(u==HitPosition){
-  TempVector.push_back(position+1);
-  std::cout<<" changed to cluster #"<<position+1<<std::endl;}
-}
- std::cout<<"**************** REASSIGNED HIT ID ********************"<<std::endl;
- HitsWithClusterID.clear();
-HitsWithClusterID=TempVector;
-DiffAngles.clear();
-TempVector.clear();
-
-
 }
 
 
