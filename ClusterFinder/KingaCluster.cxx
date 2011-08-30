@@ -564,7 +564,7 @@ std::cout<<"No of HITS for plane "<<plane<<" is: "<<allhits.size()<<std::endl;
       //std::cout<<" diff_w= "<<diff_w<<std::endl;
       //std::cout<<" b_polar= "<<b_polar<<std::endl;
       a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
-       double blah=a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2));
+      
        
       theta_polar =fabs(asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2)))); /**in rad*/
       theta_polar = 180*theta_polar/fpi; /** in deg*/
@@ -1197,7 +1197,7 @@ int span=0;
 
 int MinHitsInCluster=2; //later make it a parameter
 
-for( int NClus=0; NClus<MaxStartPoint.size(); NClus++){
+for(unsigned int NClus=0; NClus<MaxStartPoint.size(); NClus++){
 //search for clusters with too little hits (ie 1 or less than your desired parameter):
 
 int NoHitsInCluster= std::count(HitsWithClusterID.begin(),HitsWithClusterID.end(),NClus+1);

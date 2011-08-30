@@ -62,7 +62,7 @@ namespace cluster {
     std::vector<int> MaxEndPointTheta; //theta value of the end point of a peak
     std::vector<unsigned int> fwire_vertex;
     std::vector<unsigned int> ftime_vertex;
-    std::vector<int> HitsWithClusterID;
+    std::vector<unsigned int> HitsWithClusterID;
     double ftimetick; //get from parameterset
     double fdriftvelocity;  //get from paramtereset 9either k and V)
     double fpi;
