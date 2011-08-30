@@ -281,8 +281,8 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   int no_cl_for_proton=0;
   double noCluster=0;
   //  int muon=0,electron=0,positron=0,pion=0;
-  double _hit_13=0,_hit_11=0,_hit_m_11=0,_hit_111=0,_hit_22=0,_hit_211=0,_hit_m211=0,_hit_2212=0,_hit_2112=0;
-  double _en_13=0,_en_11=0,_en_m11=0,_en_111=0,_en_22=0,_en_211=0,_en_m211=0,_en_2212=0,_en_2112=0;
+  double _hit_13=0,_hit_11=0,_hit_m_11=0,_hit_111=0,_hit_211=0,_hit_m211=0,_hit_2212=0,_hit_2112=0;
+  double _en_13=0,_en_11=0,_en_m11=0,_en_111=0,_en_211=0,_en_m211=0,_en_2212=0,_en_2112=0;
   std::vector<double> diff_vec;
   
   double hit_energy=0;
@@ -314,7 +314,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 	    
 	    //delete
 	    //std::cout<<"_hits.size()= "<<_hits.size()<<std::endl;
-	    for(int p =0; p<_hits.size();++p){
+	    for(unsigned int p =0; p<_hits.size();++p){
 	      _hits_ptr=_hits[p];
 	      hits_vec.push_back(_hits_ptr);
 	      //std::cout<<"hit # "<<p<<" charge= "<<_hits[p]->Charge()<<std::endl;
@@ -346,7 +346,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 	      while( idesitr != trackides.end() )
 		{
 		    
-		  int eveID = _particleList.EveId( (*idesitr).trackID );
+		  //int eveID = _particleList.EveId( (*idesitr).trackID );
 		    
 		  // std::cout<<"track id: " << (*idesitr).trackID<<" contributed " << (*idesitr).energyFrac<< " to the current hit and has eveID: " << eveID<<std::endl;
 		     
@@ -741,12 +741,12 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
      
   // std::cout<<"Take care of "<<hits.size()<<" hits"<<std::endl;
   // std::cout<<"_en_11= "<<_en_11<<" _en_13= "<<_en_13<<std::endl;
-  double hit_13=0,hit_11=0,hit_m_11=0,hit_111=0,hit_22=0,hit_211=0,hit_m211=0,hit_2212=0,hit_2112=0;
-  double en_13=0,en_11=0,en_m11=0,en_111=0,en_22=0,en_211=0,en_m211=0,en_2212=0,en_2112=0;
-  int no_hits=0;
-  unsigned int plane_k=0;
-  double total_eng_hits_p0=0;
-  double total_eng_hits_p1=0;
+  double hit_13=0,hit_11=0,hit_m_11=0,hit_111=0,hit_211=0,hit_m211=0,hit_2212=0,hit_2112=0;
+  double en_13=0,en_11=0,en_m11=0,en_111=0,en_211=0,en_m211=0,en_2212=0,en_2112=0;
+  //int no_hits=0;
+  //unsigned int plane_k=0;
+  //double total_eng_hits_p0=0;
+  //double total_eng_hits_p1=0;
  
   // geo::View_t view_ind = geom->Plane(0).View();
   //   geo::View_t view_coll = geom->Plane(1).View();
