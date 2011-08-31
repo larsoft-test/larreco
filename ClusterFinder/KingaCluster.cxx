@@ -681,7 +681,7 @@ Hit_Area_Coll->Fill((allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *
 //   double MinThreshold=100;
 
   double threshold=0.2;
-  double MinHitThreshold=1; //Making sure that the peak found in fh_theta_coll_Area and _ind corresponds to more than 1 hit. Sometimes you can have a very large hit area that will produce a peak in that distribution but it only corresponds to 1 hit.
+  //double MinHitThreshold=1; //Making sure that the peak found in fh_theta_coll_Area and _ind corresponds to more than 1 hit. Sometimes you can have a very large hit area that will produce a peak in that distribution but it only corresponds to 1 hit.
   double MinThreshold=0.1;
   
   
@@ -1123,7 +1123,7 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
   
   }
   
-    for(int diff=0; diff<diff_end_minus_start.size();diff++){
+    for(unsigned int diff=0; diff<diff_end_minus_start.size();diff++){
     
     if(diff_end_minus_start[diff]>0){
     positive_diff_end_minus_start.push_back(diff_end_minus_start[diff]); 
@@ -1147,7 +1147,7 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
  
  
  //if range is well separated (or first or last):
- if((closest_range_right_side>10 || this_is_the_last_range==1 ) && (closest_range_left_side>10) || this_is_the_first_range==1){MinHitsInRange=2;}
+ if((closest_range_right_side>10 || this_is_the_last_range==1 ) && (closest_range_left_side>10 || this_is_the_first_range==1)){MinHitsInRange=2;}
  else{ MinHitsInRange=3; }
  
  
