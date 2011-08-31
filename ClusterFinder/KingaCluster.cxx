@@ -441,7 +441,7 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
  void cluster::KingaCluster::AngularDistribution(unsigned int tpc, unsigned int plane){   
  
  if(plane==0){
-    for(int bin=0; bin< fh_theta_ind_Area->GetNbinsX(); bin++){
+    for(int bin=0; bin< fh_theta_ind->GetNbinsX(); bin++){
    
     fh_theta_ind_2D->SetBinContent(bin,0);
     fh_theta_ind->SetBinContent(bin,0);
@@ -572,7 +572,7 @@ std::cout<<"No of HITS for plane "<<plane<<" is: "<<allhits.size()<<std::endl;
      
      // We have 4 cases depending on which quater a hit is (origin being defined on a vertex):
      
-     if(b_polar>0 && a_polar>0){
+     if(b_polar>=0 && a_polar>0){
      theta_polar = 90-theta_polar;/** in deg*/
        /** in deg*/
       }
@@ -590,8 +590,8 @@ std::cout<<"No of HITS for plane "<<plane<<" is: "<<allhits.size()<<std::endl;
      //std::cout<<"**** theta_polar= "<<theta_polar<<std::endl;
     // std::cout<<" a_polar= "<<a_polar<<" b_polar= "<<b_polar<<std::endl;
      
-     
-     //std::cout<<"theta_polar= "<<theta_polar<<std::endl;
+     std::cout<<"w= "<<w<<" t= "<<allhits[i]->PeakTime();
+     std::cout<<" theta_polar= "<<theta_polar<<" hit area= "<<(allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *fdriftvelocity*0.4<<std::endl;
 if (plane==0 ) {
 
 //std::cout<<"plane= "<<plane<<" theta= "<<theta_polar<<"  channel= "<<allhits[i]->Wire()->RawDigit()->Channel()<<" time= "<<allhits[i]->PeakTime()<<" fwire_vertex[plane]= "<<fwire_vertex[plane]<<" ftime_vertex[plane]= "<<ftime_vertex[plane]<<std::endl;
@@ -680,7 +680,8 @@ Hit_Area_Coll->Fill((allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *
   // double threshold=600;
 //   double MinThreshold=100;
 
-  double threshold=0.3;
+  double threshold=0.2;
+  double MinHitThreshold=1; //Making sure that the peak found in fh_theta_coll_Area and _ind corresponds to more than 1 hit. Sometimes you can have a very large hit area that will produce a peak in that distribution but it only corresponds to 1 hit.
   double MinThreshold=0.1;
   
   
@@ -709,7 +710,7 @@ Hit_Area_Coll->Fill((allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *
     //if so and the max value is above threshold add it and proceed.
     else if(fh_theta_coll_Area->GetBinContent(bin)<fh_theta_coll_Area->GetBinContent(bin+1) &&
         fh_theta_coll_Area->GetBinContent(bin+1)>fh_theta_coll_Area->GetBinContent(bin+2) &&
-        fh_theta_coll_Area->GetBinContent(bin+1) > threshold) {
+        fh_theta_coll_Area->GetBinContent(bin+1) > threshold ) {
       maxFound = true;
       maxBin.push_back(time+1);
       startTimes.push_back(minTimeHolder);         
@@ -893,7 +894,9 @@ for(int bin=1; bin<fh_theta_ind_Area->GetNbinsX()+1;bin++){
         fh_theta_ind_Area->GetBinContent(bin+1) > threshold) {
       maxFound = true;
       maxBin.push_back(time+1);
-      startTimes.push_back(minTimeHolder);         
+      startTimes.push_back(minTimeHolder); 
+      
+      // && fh_theta_ind->GetBinContent(bin+1) > MinHitThreshold
     }
     time++;
  
@@ -1083,6 +1086,117 @@ void cluster::KingaCluster::FitAngularDistributions(){
 
 void cluster::KingaCluster::FindClusters(unsigned int tpc, unsigned int plane){ 
 
+
+// First let's make sure that each range of peaks contains more than some specified number of hits. You can do it by knowing the ranges, going into histograms and counting the entries from start of the range to the end.If some range contains less than the specified number you need to remove the peak.
+
+std::cout<<" NO OF FINALPEAKS BEFORE EVALUATION IS: "<<FinalPeaks.size()<<std::endl;
+
+int MinHitsInRange=2; //later make it a parameter. DEFINED BELOW, LOOK->>>
+double no_hits_in_range=0;
+std::vector<int> TempFinalPeaks,TempMaxStartPoint,TempMaxEndPoint;
+TempFinalPeaks.clear();
+
+std::vector<int> positive_diff_end_minus_start;
+std::vector<int> positive_diff_start_minus_end;
+std::vector<int> diff_end_minus_start;
+std::vector<int> diff_start_minus_end;
+
+ positive_diff_end_minus_start.clear();
+ positive_diff_start_minus_end.clear();
+ diff_end_minus_start.clear();
+ diff_start_minus_end.clear();
+double closest_range_right_side=0;
+double closest_range_left_side=0;
+int this_is_the_first_range=0;
+int this_is_the_last_range=0;
+
+for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
+
+
+ //let's calculate how many bins away is the closest cluster to the one in question. You need to look to the left and to the right of each range to determine it. This is needed to pick the right MinHitsInRange value. Motivation: for very separated clusters in histos we want to be more lenient even though their peaks are not high. For very crowded environment want to be more strict.
+ 
+  //loop thru all the other peaks to figure out the bin distance:
+  for(unsigned int peak2=0; peak2<MaxStartPoint.size(); peak2++){
+  
+  diff_end_minus_start.push_back(MaxStartPoint[peak2]-MaxEndPoint[peak]);
+  diff_start_minus_end.push_back(MaxStartPoint[peak]-MaxEndPoint[peak2]);
+  
+  }
+  
+    for(int diff=0; diff<diff_end_minus_start.size();diff++){
+    
+    if(diff_end_minus_start[diff]>0){
+    positive_diff_end_minus_start.push_back(diff_end_minus_start[diff]); 
+    }
+    if(diff_start_minus_end[diff]>0){
+    positive_diff_start_minus_end.push_back(diff_start_minus_end[diff]); 
+    }
+    
+    }
+ //now take the minimum and this is your closest range in bin numbers:
+ 
+ if(positive_diff_end_minus_start.size()>0){
+ closest_range_right_side=*std::min_element(positive_diff_end_minus_start.begin(),positive_diff_end_minus_start.end());
+ }
+ else if(positive_diff_end_minus_start.size()==0){this_is_the_last_range=1;}
+ 
+  if(positive_diff_start_minus_end.size()>0){
+  closest_range_left_side=*std::min_element(positive_diff_start_minus_end.begin(),positive_diff_start_minus_end.end());
+ }
+ else if(positive_diff_start_minus_end.size()==0){this_is_the_first_range=1;}
+ 
+ 
+ //if range is well separated (or first or last):
+ if((closest_range_right_side>10 || this_is_the_last_range==1 ) && (closest_range_left_side>10) || this_is_the_first_range==1){MinHitsInRange=2;}
+ else{ MinHitsInRange=3; }
+ 
+ 
+ //........................
+ for(int bin=MaxStartPoint[peak]; bin<MaxEndPoint[peak];bin++){
+ 
+ 
+ //std::cout<<"bin= "<<bin<<std::endl;
+ if(plane==0){no_hits_in_range+=fh_theta_ind->GetBinContent(bin);
+ //std::cout<<" plane= "<<plane<<" no_hits_in_range= "<<no_hits_in_range<<std::endl;
+ }
+ if(plane==1){no_hits_in_range+=fh_theta_coll->GetBinContent(bin);
+ //std::cout<<" plane= "<<plane<<" no_hits_in_range= "<<no_hits_in_range<<std::endl;
+ }
+ 
+ }
+ 
+ 
+ 
+ 
+ std::cout<<"no_hits_in_range= "<<no_hits_in_range<<" for peak at bin # "<<FinalPeaks[peak]<<" ("<<-180+2*FinalPeaks[peak]<<" degrees). Its range is ["<<-180+2*MaxStartPoint[peak]<<", "<<-180+2*MaxEndPoint[peak]<<" ]"<<std::endl;
+ if(no_hits_in_range>=MinHitsInRange){
+ TempFinalPeaks.push_back(FinalPeaks[peak]);
+ TempMaxStartPoint.push_back(MaxStartPoint[peak]);
+ TempMaxEndPoint.push_back(MaxEndPoint[peak]);
+ 
+ 
+ }
+ no_hits_in_range=0;
+ positive_diff_end_minus_start.clear();
+ positive_diff_start_minus_end.clear();
+ diff_end_minus_start.clear();
+ diff_start_minus_end.clear();
+ this_is_the_first_range=0;
+ this_is_the_last_range=0;
+ 
+ 
+ 
+} //for each peak
+
+
+FinalPeaks=TempFinalPeaks;
+MaxStartPoint=TempMaxStartPoint;
+MaxEndPoint=TempMaxEndPoint;
+
+
+
+std::cout<<" NO OF FINALPEAKS ***AFTER*** EVALUATION IS: "<<FinalPeaks.size()<<std::endl;
+
 need_to_reassign_hitsIDs=0;
 std::cout<<"FORMING CLUSTERS NOW :) "<<std::endl;
 std::cout<<"FinalPeaks are at bin(s):  ";
@@ -1123,7 +1237,7 @@ for(unsigned int i = 0; i< allhits.size(); ++i){
  theta_polar = 180*theta_polar/fpi; /** in deg*/
  
  
- if(b_polar>0 && a_polar>0){
+ if(b_polar>=0 && a_polar>0){
      theta_polar = 90-theta_polar;/** in deg*/
        /** in deg*/
       }
@@ -1195,7 +1309,7 @@ WrongPeakNo.clear();
 std::vector<int> WireNo;
 int span=0;
 
-int MinHitsInCluster=2; //later make it a parameter
+int MinHitsInCluster=3; //later make it a parameter
 
 for(unsigned int NClus=0; NClus<MaxStartPoint.size(); NClus++){
 //search for clusters with too little hits (ie 1 or less than your desired parameter):
