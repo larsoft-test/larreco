@@ -1091,6 +1091,10 @@ void cluster::KingaCluster::FindClusters(unsigned int tpc, unsigned int plane){
 
 std::cout<<" NO OF FINALPEAKS BEFORE EVALUATION IS: "<<FinalPeaks.size()<<std::endl;
 
+
+
+
+
 int MinHitsInRange=2; //later make it a parameter. DEFINED BELOW, LOOK->>>
 double no_hits_in_range=0;
 std::vector<int> TempFinalPeaks,TempMaxStartPoint,TempMaxEndPoint;
@@ -1109,6 +1113,52 @@ double closest_range_right_side=0;
 double closest_range_left_side=0;
 int this_is_the_first_range=0;
 int this_is_the_last_range=0;
+int well_separated=0;
+
+//---------------START BASIC EVALUATION FIRST---------------
+
+//Now I will eliminate all the peaks that have only 1 hit in it's RANGE(not in actual peak):
+
+for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
+  for(int bin=MaxStartPoint[peak]; bin<MaxEndPoint[peak];bin++){
+ 
+ 
+ //std::cout<<"bin= "<<bin<<std::endl;
+   if(plane==0){no_hits_in_range+=fh_theta_ind->GetBinContent(bin);
+ //std::cout<<" plane= "<<plane<<" no_hits_in_range= "<<no_hits_in_range<<std::endl;
+   }
+   if(plane==1){no_hits_in_range+=fh_theta_coll->GetBinContent(bin);
+ //std::cout<<" plane= "<<plane<<" no_hits_in_range= "<<no_hits_in_range<<std::endl;
+   }
+ 
+  }//loop thru bins for each peak
+  
+  
+  if(no_hits_in_range>1){
+  TempFinalPeaks.push_back(FinalPeaks[peak]);
+  TempMaxStartPoint.push_back(MaxStartPoint[peak]);
+  TempMaxEndPoint.push_back(MaxEndPoint[peak]);
+ }
+  no_hits_in_range=0;
+} //loop thru all peaks
+
+FinalPeaks=TempFinalPeaks;
+MaxStartPoint=TempMaxStartPoint;
+MaxEndPoint=TempMaxEndPoint;
+
+TempFinalPeaks.clear();
+TempMaxStartPoint.clear();
+TempMaxEndPoint.clear();
+no_hits_in_range=0;
+
+std::cout<<"After BASIC EVALUATION we now have "<<FinalPeaks.size()<<" peaks"<<std::endl;
+std::cout<<"FinalPeaks are at bin(s):  ";
+for(unsigned int i=0; i<FinalPeaks.size();i++)
+{
+std::cout<<FinalPeaks[i]<<" which corresponds to angle=  "<<-180+2*FinalPeaks[i]<<std::endl;
+
+}
+//---------------------END BASIC EVALUATION-----------------------------
 
 for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
 
@@ -1118,18 +1168,40 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
   //loop thru all the other peaks to figure out the bin distance:
   for(unsigned int peak2=0; peak2<MaxStartPoint.size(); peak2++){
   
+   if(peak!=peak2){
   diff_end_minus_start.push_back(MaxStartPoint[peak2]-MaxEndPoint[peak]);
   diff_start_minus_end.push_back(MaxStartPoint[peak]-MaxEndPoint[peak2]);
   
+  //........................//delete later------>>>>
+  if(FinalPeaks[peak]==126){
+  std::cout<<"--- will check for peak at bin# "<<FinalPeaks[peak]<<std::endl;
+  std::cout<<"diff_end_minus_start= "<<MaxStartPoint[peak2]-MaxEndPoint[peak]<<std::endl;
+  std::cout<<"diff_start_minus_end= "<<MaxStartPoint[peak]-MaxEndPoint[peak2]<<std::endl;}
+  //...........<<<--------------------------
+   }
   }
   
     for(unsigned int diff=0; diff<diff_end_minus_start.size();diff++){
     
-    if(diff_end_minus_start[diff]>0){
+    if(diff_end_minus_start[diff]>=0){
     positive_diff_end_minus_start.push_back(diff_end_minus_start[diff]); 
+    
+    //........................//delete later------>>>>
+  if(FinalPeaks[peak]==126){
+  std::cout<<"positive_diff_end_minus_start= "<<diff_end_minus_start[diff]<<std::endl;
+  }
+    //...........<<<--------------------------
+    
     }
-    if(diff_start_minus_end[diff]>0){
+    if(diff_start_minus_end[diff]>=0){
     positive_diff_start_minus_end.push_back(diff_start_minus_end[diff]); 
+    
+    //........................//delete later------>>>>
+  if(FinalPeaks[peak]==126){
+  std::cout<<"positive_diff_start_minus_end= "<<diff_start_minus_end[diff]<<std::endl;
+  }
+    //...........<<<--------------------------
+    
     }
     
     }
@@ -1147,7 +1219,17 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
  
  
  //if range is well separated (or first or last):
- if((closest_range_right_side>10 || this_is_the_last_range==1 ) && (closest_range_left_side>10 || this_is_the_first_range==1)){MinHitsInRange=2;}
+ if((closest_range_right_side>8 || this_is_the_last_range==1 ) && (closest_range_left_side>8 || this_is_the_first_range==1)){
+ MinHitsInRange=2;
+ well_separated=1;
+ std::cout<<"Peak at bin #"<<FinalPeaks[peak]<<" is ^^^ WELL SEPARATED ^^^"<<std::endl;
+ 
+ if(this_is_the_last_range==1){std::cout<<" because it's the last range and ";}
+ if(this_is_the_first_range==1){std::cout<<" because it's the first range and ";}
+ if(closest_range_right_side>8){std::cout<<"The closest range from right side is "<<closest_range_right_side<<" bins away"<<std::endl;}
+ if(closest_range_left_side>8){std::cout<<"The closest range from left side is "<<closest_range_left_side<<" bins away"<<std::endl;}
+ 
+ }
  else{ MinHitsInRange=3; }
  
  
@@ -1169,13 +1251,39 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
  
  
  std::cout<<"no_hits_in_range= "<<no_hits_in_range<<" for peak at bin # "<<FinalPeaks[peak]<<" ("<<-180+2*FinalPeaks[peak]<<" degrees). Its range is ["<<-180+2*MaxStartPoint[peak]<<", "<<-180+2*MaxEndPoint[peak]<<" ]"<<std::endl;
- if(no_hits_in_range>=MinHitsInRange){
+ 
+ if(plane==0){
+ if(fh_theta_ind_Area->GetBinContent(FinalPeaks[peak])>0.4 && no_hits_in_range>=MinHitsInRange){
+ TempFinalPeaks.push_back(FinalPeaks[peak]);
+ TempMaxStartPoint.push_back(MaxStartPoint[peak]);
+ TempMaxEndPoint.push_back(MaxEndPoint[peak]);
+ }
+ else if(fh_theta_ind_Area->GetBinContent(FinalPeaks[peak])<0.4 && no_hits_in_range>=MinHitsInRange && well_separated==1){
  TempFinalPeaks.push_back(FinalPeaks[peak]);
  TempMaxStartPoint.push_back(MaxStartPoint[peak]);
  TempMaxEndPoint.push_back(MaxEndPoint[peak]);
  
+ }
+ 
+ }//plane 0
+ 
+ if(plane==1){
+ if(fh_theta_coll_Area->GetBinContent(FinalPeaks[peak])>0.4 && no_hits_in_range>=MinHitsInRange){
+ TempFinalPeaks.push_back(FinalPeaks[peak]);
+ TempMaxStartPoint.push_back(MaxStartPoint[peak]);
+ TempMaxEndPoint.push_back(MaxEndPoint[peak]);
+ }
+ else if(fh_theta_coll_Area->GetBinContent(FinalPeaks[peak])<0.4 && no_hits_in_range>=MinHitsInRange && well_separated==1){
+ TempFinalPeaks.push_back(FinalPeaks[peak]);
+ TempMaxStartPoint.push_back(MaxStartPoint[peak]);
+ TempMaxEndPoint.push_back(MaxEndPoint[peak]);
  
  }
+ 
+ }//plane 1
+ 
+ 
+ well_separated=0;
  no_hits_in_range=0;
  positive_diff_end_minus_start.clear();
  positive_diff_start_minus_end.clear();
