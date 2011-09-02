@@ -1118,6 +1118,12 @@ int well_separated=0;
 //---------------START BASIC EVALUATION FIRST---------------
 
 //Now I will eliminate all the peaks that have only 1 hit in it's RANGE(not in actual peak):
+//However, if there is a group of peaks that have just one hit in their range and are all close to each other then we need to form a cluster out of them, call it "hand_made_peak". But this peak has to be well seprated from the rest!!!! so need to determine it's range also in order to check the separation
+
+std::vector<int> one_hit_peaks,one_hit_peaks_start_point,one_hit_peaks_end_point;
+one_hit_peaks.clear();
+one_hit_peaks_start_point.clear();
+one_hit_peaks_end_point.clear();
 
 for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
   for(int bin=MaxStartPoint[peak]; bin<MaxEndPoint[peak];bin++){
@@ -1133,7 +1139,13 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
  
   }//loop thru bins for each peak
   
+  if(no_hits_in_range==1){
+  one_hit_peaks.push_back(FinalPeaks[peak]);
+  one_hit_peaks_start_point.push_back(MaxStartPoint[peak]);
+  one_hit_peaks_end_point.push_back(MaxEndPoint[peak]);
+  }
   
+  std::cout<<"no_hits_in_range= "<<no_hits_in_range<<" for peak at bin# "<<FinalPeaks[peak]<<std::endl;
   if(no_hits_in_range>1){
   TempFinalPeaks.push_back(FinalPeaks[peak]);
   TempMaxStartPoint.push_back(MaxStartPoint[peak]);
@@ -1150,6 +1162,168 @@ TempFinalPeaks.clear();
 TempMaxStartPoint.clear();
 TempMaxEndPoint.clear();
 no_hits_in_range=0;
+
+std::cout<<" So now the size of FinalPeaks.size()="<<FinalPeaks.size()<<std::endl;
+//Before I start actuall work on these 1-hit peaks I will get rid of all the ones that are too close to the already existing ranges:
+
+std::vector<int> temp_one_hit_peaks;
+temp_one_hit_peaks.clear();
+int bad_one_hit_peak=0;
+
+ for(int i=0;i<one_hit_peaks.size(); i++){
+   for(int g=0; g<FinalPeaks.size(); g++){
+
+
+   if(abs(one_hit_peaks[i]-MaxStartPoint[g])<6 || abs(one_hit_peaks[i]-MaxEndPoint[g])<6){
+   
+   bad_one_hit_peak=1;
+   break;
+   
+   }
+ }
+ 
+ if (bad_one_hit_peak==0) temp_one_hit_peaks.push_back(one_hit_peaks[i]);
+ bad_one_hit_peak=0;
+}
+
+
+one_hit_peaks.clear();
+one_hit_peaks=temp_one_hit_peaks;
+
+
+std::cout<<" ### NOW THE UPDATED NO OF one_hit_peaks= "<<one_hit_peaks.size()<<" they are at bins : ";
+
+for(int u=0; u<one_hit_peaks.size();u++){
+
+std::cout<<one_hit_peaks[u]<<std::endl;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+//-----------WORK ON 1-HIT PEAKS----------------------------
+
+std::vector<int> grouped_one_hit_peaks;
+grouped_one_hit_peaks.clear();
+int hand_made_peak=0;
+
+std::cout<<"one_hit_peaks size= "<<one_hit_peaks.size()<<std::endl;
+if(one_hit_peaks.size()>3){
+
+  for(int i=0;i<one_hit_peaks.size(); i++){
+    for(int j=0;j<one_hit_peaks.size(); j++){
+    
+      if(grouped_one_hit_peaks.size()==0){
+      
+      // loop thru existing ranges and make sure that your 1-hit peaks are not close to each other but also well separated from the existing ranges
+       for(int r=0; r<FinalPeaks.size(); r++){ 
+       std::cout<<"### FinalPeaks.size()= "<<FinalPeaks.size()<<std::endl;
+       std::cout<<"MaxStartPoint["<<r<<"]= "<<MaxStartPoint[r]<<"MaxEndPoint["<<r<<"]= "<<MaxEndPoint[r]<<std::endl;
+       if(i!=j && abs(one_hit_peaks[i]-one_hit_peaks[j])<4 ){ 
+       
+       //std::cout<<"abs(one_hit_peaks[i]-MaxStartPoint[r])= "<<abs(one_hit_peaks[i]-MaxStartPoint[r])<<" :: "<<one_hit_peaks[i]<<" - "<<MaxStartPoint[r]<<std::endl;
+       
+       
+       //std::cout<<"MaxStartPoint["<<r<<"]= "<<MaxStartPoint[r]<<"MaxEndPoint["<<r<<"]= "<<MaxEndPoint[r]<<std::endl;
+       
+       //std::cout<<"one_hit_peaks[i]= "<<one_hit_peaks[i]<<" one_hit_peaks[j]= "<<one_hit_peaks[j]<<std::endl;
+       
+       
+      //if you can't find this peak in the group, then add it:
+         if(std::find(grouped_one_hit_peaks.begin(),grouped_one_hit_peaks.end(),one_hit_peaks[i])==grouped_one_hit_peaks.end()){
+      grouped_one_hit_peaks.push_back(one_hit_peaks[i]);
+      std::cout<<"ADDING PEAK #"<<one_hit_peaks[i]<<" TO THE GROUP"<<std::endl;
+         }
+        if(std::find(grouped_one_hit_peaks.begin(),grouped_one_hit_peaks.end(),one_hit_peaks[j])==grouped_one_hit_peaks.end()){
+     grouped_one_hit_peaks.push_back(one_hit_peaks[j]);
+     std::cout<<"ADDING PEAK #"<<one_hit_peaks[j]<<" TO THE GROUP"<<std::endl;
+         }
+   } //if difference between peak bin#s is small 
+   }// loop thru already existing peaks 
+} //if size=0 
+    
+     
+    
+
+     } //first loop thru each 1-hit peak
+     
+     
+     
+     
+  } //second loop thru each 1-hit peak
+  
+  int failed=0;
+   //Now go thru all the peaks again to find the third matching peak:
+     if(grouped_one_hit_peaks.size()>0){
+      for(int y=0;y<one_hit_peaks.size();y++){
+       //now every added peak must be very close to EACH already added peak in the group
+       for(int q=0; q<grouped_one_hit_peaks.size();q++){
+       
+        if(abs(one_hit_peaks[y]-grouped_one_hit_peaks[q])>5){
+        failed=1;
+        break;
+        }
+       
+       } //for
+       
+       
+       if(failed==0 && std::find(grouped_one_hit_peaks.begin(),grouped_one_hit_peaks.end(),one_hit_peaks[y])==grouped_one_hit_peaks.end() ){
+       
+       grouped_one_hit_peaks.push_back(one_hit_peaks[y]);
+       
+       //if(grouped_one_hit_peaks.size()==3) break;
+       
+       }
+       failed=0;
+       } //loop thru all 1-hit peaks
+     }// if size >0
+  
+  
+} //if we have more than 3 1-hit peaks
+
+
+//so now we should have a group of 1-hit peaks that are close to each other. 
+
+if(grouped_one_hit_peaks.size()>=3){
+
+ //form a peak by taking the average of them and picking the one that's closest to that value:
+ int sum=0;
+ int made_peak=200;
+ 
+ 
+   for(int k=0; k<grouped_one_hit_peaks.size(); k++){
+    
+    sum+=grouped_one_hit_peaks[k];
+   
+   }
+    made_peak=sum/grouped_one_hit_peaks.size();
+    std::cout<<"---------MADE A HOME_MADE_PEAK FROM GROUPS OF 1-HIT CLUSTERS--------THIS PEAK IS AT BIN #"<<made_peak;
+    FinalPeaks.push_back(made_peak);
+    //Now work on the range. For now just start at the smallest peak bin-1 and end at the largest peak bin+1:
+    
+    std::sort(grouped_one_hit_peaks.begin(),grouped_one_hit_peaks.end());
+    
+    MaxStartPoint.push_back(grouped_one_hit_peaks[0]-1);
+    MaxEndPoint.push_back(grouped_one_hit_peaks[grouped_one_hit_peaks.size()-1]+1);
+    
+    std::cout<<" its range is ["<<grouped_one_hit_peaks[0]-1<<", "<<grouped_one_hit_peaks[grouped_one_hit_peaks.size()-1]+1<<"]"<<std::endl;
+    
+    hand_made_peak=1;
+    
+}
+
+
+
+//-----------END OF WORK ON 1-HIT PEAKS---------------------
+
 
 std::cout<<"After BASIC EVALUATION we now have "<<FinalPeaks.size()<<" peaks"<<std::endl;
 std::cout<<"FinalPeaks are at bin(s):  ";
@@ -1253,7 +1427,7 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
  std::cout<<"no_hits_in_range= "<<no_hits_in_range<<" for peak at bin # "<<FinalPeaks[peak]<<" ("<<-180+2*FinalPeaks[peak]<<" degrees). Its range is ["<<-180+2*MaxStartPoint[peak]<<", "<<-180+2*MaxEndPoint[peak]<<" ]"<<std::endl;
  
  if(plane==0){
- if(fh_theta_ind_Area->GetBinContent(FinalPeaks[peak])>0.4 && no_hits_in_range>=MinHitsInRange){
+ if((fh_theta_ind_Area->GetBinContent(FinalPeaks[peak])>0.4 && no_hits_in_range>=MinHitsInRange) || hand_made_peak==1){
  TempFinalPeaks.push_back(FinalPeaks[peak]);
  TempMaxStartPoint.push_back(MaxStartPoint[peak]);
  TempMaxEndPoint.push_back(MaxEndPoint[peak]);
@@ -1268,7 +1442,7 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
  }//plane 0
  
  if(plane==1){
- if(fh_theta_coll_Area->GetBinContent(FinalPeaks[peak])>0.4 && no_hits_in_range>=MinHitsInRange){
+ if((fh_theta_coll_Area->GetBinContent(FinalPeaks[peak])>0.4 && no_hits_in_range>=MinHitsInRange) || hand_made_peak==1){
  TempFinalPeaks.push_back(FinalPeaks[peak]);
  TempMaxStartPoint.push_back(MaxStartPoint[peak]);
  TempMaxEndPoint.push_back(MaxEndPoint[peak]);
