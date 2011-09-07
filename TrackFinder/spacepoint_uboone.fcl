@@ -7,7 +7,7 @@ process_name: SpacePointAna
 services:
 {
   # Load the service that manages root files for histograms.
-  TFileService: { fileName: "spacepoint.root" }
+  TFileService: { fileName: "spacepoint_uboone.root" }
   scheduler:    { wantTracer: true wantSummary: true }
   Timing:       {}
   message:   @local::standard_debug
@@ -27,8 +27,6 @@ services.user.DBScanService:      @local::microboone_dbscanservice
 services.user.EndPointService:    @local::microboone_endpointservice
 services.user.HoughLineService:   @local::microboone_houghlineservice
 services.user.SpacePointService:  @local::microboone_spacepointservice
-services.user.SpacePointService.Hist: true
-services.user.SpacePointService.MCHist: true
 services.user.SpacePointService.UseMC: true
 
 services.message.destinations.debugmsg.type: "cout"

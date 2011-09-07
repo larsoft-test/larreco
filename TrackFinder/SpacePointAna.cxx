@@ -87,10 +87,10 @@ namespace trkf {
 	fHDTVE = dir.make<TH1F>("MCDTVE", "V-Drift Electrons Time Difference", 100, -50., 50.);
 	fHDTWE = dir.make<TH1F>("MCDTWE", "W-Drift Electrons Time Difference", 100, -50., 50.);
       }
-      fHDTUV = dir.make<TH1F>("DTUV", "U-V time difference", 100, -50., 50.);
-      fHDTVW = dir.make<TH1F>("DTVW", "V-W time difference", 100, -50., 50.);
-      fHDTWU = dir.make<TH1F>("DTWU", "W-U time difference", 100, -50., 50.);
-      fHS = dir.make<TH1F>("DS", "Spatial Separatoin", 100, -10., 10.);
+      fHDTUV = dir.make<TH1F>("DTUV", "U-V time difference", 100, -20., 20.);
+      fHDTVW = dir.make<TH1F>("DTVW", "V-W time difference", 100, -20., 20.);
+      fHDTWU = dir.make<TH1F>("DTWU", "W-U time difference", 100, -20., 20.);
+      fHS = dir.make<TH1F>("DS", "Spatial Separatoin", 100, -2., 2.);
 
       fHx = dir.make<TH1F>("xpos", "X Position",
 			   100, 0., 2.*geom->DetHalfWidth());
@@ -99,9 +99,9 @@ namespace trkf {
       fHz = dir.make<TH1F>("zpos", "Z Position",
 			   100, 0., geom->DetLength());
       if(mc) {
-	fHMCdx = dir.make<TH1F>("MCdx", "X MC Residual", 100, -5., 5.);
-	fHMCdy = dir.make<TH1F>("MCdy", "Y MC Residual", 100, -5., 5.);
-	fHMCdz = dir.make<TH1F>("MCdz", "Z MC Residual", 100, -5., 5.);
+	fHMCdx = dir.make<TH1F>("MCdx", "X MC Residual", 100, -2., 2.);
+	fHMCdy = dir.make<TH1F>("MCdy", "Y MC Residual", 100, -2., 2.);
+	fHMCdz = dir.make<TH1F>("MCdz", "Z MC Residual", 100, -2., 2.);
       }
     }
   }

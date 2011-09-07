@@ -30,8 +30,6 @@ services.user.DBScanService:      @local::argoneut_dbscanservice
 services.user.EndPointService:    @local::argoneut_endpointservice
 services.user.HoughLineService:   @local::argoneut_houghlineservice
 services.user.SpacePointService:  @local::microboone_spacepointservice
-services.user.SpacePointService.Hist: true
-services.user.SpacePointService.MCHist: true
 services.user.SpacePointService.UseMC: true
 #services.user.DetectorProperties.SamplingRate: 200
 
