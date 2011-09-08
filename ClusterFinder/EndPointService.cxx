@@ -17,6 +17,7 @@
 //Thanks to B. Morgan of U. of Warwick for comments and suggestions
 
 #include <iostream>
+#include <vector>
 
 // Framework includes
 #include "art/Framework/Core/Event.h"
@@ -30,6 +31,9 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "ClusterFinder/EndPointService.h"
+
+#include "Utilities/LArProperties.h"
+#include "Utilities/DetectorProperties.h"
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -119,7 +123,9 @@ void cluster::EndPointService::VSSaveBMPFile(const char *fileName, unsigned char
   lutEntry[3] = 0;  // reserved part
   for (i=0; i<256; i++)
     {
-      lutEntry[0] = lutEntry[1] = lutEntry[2] = i;
+      lutEntry[0] =i;
+      lutEntry[1] =i+1;
+      lutEntry[2] = i+2;
       bmpFile.write(lutEntry, sizeof lutEntry);
     }
   // write the actual pixels
@@ -131,8 +137,10 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 {
 
   art::ServiceHandle<geo::Geometry> geom;
-  
-  extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
+  art::ServiceHandle<util::LArProperties> larp;
+   
+    // // function below does not link, so commenting
+  //extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   
   
   //Point to a collection of vertices to output.
@@ -140,7 +148,8 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
   filter::ChannelFilter chanFilt;  
   art::PtrVector<recob::Hit> cHits;
   art::PtrVector<recob::Hit> hit;
-   
+  
+
  
 
   int flag=0;
@@ -186,23 +195,37 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
       if(hit.size() == 0) 
         continue;
 
-      numberwires=geom->Nwires(0,t);
-      numbertimesamples=hit[0]->Wire()->fSignal.size();
-      double MatrixAsum[numberwires][fTimeBins];
-      double MatrixBsum[numberwires][fTimeBins];
-      double hit_map[numberwires][fTimeBins];//the map of hits 
-      int hit_loc[numberwires][fTimeBins];//the index of the hit that corresponds to the potential corner
-      double Cornerness[numberwires][fTimeBins];//the "weight" of a corner
+       numberwires=geom->Nwires(p,t);
+       numbertimesamples=hit[0]->Wire()->fSignal.size();
+      std::cout << " --- endpoints check " << numberwires << " " << numbertimesamples << " " << fTimeBins << std::endl;
+ 
+      std::vector < std::vector < double > > MatrixAsum;
+      MatrixAsum.resize(numberwires);
+      std::vector < std::vector < double > >  MatrixBsum;
+      MatrixBsum.resize(numberwires);
+      std::vector < std::vector < double > >  hit_map;//the map of hits 
+      hit_map.resize(numberwires);
+      std::vector < std::vector < int > > hit_loc;//the index of the hit that corresponds to the potential corner
+      hit_loc.resize(numberwires);
+      std::vector < std::vector < double > >  Cornerness;//the "weight" of a corner
+      Cornerness.resize(numberwires);
+  
   
       for(unsigned int wi=0;wi < numberwires; wi++)
-	for(int timebin=0;timebin < fTimeBins; timebin++){
+      {  hit_map[wi].resize(fTimeBins,0);
+         hit_loc[wi].resize(fTimeBins,-1);
+	 Cornerness[wi].resize(fTimeBins,0);
+	 MatrixAsum[wi].resize(fTimeBins,0);
+	 MatrixBsum[wi].resize(fTimeBins,0);
+/*      
+	for(unsigned int timebin=0;timebin < fTimeBins; timebin++){
 	  hit_map[wi][timebin]=0.;
 	  hit_loc[wi][timebin]=-1;
 	  Cornerness[wi][timebin]=0.;
 	  MatrixAsum[wi][timebin]=0.;
 	  MatrixBsum[wi][timebin]=0.;
-	}
-             
+	}*/
+      }      
       for(unsigned int i=0;i < hit.size(); i++){
 	channel=hit[i]->Wire()->RawDigit()->Channel();
 	geom->ChannelToWire(channel,tpc,plane,wire);
@@ -213,57 +236,51 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 	
       ////Gaussian derivative convolution  
       for(unsigned int wire=1;wire < numberwires-1; wire++)
+      {//std:: cout << "loop for wire " << wire << std::endl;
 	for(int timebin=1;timebin < fTimeBins-1; timebin++){
 	  MatrixAsum[wire][timebin]=0.;
 	  MatrixBsum[wire][timebin]=0.;
 	  n=0;
 	  for(int i = -3; i <= 3; i++) {
-	    windex=0;
+	      windex=wire+i;
+	      if(windex < 0 ) windex=0;
+	      else if ((unsigned int)windex >= numberwires) windex=numberwires-1;  // this is ok, because the line before makes sure it's not negative
 	    for(int j = -3; j <= 3; j++) {
-	      tindex=0;
-	      while(wire+i+windex<0)
-		windex++;
-	      while(wire+i+windex>numberwires)
-		windex--;
-	      while(timebin+j+tindex<0)
-		tindex++;
-	      while(timebin+j+tindex>fTimeBins)
-		tindex--;               
-	      MatrixAsum[wire][timebin]+=wx[n]*hit_map[wire+i+windex][timebin+j+tindex];  
-	      MatrixBsum[wire][timebin]+=wy[n]*hit_map[wire+i+windex][timebin+j+tindex]; 
+	      tindex=timebin+j;
+	      if(tindex<0) tindex=0;
+	      else if (tindex>=fTimeBins) windex=fTimeBins-1;
+	      
+	      MatrixAsum[wire][timebin]+=wx[n]*hit_map[windex][tindex];  
+	      MatrixBsum[wire][timebin]+=wy[n]*hit_map[windex][tindex]; 
 	      n++;
 	    }
 	  }
-	}
-     
+	 }
+      }
       //calculate the cornerness of each pixel while making sure not to fall off the hit map.
       for(unsigned int wire=1;wire < numberwires-1; wire++)
-	for(int timebin=1;timebin < fTimeBins-1; timebin++){     
+      { //std:: cout << "loop for wire " << wire << std::endl;
+	for(int timebin=1;timebin < fTimeBins-1; timebin++){    
 	  MatrixAAsum=0;
 	  MatrixBBsum=0;
 	  MatrixCCsum=0;
 	  //Gaussian smoothing convolution
 	  n=0;
-	  
 	  for(int i = -3; i <= 3; i++) {
-	    windex=0;
+	     windex=wire+i;
+	      if(windex<0) windex=0;
+	      else if ((unsigned int)windex >= numberwires) windex=numberwires-1; // this is ok, because the line before makes sure it's not negative
 	    for(int j = -3; j <= 3; j++) {
-	      tindex=0;
-	      while(wire+i+windex<0)
-		windex++;
-	      while(wire+i+windex>numberwires)
-		windex--;
-	      while(timebin+j+tindex<0)
-		tindex++;
-	      while(timebin+j+tindex>fTimeBins)
-		tindex--;               
-	      MatrixAAsum+=w[n]*pow(MatrixAsum[wire+i][timebin+j],2);  
-	      MatrixBBsum+=w[n]*pow(MatrixBsum[wire+i][timebin+j],2);                   
-	      MatrixCCsum+=w[n]*MatrixAsum[wire+i][timebin+j]*MatrixBsum[wire+i][timebin+j]; 
+	      tindex=timebin+j;
+	      if(tindex<0) tindex=0;
+	      else if (tindex>=fTimeBins) windex=fTimeBins-1;
+	     
+	      MatrixAAsum+=w[n]*pow(MatrixAsum[windex][tindex],2);  
+	      MatrixBBsum+=w[n]*pow(MatrixBsum[windex][tindex],2);                   
+	      MatrixCCsum+=w[n]*MatrixAsum[windex][tindex]*MatrixBsum[windex][tindex]; 
 	      n++;
 	    }
 	  }
-	  
 	  if((MatrixAAsum+MatrixBBsum)>0)		
 	    Cornerness[wire][timebin]=(MatrixAAsum*MatrixBBsum-pow(MatrixCCsum,2))/(MatrixAAsum+MatrixBBsum);
 	  else
@@ -284,6 +301,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 	    }	     
 	  }	    
 	}      
+    }  // end wire loop 
       std::sort(Cornerness2.rbegin(),Cornerness2.rend());
 
       for(int vertexnum=0;vertexnum<fMaxCorners;vertexnum++){
@@ -312,8 +330,15 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 		// converted to time ticks so that the window is truly square. 
 		// Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), 
 		// assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
-		for(int wireout=(int)wire-(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5);
-		    wireout <= (int)wire+(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5) ; wireout++)
+		
+   
+	      //introduce detector independent version - note: change .198 to detector ind. value once this it's sorted out.
+		double drifttick=larp->DriftVelocity(larp->Efield(),larp->Temperature())*(.198);
+		double wirepitch=geom->WirePitch(0,1,0);
+		double corrfactor=drifttick/wirepitch;
+				
+		for(int wireout=(int)wire-(int)((fWindow*(numbertimesamples/fTimeBins)*corrfactor)+.5);
+		    wireout <= (int)wire+(int)((fWindow*(numbertimesamples/fTimeBins)*corrfactor)+.5) ; wireout++)
 		  for(int timebinout=timebin-fWindow;timebinout <= timebin+fWindow; timebinout++)
 		    if(sqrt(pow(wire-wireout,2)+pow(timebin-timebinout,2))<fWindow)//circular window 
 		      Cornerness[wireout][timebinout]=0;	  
@@ -344,12 +369,31 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 	    //scales the pixel weights based on the maximum cell value     
 	    if(maxCell>0)
 	      pix = (int)((1500000*hit_map[x][y])/maxCell);
-	    outPix[y*numberwires + x] = pix;
+	      outPix[y*numberwires + x] = pix;
 	  }
-	SaveBMPFile("harrisvertexmap.bmp", outPix, numberwires, fTimeBins);
+	  // add 3x3 pixel squares to with the harris vertex finders to the .bmp file
+
+	  for(unsigned int ii=0;ii<vtxcol.size();ii++)
+	      {
+		if(vtxcol[ii].View()==(unsigned int)view)
+		{
+		   pix = (int)(255);
+		   outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireNum()] = pix;
+		   outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireNum()-1] = pix;
+		   outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireNum()+1] = pix;
+		   outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireNum()] = pix;
+		   outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireNum()] = pix;
+		   outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireNum()-1] = pix;
+		   outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireNum()-2] = pix;
+		   outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireNum()+1] = pix;
+		   outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireNum()+2] = pix;
+		}
+	      }
+	     
+	VSSaveBMPFile(Form("harrisvertexmap_%d_%d.bmp",(*clusIn.begin())->ID(),p), outPix, numberwires, fTimeBins);
 	delete [] outPix;
       }   
-    }
+    } // end loop over planes
   }//end loop over tpcs
     
   return vtxcol.size();   
