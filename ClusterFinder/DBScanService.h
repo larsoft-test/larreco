@@ -11,6 +11,8 @@
 #include "art/Persistency/Common/Ptr.h"
 #include "art/Persistency/Common/PtrVector.h"
 
+#include "Geometry/geo.h"
+
 class TH1F;
 
 namespace recob { class Hit; }
@@ -56,9 +58,10 @@ namespace cluster{
     unsigned int fMinPts;
       
     // noise vector
-    std::vector<bool> fnoise;
-    std::vector<bool> fvisited;
-
+    std::vector<bool>   fnoise;
+    std::vector<bool>   fvisited;
     std::vector<double> fWirePitch; ///< the pitch of the wires in each plane
+
+    art::ServiceHandle<geo::Geometry> fGeom;
   };
 } // namespace
