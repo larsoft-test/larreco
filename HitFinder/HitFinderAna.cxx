@@ -174,13 +174,14 @@ namespace hit{
 
 	fRun = evt.run();
 	fEvt = evt.id().event();
-	
-	//std::cout << "HitFinderAna: itr is " << *itr << std::endl;
-	//std::cout << "HitFinderAna: Channel Object # is " << (*itr)->Channel() << std::endl;
-	std::cout << "HitFinderAna: channel # is " << channel << std::endl;
-	
 
-	if (channel==4798 || channel==4854) {itr++; continue;}
+	/*
+	std::cout << "HitFinderAna: channel # is " << channel << std::endl;
+	std::cout << "HitFinderAna: Hit itself is " << (*itr) << std::endl;
+	std::cout << "HitFinderAna: SimIDE itself is " << scs[channel] << std::endl;
+	*/
+	if (!scs[channel]) {itr++;continue;}
+
 	std::vector<cheat::TrackIDE> trackides = cheat::BackTracker::HitToTrackID(*(scs[(*itr)->Channel()]), *itr);
 	std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
 	std::vector<double> xyz = cheat::BackTracker::HitToXYZ(*(scs[(*itr)->Channel()]),*itr);
@@ -194,7 +195,7 @@ namespace hit{
 
 	    for (unsigned int kk=0;kk<3;kk++)
 	      {
-		fXYZp0[fNp0*3+kk] = xyz[0];
+		fXYZp0[fNp0*3+kk] = xyz[kk];
 	      }
 	    
 
@@ -221,7 +222,7 @@ namespace hit{
 
 	    for (unsigned int kk=0;kk<3;kk++)
 	      {
-		fXYZp1[fNp1*3+kk] = xyz[0];
+		fXYZp1[fNp1*3+kk] = xyz[kk];
 	      }
 
 	    while( idesitr != trackides.end() )
@@ -246,7 +247,7 @@ namespace hit{
 	    
 	    for (unsigned int kk=0;kk<3;kk++)
 	      {
-		fXYZp2[fNp2*3+kk] = xyz[0];
+		fXYZp2[fNp2*3+kk] = xyz[kk];
 	      }
 	    
 	    while( idesitr != trackides.end() )
