@@ -72,20 +72,19 @@ void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits)
   //------------------------------------------------------------------
   // Determine spacing between wires (different for each detector)
   ///get 2 first wires and find their spacing (wire_dist)
-  
+
   art::ServiceHandle<geo::Geometry> geom;
-  fGeom = geom;
+  
+  for(size_t p = 0; p < geom->Nplanes(); ++p)
+    fWirePitch.push_back(geom->WirePitch(0,1,p));
 
-  for(size_t p = 0; p < fGeom->Nplanes(); ++p)
-    fWirePitch.push_back(fGeom->WirePitch(0,1,p));
-
-  const geo::WireGeo& wire = fGeom->Plane(0).Wire(0);
+  const geo::WireGeo& wire = geom->Plane(0).Wire(0);
   const double pos[3] = {0., 0.0, 0.};
   double posWorld0[3] = {0.};
   double posWorld1[3] = {0.};
   wire.LocalToWorld(pos, posWorld0);
   
-  const geo::WireGeo& wire1 = fGeom->Plane(0).Wire(1);
+  const geo::WireGeo& wire1 = geom->Plane(0).Wire(1);
   wire1.LocalToWorld(pos, posWorld1);
   
   double wire_dist =posWorld0[1]- posWorld1[1];

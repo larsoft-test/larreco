@@ -62,6 +62,5 @@ namespace cluster{
     std::vector<bool>   fvisited;
     std::vector<double> fWirePitch; ///< the pitch of the wires in each plane
 
-    art::ServiceHandle<geo::Geometry> fGeom;
   };
 } // namespace
