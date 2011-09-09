@@ -163,7 +163,7 @@ namespace hit{
       //All code below does the fitting, adding of hits
       //to the hit vector and when all wires are complete 
       //saving them 
-      double totSig(0); //stoes the total hit signal
+      double totSig(0); //stores the total hit signal
       double startT(0); //stores the start time
       double endT(0);  //stores the end time
       int numHits(0);  //number of consecutive hits being fitted
