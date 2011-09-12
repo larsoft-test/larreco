@@ -1087,9 +1087,9 @@ peak_with_wrong_range.clear();
 peak_with_which_it_ovelaps.clear();
 
 
-for(int pk=FinalPeaks.size()-1; pk>=0;pk--){
+for(unsigned int pk=FinalPeaks.size()-1; pk>=0;pk--){
    
-   for(int pk2=0; pk2<FinalPeaks.size();pk2++){
+   for(unsigned int pk2=0; pk2<FinalPeaks.size();pk2++){
     if(pk!=pk2 && ((MaxStartPoint[pk]<MaxEndPoint[pk2] && MaxStartPoint[pk]>MaxStartPoint[pk2])||( MaxEndPoint[pk]>MaxStartPoint[pk2] && MaxEndPoint[pk]<MaxEndPoint[pk2] ))){
     std::cout<<"WRONG RANGE, NEED TO FIX IT FOR PEAK AT BIN #"<<FinalPeaks[pk]<<std::endl;
     
@@ -1105,7 +1105,7 @@ for(int pk=FinalPeaks.size()-1; pk>=0;pk--){
 int diff=0;
 
 
-for(int i=0; i<peak_with_wrong_range.size(); i++){
+for(unsigned int i=0; i<peak_with_wrong_range.size(); i++){
 
 
 //if front of a range overlaps with the back of the range already in place
@@ -1223,8 +1223,8 @@ std::vector<int> temp_one_hit_peaks;
 temp_one_hit_peaks.clear();
 int bad_one_hit_peak=0;
 
- for(int i=0;i<one_hit_peaks.size(); i++){
-   for(int g=0; g<FinalPeaks.size(); g++){
+ for(unsigned int i=0;i<one_hit_peaks.size(); i++){
+   for(unsigned int g=0; g<FinalPeaks.size(); g++){
 
 
    if(abs(one_hit_peaks[i]-MaxStartPoint[g])<6 || abs(one_hit_peaks[i]-MaxEndPoint[g])<6){
@@ -1246,7 +1246,7 @@ one_hit_peaks=temp_one_hit_peaks;
 
 std::cout<<" ### NOW THE UPDATED NO OF one_hit_peaks= "<<one_hit_peaks.size()<<" they are at bins : ";
 
-for(int u=0; u<one_hit_peaks.size();u++){
+for(unsigned int u=0; u<one_hit_peaks.size();u++){
 
 std::cout<<one_hit_peaks[u]<<std::endl;
 
@@ -1271,13 +1271,13 @@ int hand_made_peak=0;
 std::cout<<"one_hit_peaks size= "<<one_hit_peaks.size()<<std::endl;
 if(one_hit_peaks.size()>3){
 
-  for(int i=0;i<one_hit_peaks.size(); i++){
-    for(int j=0;j<one_hit_peaks.size(); j++){
+  for(unsigned int i=0;i<one_hit_peaks.size(); i++){
+    for(unsigned int j=0;j<one_hit_peaks.size(); j++){
     
       if(grouped_one_hit_peaks.size()==0){
       
       // loop thru existing ranges and make sure that your 1-hit peaks are not close to each other but also well separated from the existing ranges
-       for(int r=0; r<FinalPeaks.size(); r++){ 
+       for(unsigned int r=0; r<FinalPeaks.size(); r++){ 
        std::cout<<"### FinalPeaks.size()= "<<FinalPeaks.size()<<std::endl;
        std::cout<<"MaxStartPoint["<<r<<"]= "<<MaxStartPoint[r]<<"MaxEndPoint["<<r<<"]= "<<MaxEndPoint[r]<<std::endl;
        if(i!=j && abs(one_hit_peaks[i]-one_hit_peaks[j])<4 ){ 
@@ -1316,9 +1316,9 @@ if(one_hit_peaks.size()>3){
   int failed=0;
    //Now go thru all the peaks again to find the third matching peak:
      if(grouped_one_hit_peaks.size()>0){
-      for(int y=0;y<one_hit_peaks.size();y++){
+      for(unsigned int y=0;y<one_hit_peaks.size();y++){
        //now every added peak must be very close to EACH already added peak in the group
-       for(int q=0; q<grouped_one_hit_peaks.size();q++){
+       for(unsigned int q=0; q<grouped_one_hit_peaks.size();q++){
        
         if(abs(one_hit_peaks[y]-grouped_one_hit_peaks[q])>5){
         failed=1;
@@ -1352,7 +1352,7 @@ if(grouped_one_hit_peaks.size()>=3){
  int made_peak=200;
  
  
-   for(int k=0; k<grouped_one_hit_peaks.size(); k++){
+   for(unsigned int k=0; k<grouped_one_hit_peaks.size(); k++){
     
     sum+=grouped_one_hit_peaks[k];
    
@@ -1698,7 +1698,7 @@ WrongPeakNo.push_back(NClus);
   
   if(NoHitsInCluster==2)
   {
-   for(int pk=0; pk<FinalPeaks.size();pk++){
+   for(unsigned int pk=0; pk<FinalPeaks.size();pk++){
     if(NClus!=pk && abs(FinalPeaks[NClus]-FinalPeaks[pk])<30){ go_ahead_at_reassign=1;
     break;}
    }
