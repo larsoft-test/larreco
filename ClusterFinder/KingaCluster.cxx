@@ -1087,27 +1087,28 @@ peak_with_wrong_range.clear();
 peak_with_which_it_ovelaps.clear();
 
 
-for(unsigned int pk=FinalPeaks.size()-1; pk>=0;pk--){
-   
+
+for( int pk=FinalPeaks.size()-1; pk>=0;pk--){
+   std::cout<<"pk= "<<pk<<std::endl;
    for(unsigned int pk2=0; pk2<FinalPeaks.size();pk2++){
-    if(pk!=pk2 && ((MaxStartPoint[pk]<MaxEndPoint[pk2] && MaxStartPoint[pk]>MaxStartPoint[pk2])||( MaxEndPoint[pk]>MaxStartPoint[pk2] && MaxEndPoint[pk]<MaxEndPoint[pk2] ))){
+    if(pk!= (int) pk2 && ((MaxStartPoint[pk]<MaxEndPoint[pk2] && MaxStartPoint[pk]>MaxStartPoint[pk2])||( MaxEndPoint[pk]>MaxStartPoint[pk2] && MaxEndPoint[pk]<MaxEndPoint[pk2] ))){
     std::cout<<"WRONG RANGE, NEED TO FIX IT FOR PEAK AT BIN #"<<FinalPeaks[pk]<<std::endl;
     
     peak_with_wrong_range.push_back(pk); //this gives peak#, NOT a bin#
     peak_with_which_it_ovelaps.push_back(pk2); //this gives peak#, NOT a bin#
     }
-   
+   std::cout<<"out1"<<std::endl;
    }
 
-
+std::cout<<"out2"<<std::endl;
 }
-
+std::cout<<"out3"<<std::endl;
 int diff=0;
 
 
 for(unsigned int i=0; i<peak_with_wrong_range.size(); i++){
 
-
+std::cout<<"out4"<<std::endl;
 //if front of a range overlaps with the back of the range already in place
 if(MaxStartPoint[peak_with_wrong_range[i]]<MaxEndPoint[peak_with_which_it_ovelaps[i]] && MaxStartPoint[peak_with_wrong_range[i]]>MaxStartPoint[peak_with_which_it_ovelaps[i]]){
  
