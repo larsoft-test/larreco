@@ -236,7 +236,7 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
     double presamplings=60.0;
     double drifttick=(MCvertex[0]/larp->DriftVelocity(larp->Efield(),larp->Temperature()))*(1./.198)+presamplings;
     
-    std::cout<<"%%%%%%%%%%%%%%%%%%   drifttick= "<<drifttick<<std::endl;
+    std::cout<<"%%%%%%%%%%%%%%%%%%   drifttick= "<<std::setprecision(10)<<drifttick<<std::endl;
     ftime_vertex.push_back(drifttick);
     ftime_vertex.push_back(drifttick);
     
@@ -288,6 +288,7 @@ std::cout<<"No of DBSCAN clusters= "<<clusIn.size()<<std::endl;
    for(unsigned int plane = 0; plane < geom->Nplanes(tpc); plane++) {
 
     need_to_reassign_hitsIDs=0;
+    go_ahead_at_reassign=0;
      for(unsigned int j=0; j<clusIn.size();++j) {
    
        hits=clusIn[j]->Hits();
@@ -362,15 +363,8 @@ std::cout<<"No of DBSCAN clusters= "<<clusIn.size()<<std::endl;
 
 // let's look at the clusters produced:
 std::cout<<"For Cluster # "<<ClusterNo<<" we have "<<clusterHits.size()<<" hits :"<<std::endl;
-if(ClusterNo==4){
-for(unsigned int i=0; i<clusterHits.size();i++){
-channel=clusterHits[i]->Wire()->RawDigit()->Channel();
- geom->ChannelToWire(channel,t,p,w);
-std::cout<<"wire ="<<w<<"  "<<clusterHits[i]->PeakTime();
 
-}
-}
-std::cout<<std::endl;
+
 
 
 //     //.................................
@@ -590,7 +584,7 @@ std::cout<<"No of HITS for plane "<<plane<<" is: "<<allhits.size()<<std::endl;
      //std::cout<<"**** theta_polar= "<<theta_polar<<std::endl;
     // std::cout<<" a_polar= "<<a_polar<<" b_polar= "<<b_polar<<std::endl;
      
-     std::cout<<"w= "<<w<<" t= "<<allhits[i]->PeakTime();
+     std::cout<<"w= "<<w<<" t= "<<std::setprecision(10)<<allhits[i]->PeakTime();
      std::cout<<" theta_polar= "<<theta_polar<<" hit area= "<<(allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *fdriftvelocity*0.4<<std::endl;
 if (plane==0 ) {
 
@@ -1086,6 +1080,65 @@ void cluster::KingaCluster::FitAngularDistributions(){
 
 void cluster::KingaCluster::FindClusters(unsigned int tpc, unsigned int plane){ 
 
+//First order check: make sure ranges of the peaks don't overlap, if they do you need to correct for that. The highest peaks should be left alone and we should work with the ones of the smallest peak value first. This means start from the end of the sorted peaks.
+
+std::vector<int> peak_with_wrong_range, peak_with_which_it_ovelaps;
+peak_with_wrong_range.clear();
+peak_with_which_it_ovelaps.clear();
+
+
+for(int pk=FinalPeaks.size()-1; pk>=0;pk--){
+   
+   for(int pk2=0; pk2<FinalPeaks.size();pk2++){
+    if(pk!=pk2 && ((MaxStartPoint[pk]<MaxEndPoint[pk2] && MaxStartPoint[pk]>MaxStartPoint[pk2])||( MaxEndPoint[pk]>MaxStartPoint[pk2] && MaxEndPoint[pk]<MaxEndPoint[pk2] ))){
+    std::cout<<"WRONG RANGE, NEED TO FIX IT FOR PEAK AT BIN #"<<FinalPeaks[pk]<<std::endl;
+    
+    peak_with_wrong_range.push_back(pk); //this gives peak#, NOT a bin#
+    peak_with_which_it_ovelaps.push_back(pk2); //this gives peak#, NOT a bin#
+    }
+   
+   }
+
+
+}
+
+int diff=0;
+
+
+for(int i=0; i<peak_with_wrong_range.size(); i++){
+
+
+//if front of a range overlaps with the back of the range already in place
+if(MaxStartPoint[peak_with_wrong_range[i]]<MaxEndPoint[peak_with_which_it_ovelaps[i]] && MaxStartPoint[peak_with_wrong_range[i]]>MaxStartPoint[peak_with_which_it_ovelaps[i]]){
+ 
+ diff=MaxEndPoint[peak_with_which_it_ovelaps[i]]-MaxStartPoint[peak_with_wrong_range[i]];
+  MaxStartPoint[peak_with_wrong_range[i]]=MaxStartPoint[peak_with_wrong_range[i]]+ diff;
+  std::cout<<"changing startpoint to bin #"<<MaxStartPoint[peak_with_wrong_range[i]]<<std::endl;
+
+}
+
+//if back of a range overlaps with the front of the range already in place
+if(MaxEndPoint[peak_with_wrong_range[i]]>MaxStartPoint[peak_with_which_it_ovelaps[i]] && MaxEndPoint[peak_with_wrong_range[i]]<MaxEndPoint[peak_with_which_it_ovelaps[i]]){
+ 
+ diff=MaxEndPoint[peak_with_wrong_range[i]]-MaxStartPoint[peak_with_which_it_ovelaps[i]];
+  MaxEndPoint[peak_with_wrong_range[i]]=MaxEndPoint[peak_with_wrong_range[i]]- diff;
+  
+  std::cout<<"changing endpoint to bin #"<<MaxEndPoint[peak_with_wrong_range[i]]<<std::endl;
+
+
+}
+
+
+
+diff=0;
+
+
+}
+
+
+
+
+
 
 // First let's make sure that each range of peaks contains more than some specified number of hits. You can do it by knowing the ranges, going into histograms and counting the entries from start of the range to the end.If some range contains less than the specified number you need to remove the peak.
 
@@ -1347,7 +1400,7 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
   diff_start_minus_end.push_back(MaxStartPoint[peak]-MaxEndPoint[peak2]);
   
   //........................//delete later------>>>>
-  if(FinalPeaks[peak]==126){
+  if(FinalPeaks[peak]==150){
   std::cout<<"--- will check for peak at bin# "<<FinalPeaks[peak]<<std::endl;
   std::cout<<"diff_end_minus_start= "<<MaxStartPoint[peak2]-MaxEndPoint[peak]<<std::endl;
   std::cout<<"diff_start_minus_end= "<<MaxStartPoint[peak]-MaxEndPoint[peak2]<<std::endl;}
@@ -1361,7 +1414,7 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
     positive_diff_end_minus_start.push_back(diff_end_minus_start[diff]); 
     
     //........................//delete later------>>>>
-  if(FinalPeaks[peak]==126){
+  if(FinalPeaks[peak]==150){
   std::cout<<"positive_diff_end_minus_start= "<<diff_end_minus_start[diff]<<std::endl;
   }
     //...........<<<--------------------------
@@ -1371,7 +1424,7 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
     positive_diff_start_minus_end.push_back(diff_start_minus_end[diff]); 
     
     //........................//delete later------>>>>
-  if(FinalPeaks[peak]==126){
+  if(FinalPeaks[peak]==150){
   std::cout<<"positive_diff_start_minus_end= "<<diff_start_minus_end[diff]<<std::endl;
   }
     //...........<<<--------------------------
@@ -1480,6 +1533,7 @@ MaxEndPoint=TempMaxEndPoint;
 std::cout<<" NO OF FINALPEAKS ***AFTER*** EVALUATION IS: "<<FinalPeaks.size()<<std::endl;
 
 need_to_reassign_hitsIDs=0;
+
 std::cout<<"FORMING CLUSTERS NOW :) "<<std::endl;
 std::cout<<"FinalPeaks are at bin(s):  ";
 for(unsigned int i=0; i<FinalPeaks.size();i++)
@@ -1627,17 +1681,36 @@ span=WireNo[WireNo.size()-1]-WireNo[0];
   }//if clusters containing less than 5 hits
 
 //......end of checking span for small clusters...............
-  if(NoHitsInCluster<MinHitsInCluster)
+//
+// let's give a chance for 2-hit-clusters IF it is very well separated from the rest of the peaks, say about 60 degrees which is 30 bins then do NOT reassign hits but leave this small 2-hit cluster as a valid one
+
+ 
+
+
+  if(NoHitsInCluster<MinHitsInCluster && NoHitsInCluster!=2)
   {
   need_to_reassign_hitsIDs=1;
 
 
 WrongPeakNo.push_back(NClus);
-
-
-
-
   }
+  
+  
+  if(NoHitsInCluster==2)
+  {
+   for(int pk=0; pk<FinalPeaks.size();pk++){
+    if(NClus!=pk && abs(FinalPeaks[NClus]-FinalPeaks[pk])<30){ go_ahead_at_reassign=1;
+    break;}
+   }
+   
+   if(go_ahead_at_reassign==1){WrongPeakNo.push_back(NClus);}
+   if(go_ahead_at_reassign==0){
+   
+   std::cout<<"FOUND A 2-HIT-CLUSTER WHICH IS VERY WELL SEPARATED FROM THE REST, I will leave it (This is peak at bin #"<<FinalPeaks[NClus]<<std::endl;
+   } 
+   
+  } //2-hit-clusters
+  go_ahead_at_reassign=0;
 
 }//loop thru all the clusters
 

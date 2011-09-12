@@ -75,6 +75,7 @@ namespace cluster {
     std::vector<int> FinalPeaks;
     int fpeaks_found; //flag to determine whether the program should continue or not
     bool need_to_reassign_hitsIDs;
+    bool go_ahead_at_reassign;
   protected:
 
     
