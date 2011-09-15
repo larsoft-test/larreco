@@ -385,7 +385,7 @@ double trkf::SpacePointService::separation(const art::PtrVector<recob::Hit>& hit
     double xyz1[3];
     wgeom.GetCenter(xyz);
     wgeom.GetCenter(xyz1, hl);
-    double s  = (xyz1[1] - xyz[1]) / hl;
+    double s = (xyz1[1] - xyz[1]) / hl;
     double c = (xyz1[2] - xyz[2]) / hl;
     sinth[plane] = s;
     costh[plane] = c;
@@ -736,16 +736,16 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
     }
   }
 
-  // Sort hits into maps indexed by [tpc][plane][time].
+  // Sort hits into maps indexed by [tpc][plane][wire].
   // If using mc information, also generate maps of sim::IDEs and mc 
   // position indexed by hit.
 
-  std::vector<std::vector<std::map<double, art::Ptr<recob::Hit> > > > hitmap;
+  std::vector<std::vector<std::map<unsigned int, art::Ptr<recob::Hit> > > > hitmap;
   fHitMCMap.clear();
 
-  int ntpc = geom->NTPC();
+  unsigned int ntpc = geom->NTPC();
   hitmap.resize(ntpc);
-  for(int tpc = 0; tpc < ntpc; ++tpc) {
+  for(unsigned int tpc = 0; tpc < ntpc; ++tpc) {
     int nplane = geom->Nplanes(tpc);
     hitmap[tpc].resize(nplane);
   }
@@ -761,9 +761,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
       unsigned short channel = phit->Channel();
       unsigned int tpc, plane, wire;
       geom->ChannelToWire(channel, tpc, plane, wire);
-
-      double t = phit->PeakTime() - timeOffset[tpc][plane];
-      hitmap[tpc][plane][t] = phit;
+      hitmap[tpc][plane][wire] = phit;
     }
   }
 
@@ -774,10 +772,10 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
     // First loop over hits and fill track ids and mc position.
 
-    for(int tpc = 0; tpc < ntpc; ++tpc) {
+    for(unsigned int tpc = 0; tpc < ntpc; ++tpc) {
       int nplane = geom->Nplanes(tpc);
       for(int plane = 0; plane < nplane; ++plane) {
-	for(std::map<double, art::Ptr<recob::Hit> >::const_iterator ihit = hitmap[tpc][plane].begin();
+	for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator ihit = hitmap[tpc][plane].begin();
 	    ihit != hitmap[tpc][plane].end(); ++ihit) {
 	  const art::Ptr<recob::Hit>& phit = ihit->second;
 	  const recob::Hit& hit = *phit;
@@ -810,10 +808,10 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
     // Loop over hits again and fill nearest neighbor information for real.
 
-    for(int tpc = 0; tpc < ntpc; ++tpc) {
+    for(unsigned int tpc = 0; tpc < ntpc; ++tpc) {
       int nplane = geom->Nplanes(tpc);
       for(int plane = 0; plane < nplane; ++plane) {
-	for(std::map<double, art::Ptr<recob::Hit> >::const_iterator ihit = hitmap[tpc][plane].begin();
+	for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator ihit = hitmap[tpc][plane].begin();
 	    ihit != hitmap[tpc][plane].end(); ++ihit) {
 	  const art::Ptr<recob::Hit>& phit = ihit->second;
 	  const recob::Hit& hit = *phit;
@@ -822,7 +820,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	  // Fill nearest neighbor information for this hit.
 
 	  for(int plane2 = 0; plane2 < nplane; ++plane2) {
-	    for(std::map<double, art::Ptr<recob::Hit> >::const_iterator jhit = hitmap[tpc][plane2].begin();
+	    for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator jhit = hitmap[tpc][plane2].begin();
 		jhit != hitmap[tpc][plane2].end(); ++jhit) {
 	      const art::Ptr<recob::Hit>& phit2 = jhit->second;
 	      const recob::Hit& hit2 = *phit2;
@@ -848,7 +846,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
   mf::LogDebug debug("SpacePointService");
   debug << "Total hits = " << hits.size() << "\n\n";
 
-  for(int tpc = 0; tpc < ntpc; ++tpc) {
+  for(unsigned int tpc = 0; tpc < ntpc; ++tpc) {
     int nplane = hitmap[tpc].size();
     for(int plane = 0; plane < nplane; ++plane) {
       debug << "TPC, Plane: " << tpc << ", " << plane 
@@ -858,7 +856,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
   // Loop over TPCs.
 
-  for(int tpc = 0; tpc < ntpc; ++tpc) {
+  for(unsigned int tpc = 0; tpc < ntpc; ++tpc) {
 
     // Sort maps in increasing order of number of hits.
     // This is so that we can do the outer loops over hits 
@@ -888,9 +886,23 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
       // Loop over pairs of views.
 
       for(int i=0; i<nplane-1; ++i) {
-	int plane1 = index[i];
+	unsigned int plane1 = index[i];
+
 	for(int j=i+1; j<nplane; ++j) {
-	  int plane2 = index[j];
+	  unsigned int plane2 = index[j];
+
+	  // Get angle, pitch, and offset of plane2 wires.
+
+	  const geo::WireGeo& wgeo2 = geom->Plane(plane2, tpc).Wire(0);
+	  double hl2 = wgeo2.HalfL();
+	  double xyz21[3];
+	  double xyz22[3];
+	  wgeo2.GetCenter(xyz21, -hl2);
+	  wgeo2.GetCenter(xyz22, hl2);
+	  double s2 = (xyz22[1] - xyz21[1]) / (2.*hl2);
+	  double c2 = (xyz22[2] - xyz21[2]) / (2.*hl2);
+	  double dist2 = -xyz21[1] * c2 + xyz21[2] * s2;
+	  double pitch2 = geom->WirePitch(0, 1, plane2, tpc);
 
 	  assert(hitmap[tpc][plane1].size() <= hitmap[tpc][plane2].size());
 
@@ -899,19 +911,36 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	  art::PtrVector<recob::Hit> hitvec;
 	  hitvec.reserve(2);
 
-	  for(std::map<double, art::Ptr<recob::Hit> >::const_iterator
+	  for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator
 		ihit1 = hitmap[tpc][plane1].begin();
 	      ihit1 != hitmap[tpc][plane1].end(); ++ihit1) {
 
 	    const art::Ptr<recob::Hit>& phit1 = ihit1->second;
+	    unsigned short channel1 = phit1->Channel();
 
-	    double t1 = phit1->PeakTime() - timeOffset[tpc][plane1];
-	    double t2min = t1 - maxDT;
-	    double t2max = t1 + maxDT;
+	    // Get endpoint coordinates of this wire.
 
-	    for(std::map<double, art::Ptr<recob::Hit> >::const_iterator 
-		  ihit2 = hitmap[tpc][plane2].lower_bound(t2min);
-		ihit2 != hitmap[tpc][plane2].upper_bound(t2max); ++ihit2) {
+	    unsigned int tpc1a, plane1a, wire1;
+	    const geo::WireGeo& wgeo = geom->ChannelToWire(channel1, tpc1a, plane1a, wire1);
+	    assert(tpc1a == tpc);
+	    assert(plane1a == plane1);
+	    double hl1 = wgeo.HalfL();
+	    double xyz1[3];
+	    double xyz2[3];
+	    wgeo.GetCenter(xyz1, -hl1);
+	    wgeo.GetCenter(xyz2, hl1);
+
+	    // Find the plane2 wire numbers corresponding to the endpoints.
+
+	    double wire21 = (-xyz1[1] * c2 + xyz1[2] * s2 - dist2) / pitch2;
+	    double wire22 = (-xyz2[1] * c2 + xyz2[2] * s2 - dist2) / pitch2;
+
+	    int wmin = std::min(wire21, wire22);
+	    int wmax = std::max(wire21, wire22) + 1.;
+
+	    for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator 
+		  ihit2 = hitmap[tpc][plane2].lower_bound(wmin);
+		ihit2 != hitmap[tpc][plane2].upper_bound(wmax); ++ihit2) {
 
 	      const art::Ptr<recob::Hit>& phit2 = ihit2->second;
 
@@ -937,7 +966,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
       }
     }
 
-    // If three-view space points are allowed, make a tripe loop
+    // If three-view space points are allowed, make a triple loop
     // over hits and produce space points for compatible triplets.
 
     if(nplane >= 3 && fMinViews <= 3) {
@@ -947,59 +976,169 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
       art::PtrVector<recob::Hit> hitvec;
       hitvec.reserve(3);
 
-      int plane1 = index[0];
-      for(std::map<double, art::Ptr<recob::Hit> >::const_iterator
+      unsigned int plane1 = index[0];
+      unsigned int plane2 = index[1];
+      unsigned int plane3 = index[2];
+
+      // Get angle, pitch, and offset of plane1 wires.
+
+      const geo::WireGeo& wgeo1 = geom->Plane(plane1, tpc).Wire(0);
+      double hl1 = wgeo1.HalfL();
+      double xyz11[3];
+      double xyz12[3];
+      wgeo1.GetCenter(xyz11, -hl1);
+      wgeo1.GetCenter(xyz12, hl1);
+      double s1 = (xyz12[1] - xyz11[1]) / (2.*hl1);
+      double c1 = (xyz12[2] - xyz11[2]) / (2.*hl1);
+      double dist1 = -xyz11[1] * c1 + xyz11[2] * s1;
+      double pitch1 = geom->WirePitch(0, 1, plane1, tpc);
+
+      // Get angle, pitch, and offset of plane2 wires.
+
+      const geo::WireGeo& wgeo2 = geom->Plane(plane2, tpc).Wire(0);
+      double hl2 = wgeo2.HalfL();
+      double xyz21[3];
+      double xyz22[3];
+      wgeo2.GetCenter(xyz21, -hl2);
+      wgeo2.GetCenter(xyz22, hl2);
+      double s2 = (xyz22[1] - xyz21[1]) / (2.*hl2);
+      double c2 = (xyz22[2] - xyz21[2]) / (2.*hl2);
+      double dist2 = -xyz21[1] * c2 + xyz21[2] * s2;
+      double pitch2 = geom->WirePitch(0, 1, plane2, tpc);
+
+      // Get angle, pitch, and offset of plane3 wires.
+
+      const geo::WireGeo& wgeo3 = geom->Plane(plane3, tpc).Wire(0);
+      double hl3 = wgeo3.HalfL();
+      double xyz31[3];
+      double xyz32[3];
+      wgeo3.GetCenter(xyz31, -hl3);
+      wgeo3.GetCenter(xyz32, hl3);
+      double s3 = (xyz32[1] - xyz31[1]) / (2.*hl3);
+      double c3 = (xyz32[2] - xyz31[2]) / (2.*hl3);
+      double dist3 = -xyz31[1] * c3 + xyz31[2] * s3;
+      double pitch3 = geom->WirePitch(0, 1, plane3, tpc);
+
+      // Get sine of angle differences.
+
+      double s12 = s1 * c2 - s2 * c1;   // sin(theta1 - theta2).
+      double s23 = s2 * c3 - s3 * c2;   // sin(theta2 - theta3).
+      double s31 = s3 * c1 - s1 * c3;   // sin(theta3 - theta1).
+
+      // Loop over hits in plane1.
+
+      for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator
 	    ihit1 = hitmap[tpc][plane1].begin();
 	  ihit1 != hitmap[tpc][plane1].end(); ++ihit1) {
 
+	unsigned int wire1 = ihit1->first;
 	const art::Ptr<recob::Hit>& phit1 = ihit1->second;
+	unsigned short channel1 = phit1->Channel();
+
+	// Get endpoint coordinates of this wire from plane1.
+
+	unsigned int tpc1a, plane1a, wire1a;
+	const geo::WireGeo& wgeo = geom->ChannelToWire(channel1, tpc1a, plane1a, wire1a);
+	assert(tpc1a == tpc);
+	assert(plane1a == plane1);
+	assert(wire1a == wire1);
+	double hl1 = wgeo.HalfL();
+	double xyz1[3];
+	double xyz2[3];
+	wgeo.GetCenter(xyz1, -hl1);
+	wgeo.GetCenter(xyz2, hl1);
+
+	// Get corrected time and oblique coordinate of first hit.
 
 	double t1 = phit1->PeakTime() - timeOffset[tpc][plane1];
-	double t2min = t1 - maxDT;
-	double t2max = t1 + maxDT;
+	double u1 = wire1 * pitch1 + dist1;
 
-	int plane2 = index[1];
-	for(std::map<double, art::Ptr<recob::Hit> >::const_iterator 
-	      ihit2 = hitmap[tpc][plane2].lower_bound(t2min);
-	    ihit2 != hitmap[tpc][plane2].upper_bound(t2max); ++ihit2) {
+	// Find the plane2 wire numbers corresponding to the endpoints.
 
+	double wire21 = (-xyz1[1] * c2 + xyz1[2] * s2 - dist2) / pitch2;
+	double wire22 = (-xyz2[1] * c2 + xyz2[2] * s2 - dist2) / pitch2;
+
+	int wmin = std::min(wire21, wire22);
+	int wmax = std::max(wire21, wire22) + 1.;
+
+	for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator 
+	      ihit2 = hitmap[tpc][plane2].lower_bound(wmin);
+	    ihit2 != hitmap[tpc][plane2].upper_bound(wmax); ++ihit2) {
+
+	  int wire2 = ihit2->first;
 	  const art::Ptr<recob::Hit>& phit2 = ihit2->second;
 
-	  // Test first two hits for compatibility before looping 
-	  // over third hit.
+	  // Get corrected time of second hit.
 
-	  hitvec.clear();
-	  hitvec.push_back(phit1);
-	  hitvec.push_back(phit2);
-	  bool ok = compatible(hitvec, timeOffset, maxDT, maxS);
-	  if(ok) {
+	  double t2 = phit2->PeakTime() - timeOffset[tpc][plane2];
 
-	    double t2 = phit2->PeakTime() - timeOffset[tpc][plane2];
-	    double t3min = std::max(t1, t2) - maxDT;
-	    double t3max = std::min(t1, t2) + maxDT;
+	  // Check maximum time difference with first hit.
 
-	    int plane3 = index[2];
-	    for(std::map<double, art::Ptr<recob::Hit> >::const_iterator 
-		  ihit3 = hitmap[tpc][plane3].lower_bound(t3min);
-		ihit3 != hitmap[tpc][plane3].upper_bound(t3max); ++ihit3) {
+	  bool dt12ok = std::abs(t1-t2) <= maxDT;
+	  if(dt12ok) {
 
-	      const art::Ptr<recob::Hit>& phit3 = ihit3->second;
+	    // Test first two hits for compatibility before looping 
+	    // over third hit.
 
-	      // Test triplet for compatibility.
+	    hitvec.clear();
+	    hitvec.push_back(phit1);
+	    hitvec.push_back(phit2);
+	    bool h12ok = compatible(hitvec, timeOffset, maxDT, maxS);
+	    if(h12ok) {
 
-	      hitvec.clear();
-	      hitvec.push_back(phit1);
-	      hitvec.push_back(phit2);
-	      hitvec.push_back(phit3);
-	      bool ok = compatible(hitvec, timeOffset, maxDT, maxS);
+	      // Get oblique coordinate of second hit.
 
-	      if(ok) {
+	      double u2 = wire2 * pitch2 + dist2;
 
-		// Add a space point.
+	      // Predict plane3 oblique coordinate and wire number.
 
-		++n3;
-		spts.push_back(recob::SpacePoint());
-		fillSpacePoint(hitvec, timeOffset, spts.back());
+	      double u3pred = (-u1*s23 - u2*s31) / s12;
+	      double u3min = u3pred - maxS;
+	      double u3max = u3pred + maxS;
+
+	      int w3min = (u3min - dist3) / pitch3;
+	      int w3max = (u3max - dist3) / pitch3 + 1.;
+
+	      for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator 
+		    ihit3 = hitmap[tpc][plane3].lower_bound(w3min);
+		  ihit3 != hitmap[tpc][plane3].upper_bound(w3max); ++ihit3) {
+
+		int wire3 = ihit3->first;
+		const art::Ptr<recob::Hit>& phit3 = ihit3->second;
+
+		// Get corrected time of third hit.
+
+		double t3 = phit3->PeakTime() - timeOffset[tpc][plane3];
+
+		// Check time difference of third hit compared to first two hits.
+
+		bool dt123ok = std::abs(t1-t3) <= maxDT && std::abs(t2-t3) <= maxDT;
+		if(dt123ok) {
+
+		  // Get oblique coordinate of third hit and check spatial separation.
+
+		  double u3 = wire3 * pitch3 + dist3;
+		  double S = s23 * u1 + s31 * u2 + s12 * u3;
+		  bool sok = std::abs(S) <= maxS;
+		  if(sok) {
+
+		    // Test triplet for compatibility.
+
+		    hitvec.clear();
+		    hitvec.push_back(phit1);
+		    hitvec.push_back(phit2);
+		    hitvec.push_back(phit3);
+		    bool h123ok = compatible(hitvec, timeOffset, maxDT, maxS);
+		    if(h123ok) {
+
+		      // Add a space point.
+
+		      ++n3;
+		      spts.push_back(recob::SpacePoint());
+		      fillSpacePoint(hitvec, timeOffset, spts.back());
+		    }
+		  }
+		}
 	      }
 	    }
 	  }
