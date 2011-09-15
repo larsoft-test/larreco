@@ -25,16 +25,18 @@
 #include "art/Framework/Core/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "ClusterFinder/DBScanService.h"
-#include "ClusterFinder/DBcluster.h"
-#include <cmath>
-#include <iostream>
-#include <fstream>
-#include <cstdlib>
 #include "Geometry/geo.h"
 #include "SimulationBase/simbase.h"
 #include "Simulation/sim.h"
 #include "RecoBase/recobase.h"
+#include "ClusterFinder/DBScanService.h"
+#include "ClusterFinder/DBcluster.h"
+#include "Filters/ChannelFilter.h"
+
+#include <cmath>
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
 #include "TGeoManager.h"
 #include "TH1.h"
 
@@ -90,6 +92,9 @@ void cluster::DBcluster::produce(art::Event& evt)
 
   // get the DBScan service
   art::ServiceHandle<cluster::DBScanService> dbscan;
+ 
+  // get the ChannelFilter
+  filter::ChannelFilter chanFilt;
       
   unsigned int p(0),w(0), t(0), channel(0);
   for(unsigned int tpc = 0; tpc < geom->NTPC(); ++tpc){
@@ -105,7 +110,7 @@ void cluster::DBcluster::produce(art::Event& evt)
 	
       }  
       
-      dbscan->InitScan(allhits);
+      dbscan->InitScan(allhits, chanFilt.SetOfBadChannels());
 
       // std::cout<<"number of hits is: "<<hit.size()<<std::endl;
  

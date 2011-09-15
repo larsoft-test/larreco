@@ -139,13 +139,12 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
   art::ServiceHandle<geo::Geometry> geom;
   art::ServiceHandle<util::LArProperties> larp;
    
-    // // function below does not link, so commenting
+  // // function below does not link, so commenting
   //extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   
   
   //Point to a collection of vertices to output.
  
-  filter::ChannelFilter chanFilt;  
   art::PtrVector<recob::Hit> cHits;
   art::PtrVector<recob::Hit> hit;
   
@@ -244,11 +243,12 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 	  for(int i = -3; i <= 3; i++) {
 	      windex=wire+i;
 	      if(windex < 0 ) windex=0;
-	      else if ((unsigned int)windex >= numberwires) windex=numberwires-1;  // this is ok, because the line before makes sure it's not negative
+	      // this is ok, because the line before makes sure it's not negative
+	      else if ((unsigned int)windex >= numberwires) windex=numberwires-1; 
 	    for(int j = -3; j <= 3; j++) {
 	      tindex=timebin+j;
 	      if(tindex<0) tindex=0;
-	      else if (tindex>=fTimeBins) windex=fTimeBins-1;
+	      else if (tindex>=fTimeBins) tindex=fTimeBins-1;
 	      
 	      MatrixAsum[wire][timebin]+=wx[n]*hit_map[windex][tindex];  
 	      MatrixBsum[wire][timebin]+=wy[n]*hit_map[windex][tindex]; 
@@ -273,7 +273,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 	    for(int j = -3; j <= 3; j++) {
 	      tindex=timebin+j;
 	      if(tindex<0) tindex=0;
-	      else if (tindex>=fTimeBins) windex=fTimeBins-1;
+	      else if (tindex>=fTimeBins) tindex=fTimeBins-1;
 	     
 	      MatrixAAsum+=w[n]*pow(MatrixAsum[windex][tindex],2);  
 	      MatrixBBsum+=w[n]*pow(MatrixBsum[windex][tindex],2);                   

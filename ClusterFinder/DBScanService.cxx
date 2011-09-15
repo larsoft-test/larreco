@@ -24,7 +24,6 @@
 
 #include "ClusterFinder/DBScanService.h"
 #include "RecoBase/recobase.h"
-#include "Filters/ChannelFilter.h"
 
 #include <cmath>
 #include <iostream>
@@ -48,14 +47,14 @@ cluster::DBScanService::~DBScanService()
 //----------------------------------------------------------
 void cluster::DBScanService::reconfigure(fhicl::ParameterSet const& p)
 {
-  fEps    = p.get< double >("eps");
+  fEps    = p.get< double >("eps"   );
   fEps2   = p.get< double >("epstwo");
-  fMinPts = p.get< int >("minPts");
+  fMinPts = p.get< int    >("minPts");
 }
 
 //----------------------------------------------------------
 
-void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits)
+void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits, std::set<unsigned int> badChannels)
 {
 
   // clear all the data member vectors for the new set of hits
@@ -68,6 +67,8 @@ void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits)
   fsim3.clear();
   fclusters.clear();
   fWirePitch.clear();
+
+  fBadChannels = badChannels;
 
   //------------------------------------------------------------------
   // Determine spacing between wires (different for each detector)
@@ -95,8 +96,8 @@ void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits)
     
     
     p[0] = (allhits[j]->Wire()->RawDigit()->Channel())*wire_dist;
-    p[1]=((allhits[j]->StartTime()+allhits[j]->EndTime())/2.)*0.03069;
-    p[2]=(allhits[j]->EndTime()-allhits[j]->StartTime())*0.03069;   //width of a hit in cm
+    p[1] = ((allhits[j]->StartTime()+allhits[j]->EndTime())/2.)*0.03069;
+    p[2] = (allhits[j]->EndTime()-allhits[j]->StartTime())*0.03069;   //width of a hit in cm
     
     fps.push_back(p);
   }
@@ -120,9 +121,6 @@ double cluster::DBScanService::getSimilarity(const std::vector<double> v1, const
   //Manhattan distance:
   //return fabs(v1[0]-v2[0])+fabs(v1[1]-v2[1]);
   
-  //wire bridging capability added by spitz
-  filter::ChannelFilter chanFilt;
-
   /// \todo this code assumes that all planes have the same wire pitch
   double wire_dist = fWirePitch[0];
   //std::cout<<wire_dist<<std::endl;
@@ -137,9 +135,8 @@ double cluster::DBScanService::getSimilarity(const std::vector<double> v1, const
     wire2 = wire;
   }
 
-  for(unsigned int i=wire1;i<wire2;i++)
-  {
-    if(chanFilt.BadChannel(i))
+  for(unsigned int i=wire1;i<wire2;i++){
+    if(fBadChannels.find(i) != fBadChannels.end())
       wirestobridge++;
   }    
   
@@ -155,9 +152,6 @@ double cluster::DBScanService::getSimilarity2(const std::vector<double> v1, cons
   //return fabs( v2[1]-v1[1]);//for rectangle
   //------------------------------------------
 
-  //time bridging capability added by tjyang following Josh's code
-  filter::ChannelFilter chanFilt;
-
   /// \todo this code assumes all planes have the same wire pitch
   double wire_dist = fWirePitch[0];
 
@@ -171,9 +165,8 @@ double cluster::DBScanService::getSimilarity2(const std::vector<double> v1, cons
     wire2 = wire;
   }
 
-  for(unsigned int i=wire1;i<wire2;i++)
-  {
-    if(chanFilt.BadChannel(i))
+  for(unsigned int i=wire1;i<wire2;i++){
+    if(fBadChannels.find(i) != fBadChannels.end())
       wirestobridge++;
   }    
   
@@ -211,11 +204,7 @@ double cluster::DBScanService::getWidthFactor(const std::vector<double> v1, cons
     else {return 6.25;}
    
   }
-  else {return 1.0;}
-  //.............................................
-  
-  
-  
+  else {return 1.0;}  
 }
 
 //----------------------------------------------------------------
@@ -233,13 +222,10 @@ std::vector<unsigned int> cluster::DBScanService::findNeighbors( unsigned int pi
     //----------------------------------------------------------------------------------------------
     if((pid != j ) 
        && (((fsim[pid][j])/ (threshold*threshold))
-	   + ((fsim2[pid][j])/ (threshold2*threshold2*(fsim3[pid][j]))))<1) //ellipse
-      {
+	   + ((fsim2[pid][j])/ (threshold2*threshold2*(fsim3[pid][j]))))<1){ //ellipse
 	ne.push_back(j);
-      }
-
-  }
-
+    }
+  }// end loop over fsim
 
   return ne;
 };
@@ -249,29 +235,24 @@ void cluster::DBScanService::computeSimilarity()
 {
   int size = fps.size();
   fsim.resize(size, std::vector<double>(size));
-  for ( int i=0; i < size; i++)
-    {
-      for ( int j=i+1; j < size; j++)
-	{
-	  fsim[j] [i] = fsim[i][ j] = getSimilarity(fps[i], fps[j]);
-	}
+  for ( int i=0; i < size; i++){
+    for ( int j=i+1; j < size; j++){
+      fsim[j] [i] = fsim[i][ j] = getSimilarity(fps[i], fps[j]);
     }
-};
+  }
+}
 
 //------------------------------------------------------------------
 void cluster::DBScanService::computeSimilarity2()
 {
   int size = fps.size();
   fsim2.resize(size, std::vector<double>(size));
-  for ( int i=0; i < size; i++)
-    {
-      for ( int j=i+1; j < size; j++)
-	{
-
-	  fsim2[j] [i] = fsim2[i][ j] = getSimilarity2(fps[i], fps[j]);
-	}
+  for ( int i=0; i < size; i++){
+    for ( int j=i+1; j < size; j++){
+      fsim2[j] [i] = fsim2[i][ j] = getSimilarity2(fps[i], fps[j]);
     }
-};
+  }
+}
 
 //------------------------------------------------------------------
 void cluster::DBScanService::computeWidthFactor()
@@ -279,16 +260,12 @@ void cluster::DBScanService::computeWidthFactor()
   int size = fps.size();
   fsim3.resize(size, std::vector<double>(size));
        
-  for ( int i=0; i < size; i++)
-    {
-      for ( int j=i+1; j < size; j++)
-	{
-
-	  fsim3[j] [i] = fsim3[i][ j] = getWidthFactor(fps[i], fps[j]);
-		
-	}
+  for ( int i=0; i < size; i++){
+    for ( int j=i+1; j < size; j++){
+      fsim3[j] [i] = fsim3[i][ j] = getWidthFactor(fps[i], fps[j]);
     }
-};
+  }
+}
 
 //------------------------------------------------------------------
 //single point output
@@ -335,91 +312,69 @@ void cluster::DBScanService::computeWidthFactor()
 // This is the algorithm that finds clusters:
 void cluster::DBScanService::run_cluster() 
 {
-  
-  
+
   unsigned int cid = 1;
   // foreach pid
-  for ( unsigned int pid = 0; pid < fps.size(); pid++)
-    {
-      // not already visited
-      if (!fvisited[pid]){  
+  for ( unsigned int pid = 0; pid < fps.size(); pid++){
+    // not already visited
+    if (!fvisited[pid]){  
+      
+      fvisited[pid] = true;
+      // get the neighbors
+      std::vector<unsigned int> ne = findNeighbors(pid, fEps,fEps2);
+      
+      // not enough support -> mark as noise
+      if (ne.size() < fMinPts){
+	fnoise[pid] = true;
+      }     
+      else{
+	// Add p to current cluster
 	
-	fvisited[pid] = true;
-	// get the neighbors
-	std::vector<unsigned int> ne = findNeighbors(pid, fEps,fEps2);
+	std::vector<unsigned int> c;              // a new cluster
 	
-	// not enough support -> mark as noise
-	if (ne.size() < fMinPts)
-	  {
-	    fnoise[pid] = true;
-	  } 
-	    
-	else 
-	  {
-	    // Add p to current cluster
-	    
-	    std::vector<unsigned int> c;              // a new cluster
-	   
-	    c.push_back(pid);   	// assign pid to cluster
-	    fpointId_to_clusterId[pid]=cid;
+	c.push_back(pid);   	// assign pid to cluster
+	fpointId_to_clusterId[pid]=cid;
+	// go to neighbors
+	for (unsigned int i = 0; i < ne.size(); i++){
+	  unsigned int nPid = ne[i];
+	  
+	  // not already visited
+	  if (!fvisited[nPid]){
+	    fvisited[nPid] = true;
 	    // go to neighbors
-	    for (unsigned int i = 0; i < ne.size(); i++)
-	      {
-		unsigned int nPid = ne[i];
-		
-		// not already visited
-		if (!fvisited[nPid])
-		  {
-		    fvisited[nPid] = true;
-		    // go to neighbors
-		    std::vector<unsigned int> ne1 = findNeighbors(nPid, fEps, fEps2);
-		    // enough support
-		    if (ne1.size() >= fMinPts)
-		      {
+	    std::vector<unsigned int> ne1 = findNeighbors(nPid, fEps, fEps2);
+	    // enough support
+	    if (ne1.size() >= fMinPts){
 		       	
-			// join
-			
-			for(unsigned int i=0;i<ne1.size();i++)
-			  {
-			    // join neighbord
-			    ne.push_back(ne1[i]); 
-			    
-			  }
-		      }
-		  }
-		
-		// not already assigned to a cluster
-		if (!fpointId_to_clusterId[nPid])
-		  {
-		    c.push_back(nPid);
-		    fpointId_to_clusterId[nPid]=cid;
-		  }
+	      // join
+	      
+	      for(unsigned int i=0;i<ne1.size();i++){
+		// join neighbord
+		ne.push_back(ne1[i]); 
 	      }
-	    
-	    fclusters.push_back(c);
-	    
-	    
-	    cid++;
+	    }
 	  }
-      } // if (!visited
-    } // for
+		
+	  // not already assigned to a cluster
+	  if (!fpointId_to_clusterId[nPid]){
+	    c.push_back(nPid);
+	    fpointId_to_clusterId[nPid]=cid;
+	  }
+	}
+	    
+	fclusters.push_back(c);
+	
+	
+	cid++;
+      }
+    } // if (!visited
+  } // for
   
 
   int noise=0;
   //no_hits=fnoise.size();
 
   for(unsigned int y=0;y< fpointId_to_clusterId.size();++y){
-
     if  (fpointId_to_clusterId[y]==0) noise++;
-
-
-  }
-  
+  }  
 }
-
-
-
-
-
-
-

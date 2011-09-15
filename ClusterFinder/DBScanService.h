@@ -28,7 +28,7 @@ namespace cluster{
     virtual ~DBScanService();
     
     void reconfigure(fhicl::ParameterSet const& p);
-    void InitScan(art::PtrVector<recob::Hit>& allhits);
+    void InitScan(art::PtrVector<recob::Hit>& allhits, std::set<unsigned int> badChannels);
     double getSimilarity(const std::vector<double> v1, const std::vector<double> v2); 
     std::vector<unsigned int> findNeighbors( unsigned int pid, double threshold, double threshold2);
     void computeSimilarity();
@@ -58,9 +58,9 @@ namespace cluster{
     unsigned int fMinPts;
       
     // noise vector
-    std::vector<bool>   fnoise;
-    std::vector<bool>   fvisited;
-    std::vector<double> fWirePitch; ///< the pitch of the wires in each plane
-
+    std::vector<bool>      fnoise;						     
+    std::vector<bool>      fvisited;					     
+    std::vector<double>    fWirePitch;   ///< the pitch of the wires in each plane
+    std::set<unsigned int> fBadChannels; ///< set of bad channels in this detector
   };
 } // namespace
