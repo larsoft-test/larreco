@@ -4,7 +4,7 @@ argoneut_spacepointservice:
 {
   UseMC: false
   MaxDT: 2.5
-  MaxS:  0.5
+  MaxS:  0.3
   TimeOffsetU: -5.193
   TimeOffsetV: 0.585
   TimeOffsetW: 0.
@@ -18,7 +18,7 @@ microboone_spacepointservice:
 {
   UseMC: false
   MaxDT: 2.5
-  MaxS:  0.5
+  MaxS:  0.3
   TimeOffsetU: -0.075
   TimeOffsetV: -0.309
   TimeOffsetW: -0.317
@@ -33,7 +33,7 @@ lbne_spacepointservice:
 {
   UseMC: false
   MaxDT: 2.5
-  MaxS:  0.5
+  MaxS:  0.3
   TimeOffsetU: 0.
   TimeOffsetV: 0.
   TimeOffsetW: 0.
