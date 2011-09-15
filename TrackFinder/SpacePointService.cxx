@@ -1093,11 +1093,10 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	      // Predict plane3 oblique coordinate and wire number.
 
 	      double u3pred = (-u1*s23 - u2*s31) / s12;
-	      double u3min = u3pred - maxS;
-	      double u3max = u3pred + maxS;
-
-	      int w3min = (u3min - dist3) / pitch3;
-	      int w3max = (u3max - dist3) / pitch3 + 1.;
+	      double w3pred = (u3pred - dist3) / pitch3;
+	      double w3delta = std::abs(maxS / (s12 * pitch3));
+	      int w3min = std::ceil(w3pred - w3delta);
+	      int w3max = std::floor(w3pred + w3delta);
 
 	      for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator 
 		    ihit3 = hitmap[tpc][plane3].lower_bound(w3min);
