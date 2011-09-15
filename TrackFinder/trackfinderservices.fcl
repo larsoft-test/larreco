@@ -3,7 +3,7 @@ BEGIN_PROLOG
 argoneut_spacepointservice:
 {
   UseMC: false
-  MaxDT: 2.5
+  MaxDT: 2.0
   MaxS:  0.3
   TimeOffsetU: -5.193
   TimeOffsetV: 0.585
@@ -17,7 +17,7 @@ argoneut_spacepointservice:
 microboone_spacepointservice:
 {
   UseMC: false
-  MaxDT: 2.5
+  MaxDT: 2.0
   MaxS:  0.3
   TimeOffsetU: -0.075
   TimeOffsetV: -0.309
@@ -32,7 +32,7 @@ microboone_spacepointservice:
 lbne_spacepointservice:
 {
   UseMC: false
-  MaxDT: 2.5
+  MaxDT: 2.0
   MaxS:  0.3
   TimeOffsetU: 0.
   TimeOffsetV: 0.

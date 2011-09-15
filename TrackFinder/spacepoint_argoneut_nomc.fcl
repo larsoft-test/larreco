@@ -7,7 +7,7 @@ process_name: SpacePointAna
 services:
 {
   # Load the service that manages root files for histograms.
-  TFileService: { fileName: "spacepoint_argoneut.root" }
+  TFileService: { fileName: "spacepoint_argoneut_nomc.root" }
   scheduler:    { wantTracer: true wantSummary: true }
   Timing:       {}
   message:   @local::standard_debug
