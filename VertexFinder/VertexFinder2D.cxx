@@ -374,7 +374,7 @@ namespace vertex{
 
     mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
     mf::LogVerbatim("Summary") << "VertexFinder2D Summary:";
-    //for(unsigned int i = 0; i<epcol->size(); ++i) mf::LogVerbatim("Summary") << epcol->at(i) ;
+    for(unsigned int i = 0; i<epcol->size(); ++i) mf::LogVerbatim("Summary") << epcol->at(i) ;
     for(unsigned int i = 0; i<vcol->size(); ++i) mf::LogVerbatim("Summary") << vcol->at(i) ;
 
     evt.put(epcol);
