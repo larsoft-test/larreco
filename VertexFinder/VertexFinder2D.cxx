@@ -372,9 +372,6 @@ namespace vertex{
 
     }//end loop over tpc
 
-    std::cout << "2dvertex_vec.size() = " << epcol->size() << std::endl;
-    std::cout << "3dvertex_vec.size() = " << vcol->size() << std::endl;
-
     mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
     mf::LogVerbatim("Summary") << "VertexFinder2D Summary:";
     for(unsigned int i = 0; i<epcol->size(); ++i) mf::LogVerbatim("Summary") << epcol->at(i) ;
