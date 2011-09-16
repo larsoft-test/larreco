@@ -48,7 +48,8 @@ extern "C" {
 #include "TF1.h"
 
 cluster::KingaCluster::KingaCluster(fhicl::ParameterSet const& pset) :
-  fDBScanModuleLabel       (pset.get< std::string >("DBScanModuleLabel"))
+  fDBScanModuleLabel       (pset.get< std::string >("DBScanModuleLabel")),
+  fEndPoint2DModuleLabel        (pset.get< std::string >("EndPoint2DModuleLabel"))
   //fGenieGenModuleLabel          (pset.get< std::string >("GenieGenModuleLabel"))
   //fthreshold                (pset.get< int >("Threshold")),
  
@@ -66,6 +67,13 @@ void cluster::KingaCluster::beginJob(){
   art::ServiceHandle<art::TFileService> tfs;
   art::ServiceHandle<geo::Geometry> geo;
   //unsigned int planes = geo->Nplanes();
+ 
+ 
+ //vertex truth vs reco:
+ fdiff_time_vtx_p0= tfs->make<TH1F>("fdiff_time_vtx_p0","Difference between truth and reco vertex time position, Induction Plane", 20000,-1000 ,1000  );
+ fdiff_wire_vtx_p0= tfs->make<TH1F>("fdiff_wire_vtx_p0","Difference between truth and reco vertex wire position, Induction Plane", 100,-50 ,50  );
+ fdiff_wire_vtx_p1= tfs->make<TH1F>("fdiff_wire_vtx_p1","Difference between truth and reco vertex wire position, Collection Plane", 100,-50 ,50  );
+ 
  
  
   fh_theta_ind= tfs->make<TH1F>("fh_theta_ind","theta angle in degrees, Induction Plane", 180,-180 ,180  );
@@ -108,6 +116,8 @@ std::cout << " Event: " << evt.id().event() << std::endl;
  
 ftime_vertex.clear();
 fwire_vertex.clear();
+ftime_vertex_reco.clear();
+fwire_vertex_reco.clear();
 
 
 
@@ -257,6 +267,68 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
   // and connect it to an art::Handle
   //////////////////////////////////////////////////////
   // Read in the clusterList object(s).
+    double vtxx_reco;
+    double vtxy_reco;
+    double vtxz_reco;
+  art::Handle< std::vector<recob::EndPoint2D> > endpointListHandle;
+  evt.getByLabel(fEndPoint2DModuleLabel,endpointListHandle);
+  art::PtrVector<recob::EndPoint2D> endpointlist;
+ // if(evt.getByLabel(fEndPoint2DModuleLabel,endpointListHandle))
+  //std::cout<<"endpointListHandle->size()="<<endpointListHandle->size()<<std::endl;
+    for (unsigned int i = 0; i < endpointListHandle->size(); ++i){
+      art::Ptr<recob::EndPoint2D> endpointHolder(endpointListHandle,i);
+      endpointlist.push_back(endpointHolder);
+    }
+    
+  std::cout<<"SHOULD BE GETTING RECO VERTEX, endpointlist.size()= "<<endpointlist.size()<<std::endl;
+  
+  
+  for (unsigned int j = 0; j<endpointlist.size();j++){
+
+       double vtx2d_w = endpointlist[j]->WireNum();
+       double vtx2d_t = endpointlist[j]->DriftTime();
+
+     ftime_vertex_reco.push_back(endpointlist[j]->DriftTime());
+     fwire_vertex_reco.push_back(endpointlist[j]->WireNum());
+          
+          std::cout<<"j="<<j<<" vtx2d_w="<<vtx2d_w<<" vtx2d_t="<<vtx2d_t<<std::endl;
+
+        //}
+
+      }
+      
+     
+      
+      
+      
+  
+  // art::Handle< std::vector<recob::Vertex> > vertexListHandle;
+//   evt.getByLabel(fVertexModuleLabel,vertexListHandle);
+//   art::PtrVector<recob::Vertex> vertexlist;
+//   if(evt.getByLabel(fVertexModuleLabel,vertexListHandle)){
+//    for (unsigned int i = 0; i < vertexListHandle->size(); ++i){
+//    art::Ptr<recob::Vertex> vertexHolder(vertexListHandle,i);
+//    vertexlist.push_back(vertexHolder);
+//    }
+//   }
+  
+  
+  
+ //  if(vertexlist.size())
+// 
+//   {
+//     double vtxxyz[3];
+//     vertexlist[0]->XYZ(vtxxyz);
+//     vtxx_reco = vtxxyz[0];
+//     vtxy_reco = vtxxyz[1];
+//     vtxz_reco = vtxxyz[2];
+//     std::cout<<"---------------------------------------------------"<<std::endl;
+//     std::cout<<"RECO VERTEX: vtxx_reco="<<vtxx_reco<<" vtxy_reco="<<vtxy_reco<<" vtxz_reco="<<vtxz_reco<<std::endl;
+//     std::cout<<"---------------------------------------------------"<<std::endl;
+//   }
+//   
+  
+  
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
   //Point to a collection of clusters to output.
@@ -414,6 +486,33 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
      OriginalmaxBinValues.clear();
      std::cout<<"Should be starting to work on the other plane now"<<std::endl;
     }//Planes
+    
+   //................... 
+    
+    
+    
+     // Let's check how much truth info for vertex differs from reconstructed vertex2d:
+     
+      
+      fdiff_time_vtx_p0->Fill(ftime_vertex[0]-ftime_vertex_reco[0]);
+      
+      fdiff_wire_vtx_p0->Fill(fwire_vertex[0]-fwire_vertex_reco[0]);
+      
+      fdiff_wire_vtx_p1->Fill(fwire_vertex[1]-fwire_vertex_reco[1]);
+    
+    std::cout<<"ftime_vertex[0]= "<<ftime_vertex[0]<<" ftime_vertex_reco[0]= "<<ftime_vertex_reco[0]<<std::endl;
+    std::cout<<"fwire_vertex[0]= "<<fwire_vertex[0]<<" fwire_vertex_reco[0]= "<<fwire_vertex_reco[0]<<" diff= "<<fwire_vertex[0]-fwire_vertex_reco[0]<<std::endl;
+    std::cout<<"fwire_vertex[1]= "<<fwire_vertex[1]<<" fwire_vertex_reco[1]= "<<fwire_vertex_reco[1]<<" diff= "<<fwire_vertex[1]-fwire_vertex_reco[1]<<std::endl;
+    
+    
+    
+    
+    
+    
+    
+   //...................  
+    
+    
  }// end loop over tpcs 
  evt.put(ccol);
  
@@ -552,12 +651,12 @@ std::cout<<"No of HITS for plane "<<plane<<" is: "<<allhits.size()<<std::endl;
  //std::cout<<"................................"<<std::endl;
  //std::cout<<" For hit# "<<i<<" w= "<<w<<" fwire_vertex[plane]= "<<fwire_vertex[plane]<<" ftime_vertex[plane]= "<<ftime_vertex[plane];
   
-     int diff_w= w - fwire_vertex[plane];
+     int diff_w= w - fwire_vertex_reco[plane];
       b_polar = diff_w*0.4; /**in cm*/
       
       //std::cout<<" diff_w= "<<diff_w<<std::endl;
       //std::cout<<" b_polar= "<<b_polar<<std::endl;
-      a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
+      a_polar = (allhits[i]->PeakTime() - ftime_vertex_reco[plane])* ftimetick *fdriftvelocity; /** in cm*/
       
        
       theta_polar =fabs(asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2)))); /**in rad*/
@@ -566,7 +665,25 @@ std::cout<<"No of HITS for plane "<<plane<<" is: "<<allhits.size()<<std::endl;
      
      // We have 4 cases depending on which quater a hit is (origin being defined on a vertex):
      
-     if(b_polar>=0 && a_polar>0){
+     if(b_polar==0 && a_polar==0){
+     theta_polar = 90;/** in deg*/
+      }
+     else if(b_polar==0 && a_polar<0){
+     theta_polar = 180;/** in deg*/
+      }
+     else if(b_polar==0 && a_polar>0){
+     theta_polar = 0;/** in deg*/
+      }
+     else if(b_polar>0 && a_polar==0){
+     theta_polar = 90;/** in deg*/
+      }
+      else if(b_polar<0 && a_polar==0){
+     theta_polar = -90;/** in deg*/
+      }
+      
+      
+     
+     else if(b_polar>0 && a_polar>0){
      theta_polar = 90-theta_polar;/** in deg*/
        /** in deg*/
       }
@@ -1097,18 +1214,18 @@ for( int pk=FinalPeaks.size()-1; pk>=0;pk--){
     peak_with_wrong_range.push_back(pk); //this gives peak#, NOT a bin#
     peak_with_which_it_ovelaps.push_back(pk2); //this gives peak#, NOT a bin#
     }
-   std::cout<<"out1"<<std::endl;
+  
    }
 
-std::cout<<"out2"<<std::endl;
+
 }
-std::cout<<"out3"<<std::endl;
+
 int diff=0;
 
 
 for(unsigned int i=0; i<peak_with_wrong_range.size(); i++){
 
-std::cout<<"out4"<<std::endl;
+
 //if front of a range overlaps with the back of the range already in place
 if(MaxStartPoint[peak_with_wrong_range[i]]<MaxEndPoint[peak_with_which_it_ovelaps[i]] && MaxStartPoint[peak_with_wrong_range[i]]>MaxStartPoint[peak_with_which_it_ovelaps[i]]){
  
@@ -1153,6 +1270,8 @@ int MinHitsInRange=2; //later make it a parameter. DEFINED BELOW, LOOK->>>
 double no_hits_in_range=0;
 std::vector<int> TempFinalPeaks,TempMaxStartPoint,TempMaxEndPoint;
 TempFinalPeaks.clear();
+TempMaxStartPoint.clear();
+TempMaxEndPoint.clear();
 
 std::vector<int> positive_diff_end_minus_start;
 std::vector<int> positive_diff_start_minus_end;
@@ -1174,10 +1293,13 @@ int well_separated=0;
 //Now I will eliminate all the peaks that have only 1 hit in it's RANGE(not in actual peak):
 //However, if there is a group of peaks that have just one hit in their range and are all close to each other then we need to form a cluster out of them, call it "hand_made_peak". But this peak has to be well seprated from the rest!!!! so need to determine it's range also in order to check the separation
 
-std::vector<int> one_hit_peaks,one_hit_peaks_start_point,one_hit_peaks_end_point;
+std::vector<int> one_hit_peaks,one_hit_peaks_start_point,one_hit_peaks_end_point,double_hit_peaks,double_hit_peaks_start_point,double_hit_peaks_end_point;
 one_hit_peaks.clear();
 one_hit_peaks_start_point.clear();
 one_hit_peaks_end_point.clear();
+double_hit_peaks.clear();
+double_hit_peaks_start_point.clear();
+double_hit_peaks_end_point.clear();
 
 for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
   for(int bin=MaxStartPoint[peak]; bin<MaxEndPoint[peak];bin++){
@@ -1199,8 +1321,15 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
   one_hit_peaks_end_point.push_back(MaxEndPoint[peak]);
   }
   
+  if(no_hits_in_range==2){
+  double_hit_peaks.push_back(FinalPeaks[peak]);
+  double_hit_peaks_start_point.push_back(MaxStartPoint[peak]);
+  double_hit_peaks_end_point.push_back(MaxEndPoint[peak]);
+  }
+  
+  
   std::cout<<"no_hits_in_range= "<<no_hits_in_range<<" for peak at bin# "<<FinalPeaks[peak]<<std::endl;
-  if(no_hits_in_range>1){
+  if(no_hits_in_range>2){
   TempFinalPeaks.push_back(FinalPeaks[peak]);
   TempMaxStartPoint.push_back(MaxStartPoint[peak]);
   TempMaxEndPoint.push_back(MaxEndPoint[peak]);
@@ -1218,6 +1347,71 @@ TempMaxEndPoint.clear();
 no_hits_in_range=0;
 
 std::cout<<" So now the size of FinalPeaks.size()="<<FinalPeaks.size()<<std::endl;
+
+//First, let's look at 2-hit peaks and a case in which there are TWO 2-hit peaks right next to each other. If this is the case make one peak out of them by increasing the range of the peak, make the peak be in the middle of the range.
+
+//.......2-hit peaks START................................
+
+std::vector<int> used_double_hit_peaks;
+used_double_hit_peaks.clear();
+
+  for(unsigned int i=0;i<double_hit_peaks.size(); i++){
+    for(unsigned int j=0;j<double_hit_peaks.size(); j++){
+
+  if(i!=j && double_hit_peaks_end_point[i]==double_hit_peaks_start_point[j]){
+  
+  //create one peak with range of both peaks:
+  //Also make sure you do the combination only once (you can have i=1 and j=2 && //i=2 and j=1...you should just do one since they are the same)
+  
+  if(std::find(FinalPeaks.begin(),FinalPeaks.end(),(double_hit_peaks[i]+double_hit_peaks[j])*0.5)==FinalPeaks.end()){
+  FinalPeaks.push_back((double_hit_peaks[i]+double_hit_peaks[j])*0.5);
+  MaxStartPoint.push_back(double_hit_peaks_start_point[i]);
+  MaxEndPoint.push_back(double_hit_peaks_end_point[j]);
+  
+  used_double_hit_peaks.push_back(i);
+  used_double_hit_peaks.push_back(j);
+  std::cout<<"Creating one peak from TWO 2-hit peaks at peak at bin #"<<(double_hit_peaks[i]+double_hit_peaks[j])*0.5<<" and range in bins: ["<<double_hit_peaks_start_point[i]<<", "<<double_hit_peaks_end_point[j]<<"]"<<std::endl;
+  
+  }//if this peak doesn't exist yet, make it
+  
+  }
+
+
+
+
+    }
+   }
+
+//Now fill FinalPeaks with the rest of double_hit_peaks:
+
+
+
+for(int k=0;k<double_hit_peaks.size();k++){
+
+ if(std::find(used_double_hit_peaks.begin(),used_double_hit_peaks.end(),k)==used_double_hit_peaks.end()){
+
+  FinalPeaks.push_back(double_hit_peaks[k]);
+  MaxStartPoint.push_back(double_hit_peaks_start_point[k]);
+  MaxEndPoint.push_back(double_hit_peaks_end_point[k]);
+
+ }
+
+}
+
+std::cout<<"---------------------*******-----------------------------------"<<std::endl;
+std::cout<<"No of FinalPeaks after 2-hit evaluation = "<<FinalPeaks.size()<<std::endl;
+
+for(int peak=0;peak<FinalPeaks.size();peak++){
+std::cout<<"peak at bin # "<<FinalPeaks[peak]<<" ("<<-180+2*FinalPeaks[peak]<<" degrees). Its range is ["<<-180+2*MaxStartPoint[peak]<<", "<<-180+2*MaxEndPoint[peak]<<" ]"<<std::endl;
+ }
+
+
+std::cout<<"-----------------------*******---------------------------------"<<std::endl;
+
+//.............. 2-hit peaks END............................
+
+
+
 //Before I start actuall work on these 1-hit peaks I will get rid of all the ones that are too close to the already existing ranges:
 
 std::vector<int> temp_one_hit_peaks;
@@ -1268,9 +1462,19 @@ std::cout<<one_hit_peaks[u]<<std::endl;
 std::vector<int> grouped_one_hit_peaks;
 grouped_one_hit_peaks.clear();
 int hand_made_peak=0;
+int very_well_separated_two_hit_peak=0;
+int two_hits_only=0;
+int diff_between_one_hit_peaks=0;
+int event_is_clean=0;
+
+if(one_hit_peaks.size()<=4){event_is_clean=1;}
+
+if(one_hit_peaks.size()>=4){ diff_between_one_hit_peaks=4;}
+
+else{diff_between_one_hit_peaks=7;}
 
 std::cout<<"one_hit_peaks size= "<<one_hit_peaks.size()<<std::endl;
-if(one_hit_peaks.size()>3){
+if(one_hit_peaks.size()>=2){
 
   for(unsigned int i=0;i<one_hit_peaks.size(); i++){
     for(unsigned int j=0;j<one_hit_peaks.size(); j++){
@@ -1281,7 +1485,7 @@ if(one_hit_peaks.size()>3){
        for(unsigned int r=0; r<FinalPeaks.size(); r++){ 
        std::cout<<"### FinalPeaks.size()= "<<FinalPeaks.size()<<std::endl;
        std::cout<<"MaxStartPoint["<<r<<"]= "<<MaxStartPoint[r]<<"MaxEndPoint["<<r<<"]= "<<MaxEndPoint[r]<<std::endl;
-       if(i!=j && abs(one_hit_peaks[i]-one_hit_peaks[j])<4 ){ 
+       if(i!=j && abs(one_hit_peaks[i]-one_hit_peaks[j])<=diff_between_one_hit_peaks ){ 
        
        //std::cout<<"abs(one_hit_peaks[i]-MaxStartPoint[r])= "<<abs(one_hit_peaks[i]-MaxStartPoint[r])<<" :: "<<one_hit_peaks[i]<<" - "<<MaxStartPoint[r]<<std::endl;
        
@@ -1346,7 +1550,8 @@ if(one_hit_peaks.size()>3){
 
 //so now we should have a group of 1-hit peaks that are close to each other. 
 
-if(grouped_one_hit_peaks.size()>=3){
+if(grouped_one_hit_peaks.size()>=3 || (grouped_one_hit_peaks.size()==2 && event_is_clean==1)){
+
 
  //form a peak by taking the average of them and picking the one that's closest to that value:
  int sum=0;
@@ -1356,8 +1561,9 @@ if(grouped_one_hit_peaks.size()>=3){
    for(unsigned int k=0; k<grouped_one_hit_peaks.size(); k++){
     
     sum+=grouped_one_hit_peaks[k];
-   
+  // std::cout<<"grouped_one_hit_peaks.size()= "<<grouped_one_hit_peaks.size()<<" sum= "<<sum<<std::endl;
    }
+   
     made_peak=sum/grouped_one_hit_peaks.size();
     std::cout<<"---------MADE A HOME_MADE_PEAK FROM GROUPS OF 1-HIT CLUSTERS--------THIS PEAK IS AT BIN #"<<made_peak;
     FinalPeaks.push_back(made_peak);
@@ -1370,7 +1576,8 @@ if(grouped_one_hit_peaks.size()>=3){
     
     std::cout<<" its range is ["<<grouped_one_hit_peaks[0]-1<<", "<<grouped_one_hit_peaks[grouped_one_hit_peaks.size()-1]+1<<"]"<<std::endl;
     
-    hand_made_peak=1;
+    if(grouped_one_hit_peaks.size()>=3){hand_made_peak=1;}
+    if(grouped_one_hit_peaks.size()==2){two_hits_only=1;}
     
 }
 
@@ -1446,16 +1653,34 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
  else if(positive_diff_start_minus_end.size()==0){this_is_the_first_range=1;}
  
  
+ //if we only have 2 hits in the peak, it better be very well separated, otherwise not a valid peak!
+ if((two_hits_only==1) && (closest_range_right_side>=16 || this_is_the_last_range==1 ) && (closest_range_left_side>=16 || this_is_the_first_range==1)){
+ MinHitsInRange=2;
+ very_well_separated_two_hit_peak=1;
+ 
+ }
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  //if range is well separated (or first or last):
- if((closest_range_right_side>8 || this_is_the_last_range==1 ) && (closest_range_left_side>8 || this_is_the_first_range==1)){
+ if((closest_range_right_side>=8 || this_is_the_last_range==1 ) && (closest_range_left_side>=8 || this_is_the_first_range==1)){
  MinHitsInRange=2;
  well_separated=1;
  std::cout<<"Peak at bin #"<<FinalPeaks[peak]<<" is ^^^ WELL SEPARATED ^^^"<<std::endl;
  
  if(this_is_the_last_range==1){std::cout<<" because it's the last range and ";}
  if(this_is_the_first_range==1){std::cout<<" because it's the first range and ";}
- if(closest_range_right_side>8){std::cout<<"The closest range from right side is "<<closest_range_right_side<<" bins away"<<std::endl;}
- if(closest_range_left_side>8){std::cout<<"The closest range from left side is "<<closest_range_left_side<<" bins away"<<std::endl;}
+ if(closest_range_right_side>=8){std::cout<<"The closest range from right side is "<<closest_range_right_side<<" bins away"<<std::endl;}
+ if(closest_range_left_side>=8){std::cout<<"The closest range from left side is "<<closest_range_left_side<<" bins away"<<std::endl;}
  
  }
  else{ MinHitsInRange=3; }
@@ -1481,7 +1706,7 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
  std::cout<<"no_hits_in_range= "<<no_hits_in_range<<" for peak at bin # "<<FinalPeaks[peak]<<" ("<<-180+2*FinalPeaks[peak]<<" degrees). Its range is ["<<-180+2*MaxStartPoint[peak]<<", "<<-180+2*MaxEndPoint[peak]<<" ]"<<std::endl;
  
  if(plane==0){
- if((fh_theta_ind_Area->GetBinContent(FinalPeaks[peak])>0.4 && no_hits_in_range>=MinHitsInRange) || hand_made_peak==1){
+ if((fh_theta_ind_Area->GetBinContent(FinalPeaks[peak])>0.4 && no_hits_in_range>=MinHitsInRange) || hand_made_peak==1 || very_well_separated_two_hit_peak==1){
  TempFinalPeaks.push_back(FinalPeaks[peak]);
  TempMaxStartPoint.push_back(MaxStartPoint[peak]);
  TempMaxEndPoint.push_back(MaxEndPoint[peak]);
@@ -1566,15 +1791,30 @@ for(unsigned int i = 0; i< allhits.size(); ++i){
  channel=allhits[i]->Wire()->RawDigit()->Channel();
  geom->ChannelToWire(channel,t,p,w);
  
- int diff_w= w - fwire_vertex[plane];
+ int diff_w= w - fwire_vertex_reco[plane];
       b_polar = diff_w*0.4; /**in cm*/
  //b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
- a_polar = (allhits[i]->PeakTime() - ftime_vertex[plane])* ftimetick *fdriftvelocity; /** in cm*/
+ a_polar = (allhits[i]->PeakTime() - ftime_vertex_reco[plane])* ftimetick *fdriftvelocity; /** in cm*/
  theta_polar = fabs(asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2)))); /**in rad*/
  theta_polar = 180*theta_polar/fpi; /** in deg*/
  
- 
- if(b_polar>=0 && a_polar>0){
+ if(b_polar==0 && a_polar==0){
+     theta_polar = 90;/** in deg*/
+      }
+     else if(b_polar==0 && a_polar<0){
+     theta_polar = 180;/** in deg*/
+      }
+     else if(b_polar==0 && a_polar>0){
+     theta_polar = 0;/** in deg*/
+      }
+     else if(b_polar>0 && a_polar==0){
+     theta_polar = 90;/** in deg*/
+      }
+      else if(b_polar<0 && a_polar==0){
+     theta_polar = -90;/** in deg*/
+      }
+      
+ else if(b_polar>0 && a_polar>0){
      theta_polar = 90-theta_polar;/** in deg*/
        /** in deg*/
       }

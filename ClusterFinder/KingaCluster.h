@@ -45,6 +45,10 @@ namespace cluster {
   private:
     std::string fDBScanModuleLabel;  
     std::string fGenieGenModuleLabel;  
+    std::string fEndPoint2DModuleLabel;
+    TH1F *fdiff_time_vtx_p0;
+    TH1F *fdiff_wire_vtx_p0;
+    TH1F *fdiff_wire_vtx_p1;
     TH1F *fh_theta_ind;
     TH1F *fh_theta_coll;
     TH1F *fh_theta_ind_2D;
@@ -60,8 +64,8 @@ namespace cluster {
     std::vector<int> MaxEndPoint;  //bin no of the end point of a peak
     std::vector<int> MaxStartPointTheta; //theta value of the starting point of a peak
     std::vector<int> MaxEndPointTheta; //theta value of the end point of a peak
-    std::vector<unsigned int> fwire_vertex;
-    std::vector<unsigned int> ftime_vertex;
+    std::vector<int> fwire_vertex, fwire_vertex_reco;
+    std::vector<double> ftime_vertex, ftime_vertex_reco;
     std::vector<unsigned int> HitsWithClusterID;
     double ftimetick; //get from parameterset
     double fdriftvelocity;  //get from paramtereset 9either k and V)
