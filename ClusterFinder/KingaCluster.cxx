@@ -267,14 +267,11 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
   // and connect it to an art::Handle
   //////////////////////////////////////////////////////
   // Read in the clusterList object(s).
-    double vtxx_reco;
-    double vtxy_reco;
-    double vtxz_reco;
+   
   art::Handle< std::vector<recob::EndPoint2D> > endpointListHandle;
   evt.getByLabel(fEndPoint2DModuleLabel,endpointListHandle);
   art::PtrVector<recob::EndPoint2D> endpointlist;
- // if(evt.getByLabel(fEndPoint2DModuleLabel,endpointListHandle))
-  //std::cout<<"endpointListHandle->size()="<<endpointListHandle->size()<<std::endl;
+ 
     for (unsigned int i = 0; i < endpointListHandle->size(); ++i){
       art::Ptr<recob::EndPoint2D> endpointHolder(endpointListHandle,i);
       endpointlist.push_back(endpointHolder);
@@ -302,31 +299,7 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
       
       
   
-  // art::Handle< std::vector<recob::Vertex> > vertexListHandle;
-//   evt.getByLabel(fVertexModuleLabel,vertexListHandle);
-//   art::PtrVector<recob::Vertex> vertexlist;
-//   if(evt.getByLabel(fVertexModuleLabel,vertexListHandle)){
-//    for (unsigned int i = 0; i < vertexListHandle->size(); ++i){
-//    art::Ptr<recob::Vertex> vertexHolder(vertexListHandle,i);
-//    vertexlist.push_back(vertexHolder);
-//    }
-//   }
-  
-  
-  
- //  if(vertexlist.size())
-// 
-//   {
-//     double vtxxyz[3];
-//     vertexlist[0]->XYZ(vtxxyz);
-//     vtxx_reco = vtxxyz[0];
-//     vtxy_reco = vtxxyz[1];
-//     vtxz_reco = vtxxyz[2];
-//     std::cout<<"---------------------------------------------------"<<std::endl;
-//     std::cout<<"RECO VERTEX: vtxx_reco="<<vtxx_reco<<" vtxy_reco="<<vtxy_reco<<" vtxz_reco="<<vtxz_reco<<std::endl;
-//     std::cout<<"---------------------------------------------------"<<std::endl;
-//   }
-//   
+ 
   
   
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
@@ -1386,7 +1359,7 @@ used_double_hit_peaks.clear();
 
 
 
-for(int k=0;k<double_hit_peaks.size();k++){
+for(unsigned int k=0;k<double_hit_peaks.size();k++){
 
  if(std::find(used_double_hit_peaks.begin(),used_double_hit_peaks.end(),k)==used_double_hit_peaks.end()){
 
@@ -1401,7 +1374,7 @@ for(int k=0;k<double_hit_peaks.size();k++){
 std::cout<<"---------------------*******-----------------------------------"<<std::endl;
 std::cout<<"No of FinalPeaks after 2-hit evaluation = "<<FinalPeaks.size()<<std::endl;
 
-for(int peak=0;peak<FinalPeaks.size();peak++){
+for(unsigned int peak=0;peak<FinalPeaks.size();peak++){
 std::cout<<"peak at bin # "<<FinalPeaks[peak]<<" ("<<-180+2*FinalPeaks[peak]<<" degrees). Its range is ["<<-180+2*MaxStartPoint[peak]<<", "<<-180+2*MaxEndPoint[peak]<<" ]"<<std::endl;
  }
 
