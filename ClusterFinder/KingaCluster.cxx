@@ -463,8 +463,8 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
    //................... 
     
     
-    
-     // Let's check how much truth info for vertex differs from reconstructed vertex2d:
+    if (!evt.isRealData()) {
+     // Let's check how much TRUTH info for vertex differs from reconstructed vertex2d:
      
       
       fdiff_time_vtx_p0->Fill(ftime_vertex[0]-ftime_vertex_reco[0]);
@@ -477,7 +477,7 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
     std::cout<<"fwire_vertex[0]= "<<fwire_vertex[0]<<" fwire_vertex_reco[0]= "<<fwire_vertex_reco[0]<<" diff= "<<fwire_vertex[0]-fwire_vertex_reco[0]<<std::endl;
     std::cout<<"fwire_vertex[1]= "<<fwire_vertex[1]<<" fwire_vertex_reco[1]= "<<fwire_vertex_reco[1]<<" diff= "<<fwire_vertex[1]-fwire_vertex_reco[1]<<std::endl;
     
-    
+    }
     
     
     
@@ -1355,21 +1355,170 @@ used_double_hit_peaks.clear();
     }
    }
 
-//Now fill FinalPeaks with the rest of double_hit_peaks:
+//Now fill FinalPeaks with the rest of double_hit_peaks, unless you can form a bigger cluster out of very close-by 2-hit-clusters:
 
+
+//............. GROUP 2-HIT-CLUSTERS HERE, THE SAME WAY AS 1-HIT-CLUSTERS( see work on 1-hit clusters below)
+
+std::vector<int> temp_double_hit_peaks;
+temp_double_hit_peaks.clear();
+std::vector<int> temp_double_hit_peaks_start_point;
+temp_double_hit_peaks_start_point.clear();
+std::vector<int> temp_double_hit_peaks_end_point;
+temp_double_hit_peaks_end_point.clear();
 
 
 for(unsigned int k=0;k<double_hit_peaks.size();k++){
 
- if(std::find(used_double_hit_peaks.begin(),used_double_hit_peaks.end(),k)==used_double_hit_peaks.end()){
+if(std::find(used_double_hit_peaks.begin(),used_double_hit_peaks.end(),double_hit_peaks[k])==used_double_hit_peaks.end()){
 
-  FinalPeaks.push_back(double_hit_peaks[k]);
-  MaxStartPoint.push_back(double_hit_peaks_start_point[k]);
-  MaxEndPoint.push_back(double_hit_peaks_end_point[k]);
-
- }
-
+temp_double_hit_peaks.push_back(double_hit_peaks[k]);
+temp_double_hit_peaks_start_point.push_back(double_hit_peaks_start_point[k]);
+temp_double_hit_peaks_end_point.push_back(double_hit_peaks_end_point[k]);
 }
+}
+std::vector<int> grouped_double_hit_peaks;
+grouped_double_hit_peaks.clear();
+double_hit_peaks.clear();
+double_hit_peaks_start_point.clear();
+double_hit_peaks_end_point.clear();
+double_hit_peaks=temp_double_hit_peaks;
+double_hit_peaks_start_point=temp_double_hit_peaks_start_point;
+double_hit_peaks_end_point=temp_double_hit_peaks_end_point;
+int diff_between_double_hit_peaks=7;
+std::vector<int> used_peak;
+used_peak.clear();
+if(double_hit_peaks.size()>=2){
+
+  for(unsigned int i=0;i<double_hit_peaks.size(); i++){
+    for(unsigned int j=0;j<double_hit_peaks.size(); j++){
+    
+      if(grouped_double_hit_peaks.size()==0){
+      
+      // loop thru existing ranges and make sure that your 2-hit peaks are close to each other but also well separated from the existing ranges
+       for(unsigned int r=0; r<FinalPeaks.size(); r++){ 
+       std::cout<<"### FinalPeaks.size()= "<<FinalPeaks.size()<<std::endl;
+       std::cout<<"MaxStartPoint["<<r<<"]= "<<MaxStartPoint[r]<<"MaxEndPoint["<<r<<"]= "<<MaxEndPoint[r]<<std::endl;
+       if(i!=j && abs(double_hit_peaks[i]-double_hit_peaks[j])<=diff_between_double_hit_peaks ){ 
+       
+       //std::cout<<"abs(one_hit_peaks[i]-MaxStartPoint[r])= "<<abs(one_hit_peaks[i]-MaxStartPoint[r])<<" :: "<<one_hit_peaks[i]<<" - "<<MaxStartPoint[r]<<std::endl;
+       
+       
+       //std::cout<<"MaxStartPoint["<<r<<"]= "<<MaxStartPoint[r]<<"MaxEndPoint["<<r<<"]= "<<MaxEndPoint[r]<<std::endl;
+       
+       //std::cout<<"one_hit_peaks[i]= "<<one_hit_peaks[i]<<" one_hit_peaks[j]= "<<one_hit_peaks[j]<<std::endl;
+       
+       
+      //if you can't find this peak in the group, then add it:
+         if(std::find(grouped_double_hit_peaks.begin(),grouped_double_hit_peaks.end(),double_hit_peaks[i])==grouped_double_hit_peaks.end()){
+      grouped_double_hit_peaks.push_back(double_hit_peaks[i]);
+      std::cout<<"ADDING 2-HIT PEAK #"<<double_hit_peaks[i]<<" TO THE GROUP"<<std::endl;
+      
+      used_peak.push_back(double_hit_peaks[i]);
+         }
+        if(std::find(grouped_double_hit_peaks.begin(),grouped_double_hit_peaks.end(),double_hit_peaks[j])==grouped_double_hit_peaks.end()){
+     grouped_double_hit_peaks.push_back(double_hit_peaks[j]);
+     std::cout<<"ADDING 2-HIT PEAK #"<<double_hit_peaks[j]<<" TO THE GROUP"<<std::endl;
+     
+     used_peak.push_back(double_hit_peaks[j]);
+         }
+   } //if difference between peak bin#s is small 
+   }// loop thru already existing peaks 
+} //if size=0 
+    
+     
+    
+
+     } //first loop thru each 1-hit peak
+     
+     
+     
+     
+  } //second loop thru each 1-hit peak
+  
+  int failed=0;
+   //Now go thru all the peaks again to find the third matching peak:
+     if(grouped_double_hit_peaks.size()>0){
+      for(unsigned int y=0;y<double_hit_peaks.size();y++){
+       //now every added peak must be very close to EACH already added peak in the group
+       for(unsigned int q=0; q<grouped_double_hit_peaks.size();q++){
+       
+        if(abs(double_hit_peaks[y]-grouped_double_hit_peaks[q])>5){
+        failed=1;
+        break;
+        }
+       
+       } //for
+       
+       
+       if(failed==0 && std::find(grouped_double_hit_peaks.begin(),grouped_double_hit_peaks.end(),double_hit_peaks[y])==grouped_double_hit_peaks.end() ){
+       
+       grouped_double_hit_peaks.push_back(double_hit_peaks[y]);
+       
+       used_peak.push_back(double_hit_peaks[y]);
+       
+       }
+       failed=0;
+       } //loop thru all 2-hit peaks
+     }// if size >0
+  
+  
+}
+
+
+//so now we should have a group of 2-hit peaks that are close to each other. 
+
+if(grouped_double_hit_peaks.size()>=2){
+
+
+ //form a peak by taking the average of them and picking the one that's closest to that value:
+ int sum=0;
+ int made_peak=200;
+ 
+ 
+   for(unsigned int k=0; k<grouped_double_hit_peaks.size(); k++){
+    
+    sum+=grouped_double_hit_peaks[k];
+  // std::cout<<"grouped_double_hit_peaks.size()= "<<grouped_double_hit_peaks.size()<<" sum= "<<sum<<std::endl;
+   }
+   
+    made_peak=sum/grouped_double_hit_peaks.size();
+    std::cout<<"---------MADE A HOME_MADE_PEAK FROM GROUPS OF ***2***-HIT CLUSTERS--------THIS PEAK IS AT BIN #"<<made_peak;
+    FinalPeaks.push_back(made_peak);
+    //Now work on the range. For now just start at the smallest peak bin-1 and end at the largest peak bin+1:
+    
+    std::sort(grouped_double_hit_peaks.begin(),grouped_double_hit_peaks.end());
+    
+    MaxStartPoint.push_back(grouped_double_hit_peaks[0]-1);
+    MaxEndPoint.push_back(grouped_double_hit_peaks[grouped_double_hit_peaks.size()-1]+1);
+    
+    std::cout<<" its range is ["<<grouped_double_hit_peaks[0]-1<<", "<<grouped_double_hit_peaks[grouped_double_hit_peaks.size()-1]+1<<"]"<<std::endl;
+    
+    
+    
+}
+
+
+//If we weren't able to group 2-hit-clusters together then just add them to FinalPeaks the way they are:
+
+for(unsigned int f=0; f<double_hit_peaks.size();f++){
+
+ if(std::find(used_peak.begin(),used_peak.end(),double_hit_peaks[f])==used_peak.end()){
+  FinalPeaks.push_back(double_hit_peaks[f]);
+  MaxStartPoint.push_back(double_hit_peaks_start_point[f]);
+  MaxEndPoint.push_back(double_hit_peaks_end_point[f]);
+ }
+}
+
+
+
+
+ 
+ //..............END OF GROUPING 2-HIT-CLUSTERS
+ 
+ 
+
+
 
 std::cout<<"---------------------*******-----------------------------------"<<std::endl;
 std::cout<<"No of FinalPeaks after 2-hit evaluation = "<<FinalPeaks.size()<<std::endl;
@@ -1440,7 +1589,8 @@ int two_hits_only=0;
 int diff_between_one_hit_peaks=0;
 int event_is_clean=0;
 
-if(one_hit_peaks.size()<=4){event_is_clean=1;}
+if(one_hit_peaks.size()<=4){event_is_clean=1;
+std::cout<<"event_is_clean"<<std::endl;}
 
 if(one_hit_peaks.size()>=4){ diff_between_one_hit_peaks=4;}
 
