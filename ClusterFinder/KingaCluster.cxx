@@ -1263,6 +1263,9 @@ int well_separated=0;
 
 //---------------START BASIC EVALUATION FIRST---------------
 
+
+
+
 //Now I will eliminate all the peaks that have only 1 hit in it's RANGE(not in actual peak):
 //However, if there is a group of peaks that have just one hit in their range and are all close to each other then we need to form a cluster out of them, call it "hand_made_peak". But this peak has to be well seprated from the rest!!!! so need to determine it's range also in order to check the separation
 
@@ -1325,66 +1328,66 @@ std::cout<<" So now the size of FinalPeaks.size()="<<FinalPeaks.size()<<std::end
 
 //.......2-hit peaks START................................
 
-std::vector<int> used_double_hit_peaks;
-used_double_hit_peaks.clear();
-
-  for(unsigned int i=0;i<double_hit_peaks.size(); i++){
-    for(unsigned int j=0;j<double_hit_peaks.size(); j++){
-
-  if(i!=j && double_hit_peaks_end_point[i]==double_hit_peaks_start_point[j]){
-  
-  //create one peak with range of both peaks:
-  //Also make sure you do the combination only once (you can have i=1 and j=2 && //i=2 and j=1...you should just do one since they are the same)
-  
-  if(std::find(FinalPeaks.begin(),FinalPeaks.end(),(double_hit_peaks[i]+double_hit_peaks[j])*0.5)==FinalPeaks.end()){
-  FinalPeaks.push_back((double_hit_peaks[i]+double_hit_peaks[j])*0.5);
-  MaxStartPoint.push_back(double_hit_peaks_start_point[i]);
-  MaxEndPoint.push_back(double_hit_peaks_end_point[j]);
-  
-  used_double_hit_peaks.push_back(i);
-  used_double_hit_peaks.push_back(j);
-  std::cout<<"Creating one peak from TWO 2-hit peaks at peak at bin #"<<(double_hit_peaks[i]+double_hit_peaks[j])*0.5<<" and range in bins: ["<<double_hit_peaks_start_point[i]<<", "<<double_hit_peaks_end_point[j]<<"]"<<std::endl;
-  
-  }//if this peak doesn't exist yet, make it
-  
-  }
-
-
-
-
-    }
-   }
+// std::vector<int> used_double_hit_peaks;
+// used_double_hit_peaks.clear();
+// 
+//   for(unsigned int i=0;i<double_hit_peaks.size(); i++){
+//     for(unsigned int j=0;j<double_hit_peaks.size(); j++){
+// 
+//   if(i!=j && double_hit_peaks_end_point[i]==double_hit_peaks_start_point[j]){
+//   
+//   //create one peak with range of both peaks:
+//   //Also make sure you do the combination only once (you can have i=1 and j=2 && //i=2 and j=1...you should just do one since they are the same)
+//   
+//   if(std::find(FinalPeaks.begin(),FinalPeaks.end(),(double_hit_peaks[i]+double_hit_peaks[j])*0.5)==FinalPeaks.end()){
+//   FinalPeaks.push_back((double_hit_peaks[i]+double_hit_peaks[j])*0.5);
+//   MaxStartPoint.push_back(double_hit_peaks_start_point[i]);
+//   MaxEndPoint.push_back(double_hit_peaks_end_point[j]);
+//   
+//   used_double_hit_peaks.push_back(i);
+//   used_double_hit_peaks.push_back(j);
+//   std::cout<<"Creating one peak from TWO 2-hit peaks at peak at bin #"<<(double_hit_peaks[i]+double_hit_peaks[j])*0.5<<" and range in bins: ["<<double_hit_peaks_start_point[i]<<", "<<double_hit_peaks_end_point[j]<<"]"<<std::endl;
+//   
+//   }//if this peak doesn't exist yet, make it
+//   
+//   }
+// 
+// 
+// 
+// 
+//     }
+//    }
 
 //Now fill FinalPeaks with the rest of double_hit_peaks, unless you can form a bigger cluster out of very close-by 2-hit-clusters:
 
 
 //............. GROUP 2-HIT-CLUSTERS HERE, THE SAME WAY AS 1-HIT-CLUSTERS( see work on 1-hit clusters below)
 
-std::vector<int> temp_double_hit_peaks;
-temp_double_hit_peaks.clear();
-std::vector<int> temp_double_hit_peaks_start_point;
-temp_double_hit_peaks_start_point.clear();
-std::vector<int> temp_double_hit_peaks_end_point;
-temp_double_hit_peaks_end_point.clear();
+// std::vector<int> temp_double_hit_peaks;
+// temp_double_hit_peaks.clear();
+// std::vector<int> temp_double_hit_peaks_start_point;
+// temp_double_hit_peaks_start_point.clear();
+// std::vector<int> temp_double_hit_peaks_end_point;
+// temp_double_hit_peaks_end_point.clear();
 
 
-for(unsigned int k=0;k<double_hit_peaks.size();k++){
-
-if(std::find(used_double_hit_peaks.begin(),used_double_hit_peaks.end(),double_hit_peaks[k])==used_double_hit_peaks.end()){
-
-temp_double_hit_peaks.push_back(double_hit_peaks[k]);
-temp_double_hit_peaks_start_point.push_back(double_hit_peaks_start_point[k]);
-temp_double_hit_peaks_end_point.push_back(double_hit_peaks_end_point[k]);
-}
-}
+// for(unsigned int k=0;k<double_hit_peaks.size();k++){
+// 
+// if(std::find(used_double_hit_peaks.begin(),used_double_hit_peaks.end(),double_hit_peaks[k])==used_double_hit_peaks.end()){
+// 
+// temp_double_hit_peaks.push_back(double_hit_peaks[k]);
+// temp_double_hit_peaks_start_point.push_back(double_hit_peaks_start_point[k]);
+// temp_double_hit_peaks_end_point.push_back(double_hit_peaks_end_point[k]);
+// }
+// }
 std::vector<int> grouped_double_hit_peaks;
 grouped_double_hit_peaks.clear();
-double_hit_peaks.clear();
-double_hit_peaks_start_point.clear();
-double_hit_peaks_end_point.clear();
-double_hit_peaks=temp_double_hit_peaks;
-double_hit_peaks_start_point=temp_double_hit_peaks_start_point;
-double_hit_peaks_end_point=temp_double_hit_peaks_end_point;
+// double_hit_peaks.clear();
+// double_hit_peaks_start_point.clear();
+// double_hit_peaks_end_point.clear();
+// double_hit_peaks=temp_double_hit_peaks;
+// double_hit_peaks_start_point=temp_double_hit_peaks_start_point;
+// double_hit_peaks_end_point=temp_double_hit_peaks_end_point;
 int diff_between_double_hit_peaks=7;
 std::vector<int> used_peak;
 used_peak.clear();
@@ -1504,6 +1507,7 @@ if(grouped_double_hit_peaks.size()>=2){
 for(unsigned int f=0; f<double_hit_peaks.size();f++){
 
  if(std::find(used_peak.begin(),used_peak.end(),double_hit_peaks[f])==used_peak.end()){
+ std::cout<<"adding peak at bin #"<<double_hit_peaks[f]<<std::endl;
   FinalPeaks.push_back(double_hit_peaks[f]);
   MaxStartPoint.push_back(double_hit_peaks_start_point[f]);
   MaxEndPoint.push_back(double_hit_peaks_end_point[f]);
@@ -1880,6 +1884,137 @@ MaxEndPoint=TempMaxEndPoint;
 
 
 std::cout<<" NO OF FINALPEAKS ***AFTER*** EVALUATION IS: "<<FinalPeaks.size()<<std::endl;
+
+// If you just get 1 peak (which most likely corresponds to the muon track in case of CCQE) then let's check if there is a possibility of forming another cluster. Allow this formation if the event is CLEAN (small number of 1-hit peaks, and overall small no of all found peaks in the histos). Look for a peak that is VERY FAR AWAY from the already formed peak(s). But make sure that we get at least 2-hit in this newely formed cluster. Allow to run this test for both 1-peak-hits only since we already checked for 2-hit-peak possibilities above.
+
+if(FinalPeaks.size()==1 && event_is_clean==1){
+std::cout<<"$$$$  will try to come up with another peak since the event is clean"<<std::endl;
+int separation=0;
+std::vector<int> separated_one_hit_peaks, close_and_separated_one_h_pk;
+separated_one_hit_peaks.clear();
+close_and_separated_one_h_pk.clear();
+
+
+
+//now take all the 1 hit peaks and see if you can find two which are very far from the already formed peak:
+
+for(int onepk=0; onepk<one_hit_peaks.size();onepk++){
+ for(int fpk=0;fpk<FinalPeaks.size();fpk++){
+ //first pick the ones which are very far from the already existing peak
+ if(abs(one_hit_peaks[onepk]-FinalPeaks[fpk])>17){
+ 
+ separated_one_hit_peaks.push_back(one_hit_peaks[onepk]);
+ std::cout<<"adding "<<one_hit_peaks[onepk]<<" to separated_one_hit_peaks"<<std::endl;
+ 
+ }
+ 
+ 
+ }
+
+
+
+
+}
+
+
+//Now check if you can find 2 1-hit-peaks which are also not so far from each other:
+
+for(unsigned int i=0; i<separated_one_hit_peaks.size(); i++){
+ for(unsigned int j=0; j<separated_one_hit_peaks.size(); j++){
+ 
+ if(i!=j && abs(separated_one_hit_peaks[i]-separated_one_hit_peaks[j])<11){
+ 
+ separation=abs(separated_one_hit_peaks[i]-separated_one_hit_peaks[j]);
+ close_and_separated_one_h_pk.push_back(separated_one_hit_peaks[i]);
+ close_and_separated_one_h_pk.push_back(separated_one_hit_peaks[j]);
+ break;
+ 
+ }
+ 
+ 
+ }
+
+if(close_and_separated_one_h_pk.size()==2) break;
+
+}
+
+//form a peak out of 2 1-hit-peaks:
+
+if(close_and_separated_one_h_pk.size()==2){
+
+int sum=0; 
+
+for(int y=0; y<close_and_separated_one_h_pk.size(); y++){
+
+sum+=close_and_separated_one_h_pk[y];
+//and the range should be the start point of the first hit, the end point should be the end point of the second hit, so you could sort them. But, actually the range doesnt really matter here, just make it a few bins to the right and left!
+
+}
+
+int made_peak=sum/close_and_separated_one_h_pk.size();
+std::cout<<"---------------------------------------------------------"<<std::endl;
+std::cout<<" WARNING:: WILL MAKE AN EXCEPTION FOR THIS EVENT (event is clean, only 1 peak originally found) AND CREATE A NEW PEAK AT BIN #"<<made_peak<<std::endl;
+
+std::cout<<"---------------------------------------------------------"<<std::endl;
+
+FinalPeaks.push_back(made_peak);
+MaxStartPoint.push_back(made_peak-0.5*separation);
+MaxEndPoint.push_back(made_peak+0.5*separation);
+
+
+}//if we have 2 1-hit-clusters
+
+
+
+}
+
+
+std::cout<<" FinalPeaks.size()="<<FinalPeaks.size()<<std::endl;
+
+//-----------------------------------------------------------------
+//One last check to Make sure that the peaks I have now are not too close to each other, otherwise throw the smallest which is very close. Right now they are ordered based on their area height, so we should be dropping them from the back, ie the smallest. (This piece of code might be move more up if needed, perhaps at the top of the basic evaluation section)
+
+TempFinalPeaks.clear();
+TempMaxStartPoint.clear();
+TempMaxEndPoint.clear();
+
+
+for(int pk=FinalPeaks.size()-1; pk>=0; pk--){
+  for(int pk2=0; pk2<FinalPeaks.size();pk2++){
+
+   if(pk!=pk2 && abs(FinalPeaks[pk]-FinalPeaks[pk2])<3){
+  
+    for(int i=0; i<FinalPeaks.size(); i++){
+     if(i!=pk){ 
+     TempFinalPeaks.push_back(FinalPeaks[i]);
+     TempMaxStartPoint.push_back(MaxStartPoint[i]);
+     TempMaxEndPoint.push_back(MaxEndPoint[i]);
+     }
+    }
+  
+  FinalPeaks.clear();
+  MaxStartPoint.clear();
+  MaxEndPoint.clear();
+  FinalPeaks=TempFinalPeaks;
+  MaxStartPoint=TempMaxStartPoint;
+  MaxEndPoint=TempMaxEndPoint;
+  TempFinalPeaks.clear();
+  TempMaxStartPoint.clear();
+  TempMaxEndPoint.clear();
+  break;
+ 
+  }
+ }
+}
+
+//..............................................................
+
+
+std::cout<<" After making sure that each peak is more than 3 bins away from the previous one, FinalPeaks.size()="<<FinalPeaks.size()<<std::endl;
+
+//-----------------------------------------------------------------
+
+
 
 need_to_reassign_hitsIDs=0;
 
