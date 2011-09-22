@@ -68,9 +68,9 @@ namespace hit{
   {
     // get access to the TFile service
     art::ServiceHandle<art::TFileService> tfs;
-    fNp0 = 3000;
-    fNp1 = 3000;
-    fNp2 = 3000;
+    fNp0 = 9000;
+    fNp1 = 9000;
+    fNp2 = 9000;
 
     fHTree = tfs->make<TTree>("HTree","HTree");
     fTimep0 = new Float_t[fNp0];
@@ -187,7 +187,7 @@ namespace hit{
 	std::vector<double> xyz = cheat::BackTracker::HitToXYZ(*(scs[(*itr)->Channel()]),*itr);
 
 
-	if (p==0) 
+	if (p==0 && fNp0<9000) 
 	  {
 	    fTimep0[fNp0] = (*itr)->PeakTime();
 	    fWirep0[fNp0] = w;
@@ -214,7 +214,7 @@ namespace hit{
 	    fNp0++;
 	  }
 
-	else if (p==1) 
+	else if (p==1 && fNp1<9000) 
 	  {
 	    fTimep1[fNp1] = (*itr)->PeakTime();
 	    fWirep1[fNp1] = w;
@@ -239,7 +239,7 @@ namespace hit{
 	    fNp1++;
 	  }
 
-	else if (p==2) 
+	else if (p==2  && fNp2<9000) 
 	  {
 	    fTimep2[fNp2] = (*itr)->PeakTime();
 	    fWirep2[fNp2] = w;
@@ -250,7 +250,7 @@ namespace hit{
 		fXYZp2[fNp2*3+kk] = xyz[kk];
 	      }
 	    
-	    while( idesitr != trackides.end() )
+	    while( idesitr != trackides.end())
 	      {
 		fMCTId2[fNp2] = (*idesitr).trackID;
 		if (fMCTId2[fNp2] != -999) 
