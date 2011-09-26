@@ -202,7 +202,7 @@ namespace hit{
 	    while( idesitr != trackides.end() )
 	      {
 		fMCTId0[fNp0] = (*idesitr).trackID;
-		if (fMCTId0[fNp0] != -999) 
+		if (_particleList.find((*idesitr).trackID) != _particleList.end()) 
 		  {
 		    const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
 		    fMCPdg0[fNp0] = particle->PdgCode();
@@ -228,7 +228,7 @@ namespace hit{
 	    while( idesitr != trackides.end() )
 	      {
 		fMCTId1[fNp1] = (*idesitr).trackID;
-		if (fMCTId1[fNp1] != -999)
+		if (_particleList.find((*idesitr).trackID) != _particleList.end())
 		  {
 		    const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
 		    fMCPdg1[fNp1] = particle->PdgCode();
@@ -253,7 +253,7 @@ namespace hit{
 	    while( idesitr != trackides.end())
 	      {
 		fMCTId2[fNp2] = (*idesitr).trackID;
-		if (fMCTId2[fNp2] != -999) 
+		if (_particleList.find((*idesitr).trackID) != _particleList.end() ) 
 		  {
 		    const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
 		    fMCPdg2[fNp2] = particle->PdgCode();
