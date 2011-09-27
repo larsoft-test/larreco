@@ -2024,7 +2024,7 @@ marked.clear();
 for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
   for(unsigned int peak2=0; peak2<MaxStartPoint.size(); peak2++){
 
-if((plane==0 && peak!=peak2 && abs(MaxStartPoint[peak]-MaxEndPoint[peak2])<=1 && fh_theta_ind_Area->GetBinContent(FinalPeaks[peak])<0.6 && fh_theta_ind_Area->GetBinContent(FinalPeaks[peak2])<0.6) || (plane==1 && peak!=peak2 && abs(MaxStartPoint[peak]-MaxEndPoint[peak2])<=1 && fh_theta_coll_Area->GetBinContent(FinalPeaks[peak])<0.6 && fh_theta_coll_Area->GetBinContent(FinalPeaks[peak2])<0.6)) {
+if((plane==0 && peak!=peak2 && abs(MaxStartPoint[peak]-MaxEndPoint[peak2])<=1 && (fh_theta_ind_Area->GetBinContent(FinalPeaks[peak])<0.6 || fh_theta_ind_Area->GetBinContent(FinalPeaks[peak2])<0.6)) || (plane==1 && peak!=peak2 && abs(MaxStartPoint[peak]-MaxEndPoint[peak2])<=1 && (fh_theta_coll_Area->GetBinContent(FinalPeaks[peak])<0.6 || fh_theta_coll_Area->GetBinContent(FinalPeaks[peak2])<0.6))) {
 
 //get rid of one of them
  if(std::find(marked.begin(), marked.end(),peak)==marked.end() && std::find(marked.begin(), marked.end(),peak2)==marked.end()){
