@@ -1838,7 +1838,7 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
  TempMaxStartPoint.push_back(MaxStartPoint[peak]);
  TempMaxEndPoint.push_back(MaxEndPoint[peak]);
  }
- else if(fh_theta_ind_Area->GetBinContent(FinalPeaks[peak])<0.4 && no_hits_in_range>=MinHitsInRange && well_separated==1){
+ else if(fh_theta_ind_Area->GetBinContent(FinalPeaks[peak])<=0.4 && no_hits_in_range>=MinHitsInRange && well_separated==1){
  TempFinalPeaks.push_back(FinalPeaks[peak]);
  TempMaxStartPoint.push_back(MaxStartPoint[peak]);
  TempMaxEndPoint.push_back(MaxEndPoint[peak]);
@@ -2014,6 +2014,76 @@ std::cout<<" After making sure that each peak is more than 3 bins away from the 
 
 //-----------------------------------------------------------------
 
+//Lastly, let's make sure that if there are ranges of peaks that lay right next to each other, their peak signal is actually different and not too small:
+// I already set that the minimum peak must be greater than 0.4 so here the check is for small peaks of that order up to ~0.6
+
+std::vector<int> bad_small_peak,marked;
+bad_small_peak.clear();
+marked.clear();
+
+for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
+  for(unsigned int peak2=0; peak2<MaxStartPoint.size(); peak2++){
+
+if((plane==0 && peak!=peak2 && abs(MaxStartPoint[peak]-MaxEndPoint[peak2])<=1 && fh_theta_ind_Area->GetBinContent(FinalPeaks[peak])<0.6 && fh_theta_ind_Area->GetBinContent(FinalPeaks[peak2])<0.6) || (plane==1 && peak!=peak2 && abs(MaxStartPoint[peak]-MaxEndPoint[peak2])<=1 && fh_theta_coll_Area->GetBinContent(FinalPeaks[peak])<0.6 && fh_theta_coll_Area->GetBinContent(FinalPeaks[peak2])<0.6)) {
+
+//get rid of one of them
+ if(std::find(marked.begin(), marked.end(),peak)==marked.end() && std::find(marked.begin(), marked.end(),peak2)==marked.end()){
+ bad_small_peak.push_back(FinalPeaks[peak]);
+ marked.push_back(FinalPeaks[peak]);
+ marked.push_back(FinalPeaks[peak2]);
+
+ }//if not analyzed already
+
+}
+
+
+
+
+  }
+}
+
+//now copy the right peaks, if we found any small peak ranges right next to each other:
+if(bad_small_peak.size()>0){
+std::cout<<" ATTENTION: WILL NEED TO DELETE PEAKS AT THE FOLLOWING BIN #s, b/c its range is right next to some other range and the peak signal is < 0.6 "<<std::endl;
+
+for(int bin=0; bin<bad_small_peak.size(); bin++){
+std::cout<<bin<<std::endl;
+}
+
+TempFinalPeaks.clear();
+TempMaxStartPoint.clear();
+TempMaxEndPoint.clear();
+
+for(int i=0; i<FinalPeaks.size(); i++){
+ if(std::find(bad_small_peak.begin(),bad_small_peak.end(),FinalPeaks[i])==bad_small_peak.end()){
+     TempFinalPeaks.push_back(FinalPeaks[i]);
+     TempMaxStartPoint.push_back(MaxStartPoint[i]);
+     TempMaxEndPoint.push_back(MaxEndPoint[i]);
+ 
+ }
+
+}
+
+  bad_small_peak.clear();
+  marked.clear();
+
+  FinalPeaks.clear();
+  MaxStartPoint.clear();
+  MaxEndPoint.clear();
+  FinalPeaks=TempFinalPeaks;
+  MaxStartPoint=TempMaxStartPoint;
+  MaxEndPoint=TempMaxEndPoint;
+  TempFinalPeaks.clear();
+  TempMaxStartPoint.clear();
+  TempMaxEndPoint.clear();
+
+
+
+
+
+}//if need to make corrections
+
+//-----------------------------------------------------------------
 
 
 need_to_reassign_hitsIDs=0;
