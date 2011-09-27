@@ -46,6 +46,13 @@ namespace cluster {
     std::string fDBScanModuleLabel;  
     std::string fGenieGenModuleLabel;  
     std::string fEndPoint2DModuleLabel;
+    std::string fClusterCheaterModuleLabel;
+    int fkingaCl_near_vertex_p0;
+    int fkingaCl_near_vertex_p1;
+    int fcheatedCl_p0;
+    int fcheatedCl_p1;
+    int fcheatedCl_near_vertex_p0;
+    int fcheatedCl_near_vertex_p1;
     TH1F *fdiff_time_vtx_p0;
     TH1F *fdiff_wire_vtx_p0;
     TH1F *fdiff_wire_vtx_p1;

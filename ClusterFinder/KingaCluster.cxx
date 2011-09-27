@@ -49,7 +49,8 @@ extern "C" {
 
 cluster::KingaCluster::KingaCluster(fhicl::ParameterSet const& pset) :
   fDBScanModuleLabel       (pset.get< std::string >("DBScanModuleLabel")),
-  fEndPoint2DModuleLabel        (pset.get< std::string >("EndPoint2DModuleLabel"))
+  fEndPoint2DModuleLabel        (pset.get< std::string >("EndPoint2DModuleLabel")),
+  fClusterCheaterModuleLabel        (pset.get< std::string >("ClusterCheaterModuleLabel"))
   //fGenieGenModuleLabel          (pset.get< std::string >("GenieGenModuleLabel"))
   //fthreshold                (pset.get< int >("Threshold")),
  
@@ -100,6 +101,18 @@ Hit_Area_Coll= tfs->make<TH1F>("Hit_Area_Coll","Hit Area, Collection Plane", 100
 }
 
 //-----------------------------------------------------------------
+
+namespace cluster {
+struct SortByWire 
+	
+{
+ bool operator() (recob::Hit const& h1, recob::Hit const& h2) const 
+	{ return 
+	h1.Wire()->RawDigit()->Channel() < 
+	h2.Wire()->RawDigit()->Channel() ;
+	}
+};
+}
 
 void cluster::KingaCluster::produce(art::Event& evt)
 {
@@ -298,10 +311,57 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
       
       
       
+// get CheatedClusters............
+std::cout<<"Trying to get cheated clusters***"<<std::endl;
+
+ fcheatedCl_p0=0;
+ fcheatedCl_p1=0;
+ fcheatedCl_near_vertex_p0=0;
+ fcheatedCl_near_vertex_p1=0;
+
+ art::Handle< std::vector<recob::Cluster> > cheatedclusterListHandle;
+  evt.getByLabel(fClusterCheaterModuleLabel,cheatedclusterListHandle);
+  art::PtrVector<recob::Cluster> CheatedClusIn;
   
- 
   
-  
+  for(unsigned int ii = 0; ii < cheatedclusterListHandle->size(); ++ii)
+    {
+      art::Ptr<recob::Cluster> cluster(cheatedclusterListHandle, ii);
+      CheatedClusIn.push_back(cluster);
+      if(cluster->View()==geo::kU){
+      
+      fcheatedCl_p0++;
+      
+      std::cout<<cluster->StartPos()[0]<<", "<<cluster->StartPos()[1]<<" --> "<<cluster->EndPos()[0]<<", "<<cluster->EndPos()[1]<<std::endl;
+      
+      
+      if(fabs(cluster->StartPos()[0]-fwire_vertex_reco[0])<6 && fabs(cluster->StartPos()[1]-ftime_vertex_reco[0])<90 ){
+      fcheatedCl_near_vertex_p0++;
+      
+      }
+      
+      
+      }
+      if(cluster->View()==geo::kV){
+      
+      fcheatedCl_p1++;
+      
+       if(fabs(cluster->StartPos()[0]-fwire_vertex_reco[1])<6 && fabs(cluster->StartPos()[1]-ftime_vertex_reco[1])<90 ){
+      fcheatedCl_near_vertex_p1++;
+      
+      }
+      
+      }
+    }
+std::cout<<"Total No of CHEATED clusters= "<<CheatedClusIn.size()<<std::endl;
+std::cout<<"for plane 0:"<<fcheatedCl_p0<<std::endl;
+std::cout<<"for plane 1:"<<fcheatedCl_p1<<std::endl;
+std::cout<<"Total No of CHEATED clusters ***NEAR THE VERTEX*** :"<<std::endl;
+std::cout<<"for plane 0:"<<fcheatedCl_near_vertex_p0<<std::endl;
+std::cout<<"for plane 1:"<<fcheatedCl_near_vertex_p1<<std::endl;
+
+//....................  
+
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
   //Point to a collection of clusters to output.
@@ -314,6 +374,8 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
   art::PtrVector<recob::Hit> hits;
   art::PtrVector<recob::Hit> clusterHits;
  
+ fkingaCl_near_vertex_p0=0;
+ fkingaCl_near_vertex_p1=0;
 
  
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
@@ -423,7 +485,7 @@ std::cout<<"For Cluster # "<<ClusterNo<<" we have "<<clusterHits.size()<<" hits 
 	      geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), t, p, sw);
 	      geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), t, p, ew);
 
-	      
+	      clusterHits.sort(cluster::SortByWire());
 	      
 	      recob::Cluster cluster(clusterHits, 
 				     sw*1., 0.,
@@ -435,7 +497,25 @@ std::cout<<"For Cluster # "<<ClusterNo<<" we have "<<clusterHits.size()<<" hits 
 				    ClusterNo);
 std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
 	      ccol->push_back(cluster);
-	      //std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
+	      std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
+	      std::cout<<cluster.StartPos()[0]<<", "<<cluster.StartPos()[1]<<" --> "<<cluster.EndPos()[0]<<", "<<cluster.EndPos()[1]<<std::endl;
+	      
+	      
+	       if(cluster.View()==geo::kU && fabs(cluster.StartPos()[0]-fwire_vertex_reco[0])<6 && fabs(cluster.StartPos()[1]-ftime_vertex_reco[0])<90 ){
+      fkingaCl_near_vertex_p0++;
+      
+      }
+	      
+	      if(cluster.View()==geo::kV && fabs(cluster.StartPos()[0]-fwire_vertex_reco[1])<6 && fabs(cluster.StartPos()[1]-ftime_vertex_reco[1])<90 ){
+      fkingaCl_near_vertex_p1++;
+      
+      }
+	      
+	      for(int hit=0;hit<clusterHits.size();hit++){
+	      std::cout<<clusterHits[hit]->Wire()->RawDigit()->Channel()<<" "<<clusterHits[hit]->PeakTime()<<std::endl;
+	      
+	      }
+	      
 	      clusterHits.clear();
 	      //////
 	    }
@@ -445,6 +525,10 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
     
     
    } //clusters
+   
+   
+   
+   
     
      allhits.clear();
      maxBin.clear();
@@ -461,7 +545,15 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
     }//Planes
     
    //................... 
-    
+    std::cout<<"Total No of KINGA clusters ***NEAR THE VERTEX*** :"<<std::endl;
+std::cout<<"for plane 0:"<<fkingaCl_near_vertex_p0<<std::endl;
+std::cout<<"for plane 1:"<<fkingaCl_near_vertex_p1<<std::endl;
+
+std::cout<<"--------------SUMMARY------------------"<<std::endl;
+std::cout<<"diff btw reco and cheated clusters near vertex for PLANE 0: "<<fkingaCl_near_vertex_p0-fcheatedCl_near_vertex_p0<<std::endl;
+std::cout<<"diff btw reco and cheated clusters near vertex for PLANE 1: "<<fkingaCl_near_vertex_p1-fcheatedCl_near_vertex_p1<<std::endl;
+std::cout<<"---------------------------------------"<<std::endl;
+
     
     if (!evt.isRealData()) {
      // Let's check how much TRUTH info for vertex differs from reconstructed vertex2d:
