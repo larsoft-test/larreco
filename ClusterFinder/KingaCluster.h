@@ -43,16 +43,25 @@ namespace cluster {
   
      
   private:
+  
     std::string fDBScanModuleLabel;  
     std::string fGenieGenModuleLabel;  
     std::string fEndPoint2DModuleLabel;
     std::string fClusterCheaterModuleLabel;
+    std::string fLineMergerModuleLabel;
+   std::vector<int> fclusters_planeNo_reco_;
+ std::vector<double> fStart_pt_w_reco_;
+ std::vector<double> fStart_pt_t_reco_;
     int fkingaCl_near_vertex_p0;
     int fkingaCl_near_vertex_p1;
     int fcheatedCl_p0;
     int fcheatedCl_p1;
+     int flinemergerCl_p0;
+    int flinemergerCl_p1;
     int fcheatedCl_near_vertex_p0;
     int fcheatedCl_near_vertex_p1;
+    int flinemergerCl_near_vertex_p0;
+    int flinemergerCl_near_vertex_p1;
     TH1F *fdiff_time_vtx_p0;
     TH1F *fdiff_wire_vtx_p0;
     TH1F *fdiff_wire_vtx_p1;
@@ -64,6 +73,35 @@ namespace cluster {
     TH1F *fh_theta_ind_Area;
     TH1F *Hit_Area_Ind;
     TH1F *Hit_Area_Coll;
+    TH1F *fdiff_no_vertex_clusters_p0;
+    TH1F *fdiff_no_vertex_clusters_p1;
+    TH1F *fdiff_no_vertex_linemergerclusters_p0;
+    TH1F *fdiff_no_vertex_linemergerclusters_p1;
+    
+    //TTree:
+     TTree* fTree;
+     int frun;
+    int fevent;
+    int fno_clusters_true;
+    int fno_clusters_reco;
+    int fno_clusters_linemerger;
+    double ftime_vertex_true;
+    double *fwire_vertex_true;
+    double *fTTree_wire_vertex_reco;
+    double *fTTree_time_vertex_reco;
+    int *fclusters_planeNo_true;
+    int *fclusters_planeNo_reco;
+    double *fStart_pt_w_true;
+    double *fStart_pt_t_true;
+    double *fStart_pt_w_reco;
+    double *fStart_pt_t_reco;
+    double *fStart_pt_t_linemerger;
+    double *fStart_pt_w_linemerger;
+     int *flinemergerclusters_planeNo;
+    int *fcheated_cluster_size;
+    int *flinemerger_cluster_size;
+    
+    
      //std::vector<TH1F*> fh_theta;     /**Histo for the angular distribution theta of the shower*/
     art::PtrVector<recob::Hit> allhits;
     std::vector<int> maxBin;    //stores bin # of local maximum
