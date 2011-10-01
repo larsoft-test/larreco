@@ -532,8 +532,8 @@ std::cout<<"No of DBSCAN clusters= "<<clusIn.size()<<std::endl;
     fcheatedCl_p1=0;
     fcheatedCl_near_vertex_p0=0;
     fcheatedCl_near_vertex_p1=0;
- 
-	      
+ //you only want to loop once that's why i am choosing second plane b/c by that time i completely filled vertex info
+	       if(plane==1){
 	      for(unsigned int ii = 0; ii < cheatedclusterListHandle->size(); ++ii)
     {
       art::Ptr<recob::Cluster> cluster(cheatedclusterListHandle, ii);
@@ -547,18 +547,20 @@ std::cout<<"No of DBSCAN clusters= "<<clusIn.size()<<std::endl;
       fclusters_planeNo_true[ii]=0;
       fStart_pt_w_true[ii]=cluster->StartPos()[0];
       fStart_pt_t_true[ii]=cluster->StartPos()[1];
+      std::cout<<"plane=0, cheated cl# "<<ii<<" size= "<<cluster->Hits().size()<<" startPos_w= "<<cluster->StartPos()[0]<<" startPos_t= "<<cluster->StartPos()[1]<<std::endl;
       
       }
        else if(cluster->View()==geo::kV){
       fclusters_planeNo_true[ii]=1;
       fStart_pt_w_true[ii]=cluster->StartPos()[0];
       fStart_pt_t_true[ii]=cluster->StartPos()[1];
+      std::cout<<"plane=1, cheated cl# "<<ii<<" size= "<<cluster->Hits().size()<<" startPos_w= "<<cluster->StartPos()[0]<<" startPos_t= "<<cluster->StartPos()[1]<<std::endl;
       
       }
       
       
       
-      
+     
       if(cluster->Hits().size()>2 && cluster->View()==geo::kU){
       
       fcheatedCl_p0++;
@@ -584,10 +586,10 @@ std::cout<<"No of DBSCAN clusters= "<<clusIn.size()<<std::endl;
       
       }
     }
+    }//for the second plane
+    fno_clusters_true=cheatedclusterListHandle->size();
     
-    fno_clusters_true=CheatedClusIn.size();
-    
-std::cout<<"Total No of CHEATED clusters= "<<CheatedClusIn.size()<<std::endl;
+std::cout<<"Total No of CHEATED clusters= "<<cheatedclusterListHandle->size()<<std::endl;
 std::cout<<"for plane 0:"<<fcheatedCl_p0<<std::endl;
 std::cout<<"for plane 1:"<<fcheatedCl_p1<<std::endl;
 std::cout<<"Total No of CHEATED clusters ***NEAR THE VERTEX*** :"<<std::endl;
@@ -741,6 +743,7 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
 	    fclusters_planeNo_reco_.push_back(0);
 	    fStart_pt_w_reco_.push_back(cluster.StartPos()[0]);
 	    fStart_pt_t_reco_.push_back(cluster.StartPos()[1]);
+	    std::cout<<"@@@@@@@@@ plane= "<<plane<<" cluster= "<<ClusterNo<<" vertex= ("<<fwire_vertex_true[0]<<","<<ftime_vertex[0]<<")"<<" diff_w_p0= "<<fabs(cluster.StartPos()[0]-fwire_vertex_true[0])<<" diff_t_p0= "<<fabs(cluster.StartPos()[1]-ftime_vertex[0])<<std::endl;
 	    
 	    
 	    }
@@ -748,20 +751,23 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
 	    fclusters_planeNo_reco_.push_back(1);
 	    fStart_pt_w_reco_.push_back(cluster.StartPos()[0]);
 	    fStart_pt_t_reco_.push_back(cluster.StartPos()[1]); 
-	   
+	   std::cout<<"@@@@@@@@@ plane= "<<plane<<" cluster= "<<ClusterNo<<" vertex= ("<<fwire_vertex_true[1]<<","<<ftime_vertex[1]<<")"<<" diff_w_p0= "<<fabs(cluster.StartPos()[0]-fwire_vertex_true[1])<<" diff_t_p0= "<<fabs(cluster.StartPos()[1]-ftime_vertex[1])<<std::endl;
 	    }	    
 	      
 	      
 	      
 	      
-	       if(cluster.View()==geo::kU && fabs(cluster.StartPos()[0]-fwire_vertex_true[0])<6 && fabs(cluster.StartPos()[1]-ftime_vertex[0])<90 ){
+	       if(cluster.View()==geo::kU && fabs(cluster.StartPos()[0]-fwire_vertex_true[0])<6 && fabs(cluster.StartPos()[1]-ftime_vertex[0])<90){
       fkingaCl_near_vertex_p0++;
       std::cout<<"fkingaCl_near_vertex_p0++"<<std::endl;
+     
       
       }
 	      
 	      if(cluster.View()==geo::kV && fabs(cluster.StartPos()[0]-fwire_vertex_true[1])<6 && fabs(cluster.StartPos()[1]-ftime_vertex[1])<90 ){
       fkingaCl_near_vertex_p1++;
+      std::cout<<"fkingaCl_near_vertex_p0++"<<std::endl;
+      
       
       }
 	      
