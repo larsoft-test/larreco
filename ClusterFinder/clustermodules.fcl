@@ -74,11 +74,11 @@ standard_kingacluster:
 standard_kingaclusterana:
 { 
  module_type:              "KingaClusterAna"
- GenieGenModuleLabel:      "generator"
- LArGeantModuleLabel:      "largeant"
- HitsModuleLabel:          "ffthit"
- ClusterFinderModuleLabel: "dbcluster"
+ LineMergerModuleLabel: "linemerger"
+ EndPoint2DModuleLabel: "vertex2d"
+ ClusterCheaterModuleLabel: "cluster"
  KingaModuleLabel:         "kingacluster"
+ GenieGenModuleLabel:      "generator"
 }
 
 
