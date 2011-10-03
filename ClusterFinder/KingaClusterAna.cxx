@@ -58,9 +58,9 @@ cluster::KingaClusterAna::KingaClusterAna(fhicl::ParameterSet const& pset) :
   frun(0),
   fevent(0),
   ftime_vertex_true(0),
-  fno_clusters_true(30),
-  fno_clusters_reco(30),
-  fno_clusters_linemerger(30)
+  fno_clusters_true(200),
+  fno_clusters_reco(200),
+  fno_clusters_linemerger(200)
   
 {
 

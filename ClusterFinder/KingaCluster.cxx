@@ -51,37 +51,14 @@ extern "C" {
 
 cluster::KingaCluster::KingaCluster(fhicl::ParameterSet const& pset) :
   fDBScanModuleLabel       (pset.get< std::string >("DBScanModuleLabel")),
-  fLineMergerModuleLabel       (pset.get< std::string >("LineMergerModuleLabel")),
-  fEndPoint2DModuleLabel        (pset.get< std::string >("EndPoint2DModuleLabel")),
-  fClusterCheaterModuleLabel        (pset.get< std::string >("ClusterCheaterModuleLabel")),
-  frun(0),
-  fevent(0),
- ftime_vertex_true(0),
- fno_clusters_true(30),
- fno_clusters_reco(30),
- fno_clusters_linemerger(30)
- 
- 
+  fEndPoint2DModuleLabel        (pset.get< std::string >("EndPoint2DModuleLabel"))
+  
 {
   produces< std::vector<recob::Cluster> >();
 }
 
 cluster::KingaCluster::~KingaCluster()
 {
-delete fwire_vertex_true;
-delete fTTree_wire_vertex_reco;
-delete fTTree_time_vertex_reco;
-delete fclusters_planeNo_true;
-delete fclusters_planeNo_reco;
-delete flinemergerclusters_planeNo;
-delete fStart_pt_w_true;
-delete fStart_pt_t_true;
-delete fStart_pt_w_reco;
-delete fStart_pt_t_reco;
-delete fStart_pt_w_linemerger;
-delete fStart_pt_t_linemerger;
-delete fcheated_cluster_size;
-delete flinemerger_cluster_size;
 
 }
 
@@ -91,71 +68,6 @@ void cluster::KingaCluster::beginJob(){
   art::ServiceHandle<art::TFileService> tfs;
   art::ServiceHandle<geo::Geometry> geo;
   //unsigned int planes = geo->Nplanes();
- 
- fTree = tfs->make<TTree>("anatree","KingaCluster analysis");
- 
- fwire_vertex_true= new double[2];
- fTTree_wire_vertex_reco= new double[2];
- fTTree_time_vertex_reco= new double[2];
- fStart_pt_w_true=new double[fno_clusters_true];
- fStart_pt_t_true=new double[fno_clusters_true];
- fStart_pt_w_reco=new double[fno_clusters_reco];
- fStart_pt_t_reco=new double[fno_clusters_reco];
- fStart_pt_w_linemerger=new double[fno_clusters_linemerger];
- fStart_pt_t_linemerger=new double[fno_clusters_linemerger];
- fclusters_planeNo_true=new int[fno_clusters_true];
- fclusters_planeNo_reco=new int[fno_clusters_reco];
- flinemergerclusters_planeNo=new int[fno_clusters_linemerger];
- fcheated_cluster_size=new int[fno_clusters_true];
- flinemerger_cluster_size=new int[fno_clusters_linemerger];
- 
- 
- fTree->Branch("run",&frun,"run/I");
- fTree->Branch("event",&fevent,"event/I");
- fTree->Branch("wire_vertex_true", fwire_vertex_true, "wire_vertex_true[2]/D");
- fTree->Branch("time_vertex_true",&ftime_vertex_true,"time_vertex_true/D");
- fTree->Branch("TTree_wire_vertex_reco", fTTree_wire_vertex_reco, "TTree_wire_vertex_reco[2]/D");
- fTree->Branch("TTree_time_vertex_reco", fTTree_time_vertex_reco, "TTree_time_vertex_reco[2]/D");
- 
- 
-fTree->Branch("no_clusters_true",&fno_clusters_true,"no_clusters_true/I");
-fTree->Branch("no_clusters_reco",&fno_clusters_reco,"no_clusters_reco/I");
-fTree->Branch("no_clusters_linemerger",&fno_clusters_linemerger,"no_clusters_linemerger/I");
-
-fTree->Branch("clusters_planeNo_true",fclusters_planeNo_true,"clusters_planeNo_true[no_clusters_true]/I");
-fTree->Branch("clusters_planeNo_reco",fclusters_planeNo_reco,"clusters_planeNo_reco[no_clusters_reco]/I");
-fTree->Branch("linemergerclusters_planeNo",flinemergerclusters_planeNo,"linemergerclusters_planeNo[no_clusters_linemerger]/I");
-
- fTree->Branch("Start_pt_w_true", fStart_pt_w_true, "Start_pt_w_true[no_clusters_true]/D");
- fTree->Branch("Start_pt_t_true", fStart_pt_t_true, "Start_pt_t_true[no_clusters_true]/D");
- fTree->Branch("Start_pt_w_reco", fStart_pt_w_reco, "Start_pt_w_reco[no_clusters_reco]/D");
- fTree->Branch("Start_pt_t_reco", fStart_pt_t_reco, "Start_pt_t_reco[no_clusters_reco]/D");
- fTree->Branch("Start_pt_w_linemerger", fStart_pt_w_linemerger, "Start_pt_w_linemerger[no_clusters_linemerger]/D");
- fTree->Branch("Start_pt_t_linemerger", fStart_pt_t_linemerger, "Start_pt_t_linemerger[no_clusters_linemerger]/D");
- 
- 
- 
- fTree->Branch("cheated_cluster_size", fcheated_cluster_size, "cheated_cluster_size[no_clusters_true]/I"); // no of hits in each cluster
- fTree->Branch("linemerger_cluster_size", flinemerger_cluster_size, "linemerger_cluster_size[no_clusters_linemerger]/I");
- 
- 
- 
- 
-//............................................... 
-// DIFFERENCE BETWEEN KINGA CLUSTERS AND CHEATED(=TRUE) CLUSTERS
- fdiff_no_vertex_clusters_p0= tfs->make<TH1F>("fdiff_no_vertex_clusters_p0","Difference between No of Clusters around a vertex found by ClusterCheater vs KingaCluster, Induction Plane", 20,-10 ,10  );
-  fdiff_no_vertex_clusters_p1= tfs->make<TH1F>("fdiff_no_vertex_clusters_p1","Difference between No of Clusters around a vertex found by ClusterCheater vs KingaCluster, Collection Plane", 20,-10 ,10  );
-  
-  // DIFFERENCE BETWEEN LINE MERGER CLUSTERS AND CHEATED(=TRUE) CLUSTERS
- fdiff_no_vertex_linemergerclusters_p0= tfs->make<TH1F>("fdiff_no_vertex_linemergerclusters_p0","Difference between No of Clusters around a vertex found by ClusterCheater vs LineMerger, Induction Plane", 20,-10 ,10  );
-  fdiff_no_vertex_linemergerclusters_p1= tfs->make<TH1F>("fdiff_no_vertex_linemergerclusters_p1","Difference between No of Clusters around a vertex found by ClusterCheater vs LineMerger, Collection Plane", 20,-10 ,10  );
- 
- 
- 
- //vertex truth vs reco:
- fdiff_time_vtx_p0= tfs->make<TH1F>("fdiff_time_vtx_p0","Difference between truth and reco vertex time position, Induction Plane", 20000,-1000 ,1000  );
- fdiff_wire_vtx_p0= tfs->make<TH1F>("fdiff_wire_vtx_p0","Difference between truth and reco vertex wire position, Induction Plane", 100,-50 ,50  );
- fdiff_wire_vtx_p1= tfs->make<TH1F>("fdiff_wire_vtx_p1","Difference between truth and reco vertex wire position, Collection Plane", 100,-50 ,50  );
  
  
  
@@ -168,17 +80,6 @@ fTree->Branch("linemergerclusters_planeNo",flinemergerclusters_planeNo,"linemerg
 
 Hit_Area_Ind= tfs->make<TH1F>("Hit_Area_Ind","Hit Area, Induction Plane", 100,0 ,1  );
 Hit_Area_Coll= tfs->make<TH1F>("Hit_Area_Coll","Hit Area, Collection Plane", 100,0 ,1  );
-
- 
-  
-  // Create Histos names
- //  char tit_h_theta[128] = {0};
-//   for(unsigned int i=0;i<planes;++i){
-// 
-//     /**Histos for the angular distribution theta of the shower*/
-//     sprintf(&tit_h_theta[0],"fh_theta_%i",i);
-//     fh_theta.push_back(tfs->make<TH1F>(tit_h_theta,"Theta distribution",180,-180., 180.));
-//     }
 
 }
 
@@ -198,8 +99,7 @@ struct SortByWire
 
 void cluster::KingaCluster::produce(art::Event& evt)
 {
-   frun = evt.run();
-   fevent = evt.id().event();
+  
 
 std::cout<<"In KingaCluster::produce(art::Event& evt)"<<std::endl;
 std::cout<<" Working on ";
@@ -348,7 +248,7 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
     ftime_vertex.push_back(drifttick);
     ftime_vertex.push_back(drifttick);
     
-    ftime_vertex_true=drifttick;
+   
 
   }
 
@@ -381,45 +281,16 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
   
   for (unsigned int j = 0; j<endpointlist.size();j++){
 
-       double vtx2d_w = endpointlist[j]->WireNum();
-       double vtx2d_t = endpointlist[j]->DriftTime();
-
      ftime_vertex_reco.push_back(endpointlist[j]->DriftTime());
      fwire_vertex_reco.push_back(endpointlist[j]->WireNum());
           
-          std::cout<<"j="<<j<<" vtx2d_w="<<vtx2d_w<<" vtx2d_t="<<vtx2d_t<<std::endl;
+          std::cout<<"j="<<j<<" vtx2d_w="<<endpointlist[j]->WireNum()<<" vtx2d_t="<<endpointlist[j]->DriftTime()<<std::endl;
           
-          fTTree_wire_vertex_reco[j]=vtx2d_w;
-          fTTree_time_vertex_reco[j]=vtx2d_t;
-
-        //}
-
-      }
+        }
       
      
  //********************************************************************     
        
-// get LineMergerClusters............
-std::cout<<"Trying to get line merger clusters***"<<std::endl;
-
- 
-
- art::Handle< std::vector<recob::Cluster> > linemergerclusterListHandle;
-  evt.getByLabel(fLineMergerModuleLabel,linemergerclusterListHandle);
-  art::PtrVector<recob::Cluster> LineMergerClusIn;    
-     
-      
-// get CheatedClusters............
-std::cout<<"Trying to get cheated clusters***"<<std::endl;
-
- 
-
- art::Handle< std::vector<recob::Cluster> > cheatedclusterListHandle;
-  evt.getByLabel(fClusterCheaterModuleLabel,cheatedclusterListHandle);
-  art::PtrVector<recob::Cluster> CheatedClusIn;
-  
-  
-  
 
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
@@ -433,9 +304,6 @@ std::cout<<"Trying to get cheated clusters***"<<std::endl;
   art::PtrVector<recob::Hit> hits;
   art::PtrVector<recob::Hit> clusterHits;
  
- fkingaCl_near_vertex_p0=0;
- fkingaCl_near_vertex_p1=0;
-
  
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
     {
@@ -448,14 +316,6 @@ std::cout<<"No of DBSCAN clusters= "<<clusIn.size()<<std::endl;
 
  unsigned int p(0),w(0),t(0), channel(0);
  
- 
- 
- 
- fclusters_planeNo_reco_.clear();
- fStart_pt_w_reco_.clear();
- fStart_pt_t_reco_.clear();
- int No_kinga_clusters_p0=0;
- int No_kinga_clusters_p1=0;
 
  for(size_t tpc = 0; tpc < geom->NTPC(); ++tpc){
    std::cout<<"No of planes = "<<geom->Nplanes(tpc)<<std::endl;
@@ -524,160 +384,10 @@ std::cout<<"No of DBSCAN clusters= "<<clusIn.size()<<std::endl;
      std::cout<<"HitsWithClusterID.size()= "<<HitsWithClusterID.size()
 	      << "compare with allhits.size()= "<<allhits.size()<<std::endl;
 	      
-	      
-	      
-	//.......................................................................      
-	// Analyzing True=cheated clusters:  
-	fcheatedCl_p0=0;
-    fcheatedCl_p1=0;
-    fcheatedCl_near_vertex_p0=0;
-    fcheatedCl_near_vertex_p1=0;
- //you only want to loop once that's why i am choosing second plane b/c by that time i completely filled vertex info
-	       if(plane==1){
-	      for(unsigned int ii = 0; ii < cheatedclusterListHandle->size(); ++ii)
-    {
-      art::Ptr<recob::Cluster> cluster(cheatedclusterListHandle, ii);
-      CheatedClusIn.push_back(cluster);
-      
-      
-      //Fill TTree:
-      fcheated_cluster_size[ii]=cluster->Hits().size();
-      
-      if(cluster->View()==geo::kU){
-      fclusters_planeNo_true[ii]=0;
-      fStart_pt_w_true[ii]=cluster->StartPos()[0];
-      fStart_pt_t_true[ii]=cluster->StartPos()[1];
-      std::cout<<"plane=0, cheated cl# "<<ii<<" size= "<<cluster->Hits().size()<<" startPos_w= "<<cluster->StartPos()[0]<<" startPos_t= "<<cluster->StartPos()[1]<<std::endl;
-      
-      }
-       else if(cluster->View()==geo::kV){
-      fclusters_planeNo_true[ii]=1;
-      fStart_pt_w_true[ii]=cluster->StartPos()[0];
-      fStart_pt_t_true[ii]=cluster->StartPos()[1];
-      std::cout<<"plane=1, cheated cl# "<<ii<<" size= "<<cluster->Hits().size()<<" startPos_w= "<<cluster->StartPos()[0]<<" startPos_t= "<<cluster->StartPos()[1]<<std::endl;
-      
-      }
-      
-      
-      
-     
-      if(cluster->Hits().size()>2 && cluster->View()==geo::kU){
-      
-      fcheatedCl_p0++;
-      
-      std::cout<<cluster->StartPos()[0]<<", "<<cluster->StartPos()[1]<<" --> "<<cluster->EndPos()[0]<<", "<<cluster->EndPos()[1]<<" No hits= "<<cluster->Hits().size()<<std::endl;
-      
-      
-      if(fabs(cluster->StartPos()[0]-fwire_vertex_true[0])<6 && fabs(cluster->StartPos()[1]-ftime_vertex[0])<90 ){
-      fcheatedCl_near_vertex_p0++;
-      
-      }
-      
-      
-      }
-      if(cluster->Hits().size()>2 && cluster->View()==geo::kV){
-      
-      fcheatedCl_p1++;
-      
-       if(fabs(cluster->StartPos()[0]-fwire_vertex_true[1])<6 && fabs(cluster->StartPos()[1]-ftime_vertex[1])<90 ){
-      fcheatedCl_near_vertex_p1++;
-      
-      }
-      
-      }
-    }
-    }//for the second plane
-    fno_clusters_true=cheatedclusterListHandle->size();
-    
-std::cout<<"Total No of CHEATED clusters= "<<cheatedclusterListHandle->size()<<std::endl;
-std::cout<<"for plane 0:"<<fcheatedCl_p0<<std::endl;
-std::cout<<"for plane 1:"<<fcheatedCl_p1<<std::endl;
-std::cout<<"Total No of CHEATED clusters ***NEAR THE VERTEX*** :"<<std::endl;
-std::cout<<"for plane 0:"<<fcheatedCl_near_vertex_p0<<std::endl;
-std::cout<<"for plane 1:"<<fcheatedCl_near_vertex_p1<<std::endl;
-
-//............ End of analyzing cheated clusters............................
-
-	      // Analyzing Merged Lines clusters:
-	      
-	flinemergerCl_p0=0;
-    flinemergerCl_p1=0;
-    flinemergerCl_near_vertex_p0=0;
-    flinemergerCl_near_vertex_p1=0;
-     
-     
-     for(unsigned int ii = 0; ii < linemergerclusterListHandle->size(); ++ii)
-    {
-      art::Ptr<recob::Cluster> cluster(linemergerclusterListHandle, ii);
-      LineMergerClusIn.push_back(cluster);
-      
-      
-      //Fill TTree:
-      flinemerger_cluster_size[ii]=cluster->Hits().size();
-      
-      if(cluster->View()==geo::kU){
-      flinemergerclusters_planeNo[ii]=0;
-      fStart_pt_w_linemerger[ii]=cluster->StartPos()[0];
-      fStart_pt_t_linemerger[ii]=cluster->StartPos()[1];
-      
-      }
-       else if(cluster->View()==geo::kV){
-       flinemergerclusters_planeNo[ii]=1;
-      fStart_pt_w_linemerger[ii]=cluster->StartPos()[0];
-      fStart_pt_t_linemerger[ii]=cluster->StartPos()[1];
-      
-      }
-      
-      
-      
-      
-      if(cluster->Hits().size()>2 && cluster->View()==geo::kU){
-      
-      flinemergerCl_p0++;
-      
-      std::cout<<cluster->StartPos()[0]<<", "<<cluster->StartPos()[1]<<" --> "<<cluster->EndPos()[0]<<", "<<cluster->EndPos()[1]<<" No hits= "<<cluster->Hits().size()<<std::endl;
-      
-      
-      if(fabs(cluster->StartPos()[0]-fwire_vertex_true[0])<6 && fabs(cluster->StartPos()[1]-ftime_vertex[0])<90 ){
-      flinemergerCl_near_vertex_p0++;
-      
-      }
-      
-      
-      }
-      if(cluster->Hits().size()>2 && cluster->View()==geo::kV){
-      
-      flinemergerCl_p1++;
-      
-       if(fabs(cluster->StartPos()[0]-fwire_vertex_true[1])<6 && fabs(cluster->StartPos()[1]-ftime_vertex[1])<90 ){
-      flinemergerCl_near_vertex_p1++;
-      
-      }
-      
-      }
-    }
-    
-    fno_clusters_linemerger=LineMergerClusIn.size();
-    
-std::cout<<"Total No of LINE MERGER clusters= "<<LineMergerClusIn.size()<<std::endl;
-std::cout<<"for plane 0:"<<flinemergerCl_p0<<std::endl;
-std::cout<<"for plane 1:"<<flinemergerCl_p1<<std::endl;
-std::cout<<"Total No of LINE MERGER clusters ***NEAR THE VERTEX*** :"<<std::endl;
-std::cout<<"for plane 0:"<<flinemergerCl_near_vertex_p0<<std::endl;
-std::cout<<"for plane 1:"<<flinemergerCl_near_vertex_p1<<std::endl;
-
-//............ End of analyzing linemerger clusters............................
-	      
-      
-      
+	            
  //********************************************************************         
 	      
-	      
-	if(plane==0){  No_kinga_clusters_p0= MaxStartPoint.size();   } 
-	if(plane==1){  No_kinga_clusters_p1= MaxStartPoint.size();   } 
-	      
-	      
-	      
+	
 	      
      for(unsigned int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++) {
     
@@ -734,71 +444,13 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
 	      //std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
 	     // std::cout<<cluster.StartPos()[0]<<", "<<cluster.StartPos()[1]<<" --> "<<cluster.EndPos()[0]<<", "<<cluster.EndPos()[1]<<std::endl;
 	      
-	      
-	      
-	      //Fill the Ttree:
-	    if(cluster.View()==geo::kU){
-	   
-	    
-	    fclusters_planeNo_reco_.push_back(0);
-	    fStart_pt_w_reco_.push_back(cluster.StartPos()[0]);
-	    fStart_pt_t_reco_.push_back(cluster.StartPos()[1]);
-	    std::cout<<"@@@@@@@@@ plane= "<<plane<<" cluster= "<<ClusterNo<<" vertex= ("<<fwire_vertex_true[0]<<","<<ftime_vertex[0]<<")"<<" diff_w_p0= "<<fabs(cluster.StartPos()[0]-fwire_vertex_true[0])<<" diff_t_p0= "<<fabs(cluster.StartPos()[1]-ftime_vertex[0])<<std::endl;
-	    
-	    
-	    }
-	    else if(cluster.View()==geo::kV){
-	    fclusters_planeNo_reco_.push_back(1);
-	    fStart_pt_w_reco_.push_back(cluster.StartPos()[0]);
-	    fStart_pt_t_reco_.push_back(cluster.StartPos()[1]); 
-	   std::cout<<"@@@@@@@@@ plane= "<<plane<<" cluster= "<<ClusterNo<<" vertex= ("<<fwire_vertex_true[1]<<","<<ftime_vertex[1]<<")"<<" diff_w_p0= "<<fabs(cluster.StartPos()[0]-fwire_vertex_true[1])<<" diff_t_p0= "<<fabs(cluster.StartPos()[1]-ftime_vertex[1])<<std::endl;
-	    }	    
-	      
-	      
-	      
-	      
-	       if(cluster.View()==geo::kU && fabs(cluster.StartPos()[0]-fwire_vertex_true[0])<6 && fabs(cluster.StartPos()[1]-ftime_vertex[0])<90){
-      fkingaCl_near_vertex_p0++;
-      std::cout<<"fkingaCl_near_vertex_p0++"<<std::endl;
-     
-      
-      }
-	      
-	      if(cluster.View()==geo::kV && fabs(cluster.StartPos()[0]-fwire_vertex_true[1])<6 && fabs(cluster.StartPos()[1]-ftime_vertex[1])<90 ){
-      fkingaCl_near_vertex_p1++;
-      std::cout<<"fkingaCl_near_vertex_p0++"<<std::endl;
-      
-      
-      }
-	      
-	      for(int hit=0;hit<clusterHits.size();hit++){
-	     // std::cout<<clusterHits[hit]->Wire()->RawDigit()->Channel()<<" "<<clusterHits[hit]->PeakTime()<<std::endl;
-	      
-	      }
+
 	      
 	      clusterHits.clear();
 	      //////
 	    }
-    
-    
-    
-    
-    
+      
    } //clusters
-   
-   
-   //delete later----------->
-   std::cout<<"************************************************"<<std::endl;
-   std::cout<<"CHECKING fclusters_planeNo_reco: "<<std::endl;
-   for(unsigned int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++) {
-   std::cout<<fclusters_planeNo_reco[ClusterNo]<<std::endl;
-   
-   
-   }
-    std::cout<<"************************************************"<<std::endl;
-
-   //end of delete later <------------
-   
     
      allhits.clear();
      maxBin.clear();
@@ -814,100 +466,12 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
      std::cout<<"Should be starting to work on the other plane now"<<std::endl;
     }//Planes
     
-    
-    
-    
-    
-   //................... 
-    std::cout<<"Total No of KINGA clusters ***NEAR THE VERTEX*** :"<<std::endl;
-std::cout<<"for plane 0:"<<fkingaCl_near_vertex_p0<<std::endl;
-std::cout<<"for plane 1:"<<fkingaCl_near_vertex_p1<<std::endl;
-
-std::cout<<"--------------SUMMARY------------------"<<std::endl;
-std::cout<<"diff btw reco and cheated clusters near vertex for PLANE 0: "<<fkingaCl_near_vertex_p0-fcheatedCl_near_vertex_p0<<std::endl;
-std::cout<<"diff btw reco and cheated clusters near vertex for PLANE 1: "<<fkingaCl_near_vertex_p1-fcheatedCl_near_vertex_p1<<std::endl;
-std::cout<<"---------------------------------------"<<std::endl;
-
-    fdiff_no_vertex_clusters_p0->Fill(fkingaCl_near_vertex_p0-fcheatedCl_near_vertex_p0);
-    fdiff_no_vertex_clusters_p1->Fill(fkingaCl_near_vertex_p1-fcheatedCl_near_vertex_p1);
-    
-    
-    
-    
-    fdiff_no_vertex_linemergerclusters_p0->Fill(flinemergerCl_near_vertex_p0-fcheatedCl_near_vertex_p0);
-    fdiff_no_vertex_linemergerclusters_p1->Fill(flinemergerCl_near_vertex_p1-fcheatedCl_near_vertex_p1);
-    
-    
-    
-    
-    fno_clusters_reco=No_kinga_clusters_p0+No_kinga_clusters_p1;
-    
-    
-    
-    if (!evt.isRealData()) {
-     // Let's check how much TRUTH info for vertex differs from reconstructed vertex2d:
-     
-      
-      fdiff_time_vtx_p0->Fill(ftime_vertex[0]-ftime_vertex_reco[0]);
-      
-      fdiff_wire_vtx_p0->Fill(fwire_vertex[0]-fwire_vertex_reco[0]);
-      
-      fdiff_wire_vtx_p1->Fill(fwire_vertex[1]-fwire_vertex_reco[1]);
-    
-    std::cout<<"ftime_vertex[0]= "<<ftime_vertex[0]<<" ftime_vertex_reco[0]= "<<ftime_vertex_reco[0]<<std::endl;
-    std::cout<<"fwire_vertex[0]= "<<fwire_vertex[0]<<" fwire_vertex_reco[0]= "<<fwire_vertex_reco[0]<<" diff= "<<fwire_vertex[0]-fwire_vertex_reco[0]<<std::endl;
-    std::cout<<"fwire_vertex[1]= "<<fwire_vertex[1]<<" fwire_vertex_reco[1]= "<<fwire_vertex_reco[1]<<" diff= "<<fwire_vertex[1]-fwire_vertex_reco[1]<<std::endl;
-    
-    }
-    
-    
-    
-    
-    
-   //...................  
-    
-    
  }// end loop over tpcs 
  
- std::cout<<"^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"<<std::endl;
- std::cout<<"Checking fclusters_planeNo_reco_"<<std::endl;
- for(int i=0;i<fclusters_planeNo_reco_.size(); i++){
  
- std::cout<<fclusters_planeNo_reco_[i]<<std::endl;
- 
- }
-  std::cout<<"^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"<<std::endl;
-//**********************************************
-   //Fill the TTree with info about reco clusters:
-    
-    for(int i=0;i<fclusters_planeNo_reco_.size();i++){
-    
-        fclusters_planeNo_reco[i]=fclusters_planeNo_reco_[i];
-	    fStart_pt_w_reco[i]=fStart_pt_w_reco_[i];
-        fStart_pt_t_reco[i]=fStart_pt_t_reco_[i];
-    }
-    //**********************************************
-
-std::cout<<"Finally the fclusters_planeNo_reco is: "<<std::endl;
-
-for(int i=0;i<fclusters_planeNo_reco_.size();i++){
-std::cout<<fclusters_planeNo_reco[i]<<" ";
-}
-std::cout<<std::endl;
- 
- fTree->Fill();
  evt.put(ccol);
  
  
- // for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
-//    
-//    fh_theta_ind_2D->SetBinContent(bin,0);
-//    fh_theta_coll_2D->SetBinContent(bin,0);
-//    fh_theta_ind->SetBinContent(bin,0);
-//    fh_theta_coll->SetBinContent(bin,0);
-//    fh_theta_coll_Area->SetBinContent(bin,0);
-//    fh_theta_ind_Area->SetBinContent(bin,0);
-//  }
    
  return;
 }
@@ -952,7 +516,7 @@ plane2=plane;
    std::cout<<"%%%%%%%%%%%%%%%%%%   WIRE VERTEX IS: "<<wire2<<std::endl;
    fwire_vertex.push_back(wire2);
    
-   fwire_vertex_true[plane]=wire2;
+  
    
   } 
    
@@ -961,58 +525,6 @@ double a_polar, b_polar,theta_polar;
  ftimetick      =  0.198; //get from parameterset
  fdriftvelocity =  0.157;  //get from paramtereset 9either k and V)
  fpi=3.141592653;
-
-//Define vertex if it is not given by the first hit:
-
-//622_2738:
- // fwire_vertex.push_back(62);
-//  fwire_vertex.push_back(93);
-//  ftime_vertex.push_back(1058);
-//  ftime_vertex.push_back(1060);
-//......................................
-
-// fwire_vertex.push_back(62);
-// fwire_vertex.push_back(72);
-// ftime_vertex.push_back(460);
-// ftime_vertex.push_back(460);
-
-//pizero:
-// fwire_vertex.push_back(83);
-// fwire_vertex.push_back(87);
-// ftime_vertex.push_back(420);
-// ftime_vertex.push_back(430);
-//.........................
-//634_2660:
-// fwire_vertex.push_back(2);
-// fwire_vertex.push_back(2);
-// ftime_vertex.push_back(1200);
-// ftime_vertex.push_back(1200);
-
-// 650_1728:
-// fwire_vertex.push_back(137);
-// fwire_vertex.push_back(180);
-// ftime_vertex.push_back(710);
-// ftime_vertex.push_back(710);
-
-//650_2319:
-// fwire_vertex.push_back(66);
-// fwire_vertex.push_back(28);
-// ftime_vertex.push_back(1225);
-// ftime_vertex.push_back(1225);
-//..............................
-//628_6207:
-// fwire_vertex.push_back(48);
-// fwire_vertex.push_back(52);
-// ftime_vertex.push_back(1350);
-// ftime_vertex.push_back(1350);
-
-//628_7100:
-// fwire_vertex.push_back(92);
-// fwire_vertex.push_back(110);
-// ftime_vertex.push_back(850);
-// ftime_vertex.push_back(850);
-
-
 
 
 unsigned int channel=0, w=0;
