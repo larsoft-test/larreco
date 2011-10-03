@@ -66,9 +66,7 @@ standard_kingacluster:
 {
  module_type:          "KingaCluster"
  DBScanModuleLabel:    "dbcluster"
- LineMergerModuleLabel: "linemerger"
  EndPoint2DModuleLabel: "vertex2d"
- ClusterCheaterModuleLabel: "cluster"
 }
 
 standard_kingaclusterana:
