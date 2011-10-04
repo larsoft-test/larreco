@@ -37,9 +37,9 @@ namespace filt {
     double fDCenter; 
     double fDelay;
     double fTolerance;
-    double  fMaxIon;
+    double fMaxIon;
     double fIonFactor;
-  
+    int    fDeltaWire; ///< allowed differences in wire number between 2 planes
   
   }; // class MuonFilter
 

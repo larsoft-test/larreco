@@ -53,20 +53,23 @@ namespace filt{
   //------------------------------------------------
   void MuonFilter::reconfigure(fhicl::ParameterSet const& p)
   {
-    fClusterModuleLabel = p.get< std::string  >("ClusterModuleLabel");
-    fLineModuleLabel    = p.get< std::string  >("LineModuleLabel");
-    fTolerance          = p.get< double       >("Tolerance");
-    fDelay              = p.get< double       >("Delay");
-    fDCenter            = p.get< double       >("DCenter");
-    fMaxIon             = p.get< double       >("MaxIon");
-    fIonFactor          = p.get< double       >("IonFactor");
+    fClusterModuleLabel = p.get< std::string         >("ClusterModuleLabel"); 
+    fLineModuleLabel    = p.get< std::string  	     >("LineModuleLabel");    
+    fTolerance          = p.get< double       	     >("Tolerance");	       
+    fDelay              = p.get< double       	     >("Delay");	       
+    fDCenter            = p.get< double       	     >("DCenter");	       
+    fMaxIon             = p.get< double       	     >("MaxIon");	       
+    fIonFactor          = p.get< double       	     >("IonFactor");          
     fCuts               = p.get< std::vector<double> >("Cuts");
+    fDeltaWire          = p.get< int                 >("DeltaWire");
   }
 
+  //-------------------------------------------------
   void MuonFilter::beginJob()
   {
   }
 
+  //-------------------------------------------------
   void MuonFilter::endJob()
   {
   }
@@ -77,10 +80,13 @@ namespace filt{
     art::ServiceHandle<geo::Geometry> geom;
     art::ServiceHandle<util::LArProperties> larprop;
     art::ServiceHandle<util::DetectorProperties> detprop;
-    double drift = larprop->DriftVelocity(larprop->Efield(), larprop->Temperature())*detprop->SamplingRate()/1000.0;  //Drift Velocity in cm/us Sampling rate in ns
+
+    //Drift Velocity in cm/us Sampling rate in ns
+    double drift = larprop->DriftVelocity(larprop->Efield(), larprop->Temperature())*detprop->SamplingRate()/1000.0; 
+
     //This code only works comparing 2 planes so for now these are the 
     // last induction plane and collection plane
-    int vPlane = geom->Nplanes() -1;
+    int vPlane = geom->Nplanes() - 1;
     geo::View_t vView = geom->Plane(vPlane).View();
     int uPlane = vPlane-1;
     geo::View_t uView = geom->Plane(uPlane).View();
@@ -123,7 +129,7 @@ namespace filt{
 	inductionSegments.push_back(clusters[cl]);
       else if(clusters[cl]->Hits().size()>0 && clusters[cl]->View() == vView) collectionSegments.push_back(clusters[cl]);
     } 
-    if(inductionSegments.size() ==0 || collectionSegments.size() == 0) { 
+    if(inductionSegments.size() == 0 || collectionSegments.size() == 0) { 
       mf::LogInfo("MuonFilter") << "At least one plane with no track";
     }
     else {  
@@ -151,16 +157,21 @@ namespace filt{
 	  vPos1 = colSeg->StartPos()[0];
 	  vPos2 = colSeg->EndPos()[0];
 	  mf::LogInfo("MuonFilter") << "I J " << i <<" " << j ;
-	  mf::LogInfo("MuonFilter") << "Start/end " << indSeg->StartPos()[0] <<" "<< colSeg->StartPos()[0] <<" "<< indSeg->EndPos()[0] <<" "<< colSeg->EndPos()[0] ;
-          mf::LogInfo("MuonFilter")<<"U's "<< uPos1 <<" " << uPos2 <<"V's "<< vPos1 <<" " << vPos2 << " times " << trk1End <<" "<< trk2End <<" "<< trk1Start <<" "<< trk2Start ;
+	  mf::LogInfo("MuonFilter") << "Start/end " << indSeg->StartPos()[0] 
+				    <<" "<< colSeg->StartPos()[0] 
+				    <<" "<< indSeg->EndPos()[0] 
+				    <<" "<< colSeg->EndPos()[0] ;
+          mf::LogInfo("MuonFilter")<<"U's "<< uPos1 <<" " << uPos2 
+				   <<"V's "<< vPos1 <<" " << vPos2 
+				   << " times " << trk1End <<" "<< trk2End 
+				   <<" "<< trk1Start <<" "<< trk2Start ;
           //need to have the corresponding endpoints matched
           //check if they match in this order else switch
-          //todo 51 should be an adjustable paramter
           //really should use the crossing function and then have limits
           //on distance outide tpc, or some other way of dealing with
           //imperfect matches
-	  if((TMath::Abs(uPos1-vPos1)>51||TMath::Abs(uPos2-vPos2)>51) &&
-	     (TMath::Abs(uPos1-vPos2)<=51&&TMath::Abs(uPos2-vPos1)<=51)) {
+	  if((TMath::Abs(uPos1-vPos1)>fDeltaWire || TMath::Abs(uPos2-vPos2)>fDeltaWire) &&
+	     (TMath::Abs(uPos1-vPos2)<=fDeltaWire && TMath::Abs(uPos2-vPos1)<=fDeltaWire)) {
 	    mf::LogInfo("MuonFilter") << "Swapped1" ;
 	    Swap(uPos1,uPos2);
 	  }
@@ -172,16 +183,20 @@ namespace filt{
           }
 	  mf::LogInfo("MuonFilter") << "Times: " << trk1Start <<" "<< trk2Start <<" "<<trk1End <<" "<<trk2End;
           //again needs to be fixed
-          if((TMath::Abs(trk1Start-trk2Start) < fTolerance && TMath::Abs(trk1End-trk2End) < fTolerance) && (TMath::Abs(uPos1-vPos1) <=53 && TMath::Abs(uPos2-vPos2) <= 53))  {
+	  //\todo: the delta wire numbers seem a bit magic, should also change to using Geometry::ChannelsIntersect method
+          if((TMath::Abs(trk1Start-trk2Start) < fTolerance && TMath::Abs(trk1End-trk2End) < fTolerance)    && 
+	     (TMath::Abs(uPos1-vPos1) <=fDeltaWire+2 && TMath::Abs(uPos2-vPos2) <= fDeltaWire+2))  {
             geom->WireEndPoints(0,uPlane,uPos1,&w1Start[0],&w1End[0]);
             geom->WireEndPoints(0,vPlane,vPos1,&w2Start[0],&w2End[0]);
-            geom->IntersectionPoint(uPos1,vPos1,uPlane,vPlane,0,0,&w1Start[0],&w1End[0],&w2Start[0],&w2End[0],y1,z1);
+            geom->IntersectionPoint(uPos1,vPos1,uPlane,vPlane,0,&w1Start[0],&w1End[0],&w2Start[0],&w2End[0],y1,z1);
             geom->WireEndPoints(0,uPlane,uPos2,&w1Start[0],&w1End[0]);
             geom->WireEndPoints(0,vPlane,vPos2,&w2Start[0],&w2End[0]);
-            geom->IntersectionPoint(uPos2,vPos2,uPlane,vPlane,0,0,&w1Start[0],&w1End[0],&w2Start[0],&w2End[0],y2,z2);
+            geom->IntersectionPoint(uPos2,vPos2,uPlane,vPlane,0,&w1Start[0],&w1End[0],&w2Start[0],&w2End[0],y2,z2);
 	    x1 = (trk1Start+trk2Start)/2.0*drift-fDCenter;
 	    x2 = (trk1End+trk2End)/2.0*drift-fDCenter;
-	    mf::LogInfo("MuonFilter") <<"Match " << matchNum <<" "<< x1 << " "<< y1 << " "<< z1 << " "<< x2 << " "<< y2 << " "<< z2;
+	    mf::LogInfo("MuonFilter") <<"Match " << matchNum 
+				      <<" " << x1 << " " << y1 << " " << z1 
+				      <<" " << x2 << " " << y2 << " " << z2;
 	    bool x1edge,x2edge,y1edge, y2edge,z1edge,z2edge;
 	    indMap[i]=matchNum;
 	    colMap[j]=matchNum;
