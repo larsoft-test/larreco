@@ -435,10 +435,7 @@ std::cout<<"For Cluster # "<<ClusterNo<<" we have "<<clusterHits.size()<<" hits 
 				    ClusterNo);
 				    
 				    
-			
-				    
-				    
-				    
+							    
 std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
 	      ccol->push_back(cluster);
 	      //std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
@@ -1077,17 +1074,6 @@ std::cout<<SortedMaxBin[i]<<std::endl;
 // 
 // 
 // }
-void cluster::KingaCluster::FitAngularDistributions(){  
-
-//Now Fit gaussian:
- 
-  // TF1 *gau = new TF1("gaus","gaus",-6, 6);
-//
-//     fh_theta_ind->Fit("gaus","QR");        /** Fit of the angular distribution*/
-//     std::cout<<"Mean of the fit = "<< gau->GetParameter(1)<<std::endl;/** Mean value of the fit */
-//     std::cout<<"RMS= "<< gau->GetParameter(2)<<std::endl; /** RMS of the fit of the angular distribution in deg*/
-
-}
 
 //..............................................................   
 
@@ -1658,12 +1644,7 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
   diff_end_minus_start.push_back(MaxStartPoint[peak2]-MaxEndPoint[peak]);
   diff_start_minus_end.push_back(MaxStartPoint[peak]-MaxEndPoint[peak2]);
   
-  //........................//delete later------>>>>
-  if(FinalPeaks[peak]==150){
-  std::cout<<"--- will check for peak at bin# "<<FinalPeaks[peak]<<std::endl;
-  std::cout<<"diff_end_minus_start= "<<MaxStartPoint[peak2]-MaxEndPoint[peak]<<std::endl;
-  std::cout<<"diff_start_minus_end= "<<MaxStartPoint[peak]-MaxEndPoint[peak2]<<std::endl;}
-  //...........<<<--------------------------
+ 
    }
   }
   
@@ -1672,22 +1653,12 @@ for(unsigned int peak=0; peak<MaxStartPoint.size(); peak++){
     if(diff_end_minus_start[diff]>=0){
     positive_diff_end_minus_start.push_back(diff_end_minus_start[diff]); 
     
-    //........................//delete later------>>>>
-  if(FinalPeaks[peak]==150){
-  std::cout<<"positive_diff_end_minus_start= "<<diff_end_minus_start[diff]<<std::endl;
-  }
-    //...........<<<--------------------------
-    
+   
     }
     if(diff_start_minus_end[diff]>=0){
     positive_diff_start_minus_end.push_back(diff_start_minus_end[diff]); 
     
-    //........................//delete later------>>>>
-  if(FinalPeaks[peak]==150){
-  std::cout<<"positive_diff_start_minus_end= "<<diff_start_minus_end[diff]<<std::endl;
-  }
-    //...........<<<--------------------------
-    
+   
     }
     
     }

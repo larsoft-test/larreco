@@ -45,6 +45,7 @@ namespace cluster {
   std::string fEndPoint2DModuleLabel;
   std::string fClusterCheaterModuleLabel;
   std::string fGenieGenModuleLabel;
+  std::string fLArGeantModuleLabel;
   
   
   std::vector<int> fclusters_planeNo_reco_;
@@ -68,6 +69,12 @@ namespace cluster {
   TH1F *fdiff_no_vertex_clusters_p1;
   TH1F *fdiff_no_vertex_linemergerclusters_p0;
   TH1F *fdiff_no_vertex_linemergerclusters_p1;
+  TH1F *fNoProtonTracks_p0_cheatedCl;
+  TH1F *fNoProtonTracks_p1_cheatedCl;
+  TH1F *fNoProtonTracks_p0_linemergerCl;
+  TH1F *fNoProtonTracks_p1_linemergerCl;
+  TH1F *fNoProtonTracks_p0_kingaCl;
+  TH1F *fNoProtonTracks_p1_kingaCl;
     
    //TTree:
      TTree* fTree;

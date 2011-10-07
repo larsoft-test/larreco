@@ -45,6 +45,8 @@
 #include "Geometry/geo.h"
 #include "Utilities/LArProperties.h"
 #include "TTree.h"
+#include "ClusterFinder/ClusterCheater.h"
+#include "MCCheater/BackTracker.h"
 
 
  
@@ -55,6 +57,7 @@ cluster::KingaClusterAna::KingaClusterAna(fhicl::ParameterSet const& pset) :
   fEndPoint2DModuleLabel        (pset.get< std::string >("EndPoint2DModuleLabel")),
   fClusterCheaterModuleLabel        (pset.get< std::string >("ClusterCheaterModuleLabel")),
   fGenieGenModuleLabel        (pset.get< std::string >("GenieGenModuleLabel")),
+  fLArGeantModuleLabel         (pset.get< std::string >("LArGeantModuleLabel")),
   frun(0),
   fevent(0),
   ftime_vertex_true(0),
@@ -156,6 +159,13 @@ fTree->Branch("linemergerclusters_planeNo",flinemergerclusters_planeNo,"linemerg
  fdiff_wire_vtx_p1= tfs->make<TH1F>("fdiff_wire_vtx_p1","Difference between truth and reco vertex wire position, Collection Plane", 100,-50 ,50  );
  
  
+ // No of Proton Tracks:
+ fNoProtonTracks_p0_cheatedCl= tfs->make<TH1F>("fNoProtonTracks_p0_cheatedCl","No of proton tracks, Induction Plane", 15,0 ,15  );
+ fNoProtonTracks_p1_cheatedCl= tfs->make<TH1F>("fNoProtonTracks_p1_cheatedCl","No of proton tracks, Collection Plane", 15,0 ,15  );
+ fNoProtonTracks_p0_linemergerCl= tfs->make<TH1F>("fNoProtonTracks_p0_linemergerCl","No of proton tracks, Induction Plane", 15,0 ,15  );
+ fNoProtonTracks_p1_linemergerCl= tfs->make<TH1F>("fNoProtonTracks_p1_linemergerCl","No of proton tracks, Collection Plane", 15,0 ,15  );
+ fNoProtonTracks_p0_kingaCl= tfs->make<TH1F>("fNoProtonTracks_p0_kingaCl","No of proton tracks, Induction Plane", 15,0 ,15  );
+  fNoProtonTracks_p1_kingaCl= tfs->make<TH1F>("fNoProtonTracks_p1_kingaCl","No of proton tracks, Induction Plane", 15,0 ,15  );
   
 }
 
@@ -171,14 +181,34 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
       std::cout<<"ATTENTION, THIS IS A DATA FILE, CANNOT DO COMPARISON WITH TRUTH !!!! "<<std::endl;
       return;
     }
+//.....................................................................
+ art::ServiceHandle<geo::Geometry> geom;
+ art::ServiceHandle<util::LArProperties> larp;
+ sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArGeantModuleLabel);
+ 
+ std::cout<<"geom->Nchannels()= "<<geom->Nchannels()<<std::endl;
+    // get the sim::SimChannels
+  std::vector<const sim::SimChannel*> sccol;
+  evt.getView(fLArGeantModuleLabel, sccol);
+  std::cout<<" ^^^^^^^^ sccol.size()= "<<sccol.size()<<std::endl;
+  std::vector<const sim::SimChannel*> scs(geom->Nchannels(),0);
+  for(size_t i = 0; i < sccol.size(); ++i) scs[sccol[i]->Channel()] = sccol[i];
+    
+    
+    
+    
+//..................................................................
+
+
+
+   
 ftime_vertex.clear();
 fwire_vertex.clear();
 ftime_vertex_reco.clear();
 fwire_vertex_reco.clear();
  int RunNo= evt.run();
  int EventNo=evt.id().event();
- art::ServiceHandle<geo::Geometry> geom;
- art::ServiceHandle<util::LArProperties> larp;
+
  //............MC TRUTH VERTEX:...........................................
  
  art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
@@ -189,6 +219,9 @@ fwire_vertex_reco.clear();
       art::Ptr<simb::MCTruth> mctparticle(mctruthListHandle,ii);
       mclist.push_back(mctparticle);
     } 
+    
+    std::cout<<" mclist.size()= "<<mclist.size()<<std::endl;
+    
     for( unsigned int i = 0; i < mclist.size(); ++i ){
 
     art::Ptr<simb::MCTruth> mc(mclist[i]);
@@ -261,6 +294,19 @@ fwire_vertex_reco.clear();
   
      //............END OF RECO VERTEX.........................................
 
+
+    int proton_track_ind=0;
+    int proton_track_coll=0;
+    int proton_hit_ind=0;
+    int proton_hit_coll=0;
+    art::PtrVector<recob::Hit> hits;
+    std::vector<int> vec_trackid;
+    vec_trackid.clear();
+
+
+
+
+
   // get LineMergerClusters............
   std::cout<<"Trying to get line merger clusters***"<<std::endl;
 
@@ -324,6 +370,59 @@ fwire_vertex_reco.clear();
       }
       
       }
+      
+       //*********************************
+     // find out what particle each cluster belongs to:
+     
+     
+     hits=cluster->Hits();
+     
+    for(int h=0; h<hits.size(); h++){
+    
+    //std::cout<<"hits[h] channel= "<<hits[h]->Wire()->RawDigit()->Channel()<<std::endl;
+   
+    std::vector<cheat::TrackIDE> trackides = cheat::BackTracker::HitToTrackID(*scs[hits[h]->Channel()], hits[h]);
+   
+    std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
+    //std::cout<<"trackides= "<<trackides.size();
+    
+    
+   
+    while( idesitr != trackides.end() ){
+    
+    vec_trackid.push_back((*idesitr).trackID);
+    //std::cout<<"EngFraction= "<<(*idesitr).energyFrac<<std::endl;
+    const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+    int pdg = particle->PdgCode();
+    //std::cout<<"pdg= "<<pdg<<std::endl;
+    
+    if(pdg==2212 || pdg==-2212){
+       if(cluster->View()==geo::kU) proton_hit_ind++;
+       else if(cluster->View()==geo::kV) proton_hit_coll++;
+    
+    }
+    
+    idesitr++;
+    }//trackids
+    
+    vec_trackid.clear();
+    
+    }//hits
+      
+      if (cluster->View()==geo::kU && hits.size()>=2 && (proton_hit_ind/hits.size())>0.7){
+      proton_track_ind++;
+      std::cout<<" cluster #"<<ii<<" is a proton track! (IND)"<<std::endl;
+      }
+      else if (cluster->View()==geo::kV && hits.size()>=2 && (proton_hit_coll/hits.size())>0.7){
+      proton_track_coll++;
+      std::cout<<" cluster #"<<ii<<" is a proton track! (COLL)"<<std::endl;
+      }
+     proton_hit_ind=0;
+     proton_hit_coll=0;
+      
+      
+      
+      
     }
     
     fno_clusters_linemerger=LineMergerClusIn.size();
@@ -334,10 +433,18 @@ std::cout<<"for plane 1:"<<flinemergerCl_p1<<std::endl;
 std::cout<<"Total No of LINE MERGER clusters ***NEAR THE VERTEX*** :"<<std::endl;
 std::cout<<"for plane 0:"<<flinemergerCl_near_vertex_p0<<std::endl;
 std::cout<<"for plane 1:"<<flinemergerCl_near_vertex_p1<<std::endl;
+std::cout<<"no of proton tracks for plane 0: "<<proton_track_ind<<std::endl;
+std::cout<<"no of proton tracks for plane 1: "<<proton_track_coll<<std::endl;
 
+fNoProtonTracks_p0_linemergerCl->Fill(proton_track_ind);
+fNoProtonTracks_p1_linemergerCl->Fill(proton_track_coll);
 //............ End of analyzing linemerger clusters............................
   
-  
+  proton_track_ind=0;
+  proton_track_coll=0;
+  proton_hit_ind=0;
+  proton_hit_coll=0;
+  vec_trackid.clear();
   
   
   //........GET KINGACLUSTERS:
@@ -382,6 +489,54 @@ std::cout<<"for plane 1:"<<flinemergerCl_near_vertex_p1<<std::endl;
         }
       }
       
+      //*********************************
+     // find out what particle each cluster belongs to:
+     
+     
+     hits=cluster->Hits();
+     
+    for(int h=0; h<hits.size(); h++){
+    
+    //std::cout<<"hits[h] channel= "<<hits[h]->Wire()->RawDigit()->Channel()<<std::endl;
+   
+    std::vector<cheat::TrackIDE> trackides = cheat::BackTracker::HitToTrackID(*scs[hits[h]->Channel()], hits[h]);
+   
+    std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
+    //std::cout<<"trackides= "<<trackides.size();
+    
+    
+   
+    while( idesitr != trackides.end() ){
+    
+    vec_trackid.push_back((*idesitr).trackID);
+    //std::cout<<"EngFraction= "<<(*idesitr).energyFrac<<std::endl;
+    const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+    int pdg = particle->PdgCode();
+    //std::cout<<"pdg= "<<pdg<<std::endl;
+    
+    if(pdg==2212 || pdg==-2212){
+       if(cluster->View()==geo::kU) proton_hit_ind++;
+       else if(cluster->View()==geo::kV) proton_hit_coll++;
+    
+    }
+    
+    idesitr++;
+    }//trackids
+    
+    vec_trackid.clear();
+    
+    }//hits
+      
+      if (cluster->View()==geo::kU && (proton_hit_ind/hits.size())>0.7){
+      proton_track_ind++;
+      std::cout<<" cluster #"<<ii<<" is a proton track! (IND)"<<std::endl;
+      }
+      else if (cluster->View()==geo::kV && (proton_hit_coll/hits.size())>0.7){
+      proton_track_coll++;
+      std::cout<<" cluster #"<<ii<<" is a proton track! (COLL)"<<std::endl;
+      }
+     proton_hit_ind=0;
+     proton_hit_coll=0;
       
       
       
@@ -396,16 +551,43 @@ std::cout<<"for plane 1:"<<fkingaCl_p1<<std::endl;
 std::cout<<"Total No of KINGA clusters ***NEAR THE VERTEX*** :"<<std::endl;
 std::cout<<"for plane 0:"<<fkingaCl_near_vertex_p0<<std::endl;
 std::cout<<"for plane 1:"<<fkingaCl_near_vertex_p1<<std::endl;
+std::cout<<"no of proton tracks for plane 0: "<<proton_track_ind<<std::endl;
+std::cout<<"no of proton tracks for plane 1: "<<proton_track_coll<<std::endl;
 
+
+ fNoProtonTracks_p0_kingaCl->Fill(proton_track_ind);
+ fNoProtonTracks_p1_kingaCl->Fill(proton_track_coll);
+ 
 //............ End of analyzing KINGAclusters............................
+  
+   
+  
+   proton_track_ind=0;
+   proton_track_coll=0;
+   proton_hit_ind=0;
+   proton_hit_coll=0;
+   vec_trackid.clear();
+ 
+  
+  
   
   // get CheatedClusters............
 std::cout<<"Trying to get cheated clusters***"<<std::endl;
+
+
+
+
+
+
+
 
     fcheatedCl_p0=0;
     fcheatedCl_p1=0;
     fcheatedCl_near_vertex_p0=0;
     fcheatedCl_near_vertex_p1=0;
+    
+    
+    
  
 
  art::Handle< std::vector<recob::Cluster> > cheatedclusterListHandle;
@@ -414,9 +596,9 @@ std::cout<<"Trying to get cheated clusters***"<<std::endl;
   
       for(unsigned int ii = 0; ii < cheatedclusterListHandle->size(); ++ii)
     {
+    std::cout<<"working on cluster #"<<ii<<std::endl;
       art::Ptr<recob::Cluster> cluster(cheatedclusterListHandle, ii);
       CheatedClusIn.push_back(cluster);
-      
       
       //Fill TTree:
       fcheated_cluster_size[ii]=cluster->Hits().size();
@@ -463,7 +645,57 @@ std::cout<<"Trying to get cheated clusters***"<<std::endl;
       }
       
       }
+      
+     //*********************************
+     // find out what particle each cluster belongs to:
+     
+     
+     hits=cluster->Hits();
+     
+    for(int h=0; h<hits.size(); h++){
+    
+    //std::cout<<"hits[h] channel= "<<hits[h]->Wire()->RawDigit()->Channel()<<std::endl;
+   
+    std::vector<cheat::TrackIDE> trackides = cheat::BackTracker::HitToTrackID(*scs[hits[h]->Channel()], hits[h]);
+   
+    std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
+    //std::cout<<"trackides= "<<trackides.size();
+    
+    
+   
+    while( idesitr != trackides.end() ){
+    
+    vec_trackid.push_back((*idesitr).trackID);
+    //std::cout<<"EngFraction= "<<(*idesitr).energyFrac<<std::endl;
+    const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+    int pdg = particle->PdgCode();
+    //std::cout<<"pdg= "<<pdg<<std::endl;
+    
+    if(pdg==2212 || pdg==-2212){
+       if(cluster->View()==geo::kU) proton_hit_ind++;
+       else if(cluster->View()==geo::kV) proton_hit_coll++;
+    
     }
+    
+    idesitr++;
+    }//trackids
+    
+    vec_trackid.clear();
+    
+    }//hits
+      
+      if (cluster->View()==geo::kU && hits.size()>=2 && (proton_hit_ind/hits.size())>0.7){
+      proton_track_ind++;
+      std::cout<<" cluster #"<<ii<<" is a proton track! (IND)"<<std::endl;
+      }
+      else if (cluster->View()==geo::kV && hits.size()>=2 && (proton_hit_coll/hits.size())>0.7){
+      proton_track_coll++;
+      std::cout<<" cluster #"<<ii<<" is a proton track! (COLL)"<<std::endl;
+      }
+     proton_hit_ind=0;
+     proton_hit_coll=0;
+      
+    }//clusters
     
     fno_clusters_true=cheatedclusterListHandle->size();
     
@@ -473,9 +705,22 @@ std::cout<<"for plane 1:"<<fcheatedCl_p1<<std::endl;
 std::cout<<"Total No of CHEATED clusters ***NEAR THE VERTEX*** :"<<std::endl;
 std::cout<<"for plane 0:"<<fcheatedCl_near_vertex_p0<<std::endl;
 std::cout<<"for plane 1:"<<fcheatedCl_near_vertex_p1<<std::endl;
+std::cout<<"no of proton tracks for plane 0: "<<proton_track_ind<<std::endl;
+std::cout<<"no of proton tracks for plane 1: "<<proton_track_coll<<std::endl;
 
 //............ End of analyzing cheated clusters............................
 
+ 
+ 
+ 
+ fNoProtonTracks_p0_cheatedCl->Fill(proton_track_ind);
+ fNoProtonTracks_p1_cheatedCl->Fill(proton_track_coll);
+ 
+ 
+ 
+ 
+ 
+ 
  fdiff_no_vertex_clusters_p0->Fill(fkingaCl_near_vertex_p0-fcheatedCl_near_vertex_p0);
  fdiff_no_vertex_clusters_p1->Fill(fkingaCl_near_vertex_p1-fcheatedCl_near_vertex_p1);
  fdiff_no_vertex_linemergerclusters_p0->Fill(flinemergerCl_near_vertex_p0-fcheatedCl_near_vertex_p0);
