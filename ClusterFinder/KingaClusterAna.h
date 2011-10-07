@@ -80,10 +80,11 @@ namespace cluster {
      TTree* fTree;
      int frun;
     int fevent;
+    double ftime_vertex_true;
     int fno_clusters_true;
     int fno_clusters_reco;
     int fno_clusters_linemerger;
-    double ftime_vertex_true;
+   
     double *fwire_vertex_true;
     double *fTTree_wire_vertex_reco;
     double *fTTree_time_vertex_reco;

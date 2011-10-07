@@ -1793,8 +1793,8 @@ close_and_separated_one_h_pk.clear();
 
 //now take all the 1 hit peaks and see if you can find two which are very far from the already formed peak:
 
-for(int onepk=0; onepk<one_hit_peaks.size();onepk++){
- for(int fpk=0;fpk<FinalPeaks.size();fpk++){
+for(unsigned int onepk=0; onepk<one_hit_peaks.size();onepk++){
+ for(unsigned int fpk=0;fpk<FinalPeaks.size();fpk++){
  //first pick the ones which are very far from the already existing peak
  if(abs(one_hit_peaks[onepk]-FinalPeaks[fpk])>17){
  
@@ -1839,7 +1839,7 @@ if(close_and_separated_one_h_pk.size()==2){
 
 int sum=0; 
 
-for(int y=0; y<close_and_separated_one_h_pk.size(); y++){
+for(unsigned int y=0; y<close_and_separated_one_h_pk.size(); y++){
 
 sum+=close_and_separated_one_h_pk[y];
 //and the range should be the start point of the first hit, the end point should be the end point of the second hit, so you could sort them. But, actually the range doesnt really matter here, just make it a few bins to the right and left!
@@ -1874,12 +1874,12 @@ TempMaxStartPoint.clear();
 TempMaxEndPoint.clear();
 
 
-for(int pk=FinalPeaks.size()-1; pk>=0; pk--){
-  for(int pk2=0; pk2<FinalPeaks.size();pk2++){
+for(unsigned int pk=FinalPeaks.size()-1; pk>=0; pk--){
+  for(unsigned int pk2=0; pk2<FinalPeaks.size();pk2++){
 
    if(pk!=pk2 && abs(FinalPeaks[pk]-FinalPeaks[pk2])<3){
   
-    for(int i=0; i<FinalPeaks.size(); i++){
+    for(unsigned int i=0; i<FinalPeaks.size(); i++){
      if(i!=pk){ 
      TempFinalPeaks.push_back(FinalPeaks[i]);
      TempMaxStartPoint.push_back(MaxStartPoint[i]);
@@ -1941,7 +1941,7 @@ if((plane==0 && peak!=peak2 && abs(MaxStartPoint[peak]-MaxEndPoint[peak2])<=1 &&
 if(bad_small_peak.size()>0){
 std::cout<<" ATTENTION: WILL NEED TO DELETE PEAKS AT THE FOLLOWING BIN #s, b/c its range is right next to some other range and the peak signal is < 0.6 "<<std::endl;
 
-for(int bin=0; bin<bad_small_peak.size(); bin++){
+for(unsigned int bin=0; bin<bad_small_peak.size(); bin++){
 std::cout<<bin<<std::endl;
 }
 
@@ -1949,7 +1949,7 @@ TempFinalPeaks.clear();
 TempMaxStartPoint.clear();
 TempMaxEndPoint.clear();
 
-for(int i=0; i<FinalPeaks.size(); i++){
+for(unsigned int i=0; i<FinalPeaks.size(); i++){
  if(std::find(bad_small_peak.begin(),bad_small_peak.end(),FinalPeaks[i])==bad_small_peak.end()){
      TempFinalPeaks.push_back(FinalPeaks[i]);
      TempMaxStartPoint.push_back(MaxStartPoint[i]);

@@ -173,7 +173,9 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
 {
   std::cout<<"Hello, You are in KingaClusterAna::analyze"<<std::endl;
   std::cout << "run    : " <<evt.run()<<"event  : " << evt.id().event() << std::endl;
- 
+ frun= evt.run();
+ fevent=evt.id().event();
+
 
  
   if (evt.isRealData()) 
@@ -206,8 +208,6 @@ ftime_vertex.clear();
 fwire_vertex.clear();
 ftime_vertex_reco.clear();
 fwire_vertex_reco.clear();
- int RunNo= evt.run();
- int EventNo=evt.id().event();
 
  //............MC TRUTH VERTEX:...........................................
  
@@ -248,7 +248,7 @@ fwire_vertex_reco.clear();
    unsigned int channel2,plane2,wire2,tpc2; 
   for(size_t tpc = 0; tpc < geom->NTPC(); ++tpc){
    std::cout<<"No of planes = "<<geom->Nplanes(tpc)<<std::endl;
-  for(int plane=0;plane<geom->Nplanes(tpc);plane++){
+  for(unsigned int plane=0;plane<geom->Nplanes(tpc);plane++){
   if(plane==0){
 	fMCvertex[0]=.3;//force time coordinate to be closer to induction plane 
 	}
@@ -377,7 +377,7 @@ fwire_vertex_reco.clear();
      
      hits=cluster->Hits();
      
-    for(int h=0; h<hits.size(); h++){
+    for(unsigned int h=0; h<hits.size(); h++){
     
     //std::cout<<"hits[h] channel= "<<hits[h]->Wire()->RawDigit()->Channel()<<std::endl;
    
@@ -495,7 +495,7 @@ fNoProtonTracks_p1_linemergerCl->Fill(proton_track_coll);
      
      hits=cluster->Hits();
      
-    for(int h=0; h<hits.size(); h++){
+    for(unsigned int h=0; h<hits.size(); h++){
     
     //std::cout<<"hits[h] channel= "<<hits[h]->Wire()->RawDigit()->Channel()<<std::endl;
    
@@ -652,7 +652,7 @@ std::cout<<"Trying to get cheated clusters***"<<std::endl;
      
      hits=cluster->Hits();
      
-    for(int h=0; h<hits.size(); h++){
+    for(unsigned int h=0; h<hits.size(); h++){
     
     //std::cout<<"hits[h] channel= "<<hits[h]->Wire()->RawDigit()->Channel()<<std::endl;
    
