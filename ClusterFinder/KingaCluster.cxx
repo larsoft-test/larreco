@@ -1874,13 +1874,13 @@ TempMaxStartPoint.clear();
 TempMaxEndPoint.clear();
 
 
-for(unsigned int pk=FinalPeaks.size()-1; pk>=0; pk--){
+for( int pk=FinalPeaks.size()-1; pk>=0; pk--){
   for(unsigned int pk2=0; pk2<FinalPeaks.size();pk2++){
 
-   if(pk!=pk2 && abs(FinalPeaks[pk]-FinalPeaks[pk2])<3){
+   if((unsigned int)(pk)!=pk2 && abs(FinalPeaks[pk]-FinalPeaks[pk2])<3){
   
     for(unsigned int i=0; i<FinalPeaks.size(); i++){
-     if(i!=pk){ 
+     if(i!=(unsigned int)(pk)){ 
      TempFinalPeaks.push_back(FinalPeaks[i]);
      TempMaxStartPoint.push_back(MaxStartPoint[i]);
      TempMaxEndPoint.push_back(MaxEndPoint[i]);
