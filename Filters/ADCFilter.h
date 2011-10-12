@@ -12,7 +12,7 @@
 
 #include "art/Framework/Core/EDFilter.h"
 
-namespace filt {
+namespace filter {
 
    class ADCFilter : public art::EDFilter  {
     

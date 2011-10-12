@@ -37,7 +37,7 @@ extern "C" {
 #include "Utilities/LArProperties.h"
 #include "Utilities/DetectorProperties.h"
 
-namespace filt{
+namespace filter {
 
   //-------------------------------------------------
   MuonFilter::MuonFilter(fhicl::ParameterSet const & pset) 

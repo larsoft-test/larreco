@@ -11,7 +11,7 @@
 #include "art/Framework/Core/EDFilter.h"
 #include "TH2D.h"
 
-namespace filt {
+namespace filter {
 
  class MuonFilter : public art::EDFilter  {
     

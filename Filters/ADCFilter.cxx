@@ -27,7 +27,7 @@
 #include "RawData/raw.h"
 #include "Filters/ChannelFilter.h"
 
-namespace filt{
+namespace filter {
 
    //-------------------------------------------------
    ADCFilter::ADCFilter(fhicl::ParameterSet const & pset)  
