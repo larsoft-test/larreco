@@ -50,8 +50,8 @@ namespace filt{
   void FinalStateParticleFilter::beginJob()
   {
     art::ServiceHandle<art::TFileService> tfs;
-    fPDGEvents = tfs->make<TH1D>("fPDGEvents", "Number of Selected of Events", 3, 0, 3); //counts the #events that go to the filtered file
-    fTotalEvents = tfs->make<TH1D>("fTotalEvents", "Total Events", 3, 0, 3); //counts the initial #events in the unfiltered root input file
+    fSelectedEvents = tfs->make<TH1D>("fSelectedEvents", "Number of Selected Events", 3, 0, 3); //counts the number of selected events 
+    fTotalEvents = tfs->make<TH1D>("fTotalEvents", "Total Events", 3, 0, 3); //counts the initial number of events in the unfiltered root input file
   }
 
   //-------------------------------------------------
@@ -75,7 +75,12 @@ namespace filt{
 	finalstateparticles.push_back(part.PdgCode());
     }
 
-    return isSubset(fPDG, finalstateparticles); 
+    if(isSubset(fPDG, finalstateparticles)){
+      fSelectedEvents->Fill(1);
+      std::cout << "this is a selected event" << std::endl;
+    }
+
+    return isSubset(fPDG, finalstateparticles); // returns true if the user-defined fPDG exist(s) in the final state particles
 
   } // bool  
 } // namespace
@@ -97,7 +102,6 @@ bool filt::FinalStateParticleFilter::isSubset(std::vector<int>& a, std::vector<i
       return false;
     }
   }
-  std::cout << "this is a selected event " << std::endl;
   return true;
 }
 
