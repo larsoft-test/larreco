@@ -36,7 +36,7 @@ namespace filt {
     std::string fGenieModuleLabel;
     std::vector<int> fPDG;  
     std::vector<int> fStatusCode;
-    TH1D* fPDGEvents;
+    TH1D* fSelectedEvents;
     TH1D* fTotalEvents;
 
   protected: 
