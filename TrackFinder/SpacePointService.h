@@ -22,6 +22,7 @@
 /// EnableU - Use U view hits.
 /// EnableV - Use V view hits.
 /// EnableW - Use W view hits.
+/// Filter - Filter space points flag.
 ///
 /// The parameters fMaxDT and fMaxS are used to implement a notion of whether
 /// the input hits are compatible with being a space point.  Parameter
@@ -36,6 +37,9 @@
 /// The time offsets are subtracted from times embedded in hits before
 /// comparing times in different planes, and before converting time
 /// to distance. 
+///
+/// If enabled, filtering eliminates multiple space points with similar
+/// times on the same wire of the most popluated plane.
 ///
 /// There should eventually be a better way to specify time offsets.
 ///
@@ -94,9 +98,10 @@ namespace trkf {
 
     // Fill a single space point using the specified hits.
     // Hits are assumed to be compatible.
-    void fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
-			const std::vector<std::vector<double> >& timeOffset,
-			recob::SpacePoint& spt) const;
+    // Returned value is a time goodness of fit (smaller is better, like chisquare).
+    double fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
+			  const std::vector<std::vector<double> >& timeOffset,
+			  recob::SpacePoint& spt) const;
 
     // Fill a vector of space points from an unsorted collection of hits.
     // Space points are generated for all compatible combinations of hits.
@@ -118,6 +123,14 @@ namespace trkf {
 
   private:
 
+    // Extended SpacePoint struct.
+    // Contains extra information used for filtering (private type).
+
+    struct SpacePointX : public recob::SpacePoint {
+      SpacePointX() : goodness(0) {}
+      double goodness;
+    };
+
     // Configuration paremeters.
 
     bool fUseMC;            ///< Use MC truth information.
@@ -130,6 +143,7 @@ namespace trkf {
     bool fEnableU;          ///< Enable flag (U).
     bool fEnableV;          ///< Enable flag (V).
     bool fEnableW;          ///< Enable flag (W).
+    bool fFilter;           ///< Filter flag.
 
     // Temporary variables.
 

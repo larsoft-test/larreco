@@ -62,7 +62,8 @@ trkf::SpacePointService::SpacePointService(const fhicl::ParameterSet& pset,
   fMinViews(1000),
   fEnableU(false),
   fEnableV(false),
-  fEnableW(false)
+  fEnableW(false),
+  fFilter(false)
 {
   reconfigure(pset);
 }
@@ -94,6 +95,7 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
   fEnableU = pset.get<bool>("EnableU", false);
   fEnableV = pset.get<bool>("EnableV", false);
   fEnableW = pset.get<bool>("EnableW", false);
+  fFilter = pset.get<bool>("Filter", false);
 
   // Report.
 
@@ -108,7 +110,8 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
     << "  MinViews = " << fMinViews << "\n"
     << "  EnableU = " << fEnableU << "\n"
     << "  EnableV = " << fEnableV << "\n"
-    << "  EnableW = " << fEnableW;
+    << "  EnableW = " << fEnableW << "\n"
+    << "  Filter = " << fFilter;
 }
 
 //----------------------------------------------------------------------
@@ -560,10 +563,11 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 //----------------------------------------------------------------------
 // Fill one space point using a colleciton of hits.
 // Assume points have already been tested for compatibility.
+// Returned value is a time goodness of fit (smaller is better, like chisquare).
 //
-void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
-					     const std::vector<std::vector<double> >& timeOffset,
-					     recob::SpacePoint& spt) const
+double trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
+					       const std::vector<std::vector<double> >& timeOffset,
+					       recob::SpacePoint& spt) const
 {
   // Get services.
 
@@ -590,7 +594,9 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
 
   // Calculate x using drift times.
   // Loop over all hits and calculate the weighted average drift time.
+  // Also calculate time variance, minimum and maximum time.
 
+  double sumt2w = 0.;
   double sumtw = 0.;
   double sumw = 0.;
 
@@ -605,18 +611,26 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
     // Correct time for trigger offset and view-dependent time offsets.
     // Assume time error is proportional to (end time - start time).
 
-    double t = hit.PeakTime() - timeOffset[tpc][plane];
-    double et = hit.EndTime() - hit.StartTime();
+    double t0 = timeOffset[tpc][plane];
+    double t = hit.PeakTime() - t0;
+    double t1 = hit.StartTime() - t0;
+    double t2 = hit.EndTime() - t0;
+    double et = t2 - t1;
     double w = 1./(et*et);
 
+    sumt2w += w*t*t;
     sumtw += w*t;
     sumw += w;
   }
 
   double drift_time = 0.;
-  if(sumw != 0.)
+  double var = 0.;
+  if(sumw != 0.) {
     drift_time = sumtw / sumw;
+    var = sumt2w / sumw - drift_time * drift_time;
+  }
   xyz[0] = drift_time * timePitch;
+  var *= timePitch;
 
   // Calculate y, z using wires (need at least two hits).
 
@@ -672,6 +686,7 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
 
     spt.SetXYZ(xyz);
   }
+  return var;
 }
 
 //----------------------------------------------------------------------
@@ -723,6 +738,8 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
   int n2 = 0;  // Number of two-hit space points.
   int n3 = 0;  // Number of three-hit space points.
+  int n2filt = 0;  // Number of two-hit space points after filtering.
+  int n3filt = 0;  // Number of three-hit space pointe after filtering.
 
   // If fUseMC is true, verify that channels are sorted by channel number.
 
@@ -858,6 +875,13 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
   for(unsigned int tpc = 0; tpc < ntpc; ++tpc) {
 
+    // Make empty multimap from hit pointer on most-populated plane to space points 
+    // that include that hit (used for filtering).
+
+    typedef const recob::Hit* sptkey_type;
+    std::multimap<sptkey_type, SpacePointX> sptmap;
+    std::set<sptkey_type> sptkeys;              // Keys of multimap.
+
     // Sort maps in increasing order of number of hits.
     // This is so that we can do the outer loops over hits 
     // over the views with fewer hits.
@@ -957,8 +981,18 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 		// Add a space point.
 
 		++n2;
-		spts.push_back(recob::SpacePoint());
-		fillSpacePoint(hitvec, timeOffset, spts.back());
+		if(fFilter) {
+		  sptkey_type key = &*phit2;
+		  std::multimap<sptkey_type, SpacePointX>::iterator it = 
+		    sptmap.insert(std::pair<sptkey_type, SpacePointX>(key, SpacePointX()));
+		  sptkeys.insert(key);
+		  SpacePointX& sptx = it->second;
+		  sptx.goodness = fillSpacePoint(hitvec, timeOffset, sptx);
+		}
+		else {
+		  spts.push_back(recob::SpacePoint());
+		  fillSpacePoint(hitvec, timeOffset, spts.back());
+		}
 	      }
 	    }
 	  }
@@ -1133,8 +1167,18 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 		      // Add a space point.
 
 		      ++n3;
-		      spts.push_back(recob::SpacePoint());
-		      fillSpacePoint(hitvec, timeOffset, spts.back());
+		      if(fFilter) {
+			sptkey_type key = &*phit3;
+			std::multimap<sptkey_type, SpacePointX>::iterator it = 
+			  sptmap.insert(std::pair<sptkey_type, SpacePointX>(key, SpacePointX()));
+			sptkeys.insert(key);
+			SpacePointX& sptx = it->second;
+			sptx.goodness = fillSpacePoint(hitvec, timeOffset, sptx);
+		      }
+		      else {
+			spts.push_back(recob::SpacePoint());
+			fillSpacePoint(hitvec, timeOffset, spts.back());
+		      }
 		    }
 		  }
 		}
@@ -1144,8 +1188,57 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	}
       }
     }
+
+    // Do Filtering.
+
+    if(fFilter) {
+
+      // Transfer (some) space points from sptmap to spts.
+
+      spts.reserve(spts.size() + sptkeys.size());
+
+      // Loop over keys of space point map.
+      // Space points that have the same key are candidates for filtering.
+
+      for(std::set<sptkey_type>::const_iterator i = sptkeys.begin();
+	  i != sptkeys.end(); ++i) {
+	sptkey_type key = *i;
+
+	// Loop over space points corresponding to the current key.
+	// Choose the single best space point from among this group.
+
+	double best_goodness = 0.;
+	const SpacePointX* best_sptx = 0;
+
+	for(std::multimap<sptkey_type, SpacePointX>::const_iterator j = sptmap.lower_bound(key);
+	    j != sptmap.upper_bound(key); ++j) {
+	  const SpacePointX& sptx = j->second;
+	  if(best_sptx == 0 || sptx.goodness < best_goodness) {
+	    best_sptx = &sptx;
+	    best_goodness = sptx.goodness;
+	  }
+	}
+
+	// Transfer best filtered space point to result vector.
+
+	assert(best_sptx != 0);
+	if(best_sptx != 0) {
+	  spts.push_back(*best_sptx);
+	  if(fMinViews <= 2)
+	    ++n2filt;
+	  else
+	    ++n3filt;
+	}
+      }
+    }
+    else {
+      n2filt = n2;
+      n3filt = n3;
+    }
   }
 
   debug << "\n2-hit space points = " << n2 << "\n"
-	<< "3-hit space points = " << n3;
+	<< "3-hit space points = " << n3 << "\n"
+	<< "2-hit filtered space points = " << n2filt << "\n"
+	<< "3-hit filtered space points = " << n3filt;
 }

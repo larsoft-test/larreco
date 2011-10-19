@@ -12,6 +12,7 @@ argoneut_spacepointservice:
   EnableU: true
   EnableV: true
   EnableW: false
+  Filter: true
 }
 
 microboone_spacepointservice:
@@ -26,6 +27,7 @@ microboone_spacepointservice:
   EnableU: true
   EnableV: true
   EnableW: true
+  Filter: true
 }
 
 
@@ -41,6 +43,7 @@ lbne_spacepointservice:
   EnableU: true
   EnableV: true
   EnableW: true
+  Filter: true
 }
 
 
