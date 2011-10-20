@@ -73,7 +73,7 @@ bool filter::EventFilter::filter(art::Event &evt)
     {
       if(sobe.at(ii)==evtNo && sobr.at(ii)==runNo) 
 	{
-	  mf::LogInfo("EventFilter: ") << "\t Skipping this event by request.";
+	  mf::LogInfo("EventFilter: ") << "\t\n Skipping run/event " << runNo <<"/"<< evtNo << " by request.\n";
 	  return false;
 	}
     }
