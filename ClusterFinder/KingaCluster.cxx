@@ -123,89 +123,89 @@ if (evt.isRealData())
     {
       std::cout<<" YOU ARE WORKING WITH DATA !!!!!!!!!!!!!!!!!!!!! "<<std::endl;
     //let's see if this Run has been scanned and thus we can find vertex info for it:
-    DIR *pDIR=0;
-    struct dirent *entry=0;
-    const char path[60]="/argoneut/data/simplescan_data/simplescan_text/";
-  char path_[60];
-  strcpy(path_,path);
-    if(pDIR==opendir(path))
-    {
-       while(entry==readdir(pDIR))
-       {
-         if(strcmp(entry->d_name,".")!=0 && strcmp(entry->d_name, "..")!=0)
-         {
-          std::string file=entry->d_name;
-          std::cout<<"*******file is "<<file<<std::endl;
-         std::string::size_type pos_end=file.rfind(".");
-         std::string no_string;
-         no_string=file.substr(pos_end-3,3);
-         std::cout<<"no_string= "<<no_string<<std::endl;
-         std::istringstream stream(no_string);
-         int No;
-         stream>>No;
-           if(RunNo==No)
-           {
-            std::cout<<"RUN NO "<<RunNo<<" was scanned, we can find a vertex info :) "<<std::endl;
-            //Now, open the file and find the vertex info in it:
-            //.........................................
-            strcat(path_,entry->d_name);
-            std::string k;
-            int run,event,blah1,blah2,blah3,blah4,time_ind,time_coll,w_ind,w_coll;
-            std::ifstream ScannedFile;
-            ScannedFile.open(path_,std::ios::in);
-            if(!ScannedFile.is_open()){std::cout<<" Couldn't open file named: "<<entry->d_name<<std::endl;}
-            if(ScannedFile.is_open()){std::cout<<" openED file named: "<<entry->d_name<<std::endl;} 
-             
-             
-            while(getline(ScannedFile,k))
-            {
-            std::istringstream ins;
-            ins.clear();
-            ins.str(k);
-            ins>>run>>event>>blah1>>blah2>>blah3>>blah4>>time_ind>>time_coll>>w_ind>>w_coll;
-            //std::cout<<run<<" "<<event<<std::endl;
-            if(EventNo==event && RunNo==run)
-            {
-            ftime_vertex.push_back(time_ind);
-            ftime_vertex.push_back(time_coll);
-            fwire_vertex.push_back(w_ind);
-            fwire_vertex.push_back(w_coll);
-            
-            std::cout<<"GOT VERTEX INFO FROM THE SCANNED FILE:"<<std::endl;
-            std::cout<<"("<<time_ind<<" , "<<w_ind<<" )"<<std::endl;
-            std::cout<<"("<<time_coll<<" , "<<w_coll<<" )"<<std::endl;
-            
-            
-            break;
-            }//event=event
-            
-            
-            
-            
-            
-            }//while getline
-            
-            
-            
-            
-           //.........................................
-            ScannedFile.close();
-            break; 
-         
-           } //if the run was scanned
-           
-           
-           
-         }
-       
-       
-       } //while it loops through all the entries
-        closedir(pDIR);
-    
-    
-    }//if can open directory
-    else{ std::cout<<" THIS RUN HASN'T BEEN SCANNED! SORRY! "<<std::endl;}
-    
+    // DIR *pDIR=0;
+//     struct dirent *entry=0;
+//     const char path[60]="/argoneut/data/simplescan_data/simplescan_text/";
+//   char path_[60];
+//   strcpy(path_,path);
+//     if(pDIR==opendir(path))
+//     {
+//        while(entry==readdir(pDIR))
+//        {
+//          if(strcmp(entry->d_name,".")!=0 && strcmp(entry->d_name, "..")!=0)
+//          {
+//           std::string file=entry->d_name;
+//           std::cout<<"*******file is "<<file<<std::endl;
+//          std::string::size_type pos_end=file.rfind(".");
+//          std::string no_string;
+//          no_string=file.substr(pos_end-3,3);
+//          std::cout<<"no_string= "<<no_string<<std::endl;
+//          std::istringstream stream(no_string);
+//          int No;
+//          stream>>No;
+//            if(RunNo==No)
+//            {
+//             std::cout<<"RUN NO "<<RunNo<<" was scanned, we can find a vertex info :) "<<std::endl;
+//             //Now, open the file and find the vertex info in it:
+//             //.........................................
+//             strcat(path_,entry->d_name);
+//             std::string k;
+//             int run,event,blah1,blah2,blah3,blah4,time_ind,time_coll,w_ind,w_coll;
+//             std::ifstream ScannedFile;
+//             ScannedFile.open(path_,std::ios::in);
+//             if(!ScannedFile.is_open()){std::cout<<" Couldn't open file named: "<<entry->d_name<<std::endl;}
+//             if(ScannedFile.is_open()){std::cout<<" openED file named: "<<entry->d_name<<std::endl;} 
+//              
+//              
+//             while(getline(ScannedFile,k))
+//             {
+//             std::istringstream ins;
+//             ins.clear();
+//             ins.str(k);
+//             ins>>run>>event>>blah1>>blah2>>blah3>>blah4>>time_ind>>time_coll>>w_ind>>w_coll;
+//             //std::cout<<run<<" "<<event<<std::endl;
+//             if(EventNo==event && RunNo==run)
+//             {
+//             ftime_vertex.push_back(time_ind);
+//             ftime_vertex.push_back(time_coll);
+//             fwire_vertex.push_back(w_ind);
+//             fwire_vertex.push_back(w_coll);
+//             
+//             std::cout<<"GOT VERTEX INFO FROM THE SCANNED FILE:"<<std::endl;
+//             std::cout<<"("<<time_ind<<" , "<<w_ind<<" )"<<std::endl;
+//             std::cout<<"("<<time_coll<<" , "<<w_coll<<" )"<<std::endl;
+//             
+//             
+//             break;
+//             }//event=event
+//             
+//             
+//             
+//             
+//             
+//             }//while getline
+//             
+//             
+//             
+//             
+//            //.........................................
+//             ScannedFile.close();
+//             break; 
+//          
+//            } //if the run was scanned
+//            
+//            
+//            
+//          }
+//        
+//        
+//        } //while it loops through all the entries
+//         closedir(pDIR);
+//     
+//     
+//     }//if can open directory
+//     else{ std::cout<<" THIS RUN HASN'T BEEN SCANNED! SORRY! "<<std::endl;}
+//     
     } //if realData
 
 
@@ -278,7 +278,10 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
     
   std::cout<<"SHOULD BE GETTING RECO VERTEX, endpointlist.size()= "<<endpointlist.size()<<std::endl;
   
-  
+  if(endpointlist.size()==0){
+  std::cout<<"ATTENTION: NO VERTEX FOUND, KINGACLUSTER WILL EXIT"<<std::endl;
+  return;
+  }
   for (unsigned int j = 0; j<endpointlist.size();j++){
 
      ftime_vertex_reco.push_back(endpointlist[j]->DriftTime());
