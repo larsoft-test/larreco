@@ -90,27 +90,17 @@ void trkf::Track3DKalmanSPS::reconfigure(fhicl::ParameterSet const& pset)
   fG4ModuleLabel         = pset.get< std::string >("G4ModuleLabel");
   fPosErr                = pset.get< std::vector < double >  >("PosErr3");   // resolution. cm
   fMomErr                = pset.get< std::vector < double >  >("MomErr3");   // GeV
-  fMomStart              = pset.get< std::vector < double >  >("MomStart3"); // Will be unit norm'd.
+  fMomStart              = pset.get< std::vector < double >  >("MomStart3"); // 
   fGenfPRINT             = pset.get< bool >("GenfPRINT");
   
 }
 
 //-------------------------------------------------
+
 trkf::Track3DKalmanSPS::~Track3DKalmanSPS()
 {
-
-  /*
-    delete stMCT ;
-    delete covMCT;
-    delete stREC;
-    delete covREC;
-    
-    delete fpMCT;
-    delete fpREC;
-    delete fpRECL;
-    delete fpRECt3D;
-  */
 }
+
 
 //-------------------------------------------------
 void trkf::Track3DKalmanSPS::beginJob()
@@ -128,6 +118,7 @@ void trkf::Track3DKalmanSPS::beginJob()
   fpMCPos = new Float_t[4];
   fpREC = new Float_t[4];
   fpRECL = new Float_t[4];
+  fpRECLE = new Float_t[4];
   fpRECt3D = new Float_t[4];
   fDimSize = 20000; // if necessary will get this from pset in constructor.
 
@@ -166,6 +157,7 @@ void trkf::Track3DKalmanSPS::beginJob()
   tree->Branch("pMCPos",fpMCPos,"pMCPos[4]/F");
   tree->Branch("pRECKalF",fpREC,"pRECKalF[4]/F");
   tree->Branch("pRECKalL",fpRECL,"pRECKalL[4]/F");
+  tree->Branch("pRECKalLE",fpRECLE,"pRECKalLE[4]/F");
   tree->Branch("pRECt3D",fpRECt3D,"pRECt3D[4]/F");
   
 
@@ -179,6 +171,24 @@ void trkf::Track3DKalmanSPS::endJob()
 {
   if (!rep) delete rep;
   if (!repMC) delete repMC;
+
+  /*
+  //  not sure why I can't do these, but at least some cause seg faults.
+  delete[] stMCT;
+  delete[] covMCT;
+  delete[] stREC;
+  delete[] covREC;
+  */
+
+  delete[] fpREC;
+  delete[] fpRECL;
+  delete[] fpRECLE;
+  delete[] fpRECt3D;
+
+  delete[] fshx;
+  delete[] fshy;
+  delete[] fshz;
+
 }
 
 
@@ -252,7 +262,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
       // TVector3 momErr(.1,.1,0.2);   // GeV
       TVector3 posErr(fPosErr[0],fPosErr[1],fPosErr[2]); // resolution. 0.5mm
       TVector3 momErr(fMomErr[0],fMomErr[1],fMomErr[2]);   // GeV
-      TVector3 momErrFit(fMomErr[0]/100.0,fMomErr[1]/100.0,fMomErr[2]/100.0);   // GeV
+      TVector3 momErrFit(fMomErr[0],fMomErr[1],fMomErr[2]);   // GeV
 
       // This is strictly for MC
       if (!evt.isRealData())
@@ -347,29 +357,45 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		    sps->makeSpacePoints(hits,spacepoints);
 		  // Insert the GENFIT/Kalman stuff here then make the tracks. Units are cm, GeV.
 
-		  if (!spacepoints.size()) continue;
-		  mf::LogInfo("Track3DKalmanSPS: ")<<"found "<<spacepoints.size()<<" 3D spacepoint(s) for Cluster this combo ";
+		  if (spacepoints.size()<10) continue;
+		  mf::LogInfo("Track3DKalmanSPS: ")<<"\n\t found "<<spacepoints.size()<<" 3D spacepoint(s) for this cluster combo \n";
 				  
-		  const double resolution = 0.5; // dunno, 5 mm
-		  const int numIT = 9; // 3->1, EC, 6-Jan-2011. Back, 7-Jan-2011. Then 9 starting Feb-ish. Now 5, 4-Aug-2011.
+		  const double resolution = posErr.Mag(); 
+		  const int numIT = 3; 
 		      
-	    //TVector3 mom(0.0,0.0,2.0);
-		      TVector3 mom(fMomStart[0],fMomStart[1],fMomStart[2]);
-	    //mom.SetMag(1.);
-		      TVector3 momM(mom);
-		      momM.SetX(gauss.fire(momM.X(),momErr.X()/* *momM.X() */));
-		      momM.SetY(gauss.fire(momM.Y(),momErr.Y()/* *momM.Y() */));
-		      momM.SetZ(gauss.fire(momM.Z(),momErr.Z()/* *momM.Z() */));
 
 		  std::sort(spacepoints.begin(), spacepoints.end(), sp_sort_3dz);
-	   
+
+		  // 21-Sep. Use a mip approximation assuming muons, assuming straight lines
+		  // and a small angle wrt beam. 2.2 MeV/cm. And set momErrFit to momM/5.
+		  fMomStart[0] = spacepoints[spacepoints.size()-1].XYZ()[0] - spacepoints[0].XYZ()[0];
+		  fMomStart[1] = spacepoints[spacepoints.size()-1].XYZ()[1] - spacepoints[0].XYZ()[1];
+		  fMomStart[2] = spacepoints[spacepoints.size()-1].XYZ()[2] - spacepoints[0].XYZ()[2];
+		  //TVector3 mom(0.0,0.0,2.0);
+		  TVector3 mom(0.0022*fMomStart[0],0.0022*fMomStart[1],0.0022*fMomStart[2]);
+		  // Over-estimate by just enough (20%).
+		  mom.SetMag(1.2 * mom.Mag()); 
+		  // My true 0.5 GeV/c muons need a yet bigger over-estimate.
+		  if (mom.Mag()<0.7) mom.SetMag(1.2*mom.Mag());  
+
+		  TVector3 momM(mom);
+		  //TVector3 momM;
+		  //momM.SetX(gauss.fire(momM.X(),momErr.X()/* *momM.X() */));
+		  //momM.SetY(gauss.fire(momM.Y(),momErr.Y()/* *momM.Y() */));
+		  //momM.SetZ(gauss.fire(momM.Z(),momErr.Z()/* *momM.Z() */));
+		  //TVector3 momErrFit(/*TMath::Max(TMath::Abs(momM[0]/5.0),*/momErr[0],
+		  //		     /*TMath::Max(TMath::Abs(momM[1]/5.0),*/momErr[1],
+		  //		     /*TMath::Max(TMath::Abs(momM[2]/5.0),*/momErr[2]);   // GeV
+		  TVector3 momErrFit(momM[0]/10.0,
+		  		     momM[1]/10.0,
+		  		     momM[2]/10.0);   // GeV
 	    
 		  genf::GFFieldManager::getInstance()->init(new genf::GFConstField(0.,0.,0.0));
 		  genf::GFDetPlane planeG((TVector3)(spacepoints[0].XYZ()),momM);
 	    
 
 		  //      std::cout<<"Track3DKalmanSPS about to do GAbsTrackRep."<<std::endl;
-		  // Initialize with 1st spacepoint location and a guess at the momentum.
+		  // Initialize with 1st spacepoint location and ...
 		  rep = new genf::RKTrackRep(//posM-.5/momM.Mag()*momM,
 					     (TVector3)(spacepoints[0].XYZ()),
 					     momM,
@@ -388,10 +414,18 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  for (unsigned int point=0;point<spacepoints.size();++point)
 		    {
 		      
-		      TVector3 spt3 = (TVector3)(spacepoints[point].XYZ());
-		      if (point%20) // Jump out of loop except on every 20th pt.
+		      if (point>0 && (((TVector3)(spacepoints[point].XYZ())-(TVector3)(spacepoints[point-1].XYZ())).Mag()<0.10) )
 			{
-			  //continue;
+			  std::cout << "Track3DKalmanSPS: Chucking spacepoint " << point << ", cuz it's too close (within a millimeter) to the last one." << std::endl;
+			  continue;
+			}
+		      TVector3 spt3 = (TVector3)(spacepoints[point].XYZ());
+		      //		      if (point%20) // Jump out of loop except on every 20th pt.
+		      if (point > 1.0*spacepoints.size()  // 0.85 works to clip
+			  // || ((momM.Mag()<0.9) && (point>0.65*spacepoints.size()))
+			  ) // Jump out of loop at end (BR sugests MINOS does this ) .... Here, particularly, this is necessary because GFMaterialEffects::energyLossBetheBloch() stops subtracting (adding!) as it follows the tracks forward (backward) when fbeta<~0.018.
+			{
+			  continue;
 			  // Icarus paper suggests we may wanna decimate our data in order to give
 			  // trackfitter a better idea of multiple-scattering. EC, 7-Jan-2011.
 			  //if (fabs(spt3[0]-spacepoints.at(point-1).XYZ()[0]) < 2) continue;
@@ -417,17 +451,20 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  //k.setBlowUpFactor(500); // Instead of 500 out of box. EC, 6-Jan-2011.
 		  //k.setInitialDirection(+1); // Instead of 1 out of box. EC, 6-Jan-2011.
 		  k.setNumIterations(numIT);
+		  bool skipFill = false;
 		  //      std::cout<<"Track3DKalmanSPS back from setNumIterations."<<std::endl;
 		  try{
 		    //	std::cout<<"Track3DKalmanSPS about to processTrack."<<std::endl;
 		    k.processTrack(&fitTrack);
 		    //std::cout<<"Track3DKalmanSPS back from processTrack."<<std::endl;
 		  }
-		  catch(GFException& e){
-		    mf::LogError("Track3DKalmanSPS: ") << "just caught a GFException."<<std::endl;
+		  //catch(GFException& e){
+		  catch(cet::exception &e){
+		    mf::LogError("Track3DKalmanSPS: ") << "just caught a cet::exception."<<std::endl;
 		    e.what();
-		    mf::LogError("Track3DKalmanSPS: ") << "Exceptions won't be further handled ->exit(1) "<<__LINE__;
-		    
+		    mf::LogError("Track3DKalmanSPS: ") << "Exceptions won't be further handled, line: "<<__LINE__;
+		    mf::LogError("Track3DKalmanSPS: ") << "Skip filling big chunks of the TTree, line: "<<__LINE__;
+		    skipFill = true;
 		    //	exit(1);
 		  }
 		  
@@ -435,52 +472,60 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		    {
 		      mf::LogDebug("Track3DKalmanSPS: ") << __FILE__ << " " << __LINE__ ;
 		      mf::LogDebug("Track3DKalmanSPS: ") << "Track3DKalmanSPS.cxx: Original plane:";
-		      
 		      if(fGenfPRINT) planeG.Print();
 		      mf::LogDebug("Track3DKalmanSPS: ") << "Current (fit) reference Plane:";
 		      if(fGenfPRINT) rep->getReferencePlane().Print();
-		      
 		      mf::LogDebug("Track3DKalmanSPS: ") << "Track3DKalmanSPS.cxx: Last reference Plane:";
 		      if(fGenfPRINT) rep->getLastPlane().Print();
-		      
 		      if(fGenfPRINT) 
 			{
 			  if(planeG!=rep->getReferencePlane()) 
 			    mf::LogDebug("Track3DKalmanSPS: ")	<<"Track3DKalmanSPS: Original hit plane (not surprisingly) not current reference Plane!"<<std::endl;
 			}
 		      
-		      stREC->ResizeTo(rep->getState());
-		      *stREC = rep->getState();
-		      covREC->ResizeTo(rep->getCov());
-		      *covREC = rep->getCov();
-		      if(fGenfPRINT)
+		      if (!skipFill)
 			{
-			  mf::LogDebug("Track3DKalmanSPS: ") << " Final State and Cov:";
-			  stREC->Print();
-			  covREC->Print();
-			}
-		      chi2 = rep->getChiSqu();
-		      ndf = rep->getNDF();
-		      nfail = fitTrack.getFailedHits();
-		      chi2ndf = chi2/ndf;
-		      double dircoss[3],dircose[3];
+			  stREC->ResizeTo(rep->getState());
+			  *stREC = rep->getState();
+			  covREC->ResizeTo(rep->getCov());
+			  *covREC = rep->getCov();
+			  if(fGenfPRINT)
+			    {
+			      mf::LogInfo("Track3DKalmanSPS: ") << " First State and Cov:";
+			      stREC->Print();
+			      covREC->Print();
+			    }
+			  chi2 = rep->getChiSqu();
+			  ndf = rep->getNDF();
+			  nfail = fitTrack.getFailedHits();
+			  chi2ndf = chi2/ndf;
+			  double dircoss[3],dircose[3];
 		      //		(*trackIter)->Direction(dircoss,dircose);      
 		      
-		      for (int ii=0;ii<3;++ii)
-			{
-			  fpMCMom[ii] = MCMomentum[ii]/MCMomentum.Mag();
-			  fpMCPos[ii] = MCOrigin[ii];
-			  fpREC[ii] = rep->getReferencePlane().getNormal()[ii];
-			  fpRECL[ii] = rep->getLastPlane().getNormal()[ii];
-			  fpRECt3D[ii] = dircoss[ii];
-			}
-		      fpMCMom[3] = MCMomentum.Mag();
-		      fpREC[3] = -1.0/(*stREC)[0][0];
+			  for (int ii=0;ii<3;++ii)
+			    {
+			      fpMCMom[ii] = MCMomentum[ii];
+			      fpMCPos[ii] = MCOrigin[ii];
+			      fpREC[ii] = rep->getMom(rep->getReferencePlane())[ii];
+			      // fpRECLE is an extrap forward from first hit. Captures MS'ing 
+			      // only macroscopically. Not really what's desired. 
+			      // fpRECL is actually the last plane's momentum estimate.
+			      fpRECLE[ii] = rep->getMom(rep->getLastPlane())[ii]; 
+			      fpRECL[ii] = (dynamic_cast<genf::RKTrackRep *> (rep))->getMomLast(rep->getLastPlane())[ii]; 
+			      fpRECt3D[ii] = dircoss[ii];
+			    }
+			  fpMCMom[3] = MCMomentum.Mag();
+			  
+			  fpREC[3] = rep->getMom(rep->getReferencePlane()).Mag();
+			  fpRECL[3] = (dynamic_cast<genf::RKTrackRep *> (rep))->getMomLast(rep->getLastPlane()).Mag();
+			  fpRECLE[3] = rep->getMom(rep->getLastPlane()).Mag();
+			  nTrks++;
+
+			  mf::LogInfo("Track3DKalmanSPS: ") << "Track3DKalmanSPS about to do tree->Fill(). Chi2/ndf is " << chi2/ndf << ". All in volTPC coords .... pMCT[0-3] is " << fpMCMom[0] << ", " << fpMCMom[1] << ", " << fpMCMom[2] << ", " << fpMCMom[3] << ". pREC[0-3] is " << fpREC[0] << ", "<< fpREC[1] << ", " << fpREC[2] << ", " << fpREC[3] <<  ". pRECL[0-3] is " << fpRECL[0] << ", "<< fpRECL[1] << ", " << fpRECL[2] << ", " << fpRECL[3] << ".";
 		      
+			} // end !skipFill
+
 		      evtt = (unsigned int) evt.id().event();
-		      nTrks++;
-		      mf::LogInfo("Track3DKalmanSPS: ") << "Track3DKalmanSPS about to do tree->Fill(). Chi2/ndf is " << chi2/ndf << ". All in volTPC coords .... pMCT[0-3] is " << fpMCMom[0] << ", " << fpMCMom[1] << ", " << fpMCMom[2] << ", " << fpMCMom[3] << ". pREC[0-3] is " << fpREC[0] << ", "<< fpREC[1] << ", " << fpREC[2] << ", " << fpREC[3] << ".";
-		      
 		      tree->Fill();
 		      
 
@@ -493,11 +538,13 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		      recob::Track  the3DTrack(clusters,spacepoints);
 		      double dircosF[3];
 		      double dircosL[3];
+		      
 		      for (int ii=0;ii<3;++ii)
 			{
-			  dircosF[ii] = fpREC[ii];
-			  dircosL[ii] = fpRECL[ii];
+			  dircosF[ii] = fpREC[ii]/fpREC[3];
+			  dircosL[ii] = fpRECL[ii]/fpRECL[3];
 			}
+		      
 		      the3DTrack.SetDirection(dircosF,dircosL);
 		      the3DTrack.SetID(tcnt++);
 		      tcol->push_back(the3DTrack);
@@ -507,6 +554,8 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		}  // loop on kclus
 	    } // jclus
 	} // iclus
+
+      if (!repMC) delete repMC;
 
       if (tcol->size()) 
 	{ evt.put(tcol); }

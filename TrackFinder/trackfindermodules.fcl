@@ -67,6 +67,19 @@ microboone_spacepts:
 }
 
 
+microboone_2stg_kalman:
+{
+ module_type:         "Track3DKalmanSPS2stg"
+ ClusterModuleLabel:  "dbscan"
+ GenieGenModuleLabel: "generator"     # comment out for real data.
+ G4ModuleLabel:       "largeant"
+ PosErr3:             [0.05,0.05,0.05]   #  position resolution, cm.
+ MomErr3:             [0.10,0.10,0.20]   #  momentum resolution, GeV/c.
+ MomStart3:           [0.10,0.10,1.0]    #  Will be Unit norm'd.
+ TailPtsFrac:         0.9    # fraction of upstream SpacePoints to ignore in 1st stage fit.
+ GenfPRINT:           true
+}
+
 microboone_kalman:
 {
  module_type:         "Track3DKalmanSPS"

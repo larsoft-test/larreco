@@ -32,7 +32,7 @@ namespace trkf {
   public:
     
     explicit Track3DKalmanSPS(fhicl::ParameterSet const& pset);
-    ~Track3DKalmanSPS();
+    virtual ~Track3DKalmanSPS();
     
     //////////////////////////////////////////////////////////
     void produce(art::Event& evt); 
@@ -58,6 +58,7 @@ namespace trkf {
     Float_t chi2ndf;
     
     Float_t *fpRECt3D;    
+    Float_t *fpRECLE;
     Float_t *fpRECL;
     Float_t *fpREC;
     Float_t *fpMCMom;
