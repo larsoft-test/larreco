@@ -259,8 +259,8 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
    * at this ihit position. This will usually be the case, but
    * not if the fit turnes around
    */
-  // std::cout << "GFKalman::ProcessHit(): ihit is " << ihit << std::endl;
-  //std::cout << "GFKalman::ProcessHit(): rep is "  << std::endl;
+  //  std::cout << "GFKalman::ProcessHit(): ihit is " << ihit << std::endl;
+  //  std::cout << "GFKalman::ProcessHit(): direction is "  << direction << std::endl;
   //rep->Print();
 
   // Take out this if/else condition. EC, 5-Jan-2011. Put it back. 6-Jan.
@@ -276,7 +276,7 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
       //pl.Print();
 
     //do the extrapolation
-    rep->extrapolate(pl,state,cov);
+      rep->extrapolate(pl,state,cov);
     }
       else{
     //std::cout << "same" << std::endl;
@@ -314,7 +314,7 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   // get hit covariances  
   TMatrixT<Double_t> V=hit->getHitCov(pl);
   // calculate kalman gain ------------------------------
-	TMatrixT<Double_t> Gain(calcGain(cov,V,H));
+  TMatrixT<Double_t> Gain(calcGain(cov,V,H));
 
 	//	 std::cout << "GFKalman:: processHits(), state is  " << std::endl;
 	//rep->getState().Print();
@@ -356,8 +356,8 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
 
 TMatrixT<Double_t>
 genf::GFKalman::calcGain(const TMatrixT<Double_t>& cov, 
-					 const TMatrixT<Double_t>& HitCov,
-					 const TMatrixT<Double_t>& H){
+			 const TMatrixT<Double_t>& HitCov,
+			 const TMatrixT<Double_t>& H){
 
   // calculate covsum (V + HCH^T)
 

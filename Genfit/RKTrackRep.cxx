@@ -23,38 +23,58 @@
    (Sergei Gerrassimov @ CERN)
 */
 
-#include"RKTrackRep.h"
+#include "Genfit/RKTrackRep.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>
-#include"assert.h"
+#include "assert.h"
 #include "stdlib.h"
-#include"math.h"
-#include"TMath.h"
-#include"TGeoManager.h"
-#include"TDatabasePDG.h"
-#include"GFException.h"
-#include"GFFieldManager.h"
+#include "math.h"
+#include "TMath.h"
+#include "TGeoManager.h"
+#include "TDatabasePDG.h"
+#include "GFException.h"
+#include "GFFieldManager.h"
+#include "GFMaterialEffects.h"
+
+#include "cetlib/exception.h"
+#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #define MINSTEP 0.001   // minimum step [cm] for Runge Kutta and iteration to POCA
 
 
-void genf::RKTrackRep::setData(const TMatrixT<Double_t>& st, const GFDetPlane& pl, const TMatrixT<Double_t>* cov){
-  if(pl!=fCachePlane){
-    std::cerr << "RKTrackRep::setData() - a fatal error ocurred! It was called with a refernece plane is not the same then the one the last extrapolate(plane,state,cov) was made -> abort in line " << __LINE__ << std::endl;
-    throw;
+void genf::RKTrackRep::setData(const TMatrixT<Double_t>& st, const GFDetPlane& pl, const TMatrixT<Double_t>* cov, const TMatrixT<double>* aux){
+  if(aux != NULL) {
+    fCacheSpu = (*aux)(0,0);
+  } else {
+    if(pl!=fCachePlane){
+      std::cerr << "RKTrackRep::setData() - a fatal error ocurred! It was called with a reference plane is not the same then the one the last extrapolate(plane,state,cov) was made -> abort in line " << __LINE__ << std::endl;
+      throw;
+    }
   }
   GFAbsTrackRep::setData(st,pl,cov);
+  if (fCharge*fState[0][0] < 0) fCharge *= -1; // set charge accordingly! (fState[0][0] = q/p)
   fSpu=fCacheSpu;
 }
 
+const TMatrixT<double>* genf::RKTrackRep::getAuxInfo(const GFDetPlane& pl) {
 
+  if(pl!=fCachePlane) {
+    std::cerr << "RKTrackRep::getAuxInfo() - Fatal error: Trying to get auxillary information with planes mismatch (Information returned does not belong to requested plane)! -> abort in line " << __LINE__ << std::endl;
+	throw;
+  }
+  fAuxInfo.ResizeTo(1,1);
+  fAuxInfo(0,0) = fCacheSpu;
+  return &fAuxInfo;
+
+}
 genf::RKTrackRep::~RKTrackRep(){
-  delete fEffect;
+  // delete fEffect;
+//GFMaterialEffects is now a Singleton
 }
 
 
-genf::RKTrackRep::RKTrackRep() : GFAbsTrackRep(5),fDirection(true),fPdg(0),fMass(0.){
+genf::RKTrackRep::RKTrackRep() : GFAbsTrackRep(5),fDirection(true),fPdg(0),fMass(0.), fCharge(-1), fCachePlane(), fCacheSpu(1), fSpu(1), fAuxInfo(1,1){
 }
 
 
@@ -63,10 +83,10 @@ genf::RKTrackRep::RKTrackRep(const TVector3& pos,
                        const TVector3& poserr,
                        const TVector3& momerr,
                        const int& PDGCode) :
-                       GFAbsTrackRep(5),fDirection(true){
+                       GFAbsTrackRep(5),fDirection(true), fCachePlane(), fCacheSpu(1), fAuxInfo(1,1){
   setPDG(PDGCode); // also sets charge and mass
                          
-  fEffect = new GFMaterialEffects();
+  //fEffect = new GFMaterialEffects();
 
   fRefPlane.setO(pos);
   fRefPlane.setNormal(mom);
@@ -108,13 +128,61 @@ genf::RKTrackRep::RKTrackRep(const TVector3& pos,
 
 }
 
+// Wholly new constructor from Genfit svn repos. EC< 27-Sep-2011. 
+
+genf::RKTrackRep::RKTrackRep(const GFTrackCand* aGFTrackCandPtr) :
+                       GFAbsTrackRep(5), fDirection(true), fCachePlane(), fCacheSpu(1), fAuxInfo(1,1) {
+  setPDG(aGFTrackCandPtr->getPdgCode()); // also sets charge and mass
+
+  TVector3 mom = aGFTrackCandPtr->getDirSeed();
+  fRefPlane.setO(aGFTrackCandPtr->getPosSeed());
+  fRefPlane.setNormal(mom);
+  double pw=mom.Mag();
+  fState[0][0]=fCharge/pw;
+  //u' and v'
+  fState[1][0]=0.0;
+  fState[2][0]=0.0;
+  //u and v
+  fState[3][0]=0.0;
+  fState[4][0]=0.0;
+  //spu
+  fSpu=1.;
+
+  TVector3 o=fRefPlane.getO();
+  TVector3 u=fRefPlane.getU();
+  TVector3 v=fRefPlane.getV();
+  TVector3 w=u.Cross(v);
+  double pu=0.;
+  double pv=0.;
+
+  TVector3 poserr = aGFTrackCandPtr->getPosError();
+  TVector3 momerr = aGFTrackCandPtr->getDirError();
+  fCov[3][3] = poserr.X()*poserr.X() * u.X()*u.X() +
+               poserr.Y()*poserr.Y() * u.Y()*u.Y() +
+               poserr.Z()*poserr.Z() * u.Z()*u.Z();
+  fCov[4][4] = poserr.X()*poserr.X() * v.X()*v.X() +
+               poserr.Y()*poserr.Y() * v.Y()*v.Y() +
+               poserr.Z()*poserr.Z() * v.Z()*v.Z();
+  fCov[0][0] = fCharge*fCharge/pow(mom.Mag(),6.) *
+               (mom.X()*mom.X() * momerr.X()*momerr.X()+
+                mom.Y()*mom.Y() * momerr.Y()*momerr.Y()+
+                mom.Z()*mom.Z() * momerr.Z()*momerr.Z());
+  fCov[1][1] = pow((u.X()/pw - w.X()*pu/(pw*pw)),2.)*momerr.X()*momerr.X() +
+               pow((u.Y()/pw - w.Y()*pu/(pw*pw)),2.)*momerr.Y()*momerr.Y() +
+               pow((u.Z()/pw - w.Z()*pu/(pw*pw)),2.)*momerr.Z()*momerr.Z();
+  fCov[2][2] = pow((v.X()/pw - w.X()*pv/(pw*pw)),2.)*momerr.X()*momerr.X() +
+               pow((v.Y()/pw - w.Y()*pv/(pw*pw)),2.)*momerr.Y()*momerr.Y() +
+               pow((v.Z()/pw - w.Z()*pv/(pw*pw)),2.)*momerr.Z()*momerr.Z();
+
+}
+
 genf::RKTrackRep::RKTrackRep(const TVector3& pos,
                        const TVector3& mom,
                        const int& PDGCode) :
-                       GFAbsTrackRep(5),fDirection(true){
+                       GFAbsTrackRep(5),fDirection(true), fCachePlane(), fCacheSpu(1), fAuxInfo(1,1){
   setPDG(PDGCode); // also sets charge and mass
                          
-  fEffect = new GFMaterialEffects();
+  //fEffect = new GFMaterialEffects();
 
   fRefPlane.setO(pos);
   fRefPlane.setNormal(mom);
@@ -162,10 +230,10 @@ genf::RKTrackRep::RKTrackRep(const TVector3& pos,
 genf::RKTrackRep::RKTrackRep(const GFDetPlane& pl,
                        const TVector3& mom,
                        const int& PDGCode) :
-                       GFAbsTrackRep(5),fDirection(true){
+                       GFAbsTrackRep(5),fDirection(true), fCachePlane(), fCacheSpu(1), fAuxInfo(1,1){
   setPDG(PDGCode); // also sets charge and mass
                          
-  fEffect = new GFMaterialEffects();
+  //fEffect = new GFMaterialEffects();
 
   fRefPlane = pl;
   TVector3 o=fRefPlane.getO();
@@ -247,6 +315,15 @@ TVector3 genf::RKTrackRep::getMom(const GFDetPlane& pl){
   return retmom;
 }
 
+TVector3 genf::RKTrackRep::getMomLast(const GFDetPlane& pl){
+  TMatrixT<Double_t> statePred(fLastState);
+  TVector3 retmom;
+  retmom = fSpu*(pl.getNormal()+statePred[1][0]*pl.getU()+statePred[2][0]*pl.getV());
+
+  retmom.SetMag(1./fabs(statePred[0][0]));
+  return retmom;
+}
+
 
 void genf::RKTrackRep::getPosMom(const GFDetPlane& pl,TVector3& pos,
                            TVector3& mom){
@@ -301,7 +378,7 @@ void genf::RKTrackRep::extrapolateToPoint(const TVector3& pos,
 
     if(fabs(coveredDistance)<MINSTEP) break;
     if(++iterations == maxIt) {
-      GFException exc("RKTrackRep extrapolation to point failed, maximum number of iterations reached",__LINE__,__FILE__);
+      GFException exc("RKTrackRep::extrapolateToPoint==> extrapolation to point failed, maximum number of iterations reached",__LINE__,__FILE__);
       throw exc;
     }
   }
@@ -426,6 +503,7 @@ double genf::RKTrackRep::extrapolate(const GFDetPlane& pl,
   state7[6][0] = fState[0][0];
 
   double coveredDistance = this->Extrap(pl,&state7,&cov7x7);
+  
 
   TVector3 O = pl.getO();
   TVector3 U = pl.getU();
@@ -589,9 +667,9 @@ bool genf::RKTrackRep::RKutta (const GFDetPlane& plane,
   static const double DLT32  = DLT/32.;         //
   static const double P3     = 1./3.;           // 1/3
   static const double Smax   = 100.0;            // max. step allowed 100->.4 EC, 6-Jan-2-11, 100->1.0
-  static const double Wmax   = 1000.;           // max. way allowed.
-  //  static const double Pmin   = 4.E-3;           // minimum momentum for propagation [GeV]
-  static const double Pmin   = 1.E-4;           // minimum momentum for propagation [GeV]
+  static const double Wmax   = 3000.;           // max. way allowed.
+  //static const double Pmin   = 4.E-3;           // minimum momentum for propagation [GeV]
+  static const double Pmin   = 1.E-11;           // minimum momentum for propagation [GeV]
 
   static const int    ND     = 56;              // number of variables for derivatives calculation
   static const int    ND1    = ND-7;            // = 49
@@ -608,7 +686,7 @@ bool genf::RKTrackRep::RKutta (const GFDetPlane& plane,
   pointPaths.clear();
   
   if(fabs(fCharge/P[6])<Pmin){
-    std::cerr << "PaAlgo::RKutta ==> momentum too low: " << fabs(fCharge/P[6])*1000. << " MeV" << std::endl;
+    std::cerr << "RKTrackRep::RKutta ==> momentum too low: " << fabs(fCharge/P[6])*1000. << " MeV" << std::endl;
     return (false);
   }
   
@@ -636,8 +714,13 @@ bool genf::RKTrackRep::RKutta (const GFDetPlane& plane,
   pointPaths.push_back(0.);
 
   An=A[0]*SU[0]+A[1]*SU[1]+A[2]*SU[2];		// An = A * N;  component of A normal to surface
-  if(An == 0) return false;		          	// no propagation if A perpendicular to surface
-  if( plane.inActive(TVector3(R[0],R[1],R[2]),TVector3(A[0],A[1],A[2]))) {  // if direction is not pointing to active part of surface
+
+    if(An == 0) {
+      //      std::cerr<<"PaAlgo::RKutta ==> Component Normal to surface is 0!: "<<Step<<" cm !"<<std::endl;
+      std::cerr << "RKTrackRep::RKutta ==> cannot propagate perpendicular to plane " << std::endl;
+      return false; // no propagation if A perpendicular to surface}
+    }
+    if( plane.inActive(TVector3(R[0],R[1],R[2]),TVector3(A[0],A[1],A[2]))) {  // if direction is not pointing to active part of surface
     Dist=SU[3]-R[0]*SU[0]-R[1]*SU[1]-R[2]*SU[2];				// Distance between start coordinates and surface
     Step=Dist/An;
   }
@@ -656,11 +739,16 @@ bool genf::RKTrackRep::RKutta (const GFDetPlane& plane,
   }
 
   if(fabs(Step)>Wmax) {
-    std::cerr<<"PaAlgo::RKutta ==> Too long extrapolation requested : "<<Step<<" cm !"<<std::endl;
-    std::cerr<<"X = "<<R[0]<<" Y = "<<R[1]<<" Z = "<<R[2]
+    //    std::cerr<<"PaAlgo::RKutta ==> Too long extrapolation requested : "<<Step<<" cm !"<<std::endl;
+    std::cerr<<"RKTrackRep::RKutta ==> Too long extrapolation requested : "<<Step<<" cm !"<<std::endl;    std::cerr<<"X = "<<R[0]<<" Y = "<<R[1]<<" Z = "<<R[2]
              <<"  COSx = "<<A[0]<<"  COSy = "<<A[1]<<"  COSz = "<<A[2]<<std::endl;
     std::cout<<"Destination  X = "<<SU[0]*SU[3]<<std::endl;
+
+      mf::LogInfo("RKTrackRep::RKutta(): ") << "Throw cet exception here, ... ";
+      throw cet::exception("RKTrackRep.cxx: ") << " Runge Kutta propagation failed. Line " <<__LINE__ << ", " << __FILE__ << "\n";
+
     return(false);
+
     //std::cout << "RKUtta.EC: But keep plowing on, lowering Step"<< std::endl;
   }
 
@@ -680,11 +768,20 @@ bool genf::RKTrackRep::RKutta (const GFDetPlane& plane,
     // call stepper and reduce stepsize
     double stepperLen;
     //std::cout<< "RKTrackRep: About to enter fEffect->stepper()" << std::endl;
+    /*
     stepperLen = fEffect->stepper(fabs(S),
                                   R[0],R[1],R[2],
                                   Ssign*A[0],Ssign*A[1],Ssign*A[2],
                                   fabs(fCharge/P[6]),
                                   fPdg);
+    */
+    // From Genfit svn, 27-Sep-2011.
+    stepperLen = GFMaterialEffects::getInstance()->stepper(fabs(S),
+                                  R[0],R[1],R[2],
+                                  Ssign*A[0],Ssign*A[1],Ssign*A[2],
+                                  fabs(fCharge/P[6]),
+                                  fPdg);
+
     //std::cout<< "RKTrackRep: S,R[0],R[1],R[2], A[0],A[1],A[2], stepperLen is " << S <<", "<< R[0] <<", "<< R[1]<<", " << R[2] <<", "<< A[0]<<", " << A[1]<<", " << A[2]<<", " << stepperLen << std::endl;
     if (stepperLen<MINSTEP) stepperLen=MINSTEP; // prevents tiny stepsizes that can slow down the program
     if (S > stepperLen) {
@@ -851,7 +948,8 @@ bool genf::RKTrackRep::RKutta (const GFDetPlane& plane,
       Step = Dis; // signed distance to surface
     }
 
-    if (An==0 || (Dis*Dist>0 && fabs(Dis)>fabs(Dist))) { // did not get closer to surface
+    //    if (An==0 || (Dis*Dist>0 && fabs(Dis)>fabs(Dist))) { // did not get closer to surface
+    if (Dis*Dist>0 && fabs(Dis)>fabs(Dist)) { // did not get closer to surface
       error=true; 
       Step=0; 
       break;
@@ -895,7 +993,8 @@ bool genf::RKTrackRep::RKutta (const GFDetPlane& plane,
   // Output derivatives of track parameters preparation 
   //
   An = A[0]*SU[0]+A[1]*SU[1]+A[2]*SU[2]; 
-  An!=0 ? An=1./An : An = 0; // 1/A_normal
+  //  An!=0 ? An=1./An : An = 0; // 1/A_normal
+  fabs(An) < 1.E-6 ? An=1./An : An = 0; // 1/A_normal
   
   if(calcCov && !stopBecauseOfMaterial){
     for(int i=7; i!=ND; i+=7) {
@@ -907,7 +1006,8 @@ bool genf::RKTrackRep::RKutta (const GFDetPlane& plane,
   }
   
   if(error){
-    std::cerr << "PaAlgo::RKutta ==> Do not get closer. Path = " << Way << " cm" << "  p/q = " << 1./P[6] << " GeV" << std::endl;
+    //    std::cerr << "PaAlgo::RKutta ==> Do not get closer. Path = " << Way << " cm" << "  p/q = " << 1./P[6] << " GeV" << std::endl;
+    std::cerr << "RKTrackRep::RKutta ==> Do not get closer. Path = " << Way << " cm" << "  p/q = " << 1./P[6] << " GeV" << std::endl;
     return(false);
   }
 
@@ -945,7 +1045,7 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
 
   while(true){
     if(numIt++ > maxNumIt){
-      GFException exc("RKTrackRep::Extrap maximum number of iterations exceeded",
+      GFException exc("RKTrackRep::Extrap ==> maximum number of iterations exceeded",
 		      __LINE__,__FILE__);
       exc.setFatal();
       delete P;
@@ -980,10 +1080,15 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
     std::vector<TVector3> points;
     std::vector<double> pointPaths;
     if( ! this->RKutta(plane,P,coveredDistance,points,pointPaths,-1.,calcCov) ) { // maxLen currently not used
-      GFException exc("RKTrackRep Runge Kutta propagation failed",__LINE__,__FILE__);
-      exc.setFatal(); // stops propagation; faster, but some hits will be lost
-      delete P;
-      throw exc;
+      //GFException exc("RKTrackRep::Extrap ==>  Runge Kutta propagation failed",__LINE__,__FILE__);
+
+      
+      //exc.setFatal(); // stops propagation; faster, but some hits will be lost
+      if ( P!=NULL ) delete P;
+      mf::LogInfo("RKTrackRep::RKutta(): ") << "Throw cet exception here, ... ";
+      throw cet::exception("RKTrackRep.cxx: ") << " Runge Kutta propagation failed. Line " <<__LINE__ << ", " << __FILE__ << "\n";
+      
+      //throw exc;
     }
 
     TVector3 directionAfter(P[3],P[4],P[5]); // direction after propagation
@@ -1019,7 +1124,13 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
     for(unsigned int i=0;i<pointPathsFilt.size();++i){
       checkSum+=pointPathsFilt.at(i);
     }
-    assert(fabs(checkSum-coveredDistance)<1.E-7);
+    //assert(fabs(checkSum-coveredDistance)<1.E-7);
+    if(fabs(checkSum-coveredDistance)>1.E-7){
+      GFException exc("RKTrackRep::Extrap ==> fabs(checkSum-coveredDistance)>1.E-7",__LINE__,__FILE__);
+      exc.setFatal();
+      delete[] P;
+      throw exc;
+    }
     
     if(calcCov){ //calculate Jacobian jac
       for(int i=0;i<7;++i){
@@ -1036,7 +1147,8 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
     
     // call MatEffects
     double momLoss; // momLoss has a sign - negative loss means momentum gain
-    
+
+    /*    
     momLoss = fEffect->effects(pointsFilt,
                                pointPathsFilt,
                                fabs(fCharge/P[6]), // momentum
@@ -1046,7 +1158,17 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
                                &jac,
                                &directionBefore,
                                &directionAfter);
-  
+    */
+    momLoss = GFMaterialEffects::getInstance()->effects(pointsFilt,
+                               pointPathsFilt,
+                               fabs(fCharge/P[6]), // momentum
+                               fPdg,
+                               calcCov,
+                               &noise,
+                               &jac,
+                               &directionBefore,
+                               &directionAfter);
+    
     if(fabs(P[6])>1.E-10){ // do momLoss only for defined 1/momentum .ne.0      
 	    P[6] = fCharge/(fabs(fCharge/P[6])-momLoss);
     }
@@ -1071,5 +1193,6 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
   delete P;
   return sumDistance;
 }
+
 
 ///ClassImp(RKTrackRep)

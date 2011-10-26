@@ -132,6 +132,11 @@ namespace genf {
     TVector3 getDirSeed() const {return fDirSeed;}
     /** @brief get the seed value for track: qoverp */
     double getQoverPseed() const {return fQoverpSeed;}
+    TVector3 getPosError() const {return fPosError;}
+    /** @brief get the seed value for track: error on direction (standard deviation)*/
+    TVector3 getDirError() const {return fDirError;}
+    /** @brief get the PDG code*/
+    int getPdgCode() const {return fPdg;}
 
     // Modifiers -----------------------
     void addHit(unsigned int detId, unsigned int hitId, double rho=0., unsigned int planeId=0);
@@ -149,6 +154,11 @@ namespace genf {
     void setTrackSeed(const TVector3& p,const TVector3& d,double qop){
       fPosSeed=p;fDirSeed=d;fQoverpSeed=qop;
     }
+
+    void setComplTrackSeed(const TVector3& pos,const TVector3& mom, const int pdgCode, TVector3 posError = TVector3(1.0,1.0,1.0), TVector3 dirError = TVector3(1.0,1.0,1.0));
+    /** @brief set a particle hypothesis in form of a PDG code
+     */
+    void setPdgCode(int pdgCode){fPdg=pdgCode;}
 
     void append(const GFTrackCand&);
 
@@ -171,6 +181,9 @@ namespace genf {
     TVector3 fPosSeed;  //seed value for the track: pos
     TVector3 fDirSeed;  //direction
     double fQoverpSeed; //q/p
+    TVector3 fPosError;  //error on position seed given as a standard deviation
+    TVector3 fDirError;  //error on direction seed given as a standard deviation
+    int fPdg; // particle data groupe's id for a particle
 
     int fMcTrackId; //if MC simulation, store the mct track id here
     // Private Methods -----------------

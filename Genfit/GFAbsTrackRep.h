@@ -208,6 +208,7 @@ class GFAbsTrackRep : public TObject{
 
   virtual TVector3 getPos(const GFDetPlane& pl)=0; 
   virtual TVector3 getMom(const GFDetPlane& pl)=0; 
+
   virtual void getPosMom(const GFDetPlane& pl,TVector3& pos,TVector3& mom)=0;
 
   //! method which gets position, momentum and 6x6 covariance matrix
@@ -221,6 +222,7 @@ class GFAbsTrackRep : public TObject{
 
   TVector3 getPos() {return getPos(fRefPlane);}
   TVector3 getMom() {return getMom(fRefPlane);}
+
   void getPosMomCov(TVector3& pos,TVector3& mom,TMatrixT<Double_t>& c){
     getPosMomCov(fRefPlane,pos,mom,c);
   }

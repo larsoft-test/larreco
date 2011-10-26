@@ -31,8 +31,10 @@
 
 #include "GFAbsTrackRep.h"
 #include "GFDetPlane.h"
+#include "GFTrackCand.h"
+#include <TMatrixT.h>
 
-#include "GFMaterialEffects.h"
+//#include "GFMaterialEffects.h"
 
 /** @brief Track Representation module based on a Runge-Kutta algorithm including a full material model
  *
@@ -58,6 +60,8 @@ class RKTrackRep : public GFAbsTrackRep {
 	     const TVector3& poserr,
 	     const TVector3& momerr,
 	     const int& PDGCode);
+
+  RKTrackRep(const GFTrackCand* aGFTrackCandPtr);
 
   RKTrackRep(const TVector3& pos,
 	     const TVector3& mom,
@@ -127,9 +131,10 @@ class RKTrackRep : public GFAbsTrackRep {
     * the track to the plane and returns the momentum.
     */
   TVector3 getMom(const GFDetPlane&);
-  //! Gets position and momentum in the plane 
-  /** If #GFDetPlane equals the reference plane #fRefPlane, it gets current position and momentum; otherwise it extrapolates 
-    * the track to the plane and gets the position and momentum.
+  TVector3 getMomLast(const GFDetPlane&);
+  //! Gets position and momentum in the plane by exrapolating or not. 
+  /** If #GFDetPlane equals the reference plane #fRefPlane, it gets current position and momentum; otherwise for getMom() it extrapolates 
+    * the track to the plane and gets the position and momentum. GetMomLast() does no extrapn. EC.
     */
   void getPosMom(const GFDetPlane&,TVector3& pos,TVector3& mom);
   //! Returns charge
@@ -144,13 +149,20 @@ class RKTrackRep : public GFAbsTrackRep {
     * the plane #pl is the same as the plane of the last extrapolation (i.e. #fCachePlane), where #fCacheSpu was calculated.
     * Hence, if the argument #pl is not equal to #fCachePlane, an error message is shown an an exception is thrown.
     */
-  void setData(const TMatrixT<Double_t>& st, const GFDetPlane& pl, const TMatrixT<Double_t>* cov=NULL);
+  //  void setData(const TMatrixT<Double_t>& st, const GFDetPlane& pl, const TMatrixT<Double_t>* cov=NULL);
+  void setData(const TMatrixT<double>& st, const GFDetPlane& pl, const TMatrixT<double>* cov=NULL, const TMatrixT<double>* aux=NULL);
+
+  const TMatrixT<double>* getAuxInfo(const GFDetPlane& pl);
+  
+  bool hasAuxInfo() { return true; }
 
  private:
 
   GFDetPlane fCachePlane;
   double fCacheSpu;
   double fSpu;
+  TMatrixT<double> fAuxInfo;
+
 
   RKTrackRep& operator=(const RKTrackRep* rhs){return *this;};
   RKTrackRep(const RKTrackRep& rhs){};
@@ -163,7 +175,7 @@ class RKTrackRep : public GFAbsTrackRep {
   //! Charge
   double fCharge;
   //! Contains all material effects
-  GFMaterialEffects *fEffect;
+  //GFMaterialEffects *fEffect;
 
   //! Propagates the particle through the magnetic field.
   /** If the propagation is successfull and the plane is reached, the function returns true.
