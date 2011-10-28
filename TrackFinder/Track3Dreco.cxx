@@ -402,7 +402,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                //core matching algorithm
                double difference = 9999999.;	  
 
-               for(unsigned int imax = imaximum; imax < maxhits.size(); imax++){ //loop over hits of the other view
+               for(unsigned int imax = 0; imax < maxhits.size(); imax++){ //loop over hits of the other view
                   if(!maxhitsMatch[imax]){
                      //get wire - time coordinate of the hit
                      channel = maxhits[imax]->Channel();
