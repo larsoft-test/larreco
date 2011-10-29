@@ -77,6 +77,7 @@ standard_kingaclusterana:
  ClusterCheaterModuleLabel: "cluster"
  KingaModuleLabel:         "kingacluster"
  GenieGenModuleLabel:      "generator"
+ LArGeantModuleLabel:      "largeant"
 }
 
 
