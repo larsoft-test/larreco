@@ -349,7 +349,7 @@ fwire_vertex_reco.clear();
       
       flinemergerCl_p0++;
       
-      std::cout<<cluster->StartPos()[0]<<", "<<cluster->StartPos()[1]<<" --> "<<cluster->EndPos()[0]<<", "<<cluster->EndPos()[1]<<" No hits= "<<cluster->Hits().size()<<std::endl;
+      //std::cout<<cluster->StartPos()[0]<<", "<<cluster->StartPos()[1]<<" --> "<<cluster->EndPos()[0]<<", "<<cluster->EndPos()[1]<<" No hits= "<<cluster->Hits().size()<<std::endl;
       
       
       if(fabs(cluster->StartPos()[0]-fwire_vertex_true[0])<6 && fabs(cluster->StartPos()[1]-ftime_vertex[0])<90 ){
@@ -457,11 +457,7 @@ fNoProtonTracks_p1_linemergerCl->Fill(proton_track_coll);
     fkingaCl_p1=0;
     fkingaCl_near_vertex_p0=0;
     fkingaCl_near_vertex_p1=0;
-     std::cout<<"########################################"<<std::endl;
-     std::cout<<"event= "<<evt.id().event()<<std::endl;
-     std::cout<<" in KingaClusterAna, kingaListHandle->size()= "<<kingaListHandle->size()<<std::endl;
-     std::cout<<"vertex for p0: "<<fwire_vertex_true[0]<<" , "<<ftime_vertex[0]<<std::endl;
-     std::cout<<"vertex for p1: "<<fwire_vertex_true[1]<<" , "<<ftime_vertex[1]<<std::endl;
+     
      
      for(unsigned int ii = 0; ii < kingaListHandle->size(); ++ii)
     {
@@ -476,7 +472,7 @@ fNoProtonTracks_p1_linemergerCl->Fill(proton_track_coll);
       fStart_pt_w_reco[ii]=cluster->StartPos()[0];
       fStart_pt_t_reco[ii]=cluster->StartPos()[1];
       fkingaCl_p0++;
-      std::cout<<"p0, cluster# "<<ii<<" startPoint: "<<cluster->StartPos()[0]<<" , "<<cluster->StartPos()[1]<<std::endl;
+      //std::cout<<"p0, cluster# "<<ii<<" startPoint: "<<cluster->StartPos()[0]<<" , "<<cluster->StartPos()[1]<<std::endl;
       
        if(fabs(cluster->StartPos()[0]-fwire_vertex_true[0])<6 && fabs(cluster->StartPos()[1]-ftime_vertex[0])<90 ){
       fkingaCl_near_vertex_p0++;
@@ -489,7 +485,7 @@ fNoProtonTracks_p1_linemergerCl->Fill(proton_track_coll);
       fStart_pt_w_reco[ii]=cluster->StartPos()[0];
       fStart_pt_t_reco[ii]=cluster->StartPos()[1];
        fkingaCl_p1++;
-       std::cout<<"p1, cluster# "<<ii<<" startPoint: "<<cluster->StartPos()[0]<<" , "<<cluster->StartPos()[1]<<std::endl;
+      // std::cout<<"p1, cluster# "<<ii<<" startPoint: "<<cluster->StartPos()[0]<<" , "<<cluster->StartPos()[1]<<std::endl;
        
          if(fabs(cluster->StartPos()[0]-fwire_vertex_true[1])<6 && fabs(cluster->StartPos()[1]-ftime_vertex[1])<90 ){
          fkingaCl_near_vertex_p1++;
@@ -497,7 +493,7 @@ fNoProtonTracks_p1_linemergerCl->Fill(proton_track_coll);
         }
       }
       
-      std::cout<<"########################################"<<std::endl;
+     
       
       //*********************************
      // find out what particle each cluster belongs to:

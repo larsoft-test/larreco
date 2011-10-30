@@ -649,10 +649,10 @@ Hit_Area_Coll->Fill((allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *
 //..............................................................   
  void cluster::KingaCluster::FindMax(unsigned int tpc, unsigned int plane){  
 
- std::cout<<"No of bins= "<<fh_theta_ind->GetNbinsX()<<std::endl;
-  std::cout<<" Bincontent= "<<fh_theta_ind->GetBinContent(48)<<std::endl;
-  std::cout<<" Bincontent= "<<fh_theta_ind->GetBinContent(49)<<std::endl;
-  std::cout<<" Bincontent= "<<fh_theta_ind->GetBinContent(50)<<std::endl;
+ // std::cout<<"No of bins= "<<fh_theta_ind->GetNbinsX()<<std::endl;
+//   std::cout<<" Bincontent= "<<fh_theta_ind->GetBinContent(48)<<std::endl;
+//   std::cout<<" Bincontent= "<<fh_theta_ind->GetBinContent(49)<<std::endl;
+//   std::cout<<" Bincontent= "<<fh_theta_ind->GetBinContent(50)<<std::endl;
 // std::vector<int> PossibleFinalMax, FinalMax;
    std::vector<int> startTimes;  //stores time of 1st local minimum
     // std::vector<int> maxBin;    //stores time of local maximum
@@ -664,7 +664,7 @@ Hit_Area_Coll->Fill((allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *
   startTimes.clear();
   maxBin.clear();
   endTimes.clear();
- std::cout<<"We have "<<allhits.size()<<" hits for plane "<<plane<<std::endl;
+ //std::cout<<"We have "<<allhits.size()<<" hits for plane "<<plane<<std::endl;
 
  //  double threshold=76*allhits.size()/2;
 //   double MinThreshold=1000;
@@ -735,9 +735,9 @@ Hit_Area_Coll->Fill((allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *
     fpeaks_found=0;}
  if(maxBin.size()>0){     
      
- for(unsigned int i=0;i<maxBin.size();i++){
-  std::cout<<"maxTime is at bin = "<<maxBin[i]<<" and its value is "<<fh_theta_coll_Area->GetBinContent(maxBin[i])<<std::endl;
-  }
+ // for(unsigned int i=0;i<maxBin.size();i++){
+//   std::cout<<"maxTime is at bin = "<<maxBin[i]<<" and its value is "<<fh_theta_coll_Area->GetBinContent(maxBin[i])<<std::endl;
+//   }
   
   
   // Lets make sure that the first bin in the maxBin corresponds to the highest peak:
@@ -747,23 +747,23 @@ Hit_Area_Coll->Fill((allhits[i]->EndTime()-allhits[i]->StartTime())* ftimetick *
   maxBinValues.push_back(fh_theta_coll_Area->GetBinContent(maxBin[i]));
   OriginalmaxBinValues.push_back(fh_theta_coll_Area->GetBinContent(maxBin[i]));
   }
-  std::cout<<"The largest is at position:  "<<std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))<<" which corresponds to bin #   "<<maxBin[std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))]<<" and its value= "<<*std::max_element(maxBinValues.begin(),maxBinValues.end())<<std::endl;
+  //std::cout<<"The largest is at position:  "<<std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))<<" which corresponds to bin #   "<<maxBin[std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))]<<" and its value= "<<*std::max_element(maxBinValues.begin(),maxBinValues.end())<<std::endl;
   
   //sort values from the largest to the smallest in maxBinValues, then find the corresponding bin numbers to create SortedMaxBin:
   
   sort(maxBinValues.begin(),maxBinValues.end());
- std::cout<<"maxBinValues after sort:"<<std::endl;
- for(unsigned int i=0;i<maxBinValues.size();i++){
-
-   std::cout<<maxBinValues[i]<<std::endl;
- }
+//std::cout<<"maxBinValues after sort:"<<std::endl;
+ // for(unsigned int i=0;i<maxBinValues.size();i++){
+// 
+//    std::cout<<maxBinValues[i]<<std::endl;
+//  }
 
 reverse (maxBinValues.begin(),maxBinValues.end());
- std::cout<<"maxBinValues in the correct order are now:"<<std::endl;
- for(unsigned int i=0;i<maxBinValues.size();i++){
-
-   std::cout<<maxBinValues[i]<<std::endl;
- }
+ //std::cout<<"maxBinValues in the correct order are now:"<<std::endl;
+ // for(unsigned int i=0;i<maxBinValues.size();i++){
+// 
+//    std::cout<<maxBinValues[i]<<std::endl;
+//  }
 
  for(unsigned int i=0; i<maxBinValues.size();i++){
 
@@ -782,13 +782,13 @@ reverse (maxBinValues.begin(),maxBinValues.end());
   
 //   }
   
-  std::cout<<"SortexMaxBin elements are: "<<std::endl;
-for(unsigned int i=0; i<SortedMaxBin.size(); i++)
-{
-
-std::cout<<SortedMaxBin[i]<<std::endl;
-
-}
+ //  std::cout<<"SortexMaxBin elements are: "<<std::endl;
+// for(unsigned int i=0; i<SortedMaxBin.size(); i++)
+// {
+// 
+// std::cout<<SortedMaxBin[i]<<std::endl;
+// 
+// }
 // int ValidPeak=0;
   // loop over maxima and find where they start on the left and right side, form cluster for each:
   
@@ -810,7 +810,7 @@ std::cout<<SortedMaxBin[i]<<std::endl;
   }
    if(ValidPeak==1){
    
-   std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
+  // std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
   FinalPeaks.push_back(SortedMaxBin[maxNo]);
    std::cout<<"We are working on peak at bin #"<<SortedMaxBin[maxNo]<<std::endl;
   //start at the peak and go left
@@ -882,7 +882,7 @@ std::cout<<SortedMaxBin[i]<<std::endl;
  if(plane==0){
  
  
- std::cout<<"No of bins= "<<fh_theta_ind_Area->GetNbinsX()<<std::endl;
+ //std::cout<<"No of bins= "<<fh_theta_ind_Area->GetNbinsX()<<std::endl;
 for(int bin=1; bin<fh_theta_ind_Area->GetNbinsX()+1;bin++){
  
   if(fh_theta_ind_Area->GetBinContent(bin)>fh_theta_ind_Area->GetBinContent(bin+1) && fh_theta_ind_Area->GetBinContent(bin+1)<fh_theta_ind_Area->GetBinContent(bin+2)) {
@@ -936,23 +936,23 @@ std::cout<<"...................................."<<std::endl;
   OriginalmaxBinValues.push_back(fh_theta_ind_Area->GetBinContent(maxBin[i]));
 
   }
-  std::cout<<"The largest is at position:  "<<std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))<<" which corresponds to bin #   "<<maxBin[std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))]<<" and its value= "<<*std::max_element(maxBinValues.begin(),maxBinValues.end())<<std::endl;
+  //std::cout<<"The largest is at position:  "<<std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))<<" which corresponds to bin #   "<<maxBin[std::distance(maxBinValues.begin(),std::max_element(maxBinValues.begin(),maxBinValues.end()))]<<" and its value= "<<*std::max_element(maxBinValues.begin(),maxBinValues.end())<<std::endl;
   
   //sort values from the largest to the smallest in maxBinValues, then find the corresponding bin numbers to create SortedMaxBin:
   
   sort(maxBinValues.begin(),maxBinValues.end());
- std::cout<<"maxBinValues after sort:"<<std::endl;
- for(unsigned int i=0;i<maxBinValues.size();i++){
-
-   std::cout<<maxBinValues[i]<<std::endl;
- }
+ // std::cout<<"maxBinValues after sort:"<<std::endl;
+//  for(unsigned int i=0;i<maxBinValues.size();i++){
+// 
+//    std::cout<<maxBinValues[i]<<std::endl;
+//  }
 
 reverse (maxBinValues.begin(),maxBinValues.end());
- std::cout<<"maxBinValues in the correct order are now:"<<std::endl;
- for(unsigned int i=0;i<maxBinValues.size();i++){
-
-   std::cout<<maxBinValues[i]<<std::endl;
- }
+ // std::cout<<"maxBinValues in the correct order are now:"<<std::endl;
+//  for(unsigned int i=0;i<maxBinValues.size();i++){
+// 
+//    std::cout<<maxBinValues[i]<<std::endl;
+//  }
 
  for(unsigned int i=0; i<maxBinValues.size();i++){
 
@@ -979,13 +979,13 @@ reverse (maxBinValues.begin(),maxBinValues.end());
 //   
 //   }
   
-  std::cout<<"SortexMaxBin elements are: "<<std::endl;
-for(unsigned int i=0; i<SortedMaxBin.size(); i++)
-{
-
-std::cout<<SortedMaxBin[i]<<std::endl;
-
-}
+ //  std::cout<<"SortexMaxBin elements are: "<<std::endl;
+// for(unsigned int i=0; i<SortedMaxBin.size(); i++)
+// {
+// 
+// std::cout<<SortedMaxBin[i]<<std::endl;
+// 
+// }
 
   // loop over maxima and find where they start on the left and right side, form cluster for each:
   
@@ -1002,7 +1002,7 @@ std::cout<<SortedMaxBin[i]<<std::endl;
   
    if(ValidPeak==1){
    
-  std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
+  //std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
   FinalPeaks.push_back(SortedMaxBin[maxNo]);
   //start at the peak and go left
       for(int LeftBin=SortedMaxBin[maxNo]-1;LeftBin>SortedMaxBin[maxNo]-30; LeftBin--)
