@@ -107,8 +107,8 @@ std::cout << "Run: " << evt.run();
 std::cout << " Event: " << evt.id().event() << std::endl;
   fpeaks_found=1;
   fMC=0; 
- int RunNo= evt.run();
- int EventNo=evt.id().event();
+ //int RunNo= evt.run();
+ //int EventNo=evt.id().event();
  art::ServiceHandle<util::LArProperties> larp;
 // double electronlifetime=larp->ElectronLifetime();
  
