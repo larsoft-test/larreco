@@ -23,14 +23,14 @@ extern "C" {
 #include <sstream>
 
 // Framework includes
-#include "art/Framework/Core/Event.h" 
+#include "art/Framework/Principal/Event.h" 
 #include "fhiclcpp/ParameterSet.h" 
-#include "art/Persistency/Common/Handle.h" 
+#include "art/Framework/Principal/Handle.h" 
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "art/Framework/Services/Optional/TFileService.h" 
-#include "art/Framework/Core/TFileDirectory.h" 
+#include "art/Framework/Services/Optional/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
 #include "TMatrixD.h"
@@ -349,7 +349,7 @@ fSingleEvtAngleVal.resize(fNPlanes);
       hitlist.sort(cluster::SortByWire());
       unsigned int p(0),w(0), c(0), t(0); //c=channel, p=plane, w=wire
 
-      art::PtrVectorItr<recob::Hit> a = hitlist.begin();
+      art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin();
       c=(*a)->Wire()->RawDigit()->Channel(); 
       geo->ChannelToWire(c,t,p,w);
       wire_start[p]=w;
@@ -360,7 +360,7 @@ fSingleEvtAngleVal.resize(fNPlanes);
 //       wire_end[p]=w;	
 
 
-      for(art::PtrVectorItr<recob::Hit> a = hitlist.begin(); a != hitlist.end();  a++) //loop over cluster hits
+      for(art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin(); a != hitlist.end();  a++) //loop over cluster hits
       {
 	c=(*a)->Wire()->RawDigit()->Channel(); 
 	geo->ChannelToWire(c,t,p,w);
@@ -511,7 +511,7 @@ double mintime=99999,maxtime=0.;
    	//tgx[plane]->Set(hitlist.size());
 
   // this should changed on the loop on the cluster of the shower
-  for(art::PtrVectorItr<recob::Hit> hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
+  for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     art::Ptr<recob::Hit> theHit = (*hitIter);
     time = theHit->PeakTime();  
     //time_C -= (presamplings+10.1);
@@ -832,7 +832,7 @@ int nhits=0;
 ///////// enter hits? or just wire coordinates?! 
 
 
-art::PtrVectorItr<recob::Hit> hitIter = hitlist.begin();
+art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin();
     channel = (*hitIter)->Wire()->RawDigit()->Channel();
  geom->ChannelToWire(channel, tpc, plane, wire);
 
@@ -849,7 +849,7 @@ lineinterc[plane]=c;
 	}
 
 // second loop, where the last points are found...
-// for(art::PtrVectorItr<recob::Hit> hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
+// for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
 //     art::Ptr<recob::Hit> theHit = (*hitIter);
 //     time = theHit->PeakTime();  
 //     //time_C -= (presamplings+10.1);
@@ -881,7 +881,7 @@ else if(fOmega_Mean[plane]<0)
 	multiplier=-1;
 	}
 
-for(art::PtrVectorItr<recob::Hit> hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
+for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     art::Ptr<recob::Hit> theHit = (*hitIter);
     time = theHit->PeakTime() ;  
     //time_C -= (presamplings+10.1);
@@ -955,7 +955,7 @@ double time_online_begin=a*wire_online_begin+c;
 //std::cout << "^^^^^^^^^ wire_time_online_begin and end " <<  wire_online_begin << " " << time_online_begin << " " << wire_online_end << " " << time_online_end << std::endl;
 
 //third loop to find first and last points (in theory)
-for(art::PtrVectorItr<recob::Hit> hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
+for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     art::Ptr<recob::Hit> theHit = (*hitIter);
     time = theHit->PeakTime() ;  
     //time_C -= (presamplings+10.1);
