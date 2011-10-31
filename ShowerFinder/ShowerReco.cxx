@@ -23,14 +23,14 @@ extern "C" {
 #include <sstream>
 
 // Framework includes
-#include "art/Framework/Core/Event.h" 
+#include "art/Framework/Principal/Event.h" 
 #include "fhiclcpp/ParameterSet.h" 
-#include "art/Persistency/Common/Handle.h" 
+#include "art/Framework/Principal/Handle.h" 
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "art/Framework/Services/Optional/TFileService.h" 
-#include "art/Framework/Core/TFileDirectory.h" 
+#include "art/Framework/Services/Optional/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
 #include "TMatrixD.h"
@@ -363,7 +363,7 @@ fChargeADC_4cm.resize(fNPlanes);   //Initial charge in ADC/cm for each plane fir
       hitlist.sort(shwf::SortByWire());
       unsigned int p(0),w(0), c(0), t(0); //c=channel, p=plane, w=wire
 
-      for(art::PtrVectorItr<recob::Hit> a = hitlist.begin(); a != hitlist.end();  a++) //loop over cluster hits
+      for(art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin(); a != hitlist.end();  a++) //loop over cluster hits
       {
 	c=(*a)->Wire()->RawDigit()->Channel(); 
 	geo->ChannelToWire(c,t,p,w);
@@ -571,7 +571,7 @@ void shwf::ShowerReco::Get2DVariables(art::PtrVector < recob::Hit> hitlist) {
   double time;
   unsigned int wire,plane;
 
-for(art::PtrVectorItr<recob::Hit> hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
+for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     art::Ptr<recob::Hit> theHit = (*hitIter);
     time = theHit->PeakTime() ;  
     //time_C -= (presamplings+10.1);
@@ -976,7 +976,7 @@ void shwf::ShowerReco::LongTransEnergy(art::PtrVector < recob::Hit> hitlist)
         
 
 
-  for(art::PtrVectorItr<recob::Hit> hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
+  for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     art::Ptr<recob::Hit> theHit = (*hitIter);
     time = theHit->PeakTime() ;  
     //time_C -= (presamplings+10.1);
@@ -1072,7 +1072,7 @@ if( (wdist<hlimit)&&(wdist>0.8)){
 //   unsigned int channel,plane;
 // 
 //   // this should changed on the loop on the cluster of the shower
-//   for(art::PtrVectorItr<recob::Hit> hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
+//   for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
 //     art::Ptr<recob::Hit> theHit = (*hitIter);
 //     time = theHit->PeakTime();  
 //     //time_C -= (presamplings+10.1);
@@ -1191,7 +1191,7 @@ for(unsigned int pl=0;pl<fNPlanes;pl++)
 //       hitlist.sort(shwf::SortByWire());
 //       unsigned int p(0),w(0), c(0), t(0); //c=channel, p=plane, w=wire
 // 
-//       art::PtrVectorItr<recob::Hit> a = hitlist.begin();
+//       art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin();
 // 	c=(*a)->Wire()->RawDigit()->Channel(); 
 // 	geo->ChannelToWire(c,t,p,local_wire_low);
 //        local_time_low = (*a)->PeakTime();  
