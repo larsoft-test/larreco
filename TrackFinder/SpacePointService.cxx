@@ -21,7 +21,7 @@
 #include "art/Persistency/Common/PtrVector.h"
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "Simulation/SimChannel.h"
-#include "art/Framework/Core/View.h"
+#include "art/Framework/Principal/View.h"
 #include "Utilities/DetectorProperties.h"
 #include "MCCheater/BackTracker.h"
 #include "TH1F.h"

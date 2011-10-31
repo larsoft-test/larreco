@@ -15,14 +15,14 @@
 #include <fstream>
 
 // Framework includes
-#include "art/Framework/Core/Event.h" 
+#include "art/Framework/Principal/Event.h" 
 #include "fhiclcpp/ParameterSet.h" 
-#include "art/Persistency/Common/Handle.h" 
+#include "art/Framework/Principal/Handle.h" 
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "art/Framework/Services/Optional/TFileService.h" 
-#include "art/Framework/Core/TFileDirectory.h" 
+#include "art/Framework/Services/Optional/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
 // LArSoft includes
@@ -302,7 +302,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 
 	} // !isRealData
       
-      //      art::PtrVectorItr<recob::Track> trackIter = trackIn.begin();
+      //      art::PtrVector<recob::Track>::const_iterator trackIter = trackIn.begin();
       
       // loop over tracks is obsolesced here in SPS. Instead, loop over clusters.
       // Take its hits, call makeSpacePoints(), out of which we'll get our spacepoints.
