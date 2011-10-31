@@ -7,6 +7,7 @@
 // from art v0_07_04.
 ////////////////////////////////////////////////////////////////////////
 
+#include "art/Framework/Principal/Event.h"
 #include "EventFinder/EventMaker.h"
 #include "RecoBase/recobase.h"
 
