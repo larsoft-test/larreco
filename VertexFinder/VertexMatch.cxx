@@ -27,14 +27,14 @@ extern "C" {
 #include <math.h>
 #include <algorithm>
 
-#include "art/Framework/Core/Event.h" 
+#include "art/Framework/Principal/Event.h" 
 #include "fhiclcpp/ParameterSet.h" 
-#include "art/Persistency/Common/Handle.h" 
+#include "art/Framework/Principal/Handle.h" 
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "art/Framework/Services/Optional/TFileService.h" 
-#include "art/Framework/Core/TFileDirectory.h" 
+#include "art/Framework/Services/Optional/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
 #include "RawData/RawDigit.h"
@@ -117,8 +117,8 @@ void vertex::VertexMatch::produce(art::Event& evt)
   for(unsigned int t = 0; t < geom->NTPC(); ++t){
     for(unsigned int p = 0; p < geom->Nplanes(t); p++) {
       //create the vector of vertex hits 
-      art::PtrVectorItr<recob::EndPoint2D> vertexIter = vertIn.begin();
-      art::PtrVectorItr<recob::Cluster> houghIter = houghIn.begin();
+      art::PtrVector<recob::EndPoint2D>::const_iterator vertexIter = vertIn.begin();
+      art::PtrVector<recob::Cluster>::const_iterator houghIter = houghIn.begin();
       while(vertexIter!= vertIn.end() ) 
 	{
 	  // vHits = (*vertexIter)->Hits(p,-1);
@@ -129,7 +129,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	  vHits = (*vertexIter)->Hits(p);
 	  if(vHits.size() > 0)
 	    {
-	      art::PtrVectorItr<recob::Hit> vertexhitIter = vHits.begin();
+	      art::PtrVector<recob::Hit>::const_iterator vertexhitIter = vHits.begin();
 	      while (vertexhitIter!=vHits.end())
 		{
 		  vertexhit.push_back((*vertexhitIter));
@@ -160,7 +160,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	  if(hHits.size() > 0)
 	    {
 	      
-	      art::PtrVectorItr<recob::Hit> hitIter = hHits.begin();
+	      art::PtrVector<recob::Hit>::const_iterator hitIter = hHits.begin();
 	      while (hitIter!=hHits.end())
 		{
 		  houghhit.push_back((*hitIter));

@@ -19,14 +19,14 @@
 #include <iostream>
 
 // Framework includes
-#include "art/Framework/Core/Event.h"
+#include "art/Framework/Principal/Event.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "art/Persistency/Common/Handle.h"
+#include "art/Framework/Principal/Handle.h"
 #include "art/Persistency/Common/Ptr.h"
 #include "art/Persistency/Common/PtrVector.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Framework/Services/Optional/TFileService.h"
-#include "art/Framework/Core/TFileDirectory.h"
+#include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "VertexFinder/HarrisVertexFinder.h"
@@ -148,7 +148,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
   unsigned int channel,plane,wire,wire2,tpc;
   for(unsigned int p = 0; p < geom->Nplanes(); p++) {
     art::PtrVector<recob::Hit> vHits;
-    art::PtrVectorItr<recob::Cluster> clusterIter = clusIn.begin();
+    art::PtrVector<recob::Cluster>::const_iterator clusterIter = clusIn.begin();
     hit.clear();
     cHits.clear();      
     while(clusterIter!= clusIn.end() ) {
