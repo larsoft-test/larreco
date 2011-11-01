@@ -141,9 +141,13 @@ namespace hit{
     
     art::Handle< std::vector<recob::Hit> > hitHandle;
     evt.getByLabel(fFFTHitFinderModuleLabel,hitHandle);
-    sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
+
+    art::ServiceHandle<sim::SimListUtils> slu;
+    sim::ParticleList _particleList = slu->GetParticleList();
     std::vector<const sim::SimChannel*> sccol;
     evt.getView(fLArG4ModuleLabel, sccol);
+
+    std::cout << _particleList << std::endl;
 
     //    art::PtrVector<recob::Hit> hits;
     std::vector< art::Ptr<recob::Hit> > hits;
