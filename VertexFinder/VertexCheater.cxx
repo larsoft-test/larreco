@@ -54,7 +54,8 @@ namespace vertex{
   {
 
     // grab the sim::ParticleList
-    sim::ParticleList plist = sim::SimListUtils::GetParticleList(evt, fG4ModuleLabel);
+    art::ServiceHandle<sim::SimListUtils> slu;
+    sim::ParticleList plist = slu->GetParticleList();
 
     // grab the showers that have been reconstructed
     art::Handle< std::vector<recob::Shower> > showercol;
