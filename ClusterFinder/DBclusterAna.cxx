@@ -170,8 +170,8 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
     }
 
   //get the sim::Particle collection from the art::Event and then use the Simulation/SimListUtils object to create a sim::ParticleList from the art::Event.  
-
-  sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
+  art::ServiceHandle<sim::SimListUtils> slu;
+  sim::ParticleList _particleList = slu->GetParticleList();
 
   
   std::vector<int> mc_trackids;
@@ -198,7 +198,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   //   }
   // std::cout<<"I have in total "<<mc_trackids.size()<<" different tracks"<<std::endl;
   
-  sim::LArVoxelList voxelList = sim::SimListUtils::GetLArVoxelList(evt, fLArG4ModuleLabel);
+  //sim::LArVoxelList voxelList = slu->GetVoxelList();
   
   
   
