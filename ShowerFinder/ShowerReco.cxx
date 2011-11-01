@@ -43,14 +43,9 @@ extern "C" {
 #include "TTree.h"
 
 // LArSoft includes
-#include "Simulation/sim.h"
 #include "ShowerFinder/ShowerReco.h"
 #include "Geometry/geo.h"
 #include "RecoBase/recobase.h"
-
-
-#include "SimulationBase/simbase.h"
-#include "Simulation/SimListUtils.h"
 #include "RawData/RawDigit.h"
 #include "Utilities/LArProperties.h"
 #include "SummaryData/summary.h"
@@ -796,12 +791,12 @@ int shwf::ShowerReco::Get3Daxis_coords(){
 
  art::ServiceHandle<geo::Geometry> geom;
 
-int nvertices=0;
+// int nvertices=0;
 
-if(fNPlanes==2)
-   nvertices=1;
-if(fNPlanes==3)
-   nvertices=3;
+// if(fNPlanes==2)
+//    nvertices=1;
+// if(fNPlanes==3)
+//    nvertices=3;
 
 fYvertex.resize(0);fZvertex.resize(0);
 fXvertex.resize(0);fZlast.resize(0);
@@ -810,9 +805,9 @@ fYlast.resize(0);fXlast.resize(0);
 //for(int iplane=0;nvertices<;iplane++)
 //   {
 double y,z;
-bool wires_cross = geom->ChannelsIntersect(fChannel_vertex[0],fChannel_vertex[1],y,z);
+//bool wires_cross = geom->ChannelsIntersect(fChannel_vertex[0],fChannel_vertex[1],y,z);
 fYvertex.push_back(y);fZvertex.push_back(z);
-wires_cross = geom->ChannelsIntersect(fChannel_last[0],fChannel_last[1],y,z);
+//wires_cross = geom->ChannelsIntersect(fChannel_last[0],fChannel_last[1],y,z);
 fYlast.push_back(y);fZlast.push_back(z);
 
 fXvertex.push_back(fTime_vertex[0]*ftimetick*fdriftvelocity);
@@ -829,9 +824,9 @@ std::cout << "^^^^^ angle calculation  theta: " << XYZ0.Theta() << " " << XYZ0.P
 
 
 
-wires_cross = geom->ChannelsIntersect(fChannel_vertex[0],fChannel_vertex[2],y,z);
+//wires_cross = geom->ChannelsIntersect(fChannel_vertex[0],fChannel_vertex[2],y,z);
 fYvertex.push_back(y);fZvertex.push_back(z);
-wires_cross = geom->ChannelsIntersect(fChannel_last[0],fChannel_last[2],y,z);
+//wires_cross = geom->ChannelsIntersect(fChannel_last[0],fChannel_last[2],y,z);
 fYlast.push_back(y);fZlast.push_back(z);
 
 fXvertex.push_back(fTime_vertex[0]*ftimetick*fdriftvelocity);
@@ -849,9 +844,9 @@ std::cout << "^^^^^ angle calculation  theta: " << XYZ1.Theta() << " " << XYZ1.P
 
 
 
-wires_cross = geom->ChannelsIntersect(fChannel_vertex[1],fChannel_vertex[2],y,z);
+//wires_cross = geom->ChannelsIntersect(fChannel_vertex[1],fChannel_vertex[2],y,z);
 fYvertex.push_back(y);fZvertex.push_back(z);
-wires_cross = geom->ChannelsIntersect(fChannel_last[1],fChannel_last[2],y,z);
+//wires_cross = geom->ChannelsIntersect(fChannel_last[1],fChannel_last[2],y,z);
 fYlast.push_back(y);fZlast.push_back(z);
 
 fXvertex.push_back(fTime_vertex[0]*ftimetick*fdriftvelocity);
@@ -956,7 +951,7 @@ std::cout << "$$$$$$$$$$$ slopes " <<  slope[0] << " " << slope[1] << "  " << th
 void shwf::ShowerReco::LongTransEnergy(art::PtrVector < recob::Hit> hitlist)
 {
   // alogorithm for energy vs dx of the shower (roto-translation) COLLECTION VIEW
-  double  wire_cm, time_cm;
+  //double  wire_cm, time_cm;
  // int loop_nrg = 0;
 
   
@@ -984,8 +979,8 @@ void shwf::ShowerReco::LongTransEnergy(art::PtrVector < recob::Hit> hitlist)
     channel = theWire->RawDigit()->Channel();
     geom->ChannelToWire(channel, tpc, plane, wire);
     //    if(time_C<1020)continue;
-    wire_cm = wire * fMean_wire_pitch; //in cm
-    time_cm = time *ftimetick*fdriftvelocity; //in cm
+    //wire_cm = wire * fMean_wire_pitch; //in cm
+    //time_cm = time *ftimetick*fdriftvelocity; //in cm
    
      // moving to polar coordinates
     
