@@ -339,8 +339,8 @@ fChargeADC_4cm.resize(fNPlanes,0);   //Initial charge in ADC/cm for each plane a
 ///////////////// !!! this has to be plane independent
  // Get3Daxis(fOmega_Mean[1], fOmega_Mean[0], fWire_vertex[1], fWire_vertex[0], fTime_vertex[0]);
  
- for(int ii=0;ii<fNPlanes-1;ii++)
-    for(int ij=ii+1;ij<fNPlanes;ij++)
+ for(unsigned int ii=0;ii<fNPlanes-1;ii++)
+    for(unsigned int ij=ii+1;ij<fNPlanes;ij++)
       Get3DaxisN(ii,ij);
   
     
@@ -845,7 +845,7 @@ void shwf::ShowerReco::LongTransEnergy(art::PtrVector < recob::Hit> hitlist)
   unsigned int wire=0,plane=0;
 
         
-  for(int i=0;i<fNPlanes;i++)
+  for(unsigned int i=0;i<fNPlanes;i++)
   {
     	fTotChargeADC[i]=0;
 	fTotChargeMeV[i]=0;
