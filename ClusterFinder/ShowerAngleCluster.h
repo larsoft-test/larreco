@@ -43,7 +43,7 @@ namespace cluster {
    
     void   AngularDistribution(art::PtrVector < recob::Hit> hitlist); /**Calculate 2D angle histograms, provided vertex is know */ 
     void   Get2DVariables(art::PtrVector < recob::Hit> hitlist);   /** Calculate 2D variables to be saved into 	  */ 
-    void   FitAngularDistributions(int plane);  /** Get actual 2D omega angle from the histograms  */
+    void   FitAngularDistributions(art::PtrVector < recob::Hit> hitlist);  /** Get actual 2D omega angle from the histograms  */
   
 
     void   GetVertexN(art::Event& evt); /**Get vertex from MCtruth information. Temporary. */
@@ -56,13 +56,17 @@ namespace cluster {
       
   
     const static float pi            = 3.1415;
-    
-    const static float ftimetick      =  0.198; // time sample in us
+   
+    // modify to get timetick from geometry.
+    float ftimetick; // time sample in us
     const static float presamplings  = 60.;
     const static float fdriftvelocity =  0.157;
     const static int    alpha           = 5;     // parameter (how many RMs (of the anglular distribution) is large the cone of the shower)
 
  private:
+
+
+  void Find2DStartPoints(std::vector< art::PtrVector < recob::Hit> > hitlist_all);
 
   
    int fRun,fEvent,fSubRun;
@@ -85,8 +89,8 @@ namespace cluster {
 
  
 
-  double xyz_vertex[3];
-
+  std::vector<double> xyz_vertex;
+  std::vector<double> xyz_vertex_fit;
 
  
   double fMean_wire_pitch ;   // wire pitch in cm
@@ -127,6 +131,8 @@ std::vector<std::vector<double> > fShowerPosition2D;  //vector to store the posi
  std::vector<double>  wire_start,wire_end;
  std::vector<double>  time_start,time_end;
  
+ std::vector<double>  test_wire_start,test_time_start;
+
 std::vector<double> fRMS_wire;
 std::vector<double> fRMS_time;
 std::vector<double> fChisq;
@@ -152,6 +158,12 @@ std::vector<double> fcovariance;
   TH2F *tgx[3];
   TH2F *tgx2[3];
 
+  //temporary
+  int mcpdg;
+  double mcenergy;
+  double mcphi;
+  double mctheta;
+  
   }; // class ShowerAngleCluster
 
 }

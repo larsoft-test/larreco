@@ -353,14 +353,14 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 	unsigned char *outPix = new unsigned char [fTimeBins*numberwires];
 	//finds the maximum cell in the map for image scaling
 	int cell, pix=0, maxCell=0;
-	int xmaxx, ymaxx;
+	//int xmaxx, ymaxx;
 	for (int y=0; y<fTimeBins; y++)
 	  for (unsigned int x=0; x<numberwires; x++){
 	    cell = (int)(hit_map[x][y]*1000);
 	    if (cell > maxCell){
 	      maxCell = cell;
-	      xmaxx=x;
-	      ymaxx=y;
+	    //  xmaxx=x;
+	    //  ymaxx=y;
 	    }
 	  }
 	
