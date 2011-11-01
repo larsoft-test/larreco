@@ -53,7 +53,8 @@ namespace trkf{
   {
 
     // grab the sim::ParticleList
-    sim::ParticleList plist = sim::SimListUtils::GetParticleList(evt, fG4ModuleLabel);
+    art::ServiceHandle<sim::SimListUtils> slu;
+    sim::ParticleList plist = slu->GetParticleList();
 
     // get the sim::SimChannels as well
     std::vector<const sim::SimChannel*> sccol;

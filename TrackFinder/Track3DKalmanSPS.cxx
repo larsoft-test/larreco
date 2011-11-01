@@ -33,7 +33,6 @@
 #include "Utilities/LArProperties.h"
 #include "SimulationBase/simbase.h"
 #include "Simulation/sim.h"
-#include "Simulation/SimListUtils.h"
 
 #include "CLHEP/Random/RandFlat.h"
 #include "CLHEP/Random/RandGaussQ.h"

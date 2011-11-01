@@ -32,7 +32,6 @@
 #include "Utilities/LArProperties.h"
 #include "SimulationBase/simbase.h"
 #include "Simulation/sim.h"
-#include "Simulation/SimListUtils.h"
 
 
 // ROOT includes
