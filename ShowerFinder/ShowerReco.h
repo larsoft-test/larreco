@@ -37,17 +37,17 @@ namespace shwf {
     void reconfigure(fhicl::ParameterSet const& pset);
     void produce(art::Event& evt);                       /**Actual routine that reconstruct the shower*/
    
-    int    Get3Daxis(float thetaI, float thetaC, float Wire_vertexI, float Wire_vertexC, float Time_vertex); // in rad
+  //  int    Get3Daxis(float thetaI, float thetaC, float Wire_vertexI, float Wire_vertexC, float Time_vertex); // in rad
 
     int Get3DaxisN(int iplane0,int iplane1);
 
-    int Get3Daxis_coords();
+  //  int Get3Daxis_coords();
 
     //int    Get2Dvariables(float Wire_vertexI_wt, float Wire_vertexC_wt, float Time_I_wt, float Time_C_wt); // in rad
    // void   GetVertex(art::Event& evt); // Get shower vertex
    // void   GetVertexN(art::Event& evt); // Get shower vertex
 
-    void   GetVertexAndAnglesFromCluster(art::Ptr< recob::Cluster > clust); // Get shower vertex and slopes.
+    void   GetVertexAndAnglesFromCluster(art::Ptr< recob::Cluster > clust,unsigned int plane); // Get shower vertex and slopes.
 
     void   GetPitchLength(); //Get pitch length of both planes
   //  void   AngularDistributionI(art::PtrVector < recob::Hit> hitlistInd); //Get angular distribution of the shower (Induction plane)
@@ -57,7 +57,7 @@ namespace shwf {
     void   FitAngularDistributions(int plane); 
  //   void   LongTransEnergyI(art::PtrVector < recob::Hit> hitlistInd); //Longtudinal and transverse enegry of the shower (Induction plane)
     void   LongTransEnergy(art::PtrVector < recob::Hit> hitlist); //Longtudinal and transverse enegry of the shower (Collection plane)
-   double ProjectedLength(geo::View_t view ) 	 const;
+   double ProjectedLength(unsigned int plane ) 	 const;
 
 
 
@@ -81,7 +81,7 @@ namespace shwf {
    // float time1C; // Time Vertex position (Collection)
     const static float pi            = 3.141519;
     
-    const static float ftimetick      =  0.198; // time sample in us
+    float ftimetick; // time sample in us
     const static float presamplings  = 60.;
     const static float fdriftvelocity =  0.157;
     const static int    alpha           = 5;     // parameter (how many RMs (of the anglular distribution) is large the cone of the shower)
@@ -140,7 +140,8 @@ namespace shwf {
   std::vector<double> fChargeADC_10cm;   //Initial charge in ADC/cm for each plane first 10cm
   std::vector<double> fChargeMeV_10cm;  //initial charge in MeV/cm for each plane first 10cm
 
-  std::vector<std::vector<double> > fDistribChargeADC;  //vector with the first De/Dx points
+  std::vector<std::vector<double> > fDistribChargeADC;  //vector with the first De/Dx points ADC
+  std::vector<std::vector<double> > fDistribChargeMeV;  //vector with the first De/Dx points converted energy
   std::vector<std::vector<double> > fDistribChargeposition;  //vector with the first De/Dx points' positions 
 
 std::vector<std::vector<double> > fSingleEvtAngle;  //vector with the first De/Dx points
@@ -159,34 +160,23 @@ std::vector<std::vector<double> > fSingleEvtAngleVal;  //vector with the first D
    std::vector< double > fThetaN, fPhiN; // 3d angles calculated using a new "det independent" method
    std::vector< double > fThetaN_ang, fPhiN_ang; // 3d angles calculated using a new "det"// independent method degrees
 
- std::vector< double > fThetaNC, fPhiNC; // 3d angles calculated using a new "det independent" method
- std::vector< double > fThetaNC_ang, fPhiNC_ang; // 3d angles calculated using a new "det"
- std::vector< double > fXvertex,fYvertex,fZvertex;
- std::vector< double > fXlast,fYlast,fZlast;
+//  std::vector< double > fThetaNC, fPhiNC; // 3d angles calculated using a new "det independent" method
+//  std::vector< double > fThetaNC_ang, fPhiNC_ang; // 3d angles calculated using a new "det"
+ //std::vector< double > fXvertex,fYvertex,fZvertex;
+ //std::vector< double > fXlast,fYlast,fZlast;
 
-        double fTheta, fPhi; // Director angles
-	double fTheta_ang, fPhi_ang; // Director angles in degrees
-
-
-
+       
   //  std::vector<double> fPitch;
     std::vector<double> fNPitch;
 
 
-  //int IdedxCounter; // dedx of the first 4cm of the shower
-  //int CdedxCounter; //dedx of the first 4cm of the shower 
   
-  // Some variables for the hit
-  //unsigned int channel_I, channel_C;  // channel number
-  //float time_I,time_C; // hit time at maximum
- // unsigned int wire_I, wire_C;    //hit wire number
- // unsigned int plane;    //hit plane number
   unsigned int tpc;    //tpc type
   unsigned int fNPlanes; // number of planes  
-
+  unsigned int fNAngles;
+  
+  
   TH1F* fh_theta[3]; 
-  std::vector< TH1F * > fh_omega_evt_reb;
-  std::vector< TH1F * > fh_omega_evt; 
   TH1F* fh_theta_wt[3]; 
   TH1F* fh_dedx[3]; 
   TH1F* fsh_nrg[3];
@@ -202,7 +192,7 @@ TH1F *fh_thet_act;
  // float AI, BI, thetaI; // Induction  plane
   
 
-   const static double calFactor=700.54;  // in ADC/fC
+ const static double calFactor=700.54;  // in ADC/fC
  const static double eCharge=1.6e-4;  // electron charge in fC
 
 

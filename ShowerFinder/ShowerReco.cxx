@@ -30,7 +30,7 @@ extern "C" {
 #include "art/Persistency/Common/PtrVector.h" 
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "art/Framework/Services/Optional/TFileService.h" 
-#include "art/Framework/Services/Optional/TFileDirectory.h" 
+#include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
 #include "TMatrixD.h"
@@ -43,11 +43,16 @@ extern "C" {
 #include "TTree.h"
 
 // LArSoft includes
+
 #include "ShowerFinder/ShowerReco.h"
 #include "Geometry/geo.h"
 #include "RecoBase/recobase.h"
+
+
+
 #include "RawData/RawDigit.h"
 #include "Utilities/LArProperties.h"
+#include "Utilities/DetectorProperties.h"
 #include "SummaryData/summary.h"
 
 
@@ -102,12 +107,18 @@ void shwf::ShowerReco::beginJob()
   /**Get TFileService and define output Histograms*/
   art::ServiceHandle<art::TFileService> tfs;
 
+  art::ServiceHandle<util::DetectorProperties> detp;
+  ftimetick=detp->SamplingRate()/1000.;
+  
+  std::cout << "------------ timetick? " << ftimetick << std::endl << std::endl << std::endl;
+
+  
+  
   /** Create Histos names*/
   char tit_dedx[128] = {0};
   char tit_h_theta[128] = {0};
   char tit_h_phi_act[128] = {0};
   char tit_h_thet_act[128] = {0};
-  char tit_h_theta_wt[128] = {0};
   char sh_long_tit[128] = {0};
   char sh_tit[128] = {0};
   char shT_tit[128] = {0};
@@ -122,7 +133,7 @@ void shwf::ShowerReco::beginJob()
     sprintf(tit_h_thet_act,"fh_thet_act");
     fh_thet_act = tfs->make<TH1F>(tit_h_thet_act,"3D Theta distribution",720,-180., 180.);
 
-  
+  //int tt=0;
   
   
   for(unsigned int i=0;i<fNPlanes;++i){
@@ -137,22 +148,7 @@ void shwf::ShowerReco::beginJob()
     fh_theta[i] = tfs->make<TH1F>(tit_h_theta,"Theta distribution",720,-180., 180.);
 
     
-    /**Histos for the angular distribution theta of the shower*/
-    sprintf(&tit_h_theta[0],"fh_omega_evt_%i",i);
-    fh_omega_evt.push_back( tfs->make<TH1F>(tit_h_theta,"Theta distribution per event",720,-180., 180.) );
-
-   sprintf(&tit_h_theta[0],"fh_omega_evt_reb_%i",i);
-    fh_omega_evt_reb.push_back( tfs->make<TH1F>(tit_h_theta,"Theta distribution per event, rebinned",180,-180., 180.) );
-   
-
-   //fh_omega2_evt.push_back( new TH1F(tit_h_theta,"Theta distribution per event",720,-180., 180.) );    
-
-
-    /**Histos for the angular distribution theta wire of the shower*/
-    sprintf(&tit_h_theta[0],"ftheta_wire_%i",i);
-    fh_theta_wt[i] = tfs->make<TH1F>(tit_h_theta_wt,"Theta wire distribution",720,-180., 180.);
- 
-    /**Histos for the longitudinal energy distribution of the shower */
+      /**Histos for the longitudinal energy distribution of the shower */
     sprintf(&sh_tit[0],"fsh_nrg1_%i",i);                   /**number of wires used,min wire,max_wire you need for the anlysis*/
     fsh_nrg[i] = tfs->make<TH1F>(sh_tit,"energy reco",240,0.,240*fMean_wire_pitch);
 
@@ -170,43 +166,29 @@ void shwf::ShowerReco::beginJob()
   
   // ftree_shwf->Branch("ftheta_Mean","std::vector<double>",&fTheta_Mean);
   // ftree_shwf->Branch("ftheta_RMS","std::vector<double>",&fTheta_RMS );
-   ftree_shwf->Branch("ftheta",&fTheta_ang,"ftheta/D");
-   ftree_shwf->Branch("fphi",&fPhi_ang,"fphi/D");
-
-   ftree_shwf->Branch("fthetaN","std::vector<double>",&fThetaN_ang);
-   ftree_shwf->Branch("fphiN","std::vector<double>",&fPhiN_ang);
-
-   ftree_shwf->Branch("fthetaNC","std::vector<double>",&fThetaNC_ang);
-   ftree_shwf->Branch("fphiNC","std::vector<double>",&fPhiNC_ang);
-
+   
    ftree_shwf->Branch("run",&fRun,"run/I");
     ftree_shwf->Branch("subrun",&fSubRun,"subrun/I");
    ftree_shwf->Branch("event",&fEvent,"event/I");
    ftree_shwf->Branch("nplanes",&fNPlanes,"nplanes/I");
+    ftree_shwf->Branch("nangles",&fNAngles,"nangles/I");
+   
+   ftree_shwf->Branch("fthetaN","std::vector<double>",&fThetaN_ang);
+   ftree_shwf->Branch("fphiN","std::vector<double>",&fPhiN_ang);
+
+//    ftree_shwf->Branch("fthetaNC","std::vector<double>",&fThetaNC_ang);
+//    ftree_shwf->Branch("fphiNC","std::vector<double>",&fPhiNC_ang);
+   
+   
    ftree_shwf->Branch("ftotChargeADC","std::vector<double>",&fTotChargeADC);
    ftree_shwf->Branch("ftotChargeMeV","std::vector<double>",&fTotChargeMeV);
-  // ftree_shwf->Branch("fmean_wire_pitch","std::vector<double>", &fMean_wire_pitch);
-   ftree_shwf->Branch("wire_vertex","std::vector<unsigned int>", &fWire_vertex);
-   ftree_shwf->Branch("time_vertex","std::vector<double>", &fTime_vertex);
-   ftree_shwf->Branch("wire_last","std::vector<unsigned int>", &fWire_last);
-   ftree_shwf->Branch("time_last","std::vector<double>", &fTime_last);
+   
 
    ftree_shwf->Branch("NPitch","std::vector<double>", &fNPitch);
  //  ftree_shwf->Branch("Pitch","std::vector<double>", &fPitch);
 
 // this should be temporary - until the omega is sorted out.
-  // ftree_shwf->Branch("fh_omega2_evt","std::vector<TH1F *>", &fh_omega2_evt);
-
-
- //   ftree_shwf->Branch("omega_2d","std::vector<double>", &fOmega_Mean);
- //   ftree_shwf->Branch("omega_2d_RMS","std::vector<double>", &fOmega_RMS);
-
- //   ftree_shwf->Branch("omega_2d_reb","std::vector<double>", &fOmega_Mean_reb);
- //   ftree_shwf->Branch("omega_2d_reb_RMS","std::vector<double>", &fOmega_RMS_reb);
- //   ftree_shwf->Branch("omega_2d_mean","std::vector<double>", &fOmega_Mean_Mean);
-   
-
-
+  
    
    ftree_shwf->Branch("ChargeADC_4cm","std::vector<double>",&fChargeADC_4cm);
    ftree_shwf->Branch("ChargeMeV_4cm","std::vector<double>",&fChargeMeV_4cm);
@@ -219,17 +201,12 @@ void shwf::ShowerReco::beginJob()
 
 
    ftree_shwf->Branch("ChargedistributionADC","std::vector<std::vector<double>>",&fDistribChargeADC);
+   
+   ftree_shwf->Branch("ChargedistributionMeV","std::vector<std::vector<double>>",&fDistribChargeMeV);
+   
    ftree_shwf->Branch("ChargedistributionPosition","std::vector<std::vector<double>>",&fDistribChargeposition);
  
-
-  // ftree_shwf->Branch("fslope_2d"," std::vector<double>", &fSlope_2d);
-  // ftree_shwf->Branch("fintercept_2d","std::vector<double>", &fIntercept_2d);
-//   
-
-  
-
-
-
+ 
 }
 
 // ***************** //
@@ -249,86 +226,51 @@ void shwf::ShowerReco::produce(art::Event& evt)
   fNPlanes = geo->Nplanes();
   //fdriftvelocity = larprob->DriftVelocity(Efield_SI,Temperature);
   
- 	fTotChargeADC.resize(0);   //Total charge in ADC/cm for each plane
-    	fTotChargeMeV.resize(0);  //Total charge in MeV/cm for each plane
-    	fWire_vertex.resize(0);  // wire coordinate of vertex for each plane
-    	fTime_vertex.resize(0);  // time coordinate of vertex for each plane
-	fWire_last.resize(0);  // wire coordinate of vertex for each plane
-    	fTime_last.resize(0);  // time coordinate of vertex for each plane
+  //calculate factorial for number of angles
+  int fact=1;
+  for (unsigned int i=1; i<=fNPlanes; i++)
+    fact*=i;
+  
+  fNAngles=fact/2;
 
-  //      fOmega_Mean.resize(0);    // Mean value of the 2D angular distribution (1=Ind - 0=Coll) cm,cm
-   //     fOmega_RMS.resize(0);;     // RMS of the 2D angular distribution  (1=Ind - 0=Coll) cm, cm
-   //     fOmega_Mean_reb.resize(0);    // Mean value of the 2D angular Rebinned by 4
-   //     fOmega_RMS_reb.resize(0);     // RMS of the 2D angular distribution  Rebinned by 4
-   //     fOmega_Mean_Mean.resize(0);    // Mean value of the 2D angular use mean instead of maximum
-        
-
-   //     fOmega_wt_Mean.resize(0);; // Mean value of the angular distribution (1=Ind - 0=Coll) wire,time
-   //     fOmega_wt_RMS.resize(0);;  // RMS of the angular distribution  (1=Ind - 0=Coll) wire,time
-        fThetaN.resize(0); fPhiN.resize(0); // 3d angles calculated using a new "det independent" method
-        fThetaN_ang.resize(0); fPhiN_ang.resize(0); // 3d angles calculated using a new "det" independent method degrees
-
-       fThetaNC.resize(0); fPhiNC.resize(0); // 3d angles calculated using a new "det independent" method
-        fThetaNC_ang.resize(0); fPhiNC_ang.resize(0); // 3d angles calculated using a new "det" independent method degrees
-        fChannel_vertex.resize(0);  // wire coordinate of vertex for each plane
-         fChannel_last.resize(0);  // wire coordinate of vertex for each plane
-
-
-
-	//fPitch.resize(0);  // Pitch calculated the old way
-    	fNPitch.resize(0);  // Pitch calculated using the scavenged method from recob::Prong
-
-  fChargeADC_4cm.resize(0);   //Initial charge in ADC/cm for each plane first 4cm
-  fChargeMeV_4cm.resize(0);  //initial charge in MeV/cm for each plane first 4cm
-  fChargeADC_6cm.resize(0);   //Initial charge in ADC/cm for each plane first 6cm
-  fChargeMeV_6cm.resize(0);  //initial charge in MeV/cm for each plane first 6cm
-  fChargeADC_8cm.resize(0);   //Initial charge in ADC/cm for each plane first 8cm
-  fChargeMeV_8cm.resize(0);  //initial charge in MeV/cm for each plane first 8cm
-  fChargeADC_10cm.resize(0);   //Initial charge in ADC/cm for each plane first 10cm
-  fChargeMeV_10cm.resize(0);  //initial charge in MeV/cm for each plane first 10cm
+  fPhiN.resize(0);
+  fThetaN.resize(0);
  
+  fPhiN_ang.resize(0);
+  fThetaN_ang.resize(0);
+ 
+  
 fDistribChargeADC.resize(fNPlanes); 
+fDistribChargeMeV.resize(fNPlanes);
 fDistribChargeposition.resize(fNPlanes);
-fSingleEvtAngle.resize(fNPlanes); 
-fSingleEvtAngleVal.resize(fNPlanes); 
 
  for(unsigned int ii=0;ii<fNPlanes;ii++)
   {  fDistribChargeADC[ii].resize(0);  //vector with the first De/Dx points
+  fDistribChargeMeV[ii].resize(0);  //vector with the first De/Dx points
   fDistribChargeposition[ii].resize(0);  //vector with the first De/Dx points' positions 
-  fSingleEvtAngle[ii].resize(180); 
-  fSingleEvtAngleVal[ii].resize(180); 
   }
 
 
       // fPitch.resize(fNPlanes); 
-    	fNPitch.resize(fNPlanes); 
-	fWire_vertex.resize(fNPlanes);
-	fTime_vertex.resize(fNPlanes);
-        fWire_last.resize(fNPlanes);
-	fTime_last.resize(fNPlanes);
- 	fTotChargeADC.resize(fNPlanes); 
-	fTotChargeMeV.resize(fNPlanes);  
-        fChannel_vertex.resize(fNPlanes);
-        fChannel_last.resize(fNPlanes);
+    	fNPitch.resize(fNPlanes,-1); 
+	fWire_vertex.resize(fNPlanes,-1);
+	fTime_vertex.resize(fNPlanes,-1);
+        fWire_last.resize(fNPlanes,-1);
+	fTime_last.resize(fNPlanes,-1);
+ 	fTotChargeADC.resize(fNPlanes,0); 
+	fTotChargeMeV.resize(fNPlanes,0);  
+      //  fChannel_vertex.resize(fNPlanes,-1);
+      //  fChannel_last.resize(fNPlanes,-1);
 
-fChargeADC_4cm.resize(fNPlanes);   //Initial charge in ADC/cm for each plane first 4cm
-  fChargeMeV_4cm.resize(fNPlanes);  //initial charge in MeV/cm for each plane first 4cm
-  fChargeADC_6cm.resize(fNPlanes);   //Initial charge in ADC/cm for each plane first 6cm
-  fChargeMeV_6cm.resize(fNPlanes);  //initial charge in MeV/cm for each plane first 6cm
-  fChargeADC_8cm.resize(fNPlanes);   //Initial charge in ADC/cm for each plane first 8cm
-  fChargeMeV_8cm.resize(fNPlanes);  //initial charge in MeV/cm for each plane first 8cm
-  fChargeADC_10cm.resize(fNPlanes);   //Initial charge in ADC/cm for each plane first 10cm
-  fChargeMeV_10cm.resize(fNPlanes);  //initial charge in MeV/cm for each plane first 10cm
- // fDistribChargeADC.resize(fNPlanes);  //vector with the first De/Dx points
- // fDistribChargeposition.resize(fNPlanes);  //vector with the first De/Dx points' positions 
+fChargeADC_4cm.resize(fNPlanes,0);   //Initial charge in ADC/cm for each plane angle calculation 4cm
+  fChargeMeV_4cm.resize(fNPlanes,0);  //initial charge in MeV/cm for each angle calculation first 4cm
+  fChargeADC_6cm.resize(fNPlanes,0);   //Initial charge in ADC/cm for each angle calculation first 6cm
+  fChargeMeV_6cm.resize(fNPlanes,0);  //initial charge in MeV/cm for each angle calculation first 6cm
+  fChargeADC_8cm.resize(fNPlanes,0);   //Initial charge in ADC/cm for each angle calculationfirst 8cm
+  fChargeMeV_8cm.resize(fNPlanes,0);  //initial charge in MeV/cm for each angle calculation first 8cm
+  fChargeADC_10cm.resize(fNPlanes,0);   //Initial charge in ADC/cm for each angle calculation first 10cm
+  fChargeMeV_10cm.resize(fNPlanes,0);  //initial charge in MeV/cm for each angle calculation first 10cm
 
-//         fOmega_Mean.resize(fNPlanes);    // Mean value of the 2D angular distribution (1=Ind - 0=Coll) cm,cm
-//         fOmega_RMS.resize(fNPlanes);     // RMS of the 2D angular distribution  (1=Ind - 0=Coll) cm, cm
-//         fOmega_wt_Mean.resize(fNPlanes); // Mean value of the angular distribution (1=Ind - 0=Coll) wire,time
-//         fOmega_wt_RMS.resize(fNPlanes);  // RMS of the angular distribution  (1=Ind - 0=Coll) wire,time
-//         fOmega_Mean_reb.resize(fNPlanes);    // Mean value of the 2D angular Rebinned by 4
-//         fOmega_RMS_reb.resize(fNPlanes);     // RMS of the 2D angular distribution  Rebinned by 4
-//         fOmega_Mean_Mean.resize(fNPlanes);    // Mean value of the 2D angular use mean instead of maximum
 //       
 
 
@@ -351,13 +293,20 @@ fChargeADC_4cm.resize(fNPlanes);   //Initial charge in ADC/cm for each plane fir
       art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
       
       //get vertex position and slope information to start with:
-      GetVertexAndAnglesFromCluster( cl);
-
+     
       art::PtrVector<recob::Hit> hitlist;
       hitlist = cl->Hits();
       hitlist.sort(shwf::SortByWire());
       unsigned int p(0),w(0), c(0), t(0); //c=channel, p=plane, w=wire
 
+
+      
+      geo->ChannelToWire((*hitlist.begin())->Wire()->RawDigit()->Channel(),t,p,w);
+      
+      GetVertexAndAnglesFromCluster( cl,p);
+
+      
+      
       for(art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin(); a != hitlist.end();  a++) //loop over cluster hits
       {
 	c=(*a)->Wire()->RawDigit()->Channel(); 
@@ -367,22 +316,9 @@ fChargeADC_4cm.resize(fNPlanes);   //Initial charge in ADC/cm for each plane fir
 
 	//std::cout << "+++++++ planeview in hit list   " <<  geo->Plane(p,t).View() << std::endl; 
 
-          hitlist_all[geo->Plane(p,t).View()-1].push_back(*a);
+          hitlist_all[p].push_back(*a);
 
-// 	if(geo->Plane(p,t).SignalType() == geo::kCollection)
-// 	  {	  
-// 	    hitlistCol.push_back(*a);
-// 
-// 	  }
-// 	else if (geo->Plane(p,t).SignalType() == geo::kInduction)
-// 	  {
-// 	    hitlistInd.push_back(*a);
-// 	  } 
       }
-
-    //  hitlistInd.sort(shwf::SortByWire());
-     // hitlistCol.sort(shwf::SortByWire());
-
 
     } // End loop on clusters.
 
@@ -392,52 +328,29 @@ fChargeADC_4cm.resize(fNPlanes);   //Initial charge in ADC/cm for each plane fir
 
 
 
-
-
-     
-  
-
-// if(!fUseMCVertex)
-//     GetVertex(evt);
-// else
-//     GetVertexN(evt);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
    for(unsigned int i=0;i<fNPlanes;i++)
       {
        hitlist_all[i].sort(shwf::SortByWire());
-      fh_omega_evt[i]->Reset();
-      fh_omega_evt_reb[i]->Reset();
-     // AngularDistribution(hitlist_all[i]); // 2D Direction of the shower in consecutive planes
-     // FitAngularDistributions(i);  
-      Get2DVariables(hitlist_all[i]);
+      // Get2DVariables(hitlist_all[i]);
        }
  
  
-  //AngularDistribution(hitlistCol); // 2D Direction of the shower Collection
-              // Fit of 2d distributions (for both planes)
   
- // std::cout << "######## in main loop " << fOmega_Mean[0] << " " <<  fOmega_Mean[1] << std::endl;
-  
-
 ///////////////// !!! this has to be plane independent
  // Get3Daxis(fOmega_Mean[1], fOmega_Mean[0], fWire_vertex[1], fWire_vertex[0], fTime_vertex[0]);
-  Get3DaxisN(0,1);
+ 
+ for(int ii=0;ii<fNPlanes-1;ii++)
+    for(int ij=ii+1;ij<fNPlanes;ij++)
+      Get3DaxisN(ii,ij);
+  
+    
+   /* Get3DaxisN(0,1);
+if(fNPlanes>2)
+  {	
   Get3DaxisN(0,2);
   Get3DaxisN(1,2);
-
+  }*/	
+  
 // Get3Daxis_coords();  
 
 
@@ -483,7 +396,9 @@ spcpts.push_back(singlepoint);
 recob::Shower  singShower(prodvec,spcpts);
 
 
-
+// TBD determine which angle to use for the actual shower
+double fPhi=fPhiN_ang[0];
+double fTheta=fThetaN_ang[0];
 
 double dcosstart[3]={TMath::Cos(fPhi*pi/180)*TMath::Sin(fTheta*pi/180),TMath::Cos(fTheta*pi/180),TMath::Sin(fPhi*pi/180)*TMath::Sin(fTheta*pi/180)};
 
@@ -514,107 +429,69 @@ Shower3DVector->push_back(singShower);
 }
 
 
-// ***************** //
-// void shwf::ShowerReco::FitAngularDistributions(int iplane){
-//   /** Fit function of the angular distribution (cm,cm)*/
-//   art::ServiceHandle<geo::Geometry> geo;
-//   //unsigned int planes = geo->Nplanes();
-//   //TF1 *gau = new TF1("gaus","gaus",-60, 60);
+
+// void shwf::ShowerReco::Get2DVariables(art::PtrVector < recob::Hit> hitlist) {  
+// 
+//   art::ServiceHandle<geo::Geometry> geom;
+//   // only needed for drawing the axis of the shower in the event display
+//   
+//   unsigned int channel;
+//   double  wire_cm, time_cm;
+// 
+// 
+//  double AC, BC, omega; 
+//   double time;
+//   unsigned int wire,plane;
+// 
+// for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
+//     art::Ptr<recob::Hit> theHit = (*hitIter);
+//     time = theHit->PeakTime() ;  
+//     //time_C -= (presamplings+10.1);
+//     art::Ptr<recob::Wire> theWire = theHit->Wire();
+//     channel = theWire->RawDigit()->Channel();
+//     geom->ChannelToWire(channel, tpc, plane, wire);
+//     //    if(time_C<1020)continue;
+//     wire_cm = wire * fMean_wire_pitch; //in cm
+//     time_cm = time *ftimetick*fdriftvelocity; //in cm
+//    
+//  /*  if(hitIter == hitlist.begin())
+// 	{ fWire_vertex[plane] = fWire_vertex[plane] ; //in cm
+//           fTime_vertex[plane] = fTime_vertex[plane] ; //in cmm        
+//         }  */  
+// 
+//    
+//     // moving to polar coordinates
+//     BC = (wire_cm - fWire_vertex[plane]* fMean_wire_pitch)+fMean_wire_pitch; //in cm
+//     AC = (time_cm - fTime_vertex[plane]*ftimetick*fdriftvelocity); // in cm 
+//     omega = asin(AC/sqrt(pow(AC,2)+pow(BC,2)));
+//     omega = 180*omega/3.14; // in deg
+//     //std::cout << " WireI1=" << wireI1 << " BI= " << BI << "    ThetaI = " << thetaI <<std::endl;
+//        
+//     if( (omega>(tan(slope[plane])-1.0*pi/180.))&&(omega<(tan(slope[plane])-1.0*pi/180.)) ){
+//       fWire_last[plane] = wire;
+//       fChannel_last[plane]=  channel;  // wire coordinate of vertex for each plane
+//       fTime_last[plane] = time;
+//     }
+// 
+// }   // end of HitIter loop
 // 
 // 
 // 
-//   //for(unsigned int iplane = 0; iplane < fNPlanes; ++iplane){
-//    // fh_theta_evt[iplane]->Fit("gaus","QR");        // Fit of the angular distribution
-//     fOmega_Mean[iplane] =
-//     fh_omega_evt[iplane]->GetBinCenter(fh_omega_evt[iplane]->GetMaximumBin());// Mean value of the fit
-//     fOmega_RMS[iplane] = fh_omega_evt[iplane]->GetRMS(); // RMS of the fit of the angular distribution in deg
-// 
-//     fOmega_Mean_reb[iplane]= fh_omega_evt_reb[iplane]->GetBinCenter(fh_omega_evt_reb[iplane]->GetMaximumBin());// Mean value of the fit
-//     fOmega_RMS[iplane] = fh_omega_evt_reb[iplane]->GetRMS(); // RMS of the fit of the angular distribution in deg
-//     fOmega_Mean_Mean[iplane]= fh_omega_evt[iplane]->GetMean();// Mean value of the;    // Mean value of the 2D angular use mean instead of maximum
-//     
-// std::cout << "########## intermediate angles, plane: " << iplane << " stand, reb, mean " << fOmega_Mean[iplane] << " " << fOmega_Mean_reb[iplane] << " " << fOmega_Mean_Mean[iplane] << std::endl;
 // 
 // 
-// 
-// for(int i=0;i<180;i++)
-// {fSingleEvtAngle[iplane][i]=fh_omega_evt_reb[iplane]->GetBinContent(i);
-// fSingleEvtAngleVal[iplane][i]=i-90;
+//   
+//   // Making the two lines in the two views
+// for (unsigned int pl=0;pl<fNPlanes;pl++)
+//   {
+//   slope_wt[pl] = (fTime_last[pl]-fTime_vertex[pl])/(ftimetick*fdriftvelocity)/((fWire_last[pl]-fWire_vertex[pl])/ fMean_wire_pitch);
+//   //slope_wt[0] = (fTime_last[0]-Time_C_wt)/(fWire_last[0]-Wire_vertexC_wt);
+//  
+//   intercept_wt[pl] = fTime_vertex[pl]/(ftimetick*fdriftvelocity) - fWire_vertex[pl]/(fMean_wire_pitch)*slope_wt[pl];
+// //  intercept_wt[0] = Time_C_wt - Wire_vertexC_wt*slope_wt[0];
+//   }
+//   
+//   return (void)0;
 // }
-//   //}
-//   double  Low_th  = fOmega_Mean[iplane]-(alpha*fOmega_RMS[iplane]);
-//   double  High_th = fOmega_Mean[iplane]+(alpha*fOmega_RMS[iplane]);
-// 
-// 
-// }
-
-// ***************** //
-
-
-// ***************** //
-//int shwf::ShowerReco::Get2Dvariables(float Wire_vertexI_wt, float Wire_vertexC_wt, float Time_I_wt, float Time_C_wt){
-void shwf::ShowerReco::Get2DVariables(art::PtrVector < recob::Hit> hitlist) {  
-
-  art::ServiceHandle<geo::Geometry> geom;
-  // only needed for drawing the axis of the shower in the event display
-  
-  unsigned int channel;
-  double  wire_cm, time_cm;
-
-
- double AC, BC, omega; 
-  double time;
-  unsigned int wire,plane;
-
-for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
-    art::Ptr<recob::Hit> theHit = (*hitIter);
-    time = theHit->PeakTime() ;  
-    //time_C -= (presamplings+10.1);
-    art::Ptr<recob::Wire> theWire = theHit->Wire();
-    channel = theWire->RawDigit()->Channel();
-    geom->ChannelToWire(channel, tpc, plane, wire);
-    //    if(time_C<1020)continue;
-    wire_cm = wire * fMean_wire_pitch; //in cm
-    time_cm = time *ftimetick*fdriftvelocity; //in cm
-   
- /*  if(hitIter == hitlist.begin())
-	{ fWire_vertex[plane] = fWire_vertex[plane] ; //in cm
-          fTime_vertex[plane] = fTime_vertex[plane] ; //in cmm        
-        }  */  
-
-   
-    // moving to polar coordinates
-    BC = (wire_cm - fWire_vertex[plane]* fMean_wire_pitch)+fMean_wire_pitch; //in cm
-    AC = (time_cm - fTime_vertex[plane]*ftimetick*fdriftvelocity); // in cm 
-    omega = asin(AC/sqrt(pow(AC,2)+pow(BC,2)));
-    omega = 180*omega/3.14; // in deg
-    //std::cout << " WireI1=" << wireI1 << " BI= " << BI << "    ThetaI = " << thetaI <<std::endl;
-       
-    if( (omega>(tan(slope[plane])-1.0*pi/180.))&&(omega<(tan(slope[plane])-1.0*pi/180.)) ){
-      fWire_last[plane] = wire;
-      fChannel_last[plane]=  channel;  // wire coordinate of vertex for each plane
-      fTime_last[plane] = time;
-    }
-
-}   // end of HitIter loop
-
-
-
-
-
-  
-  // Making the two lines in the two views
-for (unsigned int pl=0;pl<fNPlanes;pl++)
-  {
-  slope_wt[pl] = (fTime_last[pl]-fTime_vertex[pl])/(ftimetick*fdriftvelocity)/((fWire_last[pl]-fWire_vertex[pl])/ fMean_wire_pitch);
-  //slope_wt[0] = (fTime_last[0]-Time_C_wt)/(fWire_last[0]-Wire_vertexC_wt);
- 
-  intercept_wt[pl] = fTime_vertex[pl]/(ftimetick*fdriftvelocity) - fWire_vertex[pl]/(fMean_wire_pitch)*slope_wt[pl];
-//  intercept_wt[0] = Time_C_wt - Wire_vertexC_wt*slope_wt[0];
-  }
-  
-  return (void)0;
-}
 
 
 int shwf::ShowerReco::Get3DaxisN(int iplane0,int iplane1){
@@ -637,11 +514,12 @@ unsigned int Cplane=0,Iplane=1;   // pretend collection and induction planes. "C
 //std::cout << " ---------- new calc, fOM, slope " << fOmega_Mean[iplane0] << " " << fOmega_Mean[iplane1] << " " <<  slope[iplane0] << " " << slope[iplane1] <<  std::endl;
 
 
- if(slope[0]==0 || slope[1]==0){
+ if(slope[iplane0]==0 || slope[iplane1]==0){
 //    Phi   = 0;
 //    Theta = 0;
-    fTheta = -900;
-    fPhi = -900;
+   fPhiN_ang.push_back(-900);
+  fThetaN_ang.push_back(-900);
+    std::cout << " event parallell in one of the planes, exiting " << std::endl;
 return 0;
   }
   
@@ -667,26 +545,29 @@ return 0;
   angle[iplane0]=geom->Plane(iplane0).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to 
   angle[iplane1]=geom->Plane(iplane1).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to
 
- if(angle[0]==0)   // first plane is at 0 degrees
+  std::cout <<  " actual angles " << angle[iplane0]*180/pi << " " << angle[iplane1]*180/pi << std::endl;
+  
+  
+ if(angle[iplane0]==0)   // first plane is at 0 degrees
        {
        Cplane=iplane0;
        Iplane=iplane1;
 std::cout << "+++++ new calc first test case 1 angle[0]==0 "  << std::endl;
 	}
-else if(angle[1]==0)  // second plane is at 0 degrees
+else if(angle[iplane1]==0)  // second plane is at 0 degrees
        {
 	Cplane=iplane1;
        Iplane=iplane0;
 std::cout << "+++++ new calc first test case 2 angle[1]==0 "  << std::endl;
 	}
-else if(angle[1]!=0 && angle[0]!=0)  //both planes are at non zero degree - find the one with deg<0
+else if(angle[iplane0]!=0 && angle[iplane1]!=0)  //both planes are at non zero degree - find the one with deg<0
       {
-	if(angle[1]<angle[0])
+	if(angle[iplane1]<angle[iplane0])
           {Cplane=iplane1;
           Iplane=iplane0;
 std::cout << "+++++ new calc first test case 3 angle[1]< angle[0] "  << std::endl;
           }
-	else if(angle[1]>angle[0])
+	else if(angle[iplane1]>angle[iplane0])
           {Cplane=iplane0;
           Iplane=iplane1;
 std::cout << "+++++ new calc first test case 4 angle[1]> angle[0] "  << std::endl;
@@ -700,12 +581,11 @@ std::cout << "+++++ new calc first test case 4 angle[1]> angle[0] "  << std::end
 	}
 
 
-std::cout << "+++++ new calc first test, planes "<< Cplane << " " << Iplane << std::endl;
 
 
+//0 -1 factor depending on if one of the planes is vertical.
 bool nfact=!(angle[Cplane]);
 
-std::cout << "++++++ nfact " << nfact << " " << angle[Cplane]*180/pi << std::endl;
 
 l = 1;
 
@@ -716,24 +596,22 @@ std::cout << "+++++ new calc first test c(I) ,I,C,I/C " << cos(angle[Iplane]) <<
   m = (1/(2*sin(angle[Iplane])))*((cos(angle[Iplane])/(slope[Cplane]*cos(angle[Cplane])))-(1/slope[Iplane]) +nfact*(  cos(angle[Iplane])/slope[Cplane]-1/slope[Iplane]  )     );
 
 
- double mm = (1/(2*sin(angle[Iplane])))*((1/slope[Cplane])-(1/slope[Iplane]));
+ /*double mm = (1/(2*sin(angle[Iplane])))*((1/slope[Cplane])-(1/slope[Iplane]));
 double mmm = (1/(sin(angle[Iplane])))*((cos(angle[Iplane])/slope[Cplane])-(1/slope[Iplane]));
 double mmmm = -(1/(sin(angle[Iplane])))*(((-1)*cos(angle[Iplane])/slope[Cplane])+(1/slope[Iplane]));
 double mxm= (1/(sin(angle[Iplane])))*((cos(angle[Iplane])/(slope[Cplane]*cos(angle[Cplane])))-(1/slope[Iplane]));
-double mcm=(1/(sin(angle[Iplane])))*( nfact*(  cos(angle[Iplane])/slope[Cplane]-1/slope[Iplane]  )     );
-
-
-std::cout << "+++++ new calc first test M vs. two non zero: " << m << " " << mm << std::endl;
-std::cout << "+++++ new calc first test M vs. one non zero (I=2): " << m << " " << mmm << " " << mmmm<< " " << mxm << " " <<mcm << std::endl;
+double mcm=(1/(sin(angle[Iplane])))*( nfact*(  cos(angle[Iplane])/slope[Cplane]-1/slope[Iplane]  )     ); */
+// std::cout << "+++++ new calc first test M vs. two non zero: " << m << " " << mm << std::endl;
+// std::cout << "+++++ new calc first test M vs. one non zero (I=2): " << m << " " << mmm << " " << mmmm<< " " << mxm << " " <<mcm << std::endl;
 
 
   n = (1/(2*cos(angle[Cplane])))*((1/slope[Cplane])+(1/slope[Iplane])+nfact*((1/slope[Cplane])-(1/slope[Iplane])));
-double nn = (1/(2*cos(angle[Cplane])))*((1/slope[Cplane])+(1/slope[Iplane])); 
-
-std::cout << "+++++ new calc first test N: " << n << " " << nn << std::endl;
-std::cout << "+++++ new calc first test N: " << n << " " << 1/slope[Cplane] << std::endl;
-
-  std::cout << "________________m= " << m << std::endl;
+// double nn = (1/(2*cos(angle[Cplane])))*((1/slope[Cplane])+(1/slope[Iplane])); 
+// 
+// std::cout << "+++++ new calc first test N: " << n << " " << nn << std::endl;
+// std::cout << "+++++ new calc first test N: " << n << " " << 1/slope[Cplane] << std::endl;
+// 
+//   std::cout << "________________m= " << m << std::endl;
 
 
   // Director angles
@@ -745,8 +623,8 @@ std::cout << "+++++ new calc first test angles tests, Phi, Thet: " << fPhiN[fPhi
 
   float Phi = fPhiN[fPhiN.size()-1]>0. ? (TMath::Pi()/2)-fPhiN[fPhiN.size()-1] : fabs(fPhiN[fPhiN.size()-1])-(TMath::Pi()/2) ; // solve the ambiguities due to tangent periodicity
   float Theta=0;
-  if(Phi<0)Theta = fThetaN[fThetaN.size()-1]-(TMath::Pi()/2);
-  if(Phi>0)Theta = (TMath::Pi()/2)-fThetaN[fThetaN.size()-1];
+  if(Phi<0)Theta = (TMath::Pi()/2)-fThetaN[fThetaN.size()-1];
+  if(Phi>0)Theta = fThetaN[fThetaN.size()-1]-(TMath::Pi()/2);
 
 
 //std::cout << "+++++ new calc first test angles tests, after tangent corr, Phi, Thet: " << fPhiN[fPhiN.size()-1]*180/pi << " " << fThetaN[fThetaN.size()-1] << std::endl << std::endl;
@@ -759,8 +637,6 @@ std::cout << "+++++ new calc first test angles tests, Phi, Thet: " << fPhiN[fPhi
     fh_thet_act->Fill(Theta*180/pi);
   
 
-  fPhi=Phi;
-  fTheta=Theta;
   
   GetPitchLength(); //Get pitch of (two) wire planes (only for Argoneut)
    
@@ -787,86 +663,86 @@ return 0;
 
 
 
-int shwf::ShowerReco::Get3Daxis_coords(){
-
- art::ServiceHandle<geo::Geometry> geom;
-
+// int shwf::ShowerReco::Get3Daxis_coords(){
+// 
+//  art::ServiceHandle<geo::Geometry> geom;
+// 
 // int nvertices=0;
-
+// 
 // if(fNPlanes==2)
 //    nvertices=1;
 // if(fNPlanes==3)
 //    nvertices=3;
-
-fYvertex.resize(0);fZvertex.resize(0);
-fXvertex.resize(0);fZlast.resize(0);
-fYlast.resize(0);fXlast.resize(0);
-
-//for(int iplane=0;nvertices<;iplane++)
-//   {
-double y,z;
-//bool wires_cross = geom->ChannelsIntersect(fChannel_vertex[0],fChannel_vertex[1],y,z);
-fYvertex.push_back(y);fZvertex.push_back(z);
-//wires_cross = geom->ChannelsIntersect(fChannel_last[0],fChannel_last[1],y,z);
-fYlast.push_back(y);fZlast.push_back(z);
-
-fXvertex.push_back(fTime_vertex[0]*ftimetick*fdriftvelocity);
-fXlast.push_back(fTime_last[0]*ftimetick*fdriftvelocity ); 
-
-TVector3 XYZ0;  // track origin or interaction vertex
-XYZ0.SetXYZ(fXlast[0]-fXvertex[0],fYlast[0]-fYvertex[0],fZlast[0]-fZvertex[0]);
-
-std::cout << "^^^^^ channels " << fChannel_vertex[0] << " " << fChannel_vertex[1] << " " << fChannel_last[0] << " " << fChannel_last[1] << std::endl;
-std::cout << "^^^^^ X,Y,Z start " << fXvertex[0] << " " << fYvertex[0] << " " << fZvertex[0] << std::endl;
-std::cout << "^^^^^ X,Y,Z end " << fXlast[0] << " " << fYlast[0] << " " << fZlast[0] << std::endl;
-std::cout << "^^^^^ X,Y,Z diff " << fXlast[0]-fXvertex[0] << " " << fYlast[0]-fYvertex[0] << " " << fZlast[0]-fZvertex[0] << std::endl;
-std::cout << "^^^^^ angle calculation  theta: " << XYZ0.Theta() << " " << XYZ0.Phi() << std::endl; 
-
-
-
-//wires_cross = geom->ChannelsIntersect(fChannel_vertex[0],fChannel_vertex[2],y,z);
-fYvertex.push_back(y);fZvertex.push_back(z);
-//wires_cross = geom->ChannelsIntersect(fChannel_last[0],fChannel_last[2],y,z);
-fYlast.push_back(y);fZlast.push_back(z);
-
-fXvertex.push_back(fTime_vertex[0]*ftimetick*fdriftvelocity);
-fXlast.push_back(fTime_last[0]*ftimetick*fdriftvelocity ); 
-
-TVector3 XYZ1;  // track origin or interaction vertex
-XYZ0.SetXYZ(fXlast[1]-fXvertex[1],fYlast[1]-fYvertex[1],fZlast[1]-fZvertex[1]);
-
-
-std::cout << "^^^^^ channels " << fChannel_vertex[0] << " " << fChannel_vertex[2] << " " << fChannel_last[0] << " " << fChannel_last[2] << std::endl;
-std::cout << "^^^^^ X,Y,Z start " << fXvertex[1] << " " << fYvertex[1] << " " << fZvertex[1] << std::endl;
-std::cout << "^^^^^ X,Y,Z end " << fXlast[1] << " " << fYlast[1] << " " << fZlast[1] << std::endl;
-std::cout << "^^^^^ X,Y,Z diff " << fXlast[1]-fXvertex[1] << " " << fYlast[1]-fYvertex[1] << " " << fZlast[1]-fZvertex[1] << std::endl;
-std::cout << "^^^^^ angle calculation  theta: " << XYZ1.Theta() << " " << XYZ1.Phi() << std::endl; 
-
-
-
-//wires_cross = geom->ChannelsIntersect(fChannel_vertex[1],fChannel_vertex[2],y,z);
-fYvertex.push_back(y);fZvertex.push_back(z);
-//wires_cross = geom->ChannelsIntersect(fChannel_last[1],fChannel_last[2],y,z);
-fYlast.push_back(y);fZlast.push_back(z);
-
-fXvertex.push_back(fTime_vertex[0]*ftimetick*fdriftvelocity);
-fXlast.push_back(fTime_last[0]*ftimetick*fdriftvelocity ); 
-
-
-TVector3 XYZ2;  // track origin or interaction vertex
-XYZ0.SetXYZ(fXlast[2]-fXvertex[2],fYlast[2]-fYvertex[2],fZlast[2]-fZvertex[2]);
-
-std::cout << "^^^^^ channels " << fChannel_vertex[1] << " " << fChannel_vertex[2] << " " << fChannel_last[1] << " " << fChannel_last[2] << std::endl;
-std::cout << "^^^^^ X,Y,Z start " << fXvertex[2] << " " << fYvertex[2] << " " << fZvertex[2] << std::endl;
-std::cout << "^^^^^ X,Y,Z end " << fXlast[2] << " " << fYlast[2] << " " << fZlast[2] << std::endl;
-std::cout << "^^^^^ X,Y,Z diff " << fXlast[2]-fXvertex[2] << " " << fYlast[2]-fYvertex[2] << " " << fZlast[2]-fZvertex[2] << std::endl;
-std::cout << "^^^^^ angle calculation  theta: " << XYZ2.Theta() << " " << XYZ2.Phi() << std::endl; 
-
-
- //  }
-
-return 0;
-}
+// 
+// fYvertex.resize(0);fZvertex.resize(0);
+// fXvertex.resize(0);fZlast.resize(0);
+// fYlast.resize(0);fXlast.resize(0);
+// 
+// //for(int iplane=0;nvertices<;iplane++)
+// //   {
+// double y,z;
+// bool wires_cross = geom->ChannelsIntersect(fChannel_vertex[0],fChannel_vertex[1],y,z);
+// fYvertex.push_back(y);fZvertex.push_back(z);
+// wires_cross = geom->ChannelsIntersect(fChannel_last[0],fChannel_last[1],y,z);
+// fYlast.push_back(y);fZlast.push_back(z);
+// 
+// fXvertex.push_back(fTime_vertex[0]*ftimetick*fdriftvelocity);
+// fXlast.push_back(fTime_last[0]*ftimetick*fdriftvelocity ); 
+// 
+// TVector3 XYZ0;  // track origin or interaction vertex
+// XYZ0.SetXYZ(fXlast[0]-fXvertex[0],fYlast[0]-fYvertex[0],fZlast[0]-fZvertex[0]);
+// 
+// std::cout << "^^^^^ channels " << fChannel_vertex[0] << " " << fChannel_vertex[1] << " " << fChannel_last[0] << " " << fChannel_last[1] << std::endl;
+// std::cout << "^^^^^ X,Y,Z start " << fXvertex[0] << " " << fYvertex[0] << " " << fZvertex[0] << std::endl;
+// std::cout << "^^^^^ X,Y,Z end " << fXlast[0] << " " << fYlast[0] << " " << fZlast[0] << std::endl;
+// std::cout << "^^^^^ X,Y,Z diff " << fXlast[0]-fXvertex[0] << " " << fYlast[0]-fYvertex[0] << " " << fZlast[0]-fZvertex[0] << std::endl;
+// std::cout << "^^^^^ angle calculation  theta: " << XYZ0.Theta() << " " << XYZ0.Phi() << std::endl; 
+// 
+// 
+// 
+// wires_cross = geom->ChannelsIntersect(fChannel_vertex[0],fChannel_vertex[2],y,z);
+// fYvertex.push_back(y);fZvertex.push_back(z);
+// wires_cross = geom->ChannelsIntersect(fChannel_last[0],fChannel_last[2],y,z);
+// fYlast.push_back(y);fZlast.push_back(z);
+// 
+// fXvertex.push_back(fTime_vertex[0]*ftimetick*fdriftvelocity);
+// fXlast.push_back(fTime_last[0]*ftimetick*fdriftvelocity ); 
+// 
+// TVector3 XYZ1;  // track origin or interaction vertex
+// XYZ0.SetXYZ(fXlast[1]-fXvertex[1],fYlast[1]-fYvertex[1],fZlast[1]-fZvertex[1]);
+// 
+// 
+// std::cout << "^^^^^ channels " << fChannel_vertex[0] << " " << fChannel_vertex[2] << " " << fChannel_last[0] << " " << fChannel_last[2] << std::endl;
+// std::cout << "^^^^^ X,Y,Z start " << fXvertex[1] << " " << fYvertex[1] << " " << fZvertex[1] << std::endl;
+// std::cout << "^^^^^ X,Y,Z end " << fXlast[1] << " " << fYlast[1] << " " << fZlast[1] << std::endl;
+// std::cout << "^^^^^ X,Y,Z diff " << fXlast[1]-fXvertex[1] << " " << fYlast[1]-fYvertex[1] << " " << fZlast[1]-fZvertex[1] << std::endl;
+// std::cout << "^^^^^ angle calculation  theta: " << XYZ1.Theta() << " " << XYZ1.Phi() << std::endl; 
+// 
+// 
+// 
+// wires_cross = geom->ChannelsIntersect(fChannel_vertex[1],fChannel_vertex[2],y,z);
+// fYvertex.push_back(y);fZvertex.push_back(z);
+// wires_cross = geom->ChannelsIntersect(fChannel_last[1],fChannel_last[2],y,z);
+// fYlast.push_back(y);fZlast.push_back(z);
+// 
+// fXvertex.push_back(fTime_vertex[0]*ftimetick*fdriftvelocity);
+// fXlast.push_back(fTime_last[0]*ftimetick*fdriftvelocity ); 
+// 
+// 
+// TVector3 XYZ2;  // track origin or interaction vertex
+// XYZ0.SetXYZ(fXlast[2]-fXvertex[2],fYlast[2]-fYvertex[2],fZlast[2]-fZvertex[2]);
+// 
+// std::cout << "^^^^^ channels " << fChannel_vertex[1] << " " << fChannel_vertex[2] << " " << fChannel_last[1] << " " << fChannel_last[2] << std::endl;
+// std::cout << "^^^^^ X,Y,Z start " << fXvertex[2] << " " << fYvertex[2] << " " << fZvertex[2] << std::endl;
+// std::cout << "^^^^^ X,Y,Z end " << fXlast[2] << " " << fYlast[2] << " " << fZlast[2] << std::endl;
+// std::cout << "^^^^^ X,Y,Z diff " << fXlast[2]-fXvertex[2] << " " << fYlast[2]-fYvertex[2] << " " << fZlast[2]-fZvertex[2] << std::endl;
+// std::cout << "^^^^^ angle calculation  theta: " << XYZ2.Theta() << " " << XYZ2.Phi() << std::endl; 
+// 
+// 
+//  //  }
+// 
+// return 0;
+// }
 
 
 
@@ -875,83 +751,83 @@ return 0;
 
 
  
-int shwf::ShowerReco::Get3Daxis(float thetaI, float thetaC, float Wire_vertexI, float Wire_vertexC, float Time_vertex){
-  
-  //Get theta and phi (polar angles "direction of the shower")
-
-  //float ftimetick = 0.198;    //time sample in microsec
- 
-  slope[1] = tan((thetaI*pi/180));
-  slope[0] = tan((thetaC*pi/180));
-
-
-std::cout << "$$$$$$$$$$$ slopes " <<  slope[0] << " " << slope[1] << "  " << thetaI <<" "<<thetaC << std::endl << std::endl;
-
-/*  Wire_vertexI = Wire_vertexI *fMean_wire_pitch; // in cm 
-  Wire_vertexC = Wire_vertexC *fMean_wire_pitch; // in cm
-  Time_vertex  = Time_vertex  *ftimetick*fdriftvelocity; // in cm*/
-
-  intercept[1] = Time_vertex - (slope[1]*Wire_vertexI);
-  intercept[0] = Time_vertex - (slope[0]*Wire_vertexC);
-
- 
-  float l(0),m(0),n(0);
-  // Get Geometry
-  art::ServiceHandle<geo::Geometry> geom;
- 
-  float Angle = geom->Plane(0).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to the vertical direction
-  std::cout << "Angle= " <<  Angle<<std::endl;
-  
-  float angle_rad = 30* pi /180;
-  angle_rad = Angle;
-  
-  l = 1;
-  m = (1/(2*sin(angle_rad)))*((1/slope[0])-(1/slope[1]));
-  n = (1/(2*cos(angle_rad)))*((1/slope[0])+(1/slope[1]));
- 
-  std::cout << "________________m= " << m << std::endl;
-
-  // Director angles
-  fPhi   = atan(n/l);
-  fTheta = acos(m/(sqrt(pow(l,2)+pow(m,2)+pow(n,2))));
-
-  float Phi = fPhi>0. ? (TMath::Pi()/2)-fPhi : fabs(fPhi)-(TMath::Pi()/2) ; // solve the ambiguities due to tangent periodicity
-  float Theta=0;
-  if(Phi>0)Theta = fTheta-(TMath::Pi()/2);
-  if(Phi<0)Theta = (TMath::Pi()/2)-fTheta;
-
-  if(slope[0]==0 || slope[1]==0){
-    Phi   = 0;
-    Theta = 0;
-    fTheta = 0;
-    fPhi = 0;
-  }
-  
-  std::cout << " Phi=" <<Phi*180/pi << "   theta=" << Theta*180/pi <<std::endl;
- 
-  
-  
-    fh_phi_act->Fill(Phi*180/pi);
-
-    fh_thet_act->Fill(Theta*180/pi);
-  
-
-  
-  //GetPitchLength(); //Get pitch of (two) wire planes (only for Argoneut)
-   
-
-  fPhi_ang=Phi*180/pi;
-  fTheta_ang=Theta*180/pi;
-
-  
-  return 0;
-}
+// int shwf::ShowerReco::Get3Daxis(float thetaI, float thetaC, float Wire_vertexI, float Wire_vertexC, float Time_vertex){
+//   
+//   //Get theta and phi (polar angles "direction of the shower")
+// 
+//   //float ftimetick = 0.198;    //time sample in microsec
+//  
+//   slope[1] = tan((thetaI*pi/180));
+//   slope[0] = tan((thetaC*pi/180));
+// 
+// 
+// std::cout << "$$$$$$$$$$$ slopes " <<  slope[0] << " " << slope[1] << "  " << thetaI <<" "<<thetaC << std::endl << std::endl;
+// 
+// /*  Wire_vertexI = Wire_vertexI *fMean_wire_pitch; // in cm 
+//   Wire_vertexC = Wire_vertexC *fMean_wire_pitch; // in cm
+//   Time_vertex  = Time_vertex  *ftimetick*fdriftvelocity; // in cm*/
+// 
+//   intercept[1] = Time_vertex - (slope[1]*Wire_vertexI);
+//   intercept[0] = Time_vertex - (slope[0]*Wire_vertexC);
+// 
+//  
+//   float l(0),m(0),n(0);
+//   // Get Geometry
+//   art::ServiceHandle<geo::Geometry> geom;
+//  
+//   float Angle = geom->Plane(0).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to the vertical direction
+//   std::cout << "Angle= " <<  Angle<<std::endl;
+//   
+//   float angle_rad = 30* pi /180;
+//   angle_rad = Angle;
+//   
+//   l = 1;
+//   m = (1/(2*sin(angle_rad)))*((1/slope[0])-(1/slope[1]));
+//   n = (1/(2*cos(angle_rad)))*((1/slope[0])+(1/slope[1]));
+//  
+//   std::cout << "________________m= " << m << std::endl;
+// 
+//   // Director angles
+//   fPhi   = atan(n/l);
+//   fTheta = acos(m/(sqrt(pow(l,2)+pow(m,2)+pow(n,2))));
+// 
+//   float Phi = fPhi>0. ? (TMath::Pi()/2)-fPhi : fabs(fPhi)-(TMath::Pi()/2) ; // solve the ambiguities due to tangent periodicity
+//   float Theta=0;
+//   if(Phi>0)Theta = fTheta-(TMath::Pi()/2);
+//   if(Phi<0)Theta = (TMath::Pi()/2)-fTheta;
+// 
+//   if(slope[0]==0 || slope[1]==0){
+//     Phi   = 0;
+//     Theta = 0;
+//     fTheta = 0;
+//     fPhi = 0;
+//   }
+//   
+//   std::cout << " Phi=" <<Phi*180/pi << "   theta=" << Theta*180/pi <<std::endl;
+//  
+//   
+//   
+//     fh_phi_act->Fill(Phi*180/pi);
+// 
+//     fh_thet_act->Fill(Theta*180/pi);
+//   
+// 
+//   
+//   //GetPitchLength(); //Get pitch of (two) wire planes (only for Argoneut)
+//    
+// 
+//   fPhi_ang=Phi*180/pi;
+//   fTheta_ang=Theta*180/pi;
+// 
+//   
+//   return 0;
+// }
 
 
 void shwf::ShowerReco::LongTransEnergy(art::PtrVector < recob::Hit> hitlist)
 {
   // alogorithm for energy vs dx of the shower (roto-translation) COLLECTION VIEW
-  //double  wire_cm, time_cm;
+ // double  wire_cm, time_cm;
  // int loop_nrg = 0;
 
   
@@ -969,6 +845,25 @@ void shwf::ShowerReco::LongTransEnergy(art::PtrVector < recob::Hit> hitlist)
   unsigned int wire=0,plane=0;
 
         
+  for(int i=0;i<fNPlanes;i++)
+  {
+    	fTotChargeADC[i]=0;
+	fTotChargeMeV[i]=0;
+      //  fChannel_vertex.resize(fNPlanes,-1);
+      //  fChannel_last.resize(fNPlanes,-1);
+
+fChargeADC_4cm[i]=0;   //Initial charge in ADC/cm for each plane angle calculation 4cm
+  fChargeMeV_4cm[i]=0;  //initial charge in MeV/cm for each angle calculation first 4cm
+  fChargeADC_6cm[i]=0;   //Initial charge in ADC/cm for each angle calculation first 6cm
+  fChargeMeV_6cm[i]=0;  //initial charge in MeV/cm for each angle calculation first 6cm
+  fChargeADC_8cm[i]=0;   //Initial charge in ADC/cm for each angle calculationfirst 8cm
+  fChargeMeV_8cm[i]=0;  //initial charge in MeV/cm for each angle calculation first 8cm
+  fChargeADC_10cm[i]=0;   //Initial charge in ADC/cm for each angle calculation first 10cm
+  fChargeMeV_10cm[i]=0;  //initial charge in MeV/cm for each angle calculation first 10cm
+
+    
+  }
+  
 
 
   for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
@@ -979,8 +874,8 @@ void shwf::ShowerReco::LongTransEnergy(art::PtrVector < recob::Hit> hitlist)
     channel = theWire->RawDigit()->Channel();
     geom->ChannelToWire(channel, tpc, plane, wire);
     //    if(time_C<1020)continue;
-    //wire_cm = wire * fMean_wire_pitch; //in cm
-    //time_cm = time *ftimetick*fdriftvelocity; //in cm
+  //  wire_cm = wire * fMean_wire_pitch; //in cm
+  //  time_cm = time *ftimetick*fdriftvelocity; //in cm
    
      // moving to polar coordinates
     
@@ -1000,12 +895,17 @@ double hlimit=30.4;  //arbitrary value to get first ~30 cm of the shower.
 
 double wdist=((wire-fWire_vertex[plane])*fNPitch[plane]);
 
-if( (wdist<hlimit)&&(wdist>0.8)){ 
+if( (wdist<hlimit)&&(wdist>0.4)){ 
       //if(CdedxCounter<=10)
 
+      
+      
         double ch_adc=(theHit->Charge()*lifetime)/fNPitch[plane];
         double dQdx_e = (theHit->Charge(true)*lifetime)/fNPitch[plane]/(calFactor*eCharge);
         double Bcorr =  BirksCorrection(dQdx_e);
+	
+	//std::cout << " charge calc, plane " << plane << " " << fNPitch[plane] << " " << wdist << " " << ch_adc << " " << dQdx_e << " " << fChargeADC_4cm[plane] << " " << fChargeMeV_4cm[plane] << std::endl;
+	
         // fill out for 4cm preshower
 	  if(wdist<4.4)
              {fChargeADC_4cm[plane]+=ch_adc; 
@@ -1026,6 +926,7 @@ if( (wdist<hlimit)&&(wdist>0.8)){
               fChargeMeV_10cm[plane]+= Bcorr; }
          
         fDistribChargeADC[plane].push_back(ch_adc);  //vector with the first De/Dx points
+	fDistribChargeMeV[plane].push_back(Bcorr);  //vector with the first De/Dx points
         fDistribChargeposition[plane].push_back(wdist);  //vector with the first De/Dx points' positions 
 
 
@@ -1128,7 +1029,7 @@ void shwf::ShowerReco::GetPitchLength(){
  art::ServiceHandle<geo::Geometry> geom;
 
 for(unsigned int pl=0;pl<fNPlanes;pl++)  
-   {fNPitch[pl]=ProjectedLength(geom->Plane(pl).View());
+   {fNPitch[pl]=ProjectedLength(pl);
     std::cout << "++++++ calculating  -Pitch[" <<pl<<"] =" <<fNPitch[pl] << std::endl;
 
   } 	
@@ -1364,16 +1265,19 @@ std::cout<<"wirevertex= "<<wirevertex<< " timevertex " << fTime_vertex[p] <<std:
 
 
 
- void   shwf::ShowerReco::GetVertexAndAnglesFromCluster(art::Ptr< recob::Cluster > clust) // Get shower vertex and slopes.
+ void   shwf::ShowerReco::GetVertexAndAnglesFromCluster(art::Ptr< recob::Cluster > clust,unsigned int plane) // Get shower vertex and slopes.
 {
 
-unsigned int view=clust->View()-1;
 
-slope[view]=clust->dTdW()*(ftimetick*fdriftvelocity)/fMean_wire_pitch;  //convert to cm/cm units needed in the calculation
-fWire_vertex[view]=clust->StartPos()[0];
-fTime_vertex[view]=clust->StartPos()[1];
 
-std::cout << "======= setting slope for view: " << view << " " << slope[view] << " " << fWire_vertex[view] << " " << fTime_vertex[view] << " " <<  fWire_vertex[view]+50<< " "<< fTime_vertex[view] + slope[view]*(fWire_vertex[view]+50) << std::endl;
+
+slope[plane]=clust->dTdW()*(ftimetick*fdriftvelocity)/fMean_wire_pitch;  //convert to cm/cm units needed in the calculation
+fWire_vertex[plane]=clust->StartPos()[0];
+fTime_vertex[plane]=clust->StartPos()[1];
+
+////////// insert detector offset
+
+std::cout << "======= setting slope for view: " << plane << " " << slope[plane] << " " << fWire_vertex[plane] << " " << fTime_vertex[plane] << " " <<  fWire_vertex[plane]+50<< " "<< fTime_vertex[plane] + slope[plane]*(fWire_vertex[plane]+50) << std::endl;
 
 }
 
@@ -1407,11 +1311,12 @@ double shwf::ShowerReco::BirksCorrection(double dQdx_e){
 // taken and modified from recob::Prong           //
 
 
-double shwf::ShowerReco::ProjectedLength(geo::View_t view ) 	 const
+double shwf::ShowerReco::ProjectedLength(unsigned int plane ) 	 const
 {
+   art::ServiceHandle<geo::Geometry> geo;
     double pitch = -1.;
-    if(view == geo::kUnknown || view == geo::k3D){
-      mf::LogWarning("RecoBaseProng")<< "Warning Prong::ProjectedLength :  no Pitch foreseen for view "<<view;
+    if(geo->Plane(plane).View() == geo::kUnknown || geo->Plane(plane).View() == geo::k3D){
+      mf::LogWarning("RecoBaseProng")<< "Warning Prong::ProjectedLength :  no Pitch foreseen for view "<<geo->Plane(plane).View();
       return pitch;
     }
     else{
@@ -1419,14 +1324,14 @@ double shwf::ShowerReco::ProjectedLength(geo::View_t view ) 	 const
       double fTheta=fThetaN[0];
       double fPhi=fPhiN[0];  
 
-      art::ServiceHandle<geo::Geometry> geo;
+     
       double pi=TMath::Pi();
       for(unsigned int i = 0; i < geo->Nplanes(); ++i){
-        if(geo->Plane(i).View() == view){
+        if(i == plane){
           double wirePitch = geo->WirePitch(0,1,i);
-          double angleToVert = geo->Plane(i).Wire(0).ThetaZ(false)- 0.5*TMath::Pi();
+          double angleToVert =0.5*TMath::Pi() - geo->Plane(i).Wire(0).ThetaZ(false) ;
 
-	  std::cout <<" %%%%%%%%%%  " << geo->Plane(i).View() << " angle " << angleToVert*180/pi << " " <<geo->Plane(i).Wire(0).ThetaZ(false)*180/pi <<" wirePitch " << wirePitch  <<std::endl;
+	  std::cout <<" %%%%%%%%%%  " << i << " angle " << angleToVert*180/pi << " " <<geo->Plane(i).Wire(0).ThetaZ(false)*180/pi <<" wirePitch " << wirePitch  <<std::endl;
            std::cout <<" %%%%%%%%%%  " << fTheta << " " << fPhi << std::endl;
 	   
 	   //(sin(angleToVert),cos(angleToVert)) is the direction perpendicular to wire
