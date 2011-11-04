@@ -134,16 +134,14 @@ namespace hit{
   void HitFinderAna::analyze(const art::Event& evt)
   {
 
-    if (evt.isRealData())
-      {
-	throw cet::exception("HitFinderAna: ") << "Not for use on Data yet... " << "\n";
-      }
+    if (evt.isRealData()){
+      throw cet::exception("HitFinderAna: ") << "Not for use on Data yet... " << "\n";
+    }
     
     art::Handle< std::vector<recob::Hit> > hitHandle;
     evt.getByLabel(fFFTHitFinderModuleLabel,hitHandle);
 
-    art::ServiceHandle<sim::SimListUtils> slu;
-    sim::ParticleList _particleList = slu->GetParticleList();
+    sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
     std::vector<const sim::SimChannel*> sccol;
     evt.getView(fLArG4ModuleLabel, sccol);
 
