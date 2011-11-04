@@ -186,8 +186,7 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
 //.....................................................................
  art::ServiceHandle<geo::Geometry> geom;
  art::ServiceHandle<util::LArProperties> larp;
- art::ServiceHandle<sim::SimListUtils> slu;
- sim::ParticleList _particleList = slu->GetParticleList();
+ sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArGeantModuleLabel);
  
  std::cout<<"geom->Nchannels()= "<<geom->Nchannels()<<std::endl;
     // get the sim::SimChannels

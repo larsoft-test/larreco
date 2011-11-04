@@ -54,9 +54,8 @@ namespace cluster{
   void ClusterCheater::produce(art::Event& evt)
   {
     art::ServiceHandle<geo::Geometry> geo;
-    art::ServiceHandle<sim::SimListUtils> slu;
     // grab the sim::ParticleList
-    sim::ParticleList plist = slu->GetParticleList();
+    sim::ParticleList plist = sim::SimListUtils::GetParticleList(evt, fG4ModuleLabel);
 
     // print the list of particles first
     mf::LogInfo("ClusterCheater") << plist;
