@@ -53,8 +53,7 @@ namespace event{
   {
 
     // grab the sim::ParticleList
-    art::ServiceHandle<sim::SimListUtils> slu;
-    sim::ParticleList plist = slu->GetParticleList();
+    sim::ParticleList plist = sim::SimListUtils::GetParticleList(evt, fG4ModuleLabel);
 
     // grab the vertices that have been reconstructed
     art::Handle< std::vector<recob::Vertex> > vertexcol;
