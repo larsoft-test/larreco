@@ -115,47 +115,41 @@ namespace hit{
       channel       = wire->RawDigit()->Channel();
       geom->ChannelToWire(channel,t, p,w);
       sigType       = geom->Plane(p,t).SignalType();
-      if(sigType == geo::kInduction)
-        {
-	  threshold     = fMinSigInd;
-	  fitWidth      = fIndWidth;
-	  minWidth      = fIndMinWidth;
-	}
-      else if(sigType == geo::kCollection) 
-	{
-          threshold = fMinSigCol;
-          fitWidth  = fColWidth;
-          minWidth  = fColMinWidth;
-        }
+      if(sigType == geo::kInduction){
+	threshold     = fMinSigInd;
+	fitWidth      = fIndWidth;
+	minWidth      = fIndMinWidth;
+      }
+      else if(sigType == geo::kCollection){
+	threshold = fMinSigCol;
+	fitWidth  = fColWidth;
+	minWidth  = fColMinWidth;
+      }
       // loop over signal
-      for(timeIter = signal.begin();timeIter+2<signal.end();timeIter++) 
-	{    
-	  //test if timeIter+1 is a local minimum
-	  if(*timeIter > *(timeIter+1) && *(timeIter+1) < *(timeIter+2)) 
-	    {
-	      //only add points if already found a local max above threshold.
-	      if(maxFound) 
-		{
-		  endTimes.push_back(time+1);
-		  maxFound = false;
-		  //keep these in case new hit starts right away
-		  minTimeHolder = time+2; 
-		}
-	      else minTimeHolder = time+1; 
-	    }
-	  //if not a minimum, test if we are at a local maximum 
-	  //if so, and the max value is above threshold, add it and proceed.
-	  else if(*timeIter < *(timeIter+1) && 
-			      *(timeIter+1) > *(timeIter+2) && 
-	    *(timeIter+1) > threshold) 
-	    { 
-	      maxFound = true;
-	      maxTimes.push_back(time+1);
-	      startTimes.push_back(minTimeHolder);          
-	    }
-	  time++;
-	}//end loop over signal vec
-     
+      for(timeIter = signal.begin();timeIter+2<signal.end();timeIter++){    
+	//test if timeIter+1 is a local minimum
+	if(*timeIter > *(timeIter+1) && *(timeIter+1) < *(timeIter+2)){
+	  //only add points if already found a local max above threshold.
+	  if(maxFound) {
+	    endTimes.push_back(time+1);
+	    maxFound = false;
+	    //keep these in case new hit starts right away
+	    minTimeHolder = time+2; 
+	  }
+	  else minTimeHolder = time+1; 
+	}
+	//if not a minimum, test if we are at a local maximum 
+	//if so, and the max value is above threshold, add it and proceed.
+	else if(*timeIter < *(timeIter+1) && 
+		*(timeIter+1) > *(timeIter+2) && 
+		*(timeIter+1) > threshold){ 
+	  maxFound = true;
+	  maxTimes.push_back(time+1);
+	  startTimes.push_back(minTimeHolder);          
+	}
+	time++;
+      }//end loop over signal vec
+      
       //if no inflection found before end, but peak found add end point
       if(maxTimes.size()>endTimes.size()) 
 	endTimes.push_back(signal.size()-1); 
@@ -190,13 +184,12 @@ namespace hit{
         //4 and there is no gap between them
         while(numHits < fMaxMultiHit &&
 	      numHits+hitIndex < (signed)endTimes.size() && 
-				 signal[endTimes[hitIndex+numHits-1]] >threshold/2.0 &&  
-	  startTimes[hitIndex+numHits] - endTimes[hitIndex+numHits-1] < 2) 
-	  {
-            if(signal[maxTimes[hitIndex+numHits]] < minPeakHeight) 
-              minPeakHeight=signal[maxTimes[hitIndex+numHits]];
-	    numHits++;
-          }
+	      signal[endTimes[hitIndex+numHits-1]] >threshold/2.0 &&  
+	      startTimes[hitIndex+numHits] - endTimes[hitIndex+numHits-1] < 2){
+	  if(signal[maxTimes[hitIndex+numHits]] < minPeakHeight) 
+	    minPeakHeight=signal[maxTimes[hitIndex+numHits]];
+	  numHits++;
+	}
 	//finds the first point > 0.5 *minimum peak height
 	startT=startTimes[hitIndex];
 	while(signal[(int)startT] < minPeakHeight/2.0) startT++;
@@ -228,14 +221,17 @@ namespace hit{
 	  
           //This section uses a linear approximation in order to get an
 	  //initial value of the individual hit amplitudes 
-	  try
-	    {
-	      TMatrixD h(numHits,numHits);
-	      h.Use(numHits,numHits,data.GetArray());
-	      TDecompSVD a(h);
-	      a.Solve(amps);
-	    }
-	  catch(...){mf::LogInfo("FFTHitFinder")<<"TDcompSVD failed";hitIndex+=numHits;continue;}
+	  try{
+	    TMatrixD h(numHits,numHits);
+	    h.Use(numHits,numHits,data.GetArray());
+	    TDecompSVD a(h);
+	    a.Solve(amps);
+	  }
+	  catch(...){
+	    mf::LogInfo("FFTHitFinder")<<"TDcompSVD failed";
+	    hitIndex += numHits;
+	    continue;
+	  }
       
 	  for(int i = 0;i < numHits; i++) {
 	    //if the approximation makes a peak vanish
@@ -295,12 +291,12 @@ namespace hit{
 	  }//end if over threshold
 	}//end loop over hits
 	hitIndex+=numHits;
-
+	
       } // end while on hitIndex<(signed)startTimes.size()
-  } // while on Wires
-
+    } // while on Wires
+    
     evt.put(hcol);
 
-} // End of produce()
+  } // End of produce()
   
-  } // end of hit namespace
+} // end of hit namespace
