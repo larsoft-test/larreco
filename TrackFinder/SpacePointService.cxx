@@ -314,7 +314,7 @@ double trkf::SpacePointService::correctedTime(const recob::Hit& hit,
 
   unsigned short channel = hit.Channel();
   unsigned int tpc, plane, wire;
-  geom->ChannelToWireOld(channel, tpc, plane, wire);
+  geom->ChannelToWire(channel, tpc, plane, wire);
 
   // Correct time for trigger offset and plane-dependent time offsets.
 
@@ -362,7 +362,7 @@ double trkf::SpacePointService::separation(const art::PtrVector<recob::Hit>& hit
     const recob::Hit& hit = *(hits[i]);
     unsigned short channel = hit.Channel();
     unsigned int tpc, plane, wire;
-    const geo::WireGeo& wgeom = geom->ChannelToWireOld(channel, tpc, plane, wire);
+    const geo::WireGeo& wgeom = geom->ChannelToWire(channel, tpc, plane, wire);
     tpcs[i] = tpc;
     planes[i] = plane;
 
@@ -437,7 +437,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
       const recob::Hit& hit1 = *(hits[ihit1]);
       unsigned short channel1 = hit1.Channel();
       unsigned int tpc1, plane1, wire1;
-      geom->ChannelToWireOld(channel1, tpc1, plane1, wire1);
+      geom->ChannelToWire(channel1, tpc1, plane1, wire1);
       geo::View_t view1 = hit1.View();
       double t1 = hit1.PeakTime() - timeOffset[tpc1][plane1];
 
@@ -453,7 +453,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 	const recob::Hit& hit2 = *(hits[ihit2]);
 	unsigned short channel2 = hit2.Channel();
 	unsigned int tpc2, plane2, wire2;
-	geom->ChannelToWireOld(channel2, tpc2, plane2, wire2);
+	geom->ChannelToWire(channel2, tpc2, plane2, wire2);
 	geo::View_t view2 = hit2.View();
 
 	// Test for same tpc and different views.
@@ -527,7 +527,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 	const recob::Hit& hit = *(hits[i]);
 	unsigned short channel = hit.Channel();
 	unsigned int tpc0, plane, wire;
-	const geo::WireGeo& wgeom = geom->ChannelToWireOld(channel, tpc0, plane, wire);
+	const geo::WireGeo& wgeom = geom->ChannelToWire(channel, tpc0, plane, wire);
 	assert(tpc0 == tpc);
 	view[i] = hit.View();
 
@@ -606,7 +606,7 @@ double trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>&
     const recob::Hit& hit = **ihit;
     unsigned short channel = hit.Channel();
     unsigned int tpc, plane, wire;
-    geom->ChannelToWireOld(channel, tpc, plane, wire);
+    geom->ChannelToWire(channel, tpc, plane, wire);
 
     // Correct time for trigger offset and view-dependent time offsets.
     // Assume time error is proportional to (end time - start time).
@@ -652,7 +652,7 @@ double trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>&
       const recob::Hit& hit = **ihit;
       unsigned short channel = hit.Channel();
       unsigned int tpc, plane, wire;
-      const geo::WireGeo& wgeom = geom->ChannelToWireOld(channel, tpc, plane, wire);
+      const geo::WireGeo& wgeom = geom->ChannelToWire(channel, tpc, plane, wire);
 
       // Calculate angle and wire coordinate in this view.
     
@@ -777,7 +777,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
       unsigned short channel = phit->Channel();
       unsigned int tpc, plane, wire;
-      geom->ChannelToWireOld(channel, tpc, plane, wire);
+      geom->ChannelToWire(channel, tpc, plane, wire);
       hitmap[tpc][plane][wire] = phit;
     }
   }
@@ -945,7 +945,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	    // Get endpoint coordinates of this wire.
 
 	    unsigned int tpc1a, plane1a, wire1;
-	    const geo::WireGeo& wgeo = geom->ChannelToWireOld(channel1, tpc1a, plane1a, wire1);
+	    const geo::WireGeo& wgeo = geom->ChannelToWire(channel1, tpc1a, plane1a, wire1);
 	    assert(tpc1a == tpc);
 	    assert(plane1a == plane1);
 	    double hl1 = wgeo.HalfL();
@@ -1072,7 +1072,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	// Get endpoint coordinates of this wire from plane1.
 
 	unsigned int tpc1a, plane1a, wire1a;
-	const geo::WireGeo& wgeo = geom->ChannelToWireOld(channel1, tpc1a, plane1a, wire1a);
+	const geo::WireGeo& wgeo = geom->ChannelToWire(channel1, tpc1a, plane1a, wire1a);
 	assert(tpc1a == tpc);
 	assert(plane1a == plane1);
 	assert(wire1a == wire1);
