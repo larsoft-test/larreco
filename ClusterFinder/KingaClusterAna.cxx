@@ -255,7 +255,7 @@ fwire_vertex_reco.clear();
       else{
 	fMCvertex[0]=-.3;//force time coordinate to be closer to collection plane
      }
-      channel2 = geom->NearestChannel(fMCvertex);
+  channel2 = geom->NearestChannel(fMCvertex,plane);
       geom->ChannelToWire(channel2,tpc2,plane2,wire2);   
    std::cout<<"%%%%%%%%%%%%%%%%%%   WIRE VERTEX IS: "<<wire2<<std::endl;
    fwire_vertex.push_back(wire2);

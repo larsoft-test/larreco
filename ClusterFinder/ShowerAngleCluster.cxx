@@ -987,7 +987,7 @@ std::cout << "plane X positionp " << iplane << " " << pos[0] << std::endl;
 
 pos[1]=xyz_vertex[1];
 pos[2]=xyz_vertex[2];
- unsigned int channel2 = geom->NearestChannel(pos);
+ unsigned int channel2 = geom->NearestChannel(pos,iplane);
        geom->ChannelToWire(channel2,t,p,wirevertex); 
        
 if(iplane!=p)
@@ -1575,7 +1575,7 @@ if(fNPlanes>=3)
 	 
 	pos[1]=xyz_vertex_fit[1];
 	pos[2]=xyz_vertex_fit[2];
- 	unsigned int channel2 = geom->NearestChannel(pos);
+ 	unsigned int channel2 = geom->NearestChannel(pos,worst_plane);
        	geom->ChannelToWire(channel2,t,worst_plane,wirevertex); 
 
 

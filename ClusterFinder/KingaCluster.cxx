@@ -510,7 +510,7 @@ plane2=plane;
       else{
 	MCvertex[0]=-.3;//force time coordinate to be closer to collection plane
      }
-      channel2 = geom->NearestChannel(MCvertex);
+  channel2 = geom->NearestChannel(MCvertex,plane);
       geom->ChannelToWire(channel2,tpc2,plane2,wire2);   
    std::cout<<"%%%%%%%%%%%%%%%%%%   WIRE VERTEX IS: "<<wire2<<std::endl;
    fwire_vertex.push_back(wire2);
