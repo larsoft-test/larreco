@@ -5,6 +5,41 @@ BEGIN_PROLOG
   eps:             1.0
   epstwo:          1.5
   minPts:          2
+
+  Method:          0 # 0 -- naive findNeighbor implemention
+                     # 1 -- findNeigbors with R*-tree
+                     # 2 -- DBScan from the paper with R*-tree
+
+  Metric:          3 # Which RegionQuery distance metric to use. 
+                     # **ONLY APPLIES** if Method is 1 or 2.
+                     #
+	             # 0 -- rectangle (no bad channels) **not implemented**
+	             # 1 -- Manhattan distance (only uses eps, no bad channels)
+                     #                                  **not implemented**
+	             # 2 -- Eliptical (no bad channels) **not implemented**
+	             # 3 -- findNeighbors-alike: Elliptical and bad
+                     #                           channel aware (not working)
+ }
+
+ standard_dbscanservice_fast:
+ {
+  eps:             1.25
+  epstwo:          1.75
+  minPts:          2
+
+  Method:          2 # 0 -- naive findNeighbor implemention
+                     # 1 -- findNeigbors with R*-tree
+                     # 2 -- DBScan from the paper with R*-tree
+
+  Metric:          3 # Which RegionQuery distance metric to use. 
+                     # **ONLY APPLIES** if Method is 1 or 2.
+                     #
+	             # 0 -- rectangle (no bad channels) **not implemented**
+	             # 1 -- Manhattan distance (only uses eps, no bad channels)
+                     #                                  **not implemented**
+	             # 2 -- Eliptical (no bad channels) **not implemented**
+	             # 3 -- findNeighbors-alike: Elliptical and bad
+                     #                           channel aware (not working)
  }
 
  standard_houghlineservice:
@@ -36,11 +71,11 @@ BEGIN_PROLOG
  argoneut_houghlineservice: @local::standard_houghlineservice
  argoneut_endpointservice:  @local::standard_endpointservice
 
- microboone_dbscanservice:    @local::standard_dbscanservice
+ microboone_dbscanservice:  @local::standard_dbscanservice_fast
  microboone_houghlineservice: @local::standard_houghlineservice
  microboone_endpointservice:  @local::standard_endpointservice
 
- lbne_dbscanservice:    @local::standard_dbscanservice
+ lbne_dbscanservice:    @local::standard_dbscanservice_fast
  lbne_houghlineservice: @local::standard_houghlineservice
  lbne_endpointservice:  @local::standard_endpointservice 
 

@@ -2,7 +2,8 @@
 //  DBSCANfinder.h
 //  kinga.partyka@yale.edu
 ////////////////////////////////////////////////////////////////////
-
+#ifndef DBScanService_H
+#define DBScanService_H
 #include <vector>
 #include <cmath>
 #include <iostream>
@@ -10,6 +11,7 @@
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Persistency/Common/Ptr.h"
 #include "art/Persistency/Common/PtrVector.h"
+#include "RStarTree.h"
 
 #include "Geometry/geo.h"
 
@@ -17,8 +19,25 @@ class TH1F;
 
 namespace recob { class Hit; }
 
+// RStarTree related infrastructure
+//
+// Our core objects have a physical extent (I.e. there are not
+// points), but a R*-tree should be able to deal with that.
+class dbsPoint; // forward declaration
+typedef RStarTree< unsigned int, 2, 32, 64 > RTree; // payload is just an index
+typedef RTree::BoundingBox BoundingBox;
+class dbsPoint{
+public:
+  double x, y;
+  double dx, dy;
+  dbsPoint(double X=0.0, double Y=0.0, double dX=0.0, double dY=0.0)
+    :x(X), y(Y), dx(dX), dy(dY){};
+  BoundingBox bounds()const;
+  void Expand(double DX, double DY){dx+=DX; dy+=DY;};
+};
+
 namespace cluster{
-   
+
   //--------------------------------------------------------------- 
   class DBScanService {
   public:
@@ -29,23 +48,27 @@ namespace cluster{
     
     void reconfigure(fhicl::ParameterSet const& p);
     void InitScan(art::PtrVector<recob::Hit>& allhits, std::set<unsigned int> badChannels);
-    double getSimilarity(const std::vector<double> v1, const std::vector<double> v2); 
-    std::vector<unsigned int> findNeighbors( unsigned int pid, double threshold, double threshold2);
-    void computeSimilarity();
+     double getSimilarity(const std::vector<double> v1, const std::vector<double> v2); 
+     std::vector<unsigned int> findNeighbors( unsigned int pid, double threshold, double threshold2);
+     void computeSimilarity();
     void run_cluster();     
-    double getSimilarity2(const std::vector<double> v1, const std::vector<double> v2); 
-    void computeSimilarity2();
-    double getWidthFactor(const std::vector<double> v1, const std::vector<double> v2); 
-    void computeWidthFactor();
+     double getSimilarity2(const std::vector<double> v1, const std::vector<double> v2); 
+     void computeSimilarity2();
+     double getWidthFactor(const std::vector<double> v1, const std::vector<double> v2); 
+     void computeWidthFactor();
       
 
     std::vector<std::vector<unsigned int> > fclusters;               ///< collection of something
     std::vector<std::vector<double> >       fps;                     ///< the collection of points we are working on     
     std::vector<unsigned int>               fpointId_to_clusterId;   ///< mapping point_id -> clusterId     
-    std::vector<std::vector<double> >       fsim;                    ///<
-    std::vector<std::vector<double> >       fsim2;            	     ///<
-    std::vector<std::vector<double> >       fsim3;            	     ///<
-     
+     std::vector<std::vector<double> >       fsim;                    ///<
+     std::vector<std::vector<double> >       fsim2;            	     ///<
+     std::vector<std::vector<double> >       fsim3;            	     ///<
+    double fMaxWidth;
+
+    RTree fRTree;
+    std::vector< dbsPoint > fRect;
+    
   private:
       
     // eps radius
@@ -53,14 +76,36 @@ namespace cluster{
     // between them does not exceed threshold value.
     double fEps;
     double fEps2;
-     
     //minimum number of points
     unsigned int fMinPts;
+    // Which clustering to run
+    unsigned int fClusterMethod;  ///< Which clustering method to use
+    unsigned int fDistanceMetric; ///< Which distance metric to use
       
     // noise vector
-    std::vector<bool>      fnoise;						     
+    static const unsigned int NO_CLUSTER=UINT_MAX;
+    static const unsigned int NOISE_CLUSTER=UINT_MAX-1;
+    std::vector<bool>      fnoise;	
     std::vector<bool>      fvisited;					     
     std::vector<double>    fWirePitch;   ///< the pitch of the wires in each plane
     std::set<unsigned int> fBadChannels; ///< set of bad channels in this detector
-  };
+    std::vector<unsigned int> fBadWireSum; ///< running total of bad channels. Used for fast intervening dead wire counting ala fBadChannelSum[m]-fBadChannelSum[n]. 
+    
+    // Three differnt version of the clustering code
+    void run_dbscan_cluster();     
+    void run_FN_cluster();     
+    void run_FN_naive_cluster();     
+
+    // Helper routined for run_dbscan_cluster() names and
+    // responsibilities taken directly from the paper
+    bool ExpandCluster(unsigned int point /* to be added */, 
+		       unsigned int clusterID /* which is being expanded */);
+    std::set<unsigned int> RegionQuery(unsigned int point);
+    // Helper for the accelerated run_FN_cluster()
+    std::vector<unsigned int> RegionQuery_vector(unsigned int point);
+
+
+  }; // class DBScanService
 } // namespace
+
+#endif // ifndef DBScanService_H

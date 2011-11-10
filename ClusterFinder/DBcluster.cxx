@@ -9,7 +9,7 @@
 // appears quite often. A 'point' is basically a simple hit which only contains wire and time information. This 
 // algorithm is based on DBSCAN(Density Based Spatial Clustering of Applications with Noise): M. Ester, H.-P. Kriegel, 
 // J. Sander, and X. Xu, A density-based algorithm for discovering clusters in large spatial databases with noise, 
-// Second International Conference on Knowledge Discovery and Data Mining, pp. 226-231, AAAI Press. 1996. 
+// Second International Conference on Knowledge Discovery and Data Mining, pp. 226-231, AAAI Press. 1996.
 // ( Some of this code is from "Antonio Gulli's coding playground")  
 ////////////////////////////////////////////////////////////////////////
 
@@ -113,7 +113,6 @@ void cluster::DBcluster::produce(art::Event& evt)
       dbscan->InitScan(allhits, chanFilt.SetOfBadChannels());
 
       // std::cout<<"number of hits is: "<<hit.size()<<std::endl;
- 
       //----------------------------------------------------------------
       for(unsigned int j = 0; j < dbscan->fps.size(); ++j){
 
@@ -130,9 +129,11 @@ void cluster::DBcluster::produce(art::Event& evt)
       }
       //*******************************************************************
 
-      dbscan->computeSimilarity();
-      dbscan->computeSimilarity2();
-      dbscan->computeWidthFactor();
+      // Moved to DBScanSerive for consistent interface between
+      // clustering methods
+      //       dbscan->computeSimilarity();
+      //       dbscan->computeSimilarity2();
+      //       dbscan->computeWidthFactor();
       dbscan->run_cluster();
 
       //std::cout<<clusters;
