@@ -338,10 +338,10 @@ void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits,
   if (fClusterMethod) { // Using the R*-tree
     Visitor visitor = 
       fRTree.Query(RTree::AcceptAny(),Visitor());
-    std::cerr << "DBSCAN: "  << "hits RTree loaded with " << visitor.count 
-	      << " items." << std::endl;
+    mf::LogWarning("DBscan") << "DBSCAN: "  << "hits RTree loaded with " 
+			     << visitor.count << " items.";
   }
-  std::cerr << "\t" << "hits vector size is " << fps.size() << std::endl;
+  mf::LogWarning("DBscan") << "\t" << "hits vector size is " << fps.size();
 
   return;
 }
@@ -360,7 +360,6 @@ double cluster::DBScanService::getSimilarity(const std::vector<double> v1, const
   
   /// \todo this code assumes that all planes have the same wire pitch
   double wire_dist = fWirePitch[0];
-  //std::cout<<wire_dist<<std::endl;
 
   unsigned int wire1=(unsigned int)(v1[0]/wire_dist+0.5); //to make sure to get desired integer
   unsigned int wire2=(unsigned int)(v2[0]/wire_dist+0.5);
@@ -582,21 +581,20 @@ void cluster::DBScanService::run_dbscan_cluster() {
   for(unsigned int y=0; y< fpointId_to_clusterId.size();++y){
     if (fpointId_to_clusterId[y]==NO_CLUSTER) {
       // This shouldn't happen...all points should be clasified by now!
-      std::cerr << "DBSCAN: Unclassified point!" << std::endl;
+      mf::LogWarning("DBscan") << "DBSCAN: Unclassified point!";
     } else if (fpointId_to_clusterId[y]==NOISE_CLUSTER) {
       noise++;
     } else {
       fclusters[fpointId_to_clusterId[y]].push_back(y);
     }
   }  
-  std::cerr << "DBSCAN: DWM (R*-tree): Found " << cid << " clusters..." 
-	    << std::endl;
+  mf::LogWarning("DBscan") << "DBSCAN: DWM (R*-tree): Found " 
+			   << cid << " clusters...";
   for (unsigned int c=0; c<cid; ++c){
-    std::cerr << "\t" << "Cluster " << c << ":\t" 
-	      << fclusters[c].size() 
-	      << " points" << std::endl;
+    mf::LogWarning("DBscan") << "\t" << "Cluster " << c << ":\t" 
+			     << fclusters[c].size();
   }
-  std::cerr << "...and " << noise << " noise points." << std::endl;
+  mf::LogWarning("DBscan") << "...and " << noise << " noise points.";
 }
 
 //----------------------------------------------------------------
@@ -643,9 +641,6 @@ bool cluster::DBScanService::ExpandCluster(unsigned int point,
   /* GetSetOfPoints for point*/
   //std::vector<unsigned int> ne = findNeighbors(point, fEps,fEps2);
   std::set< unsigned int > seeds = RegionQuery(point);
-//   std::cerr << "ExpandCluster: "
-// 	    << "Primary RegionQuery() on point " << point 
-// 	    << " returns " << seeds.size() << " results" << std::endl;
 
   // not enough support -> mark as noise
   if (seeds.size() < fMinPts){
@@ -663,9 +658,6 @@ bool cluster::DBScanService::ExpandCluster(unsigned int point,
     while (!seeds.empty()) {
       unsigned int currentP = *(seeds.begin());
       std::set< unsigned int > result = RegionQuery(currentP);
-//       std::cerr << "ExpandCluster: "
-// 		<< "Secondary RegionQuery() on point " << currentP 
-// 		<< " returns " << result.size() << " results" << std::endl;
       
       if (result.size() >= fMinPts){
 	for (std::set<unsigned int>::iterator itr = result.begin();
@@ -765,13 +757,13 @@ void cluster::DBScanService::run_FN_cluster()
     //if  (fpointId_to_clusterId[y]==0) noise++;
     if (fpointId_to_clusterId[y]==NO_CLUSTER) noise++;
   }  
-  std::cerr << "DBSCAN: FindNeighbors (R*-tree): Found " 
-	    << cid-1 << " clusters..." << std::endl;
+  mf::LogWarning("DBscan") << "DBSCAN: FindNeighbors (R*-tree): Found " 
+			   << cid-1 << " clusters...";
   for (unsigned int c=1; c<cid; ++c){
-    std::cerr << "\t" << "Cluster " << c << ":\t" << fclusters[c-1].size() 
-	      << " points" << std::endl;
+    mf::LogWarning("DBscan") << "\t" << "Cluster " << c << ":\t" 
+			     << fclusters[c-1].size();
   }
-  std::cerr << "...and " << noise << " noise points." << std::endl;
+  mf::LogWarning("DBscan") << "...and " << noise << " noise points.";
 
 }
 
@@ -849,12 +841,12 @@ void cluster::DBScanService::run_FN_naive_cluster()
     //if  (fpointId_to_clusterId[y]==0) noise++;
     if  (fpointId_to_clusterId[y]==NO_CLUSTER) noise++;
   }
-  std::cerr << "DBSCAN: FindNeighbors (naive): Found " << cid-1 
-	    << " clusters..." << std::endl;
+  mf::LogWarning("DBscan") << "DBSCAN: FindNeighbors (naive): Found " << cid-1 
+			   << " clusters...";
   for (unsigned int c=1; c<cid; ++c){
-    std::cerr << "\t" << "Cluster " << c << ":\t" << fclusters[c-1].size() 
-	      << " points" << std::endl;
+    mf::LogWarning("DBscan") << "\t" << "Cluster " << c << ":\t" 
+			     << fclusters[c-1].size() << " points";
   }
-  std::cerr << "...and " << noise << " noise points." << std::endl;
+  mf::LogWarning("DBscan") << "...and " << noise << " noise points.";
   
 }
