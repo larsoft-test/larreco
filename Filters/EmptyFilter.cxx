@@ -103,7 +103,6 @@ namespace filt{
 	  failFlag=2;
 	}
 	unsigned int j(0);  
-	unsigned int colStart(0);  //first Collection plane index
 	//advances j to collection plane
 	while(plane ==0) {
 	  indIon+=hitvec[j]->Charge();
@@ -118,7 +117,6 @@ namespace filt{
 	    geom->ChannelToWire(chan,tpc,plane,wire);
 	  }
 	}
-	colStart = j;
 	for(; j < hitvec.size(); j++){
 	  colIon+=hitvec[j]->Charge();
 	}
