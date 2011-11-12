@@ -21,26 +21,10 @@ BEGIN_PROLOG
                      #                           channel aware (not working)
  }
 
- standard_dbscanservice_fast:
- {
-  eps:             1.25
-  epstwo:          1.75
-  minPts:          2
-
-  Method:          2 # 0 -- naive findNeighbor implemention
-                     # 1 -- findNeigbors with R*-tree
-                     # 2 -- DBScan from the paper with R*-tree
-
-  Metric:          3 # Which RegionQuery distance metric to use. 
-                     # **ONLY APPLIES** if Method is 1 or 2.
-                     #
-	             # 0 -- rectangle (no bad channels) **not implemented**
-	             # 1 -- Manhattan distance (only uses eps, no bad channels)
-                     #                                  **not implemented**
-	             # 2 -- Eliptical (no bad channels) **not implemented**
-	             # 3 -- findNeighbors-alike: Elliptical and bad
-                     #                           channel aware (not working)
- }
+standard_dbscanservice_fast:        @local::standard_dbscanservice
+standard_dbscanservice_fast.eps:    1.25
+standard_dbscanservice_fast.epstwo: 1.75
+standard_dbscanservice_fast.Method: 2
 
  standard_houghlineservice:
  {
