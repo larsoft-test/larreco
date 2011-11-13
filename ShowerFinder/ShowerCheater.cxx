@@ -32,6 +32,8 @@ namespace shwf{
     this->reconfigure(pset);
 
     produces< std::vector<recob::Shower> >();
+    produces< art::Assns<recob::Shower, recob::Cluster> >();
+    //produces< art::Assns<recob::Shower, recob::Hit> >();
   }
 
   //--------------------------------------------------------------------
@@ -110,6 +112,8 @@ namespace shwf{
 
     // loop over the map and make prongs
     std::auto_ptr< std::vector<recob::Shower> > showercol(new std::vector<recob::Shower>);
+    std::auto_ptr< art::Assns<recob::Shower, recob::Cluster> > scassn(new art::Assns<recob::Shower, recob::Cluster>);
+    //std::auto_ptr< art::Assns<recob::Shower, recob::Hit> > shassn(new art::Assns<recob::Shower, recob::Hit>);
 
     for(clusterMapItr = eveClusterMap.begin(); clusterMapItr != eveClusterMap.end(); clusterMapItr++){
 
@@ -171,6 +175,19 @@ namespace shwf{
 
 	showercol->back().SetDirection(dcos, dcos);
 
+	// associate the shower with its clusters
+	art::ProductID sid = getProductID<std::vector<recob::Shower> >(evt);
+	art::Ptr<recob::Shower> sptr(sid, showercol->size()-1, evt.productGetter(sid));
+	for(size_t cl = 0; cl < ptrvs.size(); ++cl) scassn->addSingle(sptr,ptrvs[cl]);
+
+	// associate the track with its hits, do this by first getting the
+	// hits associated with the clusters in the track
+// 	FindMany<recob::Hit> ctoh(ptrvs, evt, fCheatedClusterLabel);
+// 	for(size_t c = 0; c < ptrvs.size(); ++c){
+// 	  shassn->addSingle(sptr, );
+// 	}
+
+
 	mf::LogInfo("ShowerCheater") << "adding shower: \n" 
 				     << showercol->back()
 				     << "\nto collection.";
@@ -179,6 +196,8 @@ namespace shwf{
     } // end loop over the map
 
     evt.put(showercol);
+    evt.put(scassn);
+    //evt.put(shassn);
 
     return;
 
