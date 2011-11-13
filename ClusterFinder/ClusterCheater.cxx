@@ -12,10 +12,10 @@
 #include "Geometry/geo.h"
 #include "MCCheater/BackTracker.h"
 #include "ClusterFinder/ClusterCheater.h"
+#include "ClusterFinder/HoughLineService.h"
 #include "RecoBase/recobase.h"
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
-#include "ClusterFinder/HoughLineService.h"
 
 // Framework includes
 #include "art/Framework/Principal/Event.h"
@@ -34,6 +34,7 @@ namespace cluster{
     this->reconfigure(pset);
 
     produces< std::vector<recob::Cluster> >();
+    produces< art::Assns<recob::Cluster, recob::Hit> >();
   }
 
   //--------------------------------------------------------------------
@@ -44,7 +45,7 @@ namespace cluster{
   //--------------------------------------------------------------------
   void ClusterCheater::reconfigure(fhicl::ParameterSet const& pset)
   {
-    fHitModuleLabel    = pset.get< std::string >("HitModuleLabel",    "ffthit"  );
+    fHitModuleLabel    = pset.get< std::string >("HitModuleLabel",    "hit"     );
     fG4ModuleLabel     = pset.get< std::string >("G4ModuleLabel",     "largeant");
 
     return;
@@ -123,6 +124,7 @@ namespace cluster{
 
     // loop over the map and make clusters
     std::auto_ptr< std::vector<recob::Cluster> > clustercol(new std::vector<recob::Cluster>);
+    std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
     unsigned int plane = 0;
     unsigned int wire  = 0;
@@ -159,8 +161,11 @@ namespace cluster{
 	      endTime = -1.e-6;
 	    }
 	    
-	    if(wire == startWire && eveHits[h]->StartTime() < startTime) startTime = eveHits[h]->StartTime();
-	    if(wire == endWire   && eveHits[h]->EndTime()   > endTime  ) endTime   = eveHits[h]->EndTime();
+	    if(wire == startWire && eveHits[h]->StartTime() < startTime) 
+	      startTime = eveHits[h]->StartTime();
+
+	    if(wire == endWire   && eveHits[h]->EndTime()   > endTime  ) 
+	      endTime   = eveHits[h]->EndTime();
 
 	  } // end loop over hits for this particle	
 
@@ -188,17 +193,22 @@ namespace cluster{
 					       dTdW,      0.,
 					       dQdW,      0.,
 					       ((*hitMapItr).first * 1000) + pl*100 + tpc));
-          
+
+	  // loop over the hits and make the associations to this cluster
+	  art::ProductID clid = getProductID<std::vector<recob::Cluster> >(evt);
+	  art::Ptr<recob::Cluster> cptr(clid, clustercol->size()-1, evt.productGetter(clid));
+	  for(size_t h = 0; h < ptrvs.size(); ++h) assn->addSingle(cptr,ptrvs[h]);
+
 	  mf::LogInfo("ClusterCheater") << "adding cluster: \n" 
 					<< clustercol->back()
 					<< "\nto collection.";
-
 
 	} // end loop over the number of planes
       } // end loop over the tpcs
     } // end loop over the map
 
     evt.put(clustercol);
+    evt.put(assn);
 
     return;
 
