@@ -32,6 +32,9 @@ namespace vertex{
     this->reconfigure(pset);
 
     produces< std::vector<recob::Vertex> >();
+    produces< art::Assns<recob::Vertex, recob::Shower> >();
+    produces< art::Assns<recob::Vertex, recob::Track> >();
+
   }
 
   //--------------------------------------------------------------------
@@ -181,6 +184,8 @@ namespace vertex{
     }// end loop over tracks
 
     std::auto_ptr< std::vector<recob::Vertex> > vertexcol(new std::vector<recob::Vertex>);
+    std::auto_ptr< art::Assns<recob::Vertex, recob::Shower> > vsassn(new art::Assns<recob::Vertex, recob::Shower>);
+    std::auto_ptr< art::Assns<recob::Vertex, recob::Track> > vtassn(new art::Assns<recob::Vertex, recob::Track>);
 
     // loop over the eve ID values and make Vertexs
     for(std::vector<int>::iterator eItr = eveIDs.begin(); eItr != eveIDs.end(); eItr++){
@@ -215,6 +220,12 @@ namespace vertex{
       // add a vector to the collection.  
       vertexcol->push_back(recob::Vertex(ptrvtrk, ptrvshw, xyz, eveID));
 
+      // associate the vertex with its showers and tracks
+      art::ProductID vid = getProductID<std::vector<recob::Vertex> >(evt);
+      art::Ptr<recob::Vertex> vptr(vid, vertexcol->size()-1, evt.productGetter(vid));
+      for(size_t s = 0; s < ptrvshw.size(); ++s) vsassn->addSingle(vptr,ptrvshw[s]);
+      for(size_t t = 0; t < ptrvtrk.size(); ++t) vtassn->addSingle(vptr,ptrvtrk[t]);
+      
       mf::LogInfo("VertexCheater") << "adding vertex: \n" 
 				   << vertexcol->back()
 				   << "\nto collection.";
@@ -222,6 +233,8 @@ namespace vertex{
     } // end loop over the eve ID values
 
     evt.put(vertexcol);
+    evt.put(vsassn);
+    evt.put(vtassn);
 
     return;
 
