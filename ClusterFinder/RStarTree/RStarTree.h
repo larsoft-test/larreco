@@ -40,7 +40,8 @@
 #include <sstream>
 #include <fstream>
 
-#include "RStarBoundingBox.h"
+//#include "RStarBoundingBox.h"
+#include "ClusterFinder/RStarTree/RStarBoundingBox.h"
 
 // R* tree parameters
 #define RTREE_REINSERT_P 0.30
@@ -65,7 +66,8 @@ struct RStarNode : BoundedItem {
 	bool hasLeaves;
 };
 
-#include "RStarVisitor.h"
+//#include "RStarVisitor.h"
+#include "ClusterFinder/RStarTree/RStarVisitor.h"
 
 
 /**

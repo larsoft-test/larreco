@@ -36,6 +36,16 @@
 //----------------------------------------------------------
 // RStarTree stuff
 //----------------------------------------------------------
+class dbsPoint{
+public:
+  double x, y;
+  double dx, dy;
+  dbsPoint(double X=0.0, double Y=0.0, double dX=0.0, double dY=0.0)
+    :x(X), y(Y), dx(dX), dy(dY){};
+  BoundingBox bounds()const;
+  void Expand(double DX, double DY){dx+=DX; dy+=DY;};
+};
+
 BoundingBox dbsPoint::bounds()const{
   BoundingBox bb;
   bb.edges[0].first  = x - fabs(dx);

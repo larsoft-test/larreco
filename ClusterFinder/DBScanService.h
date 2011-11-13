@@ -11,7 +11,7 @@
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Persistency/Common/Ptr.h"
 #include "art/Persistency/Common/PtrVector.h"
-#include "RStarTree.h"
+#include "ClusterFinder/RStarTree/RStarTree.h"
 
 #include "Geometry/geo.h"
 
@@ -26,15 +26,6 @@ namespace recob { class Hit; }
 class dbsPoint; // forward declaration
 typedef RStarTree< unsigned int, 2, 32, 64 > RTree; // payload is just an index
 typedef RTree::BoundingBox BoundingBox;
-class dbsPoint{
-public:
-  double x, y;
-  double dx, dy;
-  dbsPoint(double X=0.0, double Y=0.0, double dX=0.0, double dY=0.0)
-    :x(X), y(Y), dx(dX), dy(dY){};
-  BoundingBox bounds()const;
-  void Expand(double DX, double DY){dx+=DX; dy+=DY;};
-};
 
 namespace cluster{
 

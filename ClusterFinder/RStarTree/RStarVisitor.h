@@ -18,7 +18,8 @@
  #ifndef RSTARVISITOR_H
  #define RSTARVISITOR_H
  
- #include "RStarBoundingBox.h"
+//#include "RStarBoundingBox.h"
+ #include "ClusterFinder/RStarTree/RStarBoundingBox.h"
  
  /**
 	\file
