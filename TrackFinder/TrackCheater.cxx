@@ -32,6 +32,8 @@ namespace trkf{
     this->reconfigure(pset);
 
     produces< std::vector<recob::Track> >();
+    produces< art::Assns<recob::Track, recob::Cluster> >();
+//     produces< art::Assns<recob::Track, recob::Hit> >();
   }
 
   //--------------------------------------------------------------------
@@ -109,6 +111,8 @@ namespace trkf{
 
     // loop over the map and make prongs
     std::auto_ptr< std::vector<recob::Track> >  trackcol (new std::vector<recob::Track>);
+    std::auto_ptr< art::Assns<recob::Track, recob::Cluster> > tcassn(new art::Assns<recob::Track, recob::Cluster>);
+//     std::auto_ptr< art::Assns<recob::Track, recob::Hit> > thassn(new art::Assns<recob::Track, recob::Hit>);
 
     for(clusterMapItr = eveClusterMap.begin(); clusterMapItr != eveClusterMap.end(); clusterMapItr++){
 
@@ -170,6 +174,18 @@ namespace trkf{
 
 	trackcol->at(trackcol->size() - 1).SetDirection(dcos, dcos);
 
+	// associate the track with its clusters
+	art::ProductID tid = getProductID<std::vector<recob::Track> >(evt);
+	art::Ptr<recob::Track> tptr(tid, trackcol->size()-1, evt.productGetter(tid));
+	for(size_t cl = 0; cl < ptrvs.size(); ++cl) tcassn->addSingle(tptr,ptrvs[cl]);
+
+	// associate the track with its hits, do this by first getting the
+	// hits associated with the clusters in the track
+// 	FindMany<recob::Hit> ctoh(ptrvs, evt, fCheatedClusterLabel);
+// 	for(size_t c = 0; c < ptrvs.size(); ++c){
+// 	  thassn->addSingle(tptr, );
+// 	}
+
 	mf::LogInfo("TrackCheater") << "adding track: \n" 
 				     << trackcol->back()
 				     << "\nto collection.";
@@ -179,6 +195,8 @@ namespace trkf{
     } // end loop over the map
 
     evt.put(trackcol);
+    evt.put(tcassn);
+//     evt.put(thassn);
 
     return;
 
