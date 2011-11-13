@@ -32,6 +32,7 @@ namespace event{
     this->reconfigure(pset);
 
     produces< std::vector<recob::Event> >();
+    produces< art::Assns<recob::Event, recob::Vertex> >();
   }
 
   //--------------------------------------------------------------------
@@ -91,6 +92,7 @@ namespace event{
     }// end loop over vertices
 
     std::auto_ptr< std::vector<recob::Event> > eventcol(new std::vector<recob::Event>);
+    std::auto_ptr< art::Assns<recob::Event, recob::Vertex> > evassn(new art::Assns<recob::Event, recob::Vertex>);
 
     // loop over the map and associate all vertex objects with an event
     for(vertexMapItr = vertexMap.begin(); vertexMapItr != vertexMap.end(); vertexMapItr++){
@@ -107,6 +109,11 @@ namespace event{
       // add an event to the collection.  
       eventcol->push_back(recob::Event(ptrvs, (*vertexMapItr).first.productIndex()));
 
+      // associate the event with its vertices
+      art::ProductID eid = getProductID<std::vector<recob::Event> >(evt);
+      art::Ptr<recob::Event> eptr(eid, eventcol->size()-1, evt.productGetter(eid));
+      for(size_t v = 0; v < ptrvs.size(); ++v) evassn->addSingle(eptr,ptrvs[v]);
+
       mf::LogInfo("EventCheater") << "adding event: \n" 
 				  << eventcol->back()
 				  << "\nto collection";
@@ -114,6 +121,7 @@ namespace event{
     } // end loop over the map
 
     evt.put(eventcol);
+    evt.put(evassn);
 
     return;
 
