@@ -171,6 +171,10 @@ struct AcceptFindNeighbors {
     // bad channel counting
     unsigned int wire1 = (unsigned int) (tCenter0/fWireDist + 0.5);
     unsigned int wire2 = (unsigned int) (bCenter0/fWireDist + 0.5);
+    // Clamp the wize number to something resonably.
+    // \todo activating these should throw a warning or something
+    if (wire1 < fBadWireSum.size()) wire1 = fBadWireSum.size();
+    if (wire2 < fBadWireSum.size()) wire2 = fBadWireSum.size();
     // The getSimilarity[2] wirestobridge calculation is asymmetric,
     // but is plugged into the cache symmetrically.I am assuming that
     // this is OK because the wires that are hit cannot be bad.
@@ -306,11 +310,13 @@ void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits,
   double wire_dist =posWorld0[1]- posWorld1[1];
 
   // Collect the bad wire list into a useful form
-  fBadWireSum.resize(geom->Nchannels());
-  unsigned int count=0;
-  for (unsigned int i=0; i<=fBadWireSum.size(); ++i) {
-    count += fBadChannels.count(i);
-    fBadWireSum[i] = count;
+  if (fClusterMethod) { // Using the R*-tree
+    fBadWireSum.resize(geom->Nchannels());
+    unsigned int count=0;
+    for (unsigned int i=0; i<fBadWireSum.size(); ++i) {
+      count += fBadChannels.count(i);
+      fBadWireSum[i] = count;
+    }
   }
 
   // Collect the hits in a useful form,
