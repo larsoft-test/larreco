@@ -354,10 +354,10 @@ void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits,
   if (fClusterMethod) { // Using the R*-tree
     Visitor visitor = 
       fRTree.Query(RTree::AcceptAny(),Visitor());
-    mf::LogWarning("DBscan") << "DBSCAN: "  << "hits RTree loaded with " 
+    mf::LogInfo("DBscan") << "InitScan: hits RTree loaded with " 
 			     << visitor.count << " items.";
   }
-  mf::LogWarning("DBscan") << "\t" << "hits vector size is " << fps.size();
+  mf::LogInfo("DBscan") << "InitScan: hits vector size is " << fps.size();
 
   return;
 }
@@ -597,20 +597,20 @@ void cluster::DBScanService::run_dbscan_cluster() {
   for(unsigned int y=0; y< fpointId_to_clusterId.size();++y){
     if (fpointId_to_clusterId[y]==NO_CLUSTER) {
       // This shouldn't happen...all points should be clasified by now!
-      mf::LogWarning("DBscan") << "DBSCAN: Unclassified point!";
+      mf::LogWarning("DBscan") << "Unclassified point!";
     } else if (fpointId_to_clusterId[y]==NOISE_CLUSTER) {
       noise++;
     } else {
       fclusters[fpointId_to_clusterId[y]].push_back(y);
     }
   }  
-  mf::LogWarning("DBscan") << "DBSCAN: DWM (R*-tree): Found " 
+  mf::LogInfo("DBscan") << "DWM (R*-tree): Found " 
 			   << cid << " clusters...";
   for (unsigned int c=0; c<cid; ++c){
-    mf::LogWarning("DBscan") << "\t" << "Cluster " << c << ":\t" 
+    mf::LogInfo("DBscan") << "\t" << "Cluster " << c << ":\t" 
 			     << fclusters[c].size();
   }
-  mf::LogWarning("DBscan") << "...and " << noise << " noise points.";
+  mf::LogInfo("DBscan") << "...and " << noise << " noise points.";
 }
 
 //----------------------------------------------------------------
@@ -773,13 +773,13 @@ void cluster::DBScanService::run_FN_cluster()
     //if  (fpointId_to_clusterId[y]==0) noise++;
     if (fpointId_to_clusterId[y]==NO_CLUSTER) noise++;
   }  
-  mf::LogWarning("DBscan") << "DBSCAN: FindNeighbors (R*-tree): Found " 
+  mf::LogInfo("DBscan") << "FindNeighbors (R*-tree): Found " 
 			   << cid-1 << " clusters...";
   for (unsigned int c=1; c<cid; ++c){
-    mf::LogWarning("DBscan") << "\t" << "Cluster " << c << ":\t" 
+    mf::LogInfo("DBscan") << "\t" << "Cluster " << c << ":\t" 
 			     << fclusters[c-1].size();
   }
-  mf::LogWarning("DBscan") << "...and " << noise << " noise points.";
+  mf::LogInfo("DBscan") << "...and " << noise << " noise points.";
 
 }
 
@@ -857,12 +857,12 @@ void cluster::DBScanService::run_FN_naive_cluster()
     //if  (fpointId_to_clusterId[y]==0) noise++;
     if  (fpointId_to_clusterId[y]==NO_CLUSTER) noise++;
   }
-  mf::LogWarning("DBscan") << "DBSCAN: FindNeighbors (naive): Found " << cid-1 
+  mf::LogInfo("DBscan") << "FindNeighbors (naive): Found " << cid-1 
 			   << " clusters...";
   for (unsigned int c=1; c<cid; ++c){
-    mf::LogWarning("DBscan") << "\t" << "Cluster " << c << ":\t" 
+    mf::LogInfo("DBscan") << "\t" << "Cluster " << c << ":\t" 
 			     << fclusters[c-1].size() << " points";
   }
-  mf::LogWarning("DBscan") << "...and " << noise << " noise points.";
+  mf::LogInfo("DBscan") << "...and " << noise << " noise points.";
   
 }
