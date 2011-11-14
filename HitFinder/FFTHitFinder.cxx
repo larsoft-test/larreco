@@ -14,22 +14,14 @@ extern "C" {
 }
 
 // Framework includes
-#include "art/Framework/Principal/Event.h" 
-#include "fhiclcpp/ParameterSet.h" 
-#include "art/Framework/Principal/Handle.h" 
-#include "art/Persistency/Common/Ptr.h" 
-#include "art/Persistency/Common/PtrVector.h" 
-#include "art/Framework/Services/Registry/ServiceHandle.h" 
-#include "art/Framework/Services/Optional/TFileService.h" 
-#include "art/Framework/Services/Optional/TFileDirectory.h" 
-#include "messagefacility/MessageLogger/MessageLogger.h" 
+#include "art/Framework/Principal/Event.h"   
 
 // LArSoft Includes
 #include "HitFinder/FFTHitFinder.h"
 #include "Geometry/geo.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Hit.h"
 
-// ROOT 
+// ROOT Includes 
 #include "TH1D.h"
 #include "TDecompSVD.h"
 #include "TMath.h"
@@ -62,10 +54,13 @@ namespace hit{
     fColMinWidth        = p.get< double       >("ColMinWidth"); 	  	
     fMaxMultiHit        = p.get< int          >("MaxMultiHit");
   }  
+
   //-------------------------------------------------
   void FFTHitFinder::beginJob()
-  {
+  { 
   }
+
+  //-------------------------------------------------
   void FFTHitFinder::endJob()
   {
   }
@@ -83,7 +78,7 @@ namespace hit{
     evt.getByLabel(fCalDataModuleLabel,wireVecHandle);
     art::ServiceHandle<geo::Geometry> geom;
    
-    std::vector<double> signal;            
+    std::vector<double> signal;              //vector contaning wire signal
     std::vector<int> startTimes;             // stores time of 1st local minimum
     std::vector<int> maxTimes;    	     // stores time of local maximum    
     std::vector<int> endTimes;    	     // stores time of 2nd local minimum
@@ -115,6 +110,7 @@ namespace hit{
       channel       = wire->RawDigit()->Channel();
       geom->ChannelToWire(channel,t, p,w);
       sigType       = geom->Plane(p,t).SignalType();
+      //Set the appropriate signal widths and thresholds
       if(sigType == geo::kInduction){
 	threshold     = fMinSigInd;
 	fitWidth      = fIndWidth;
@@ -172,8 +168,9 @@ namespace hit{
       //the second refers to height, position, and width respectively
       std::vector<double>  hitSig;
       //add found hits to hit vector
+      
       while(hitIndex<(signed)startTimes.size()) {
-	eqn="gaus(0)";
+	
 	startT=endT=0;
 	numHits=1;
         minPeakHeight=signal[maxTimes[hitIndex]];
@@ -190,16 +187,18 @@ namespace hit{
 	    minPeakHeight=signal[maxTimes[hitIndex+numHits]];
 	  numHits++;
 	}
-	//finds the first point > 0.5 *minimum peak height
+	//finds the first point > 1/2 the smallest peak
 	startT=startTimes[hitIndex];
 	while(signal[(int)startT] < minPeakHeight/2.0) startT++;
-	//finds the first point from the end >0
+	//finds the first point from the end > 1/2 the smallest peak
 	endT=endTimes[hitIndex+numHits-1];
 	while(signal[(int)endT] <minPeakHeight/2.0) endT--;
 	size = (int)(endT-startT);
 	TH1D hitSignal("hitSignal","",size,startT,endT);
 	for(int i = (int)startT; i < (int)endT; i++)
-	  hitSignal.Fill(i,signal[i]);	
+	  hitSignal.Fill(i,signal[i]);
+        //build the TFormula
+        eqn="gaus(0)";	
 	for(int i = 3; i < numHits*3; i+=3) {
 	  eqn.append("+gaus(");
 	  numConv.str("");
@@ -254,9 +253,10 @@ namespace hit{
 	  gSum.SetParLimits(2,0.0,10.0*fitWidth);
 	}
 	/// \todo - just get the integral from the fit for totSig
-	hitSignal.Fit(&gSum,"QWNR","", startT, endT);
+        hitSignal.Fit(&gSum,"QNRW","", startT, endT);
 	for(int hitNumber = 0; hitNumber < numHits; hitNumber++) {
-	  if(gSum.GetParameter(3*hitNumber) > threshold/2.0 || gSum.GetParameter(3*hitNumber+2) > minWidth) { 
+          totSig=0;
+	  if(gSum.GetParameter(3*hitNumber) > threshold/2.0 && gSum.GetParameter(3*hitNumber+2) > minWidth) { 
 	    amplitude = gSum.GetParameter(3*hitNumber);
 	    position = gSum.GetParameter(3*hitNumber+1);
 	    width = gSum.GetParameter(3*hitNumber+2);
@@ -271,7 +271,6 @@ namespace hit{
 	      totSig+=hitSig[(int)sigPos];
               
 	    }              	    
-
 	    // make the hit
 	    recob::Hit hit(wire, 
 			   position-width, 
@@ -290,9 +289,9 @@ namespace hit{
 	    
 	  }//end if over threshold
 	}//end loop over hits
-	hitIndex+=numHits;
-	
+	hitIndex+=numHits;	
       } // end while on hitIndex<(signed)startTimes.size()
+      
     } // while on Wires
     
     evt.put(hcol);

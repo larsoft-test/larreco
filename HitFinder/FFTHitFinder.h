@@ -2,8 +2,8 @@
 #define FFTHITFINDER_H
 
 #include <string>
-
 #include "art/Framework/Core/EDProducer.h" 
+
 
 ///localizations of energy depositions
 namespace hit {
@@ -29,7 +29,7 @@ namespace hit {
     double          fColWidth;      ///<Initial width for collection fit
     double          fIndMinWidth;   ///<Minimum induction hit width
     double          fColMinWidth;   ///<Minimum collection hit width
-    int             fMaxMultiHit;   ///<maximum hits for multi fit   
+    int             fMaxMultiHit;   ///<maximum hits for multi fit  
   protected: 
     
   
