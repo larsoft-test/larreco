@@ -144,7 +144,7 @@ void cluster::DBcluster::produce(art::Event& evt)
 	//recob::Cluster* reco_cl= new recob::Cluster();
 	for(unsigned int j=0;j<dbscan->fpointId_to_clusterId.size();j++){
 	  
-	  if(dbscan->fpointId_to_clusterId[j]==(i+1)){
+	  if(dbscan->fpointId_to_clusterId[j]==i){
 	    
 	    // reco_cl->Add(allhits[j]);
 	    clusterHits.push_back(allhits[j]);

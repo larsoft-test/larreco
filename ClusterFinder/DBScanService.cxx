@@ -712,7 +712,7 @@ bool cluster::DBScanService::ExpandCluster(unsigned int point,
 void cluster::DBScanService::run_FN_cluster() 
 {
 
-  unsigned int cid = 1;
+  unsigned int cid = 0;
   // foreach pid
   for ( unsigned int pid = 0; pid < fps.size(); pid++){
     // not already visited
@@ -733,7 +733,7 @@ void cluster::DBScanService::run_FN_cluster()
 	std::vector<unsigned int> c;              // a new cluster
 	
 	c.push_back(pid);   	// assign pid to cluster
-	fpointId_to_clusterId[pid]=cid; // ***c[0] is assigned clusterId 1***
+	fpointId_to_clusterId[pid]=cid; 
 	// go to neighbors
 	for (unsigned int i = 0; i < ne.size(); i++){
 	  unsigned int nPid = ne[i];
@@ -781,10 +781,10 @@ void cluster::DBScanService::run_FN_cluster()
     if (fpointId_to_clusterId[y]==NO_CLUSTER) noise++;
   }  
   mf::LogInfo("DBscan") << "FindNeighbors (R*-tree): Found " 
-			   << cid-1 << " clusters...";
-  for (unsigned int c=1; c<cid; ++c){
+			   << cid << " clusters...";
+  for (unsigned int c=0; c<cid; ++c){
     mf::LogVerbatim("DBscan") << "\t" << "Cluster " << c << ":\t" 
-			     << fclusters[c-1].size();
+			     << fclusters[c].size();
   }
   mf::LogVerbatim("DBscan") << "\t" << "...and " << noise << " noise points.";
 
@@ -798,7 +798,7 @@ void cluster::DBScanService::run_FN_cluster()
 void cluster::DBScanService::run_FN_naive_cluster() 
 {
 
-  unsigned int cid = 1;
+  unsigned int cid = 0;
   // foreach pid
   for ( unsigned int pid = 0; pid < fps.size(); pid++){
     // not already visited
@@ -818,7 +818,7 @@ void cluster::DBScanService::run_FN_naive_cluster()
 	std::vector<unsigned int> c;              // a new cluster
 	
 	c.push_back(pid);   	// assign pid to cluster
-	fpointId_to_clusterId[pid]=cid; // ***c[0] is assigned clusterId 1***
+	fpointId_to_clusterId[pid]=cid; 
 	// go to neighbors
 	for (unsigned int i = 0; i < ne.size(); i++){
 	  unsigned int nPid = ne[i];
@@ -864,11 +864,11 @@ void cluster::DBScanService::run_FN_naive_cluster()
     //if  (fpointId_to_clusterId[y]==0) noise++;
     if  (fpointId_to_clusterId[y]==NO_CLUSTER) noise++;
   }
-  mf::LogInfo("DBscan") << "FindNeighbors (naive): Found " << cid-1 
+  mf::LogInfo("DBscan") << "FindNeighbors (naive): Found " << cid 
 			   << " clusters...";
-  for (unsigned int c=1; c<cid; ++c){
+  for (unsigned int c=0; c<cid; ++c){
     mf::LogVerbatim("DBscan") << "\t" << "Cluster " << c << ":\t" 
-			     << fclusters[c-1].size() << " points";
+			     << fclusters[c].size() << " points";
   }
   mf::LogVerbatim("DBscan") << "\t" << "...and " << noise << " noise points.";
   
