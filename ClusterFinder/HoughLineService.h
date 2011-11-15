@@ -54,11 +54,11 @@ namespace cluster {
     int m_dx;
     int m_dy;
     std::vector<std::map<int,int> > m_accum;  // column=rho, row=theta
-    int distCenter;
-    int lastDist;
-    int dist;
-    int stepDir;
-    int cell;
+    //int distCenter;// \todo Why is this here? Only used locally by DoAddPoint
+    //int lastDist;
+    //int dist;
+    //int stepDir; 
+    //int cell;
     int m_rowLength;
     int m_numAccumulated;
     int m_rhoResolutionFactor;

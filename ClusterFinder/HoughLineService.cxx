@@ -137,23 +137,23 @@ int cluster::HoughTransform::GetMax(int &xmax, int &ymax)
 //------------------------------------------------------------------------------
 bool cluster::HoughTransform::DoAddPoint(int x, int y)
 {
-  distCenter = (int)(m_rowLength/2.);
+  int distCenter = (int)(m_rowLength/2.);
  
   // prime the lastDist variable so our linear fill works below
-  lastDist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[0]*x + m_sinTable[0]*y)));
+  int lastDist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[0]*x + m_sinTable[0]*y)));
   // loop through all angles a from 0 to 180 degrees
   for (unsigned int a=1; a<m_cosTable.size(); ++a){
     // Calculate the basic line equation dist = cos(a)*x + sin(a)*y.
     // Shift to center of row to cover negative values
-    dist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[a]*x + m_sinTable[a]*y)));
+    int dist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[a]*x + m_sinTable[a]*y)));
     // sanity check to make sure we stay within our row
     if (dist >= 0 && dist<m_rowLength){
       if(lastDist==dist)
 	m_accum[a][lastDist]++;
       else{
 	// fill in all values in row a, not just a single cell
-	stepDir = dist>lastDist ? 1 : -1;
-	for (cell=lastDist; cell!=dist; cell+=stepDir){   
+	int stepDir = dist>lastDist ? 1 : -1;
+	for (int cell=lastDist; cell!=dist; cell+=stepDir){   
 	  m_accum[a][cell]++;//maybe add weight of hit here?
 	}      
       }

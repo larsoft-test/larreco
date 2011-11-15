@@ -601,16 +601,23 @@ void cluster::DBScanService::run_dbscan_cluster() {
     } else if (fpointId_to_clusterId[y]==NOISE_CLUSTER) {
       noise++;
     } else {
-      fclusters[fpointId_to_clusterId[y]].push_back(y);
+      unsigned int c = fpointId_to_clusterId[y];
+      if (c >= cid) {
+	mf::LogWarning("DBscan") << "Point in cluster " << c 
+			      << " when only " << cid 
+			      << " clusters wer found [0-" << cid-1
+				 << "]";
+      }
+      fclusters[c].push_back(y);
     }
   }  
   mf::LogInfo("DBscan") << "DWM (R*-tree): Found " 
 			   << cid << " clusters...";
   for (unsigned int c=0; c<cid; ++c){
-    mf::LogInfo("DBscan") << "\t" << "Cluster " << c << ":\t" 
+    mf::LogVerbatim("DBscan") << "\t" << "Cluster " << c << ":\t" 
 			     << fclusters[c].size();
   }
-  mf::LogInfo("DBscan") << "...and " << noise << " noise points.";
+  mf::LogVerbatim("DBscan") << "\t" << "...and " << noise << " noise points.";
 }
 
 //----------------------------------------------------------------
@@ -776,10 +783,10 @@ void cluster::DBScanService::run_FN_cluster()
   mf::LogInfo("DBscan") << "FindNeighbors (R*-tree): Found " 
 			   << cid-1 << " clusters...";
   for (unsigned int c=1; c<cid; ++c){
-    mf::LogInfo("DBscan") << "\t" << "Cluster " << c << ":\t" 
+    mf::LogVerbatim("DBscan") << "\t" << "Cluster " << c << ":\t" 
 			     << fclusters[c-1].size();
   }
-  mf::LogInfo("DBscan") << "...and " << noise << " noise points.";
+  mf::LogVerbatim("DBscan") << "\t" << "...and " << noise << " noise points.";
 
 }
 
@@ -860,9 +867,9 @@ void cluster::DBScanService::run_FN_naive_cluster()
   mf::LogInfo("DBscan") << "FindNeighbors (naive): Found " << cid-1 
 			   << " clusters...";
   for (unsigned int c=1; c<cid; ++c){
-    mf::LogInfo("DBscan") << "\t" << "Cluster " << c << ":\t" 
+    mf::LogVerbatim("DBscan") << "\t" << "Cluster " << c << ":\t" 
 			     << fclusters[c-1].size() << " points";
   }
-  mf::LogInfo("DBscan") << "...and " << noise << " noise points.";
+  mf::LogVerbatim("DBscan") << "\t" << "...and " << noise << " noise points.";
   
 }
