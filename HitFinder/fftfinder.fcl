@@ -16,6 +16,8 @@ standard_hitfinder:
 argoneut_hitfinder:   @local::standard_hitfinder
 
 microboone_hitfinder: @local::standard_hitfinder
+microboone_hitfinder.IndMinWidth: 1.0
+microboone_hitfinder.ColMinWidth: 1.0
 
 lbne_hitfinder:       @local::standard_hitfinder
 
