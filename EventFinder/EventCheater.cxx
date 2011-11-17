@@ -12,6 +12,7 @@
 #include "MCCheater/BackTracker.h"
 #include "EventFinder/EventCheater.h"
 #include "RecoBase/recobase.h"
+#include "SimulationBase/simbase.h"
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
 
@@ -23,6 +24,7 @@
 #include "art/Framework/Services/Optional/TFileService.h"
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#include "art/Framework/Core/FindOne.h"
 
 namespace event{
 
@@ -53,8 +55,13 @@ namespace event{
   void EventCheater::produce(art::Event& evt)
   {
 
+    mf::LogError("EventCheater") << "the EventCheater is temporarily broken, please don't use it";
+
     // grab the sim::ParticleList
     sim::ParticleList plist = sim::SimListUtils::GetParticleList(evt, fG4ModuleLabel);
+
+    art::Handle< std::vector<sim::Particle> > pcol;
+    evt.getByLabel(fG4ModuleLabel, pcol);
 
     // grab the vertices that have been reconstructed
     art::Handle< std::vector<recob::Vertex> > vertexcol;
@@ -77,7 +84,18 @@ namespace event{
 
       // the ID of the vertex should be a primary particle
       // from the event generator so the mother has to be 0
-      art::ProductID primary = plist[(*vertexitr)->ID()]->Primary().id();
+      art::FindOne<simb::MCTruth> fomct(pcol, evt, fG4ModuleLabel);
+      //art::Ptr<simb::MCTruth> mctp;
+      for(size_t p = 0; p < pcol->size(); ++p){
+	art::Ptr<sim::Particle> pptr(pcol, p);
+	if( pptr->TrackId() == (*vertexitr)->ID() ){
+	  // do something here with the FindOne object to get the
+	  // product ID of the MCTruth object.  Probably requires
+	  // waiting for an ART version bump from v1.00.05
+	}
+      }
+      
+      art::ProductID primary;// = mctp.id();
 
       if(vertexMap.find(primary) != vertexMap.end()){
 	  ((*vertexMapItr).second).push_back((*vertexitr));
