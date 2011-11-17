@@ -47,5 +47,7 @@ private:
   std::vector<TH1D *> fChannelEnergyDepsInd; ///< Energy depositions vs time for each induction channel
   std::vector<TH1D *> fChannelEnergyDepsCol; ///< Energy depositions vs time for each collection channel
 
+  double              fElectronsToADC;       ///< Conversion factor of electrons to ADC counts
+
 };
 #endif /* HitCheater_h */

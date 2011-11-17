@@ -11,6 +11,7 @@
 #include "Geometry/geo.h"
 #include "Simulation/sim.h"
 #include "RecoBase/recobase.h"
+#include "Utilities/DetectorProperties.h"
 
 #include "art/Framework/Services/Optional/TFileService.h"
 #include "art/Framework/Principal/Event.h"
@@ -115,7 +116,7 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
     double totCharge =  0.;
     int multiplicity =  1 ;
     while(tdcVsEitr->first <  *endItr){
-      double adc = 1.*abs(wire->RawDigit()->ADC(tdcVsEitr->first));
+      double adc = fElectronsToADC*tdcVsEitr->first;
       totCharge += adc;
       if(adc > maxCharge){
 	maxCharge = adc;
@@ -147,7 +148,6 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
 
     endItr++;
   }// end loop over tdc values
-
 
   return;
 }
@@ -190,6 +190,9 @@ void hit::HitCheater::reconfigure(fhicl::ParameterSet const & p)
 {
   fG4ModuleLabel   = p.get< std::string >("G4ModuleLabel",   "largeant");
   fWireModuleLabel = p.get< std::string >("WireModuleLabel", "caldata" );
+
+  art::ServiceHandle<util::DetectorProperties> detprop;
+  fElectronsToADC = detprop->ElectronsToADC();
 
   return;
 }
