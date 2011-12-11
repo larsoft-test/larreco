@@ -91,7 +91,6 @@ void cluster::EndPointModule::produce(art::Event& evt)
 
   //Point to a collection of vertices to output.
   std::auto_ptr<std::vector<recob::EndPoint2D> > vtxcol(new std::vector<recob::EndPoint2D>(vtxOut));
-
   
   evt.put(vtxcol);   
 }
