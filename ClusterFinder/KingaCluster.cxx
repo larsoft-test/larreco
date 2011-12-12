@@ -500,24 +500,7 @@ std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
  
   
  art::ServiceHandle<geo::Geometry> geom;
- if(fMC==1){
-   unsigned int channel2,plane2,wire2,tpc2;  
-plane2=plane;
-
-  if(plane==0){
-	MCvertex[0]=.3;//force time coordinate to be closer to induction plane 
-	}
-      else{
-	MCvertex[0]=-.3;//force time coordinate to be closer to collection plane
-     }
-  channel2 = geom->NearestChannel(MCvertex,plane);
-      geom->ChannelToWire(channel2,tpc2,plane2,wire2);   
-   std::cout<<"%%%%%%%%%%%%%%%%%%   WIRE VERTEX IS: "<<wire2<<std::endl;
-   fwire_vertex.push_back(wire2);
-   
-  
-   
-  } 
+ 
    
 //std::vector<unsigned int> fwire_vertex,ftime_vertex;
 double a_polar, b_polar,theta_polar;
