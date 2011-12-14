@@ -53,14 +53,13 @@ extern "C" {
 #include "Geometry/geo.h"
 
 //-----------------------------------------------------------------------------
-cluster::EndPointService::EndPointService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg) :
- 
-  fTimeBins        (pset.get< int    >("TimeBins")      ),
-  fMaxCorners      (pset.get< int    >("MaxCorners")    ),
-  fGsigma          (pset.get< double >("Gsigma")        ),
-  fWindow          (pset.get< int    >("Window")        ),
-  fThreshold       (pset.get< double >("Threshold")     ),
-  fSaveVertexMap   (pset.get< int    >("SaveVertexMap") )
+cluster::EndPointService::EndPointService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg) 
+  : fTimeBins        (pset.get< int    >("TimeBins")      )
+  , fMaxCorners      (pset.get< int    >("MaxCorners")    )
+  , fGsigma          (pset.get< double >("Gsigma")        )
+  , fWindow          (pset.get< int    >("Window")        )
+  , fThreshold       (pset.get< double >("Threshold")     )
+  , fSaveVertexMap   (pset.get< int    >("SaveVertexMap") )
 {
 }
 
@@ -172,7 +171,11 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
     }
   }
   
-  unsigned int channel,plane,wire,wire2,tpc;
+  unsigned int channel = 0;
+  unsigned int plane   = 0;
+  unsigned int wire    = 0;
+  unsigned int wire2   = 0;
+  unsigned int tpc     = 0;
   for(unsigned int t = 0; t < geom->NTPC(); ++t){
     for(unsigned int p = 0; p < geom->Nplanes(t); p++) {
       art::PtrVector<recob::Hit> vHits;
@@ -315,12 +318,12 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 		  if(Cornerness[wire][timebin] < (fThreshold*Cornerness2[0]))
 		    vertexnum = fMaxCorners;
 		vHits.push_back(hit[hit_loc[wire][timebin]]);
-		recob::EndPoint2D endpoint(vHits);
-		endpoint.SetWireNum(wire);
-		endpoint.SetDriftTime(hit[hit_loc[wire][timebin]]->PeakTime());
-		//weak vertices are given endpoint id=1
-		endpoint.SetID(1);
-		endpoint.SetStrength(Cornerness[wire][timebin]);	  
+		recob::EndPoint2D endpoint(hit[hit_loc[wire][timebin]]->PeakTime(),
+					   wire,
+					   Cornerness[wire][timebin],
+					   vtxcol.size(),
+					   view,
+					   vHits);
 		vtxcol.push_back(endpoint);
 		vHits.clear();
 
