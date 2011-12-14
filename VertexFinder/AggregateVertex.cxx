@@ -140,7 +140,7 @@ namespace vertex {
 
       // Should be just one hit per vtx, as per Josh, but we loop anyway.
       art::PtrVector<recob::Hit>::const_iterator hvIter = hitvertexlistStrong.begin();
-      while (hvIter != hitvertexlistStrong.end())  {
+       while (hvIter != hitvertexlistStrong.end())  {
 	art::Ptr<recob::Hit> hitv = (*hvIter);
 	// Now loop on the tracks and all the clusters in each, and all
 	// the hits in each of those.
@@ -207,7 +207,7 @@ namespace vertex {
 	  tIter++;
 	} // end track loop
 	hvIter++;
-      }
+       }
 
       // Now if matching tracks were found for this vertex then create the recob::Vertex object.
     

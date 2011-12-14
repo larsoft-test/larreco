@@ -247,27 +247,32 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	  
 	  // strongvertex, despite name, is a hit vector.
 	  strongvertex.push_back(matchedvertex[i].first);
-	  recob::EndPoint2D vertex(strongvertex);      
-	  vertex.SetWireNum(wire);
-	  vertex.SetStrength(strongvertexstrength[i]);
-	  //vertex->SetDriftTime(matchedvertex[i].first->PeakTime());
-	  vertex.SetDriftTime((matchedvertex[i].first)->PeakTime());
 	  
-	  //find the strong vertices, those vertices that have been associated with more than one hough line  
-	  if(i>0)
-	    {
-	      if(matchedvertex[i].first==matchedvertex[i-1].first)	
-		{
-		  if(strongvertex[0]==(strongestvertex[0].first)&&strongestvertex.size()>0)
-		    vertex.SetID(4);//the strongest strong vertex is given a vertex id=4
-		  else
-		    vertex.SetID(3);//strong vertices are given vertex id=3
-		} 
+	  //find the strong vertices, those vertices that have been 
+	  // associated with more than one hough line  
+	  int id = 0;
+	  if(i > 0){
+	    if(matchedvertex[i].first==matchedvertex[i-1].first){
+	      if(strongvertex[0]==(strongestvertex[0].first)&&strongestvertex.size()>0)
+		id = 4;//the strongest strong vertex is given a vertex id=4
+	      else
+		id = 3;//strong vertices are given vertex id=3
 	    } 
-	  else
-	    {
-	      vertex.SetID(2);//weak vertices that have been associated with an endpoint of a single Hough line are given vertex id=2
-	    } 
+	  } 
+	  else{
+	    // weak vertices that have been associated with an endpoint of 
+	    // a single Hough line are given vertex id=2	      
+	    id = 2;
+	  } 
+
+	  // strongvertex is a collection of hits
+	  recob::EndPoint2D vertex((matchedvertex[i].first)->PeakTime(),
+				   wire,
+				   strongvertexstrength[i],   
+				   id,
+				   geom->TPC(tpc).Plane(plane).View(),
+				   strongvertex);      
+
 	  mvertexcol->push_back(vertex);
 	  strongvertex.clear();
 	  

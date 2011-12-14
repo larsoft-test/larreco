@@ -276,12 +276,12 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 		if(Cornerness[wire][timebin] < (fThreshold*Cornerness2[0]))
 		  vertexnum = fMaxCorners;
 	      vHits.push_back(hit[hit_loc[wire][timebin]]);
-	      recob::EndPoint2D vertex(vHits);
-	      vertex.SetWireNum(wire);
-	      vertex.SetDriftTime(hit[hit_loc[wire][timebin]]->PeakTime());
-	      //weak vertices are given vertex id=1
-	      vertex.SetID(1);
-	      vertex.SetStrength(Cornerness[wire][timebin]);	  
+	      recob::EndPoint2D vertex(hit[hit_loc[wire][timebin]]->PeakTime(),
+				       wire,
+				       Cornerness[wire][timebin],
+				       vtxcol->size(),
+				       vHits[0]->View(),
+				       vHits);
 	      vtxcol->push_back(vertex);
 	      vHits.clear();
 	      // non-maximal suppression on a square window. The wire coordinate units are 

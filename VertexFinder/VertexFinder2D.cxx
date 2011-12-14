@@ -302,10 +302,16 @@ namespace vertex{
 	    }
 	  }
 	  //save 2D vertex
-	  recob::EndPoint2D vertex;
-	  vertex.SetWireNum(int(vtx_w.back()));
-	  vertex.SetDriftTime(vtx_t.back());
-	  vertex.SetView(clusters[Cls[i][0]]->View());
+	  // make an empty art::PtrVector of hits
+	  // \todo should really get the actual vector of hits corresponding to this
+	  // end point
+	  art::PtrVector<recob::Hit> hits;
+	  recob::EndPoint2D vertex(vtx_t.back(),
+				   int(vtx_w.back()),
+				   1,
+				   epcol->size(),
+				   clusters[Cls[i][0]]->View(),
+				   hits);
 	  epcol->push_back(vertex);
 	}
 	else{
