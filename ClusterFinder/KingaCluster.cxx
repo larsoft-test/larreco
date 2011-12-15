@@ -48,12 +48,13 @@ extern "C" {
 #include "TH2.h"
 #include "TF1.h"
 
-cluster::KingaCluster::KingaCluster(fhicl::ParameterSet const& pset) :
-  fDBScanModuleLabel       (pset.get< std::string >("DBScanModuleLabel")),
-  fEndPoint2DModuleLabel        (pset.get< std::string >("EndPoint2DModuleLabel"))
+cluster::KingaCluster::KingaCluster(fhicl::ParameterSet const& pset)
+ : fDBScanModuleLabel    (pset.get< std::string >("DBScanModuleLabel"))
+ , fEndPoint2DModuleLabel(pset.get< std::string >("EndPoint2DModuleLabel"))
   
 {
   produces< std::vector<recob::Cluster> >();
+  produces< art::Assns<recob::Cluster, recob::Hit> >();
 }
 
 cluster::KingaCluster::~KingaCluster()
@@ -298,181 +299,168 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
   evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
   //Point to a collection of clusters to output.
   std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
-
+  std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
   art::ServiceHandle<geo::Geometry> geom;
   art::PtrVector<recob::Cluster> clusIn;
  
   art::PtrVector<recob::Hit> hits;
   art::PtrVector<recob::Hit> clusterHits;
- 
- 
-  for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
-    {
-      art::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
-      clusIn.push_back(cluster);
-    }
-std::cout<<"No of DBSCAN clusters= "<<clusIn.size()<<std::endl;
+  
+  for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii){
+    art::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
+    clusIn.push_back(cluster);
+  }
+  mf::LogInfo("KingaCluster")<<"No of DBSCAN clusters= "<<clusIn.size();
 
-
-
- unsigned int p(0),w(0),t(0), channel(0);
- 
-
- for(size_t tpc = 0; tpc < geom->NTPC(); ++tpc){
-   std::cout<<"No of planes = "<<geom->Nplanes(tpc)<<std::endl;
-
-   for(unsigned int plane = 0; plane < geom->Nplanes(tpc); plane++) {
-
-    need_to_reassign_hitsIDs=0;
-    go_ahead_at_reassign=0;
-     for(unsigned int j=0; j<clusIn.size();++j) {
-   
-       hits=clusIn[j]->Hits();
-       for(unsigned int i = 0; i< hits.size(); ++i){
-	 channel=hits[i]->Wire()->RawDigit()->Channel();
-	 geom->ChannelToWire(channel,t,p,w);
-
-	 if(p == plane && t == tpc){
-	   allhits.push_back(hits[i]);
-	   //std::cout<<"plane= "<<plane<<" wire= "<<w<<" time= "<<hits[i]->PeakTime()<<std::endl; 
-	 }
-   
-       }
-       // std::cout<<"hits.size()= "<<hits.size()<<std::endl;
-     }
-   
-     //std::cout<<"allhits.size()="<<allhits.size()<<std::endl;
-   
-   
-     //Now we have hits for the plane that we are on right now, so let's do some work:
-     //maxBin.clear();
-     std::cout<<"ATTENTION, STARTING WORK ON PLANE# "<<plane<<std::endl;
-     AngularDistribution(tpc,plane);
-     FindMax(tpc,plane);
-     if(fpeaks_found==0){
-       std::cout<<"KingaClusters FAILED on this event because no peaks were found. Perhaps your threshold for peak's height is too big. Goodbye! "<<std::endl;
-       allhits.clear();
-       maxBin.clear();
-       maxBinValues.clear();
-       SortedMaxBin.clear();
-       MaxStartPoint.clear();
-       MaxEndPoint.clear();
-       MaxStartPointTheta.clear();
-       MaxEndPointTheta.clear();
-       HitsWithClusterID.clear();
-       FinalPeaks.clear();
-       OriginalmaxBinValues.clear();
-     for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
-	 
-	 fh_theta_ind_2D->SetBinContent(bin,0);
-	 fh_theta_coll_2D->SetBinContent(bin,0);
-	 fh_theta_ind->SetBinContent(bin,0);
-	 fh_theta_coll->SetBinContent(bin,0);
-	 fh_theta_coll_Area->SetBinContent(bin,0);
-	 fh_theta_ind_Area->SetBinContent(bin,0);
-       }
-       
-       return;
-     }
-     //FinalPeaks();
-     FindClusters(tpc,plane);
-     if(need_to_reassign_hitsIDs==1){
-     std::cout<<"***************************************************************"<<std::endl;
-     std::cout<<"***************  ATTENTION   ***********************"<<std::endl;
-     std::cout<<" WILL NEED TO REASSIGN HIT IDs"<<std::endl;
-     std::cout<<"***************************************************************"<<std::endl;
-     FindClusters(tpc,plane);}
-     std::cout<<"HitsWithClusterID.size()= "<<HitsWithClusterID.size()
-	      << "compare with allhits.size()= "<<allhits.size()<<std::endl;
-	      
-	            
- //********************************************************************         
-	      
-	
-	      
-     for(unsigned int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++) {
+  unsigned int p(0),w(0),t(0), channel(0);
+  
+  for(size_t tpc = 0; tpc < geom->NTPC(); ++tpc){
+    mf::LogInfo("KingaCluster")<<"No of planes = "<<geom->Nplanes(tpc);
     
-       for(unsigned int j=0; j<HitsWithClusterID.size();j++){
-     
-       if(HitsWithClusterID[j]==(ClusterNo+1)){
-       
-       clusterHits.push_back(allhits[j]);
-       } //if
-    
-    
-    
-    } //loop over HitsWithClusterID
-
-// let's look at the clusters produced:
-std::cout<<"For Cluster # "<<ClusterNo<<" we have "<<clusterHits.size()<<" hits :"<<std::endl;
-
-
-
-
-//     //.................................
-    if (clusterHits.size()>0)
-	    {
-	    
-	    
-	    
-	    
-	      /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
-	      unsigned int p = 0; 
-	      unsigned int t = 0; 
-	      unsigned int sw = 0;
-	      unsigned int ew = 0;
-	      geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), t, p, sw);
-	      geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), t, p, ew);
-
-	      clusterHits.sort(cluster::SortByWire());
-	      
-	      recob::Cluster cluster(clusterHits, 
-				     sw*1., 0.,
-				     clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
-				     ew*1., 0.,
-				     clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
-				     -999., 0., 
-				     -999., 0.,
-				    ClusterNo);
-				    
-				    
-							    
-std::cout<<"Produced Cluster #"<<ClusterNo<<std::endl;
-	      ccol->push_back(cluster);
-	      //std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
-	     // std::cout<<cluster.StartPos()[0]<<", "<<cluster.StartPos()[1]<<" --> "<<cluster.EndPos()[0]<<", "<<cluster.EndPos()[1]<<std::endl;
-	      
-
-	      
-	      clusterHits.clear();
-	      //////
-	    }
+    for(unsigned int plane = 0; plane < geom->Nplanes(tpc); plane++) {
       
-   } //clusters
+      need_to_reassign_hitsIDs=0;
+      go_ahead_at_reassign=0;
+      for(unsigned int j=0; j<clusIn.size();++j) {
+	
+	hits=clusIn[j]->Hits();
+	for(unsigned int i = 0; i< hits.size(); ++i){
+	  channel=hits[i]->Wire()->RawDigit()->Channel();
+	  geom->ChannelToWire(channel,t,p,w);
+	  
+	  if(p == plane && t == tpc){
+	    allhits.push_back(hits[i]);
+	    //std::cout<<"plane= "<<plane<<" wire= "<<w<<" time= "<<hits[i]->PeakTime()<<std::endl; 
+	  }
+	  
+	}// end loop over hits
+	// std::cout<<"hits.size()= "<<hits.size()<<std::endl;
+      }// end loop over clusters
+      
+      //std::cout<<"allhits.size()="<<allhits.size()<<std::endl;
+      
+      
+      //Now we have hits for the plane that we are on right now, so let's do some work:
+      //maxBin.clear();
+      mf::LogInfo("KingaCluster") << "ATTENTION, STARTING WORK ON PLANE# " << plane;
+      AngularDistribution(tpc,plane);
+      FindMax(tpc,plane);
+      if(fpeaks_found==0){
+	mf::LogInfo("KingaCluster") << "KingaClusters FAILED on this event because "
+				    << "no peaks were found. Perhaps your threshold "
+				    << "for peak's height is too big. Goodbye! ";
+	allhits.clear();
+	maxBin.clear();
+	maxBinValues.clear();
+	SortedMaxBin.clear();
+	MaxStartPoint.clear();
+	MaxEndPoint.clear();
+	MaxStartPointTheta.clear();
+	MaxEndPointTheta.clear();
+	HitsWithClusterID.clear();
+	FinalPeaks.clear();
+	OriginalmaxBinValues.clear();
+	for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
+	  
+	  fh_theta_ind_2D->SetBinContent(bin,0);
+	  fh_theta_coll_2D->SetBinContent(bin,0);
+	  fh_theta_ind->SetBinContent(bin,0);
+	  fh_theta_coll->SetBinContent(bin,0);
+	  fh_theta_coll_Area->SetBinContent(bin,0);
+	  fh_theta_ind_Area->SetBinContent(bin,0);
+	}
+	
+	return;
+      }
+      //FinalPeaks();
+      FindClusters(tpc,plane);
+      if(need_to_reassign_hitsIDs==1){
+	mf::LogInfo("KingaCluster") <<"***************************************************************\n"
+				    <<"***************  ATTENTION   ***********************\n"
+				    <<" WILL NEED TO REASSIGN HIT IDs\n"
+				    <<"***************************************************************\n";
+	  FindClusters(tpc,plane);
+      }
+      mf::LogInfo("KingaCluster")<<"HitsWithClusterID.size()= "<<HitsWithClusterID.size()
+				 << "compare with allhits.size()= "<<allhits.size();
+      
+	            
+      //********************************************************************         
+      for(unsigned int ClusterNo=0; ClusterNo<MaxStartPoint.size();ClusterNo++) {
+	
+	for(unsigned int j=0; j<HitsWithClusterID.size();j++){
+	  
+	  if(HitsWithClusterID[j]==(ClusterNo+1)){
+	    
+	    clusterHits.push_back(allhits[j]);
+	  } //if
+	  
+	} //loop over HitsWithClusterID
+
+	// let's look at the clusters produced:
+	mf::LogInfo("KingaCluster")<<"For Cluster # "<<ClusterNo<<" we have "
+				   <<clusterHits.size()<<" hits :";
+
+	//.................................
+	if (clusterHits.size() > 0){
+	  
+	  /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
+	  unsigned int p = 0; 
+	  unsigned int t = 0; 
+	  unsigned int sw = 0;
+	  unsigned int ew = 0;
+	  geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), t, p, sw);
+	  geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), t, p, ew);
+	  
+	  clusterHits.sort(cluster::SortByWire());
+	  
+	  recob::Cluster cluster(clusterHits, 
+				 sw*1., 0.,
+				 clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
+				 ew*1., 0.,
+				 clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
+				 -999., 0., 
+				 -999., 0.,
+				 ClusterNo);
+	  
+	  // loop over the hits and make the associations to this cluster
+	  art::ProductID clid = getProductID<std::vector<recob::Cluster> >(evt);
+	  art::Ptr<recob::Cluster> cptr(clid, ccol->size()-1, evt.productGetter(clid));
+	  for(size_t h = 0; h < clusterHits.size(); ++h) assn->addSingle(cptr,clusterHits[h]);
+				    							    
+	  mf::LogInfo("KingaCluster") <<"Produced Cluster #"<<ClusterNo;
+	  ccol->push_back(cluster);
+	  //std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
+	  // std::cout<<cluster.StartPos()[0]<<", "<<cluster.StartPos()[1]<<" --> "
+	  //<<cluster.EndPos()[0]<<", "<<cluster.EndPos()[1]<<std::endl;
+	  clusterHits.clear();
+	  //////
+	}
+	
+      } //clusters
     
-     allhits.clear();
-     maxBin.clear();
-     maxBinValues.clear();
-     SortedMaxBin.clear();
-     MaxStartPoint.clear();
-     MaxEndPoint.clear();
-     MaxStartPointTheta.clear();
-     MaxEndPointTheta.clear();
-     HitsWithClusterID.clear();
-     FinalPeaks.clear();
-     OriginalmaxBinValues.clear();
-     std::cout<<"Should be starting to work on the other plane now"<<std::endl;
+      allhits.clear();
+      maxBin.clear();
+      maxBinValues.clear();
+      SortedMaxBin.clear();
+      MaxStartPoint.clear();
+      MaxEndPoint.clear();
+      MaxStartPointTheta.clear();
+      MaxEndPointTheta.clear();
+      HitsWithClusterID.clear();
+      FinalPeaks.clear();
+      OriginalmaxBinValues.clear();
+      mf::LogInfo("KingaCluster")<<"Should be starting to work on the other plane now";
     }//Planes
     
- }// end loop over tpcs 
+  }// end loop over tpcs 
  
  
- evt.put(ccol);
- 
- 
-   
- return;
+  evt.put(ccol);
+  evt.put(assn);
+    
+  return;
 }
     
 //..............................................................  

@@ -47,20 +47,20 @@ extern "C" {
 #include "ClusterFinder/HoughLineService.h"
 #include "ClusterFinder/HoughLineFinder.h"
 
-
-cluster::HoughLineFinder::HoughLineFinder(fhicl::ParameterSet const& pset) : 
-  fDBScanModuleLabel       (pset.get< std::string >("DBScanModuleLabel"))
-  
+//------------------------------------------------------------------------------
+cluster::HoughLineFinder::HoughLineFinder(fhicl::ParameterSet const& pset) 
+   : fDBScanModuleLabel       (pset.get< std::string >("DBScanModuleLabel"))
 {
   produces< std::vector<recob::Cluster> >();
+  produces< art::Assns<recob::Cluster, recob::Hit> >();
 }
 
+//------------------------------------------------------------------------------
 cluster::HoughLineFinder::~HoughLineFinder()
 {
 }
 
-
-
+//------------------------------------------------------------------------------
 void cluster::HoughLineFinder::produce(art::Event& evt)
 {
 
@@ -73,11 +73,10 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
   evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
 
   art::PtrVector<recob::Cluster> clusIn;
-  for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
-    {
-      art::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
-      clusIn.push_back(cluster);
-    }
+  for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii){
+    art::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
+    clusIn.push_back(cluster);
+  }
   
   art::ServiceHandle<cluster::HoughLineService> hls;
   
@@ -91,18 +90,26 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
 
   //Point to a collection of clusters to output.
   std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>(clusOut));
+  std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
-  std::sort(ccol->begin(),ccol->end());//sort before Putting
+  std::sort(ccol->begin(), ccol->end());//sort before Putting
 
   mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
   mf::LogVerbatim("Summary") << "HoughLineFinder Summary:";
-  for(size_t i = 0; i<ccol->size(); ++i) mf::LogVerbatim("Summary") << ccol->at(i) ;
+  for(size_t i = 0; i < ccol->size(); ++i){
+    mf::LogVerbatim("Summary") << ccol->at(i);
+
+    // loop over the hits and make the associations to this cluster
+    // \todo need to get the hits in a better way once we remove them as Cluster data members
+    art::PtrVector<recob::Hit> ptrvs = ccol->at(i).Hits();
+    art::ProductID clid = getProductID<std::vector<recob::Cluster> >(evt);
+    art::Ptr<recob::Cluster> cptr(clid, i, evt.productGetter(clid));
+    for(size_t h = 0; h < ptrvs.size(); ++h) assn->addSingle(cptr,ptrvs[h]);
+  }
 
   evt.put(ccol);
- 
-    
-
- 
+  evt.put(assn);
+  return;
 }
 
 

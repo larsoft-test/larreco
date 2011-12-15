@@ -45,7 +45,8 @@ cluster::DBcluster::DBcluster(fhicl::ParameterSet const& pset)
    
 {  
   this->reconfigure(pset);
-  produces<std::vector<recob::Cluster> >();  
+  produces< std::vector<recob::Cluster> >();  
+  produces< art::Assns<recob::Cluster, recob::Hit> >();
 }
 
 //-------------------------------------------------
@@ -76,17 +77,14 @@ void cluster::DBcluster::produce(art::Event& evt)
    
   //get a collection of clusters   
   std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
-    
+  std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
   //std::cout << "event  : " << evt.Header().Event() << std::endl;
   art::ServiceHandle<geo::Geometry> geom;
 
   art::Handle< std::vector<recob::Hit> > hitcol;
   evt.getByLabel(fhitsModuleLabel,hitcol);
   
-  
-  ///loop over all hits in the event and look for clusters (for each plane)
-  
-  
+  // loop over all hits in the event and look for clusters (for each plane)
   art::PtrVector<recob::Hit> allhits;
   art::PtrVector<recob::Hit> clusterHits;
 
@@ -170,6 +168,11 @@ void cluster::DBcluster::produce(art::Event& evt)
 				 -999., 0.,
 				 i);
 
+	  // loop over the hits and make the associations to this cluster
+	  art::ProductID clid = getProductID<std::vector<recob::Cluster> >(evt);
+	  art::Ptr<recob::Cluster> cptr(clid, ccol->size()-1, evt.productGetter(clid));
+	  for(size_t h = 0; h < clusterHits.size(); ++h) assn->addSingle(cptr,clusterHits[h]);
+
 	  ccol->push_back(cluster);
 	  //std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
 	  clusterHits.clear();
@@ -189,5 +192,7 @@ void cluster::DBcluster::produce(art::Event& evt)
   for(unsigned int i = 0; i<ccol->size(); ++i) mf::LogVerbatim("Summary") << ccol->at(i) ;
 
   evt.put(ccol);
+  evt.put(assn);
+
   return;
 }

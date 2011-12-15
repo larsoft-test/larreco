@@ -59,24 +59,21 @@ extern "C" {
 
 // ***************** //
 
-
+//------------------------------------------------------------------------------
 cluster::ShowerAngleCluster::ShowerAngleCluster(fhicl::ParameterSet const& pset)
 {
   this->reconfigure(pset);
   produces< std::vector<recob::Cluster> >();
 }
 
-
+//------------------------------------------------------------------------------
 void cluster::ShowerAngleCluster::reconfigure(fhicl::ParameterSet const& pset) 
 {
-  fClusterModuleLabel = pset.get< std::string >("ClusterModuleLabel");
-   //fHoughLineModuleLabel=pset.get<std::string > ("HoughLineModuleLabel");
-  fVertexCLusterModuleLabel=pset.get<std::string > ("VertexClusterModuleLabel");
-  fMCGeneratorLabel=pset.get<std::string > ("MCGeneratorLabel");
-  fLarGeantlabel=pset.get<std::string > ("LarGeantlabel");     
-  fUseMCVertex=pset.get<int > ("UseMCVertex");
- 
-
+  fClusterModuleLabel       = pset.get< std::string >("ClusterModuleLabel"      );
+  fVertexCLusterModuleLabel = pset.get< std::string >("VertexClusterModuleLabel");
+  fMCGeneratorLabel         = pset.get< std::string >("MCGeneratorLabel"        );
+  fLarGeantlabel            = pset.get< std::string >("LarGeantlabel"           );     
+  fUseMCVertex              = pset.get< int         >("UseMCVertex"             ); 
 }
 
 // ***************** //
@@ -85,22 +82,17 @@ cluster::ShowerAngleCluster::~ShowerAngleCluster()
 }
 
 namespace cluster {
-struct SortByWire 
-{
-  bool operator() (recob::Hit const& h1, recob::Hit const& h2) const 
-  { return 
-      h1.Wire()->RawDigit()->Channel() < 
-      h2.Wire()->RawDigit()->Channel() ;
-  }
-};
+  struct SortByWire {
+    bool operator() (recob::Hit const& h1, recob::Hit const& h2) const 
+    { 
+      return h1.Wire()->RawDigit()->Channel() < h2.Wire()->RawDigit()->Channel() ;
+    }
+  };
 }
 
 // ***************** //
 void cluster::ShowerAngleCluster::beginJob()
 {
-
-
-
   /** Get Geometry*/
   art::ServiceHandle<geo::Geometry> geo;
   fNPlanes = geo->Nplanes();
@@ -110,7 +102,7 @@ void cluster::ShowerAngleCluster::beginJob()
   art::ServiceHandle<util::DetectorProperties> detp;
   ftimetick=detp->SamplingRate()/1000.;
   
-  std::cout << "------------ timetick? " << ftimetick << std::endl << std::endl << std::endl;
+  mf::LogInfo("ShowerAngleCluster") << "------------ timetick? " << ftimetick;
 
   /**Get TFileService and define output Histograms*/
   art::ServiceHandle<art::TFileService> tfs;
@@ -120,138 +112,120 @@ void cluster::ShowerAngleCluster::beginJob()
   char tit_h_theta[128] = {0};
   char tit_h_theta_wt[128] = {0};
   
-  
- 
-  
-  
-  
-  
   for(unsigned int i=0;i<fNPlanes;++i){
-
-
     //    sprintf(&tit_dedx[0],"fh_dedx_%.4i_%.4i_%i",i);
    
-   int nwires=geo->Plane(i,tpc).Nwires();
-   int ntimes=geo->DetHalfWidth(tpc)*2/(ftimetick*0.158);
-//ftimetick      =  0.198; // time sample in us fdriftvelocity =  0.157;	
-std::cout << "{{{ --- }}} init for plane" << i << " " << nwires << " " << ntimes << std::endl; 
-
+    int nwires=geo->Plane(i,tpc).Nwires();
+    int ntimes=geo->DetHalfWidth(tpc)*2/(ftimetick*0.158);
+    //ftimetick      =  0.198; // time sample in us fdriftvelocity =  0.157;	
+    mf::LogInfo("ShowerAngleCluster") << "{{{ --- }}} init for plane" << i 
+				      << " " << nwires << " " << ntimes;
 
     /**Histos for the angular distribution theta of the shower*/
     sprintf(&tit_h_theta[0],"fh_theta_%i",i);
     fh_theta[i] = tfs->make<TH1F>(tit_h_theta,"Theta distribution",720,-180., 180.);
 
     sprintf(&tit_h_theta[0],"charge distrib_%i",i);
-    tgx[i]=tfs->make<TH2F>(tit_h_theta,"charge distribution per wires",nwires/8.,0, nwires*fMean_wire_pitch,ntimes/8.,0,ntimes*ftimetick*0.158);
-   sprintf(&tit_h_theta[0],"hit distrib_%i",i);
-    tgx2[i]=tfs->make<TH2F>(tit_h_theta,"Hit distribution per wires",nwires/8.,0, nwires*fMean_wire_pitch,ntimes/8.,0,ntimes*ftimetick*0.158);  
+    tgx[i]=tfs->make<TH2F>(tit_h_theta,"charge distribution per wires",
+			   nwires/8.,0, nwires*fMean_wire_pitch,ntimes/8.,0,ntimes*ftimetick*0.158);
+    sprintf(&tit_h_theta[0],"hit distrib_%i",i);
+    tgx2[i]=tfs->make<TH2F>(tit_h_theta,"Hit distribution per wires",
+			    nwires/8.,0, nwires*fMean_wire_pitch,ntimes/8.,0,ntimes*ftimetick*0.158);  
 
-    std::cout << " ------ test hist widths " << ntimes*ftimetick*0.158 << " det half " << ntimes << std::endl; 
+    mf::LogInfo("ShowerAngleCluster") << " ------ test hist widths " 
+				      << ntimes*ftimetick*0.158 
+				      << " det half " << ntimes;
 
-    linefit[i]=tfs->make<TF1>(Form("linefit_%d",i),"pol1",0,4000);
-    linefit2[i]=tfs->make<TF1>(Form("linefit_2_%d",i),"pol1",0,4000);	
+    linefit[i]  = tfs->make<TF1>(Form("linefit_%d",i),"pol1",0,4000);
+    linefit2[i] = tfs->make<TF1>(Form("linefit_2_%d",i),"pol1",0,4000);	
     
     /**Histos for the angular distribution theta of the shower*/
     sprintf(&tit_h_theta[0],"fh_omega_evt_%i",i);
     fh_omega_evt.push_back( tfs->make<TH1F>(tit_h_theta,"Theta distribution per event",720,-180., 180.) );
 
    
-   sprintf(&tit_h_theta[0],"fh_omega_evt_reb_%i",i);
-    fh_omega_evt_reb.push_back( tfs->make<TH1F>(tit_h_theta,"Theta distribution per event, rebinned",180,-180., 180.) );
+    sprintf(&tit_h_theta[0],"fh_omega_evt_reb_%i",i);
+    fh_omega_evt_reb.push_back(tfs->make<TH1F>(tit_h_theta,"Theta distribution per event, rebinned",180,-180., 180.) );
    
 
-   //fh_omega2_evt.push_back( new TH1F(tit_h_theta,"Theta distribution per event",720,-180., 180.) );    
+    //fh_omega2_evt.push_back( new TH1F(tit_h_theta,"Theta distribution per event",720,-180., 180.) );    
 
 
     /**Histos for the angular distribution theta wire of the shower*/
     sprintf(&tit_h_theta[0],"ftheta_wire_%i",i);
     fh_theta_wt[i] = tfs->make<TH1F>(tit_h_theta_wt,"Theta wire distribution",720,-180., 180.);
- 	}
+  }
   
-  ftree_cluster =tfs->make<TTree>("ShowerAngleCluster","Results");/**All-knowing tree with reconstruction information*/
+  /**All-knowing tree with reconstruction information*/
+  ftree_cluster =tfs->make<TTree>("ShowerAngleCluster","Results");
   
   
-   ftree_cluster->Branch("run",&fRun,"run/I");
-    ftree_cluster->Branch("subrun",&fSubRun,"subrun/I");
-   ftree_cluster->Branch("event",&fEvent,"event/I");
-   ftree_cluster->Branch("nplanes",&fNPlanes,"nplanes/I");
+  ftree_cluster->Branch("run",&fRun,"run/I");
+  ftree_cluster->Branch("subrun",&fSubRun,"subrun/I");
+  ftree_cluster->Branch("event",&fEvent,"event/I");
+  ftree_cluster->Branch("nplanes",&fNPlanes,"nplanes/I");
   
-     ftree_cluster->Branch("mcpdg",&mcpdg,"mcpdg/I");
-    ftree_cluster->Branch("mcenergy",&mcenergy,"mcenergy/D");
+  ftree_cluster->Branch("mcpdg",&mcpdg,"mcpdg/I");
+  ftree_cluster->Branch("mcenergy",&mcenergy,"mcenergy/D");
    
-    ftree_cluster->Branch("mcphi",&mcphi,"mcphi/D");
-    ftree_cluster->Branch("mctheta",&mctheta,"mctheta/D");
-   
-    
-    
-   ftree_cluster->Branch("wire_vertex","std::vector<unsigned int>", &fWire_vertex);
-   ftree_cluster->Branch("time_vertex","std::vector<double>", &fTime_vertex);
-   ftree_cluster->Branch("wire_last","std::vector<unsigned int>", &fWire_last);
-   ftree_cluster->Branch("time_last","std::vector<double>", &fTime_last);
-
-   ftree_cluster->Branch("test_wire_start","std::vector<double>", &test_wire_start);
-   ftree_cluster->Branch("test_time_start","std::vector<double>", &test_time_start);
-	
-
-
-
-//   ftree_cluster->Branch("fitw_vertex","std::vector<double>", &wire_start);
-//    ftree_cluster->Branch("fitt_vertex","std::vector<double>", &time_start);
-   ftree_cluster->Branch("fitw_last","std::vector<double>", &wire_end);
-   ftree_cluster->Branch("fitt_last","std::vector<double>", &time_end); 
-
- 
+  ftree_cluster->Branch("mcphi",&mcphi,"mcphi/D");
+  ftree_cluster->Branch("mctheta",&mctheta,"mctheta/D");
   
+  ftree_cluster->Branch("wire_vertex","std::vector<unsigned int>", &fWire_vertex);
+  ftree_cluster->Branch("time_vertex","std::vector<double>", &fTime_vertex);
+  ftree_cluster->Branch("wire_last","std::vector<unsigned int>", &fWire_last);
+  ftree_cluster->Branch("time_last","std::vector<double>", &fTime_last);
   
-    ftree_cluster->Branch("xyz_vertex","std::vector<double>", &xyz_vertex);
-    ftree_cluster->Branch("xyz_vertex_fit","std::vector<double>", &xyz_vertex_fit);
+  ftree_cluster->Branch("test_wire_start","std::vector<double>", &test_wire_start);
+  ftree_cluster->Branch("test_time_start","std::vector<double>", &test_time_start);
+  //   ftree_cluster->Branch("fitw_vertex","std::vector<double>", &wire_start);
+  //    ftree_cluster->Branch("fitt_vertex","std::vector<double>", &time_start);
+  ftree_cluster->Branch("fitw_last","std::vector<double>", &wire_end);
+  ftree_cluster->Branch("fitt_last","std::vector<double>", &time_end); 
+  
+  ftree_cluster->Branch("xyz_vertex","std::vector<double>", &xyz_vertex);
+  ftree_cluster->Branch("xyz_vertex_fit","std::vector<double>", &xyz_vertex_fit);
 
- // hioni->Branch("Nhit",  Nhit ,"Nhit[Npart]/I");
-// this should be temporary - until the omega is sorted out.
+  // hioni->Branch("Nhit",  Nhit ,"Nhit[Npart]/I");
+  // this should be temporary - until the omega is sorted out.
   // ftree_cluster->Branch("fh_omega2_evt","std::vector<TH1F *>", &fh_omega2_evt);
+  
+  ftree_cluster->Branch("omega_2d","std::vector<double>", &fOmega_Mean);
+  ftree_cluster->Branch("omega_2d_RMS","std::vector<double>", &fOmega_RMS);
+  
+  ftree_cluster->Branch("omega_2d_line","std::vector<double>", &fOmega_Mean_line);
+  ftree_cluster->Branch("omega_2d_RMS_line","std::vector<double>", &fOmega_RMS_line);
+  
+  ftree_cluster->Branch("omega_2d_reb","std::vector<double>", &fOmega_Mean_reb);
+  ftree_cluster->Branch("omega_2d_reb_RMS","std::vector<double>", &fOmega_RMS_reb);
+  ftree_cluster->Branch("omega_2d_mean","std::vector<double>", &fOmega_Mean_Mean);
 
+  ftree_cluster->Branch("slope","std::vector<double>", &slope);
+  ftree_cluster->Branch("lineslope","std::vector<double>", &lineslope);
+  ftree_cluster->Branch("calcslope","std::vector<double>", &calcslope);
+  
+  ftree_cluster->Branch("RMS_wire","std::vector<double>", &fRMS_wire);
+  ftree_cluster->Branch("RMS_time","std::vector<double>", &fRMS_time);
+  
+  ftree_cluster->Branch("Chisq","std::vector<double>", &fChisq);
+  ftree_cluster->Branch("minwir","std::vector<double>", &fminwir);
+  ftree_cluster->Branch("maxwir","std::vector<double>", &fmaxwir);
+  ftree_cluster->Branch("mintime","std::vector<double>", &fmintime);
+  
+  ftree_cluster->Branch("maxtime","std::vector<double>", &fmaxtime);
+  ftree_cluster->Branch("correlation","std::vector<double>", &fcorrelation);
+  ftree_cluster->Branch("covariance","std::vector<double>", &fcovariance);
 
-
-    ftree_cluster->Branch("omega_2d","std::vector<double>", &fOmega_Mean);
-    ftree_cluster->Branch("omega_2d_RMS","std::vector<double>", &fOmega_RMS);
-
-    ftree_cluster->Branch("omega_2d_line","std::vector<double>", &fOmega_Mean_line);
-    ftree_cluster->Branch("omega_2d_RMS_line","std::vector<double>", &fOmega_RMS_line);
-
-    ftree_cluster->Branch("omega_2d_reb","std::vector<double>", &fOmega_Mean_reb);
-    ftree_cluster->Branch("omega_2d_reb_RMS","std::vector<double>", &fOmega_RMS_reb);
-    ftree_cluster->Branch("omega_2d_mean","std::vector<double>", &fOmega_Mean_Mean);
-
-ftree_cluster->Branch("slope","std::vector<double>", &slope);
-ftree_cluster->Branch("lineslope","std::vector<double>", &lineslope);
-ftree_cluster->Branch("calcslope","std::vector<double>", &calcslope);
-
-ftree_cluster->Branch("RMS_wire","std::vector<double>", &fRMS_wire);
-ftree_cluster->Branch("RMS_time","std::vector<double>", &fRMS_time);
-
-ftree_cluster->Branch("Chisq","std::vector<double>", &fChisq);
-ftree_cluster->Branch("minwir","std::vector<double>", &fminwir);
-ftree_cluster->Branch("maxwir","std::vector<double>", &fmaxwir);
-ftree_cluster->Branch("mintime","std::vector<double>", &fmintime);
-
-ftree_cluster->Branch("maxtime","std::vector<double>", &fmaxtime);
-ftree_cluster->Branch("correlation","std::vector<double>", &fcorrelation);
-ftree_cluster->Branch("covariance","std::vector<double>", &fcovariance);
-
-
-
-   ftree_cluster->Branch("Eventangleposition","std::vector<std::vector<double>>",&fSingleEvtAngle);
-ftree_cluster->Branch("Eventanglepositionval","std::vector<std::vector<double>>",&fSingleEvtAngleVal);
+  ftree_cluster->Branch("Eventangleposition","std::vector<std::vector<double>>",&fSingleEvtAngle);
+  ftree_cluster->Branch("Eventanglepositionval","std::vector<std::vector<double>>",&fSingleEvtAngleVal);
 
   // ftree_cluster->Branch("fslope_2d"," std::vector<double>", &fSlope_2d);
   // ftree_cluster->Branch("fintercept_2d","std::vector<double>", &fIntercept_2d);
-//   
-ftree_cluster->Branch("ShowerPosition2D","std::vector<std::vector<double>>",&fShowerPosition2D);
-ftree_cluster->Branch("ShowerWidthProfile2D","std::vector<std::vector<double>>",&fShowerWidthProfile2D);
-ftree_cluster->Branch("ShowerChargeProfile2D","std::vector<std::vector<double>>",&fShowerChargeProfile2D);
-  
-
-
+  //   
+  ftree_cluster->Branch("ShowerPosition2D","std::vector<std::vector<double>>",&fShowerPosition2D);
+  ftree_cluster->Branch("ShowerWidthProfile2D","std::vector<std::vector<double>>",&fShowerWidthProfile2D);
+  ftree_cluster->Branch("ShowerChargeProfile2D","std::vector<std::vector<double>>",&fShowerChargeProfile2D);
+ 
 }
 
 // ***************** //
@@ -271,267 +245,228 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
   fNPlanes = geo->Nplanes();
   //fdriftvelocity = larprob->DriftVelocity(Efield_SI,Temperature);
   
-  std::cout << "------------ timetick? " << ftimetick << std::endl << std::endl << std::endl;
+  mf::LogInfo("ShowerAngleCluster") << "------------ timetick? " << ftimetick;
   
-//     	fWire_vertex.resize(0);  // wire coordinate of vertex for each plane
-//     	fTime_vertex.resize(0);  // time coordinate of vertex for each plane
-// 	fWire_last.resize(0);  // wire coordinate of vertex for each plane
-//     	fTime_last.resize(0);  // time coordinate of vertex for each plane
-// 
-//         fOmega_Mean.resize(0);    // Mean value of the 2D angular distribution (1=Ind - 0=Coll) cm,cm
-//         fOmega_RMS.resize(0);;     // RMS of the 2D angular distribution  (1=Ind - 0=Coll) cm, cm
-// 	
-//         fOmega_Mean_reb.resize(0);    // Mean value of the 2D angular Rebinned by 4
-//         fOmega_RMS_reb.resize(0);     // RMS of the 2D angular distribution  Rebinned by 4
-//         fOmega_Mean_Mean.resize(0);    // Mean value of the 2D angular use mean instead of maximum
-//         
-// 
-//         fOmega_wt_Mean.resize(0);; // Mean value of the angular distribution (1=Ind - 0=Coll) wire,time
-//         fOmega_wt_RMS.resize(0);;  // RMS of the angular distribution  (1=Ind - 0=Coll) wire,time
-//         fChannel_vertex.resize(0);  // wire coordinate of vertex for each plane
-//          fChannel_last.resize(0);  // wire coordinate of vertex for each plane
-
-
-
-	//fPitch.resize(0);  // Pitch calculated the old way
-    	
-
- 
-fSingleEvtAngle.resize(fNPlanes); 
-fSingleEvtAngleVal.resize(fNPlanes); 
-
- fShowerWidthProfile2D.resize(fNPlanes); ;  // vector to show the plane shower Width distribution 
- fShowerChargeProfile2D.resize(fNPlanes); ;  //vector to show the plane shower Charge distribution
- fShowerPosition2D.resize(fNPlanes); ;  //vector to store the positions of hit values stored in the previous two vectors.
-
-
- for(unsigned int ii=0;ii<fNPlanes;ii++)
-  {   
-  fSingleEvtAngle[ii].resize(180); 
-  fSingleEvtAngleVal[ii].resize(180); 
+  //     	fWire_vertex.resize(0);  // wire coordinate of vertex for each plane
+  //     	fTime_vertex.resize(0);  // time coordinate of vertex for each plane
+  // 	fWire_last.resize(0);  // wire coordinate of vertex for each plane
+  //     	fTime_last.resize(0);  // time coordinate of vertex for each plane
+  // 
+  //         fOmega_Mean.resize(0);    // Mean value of the 2D angular distribution (1=Ind - 0=Coll) cm,cm
+  //         fOmega_RMS.resize(0);;     // RMS of the 2D angular distribution  (1=Ind - 0=Coll) cm, cm
+  // 	
+  //         fOmega_Mean_reb.resize(0);    // Mean value of the 2D angular Rebinned by 4
+  //         fOmega_RMS_reb.resize(0);     // RMS of the 2D angular distribution  Rebinned by 4
+  //         fOmega_Mean_Mean.resize(0);    // Mean value of the 2D angular use mean instead of maximum
+  //         
+  // 
+  //         fOmega_wt_Mean.resize(0);; // Mean value of the angular distribution (1=Ind - 0=Coll) wire,time
+  //         fOmega_wt_RMS.resize(0);;  // RMS of the angular distribution  (1=Ind - 0=Coll) wire,time
+  //         fChannel_vertex.resize(0);  // wire coordinate of vertex for each plane
+  //          fChannel_last.resize(0);  // wire coordinate of vertex for each plane
+  //fPitch.resize(0);  // Pitch calculated the old way
+  
+  fSingleEvtAngle.resize(fNPlanes); 
+  fSingleEvtAngleVal.resize(fNPlanes); 
+  
+  fShowerWidthProfile2D.resize(fNPlanes);  // vector to show the plane shower Width distribution 
+  fShowerChargeProfile2D.resize(fNPlanes); // vector to show the plane shower Charge distribution
+  fShowerPosition2D.resize(fNPlanes);      // vector to store the positions of hit values stored 
+                                           // in the previous two vectors.
+  for(unsigned int ii = 0; ii < fNPlanes; ++ii){   
+    fSingleEvtAngle[ii].resize(180); 
+    fSingleEvtAngleVal[ii].resize(180); 
   }
-
-
-      // fPitch.resize(fNPlanes); 
+  
+  // fPitch.resize(fNPlanes); 
     	 
-	fWire_vertex.resize(fNPlanes);
-	fTime_vertex.resize(fNPlanes);
-        fWire_last.resize(fNPlanes);
-	fTime_last.resize(fNPlanes);
- 	fChannel_vertex.resize(fNPlanes);
-        fChannel_last.resize(fNPlanes);
-
-	xyz_vertex.resize(fNPlanes);
-	xyz_vertex_fit.resize(fNPlanes);	
-
-       test_wire_start.resize(fNPlanes);
-       test_time_start.resize(fNPlanes);
-
-   wire_start.resize(fNPlanes);wire_end.resize(fNPlanes);;
-   time_start.resize(fNPlanes);time_end.resize(fNPlanes);;
-
-	slope.resize(fNPlanes);
-	lineslope.resize(fNPlanes);
-	calcslope.resize(fNPlanes);
-
-        fOmega_Mean.resize(fNPlanes);    // Mean value of the 2D angular distribution (1=Ind - 0=Coll) cm,cm
-        fOmega_RMS.resize(fNPlanes);     // RMS of the 2D angular distribution  (1=Ind - 0=Coll) cm, cm
-
-        fOmega_Mean_line.resize(fNPlanes);    // Mean value of the 2D angular distribution (1=Ind - 0=Coll) cm,cm
-        fOmega_RMS_line.resize(fNPlanes);     // RMS of the 2D angular distribution  (1=Ind - 0=Coll) cm, cm
-
-        fOmega_wt_Mean.resize(fNPlanes); // Mean value of the angular distribution (1=Ind - 0=Coll) wire,time
-        fOmega_wt_RMS.resize(fNPlanes);  // RMS of the angular distribution  (1=Ind - 0=Coll) wire,time
-        fOmega_Mean_reb.resize(fNPlanes);    // Mean value of the 2D angular Rebinned by 4
-        fOmega_RMS_reb.resize(fNPlanes);     // RMS of the 2D angular distribution  Rebinned by 4
-        fOmega_Mean_Mean.resize(fNPlanes);    // Mean value of the 2D angular use mean instead of maximum
- fRMS_wire.resize(fNPlanes);
- fRMS_time.resize(fNPlanes);
- fChisq.resize(fNPlanes);
- fminwir.resize(fNPlanes);
- fmaxwir.resize(fNPlanes);
- fmintime.resize(fNPlanes);
- fmaxtime.resize(fNPlanes);
- fcorrelation.resize(fNPlanes);
- fcovariance.resize(fNPlanes);         
-
-
-
+  fWire_vertex.resize(fNPlanes);
+  fTime_vertex.resize(fNPlanes);
+  fWire_last.resize(fNPlanes);
+  fTime_last.resize(fNPlanes);
+  fChannel_vertex.resize(fNPlanes);
+  fChannel_last.resize(fNPlanes);
+  
+  xyz_vertex.resize(fNPlanes);
+  xyz_vertex_fit.resize(fNPlanes);	
+  
+  test_wire_start.resize(fNPlanes);
+  test_time_start.resize(fNPlanes);
+  
+  wire_start.resize(fNPlanes);wire_end.resize(fNPlanes);;
+  time_start.resize(fNPlanes);time_end.resize(fNPlanes);;
+  
+  slope.resize(fNPlanes);
+  lineslope.resize(fNPlanes);
+  calcslope.resize(fNPlanes);
+  
+  fOmega_Mean.resize(fNPlanes);    // Mean value of the 2D angular distribution (1=Ind - 0=Coll) cm,cm
+  fOmega_RMS.resize(fNPlanes);     // RMS of the 2D angular distribution  (1=Ind - 0=Coll) cm, cm
+  
+  fOmega_Mean_line.resize(fNPlanes);    // Mean value of the 2D angular distribution (1=Ind - 0=Coll) cm,cm
+  fOmega_RMS_line.resize(fNPlanes);     // RMS of the 2D angular distribution  (1=Ind - 0=Coll) cm, cm
+  
+  fOmega_wt_Mean.resize(fNPlanes); // Mean value of the angular distribution (1=Ind - 0=Coll) wire,time
+  fOmega_wt_RMS.resize(fNPlanes);  // RMS of the angular distribution  (1=Ind - 0=Coll) wire,time
+  fOmega_Mean_reb.resize(fNPlanes);    // Mean value of the 2D angular Rebinned by 4
+  fOmega_RMS_reb.resize(fNPlanes);     // RMS of the 2D angular distribution  Rebinned by 4
+  fOmega_Mean_Mean.resize(fNPlanes);    // Mean value of the 2D angular use mean instead of maximum
+  fRMS_wire.resize(fNPlanes);
+  fRMS_time.resize(fNPlanes);
+  fChisq.resize(fNPlanes);
+  fminwir.resize(fNPlanes);
+  fmaxwir.resize(fNPlanes);
+  fmintime.resize(fNPlanes);
+  fmaxtime.resize(fNPlanes);
+  fcorrelation.resize(fNPlanes);
+  fcovariance.resize(fNPlanes);         
 
   /**Get Clusters*/
-  std::cout << "************ What I'm getting out " << fClusterModuleLabel << " " << std::endl;
+  mf::LogInfo("ShowerAngleCluster") << "************ What I'm getting out " 
+				    << fClusterModuleLabel;
+
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fClusterModuleLabel,clusterListHandle);
 
-
-   std::vector< art::PtrVector < recob::Hit> > hitlist_all;
-   //art::PtrVector < recob::Hit> hitlistInd;
-   hitlist_all.resize(fNPlanes);
-
+  std::vector< art::PtrVector < recob::Hit> > hitlist_all;
+  //art::PtrVector < recob::Hit> hitlistInd;
+  hitlist_all.resize(fNPlanes);
+  
+  //std::auto_ptr<std::vector<recob::Shower> > Shower3DVector(new std::vector<recob::Shower>);
  
-    //std::auto_ptr<std::vector<recob::Shower> > Shower3DVector(new std::vector<recob::Shower>);
-
-   
-   art::ServiceHandle<cluster::EndPointService>  endpoints;
-    art::PtrVector<recob::Cluster> clusters;
-
+  art::ServiceHandle<cluster::EndPointService>  endpoints;
+  art::PtrVector<recob::Cluster> clusters;
 
   unsigned int clmaxsize[3]={0.};
   int clmax[3]={0.}; 
-   //first loop on clusters to find the biggest one in each planes
+  //first loop on clusters to find the biggest one in each planes
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii){
 
-      art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
+    art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
+    art::PtrVector<recob::Hit> hitlist;
+    hitlist = cl->Hits();
+    unsigned int p(0),w(0), c(0), t(0); //c=channel, p=plane, w=wire
+    art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin();
+    c=(*a)->Wire()->RawDigit()->Channel(); 
+    geo->ChannelToWire(c,t,p,w);
+    
+    if(hitlist.size()>clmaxsize[p]){
+      clmaxsize[p]=hitlist.size();
+      clmax[p]=ii;
+    }
+       
+  } // end loop determining largest clusters.
       
-  
-     
+  for(unsigned int ii = 0; ii < fNPlanes; ++ii){
+    mf::LogInfo("ShowerAngleCluster") << "cluster size " << clmaxsize[ii] << " nclust " << clmax[ii];
+    art::Ptr<recob::Cluster> cl(clusterListHandle, clmax[ii]);
+    clusters.push_back(cl);
+  }
+            
+  for(unsigned int ii = 0; ii < clusters.size(); ++ii){
+    art::PtrVector<recob::Hit> hitlist;
+    hitlist = clusters[ii]->Hits();
       
-      art::PtrVector<recob::Hit> hitlist;
-      hitlist = cl->Hits();
-      unsigned int p(0),w(0), c(0), t(0); //c=channel, p=plane, w=wire
-      art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin();
+    unsigned int p(0),w(0), c(0), t(0); //c=channel, p=plane, w=wire
+    
+    art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin();
+    c=(*a)->Wire()->RawDigit()->Channel(); 
+    geo->ChannelToWire(c,t,p,w);
+    wire_start[p]=w;
+    
+    //       a = hitlist.end();
+    //       c=(*a)->Wire()->RawDigit()->Channel(); 
+    //       geo->ChannelToWire(c,t,p,w);
+    //       wire_end[p]=w;	
+    
+    //loop over cluster hits
+    for(art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin(); a != hitlist.end();  a++) {
       c=(*a)->Wire()->RawDigit()->Channel(); 
       geo->ChannelToWire(c,t,p,w);
       
-      if(hitlist.size()>clmaxsize[p]){
-	clmaxsize[p]=hitlist.size();
-	clmax[p]=ii;
-      }
-      
-      
-    } // end loop determining largest clusters.
-      
-      
-      for(unsigned int ii=0;ii<fNPlanes;ii++)
-      {
-	std::cout << "cluster size " << clmaxsize[ii] << " nclust " << clmax[ii] << std::endl;
-       art::Ptr<recob::Cluster> cl(clusterListHandle, clmax[ii]);
-       clusters.push_back(cl);
-      }
-      
-      
-      for(unsigned int ii = 0; ii < clusters.size(); ++ii){
+      //geo->Plane(i).View()
 
+      hitlist_all[p].push_back(*a);
       
-     
-      
-      art::PtrVector<recob::Hit> hitlist;
-      hitlist = clusters[ii]->Hits();
-      
-      unsigned int p(0),w(0), c(0), t(0); //c=channel, p=plane, w=wire
-
-      art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin();
-      c=(*a)->Wire()->RawDigit()->Channel(); 
-      geo->ChannelToWire(c,t,p,w);
-      wire_start[p]=w;
-
-//       a = hitlist.end();
-//       c=(*a)->Wire()->RawDigit()->Channel(); 
-//       geo->ChannelToWire(c,t,p,w);
-//       wire_end[p]=w;	
-
-      for(art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin(); a != hitlist.end();  a++) //loop over cluster hits
-      {
-	c=(*a)->Wire()->RawDigit()->Channel(); 
-	geo->ChannelToWire(c,t,p,w);
-
-        //geo->Plane(i).View()
-
-	
-
-          hitlist_all[p].push_back(*a);
-
-// 	if(geo->Plane(p,t).SignalType() == geo::kCollection)
-// 	  {	  
-// 	    hitlistCol.push_back(*a);
-// 
-// 	  }
-// 	else if (geo->Plane(p,t).SignalType() == geo::kInduction)
-// 	  {
-// 	    hitlistInd.push_back(*a);
-// 	  } 
-      }
+      // 	if(geo->Plane(p,t).SignalType() == geo::kCollection)
+      // 	  {	  
+      // 	    hitlistCol.push_back(*a);
+      // 
+      // 	  }
+      // 	else if (geo->Plane(p,t).SignalType() == geo::kInduction)
+      // 	  {
+      // 	    hitlistInd.push_back(*a);
+      // 	  } 
+    }
 
     //  hitlistInd.sort(cluster::SortByWire());
-     // hitlistCol.sort(cluster::SortByWire());
+    // hitlistCol.sort(cluster::SortByWire());
 
 
-    } // End loop on clusters.
+  } // End loop on clusters.
 
 
-  std::cout << " ---- endpoint coordinates " << std::endl;
+  mf::LogInfo("ShowerAngleCluster") << " ---- endpoint coordinates ";
 
-// for(unsigned int ii=0;ii<fNPlanes;ii++)
-//   {
-//   
-//   }
-//       std::vector< recob::EndPoint2D > vtxcol;
-//        endpoints->EndPoint(clusters,vtxcol);
-//        for(unsigned int yy=0;yy<vtxcol.size();yy++)
-// 	  {
-// 	   std::cout << "       ++++ plane, elem " << vtxcol[yy].View() << " " << yy << " pos " << vtxcol[yy].WireNum() << " " << vtxcol[yy].DriftTime() << " strength " << vtxcol[yy].Strength() << std::endl;
-// 	    
-// 	  }
+  // for(unsigned int ii=0;ii<fNPlanes;ii++)
+  //   {
+  //   
+  //   }
+  //       std::vector< recob::EndPoint2D > vtxcol;
+  //        endpoints->EndPoint(clusters,vtxcol);
+  //        for(unsigned int yy=0;yy<vtxcol.size();yy++)
+  // 	  {
+  // 	   std::cout << "       ++++ plane, elem " << vtxcol[yy].View() << " " << yy << " pos " << vtxcol[yy].WireNum() << " " << vtxcol[yy].DriftTime() << " strength " << vtxcol[yy].Strength() << std::endl;
+  // 	    
+  // 	  }
 
+  fRun = evt.id().run();
+  fSubRun = evt.id().subRun();
+  fEvent = evt.id().event();
 
-
-
- fRun = evt.id().run();
- fSubRun = evt.id().subRun();
- fEvent = evt.id().event();
-
-
-
-   // GetVertex(evt);
-if(fUseMCVertex)
+  // GetVertex(evt);
+  // \todo have to get rid of reco dependence on MC
+  if(fUseMCVertex)
     GetVertexN(evt);
-
-
-for(unsigned int i=0;i<fNPlanes;i++)
-   AngularDistribution(hitlist_all[i]); // 2D Direction of the shower in consecutive planes
-
- Find2DStartPoints( hitlist_all);
   
+  for(unsigned int i=0;i<fNPlanes;i++)
+    AngularDistribution(hitlist_all[i]); // 2D Direction of the shower in consecutive planes
 
-//move to 2Dstartpoints
-for(unsigned int p=0;p<fNPlanes;p++)
-{fWire_vertex[p]=wire_start[p];
-fTime_vertex[p]=time_start[p];
-}
+  Find2DStartPoints( hitlist_all);
+  
+  //move to 2Dstartpoints
+  for(unsigned int p = 0; p < fNPlanes; ++p){
+    fWire_vertex[p]=wire_start[p];
+    fTime_vertex[p]=time_start[p];
+  }
 
-   for(unsigned int i=0;i<fNPlanes;i++)
-      {
-       hitlist_all[i].sort(cluster::SortByWire());
-      fh_omega_evt[i]->Reset();
-      fh_omega_evt_reb[i]->Reset();
-     
-       FitAngularDistributions(hitlist_all[i]);  
-      Get2DVariables(hitlist_all[i]);
-	}
+  for(unsigned int i = 0; i < fNPlanes; ++i){
+    hitlist_all[i].sort(cluster::SortByWire());
+    fh_omega_evt[i]->Reset();
+    fh_omega_evt_reb[i]->Reset();
+    
+    FitAngularDistributions(hitlist_all[i]);  
+    Get2DVariables(hitlist_all[i]);
+  }
 
- 
   //AngularDistribution(hitlistCol); // 2D Direction of the shower Collection
-              // Fit of 2d distributions (for both planes)
+  // Fit of 2d distributions (for both planes)
   
-  std::cout << "######## in main loop " << fOmega_Mean[0] << " " <<  fOmega_Mean[1] << std::endl;
+  mf::LogInfo("ShowerAngleCluster") << "######## in main loop " 
+				    << fOmega_Mean[0] << " " <<  fOmega_Mean[1];
   
-art::PtrVector<recob::Hit> clusterHits;
+  art::PtrVector<recob::Hit> clusterHits;
 
+  // make an art::PtrVector of the clusters
+  std::auto_ptr<std::vector<recob::Cluster> > ShowerAngleCluster(new std::vector<recob::Cluster>);
+  std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
+  unsigned int i=0;
 
-
-// make an art::PtrVector of the clusters
-std::auto_ptr<std::vector<recob::Cluster> > ShowerAngleCluster(new std::vector<recob::Cluster>);
-unsigned int i=0;
-
-for(unsigned int iplane=0;iplane<fNPlanes;iplane++)
-{
- clusterHits.clear();
-	int maxlength=0,maxpos=0;
- 	for( i = 0; i < clusterListHandle->size(); ++i){
-   		art::Ptr<recob::Cluster> prod(clusterListHandle, i);
-
-		
-
+  for(unsigned int iplane=0;iplane<fNPlanes;iplane++){
+    clusterHits.clear();
+    int maxlength=0,maxpos=0;
+    for( i = 0; i < clusterListHandle->size(); ++i){
+      art::Ptr<recob::Cluster> prod(clusterListHandle, i);
       art::PtrVector<recob::Hit> hitlist;
       hitlist = prod->Hits();
       
@@ -541,58 +476,60 @@ for(unsigned int iplane=0;iplane<fNPlanes;iplane++)
       c=(*a)->Wire()->RawDigit()->Channel(); 
       geo->ChannelToWire(c,t,p,w);                
 
-// does not work due to plane reordering.
-//if((prod->View()-1)!=iplane)
-//			continue;
+      // does not work due to plane reordering.
+      //if((prod->View()-1)!=iplane)
+      //			continue;
 
-	if((p)!=iplane)
-			continue;
+      if((p)!=iplane) continue;
 
-	//	std::cout << "----- looping on clusters " << i << " " << prod->View()-1 << " " <<prod->Hits().size() << std::endl;
-	//	std::cout << "----- lenght and pos " << i << " " << maxlength << " "  <<maxpos << std::endl;
+      if(  (prod->Hits().size() > (unsigned int)maxlength) ){
+	maxpos=i;
+	maxlength=prod->Hits().size();
+	//        std::cout << "++++ condition ok " << std::endl << std::endl;
+      }
+    }
 
-   		if(  (prod->Hits().size() > (unsigned int)maxlength) )
-		{
-        		maxpos=i;
-        		maxlength=prod->Hits().size();
-          //        std::cout << "++++ condition ok " << std::endl << std::endl;
-		}
- 	}
+    art::Ptr<recob::Cluster> prod(clusterListHandle, maxpos);
 
-art::Ptr<recob::Cluster> prod(clusterListHandle, maxpos);
+    for(unsigned int ii = 0; ii < prod->Hits().size(); ++ii)
+      clusterHits.push_back(prod->Hits()[ii]);
 
-for(unsigned int ii=0;ii<prod->Hits().size();ii++)
-  clusterHits.push_back(prod->Hits()[ii]);
+    int wirevert=prod->StartPos()[0];
+    double timevert=prod->StartPos()[1];
 
+    int wireend=wire_end[iplane];
+    double timeend=time_end[iplane];
 
-int wirevert=prod->StartPos()[0];
-double timevert=prod->StartPos()[1];
+    // \todo must get rid of reconstruction dependence on MC
+    if(fUseMCVertex){
+      wirevert=fWire_vertex[iplane];
+      timevert=fTime_vertex[iplane];
+    }
 
-int wireend=wire_end[iplane];
-double timeend=time_end[iplane];
+    recob::Cluster temp(clusterHits,
+			wirevert, prod->SigmaStartPos()[0],
+			timevert, prod->SigmaStartPos()[1], 
+			wireend, prod->SigmaEndPos()[0],
+			timeend, prod->SigmaEndPos()[1], 
+			slope[iplane], slope[iplane]*0.05, 
+			lineslope[iplane], lineinterc[iplane], 
+			iplane);
 
-
-if(fUseMCVertex)
-{
-wirevert=fWire_vertex[iplane];
-timevert=fTime_vertex[iplane];
-}
-
-recob::Cluster temp(clusterHits,wirevert, prod->SigmaStartPos()[0],timevert, prod->SigmaStartPos()[1], wireend, prod->SigmaEndPos()[0],timeend, prod->SigmaEndPos()[1], slope[iplane], slope[iplane]*0.05, lineslope[iplane],lineinterc[iplane], iplane);
-
-std::cout << "######## in plane loop filling clusters " << std::endl; 
-
-ShowerAngleCluster->push_back(temp);
-}
-
-
+    // loop over the hits and make the associations to this cluster
+    art::ProductID clid = getProductID<std::vector<recob::Cluster> >(evt);
+    art::Ptr<recob::Cluster> cptr(clid, ShowerAngleCluster->size()-1, evt.productGetter(clid));
+    for(size_t h = 0; h < clusterHits.size(); ++h) assn->addSingle(cptr, clusterHits[h]);
+    
+    mf::LogInfo("ShowerAngleCluster") << "######## in plane loop filling clusters ";
+    
+    ShowerAngleCluster->push_back(temp);
+  }
 
   /**Fill the output tree with all information */
-    ftree_cluster->Fill();
-
+  ftree_cluster->Fill();
 
   evt.put(ShowerAngleCluster);
-
+  evt.put(assn);
 }
 
 
@@ -600,29 +537,32 @@ ShowerAngleCluster->push_back(temp);
 
 // Angular distribution of the energy of the shower - Collection view
 void cluster::ShowerAngleCluster::AngularDistribution(art::PtrVector < recob::Hit>  hitlist){
-  std::cout << "------ in angular distribution, n of hits " << hitlist.size() << std::endl;
-  int    loop = 0; // flag
-  art::ServiceHandle<geo::Geometry> geom;
-  double time;
-  unsigned int wire;
-  unsigned int channel,plane;
-
-
- art::Ptr<recob::Hit> theHit = (*hitlist.begin());
-    time = theHit->PeakTime();  
-    //time_C -= (presamplings+10.1);
-    art::Ptr<recob::Wire> theWire = theHit->Wire();
-    channel = theWire->RawDigit()->Channel();
-    geom->ChannelToWire(channel, tpc, plane, wire);
   
-    
-unsigned int minwire=wire,maxwire=0;;
-double mintime=99999,maxtime=0.;
+  mf::LogInfo("ShowerAngleCluster") << "------ in angular distribution, n of hits " << hitlist.size();
 
-	tgx[plane]->Reset();
-        tgx2[plane]->Reset();
-   	//tgx[plane]->Set(hitlist.size());
+  art::ServiceHandle<geo::Geometry> geom;
+  int    loop = 0; // flag
+  double time = 0.;
+  unsigned int wire    = 0;
+  unsigned int channel = 0;
+  unsigned int plane   = 0;
 
+  art::Ptr<recob::Hit> theHit = (*hitlist.begin());
+  time = theHit->PeakTime();  
+  //time_C -= (presamplings+10.1);
+  art::Ptr<recob::Wire> theWire = theHit->Wire();
+  channel = theWire->RawDigit()->Channel();
+  geom->ChannelToWire(channel, tpc, plane, wire);
+  
+  unsigned int minwire = wire;
+  unsigned int maxwire = 0;
+  double       mintime = 99999.;
+  double       maxtime = 0.;
+ 
+  tgx[plane]->Reset();
+  tgx2[plane]->Reset();
+  //tgx[plane]->Set(hitlist.size());
+  
   // this should changed on the loop on the cluster of the shower
   for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     art::Ptr<recob::Hit> theHit = (*hitIter);
@@ -632,33 +572,34 @@ double mintime=99999,maxtime=0.;
     channel = theWire->RawDigit()->Channel();
     geom->ChannelToWire(channel, tpc, plane, wire);
     
-   maxwire=wire;   
+    maxwire = wire;   
 
-   if(time>maxtime)
-	maxtime=time;
+   if(time > maxtime) maxtime = time;
 
-if(time<mintime)
-	mintime=time;
-
- 
-
-  
+   if(time < mintime) mintime = time;
 
     loop++; // flag counter
   }
-  std::cout << "VertexWireC= " << fWire_vertex[plane] << "   VerTimeC= " << fTime_vertex[plane] << std::endl;
- 
 
-
-  int nbinsx= (maxwire+20-minwire+20)*fMean_wire_pitch;  // nbins to have 
-  int nbinsy= (maxtime+200-mintime+200)*ftimetick*0.158;  // nbins to have 
-
+  mf::LogInfo("ShowerAngleCluster") << "VertexWireC= " << fWire_vertex[plane] 
+				    << "   VerTimeC= " << fTime_vertex[plane];
  
-  tgx[plane]->SetBins(nbinsx,(minwire-20)*fMean_wire_pitch,(maxwire+20)*fMean_wire_pitch,nbinsy,(mintime-200)*ftimetick*0.158,(maxtime+200)*ftimetick*0.158);
-  tgx2[plane]->SetBins(nbinsx,(minwire-20)*fMean_wire_pitch,(maxwire+20)*fMean_wire_pitch,nbinsy,(mintime-200)*ftimetick*0.158,(maxtime+200)*ftimetick*0.158);
+  int nbinsx = (maxwire+20-minwire+20)*fMean_wire_pitch;  // nbins to have 
+  int nbinsy = (maxtime+200-mintime+200)*ftimetick*0.158; // nbins to have 
+
+  tgx[plane]->SetBins(nbinsx, 
+		      (minwire-20)*fMean_wire_pitch,
+		      (maxwire+20)*fMean_wire_pitch,
+		      nbinsy,
+		      (mintime-200)*ftimetick*0.158,
+		      (maxtime+200)*ftimetick*0.158);
+  tgx2[plane]->SetBins(nbinsx,
+		       (minwire-20)*fMean_wire_pitch,
+		       (maxwire+20)*fMean_wire_pitch,
+		       nbinsy,
+		       (mintime-200)*ftimetick*0.158,
+		       (maxtime+200)*ftimetick*0.158);
  
-  
-  
   for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     art::Ptr<recob::Hit> theHit = (*hitIter);
     time = theHit->PeakTime();  
@@ -667,76 +608,66 @@ if(time<mintime)
     channel = theWire->RawDigit()->Channel();
     geom->ChannelToWire(channel, tpc, plane, wire);
   
-   tgx[plane]->Fill((double)wire*fMean_wire_pitch,time*ftimetick*0.158,theHit->Charge());
-   tgx2[plane]->Fill((double)wire*fMean_wire_pitch,time*ftimetick*0.158);		
-
+    tgx[plane]->Fill((double)wire*fMean_wire_pitch,time*ftimetick*0.158,theHit->Charge());
+    tgx2[plane]->Fill((double)wire*fMean_wire_pitch,time*ftimetick*0.158);		
+    
   }
   
-double w_bar=0,t_bar=0;
-int nhits=0;
+  double w_bar=0,t_bar=0;
+  int nhits=0;
 
-for(int i=0;i<tgx2[plane]->GetNbinsX();i++)
-	for(int j=0;j<tgx2[plane]->GetNbinsY();j++)
-		{
-		if(tgx2[plane]->GetBinContent(i,j)<=3)
-			tgx2[plane]->SetBinContent(i,j,0);
-		else
-		      {
-			w_bar+=tgx2[plane]->GetXaxis()->GetBinCenter(i);
-			t_bar+=tgx2[plane]->GetYaxis()->GetBinCenter(j);
-			nhits++;
-			}	
-		}
+  for(int i = 0; i < tgx2[plane]->GetNbinsX(); ++i){
+    for(int j = 0; j < tgx2[plane]->GetNbinsY(); ++j){
+      if(tgx2[plane]->GetBinContent(i,j)<=3)
+	tgx2[plane]->SetBinContent(i,j,0);
+      else{
+	w_bar+=tgx2[plane]->GetXaxis()->GetBinCenter(i);
+	t_bar+=tgx2[plane]->GetYaxis()->GetBinCenter(j);
+	nhits++;
+      }	
+    }
+  }
 
- 
+  w_bar /= nhits;
+  t_bar /= nhits;
 
-w_bar/=nhits;
-t_bar/=nhits;
+  double Sxx=0;
+  double Syy=0;
+  double Sxy=0;
 
-double Sxx=0,Syy=0,Sxy=0;
-
-for(int i=0;i<tgx2[plane]->GetNbinsX();i++)
-	for(int j=0;j<tgx2[plane]->GetNbinsY();j++)
-		{
-		if(tgx2[plane]->GetBinContent(i,j)>3)
-			{Sxx+=(tgx2[plane]->GetXaxis()->GetBinCenter(i)-w_bar)*(tgx2[plane]->GetXaxis()->GetBinCenter(i)-w_bar);
-			Syy+=(tgx2[plane]->GetYaxis()->GetBinCenter(j)-t_bar)*(tgx2[plane]->GetYaxis()->GetBinCenter(j)-t_bar);
-			Sxy+=(tgx2[plane]->GetYaxis()->GetBinCenter(j)-t_bar)*(tgx2[plane]->GetXaxis()->GetBinCenter(i)-w_bar);;
-			}
-		}
-
-
- 
-
-
+  for(int i = 0; i < tgx2[plane]->GetNbinsX(); ++i){
+    for(int j = 0; j < tgx2[plane]->GetNbinsY(); ++j){
+      if(tgx2[plane]->GetBinContent(i,j) > 3){
+	Sxx+=(tgx2[plane]->GetXaxis()->GetBinCenter(i)-w_bar)*(tgx2[plane]->GetXaxis()->GetBinCenter(i)-w_bar);
+	Syy+=(tgx2[plane]->GetYaxis()->GetBinCenter(j)-t_bar)*(tgx2[plane]->GetYaxis()->GetBinCenter(j)-t_bar);
+	Sxy+=(tgx2[plane]->GetYaxis()->GetBinCenter(j)-t_bar)*(tgx2[plane]->GetXaxis()->GetBinCenter(i)-w_bar);;
+      }
+    }
+  }
  
   tgx[plane]->Fit(Form("linefit_%d",plane),"QMRNCFrob=0.8");
   tgx2[plane]->Fit(Form("linefit_2_%d",plane),"QMRNCFrob=0.95");
 
+  mf::LogInfo("ShowerAngleCluster") << "{{{-----}}}  histo stats: rms w,t " 
+				    << tgx[plane]->GetRMS(1) << " " 
+				    << tgx[plane]->GetRMS(2) << " chisq " 
+				    << linefit[plane]->GetChisquare()/linefit[plane]->GetNDF() 
+				    << " max, min wires and times " 
+				    << minwire << " " <<maxwire << " " 
+				    <<  mintime << " " << maxtime;
 
-std::cout << "{{{-----}}}  histo stats: rms w,t " << tgx[plane]->GetRMS(1) << " " << tgx[plane]->GetRMS(2) << " chisq " << linefit[plane]->GetChisquare()/linefit[plane]->GetNDF() << " max, min wires and times " <<
-minwire << " " <<maxwire << " " <<  mintime << " " << maxtime << std::endl;
-
-
-fRMS_wire[plane]=tgx[plane]->GetRMS(1);
-fRMS_time[plane]=tgx[plane]->GetRMS(2);
-fChisq[plane]=linefit[plane]->GetChisquare()/linefit[plane]->GetNDF();
-fminwir[plane]=minwire;
-fmaxwir[plane]=maxwire;
-fmintime[plane]=mintime;
-fmaxtime[plane]= maxtime;
-fcorrelation[plane]=tgx[plane]->GetCorrelationFactor();
-fcovariance[plane]=tgx[plane]->GetCovariance();
+  fRMS_wire[plane]    = tgx[plane]->GetRMS(1);				     
+  fRMS_time[plane]    = tgx[plane]->GetRMS(2);				     
+  fChisq[plane]       = linefit[plane]->GetChisquare()/linefit[plane]->GetNDF();
+  fminwir[plane]      = minwire;						     
+  fmaxwir[plane]      = maxwire;						     
+  fmintime[plane]     = mintime;						     
+  fmaxtime[plane]     = maxtime;                                                
+  fcorrelation[plane] = tgx[plane]->GetCorrelationFactor();
+  fcovariance[plane]  = tgx[plane]->GetCovariance();
 
   return (void)0;
 }
-
-
-
-
-
-
-
 
 // ***************** //
 void cluster::ShowerAngleCluster::FitAngularDistributions(art::PtrVector < recob::Hit> hitlist){
@@ -744,7 +675,8 @@ void cluster::ShowerAngleCluster::FitAngularDistributions(art::PtrVector < recob
  // art::ServiceHandle<geo::Geometry> geo;
   //unsigned int planes = geo->Nplanes();
   //TF1 *gau = new TF1("gaus","gaus",-60, 60);
- std::cout << "------ in angular distribution, n of hits " << hitlist.size() << std::endl;
+  mf::LogInfo("ShowerAngleCluster") << "------ in angular distribution, n of hits " 
+				    << hitlist.size();
 
   art::ServiceHandle<geo::Geometry> geom;
   double time;
@@ -753,16 +685,14 @@ void cluster::ShowerAngleCluster::FitAngularDistributions(art::PtrVector < recob
   double omega;
   unsigned int channel,iplane,plane;
 
-art::Ptr<recob::Hit> theHit = (*hitlist.begin());
-    time = theHit->PeakTime();  
-    //time_C -= (presamplings+10.1);
-    art::Ptr<recob::Wire> theWire = theHit->Wire();
-    channel = theWire->RawDigit()->Channel();
-    geom->ChannelToWire(channel, tpc, iplane, wire);
+  art::Ptr<recob::Hit> theHit = (*hitlist.begin());
+  time = theHit->PeakTime();  
+  //time_C -= (presamplings+10.1);
+  art::Ptr<recob::Wire> theWire = theHit->Wire();
+  channel = theWire->RawDigit()->Channel();
+  geom->ChannelToWire(channel, tpc, iplane, wire);
 
-
-
-   	//tgx[plane]->Set(hitlist.size());
+  //tgx[plane]->Set(hitlist.size());
 
   // this should changed on the loop on the cluster of the shower
   for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
@@ -772,62 +702,60 @@ art::Ptr<recob::Hit> theHit = (*hitlist.begin());
     art::Ptr<recob::Wire> theWire = theHit->Wire();
     channel = theWire->RawDigit()->Channel();
     geom->ChannelToWire(channel, tpc, plane, wire);
-  
-      BC = ((double)wire - fWire_vertex[plane])*fMean_wire_pitch; // in cm
-      AC = ((double)time - fTime_vertex[plane])*ftimetick*0.158; //in cm 
-      omega = asin(  AC/sqrt(pow(AC,2)+pow(BC,2)) );
- 
-      if(BC<0)  // for the time being. Will check if it works for AC<0
-	  { 
-	  if(AC!=0)
-	  omega= AC/fabs(AC)*pi-omega;  //subtract when negative, add when positive
-	  else    
-	  omega=pi;
-	  } 
+    
+    BC = ((double)wire - fWire_vertex[plane])*fMean_wire_pitch; // in cm
+    AC = ((double)time - fTime_vertex[plane])*ftimetick*0.158; //in cm 
+    omega = asin(  AC/sqrt(pow(AC,2)+pow(BC,2)) );
+    
+    // for the time being. Will check if it works for AC<0
+    if(BC < 0){ 
+      if(AC != 0) omega = AC/fabs(AC)*pi-omega;  //subtract when negative, add when positive
+      else        omega = pi;
+    } 
 
-      omega = 180*omega/3.14;
-      fh_theta[plane]->Fill(omega, theHit->Charge()); // Filling the histo (angle, energy of the hit)
-      fh_omega_evt[plane]->Fill(omega, theHit->Charge());
-
-  
-      fh_omega_evt_reb[plane]->Fill(omega, theHit->Charge());
+    omega = 180*omega/3.14;
+    fh_theta[plane]->Fill(omega, theHit->Charge()); // Filling the histo (angle, energy of the hit)
+    fh_omega_evt[plane]->Fill(omega, theHit->Charge());
+    fh_omega_evt_reb[plane]->Fill(omega, theHit->Charge());
 
   }
+
   //for(unsigned int iplane = 0; iplane < fNPlanes; ++iplane){
+  // Mean value of the fit
+  fOmega_Mean[iplane] = fh_omega_evt[iplane]->GetBinCenter(fh_omega_evt[iplane]->GetMaximumBin());
+  fOmega_RMS[iplane]  = fh_omega_evt[iplane]->GetRMS(); // RMS of the fit of the angular distribution in deg
   
+  // Mean value of the fit
+  fOmega_Mean_reb[iplane]  = fh_omega_evt_reb[iplane]->GetBinCenter(fh_omega_evt_reb[iplane]->GetMaximumBin());
 
-    fOmega_Mean[iplane] =
-    fh_omega_evt[iplane]->GetBinCenter(fh_omega_evt[iplane]->GetMaximumBin());// Mean value of the fit
-    fOmega_RMS[iplane] = fh_omega_evt[iplane]->GetRMS(); // RMS of the fit of the angular distribution in deg
-
-    fOmega_Mean_reb[iplane]= fh_omega_evt_reb[iplane]->GetBinCenter(fh_omega_evt_reb[iplane]->GetMaximumBin());// Mean value of the fit
-    fOmega_RMS[iplane] = fh_omega_evt_reb[iplane]->GetRMS(); // RMS of the fit of the angular distribution in deg
-    fOmega_Mean_Mean[iplane]= fh_omega_evt[iplane]->GetMean();// Mean value of the;    // Mean value of the 2D angular use mean instead of maximum
+  // RMS of the fit of the angular distribution in deg
+  fOmega_RMS[iplane]       = fh_omega_evt_reb[iplane]->GetRMS(); 
+  // Mean value of the 2D angular use mean instead of maximum
+  fOmega_Mean_Mean[iplane] = fh_omega_evt[iplane]->GetMean();
     
-std::cout << "########## intermediate angles, plane: " << iplane << " stand, _w reb, mean " << fOmega_Mean[iplane] << " " << fOmega_Mean_reb[iplane] << " " << fOmega_Mean_Mean[iplane] << std::endl;
+  mf::LogInfo("ShowerAngleCluster") << "########## intermediate angles, plane: " << iplane 
+				    << " stand, _w reb, mean " 
+				    << fOmega_Mean[iplane] << " " 
+				    << fOmega_Mean_reb[iplane] << " " 
+				    << fOmega_Mean_Mean[iplane];
 
 
-fOmega_Mean_line[iplane]=atan(linefit[iplane]->GetParameter(1));
+  fOmega_Mean_line[iplane]=atan(linefit[iplane]->GetParameter(1));
 
 
-for(int i=0;i<180;i++)
-{fSingleEvtAngleVal[iplane][i]=fh_omega_evt_reb[iplane]->GetBinContent(i);
-//fSingleEvtAngle[iplane][i]=fh_omega_evt[iplane]->GetBinContent(i);
-fSingleEvtAngle[iplane][i]=(double)i*2-180;
-}
-  //}
-//  double  Low_th  = fOmega_Mean[iplane]-(alpha*fOmega_RMS[iplane]);
-//  double  High_th = fOmega_Mean[iplane]+(alpha*fOmega_RMS[iplane]);
+  for(int i=0;i<180;i++){
+    fSingleEvtAngleVal[iplane][i]=fh_omega_evt_reb[iplane]->GetBinContent(i);
+    //fSingleEvtAngle[iplane][i]=fh_omega_evt[iplane]->GetBinContent(i);
+    fSingleEvtAngle[iplane][i]=(double)i*2-180;
+  }
 
+  slope[iplane] = tan((fOmega_Mean[iplane]*pi/180))*fMean_wire_pitch/(ftimetick*fdriftvelocity);
 
-slope[iplane] = tan((fOmega_Mean[iplane]*pi/180))*fMean_wire_pitch/(ftimetick*fdriftvelocity);
+  calcslope[iplane]=linefit2[iplane]->GetParameter(1);
 
-
-
-calcslope[iplane]=linefit2[iplane]->GetParameter(1);
-
-std::cout << " ((------stand slope and slope from hits only ----- )) " << slope[iplane] << " " << calcslope[iplane] << "  "<< std::endl;
-
+  mf::LogInfo("ShowerAngleCluster") << " ((------stand slope and slope from hits only ----- )) " 
+				    << slope[iplane] << " " << calcslope[iplane];
+  
 }
 
 

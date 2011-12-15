@@ -38,12 +38,13 @@
 namespace cluster{
 
   //-------------------------------------------------
-  LineMerger::LineMerger(fhicl::ParameterSet const& pset) : 
-    fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel")),
-    fSlope             (pset.get<double     >("Slope")),
-    fEndpointWindow         (pset.get<double     >("EndpointWindow"))
+  LineMerger::LineMerger(fhicl::ParameterSet const& pset) 
+    : fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel"))
+    , fSlope             (pset.get<double     >("Slope"))
+    , fEndpointWindow    (pset.get<double     >("EndpointWindow"))
   {
     produces< std::vector<recob::Cluster> >();
+    produces< art::Assns<recob::Cluster, recob::Hit> >();
   }
 
   //-------------------------------------------------
@@ -99,6 +100,7 @@ namespace cluster{
     // because that handles the memory management for you
     //////////////////////////////////////////////////////
     std::auto_ptr<std::vector<recob::Cluster> > SuperClusters(new std::vector<recob::Cluster>);
+    std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
     for(int i = 0; i<nplanes; ++i){
       int clustersfound = 0;//how many merged clusters found in each plane
@@ -110,6 +112,14 @@ namespace cluster{
 	  continue;
 	}
 	SuperClusters->push_back(*cl1); 
+
+	// associate the hits with the cluster
+	// todo get the hits in a better manner once they are no longer data members
+	art::PtrVector<recob::Hit> ptrvs = SuperClusters->back().Hits();
+	art::ProductID clid = getProductID<std::vector<recob::Cluster> >(evt);
+	art::Ptr<recob::Cluster> cptr(clid, SuperClusters->size()-1, evt.productGetter(clid));
+	for(size_t h = 0; h < ptrvs.size(); ++h) assn->addSingle(cptr,ptrvs[h]);
+
 	Cls_matches[i][clsnum1]=1; 
 	//SuperClusters->back().SetID(clustersfound);//IDs are sequential by plane, starting from 0
 	++clustersfound;
@@ -123,13 +133,15 @@ namespace cluster{
 	    clsnum2++;
 	    continue;
 	  }
-
-	  //check that the slopes are the same
-	  //added 13.5 ticks/wirelength in ArgoNeuT. need to make this detector agnostic--spitz
-	  //would be nice to have a LArProperties function that returns ticks/wire.
+	  
+	  // check that the slopes are the same
+	  // added 13.5 ticks/wirelength in ArgoNeuT. 
+	  // \todo need to make this detector agnostic--spitz
+	  // would be nice to have a LArProperties function that returns ticks/wire.
 	  bool sameSlope = SlopeCompatibility(SCl.dTdW()*(1./13.5),cl2->dTdW()*(1./13.5));  
-
-	  //check that the endpoints fall within a circular window of each other //spitz did this in place of intercept matching
+	  
+	  //check that the endpoints fall within a circular window of each other 
+	  //spitz did this in place of intercept matching
 	  bool sameEndpoint = EndpointCompatibility(SCl.StartPos(),SCl.EndPos(),cl2->StartPos(),cl2->EndPos());
 
 
@@ -150,7 +162,8 @@ namespace cluster{
     for(unsigned int i = 0; i<SuperClusters->size(); ++i) mf::LogVerbatim("Summary") << SuperClusters->at(i) ;
 
     evt.put(SuperClusters);
-     
+    evt.put(assn);
+
     return;
 
   }
