@@ -114,7 +114,7 @@ namespace cluster{
 	SuperClusters->push_back(*cl1); 
 
 	// associate the hits with the cluster
-	// todo get the hits in a better manner once they are no longer data members
+	// \todo get the hits in a better manner once they are no longer data members
 	art::PtrVector<recob::Hit> ptrvs = SuperClusters->back().Hits();
 	art::ProductID clid = getProductID<std::vector<recob::Cluster> >(evt);
 	art::Ptr<recob::Cluster> cptr(clid, SuperClusters->size()-1, evt.productGetter(clid));
@@ -143,7 +143,6 @@ namespace cluster{
 	  //check that the endpoints fall within a circular window of each other 
 	  //spitz did this in place of intercept matching
 	  bool sameEndpoint = EndpointCompatibility(SCl.StartPos(),SCl.EndPos(),cl2->StartPos(),cl2->EndPos());
-
 
 	  if(sameSlope && sameEndpoint){
 	    SuperClusters->back() = SuperClusters->back() + *cl2;
