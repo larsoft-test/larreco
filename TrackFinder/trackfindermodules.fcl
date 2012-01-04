@@ -53,8 +53,6 @@ argoneut_spacepoint_finder:
 {
   module_type:        "SpacePointFinder"
   ClusterModuleLabel: "dbcluster"
-  UseMC:              "false"
-  G4ModuleLabel:      "largeant"
   Filter:             "true"
 }
 
@@ -118,8 +116,6 @@ microboone_spacepoint_finder:
 {
   module_type:        "SpacePointFinder"
   ClusterModuleLabel: "dbcluster"
-  UseMC:              "false"
-  G4ModuleLabel:      "largeant"
   Filter:             "true"
 }
 
