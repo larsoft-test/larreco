@@ -27,7 +27,6 @@ services.user.DBScanService:      @local::microboone_dbscanservice
 services.user.EndPointService:    @local::microboone_endpointservice
 services.user.HoughLineService:   @local::microboone_houghlineservice
 services.user.SpacePointService:  @local::microboone_spacepointservice
-services.user.SpacePointService.UseMC: false
 
 services.message.destinations.debugmsg.type: "cout"
 services.message.destinations.debugmsg.categories.default.limit: 1000000
@@ -63,5 +62,6 @@ physics:
 }
 
 physics.analyzers.spacepoint: @local::microboone_spacepoint
-physics.analyzers.spacepoint.MaxDT: 0.
-physics.analyzers.spacepoint.MaxS: 0.
+physics.analyzers.spacepoint.UseMC: false
+#physics.analyzers.spacepoint.MaxDT: 0.
+#physics.analyzers.spacepoint.MaxS: 0.

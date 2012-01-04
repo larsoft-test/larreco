@@ -32,9 +32,10 @@ namespace trkf {
     // Arguments: pset - Module parameters.
     //
     fHitModuleLabel(pset.get<std::string>("HitModuleLabel")),
-    fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel")),
-    fG4ModuleLabel(pset.get<std::string>("G4ModuleLabel")),
     fUseClusterHits(pset.get<bool>("UseClusterHits")),
+    fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel")),
+    fUseMC(pset.get<bool>("UseMC")),
+    fG4ModuleLabel(pset.get<std::string>("G4ModuleLabel")),
     fMaxDT(pset.get<double>("MaxDT")),
     fMaxS(pset.get<double>("MaxS")),
     fBooked(false),
@@ -59,8 +60,10 @@ namespace trkf {
     mf::LogInfo("SpacePointService") 
       << "SpacePointAna configured with the following parameters:\n"
       << "  HitModuleLabel = " << fHitModuleLabel << "\n"
-      << "  ClusterModuleLabel = " << fClusterModuleLabel << "\n"
       << "  UseClusterHits = " << fUseClusterHits << "\n"
+      << "  ClusterModuleLabel = " << fClusterModuleLabel << "\n"
+      << "  UseMC = " << fUseMC << "\n"
+      << "  G4ModuleLabel = " << fG4ModuleLabel << "\n"
       << "  MaxDT = " << fMaxDT << "\n"
       << "  MaxS = " << fMaxS;
   }
@@ -241,10 +244,12 @@ namespace trkf {
     // time cut (for time histograms).
 
     if(fMaxDT != 0) {
-      if(simchanh.size() > 0)
-	sptsvc->makeSpacePoints(hits, spts1, simchanv, fMaxDT, 0.);
+      if(mc && fUseMC)
+	sptsvc->makeMCTruthSpacePoints(hits, spts1, simchanv,
+				       sptsvc->filter(), fMaxDT, 0.);
       else
-	sptsvc->makeSpacePoints(hits, spts1, fMaxDT, 0.);
+	sptsvc->makeSpacePoints(hits, spts1,
+				sptsvc->filter(), fMaxDT, 0.);
 
       // Report number of space points.
 
@@ -256,10 +261,12 @@ namespace trkf {
     // separation cut (for separation histogram).
 
     if(fMaxS != 0.) {
-      if(simchanh.size() > 0)
-	sptsvc->makeSpacePoints(hits, spts2, simchanv, 0., fMaxS);
+      if(mc && fUseMC)
+	sptsvc->makeMCTruthSpacePoints(hits, spts2, simchanv,
+				       sptsvc->filter(), 0., fMaxS);
       else
-	sptsvc->makeSpacePoints(hits, spts2, 0., fMaxS);
+	sptsvc->makeSpacePoints(hits, spts2,
+				sptsvc->filter(), 0., fMaxS);
 
       // Report number of space points.
 
@@ -269,8 +276,8 @@ namespace trkf {
 
     // Make space points using default cuts.
 
-    if(simchanh.size() > 0)
-      sptsvc->makeSpacePoints(hits, spts3, simchanv);
+    if(mc && fUseMC)
+      sptsvc->makeMCTruthSpacePoints(hits, spts3, simchanv);
     else
       sptsvc->makeSpacePoints(hits, spts3);
 

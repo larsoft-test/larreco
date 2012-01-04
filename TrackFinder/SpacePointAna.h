@@ -36,9 +36,10 @@ namespace trkf {
     // Fcl Attributes.
 
     std::string fHitModuleLabel;
-    std::string fClusterModuleLabel;
-    std::string fG4ModuleLabel;    // For SimChannel.
     bool fUseClusterHits;
+    std::string fClusterModuleLabel;
+    bool fUseMC;
+    std::string fG4ModuleLabel;    // For SimChannel.
     double fMaxDT;
     double fMaxS;
 

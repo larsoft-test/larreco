@@ -41,11 +41,21 @@ argoneut_spacepoint:
 {
   module_type:        "SpacePointAna"
   HitModuleLabel:     "ffthit"
-  ClusterModuleLabel: "dbcluster"
-  G4ModuleLabel:      "largeant"
   UseClusterHits:     true
+  ClusterModuleLabel: "dbcluster"
+  UseMC:              false
+  G4ModuleLabel:      "largeant"
   MaxDT:              50.
   MaxS:               10.
+}
+
+argoneut_spacepoint_finder:
+{
+  module_type:        "SpacePointFinder"
+  ClusterModuleLabel: "dbcluster"
+  UseMC:              "false"
+  G4ModuleLabel:      "largeant"
+  Filter:             "true"
 }
 
 microboone_track:
@@ -96,11 +106,21 @@ microboone_spacepoint:
 {
   module_type:        "SpacePointAna"
   HitModuleLabel:     "ffthit"
-  ClusterModuleLabel: "dbcluster"
-  G4ModuleLabel:      "largeant"
   UseClusterHits:     true
+  ClusterModuleLabel: "dbcluster"
+  UseMC:              false
+  G4ModuleLabel:      "largeant"
   MaxDT:              50.
   MaxS:               10.
+}
+
+microboone_spacepoint_finder:
+{
+  module_type:        "SpacePointFinder"
+  ClusterModuleLabel: "dbcluster"
+  UseMC:              "false"
+  G4ModuleLabel:      "largeant"
+  Filter:             "true"
 }
 
 END_PROLOG

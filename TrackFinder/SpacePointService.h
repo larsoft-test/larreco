@@ -12,7 +12,6 @@
 ///
 /// FCL parameters:
 ///
-/// UseMC - Use MC truth information to find only true space points.
 /// MaxDT - The maximum time difference (ticks) between any pair of hits.
 /// MaxS  - The maximum 3-view wire separation parameter S (cm).
 /// TimeOffsetU - Plane U time offset (ticks).
@@ -36,7 +35,12 @@
 ///
 /// The time offsets are subtracted from times embedded in hits before
 /// comparing times in different planes, and before converting time
-/// to distance. 
+/// to distance.
+///
+/// Actual corrected times for hits use time offsets calculated using
+/// method fillTimeOffset.  These time offsets include all known geometric
+/// and electronic time offsets from Geometry, DetectorProperties, and
+/// LArProperties services, in addition to the configuration time offsets.
 ///
 /// If enabled, filtering eliminates multiple space points with similar
 /// times on the same wire of the most popluated plane.
@@ -72,6 +76,19 @@ namespace trkf {
     // Destructor.
     ~SpacePointService();
 
+    // Configuration Accessors.
+
+    bool filter() const {return fFilter;}
+    double maxDT() const {return fMaxDT;}
+    double maxS() const {return fMaxS;}
+    int minViews() const {return fMinViews;}
+    double timeOffsetU() const {return fTimeOffsetU;}
+    double timeOffsetV() const {return fTimeOffsetV;}
+    double timeOffsetW() const {return fTimeOffsetW;}
+    bool enableU() const {return fEnableU;}
+    bool enableV() const {return fEnableV;}
+    bool enableW() const {return fEnableW;}
+
     // Update configuration parameters.
     void reconfigure(const fhicl::ParameterSet& pset);
 
@@ -89,13 +106,6 @@ namespace trkf {
     // Spatial separation of hits (zero if two or fewer).
     double separation(const art::PtrVector<recob::Hit>& hits) const;
 
-    // Test whether the specified hits are compatible with a space point.
-    // The last two arguments can be used to override the default cuts.
-    bool compatible(const art::PtrVector<recob::Hit>& hits,
-		    const std::vector<std::vector<double> >& timeOffset,
-		    double maxDT = 0.,
-		    double maxS = 0.) const;
-
     // Fill a single space point using the specified hits.
     // Hits are assumed to be compatible.
     // Returned value is a time goodness of fit (smaller is better, like chisquare).
@@ -105,23 +115,48 @@ namespace trkf {
 
     // Fill a vector of space points from an unsorted collection of hits.
     // Space points are generated for all compatible combinations of hits.
-    // The last two arguments can be used to override the default cuts.
+    // Second version of this method allows to override various
+    // configuration parameters.
+    void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
+			 std::vector<recob::SpacePoint>& spts) const;
     void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 			 std::vector<recob::SpacePoint>& spts,
-			 double maxDT = 0.,
-			 double maxS = 0.) const;
+			 bool filter,
+			 double maxDT,
+			 double maxS) const;
 
-    // The following versions of the makeSpacePoints methods can be used
-    // to fill only those space points that are compatible with mc truth
-    // information contained in SimChannels.
-    // The last two arguments can be used to override the default cuts.
+    // Fill a vector of space points compatible with mc truth information 
+    // contained in SimChannels (with or without overriding configuration
+    // parameters).
+    void makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
+				std::vector<recob::SpacePoint>& spts,
+				const std::vector<const sim::SimChannel*>& simchans) const;
+    void makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
+				std::vector<recob::SpacePoint>& spts,
+				const std::vector<const sim::SimChannel*>& simchans,
+				bool filter,
+				double maxDT,
+				double maxS) const;
+
+  private:
+
+    // This is the real method for calculating space points (each of
+    // the public make*SpacePoints methods comes here).
     void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 			 std::vector<recob::SpacePoint>& spts,
 			 const std::vector<const sim::SimChannel*>& simchans,
-			 double maxDT = 0.,
-			 double maxS = 0.) const;
+			 bool useMC,
+			 bool filter,
+			 double maxDT,
+			 double maxS) const;
 
-  private:
+    // Test whether the specified hits are compatible with a space point.
+    // The last two arguments can be used to override the default cuts.
+    bool compatible(const art::PtrVector<recob::Hit>& hits,
+		    const std::vector<std::vector<double> >& timeOffset,
+		    bool useMC,
+		    double maxDT,
+		    double maxS) const;
 
     // Extended SpacePoint struct.
     // Contains extra information used for filtering (private type).
@@ -133,7 +168,6 @@ namespace trkf {
 
     // Configuration paremeters.
 
-    bool fUseMC;            ///< Use MC truth information.
     double fMaxDT;          ///< Maximum time difference between planes.
     double fMaxS;           ///< Maximum space separation between wires.
     double fTimeOffsetU;    ///< Time offset corrections (U)

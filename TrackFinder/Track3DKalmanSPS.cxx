@@ -350,7 +350,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		    for(size_t i = 0; i < simChannelHandle.size(); ++i) 
 		      simchans[simChannelHandle[i]->Channel()] = simChannelHandle[i];
 
-		    sps->makeSpacePoints(hits,spacepoints,simchans);
+		    sps->makeMCTruthSpacePoints(hits,spacepoints,simchans);
 		    }
 		  else
 		    sps->makeSpacePoints(hits,spacepoints);

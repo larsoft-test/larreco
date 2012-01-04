@@ -27,7 +27,6 @@ services.user.DBScanService:      @local::argoneut_dbscanservice
 services.user.EndPointService:    @local::argoneut_endpointservice
 services.user.HoughLineService:   @local::argoneut_houghlineservice
 services.user.SpacePointService:  @local::argoneut_spacepointservice
-services.user.SpacePointService.UseMC: false
 
 services.message.destinations.debugmsg.type: "cout"
 services.message.destinations.debugmsg.categories.default.limit: 1000000
@@ -63,5 +62,4 @@ physics:
 }
 
 physics.analyzers.spacepoint: @local::argoneut_spacepoint
-physics.analyzers.spacepoint.MaxDT: 0.
-physics.analyzers.spacepoint.MaxS: 0.
+physics.analyzers.spacepoint.UseMC: false

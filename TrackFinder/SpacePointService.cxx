@@ -53,7 +53,6 @@ namespace {
 //
 trkf::SpacePointService::SpacePointService(const fhicl::ParameterSet& pset,
 					   art::ActivityRegistry& reg) :
-  fUseMC(false),
   fMaxDT(0.),
   fMaxS(0.),
   fTimeOffsetU(0.),
@@ -82,7 +81,6 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
 {
   // Get configuration parameters.
 
-  fUseMC = pset.get<bool>("UseMC", false);
   fMaxDT = pset.get<double>("MaxDT", 0.);
   fMaxS = pset.get<double>("MaxS", 0.);
 
@@ -101,7 +99,6 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
 
   mf::LogInfo("SpacePointService") 
     << "SpacePointService configured with the following parameters:\n"
-    << "  UseMC = " << fUseMC << "\n"
     << "  MaxDT = " << fMaxDT << "\n"
     << "  MaxS = " << fMaxS << "\n"
     << "  TimeOffsetU = " << fTimeOffsetU << "\n"
@@ -407,6 +404,7 @@ double trkf::SpacePointService::separation(const art::PtrVector<recob::Hit>& hit
 // Check three hits for spatial compatibility.
 bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 					 const std::vector<std::vector<double> >& timeOffset,
+					 bool useMC,
 					 double maxDT, double maxS) const
 {
   // Get geometry service.
@@ -442,8 +440,10 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
       double t1 = hit1.PeakTime() - timeOffset[tpc1][plane1];
 
       // If using mc information, get a collection of track ids for hit 1.
+      // If not using mc information, this section of code will trigger the 
+      // insertion of a single invalid HitMCInfo object into fHitMCMap.
 
-      const HitMCInfo& mcinfo1 = fHitMCMap[&hit1];
+      const HitMCInfo& mcinfo1 = fHitMCMap[(useMC ? &hit1 : 0)];
       const std::vector<int>& tid1 = mcinfo1.trackIDs;
       bool only_neg1 = tid1.size() > 0 && tid1.back() < 0;
 
@@ -473,7 +473,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 
 	  // Test mc truth.
 
-	  if(result && fUseMC) {
+	  if(result && useMC) {
 
 	    // Test whether hits have a common parent track id.
 
@@ -518,7 +518,6 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
       double dist[3] = {0., 0., 0.};
       double sinth[3] = {0., 0., 0.};
       double costh[3] = {0., 0., 0.};
-      geo::View_t view[3];
 
       for(int i=0; i<3; ++i) {
 
@@ -529,7 +528,6 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 	unsigned int tpc0, plane, wire;
 	const geo::WireGeo& wgeom = geom->ChannelToWire(channel, tpc0, plane, wire);
 	assert(tpc0 == tpc);
-	view[i] = hit.View();
 
 	// Get angles and distance of wire.
 
@@ -691,24 +689,59 @@ double trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>&
 
 //----------------------------------------------------------------------
 // Fill a vector of space points for all compatible combinations of hits
-// from an input vector of hits (non-mc-truth version).
+// from an input vector of hits (non-config-overriding, non-mc-truth version).
 //
 void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
-					      std::vector<recob::SpacePoint>& spts,
-					      double maxDT, double maxS) const
+					      std::vector<recob::SpacePoint>& spts) const
 {
   std::vector<const sim::SimChannel*> empty;
-  makeSpacePoints(hits, spts, empty, maxDT, maxS);
+  makeSpacePoints(hits, spts, empty, false, fFilter, fMaxDT, fMaxS);
 }
 
 //----------------------------------------------------------------------
 // Fill a vector of space points for all compatible combinations of hits
-// from an input vector of hits (mc truth version).
+// from an input vector of hits (config-overriding, non-mc-truth version).
+//
+void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
+					      std::vector<recob::SpacePoint>& spts,
+					      bool filter, double maxDT, double maxS) const
+{
+  std::vector<const sim::SimChannel*> empty;
+  makeSpacePoints(hits, spts, empty, false, filter, maxDT, maxS);
+}
+
+//----------------------------------------------------------------------
+// Fill a vector of space points for all compatible combinations of hits
+// from an input vector of hits (non-config-overriding, mc-truth version).
+//
+void trkf::SpacePointService::makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
+						     std::vector<recob::SpacePoint>& spts,
+						     const std::vector<const sim::SimChannel*>& simchans) const
+{
+  makeSpacePoints(hits, spts, simchans, true, fFilter, fMaxDT, fMaxS);
+}
+
+//----------------------------------------------------------------------
+// Fill a vector of space points for all compatible combinations of hits
+// from an input vector of hits (config-overriding, mc-truth version).
+//
+void trkf::SpacePointService::makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
+						     std::vector<recob::SpacePoint>& spts,
+						     const std::vector<const sim::SimChannel*>& simchans,
+						     bool filter, double maxDT, double maxS) const
+{
+  makeSpacePoints(hits, spts, simchans, true, filter, maxDT, maxS);
+}
+
+//----------------------------------------------------------------------
+// Fill a vector of space points for all compatible combinations of hits
+// from an input vector of hits (general version).
 //
 void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 					      std::vector<recob::SpacePoint>& spts,
 					      const std::vector<const sim::SimChannel*>& simchans,
-					      double maxDT, double maxS) const
+					      bool useMC,
+					      bool filter, double maxDT, double maxS) const
 {
   // Get cuts.
 
@@ -741,9 +774,9 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
   int n2filt = 0;  // Number of two-hit space points after filtering.
   int n3filt = 0;  // Number of three-hit space pointe after filtering.
 
-  // If fUseMC is true, verify that channels are sorted by channel number.
+  // If useMC is true, verify that channels are sorted by channel number.
 
-  if(fUseMC) {
+  if(useMC) {
 
     unsigned int nsc = simchans.size();
     for(unsigned int isc = 0; isc < nsc; ++isc) {
@@ -785,7 +818,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
   // Fill mc information, including IDEs and closest neighbors
   // of each hit.
 
-  if(fUseMC) {
+  if(useMC) {
 
     // First loop over hits and fill track ids and mc position.
 
@@ -975,13 +1008,13 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	      hitvec.clear();
 	      hitvec.push_back(phit1);
 	      hitvec.push_back(phit2);
-	      bool ok = compatible(hitvec, timeOffset, maxDT, maxS);
+	      bool ok = compatible(hitvec, timeOffset, useMC, maxDT, maxS);
 	      if(ok) {
 
 		// Add a space point.
 
 		++n2;
-		if(fFilter) {
+		if(filter) {
 		  sptkey_type key = &*phit2;
 		  std::multimap<sptkey_type, SpacePointX>::iterator it = 
 		    sptmap.insert(std::pair<sptkey_type, SpacePointX>(key, SpacePointX()));
@@ -1117,7 +1150,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	    hitvec.clear();
 	    hitvec.push_back(phit1);
 	    hitvec.push_back(phit2);
-	    bool h12ok = compatible(hitvec, timeOffset, maxDT, maxS);
+	    bool h12ok = compatible(hitvec, timeOffset, useMC, maxDT, maxS);
 	    if(h12ok) {
 
 	      // Get oblique coordinate of second hit.
@@ -1161,13 +1194,13 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 		    hitvec.push_back(phit1);
 		    hitvec.push_back(phit2);
 		    hitvec.push_back(phit3);
-		    bool h123ok = compatible(hitvec, timeOffset, maxDT, maxS);
+		    bool h123ok = compatible(hitvec, timeOffset, useMC, maxDT, maxS);
 		    if(h123ok) {
 
 		      // Add a space point.
 
 		      ++n3;
-		      if(fFilter) {
+		      if(filter) {
 			sptkey_type key = &*phit3;
 			std::multimap<sptkey_type, SpacePointX>::iterator it = 
 			  sptmap.insert(std::pair<sptkey_type, SpacePointX>(key, SpacePointX()));
@@ -1191,7 +1224,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
     // Do Filtering.
 
-    if(fFilter) {
+    if(filter) {
 
       // Transfer (some) space points from sptmap to spts.
 
