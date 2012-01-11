@@ -105,6 +105,7 @@ std::cout<<"In KingaCluster::produce(art::Event& evt)"<<std::endl;
 std::cout<<" Working on ";
 std::cout << "Run: " << evt.run();
 std::cout << " Event: " << evt.id().event() << std::endl;
+  fpeak_problem=0;
   fpeaks_found=1;
   fMC=0; 
  //int RunNo= evt.run();
@@ -346,6 +347,35 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
       mf::LogInfo("KingaCluster") << "ATTENTION, STARTING WORK ON PLANE# " << plane;
       AngularDistribution(tpc,plane);
       FindMax(tpc,plane);
+      if(fpeak_problem==1){std::cout<<"bye bye"<<std::endl;
+     
+     allhits.clear();
+       maxBin.clear();
+       maxBinValues.clear();
+       SortedMaxBin.clear();
+       MaxStartPoint.clear();
+       MaxEndPoint.clear();
+       MaxStartPointTheta.clear();
+       MaxEndPointTheta.clear();
+       HitsWithClusterID.clear();
+       FinalPeaks.clear();
+       OriginalmaxBinValues.clear();
+       
+       clusterHits.clear();
+       
+       
+       
+     for(int bin=0; bin< fh_theta_ind_2D->GetNbinsX(); bin++){
+	 
+	 fh_theta_ind_2D->SetBinContent(bin,0);
+	 fh_theta_coll_2D->SetBinContent(bin,0);
+	 fh_theta_ind->SetBinContent(bin,0);
+	 fh_theta_coll->SetBinContent(bin,0);
+	 fh_theta_coll_Area->SetBinContent(bin,0);
+	 fh_theta_ind_Area->SetBinContent(bin,0);
+       }
+     return;
+     }
       if(fpeaks_found==0){
 	mf::LogInfo("KingaCluster") << "KingaClusters FAILED on this event because "
 				    << "no peaks were found. Perhaps your threshold "
@@ -468,7 +498,7 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
  void cluster::KingaCluster::AngularDistribution(unsigned int tpc, unsigned int plane){   
  
  if(plane==0){
-    for(int bin=0; bin< fh_theta_ind->GetNbinsX(); bin++){
+    for(int bin=0; bin<= fh_theta_ind->GetNbinsX(); bin++){
    
     fh_theta_ind_2D->SetBinContent(bin,0);
     fh_theta_ind->SetBinContent(bin,0);
@@ -477,7 +507,7 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
    }
    
    if(plane==1){
-    for(int bin=0; bin< fh_theta_ind_Area->GetNbinsX(); bin++){
+    for(int bin=0; bin<= fh_theta_ind_Area->GetNbinsX(); bin++){
    
     fh_theta_coll_2D->SetBinContent(bin,0);
     fh_theta_coll->SetBinContent(bin,0);
@@ -799,7 +829,9 @@ reverse (maxBinValues.begin(),maxBinValues.end());
            break;
            
            }
-           else if (LeftBin==SortedMaxBin[maxNo]-29){std::cout<<" cannot find starting point of the peak!!!!!"<<std::endl;}
+           else if (LeftBin==SortedMaxBin[maxNo]-29){std::cout<<" cannot find starting point of the peak!!!!!"<<std::endl;
+           fpeak_problem=1;
+           return;}
          
       }
      
@@ -819,7 +851,9 @@ reverse (maxBinValues.begin(),maxBinValues.end());
            std::cout<<RightBin+1<<"("<<-180+2*(RightBin+1)<<" degrees)"<<std::endl;
            break;
            }
-         else if(RightBin==SortedMaxBin[maxNo]+29){std::cout<<" cannot find end point of the peak!!!!!"<<std::endl;}
+         else if(RightBin==SortedMaxBin[maxNo]+29){std::cout<<" cannot find end point of the peak!!!!!"<<std::endl;
+         fpeak_problem=1;
+           return;}
          
       }
       
@@ -991,7 +1025,9 @@ reverse (maxBinValues.begin(),maxBinValues.end());
            break;
            
            }
-           else if (LeftBin==SortedMaxBin[maxNo]-30){std::cout<<"cannot find starting point of the peak!!!!!"<<std::endl;}
+           else if (LeftBin==SortedMaxBin[maxNo]-30){std::cout<<"cannot find starting point of the peak!!!!!"<<std::endl;
+           fpeak_problem=1;
+           return;}
          
       }
   
@@ -1008,7 +1044,9 @@ reverse (maxBinValues.begin(),maxBinValues.end());
            std::cout<<RightBin+1<<"("<<-180+2*(RightBin+1)<<" degrees)"<<std::endl;
            break;
            }
-           else if(RightBin==SortedMaxBin[maxNo]+20){std::cout<<"cannot find end point of the peak!!!!!"<<std::endl;}
+           else if(RightBin==SortedMaxBin[maxNo]+20){std::cout<<"cannot find end point of the peak!!!!!"<<std::endl;
+           fpeak_problem=1;
+           return;}
          
       }
   
