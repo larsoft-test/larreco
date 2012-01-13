@@ -12,6 +12,7 @@
 #include "MCCheater/BackTracker.h"
 #include "ShowerFinder/ShowerCheater.h"
 #include "RecoBase/recobase.h"
+#include "Utilities/AssociationUtil.h"
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
 
@@ -176,17 +177,7 @@ namespace shwf{
 	showercol->back().SetDirection(dcos, dcos);
 
 	// associate the shower with its clusters
-	art::ProductID sid = getProductID<std::vector<recob::Shower> >(evt);
-	art::Ptr<recob::Shower> sptr(sid, showercol->size()-1, evt.productGetter(sid));
-	for(size_t cl = 0; cl < ptrvs.size(); ++cl) scassn->addSingle(sptr,ptrvs[cl]);
-
-	// associate the track with its hits, do this by first getting the
-	// hits associated with the clusters in the track
-// 	FindMany<recob::Hit> ctoh(ptrvs, evt, fCheatedClusterLabel);
-// 	for(size_t c = 0; c < ptrvs.size(); ++c){
-// 	  shassn->addSingle(sptr, );
-// 	}
-
+	util::CreateAssn(*this, evt, *(showercol.get()), ptrvs, *(scassn.get()));
 
 	mf::LogInfo("ShowerCheater") << "adding shower: \n" 
 				     << showercol->back()
