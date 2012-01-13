@@ -11,6 +11,7 @@
 // LArSoft includes
 #include "MCCheater/BackTracker.h"
 #include "EventFinder/EventCheater.h"
+#include "Utilities/AssociationUtil.h"
 #include "RecoBase/recobase.h"
 #include "SimulationBase/simbase.h"
 #include "Simulation/sim.h"
@@ -128,9 +129,7 @@ namespace event{
       eventcol->push_back(recob::Event(ptrvs, (*vertexMapItr).first.productIndex()));
 
       // associate the event with its vertices
-      art::ProductID eid = getProductID<std::vector<recob::Event> >(evt);
-      art::Ptr<recob::Event> eptr(eid, eventcol->size()-1, evt.productGetter(eid));
-      for(size_t v = 0; v < ptrvs.size(); ++v) evassn->addSingle(eptr,ptrvs[v]);
+      util::CreateAssn(*this, evt, *(eventcol.get()), ptrvs, *(evassn.get()));
 
       mf::LogInfo("EventCheater") << "adding event: \n" 
 				  << eventcol->back()

@@ -18,4 +18,4 @@ LIBLINK    := $(LOADLIBES) -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PU
 include SoftRelTools/standard.mk
 include SoftRelTools/arch_spec_art.mk
 
-override LIBLIBS += -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -lMCCheater -lGeometry -lSimulation -lRecoBase -lRawData
+override LIBLIBS += -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -lMCCheater -lGeometry -lSimulation -lRecoBase -lRawData -lUtilities
