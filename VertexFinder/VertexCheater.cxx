@@ -11,6 +11,7 @@
 // LArSoft includes
 #include "MCCheater/BackTracker.h"
 #include "VertexFinder/VertexCheater.h"
+#include "Utilities/AssociationUtil.h"
 #include "RecoBase/recobase.h"
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
@@ -221,10 +222,8 @@ namespace vertex{
       vertexcol->push_back(recob::Vertex(ptrvtrk, ptrvshw, xyz, eveID));
 
       // associate the vertex with its showers and tracks
-      art::ProductID vid = getProductID<std::vector<recob::Vertex> >(evt);
-      art::Ptr<recob::Vertex> vptr(vid, vertexcol->size()-1, evt.productGetter(vid));
-      for(size_t s = 0; s < ptrvshw.size(); ++s) vsassn->addSingle(vptr,ptrvshw[s]);
-      for(size_t t = 0; t < ptrvtrk.size(); ++t) vtassn->addSingle(vptr,ptrvtrk[t]);
+      util::CreateAssn(*this, evt, *(vertexcol.get()), ptrvshw, *(vsassn.get()));
+      util::CreateAssn(*this, evt, *(vertexcol.get()), ptrvtrk, *(vtassn.get()));
       
       mf::LogInfo("VertexCheater") << "adding vertex: \n" 
 				   << vertexcol->back()
