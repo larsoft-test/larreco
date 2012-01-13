@@ -12,6 +12,7 @@
 #include "MCCheater/BackTracker.h"
 #include "TrackFinder/TrackCheater.h"
 #include "RecoBase/recobase.h"
+#include "Utilities/AssociationUtil.h"
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
 
@@ -175,16 +176,7 @@ namespace trkf{
 	trackcol->at(trackcol->size() - 1).SetDirection(dcos, dcos);
 
 	// associate the track with its clusters
-	art::ProductID tid = getProductID<std::vector<recob::Track> >(evt);
-	art::Ptr<recob::Track> tptr(tid, trackcol->size()-1, evt.productGetter(tid));
-	for(size_t cl = 0; cl < ptrvs.size(); ++cl) tcassn->addSingle(tptr,ptrvs[cl]);
-
-	// associate the track with its hits, do this by first getting the
-	// hits associated with the clusters in the track
-// 	FindMany<recob::Hit> ctoh(ptrvs, evt, fCheatedClusterLabel);
-// 	for(size_t c = 0; c < ptrvs.size(); ++c){
-// 	  thassn->addSingle(tptr, );
-// 	}
+	util::CreateAssn(*this, evt, *(trackcol.get()), ptrvs, *(tcassn.get()));
 
 	mf::LogInfo("TrackCheater") << "adding track: \n" 
 				     << trackcol->back()
