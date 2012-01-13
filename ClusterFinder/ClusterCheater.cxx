@@ -14,6 +14,7 @@
 #include "ClusterFinder/ClusterCheater.h"
 #include "ClusterFinder/HoughLineService.h"
 #include "RecoBase/recobase.h"
+#include "Utilities/AssociationUtil.h"
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
 
@@ -194,10 +195,8 @@ namespace cluster{
 					       dQdW,      0.,
 					       ((*hitMapItr).first * 1000) + pl*100 + tpc));
 
-	  // loop over the hits and make the associations to this cluster
-	  art::ProductID clid = getProductID<std::vector<recob::Cluster> >(evt);
-	  art::Ptr<recob::Cluster> cptr(clid, clustercol->size()-1, evt.productGetter(clid));
-	  for(size_t h = 0; h < ptrvs.size(); ++h) assn->addSingle(cptr,ptrvs[h]);
+	  // association the hits to this cluster
+	  util::CreateAssn(*this, evt, *(clustercol.get()), ptrvs, *(assn.get()));
 
 	  mf::LogInfo("ClusterCheater") << "adding cluster: \n" 
 					<< clustercol->back()

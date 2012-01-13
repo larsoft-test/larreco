@@ -27,6 +27,7 @@
 #include "ClusterFinder/LineMerger.h"
 #include "Geometry/geo.h"
 #include "RecoBase/recobase.h"
+#include "Utilities/AssociationUtil.h"
 
 #include <math.h>
 #include <algorithm>
@@ -116,9 +117,7 @@ namespace cluster{
 	// associate the hits with the cluster
 	// \todo get the hits in a better manner once they are no longer data members
 	art::PtrVector<recob::Hit> ptrvs = SuperClusters->back().Hits();
-	art::ProductID clid = getProductID<std::vector<recob::Cluster> >(evt);
-	art::Ptr<recob::Cluster> cptr(clid, SuperClusters->size()-1, evt.productGetter(clid));
-	for(size_t h = 0; h < ptrvs.size(); ++h) assn->addSingle(cptr,ptrvs[h]);
+	util::CreateAssn(*this, evt, *(SuperClusters.get()), ptrvs, *(assn.get()));
 
 	Cls_matches[i][clsnum1]=1; 
 	//SuperClusters->back().SetID(clustersfound);//IDs are sequential by plane, starting from 0

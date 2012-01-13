@@ -29,6 +29,7 @@
 #include "SimulationBase/simbase.h"
 #include "Simulation/sim.h"
 #include "RecoBase/recobase.h"
+#include "Utilities/AssociationUtil.h"
 #include "ClusterFinder/DBScanService.h"
 #include "ClusterFinder/DBcluster.h"
 #include "Filters/ChannelFilter.h"
@@ -168,10 +169,8 @@ void cluster::DBcluster::produce(art::Event& evt)
 				 -999., 0.,
 				 i);
 
-	  // loop over the hits and make the associations to this cluster
-	  art::ProductID clid = getProductID<std::vector<recob::Cluster> >(evt);
-	  art::Ptr<recob::Cluster> cptr(clid, ccol->size()-1, evt.productGetter(clid));
-	  for(size_t h = 0; h < clusterHits.size(); ++h) assn->addSingle(cptr,clusterHits[h]);
+	  // associate the hits to this cluster
+	  util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
 
 	  ccol->push_back(cluster);
 	  //std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;

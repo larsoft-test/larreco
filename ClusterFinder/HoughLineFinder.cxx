@@ -43,6 +43,7 @@ extern "C" {
 #include "Filters/ChannelFilter.h"
 #include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
+#include "Utilities/AssociationUtil.h"
 #include "Geometry/geo.h"
 #include "ClusterFinder/HoughLineService.h"
 #include "ClusterFinder/HoughLineFinder.h"
@@ -99,12 +100,10 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
   for(size_t i = 0; i < ccol->size(); ++i){
     mf::LogVerbatim("Summary") << ccol->at(i);
 
-    // loop over the hits and make the associations to this cluster
+    // associat the hits to this cluster
     // \todo need to get the hits in a better way once we remove them as Cluster data members
     art::PtrVector<recob::Hit> ptrvs = ccol->at(i).Hits();
-    art::ProductID clid = getProductID<std::vector<recob::Cluster> >(evt);
-    art::Ptr<recob::Cluster> cptr(clid, i, evt.productGetter(clid));
-    for(size_t h = 0; h < ptrvs.size(); ++h) assn->addSingle(cptr,ptrvs[h]);
+    util::CreateAssn(*this, evt, *(ccol.get()), ptrvs, *(assn.get()), i);
   }
 
   evt.put(ccol);

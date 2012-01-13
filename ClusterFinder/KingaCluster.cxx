@@ -42,6 +42,7 @@ extern "C" {
 #include "SimulationBase/simbase.h"
 #include "Simulation/sim.h"
 #include "RecoBase/recobase.h"
+#include "Utilities/AssociationUtil.h"
 #include "Geometry/geo.h"
 #include "Utilities/LArProperties.h"
 #include "TH1.h"
@@ -454,10 +455,8 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
 				 -999., 0.,
 				 ClusterNo);
 	  
-	  // loop over the hits and make the associations to this cluster
-	  art::ProductID clid = getProductID<std::vector<recob::Cluster> >(evt);
-	  art::Ptr<recob::Cluster> cptr(clid, ccol->size()-1, evt.productGetter(clid));
-	  for(size_t h = 0; h < clusterHits.size(); ++h) assn->addSingle(cptr,clusterHits[h]);
+	  // associate the hits to this cluster
+	  util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
 				    							    
 	  mf::LogInfo("KingaCluster") <<"Produced Cluster #"<<ClusterNo;
 	  ccol->push_back(cluster);

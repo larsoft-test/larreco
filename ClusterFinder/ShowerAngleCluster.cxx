@@ -48,6 +48,7 @@ extern "C" {
 #include "ClusterFinder/EndPointService.h"
 #include "Geometry/geo.h"
 #include "RecoBase/recobase.h"
+#include "Utilities/AssociationUtil.h"
 
 
 #include "SimulationBase/simbase.h"
@@ -515,10 +516,8 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
 			lineslope[iplane], lineinterc[iplane], 
 			iplane);
 
-    // loop over the hits and make the associations to this cluster
-    art::ProductID clid = getProductID<std::vector<recob::Cluster> >(evt);
-    art::Ptr<recob::Cluster> cptr(clid, ShowerAngleCluster->size()-1, evt.productGetter(clid));
-    for(size_t h = 0; h < clusterHits.size(); ++h) assn->addSingle(cptr, clusterHits[h]);
+    // associate the hits to this cluster
+    util::CreateAssn(*this, evt, *(ShowerAngleCluster.get()), clusterHits, *(assn.get()));
     
     mf::LogInfo("ShowerAngleCluster") << "######## in plane loop filling clusters ";
     
