@@ -34,7 +34,7 @@ namespace shwf{
 
     produces< std::vector<recob::Shower> >();
     produces< art::Assns<recob::Shower, recob::Cluster> >();
-    //produces< art::Assns<recob::Shower, recob::Hit> >();
+    produces< art::Assns<recob::Shower, recob::Hit> >();
   }
 
   //--------------------------------------------------------------------
@@ -114,7 +114,7 @@ namespace shwf{
     // loop over the map and make prongs
     std::auto_ptr< std::vector<recob::Shower> > showercol(new std::vector<recob::Shower>);
     std::auto_ptr< art::Assns<recob::Shower, recob::Cluster> > scassn(new art::Assns<recob::Shower, recob::Cluster>);
-    //std::auto_ptr< art::Assns<recob::Shower, recob::Hit> > shassn(new art::Assns<recob::Shower, recob::Hit>);
+    std::auto_ptr< art::Assns<recob::Shower, recob::Hit> > shassn(new art::Assns<recob::Shower, recob::Hit>);
 
     for(clusterMapItr = eveClusterMap.begin(); clusterMapItr != eveClusterMap.end(); clusterMapItr++){
 
@@ -179,6 +179,13 @@ namespace shwf{
 	// associate the shower with its clusters
 	util::CreateAssn(*this, evt, *(showercol.get()), ptrvs, *(scassn.get()));
 
+	// get the hits associated with each cluster and associate those with the track
+	for(size_t p = 0; p < ptrvs.size(); ++p){
+	  art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(ptrvs, evt, fCheatedClusterLabel, p);
+	  util::CreateAssn(*this, evt, *(showercol.get()), hits, *(shassn.get()));
+	}
+
+
 	mf::LogInfo("ShowerCheater") << "adding shower: \n" 
 				     << showercol->back()
 				     << "\nto collection.";
@@ -188,7 +195,7 @@ namespace shwf{
 
     evt.put(showercol);
     evt.put(scassn);
-    //evt.put(shassn);
+    evt.put(shassn);
 
     return;
 
