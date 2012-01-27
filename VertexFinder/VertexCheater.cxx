@@ -34,7 +34,8 @@ namespace vertex{
 
     produces< std::vector<recob::Vertex> >();
     produces< art::Assns<recob::Vertex, recob::Shower> >();
-    produces< art::Assns<recob::Vertex, recob::Track> >();
+    produces< art::Assns<recob::Vertex, recob::Track>  >();
+    produces< art::Assns<recob::Vertex, recob::Hit>    >();
 
   }
 
@@ -186,7 +187,8 @@ namespace vertex{
 
     std::auto_ptr< std::vector<recob::Vertex> > vertexcol(new std::vector<recob::Vertex>);
     std::auto_ptr< art::Assns<recob::Vertex, recob::Shower> > vsassn(new art::Assns<recob::Vertex, recob::Shower>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Track> > vtassn(new art::Assns<recob::Vertex, recob::Track>);
+    std::auto_ptr< art::Assns<recob::Vertex, recob::Track>  > vtassn(new art::Assns<recob::Vertex, recob::Track>);
+    std::auto_ptr< art::Assns<recob::Vertex, recob::Hit>    > vhassn(new art::Assns<recob::Vertex, recob::Hit>);
 
     // loop over the eve ID values and make Vertexs
     for(std::vector<int>::iterator eItr = eveIDs.begin(); eItr != eveIDs.end(); eItr++){
@@ -225,6 +227,18 @@ namespace vertex{
       util::CreateAssn(*this, evt, *(vertexcol.get()), ptrvshw, *(vsassn.get()));
       util::CreateAssn(*this, evt, *(vertexcol.get()), ptrvtrk, *(vtassn.get()));
       
+      // get the hits associated with each track and associate those with the vertex
+      for(size_t p = 0; p < ptrvtrk.size(); ++p){
+	art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(ptrvtrk, evt, fCheatedTrackLabel, p);
+	util::CreateAssn(*this, evt, *(vertexcol.get()), hits, *(vhassn.get()));
+      }
+
+      // get the hits associated with each shower and associate those with the vertex
+      for(size_t p = 0; p < ptrvshw.size(); ++p){
+	art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(ptrvshw, evt, fCheatedShowerLabel, p);
+	util::CreateAssn(*this, evt, *(vertexcol.get()), hits, *(vhassn.get()));
+      }
+
       mf::LogInfo("VertexCheater") << "adding vertex: \n" 
 				   << vertexcol->back()
 				   << "\nto collection.";
@@ -234,6 +248,7 @@ namespace vertex{
     evt.put(vertexcol);
     evt.put(vsassn);
     evt.put(vtassn);
+    evt.put(vhassn);
 
     return;
 
