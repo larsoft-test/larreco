@@ -34,7 +34,7 @@ namespace trkf{
 
     produces< std::vector<recob::Track> >();
     produces< art::Assns<recob::Track, recob::Cluster> >();
-//     produces< art::Assns<recob::Track, recob::Hit> >();
+    produces< art::Assns<recob::Track, recob::Hit> >();
   }
 
   //--------------------------------------------------------------------
@@ -113,7 +113,7 @@ namespace trkf{
     // loop over the map and make prongs
     std::auto_ptr< std::vector<recob::Track> >  trackcol (new std::vector<recob::Track>);
     std::auto_ptr< art::Assns<recob::Track, recob::Cluster> > tcassn(new art::Assns<recob::Track, recob::Cluster>);
-//     std::auto_ptr< art::Assns<recob::Track, recob::Hit> > thassn(new art::Assns<recob::Track, recob::Hit>);
+    std::auto_ptr< art::Assns<recob::Track, recob::Hit> > thassn(new art::Assns<recob::Track, recob::Hit>);
 
     for(clusterMapItr = eveClusterMap.begin(); clusterMapItr != eveClusterMap.end(); clusterMapItr++){
 
@@ -178,6 +178,12 @@ namespace trkf{
 	// associate the track with its clusters
 	util::CreateAssn(*this, evt, *(trackcol.get()), ptrvs, *(tcassn.get()));
 
+	// get the hits associated with each cluster and associate those with the track
+	for(size_t p = 0; p < ptrvs.size(); ++p){
+	  art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(ptrvs, evt, fCheatedClusterLabel, p);
+	  util::CreateAssn(*this, evt, *(trackcol.get()), hits, *(thassn.get()));
+	}
+
 	mf::LogInfo("TrackCheater") << "adding track: \n" 
 				     << trackcol->back()
 				     << "\nto collection.";
@@ -188,7 +194,7 @@ namespace trkf{
 
     evt.put(trackcol);
     evt.put(tcassn);
-//     evt.put(thassn);
+    evt.put(thassn);
 
     return;
 
