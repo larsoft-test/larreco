@@ -36,6 +36,7 @@ namespace event{
 
     produces< std::vector<recob::Event> >();
     produces< art::Assns<recob::Event, recob::Vertex> >();
+    produces< art::Assns<recob::Event, recob::Hit> >();
   }
 
   //--------------------------------------------------------------------
@@ -112,6 +113,7 @@ namespace event{
 
     std::auto_ptr< std::vector<recob::Event> > eventcol(new std::vector<recob::Event>);
     std::auto_ptr< art::Assns<recob::Event, recob::Vertex> > evassn(new art::Assns<recob::Event, recob::Vertex>);
+    std::auto_ptr< art::Assns<recob::Event, recob::Hit> > ehassn(new art::Assns<recob::Event, recob::Hit>);
 
     // loop over the map and associate all vertex objects with an event
     for(vertexMapItr = vertexMap.begin(); vertexMapItr != vertexMap.end(); vertexMapItr++){
@@ -130,6 +132,13 @@ namespace event{
 
       // associate the event with its vertices
       util::CreateAssn(*this, evt, *(eventcol.get()), ptrvs, *(evassn.get()));
+      
+      // get the hits associated with each vertex and associate those with the event
+      for(size_t p = 0; p < ptrvs.size(); ++p){
+	art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(ptrvs, evt, fCheatedVertexLabel, p);
+	util::CreateAssn(*this, evt, *(eventcol.get()), hits, *(ehassn.get()));
+      }
+
 
       mf::LogInfo("EventCheater") << "adding event: \n" 
 				  << eventcol->back()
@@ -139,6 +148,7 @@ namespace event{
 
     evt.put(eventcol);
     evt.put(evassn);
+    evt.put(ehassn);
 
     return;
 
