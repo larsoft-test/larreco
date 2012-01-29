@@ -32,9 +32,9 @@ namespace trkf{
   {
     this->reconfigure(pset);
 
-    produces< std::vector<recob::Track> >();
+    produces< std::vector<recob::Track>                >();
     produces< art::Assns<recob::Track, recob::Cluster> >();
-    produces< art::Assns<recob::Track, recob::Hit> >();
+    produces< art::Assns<recob::Track, recob::Hit>     >();
   }
 
   //--------------------------------------------------------------------
