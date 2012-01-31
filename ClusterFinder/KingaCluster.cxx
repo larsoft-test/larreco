@@ -454,12 +454,13 @@ for( unsigned int i = 0; i < mclist.size(); ++i ){
 				 -999., 0., 
 				 -999., 0.,
 				 ClusterNo);
+
+	  ccol->push_back(cluster);
 	  
 	  // associate the hits to this cluster
 	  util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
 				    							    
 	  mf::LogInfo("KingaCluster") <<"Produced Cluster #"<<ClusterNo;
-	  ccol->push_back(cluster);
 	  //std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
 	  // std::cout<<cluster.StartPos()[0]<<", "<<cluster.StartPos()[1]<<" --> "
 	  //<<cluster.EndPos()[0]<<", "<<cluster.EndPos()[1]<<std::endl;
