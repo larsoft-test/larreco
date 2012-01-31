@@ -87,7 +87,6 @@ void cluster::DBcluster::produce(art::Event& evt)
   
   // loop over all hits in the event and look for clusters (for each plane)
   art::PtrVector<recob::Hit> allhits;
-  art::PtrVector<recob::Hit> clusterHits;
 
   // get the DBScan service
   art::ServiceHandle<cluster::DBScanService> dbscan;
@@ -98,6 +97,7 @@ void cluster::DBcluster::produce(art::Event& evt)
   unsigned int p(0),w(0), t(0), channel(0);
   for(unsigned int tpc = 0; tpc < geom->NTPC(); ++tpc){
     for(unsigned int plane=0; plane<geom->Nplanes(tpc); plane++){
+      geo::SigType_t sigType = geom->TPC(tpc).Plane(plane).SignalType();
       for(unsigned int i = 0; i< hitcol->size(); ++i){
       
 	art::Ptr<recob::Hit> hit(hitcol, i);
@@ -118,37 +118,21 @@ void cluster::DBcluster::produce(art::Event& evt)
 	if(allhits.size() != dbscan->fps.size()) break;
    
 	fhitwidth->Fill(dbscan->fps[j][2]);
-	if(allhits[j]->Wire()->RawDigit()->Channel()<240){ fhitwidth_ind_test->Fill(dbscan->fps[j][2]);}
-	if(allhits[j]->Wire()->RawDigit()->Channel()>240){ fhitwidth_coll_test->Fill(dbscan->fps[j][2]);}
-	// std::cout<<"Point "<<j<<"= ("<<allhits[j]->Wire()->RawDigit()->Channel()
-	//<<", "<<(allhits[j]->StartTime()+allhits[j]->EndTime())/2.<<", "<<dbscan->fps[j][2]<<")"<<std::endl;
-	//  std::cout << dbscan->fps[j][i] << ' ';
-	//  std::cout << std::endl;
-      
+	
+	
+	if(sigType == geo::kInduction)  fhitwidth_ind_test->Fill(dbscan->fps[j][2]);
+	if(sigType == geo::kCollection) fhitwidth_coll_test->Fill(dbscan->fps[j][2]);
       }
       //*******************************************************************
 
-      // Moved to DBScanSerive for consistent interface between
-      // clustering methods
-      //       dbscan->computeSimilarity();
-      //       dbscan->computeSimilarity2();
-      //       dbscan->computeWidthFactor();
       dbscan->run_cluster();
 
-      //std::cout<<clusters;
-      //std::cout<<"DBSCAN found "<<dbscan->fclusters.size()<<" cluster(s)."<<std::endl;
+      for(size_t i = 0; i < dbscan->fclusters.size(); ++i){
+	art::PtrVector<recob::Hit> clusterHits;
 
-
-      for(unsigned int i=0; i<dbscan->fclusters.size();i++){
-	//recob::Cluster* reco_cl= new recob::Cluster();
-	for(unsigned int j=0;j<dbscan->fpointId_to_clusterId.size();j++){
+	for(size_t j = 0; j < dbscan->fpointId_to_clusterId.size(); ++j){
 	  
-	  if(dbscan->fpointId_to_clusterId[j]==i){
-	    
-	    // reco_cl->Add(allhits[j]);
-	    clusterHits.push_back(allhits[j]);
-	  }
-       
+	  if(dbscan->fpointId_to_clusterId[j]==i) clusterHits.push_back(allhits[j]);
 	}
          
 	////////
@@ -169,10 +153,11 @@ void cluster::DBcluster::produce(art::Event& evt)
 				 -999., 0.,
 				 i);
 
+	  ccol->push_back(cluster);
+
 	  // associate the hits to this cluster
 	  util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
 
-	  ccol->push_back(cluster);
 	  //std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
 	  clusterHits.clear();
 	  //////
