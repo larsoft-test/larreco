@@ -64,7 +64,7 @@ cluster::ShowerAngleCluster::ShowerAngleCluster(fhicl::ParameterSet const& pset)
 {
   this->reconfigure(pset);
   produces< std::vector<recob::Cluster> >();
-//   produces< art::Assns<recob::Cluster, recob::Hit>  >();
+  produces< art::Assns<recob::Cluster, recob::Hit>  >();
    
 }
 
@@ -399,12 +399,13 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
 		    iplane);
 
 
+    ShowerAngleCluster->push_back(temp);
     // associate the hits to this cluster
     util::CreateAssn(*this, evt, *(ShowerAngleCluster.get()), hitlist_all[iplane], *(assn.get()));
     mf::LogInfo("ShowerAngleCluster") << "######## in plane loop filling clusters ";
     
 
-    ShowerAngleCluster->push_back(temp);
+    
   }
 
 
@@ -413,7 +414,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
   ftree_cluster->Fill();
 
   evt.put(ShowerAngleCluster);
- // evt.put(assn);
+  evt.put(assn);
 }
 
 
