@@ -74,8 +74,8 @@ namespace cluster{
     unsigned int fDistanceMetric; ///< Which distance metric to use
       
     // noise vector
-    static const unsigned int NO_CLUSTER=UINT_MAX;
-    static const unsigned int NOISE_CLUSTER=UINT_MAX-1;
+    static const unsigned int kNO_CLUSTER    = UINT_MAX;
+    static const unsigned int kNOISE_CLUSTER = UINT_MAX-1;
     std::vector<bool>      fnoise;	
     std::vector<bool>      fvisited;					     
     std::vector<double>    fWirePitch;   ///< the pitch of the wires in each plane

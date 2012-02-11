@@ -79,7 +79,7 @@ void cluster::DBcluster::produce(art::Event& evt)
   //get a collection of clusters   
   std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
   std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
-  //std::cout << "event  : " << evt.Header().Event() << std::endl;
+
   art::ServiceHandle<geo::Geometry> geom;
 
   art::Handle< std::vector<recob::Hit> > hitcol;
@@ -96,9 +96,9 @@ void cluster::DBcluster::produce(art::Event& evt)
       
   unsigned int p(0),w(0), t(0), channel(0);
   for(unsigned int tpc = 0; tpc < geom->NTPC(); ++tpc){
-    for(unsigned int plane=0; plane<geom->Nplanes(tpc); plane++){
+    for(unsigned int plane = 0; plane<geom->Nplanes(tpc); ++plane){
       geo::SigType_t sigType = geom->TPC(tpc).Plane(plane).SignalType();
-      for(unsigned int i = 0; i< hitcol->size(); ++i){
+      for(size_t i = 0; i< hitcol->size(); ++i){
       
 	art::Ptr<recob::Hit> hit(hitcol, i);
       
@@ -111,27 +111,24 @@ void cluster::DBcluster::produce(art::Event& evt)
       
       dbscan->InitScan(allhits, chanFilt.SetOfBadChannels());
 
-      // std::cout<<"number of hits is: "<<hit.size()<<std::endl;
       //----------------------------------------------------------------
       for(unsigned int j = 0; j < dbscan->fps.size(); ++j){
 
 	if(allhits.size() != dbscan->fps.size()) break;
    
 	fhitwidth->Fill(dbscan->fps[j][2]);
-	
-	
+		
 	if(sigType == geo::kInduction)  fhitwidth_ind_test->Fill(dbscan->fps[j][2]);
 	if(sigType == geo::kCollection) fhitwidth_coll_test->Fill(dbscan->fps[j][2]);
       }
-      //*******************************************************************
-
+ 
+     //*******************************************************************
       dbscan->run_cluster();
 
       for(size_t i = 0; i < dbscan->fclusters.size(); ++i){
 	art::PtrVector<recob::Hit> clusterHits;
 
-	for(size_t j = 0; j < dbscan->fpointId_to_clusterId.size(); ++j){
-	  
+	for(size_t j = 0; j < dbscan->fpointId_to_clusterId.size(); ++j){	  
 	  if(dbscan->fpointId_to_clusterId[j]==i) clusterHits.push_back(allhits[j]);
 	}
          
@@ -143,7 +140,7 @@ void cluster::DBcluster::produce(art::Event& evt)
 	  unsigned int ew = 0;
 	  geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), t, p, sw);
 	  geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), t, p, ew);
-	  	      
+	 
 	  recob::Cluster cluster(clusterHits, 
 				 sw*1., 0.,
 				 clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
@@ -151,16 +148,15 @@ void cluster::DBcluster::produce(art::Event& evt)
 				 clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
 				 -999., 0., 
 				 -999., 0.,
-				 i);
+				 ccol->size());
 
 	  ccol->push_back(cluster);
 
 	  // associate the hits to this cluster
 	  util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
 
-	  //std::cout<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
 	  clusterHits.clear();
-	  //////
+
 	}//end if clusterHits has at least one hit
    
       }//end loop over fclusters
@@ -169,7 +165,12 @@ void cluster::DBcluster::produce(art::Event& evt)
     }//end loop over planes
   }//end loop over tpcs
 
-  std::sort(ccol->begin(),ccol->end());//sort before Putting
+  // 2/10/12 comment out the sorting as it destroys the associations between
+  // the hits and the clusters.  not clear why the sorting was here to begin
+  // with.  downstream modules should do their own sorting if they rely on
+  // the clusters coming in a certain order.
+  // \todo remove following line after commenting it out has been shown not to matter
+  // std::sort(ccol->begin(),ccol->end());//sort before Putting
 
   mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
   mf::LogVerbatim("Summary") << "DBcluster Summary:";

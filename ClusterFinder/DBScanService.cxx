@@ -347,7 +347,7 @@ void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits,
     }
   }
 
-  fpointId_to_clusterId.resize(fps.size(), NO_CLUSTER); // Not zero as before!
+  fpointId_to_clusterId.resize(fps.size(), kNO_CLUSTER); // Not zero as before!
   fnoise.resize(fps.size(), false);
   fvisited.resize(fps.size(), false);
 
@@ -583,7 +583,7 @@ void cluster::DBScanService::run_dbscan_cluster() {
   // foreach pid
   for ( unsigned int pid = 0; pid < fps.size(); pid++){
     // not already visited
-    if (fpointId_to_clusterId[pid] == NO_CLUSTER) {
+    if (fpointId_to_clusterId[pid] == kNO_CLUSTER) {
       if ( ExpandCluster(pid,cid) ) {
 	cid++;
       }
@@ -595,10 +595,10 @@ void cluster::DBScanService::run_dbscan_cluster() {
   int noise=0;
   fclusters.resize(cid);
   for(unsigned int y=0; y< fpointId_to_clusterId.size();++y){
-    if (fpointId_to_clusterId[y]==NO_CLUSTER) {
+    if (fpointId_to_clusterId[y]==kNO_CLUSTER) {
       // This shouldn't happen...all points should be clasified by now!
       mf::LogWarning("DBscan") << "Unclassified point!";
-    } else if (fpointId_to_clusterId[y]==NOISE_CLUSTER) {
+    } else if (fpointId_to_clusterId[y]==kNOISE_CLUSTER) {
       noise++;
     } else {
       unsigned int c = fpointId_to_clusterId[y];
@@ -667,7 +667,7 @@ bool cluster::DBScanService::ExpandCluster(unsigned int point,
 
   // not enough support -> mark as noise
   if (seeds.size() < fMinPts){
-    fpointId_to_clusterId[point] = NOISE_CLUSTER;
+    fpointId_to_clusterId[point] = kNOISE_CLUSTER;
     return false;
   } else {
     // Add to the currecnt cluster
@@ -688,9 +688,9 @@ bool cluster::DBScanService::ExpandCluster(unsigned int point,
 	     itr++){
 	  unsigned int resultP = *itr;
 	  // not already assigned to a cluster
-	  if (fpointId_to_clusterId[resultP] == NO_CLUSTER ||
-	      fpointId_to_clusterId[resultP] == NOISE_CLUSTER ){
-	    if (fpointId_to_clusterId[resultP] == NO_CLUSTER ) {
+	  if (fpointId_to_clusterId[resultP] == kNO_CLUSTER ||
+	      fpointId_to_clusterId[resultP] == kNOISE_CLUSTER ){
+	    if (fpointId_to_clusterId[resultP] == kNO_CLUSTER ) {
 	      seeds.insert(resultP);
 	    }
 	    fpointId_to_clusterId[resultP]=clusterID;
@@ -758,7 +758,7 @@ void cluster::DBScanService::run_FN_cluster()
 		
 	  // not already assigned to a cluster
 	  //if (!fpointId_to_clusterId[nPid]){
-	  if (fpointId_to_clusterId[nPid] == NO_CLUSTER ){
+	  if (fpointId_to_clusterId[nPid] == kNO_CLUSTER ){
 	    c.push_back(nPid);
 	    fpointId_to_clusterId[nPid]=cid;
 	  }
@@ -778,7 +778,7 @@ void cluster::DBScanService::run_FN_cluster()
 
   for(unsigned int y=0;y< fpointId_to_clusterId.size();++y){
     //if  (fpointId_to_clusterId[y]==0) noise++;
-    if (fpointId_to_clusterId[y]==NO_CLUSTER) noise++;
+    if (fpointId_to_clusterId[y]==kNO_CLUSTER) noise++;
   }  
   mf::LogInfo("DBscan") << "FindNeighbors (R*-tree): Found " 
 			   << cid << " clusters...";
@@ -842,7 +842,7 @@ void cluster::DBScanService::run_FN_naive_cluster()
 		
 	  // not already assigned to a cluster
 	  //if (!fpointId_to_clusterId[nPid]){
-	  if (fpointId_to_clusterId[nPid] == NO_CLUSTER){
+	  if (fpointId_to_clusterId[nPid] == kNO_CLUSTER){
 	    c.push_back(nPid);
 	    fpointId_to_clusterId[nPid]=cid;
 	  }
@@ -862,7 +862,7 @@ void cluster::DBScanService::run_FN_naive_cluster()
 
   for(unsigned int y=0;y< fpointId_to_clusterId.size();++y){
     //if  (fpointId_to_clusterId[y]==0) noise++;
-    if  (fpointId_to_clusterId[y]==NO_CLUSTER) noise++;
+    if  (fpointId_to_clusterId[y]==kNO_CLUSTER) noise++;
   }
   mf::LogInfo("DBscan") << "FindNeighbors (naive): Found " << cid 
 			   << " clusters...";
