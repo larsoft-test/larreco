@@ -54,6 +54,7 @@ argoneut_spacepoint_finder:
   module_type:        "SpacePointFinder"
   ClusterModuleLabel: "dbcluster"
   Filter:             "true"
+  Merge: false
 }
 
 microboone_track:
@@ -117,6 +118,7 @@ microboone_spacepoint_finder:
   module_type:        "SpacePointFinder"
   ClusterModuleLabel: "dbcluster"
   Filter:             "true"
+  Merge: false
 }
 
 END_PROLOG

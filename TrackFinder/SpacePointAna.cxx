@@ -46,12 +46,16 @@ namespace trkf {
     fHDTVW(0),
     fHDTWU(0),
     fHS(0),
+    fHchisq(0),
     fHx(0),
     fHy(0),
     fHz(0),
     fHMCdx(0),
     fHMCdy(0),
     fHMCdz(0),
+    fHMCxpull(0),
+    fHMCypull(0),
+    fHMCzpull(0),
     fNumEvent(0)
   {
 
@@ -84,6 +88,7 @@ namespace trkf {
 
       art::ServiceHandle<geo::Geometry> geom;
       art::ServiceHandle<art::TFileService> tfs;
+      art::ServiceHandle<trkf::SpacePointService> sptsvc;
       art::TFileDirectory dir = tfs->mkdir("sptana", "SpacePointAna histograms");
 
       if(mc) {
@@ -91,10 +96,13 @@ namespace trkf {
 	fHDTVE = dir.make<TH1F>("MCDTVE", "V-Drift Electrons Time Difference", 100, -50., 50.);
 	fHDTWE = dir.make<TH1F>("MCDTWE", "W-Drift Electrons Time Difference", 100, -50., 50.);
       }
-      fHDTUV = dir.make<TH1F>("DTUV", "U-V time difference", 100, -20., 20.);
-      fHDTVW = dir.make<TH1F>("DTVW", "V-W time difference", 100, -20., 20.);
-      fHDTWU = dir.make<TH1F>("DTWU", "W-U time difference", 100, -20., 20.);
-      fHS = dir.make<TH1F>("DS", "Spatial Separatoin", 100, -2., 2.);
+      if(!sptsvc->merge()) {
+	fHDTUV = dir.make<TH1F>("DTUV", "U-V time difference", 100, -20., 20.);
+	fHDTVW = dir.make<TH1F>("DTVW", "V-W time difference", 100, -20., 20.);
+	fHDTWU = dir.make<TH1F>("DTWU", "W-U time difference", 100, -20., 20.);
+	fHS = dir.make<TH1F>("DS", "Spatial Separatoin", 100, -2., 2.);
+      }
+      fHchisq = dir.make<TH1F>("chisq", "Chisquare", 100, 0., 20.);
 
       fHx = dir.make<TH1F>("xpos", "X Position",
 			   100, 0., 2.*geom->DetHalfWidth());
@@ -106,6 +114,9 @@ namespace trkf {
 	fHMCdx = dir.make<TH1F>("MCdx", "X MC Residual", 100, -2., 2.);
 	fHMCdy = dir.make<TH1F>("MCdy", "Y MC Residual", 100, -2., 2.);
 	fHMCdz = dir.make<TH1F>("MCdz", "Z MC Residual", 100, -2., 2.);
+	fHMCxpull = dir.make<TH1F>("MCxpull", "X MC Pull", 100, -10., 10.);
+	fHMCypull = dir.make<TH1F>("MCypull", "Y MC Pull", 100, -10., 10.);
+	fHMCzpull = dir.make<TH1F>("MCzpull", "Z MC Pull", 100, -10., 10.);
       }
     }
   }
@@ -243,13 +254,15 @@ namespace trkf {
     // If nonzero time cut is specified, make space points using that
     // time cut (for time histograms).
 
-    if(fMaxDT != 0) {
+    if(fMaxDT != 0 && !sptsvc->merge()) {
       if(mc && fUseMC)
 	sptsvc->makeMCTruthSpacePoints(hits, spts1, simchanv,
-				       sptsvc->filter(), fMaxDT, 0.);
+				       sptsvc->filter(), sptsvc->merge(),
+				       fMaxDT, 0.);
       else
 	sptsvc->makeSpacePoints(hits, spts1,
-				sptsvc->filter(), fMaxDT, 0.);
+				sptsvc->filter(), sptsvc->merge(),
+				fMaxDT, 0.);
 
       // Report number of space points.
 
@@ -260,13 +273,15 @@ namespace trkf {
     // If nonzero separation cut is specified, make space points using that 
     // separation cut (for separation histogram).
 
-    if(fMaxS != 0.) {
+    if(fMaxS != 0. && !sptsvc->merge()) {
       if(mc && fUseMC)
 	sptsvc->makeMCTruthSpacePoints(hits, spts2, simchanv,
-				       sptsvc->filter(), 0., fMaxS);
+				       sptsvc->filter(), sptsvc->merge(),
+				       0., fMaxS);
       else
 	sptsvc->makeSpacePoints(hits, spts2,
-				sptsvc->filter(), 0., fMaxS);
+				sptsvc->filter(), sptsvc->merge(),
+				0., fMaxS);
 
       // Report number of space points.
 
@@ -289,86 +304,89 @@ namespace trkf {
     std::vector<recob::SpacePoint>::const_iterator ibegin;
     std::vector<recob::SpacePoint>::const_iterator iend;
 
-    // Loop over space points and fill time histograms.
+    if(!sptsvc->merge()) {
 
-    ibegin = (fMaxDT != 0. ? spts1.begin() : spts3.begin());
-    iend = (fMaxDT != 0. ? spts1.end() : spts3.end());
+      // Loop over space points and fill time histograms.
 
-    for(std::vector<recob::SpacePoint>::const_iterator i = ibegin; 
-	i != iend; ++i) {
-      const recob::SpacePoint& spt = *i;
+      ibegin = (fMaxDT != 0. ? spts1.begin() : spts3.begin());
+      iend = (fMaxDT != 0. ? spts1.end() : spts3.end());
 
-      // Get hits associated with this SpacePoint.
+      for(std::vector<recob::SpacePoint>::const_iterator i = ibegin; 
+	  i != iend; ++i) {
+	const recob::SpacePoint& spt = *i;
 
-      const art::PtrVector<recob::Hit>& spthits = spt.Hits(geo::kU, true);
+	// Get hits associated with this SpacePoint.
 
-      // Make a double loop over hits and fill hit time difference histograms.
+	const art::PtrVector<recob::Hit>& spthits = spt.Hits(geo::kU, true);
 
-      for(art::PtrVector<recob::Hit>::const_iterator ihit = spthits.begin();
-	  ihit != spthits.end(); ++ihit) {
-	const recob::Hit& hit1 = **ihit;
+	// Make a double loop over hits and fill hit time difference histograms.
 
-	unsigned short channel1 = hit1.Channel();
-	unsigned int tpc1, plane1, wire1;
-	geom->ChannelToWire(channel1, tpc1, plane1, wire1);
-	geo::View_t view1 = hit1.View();
-	double t1 = sptsvc->correctedTime(hit1, timeOffset);
+	for(art::PtrVector<recob::Hit>::const_iterator ihit = spthits.begin();
+	    ihit != spthits.end(); ++ihit) {
+	  const recob::Hit& hit1 = **ihit;
 
-	for(art::PtrVector<recob::Hit>::const_iterator jhit = spthits.begin();
-	    jhit != spthits.end(); ++jhit) {
-	  const recob::Hit& hit2 = **jhit;
+	  unsigned short channel1 = hit1.Channel();
+	  unsigned int tpc1, plane1, wire1;
+	  geom->ChannelToWire(channel1, tpc1, plane1, wire1);
+	  geo::View_t view1 = hit1.View();
+	  double t1 = sptsvc->correctedTime(hit1, timeOffset);
 
-	  unsigned short channel2 = hit2.Channel();
-	  unsigned int tpc2, plane2, wire2;
-	  geom->ChannelToWire(channel2, tpc2, plane2, wire2);
+	  for(art::PtrVector<recob::Hit>::const_iterator jhit = spthits.begin();
+	      jhit != spthits.end(); ++jhit) {
+	    const recob::Hit& hit2 = **jhit;
 
-	  // Require same tpc, different view.
+	    unsigned short channel2 = hit2.Channel();
+	    unsigned int tpc2, plane2, wire2;
+	    geom->ChannelToWire(channel2, tpc2, plane2, wire2);
 
-	  if(tpc1 == tpc2 && plane1 != plane2) {
+	    // Require same tpc, different view.
 
-	    geo::View_t view2 = hit2.View();
-	    double t2 = sptsvc->correctedTime(hit2, timeOffset);
+	    if(tpc1 == tpc2 && plane1 != plane2) {
 
-	    if(view1 == geo::kU) {
-	      if(view2 == geo::kV)
-		fHDTUV->Fill(t1-t2);
-	      if(view2 == geo::kW)
-		fHDTWU->Fill(t2-t1);
-	    }
-	    if(view1 == geo::kV) {
-	      if(view2 == geo::kW)
-		fHDTVW->Fill(t1-t2);
-	      if(view2 == geo::kU)
-		fHDTUV->Fill(t2-t1);
-	    }
-	    if(view1 == geo::kW) {
-	      if(view2 == geo::kU)
-		fHDTWU->Fill(t1-t2);
-	      if(view2 == geo::kV)
-		fHDTVW->Fill(t2-t1);
+	      geo::View_t view2 = hit2.View();
+	      double t2 = sptsvc->correctedTime(hit2, timeOffset);
+
+	      if(view1 == geo::kU) {
+		if(view2 == geo::kV)
+		  fHDTUV->Fill(t1-t2);
+		if(view2 == geo::kW)
+		  fHDTWU->Fill(t2-t1);
+	      }
+	      if(view1 == geo::kV) {
+		if(view2 == geo::kW)
+		  fHDTVW->Fill(t1-t2);
+		if(view2 == geo::kU)
+		  fHDTUV->Fill(t2-t1);
+	      }
+	      if(view1 == geo::kW) {
+		if(view2 == geo::kU)
+		  fHDTWU->Fill(t1-t2);
+		if(view2 == geo::kV)
+		  fHDTVW->Fill(t2-t1);
+	      }
 	    }
 	  }
 	}
       }
-    }
 
-    // Loop over space points and fill seperation histograms.
+      // Loop over space points and fill seperation histograms.
 
-    ibegin = (fMaxS != 0. ? spts2.begin() : spts3.begin());
-    iend = (fMaxS != 0. ? spts2.end() : spts3.end());
+      ibegin = (fMaxS != 0. ? spts2.begin() : spts3.begin());
+      iend = (fMaxS != 0. ? spts2.end() : spts3.end());
 
-    for(std::vector<recob::SpacePoint>::const_iterator i = ibegin; 
-	i != iend; ++i) {
-      const recob::SpacePoint& spt = *i;
+      for(std::vector<recob::SpacePoint>::const_iterator i = ibegin; 
+	  i != iend; ++i) {
+	const recob::SpacePoint& spt = *i;
 
-      // Get hits associated with this SpacePoint.
+	// Get hits associated with this SpacePoint.
 
-      const art::PtrVector<recob::Hit>& spthits = spt.Hits(geo::kU, true);
+	const art::PtrVector<recob::Hit>& spthits = spt.Hits(geo::kU, true);
 
-      // Fill separation histogram.
+	// Fill separation histogram.
 
-      double sep = sptsvc->separation(spthits);
-      fHS->Fill(sep);
+	double sep = sptsvc->separation(spthits);
+	fHS->Fill(sep);
+      }
     }
 
     // Loop over default space points and fill histograms.
@@ -380,6 +398,7 @@ namespace trkf {
 	i != iend; ++i) {
       const recob::SpacePoint& spt = *i;
 
+      fHchisq->Fill(spt.Chisq());
       fHx->Fill(spt.XYZ()[0]);
       fHy->Fill(spt.XYZ()[1]);
       fHz->Fill(spt.XYZ()[2]);
@@ -388,6 +407,12 @@ namespace trkf {
 	fHMCdx->Fill(spt.XYZ()[0] - mcxyz[0]);
 	fHMCdy->Fill(spt.XYZ()[1] - mcxyz[1]);
 	fHMCdz->Fill(spt.XYZ()[2] - mcxyz[2]);
+	if(spt.ErrXYZ()[0] > 0.)
+	  fHMCxpull->Fill((spt.XYZ()[0] - mcxyz[0]) / std::sqrt(spt.ErrXYZ()[0]));
+	if(spt.ErrXYZ()[2] > 0.)
+	  fHMCypull->Fill((spt.XYZ()[1] - mcxyz[1]) / std::sqrt(spt.ErrXYZ()[2]));
+	if(spt.ErrXYZ()[5] > 0.)
+	  fHMCzpull->Fill((spt.XYZ()[2] - mcxyz[2]) / std::sqrt(spt.ErrXYZ()[5]));
       }
     }
   }

@@ -4,7 +4,7 @@
 ///
 /// \brief  Service for generating space points from hits.
 ///
-/// \author H. Greenlee 
+/// \author H. Greenlee
 ///
 ////////////////////////////////////////////////////////////////////////
 
@@ -62,7 +62,8 @@ trkf::SpacePointService::SpacePointService(const fhicl::ParameterSet& pset,
   fEnableU(false),
   fEnableV(false),
   fEnableW(false),
-  fFilter(false)
+  fFilter(false),
+  fMerge(false)
 {
   reconfigure(pset);
 }
@@ -94,6 +95,12 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
   fEnableV = pset.get<bool>("EnableV", false);
   fEnableW = pset.get<bool>("EnableW", false);
   fFilter = pset.get<bool>("Filter", false);
+  fMerge = pset.get<bool>("Merge", false);
+
+  // Only allow one of fFilter and fMerge to be true.
+
+  if(fFilter && fMerge)
+    throw cet::exception("SpacePointService") << "Filter and Merge flags are both true.\n";
 
   // Report.
 
@@ -108,7 +115,8 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
     << "  EnableU = " << fEnableU << "\n"
     << "  EnableV = " << fEnableV << "\n"
     << "  EnableW = " << fEnableW << "\n"
-    << "  Filter = " << fFilter;
+    << "  Filter = " << fFilter << "\n"
+    << "  Merge = " << fMerge;
 }
 
 //----------------------------------------------------------------------
@@ -561,11 +569,10 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 //----------------------------------------------------------------------
 // Fill one space point using a colleciton of hits.
 // Assume points have already been tested for compatibility.
-// Returned value is a time goodness of fit (smaller is better, like chisquare).
 //
-double trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
-					       const std::vector<std::vector<double> >& timeOffset,
-					       recob::SpacePoint& spt) const
+void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
+					     const std::vector<std::vector<double> >& timeOffset,
+					     recob::SpacePoint& spt) const
 {
   // Get services.
 
@@ -577,22 +584,25 @@ double trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>&
 
   double efield = larprop->Efield();
   double temperature = larprop->Temperature();
-  double driftVelocity = larprop->DriftVelocity(efield, temperature);
-  double samplingRate = detprop->SamplingRate();
-  double timePitch = 0.001 * driftVelocity * samplingRate;
+  double driftVelocity = larprop->DriftVelocity(efield, temperature); // cm / us
+  double samplingRate = detprop->SamplingRate();                      // ns
+  double timePitch = 0.001 * driftVelocity * samplingRate;            // cm / tick
 
   // Store hits in SpacePoint.
 
   spt = recob::SpacePoint(recob::SpacePoint(hits));
   int nhits = hits.size();
 
-  // Calculate position.
+  // Calculate position and error matrix.
 
   double xyz[3] = {0., 0., 0.};
+  double errxyz[6] = {0.,
+		      0., 0.,
+		      0., 0., 0.};
 
   // Calculate x using drift times.
   // Loop over all hits and calculate the weighted average drift time.
-  // Also calculate time variance, minimum and maximum time.
+  // Also calculate time variance and chisquare.
 
   double sumt2w = 0.;
   double sumtw = 0.;
@@ -607,13 +617,10 @@ double trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>&
     geom->ChannelToWire(channel, tpc, plane, wire);
 
     // Correct time for trigger offset and view-dependent time offsets.
-    // Assume time error is proportional to (end time - start time).
 
     double t0 = timeOffset[tpc][plane];
     double t = hit.PeakTime() - t0;
-    double t1 = hit.StartTime() - t0;
-    double t2 = hit.EndTime() - t0;
-    double et = t2 - t1;
+    double et = hit.SigmaPeakTime();
     double w = 1./(et*et);
 
     sumt2w += w*t*t;
@@ -622,13 +629,19 @@ double trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>&
   }
 
   double drift_time = 0.;
-  double var = 0.;
+  double var_time = 0.;
+  double chisq = 0.;
   if(sumw != 0.) {
     drift_time = sumtw / sumw;
-    var = sumt2w / sumw - drift_time * drift_time;
+    var_time = sumt2w / sumw - drift_time * drift_time;
+    if(var_time < 0.)
+      var_time = 0.;
+    chisq = sumt2w - sumtw * drift_time;
+    if(chisq < 0.)
+      chisq = 0.;
   }
   xyz[0] = drift_time * timePitch;
-  var *= timePitch;
+  errxyz[0] = var_time * timePitch * timePitch;
 
   // Calculate y, z using wires (need at least two hits).
 
@@ -636,11 +649,12 @@ double trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>&
 
     // Calculate y and z by chisquare minimization of wire coordinates.
 
-    double sus = 0.;   // sum u_i sin_th_i
-    double suc = 0.;   // sum u_i cos_th_i
-    double sc2 = 0.;   // sum cos2_th_i
-    double ss2 = 0.;   // sum sin2_th_i
-    double ssc = 0.;   // sum sin_th_i cos_th_i
+    double sw = 0.;    // sum w_i
+    double sus = 0.;   // sum w_i u_i sin_th_i
+    double suc = 0.;   // sum w_i u_i cos_th_i
+    double sc2 = 0.;   // sum w_i cos2_th_i
+    double ss2 = 0.;   // sum w_i sin2_th_i
+    double ssc = 0.;   // sum w_i sin_th_i cos_th_i
 
     // Loop over points.
 
@@ -662,14 +676,17 @@ double trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>&
       double s  = (xyz1[1] - xyz[1]) / hl;
       double c = (xyz1[2] - xyz[2]) / hl;
       double u = xyz[2] * s - xyz[1] * c;
+      double eu = geom->WirePitch(0, 1, plane, tpc) / std::sqrt(12.);
+      double w = 1. / (eu * eu);
 
       // Summations
 
-      sus += u*s;
-      suc += u*c;
-      sc2 += c*c;
-      ss2 += s*s;
-      ssc += s*c;
+      sw += w;
+      sus += w*u*s;
+      suc += w*u*c;
+      sc2 += w*c*c;
+      ss2 += w*s*s;
+      ssc += w*s*c;
     }
 
     // Calculate y,z
@@ -678,13 +695,198 @@ double trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>&
     if(denom != 0.) {
       xyz[1] = (-suc * ss2 + sus * ssc) / denom;
       xyz[2] = (sus * sc2 - suc * ssc) / denom;
+      errxyz[2] = ss2 / denom;
+      errxyz[4] = ssc / denom;
+      errxyz[5] = sc2 / denom;
     }
 
-    // Set coordintates in space point.
+    // Set coordintates, error matrix, and chisquare in space point.
 
     spt.SetXYZ(xyz);
+    spt.SetErrXYZ(errxyz);
+    spt.SetChisq(chisq);
   }
-  return var;
+  return;
+}
+
+//----------------------------------------------------------------------
+// Fill one space point using a colleciton of hits.
+// Assume points have already been tested for compatibility.
+// This version assumes there can be multiple hits per view,
+// and gives unequal weight to different hits.
+//
+void trkf::SpacePointService::
+fillComplexSpacePoint(const art::PtrVector<recob::Hit>& hits,
+		      const std::vector<std::vector<double> >& timeOffset,
+		      recob::SpacePoint& spt) const
+{
+  // Get services.
+
+  art::ServiceHandle<geo::Geometry> geom;
+  art::ServiceHandle<util::DetectorProperties> detprop;
+  art::ServiceHandle<util::LArProperties> larprop;
+
+  // Calculate time pitch.
+
+  double efield = larprop->Efield();
+  double temperature = larprop->Temperature();
+  double driftVelocity = larprop->DriftVelocity(efield, temperature); // cm / us
+  double samplingRate = detprop->SamplingRate();                      // ns
+  double timePitch = 0.001 * driftVelocity * samplingRate;            // cm / tick
+
+  // Figure out which tpc we are in.
+
+  unsigned int tpc0 = 0;
+  int nhits = hits.size();
+  if(nhits > 0) {
+    unsigned short channel = hits.front()->Channel();
+    unsigned int plane, wire;
+    geom->ChannelToWire(channel, tpc0, plane, wire);
+  }
+
+  // Store hits in SpacePoint.
+
+  spt = recob::SpacePoint(recob::SpacePoint(hits));
+
+  // Do a preliminary scan of hits.
+  // Determine weight given to hits in each view.
+
+  unsigned int nplanes = geom->Nplanes(tpc0);
+  std::vector<int> numhits(nplanes, 0);
+  std::vector<double> weight(nplanes, 0.);
+
+  for(art::PtrVector<recob::Hit>::const_iterator ihit = hits.begin();
+      ihit != hits.end(); ++ihit) {
+
+    const recob::Hit& hit = **ihit;
+    unsigned short channel = hit.Channel();
+    unsigned int tpc, plane, wire;
+    geom->ChannelToWire(channel, tpc, plane, wire);
+    assert(tpc == tpc0);
+    assert(plane < nplanes);
+    ++numhits[plane];
+  }
+
+  for(unsigned int plane = 0; plane < nplanes; ++plane) {
+    double np = numhits[plane];
+    if(np > 0.)
+      weight[plane] = 1. / (np*np*np);
+  }
+
+  // Calculate position and error matrix.
+
+  double xyz[3] = {0., 0., 0.};
+  double errxyz[6] = {0.,
+		      0., 0.,
+		      0., 0., 0.};
+
+  // Calculate x using drift times.
+  // Loop over all hits and calculate the weighted average drift time.
+  // Also calculate time variance and chisquare.
+
+  double sumt2w = 0.;
+  double sumtw = 0.;
+  double sumw = 0.;
+
+  for(art::PtrVector<recob::Hit>::const_iterator ihit = hits.begin();
+      ihit != hits.end(); ++ihit) {
+
+    const recob::Hit& hit = **ihit;
+    unsigned short channel = hit.Channel();
+    unsigned int tpc, plane, wire;
+    geom->ChannelToWire(channel, tpc, plane, wire);
+
+    // Correct time for trigger offset and view-dependent time offsets.
+
+    double t0 = timeOffset[tpc][plane];
+    double t = hit.PeakTime() - t0;
+    double et = hit.SigmaPeakTime();
+    double w = weight[plane]/(et*et);
+
+    sumt2w += w*t*t;
+    sumtw += w*t;
+    sumw += w;
+  }
+
+  double drift_time = 0.;
+  double var_time = 0.;
+  double chisq = 0.;
+  if(sumw != 0.) {
+    drift_time = sumtw / sumw;
+    var_time = sumt2w / sumw - drift_time * drift_time;
+    if(var_time < 0.)
+      var_time = 0.;
+    chisq = sumt2w - sumtw * drift_time;
+    if(chisq < 0.)
+      chisq = 0.;
+  }
+  xyz[0] = drift_time * timePitch;
+  errxyz[0] = var_time * timePitch * timePitch;
+
+  // Calculate y, z using wires (need at least two hits).
+
+  if(nhits >= 2) {
+
+    // Calculate y and z by chisquare minimization of wire coordinates.
+
+    double sw = 0.;    // sum w_i
+    double sus = 0.;   // sum w_i u_i sin_th_i
+    double suc = 0.;   // sum w_i u_i cos_th_i
+    double sc2 = 0.;   // sum w_i cos2_th_i
+    double ss2 = 0.;   // sum w_i sin2_th_i
+    double ssc = 0.;   // sum w_i sin_th_i cos_th_i
+
+    // Loop over points.
+
+    for(art::PtrVector<recob::Hit>::const_iterator ihit = hits.begin();
+	ihit != hits.end(); ++ihit) {
+
+      const recob::Hit& hit = **ihit;
+      unsigned short channel = hit.Channel();
+      unsigned int tpc, plane, wire;
+      const geo::WireGeo& wgeom = geom->ChannelToWire(channel, tpc, plane, wire);
+
+      // Calculate angle and wire coordinate in this view.
+    
+      double hl = wgeom.HalfL();
+      double xyz[3];
+      double xyz1[3];
+      wgeom.GetCenter(xyz);
+      wgeom.GetCenter(xyz1, hl);
+      double s  = (xyz1[1] - xyz[1]) / hl;
+      double c = (xyz1[2] - xyz[2]) / hl;
+      double u = xyz[2] * s - xyz[1] * c;
+      double eu = geom->WirePitch(0, 1, plane, tpc) / std::sqrt(12.);
+      double w = weight[plane] / (eu * eu);
+
+      // Summations
+
+      sw += w;
+      sus += w*u*s;
+      suc += w*u*c;
+      sc2 += w*c*c;
+      ss2 += w*s*s;
+      ssc += w*s*c;
+    }
+
+    // Calculate y,z
+
+    double denom = sc2 * ss2 - ssc * ssc;
+    if(denom != 0.) {
+      xyz[1] = (-suc * ss2 + sus * ssc) / denom;
+      xyz[2] = (sus * sc2 - suc * ssc) / denom;
+      errxyz[2] = ss2 / denom;
+      errxyz[4] = ssc / denom;
+      errxyz[5] = sc2 / denom;
+    }
+
+    // Set coordintates, error matrix, and chisquare in space point.
+
+    spt.SetXYZ(xyz);
+    spt.SetErrXYZ(errxyz);
+    spt.SetChisq(chisq);
+  }
+  return;
 }
 
 //----------------------------------------------------------------------
@@ -695,7 +897,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 					      std::vector<recob::SpacePoint>& spts) const
 {
   std::vector<const sim::SimChannel*> empty;
-  makeSpacePoints(hits, spts, empty, false, fFilter, fMaxDT, fMaxS);
+  makeSpacePoints(hits, spts, empty, false, fFilter, fMerge, fMaxDT, fMaxS);
 }
 
 //----------------------------------------------------------------------
@@ -704,10 +906,11 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 //
 void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 					      std::vector<recob::SpacePoint>& spts,
-					      bool filter, double maxDT, double maxS) const
+					      bool filter, bool merge,
+					      double maxDT, double maxS) const
 {
   std::vector<const sim::SimChannel*> empty;
-  makeSpacePoints(hits, spts, empty, false, filter, maxDT, maxS);
+  makeSpacePoints(hits, spts, empty, false, filter, merge, maxDT, maxS);
 }
 
 //----------------------------------------------------------------------
@@ -718,7 +921,7 @@ void trkf::SpacePointService::makeMCTruthSpacePoints(const art::PtrVector<recob:
 						     std::vector<recob::SpacePoint>& spts,
 						     const std::vector<const sim::SimChannel*>& simchans) const
 {
-  makeSpacePoints(hits, spts, simchans, true, fFilter, fMaxDT, fMaxS);
+  makeSpacePoints(hits, spts, simchans, true, fFilter, fMerge, fMaxDT, fMaxS);
 }
 
 //----------------------------------------------------------------------
@@ -728,9 +931,10 @@ void trkf::SpacePointService::makeMCTruthSpacePoints(const art::PtrVector<recob:
 void trkf::SpacePointService::makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
 						     std::vector<recob::SpacePoint>& spts,
 						     const std::vector<const sim::SimChannel*>& simchans,
-						     bool filter, double maxDT, double maxS) const
+						     bool filter, bool merge,
+						     double maxDT, double maxS) const
 {
-  makeSpacePoints(hits, spts, simchans, true, filter, maxDT, maxS);
+  makeSpacePoints(hits, spts, simchans, true, filter, merge, maxDT, maxS);
 }
 
 //----------------------------------------------------------------------
@@ -741,7 +945,8 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 					      std::vector<recob::SpacePoint>& spts,
 					      const std::vector<const sim::SimChannel*>& simchans,
 					      bool useMC,
-					      bool filter, double maxDT, double maxS) const
+					      bool filter, bool merge,
+					      double maxDT, double maxS) const
 {
   // Get cuts.
 
@@ -771,8 +976,8 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
   int n2 = 0;  // Number of two-hit space points.
   int n3 = 0;  // Number of three-hit space points.
-  int n2filt = 0;  // Number of two-hit space points after filtering.
-  int n3filt = 0;  // Number of three-hit space pointe after filtering.
+  int n2filt = 0;  // Number of two-hit space points after filtering/merging.
+  int n3filt = 0;  // Number of three-hit space pointe after filtering/merging.
 
   // If useMC is true, verify that channels are sorted by channel number.
 
@@ -909,10 +1114,10 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
   for(unsigned int tpc = 0; tpc < ntpc; ++tpc) {
 
     // Make empty multimap from hit pointer on most-populated plane to space points 
-    // that include that hit (used for filtering).
+    // that include that hit (used for filtering and merging).
 
     typedef const recob::Hit* sptkey_type;
-    std::multimap<sptkey_type, SpacePointX> sptmap;
+    std::multimap<sptkey_type, recob::SpacePoint> sptmap;
     std::set<sptkey_type> sptkeys;              // Keys of multimap.
 
     // Sort maps in increasing order of number of hits.
@@ -1014,13 +1219,13 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 		// Add a space point.
 
 		++n2;
-		if(filter) {
+		if(filter || merge) {
 		  sptkey_type key = &*phit2;
-		  std::multimap<sptkey_type, SpacePointX>::iterator it = 
-		    sptmap.insert(std::pair<sptkey_type, SpacePointX>(key, SpacePointX()));
+		  std::multimap<sptkey_type, recob::SpacePoint>::iterator it = 
+		    sptmap.insert(std::pair<sptkey_type, recob::SpacePoint>(key, recob::SpacePoint()));
 		  sptkeys.insert(key);
-		  SpacePointX& sptx = it->second;
-		  sptx.goodness = fillSpacePoint(hitvec, timeOffset, sptx);
+		  recob::SpacePoint& spt = it->second;
+		  fillSpacePoint(hitvec, timeOffset, spt);
 		}
 		else {
 		  spts.push_back(recob::SpacePoint());
@@ -1200,13 +1405,13 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 		      // Add a space point.
 
 		      ++n3;
-		      if(filter) {
+		      if(filter || merge) {
 			sptkey_type key = &*phit3;
-			std::multimap<sptkey_type, SpacePointX>::iterator it = 
-			  sptmap.insert(std::pair<sptkey_type, SpacePointX>(key, SpacePointX()));
+			std::multimap<sptkey_type, recob::SpacePoint>::iterator it = 
+			  sptmap.insert(std::pair<sptkey_type, recob::SpacePoint>(key, recob::SpacePoint()));
 			sptkeys.insert(key);
-			SpacePointX& sptx = it->second;
-			sptx.goodness = fillSpacePoint(hitvec, timeOffset, sptx);
+			recob::SpacePoint& spt = it->second;
+			fillSpacePoint(hitvec, timeOffset, spt);
 		      }
 		      else {
 			spts.push_back(recob::SpacePoint());
@@ -1240,28 +1445,82 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	// Loop over space points corresponding to the current key.
 	// Choose the single best space point from among this group.
 
-	double best_goodness = 0.;
-	const SpacePointX* best_sptx = 0;
+	double best_chisq = 0.;
+	const recob::SpacePoint* best_spt = 0;
 
-	for(std::multimap<sptkey_type, SpacePointX>::const_iterator j = sptmap.lower_bound(key);
+	for(std::multimap<sptkey_type, recob::SpacePoint>::const_iterator j = sptmap.lower_bound(key);
 	    j != sptmap.upper_bound(key); ++j) {
-	  const SpacePointX& sptx = j->second;
-	  if(best_sptx == 0 || sptx.goodness < best_goodness) {
-	    best_sptx = &sptx;
-	    best_goodness = sptx.goodness;
+	  const recob::SpacePoint& spt = j->second;
+	  if(best_spt == 0 || spt.Chisq() < best_chisq) {
+	    best_spt = &spt;
+	    best_chisq = spt.Chisq();
 	  }
 	}
 
 	// Transfer best filtered space point to result vector.
 
-	assert(best_sptx != 0);
-	if(best_sptx != 0) {
-	  spts.push_back(*best_sptx);
+	assert(best_spt != 0);
+	if(best_spt != 0) {
+	  spts.push_back(*best_spt);
 	  if(fMinViews <= 2)
 	    ++n2filt;
 	  else
 	    ++n3filt;
 	}
+      }
+    }
+
+    // Do merging.
+
+    else if(merge) {
+
+      // Transfer merged space points from sptmap to spts.
+
+      spts.reserve(spts.size() + sptkeys.size());
+
+      // Loop over keys of space point map.
+      // Space points that have the same key are candidates for merging.
+
+      for(std::set<sptkey_type>::const_iterator i = sptkeys.begin();
+	  i != sptkeys.end(); ++i) {
+	sptkey_type key = *i;
+
+	// Loop over space points corresponding to the current key.
+	// Make a collection of hits that is the union of the hits
+	// from each candidate space point.
+
+	art::PtrVector<recob::Hit> merged_hits;
+	for(std::multimap<sptkey_type, recob::SpacePoint>::const_iterator j = sptmap.lower_bound(key);
+	    j != sptmap.upper_bound(key); ++j) {
+	  const recob::SpacePoint& spt = j->second;
+
+	  // Loop over hits from this space points.
+	  // Add each hit to the collection of all hits.
+
+	  const art::PtrVector<recob::Hit>& spt_hits = spt.AllHits();
+	  for(art::PtrVector<recob::Hit>::const_iterator k = spt_hits.begin();
+	      k != spt_hits.end(); ++k) {
+	    const art::Ptr<recob::Hit>& hit = *k;
+	    merged_hits.push_back(hit);
+	  }
+	}
+
+	// Remove duplicates.
+
+	std::sort(merged_hits.begin(), merged_hits.end());
+	art::PtrVector<recob::Hit>::iterator it = 
+	  std::unique(merged_hits.begin(), merged_hits.end());
+	merged_hits.erase(it, merged_hits.end());
+
+	// Construct a complex space points using merged hits.
+
+	spts.push_back(recob::SpacePoint());
+	fillComplexSpacePoint(merged_hits, timeOffset, spts.back());
+
+	if(fMinViews <= 2)
+	  ++n2filt;
+	else
+	  ++n3filt;
       }
     }
     else {
@@ -1272,6 +1531,6 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 
   debug << "\n2-hit space points = " << n2 << "\n"
 	<< "3-hit space points = " << n3 << "\n"
-	<< "2-hit filtered space points = " << n2filt << "\n"
-	<< "3-hit filtered space points = " << n3filt;
+	<< "2-hit filtered/merged space points = " << n2filt << "\n"
+	<< "3-hit filtered/merged space points = " << n3filt;
 }

@@ -22,6 +22,7 @@
 /// EnableV - Use V view hits.
 /// EnableW - Use W view hits.
 /// Filter - Filter space points flag.
+/// Merge - Merge space points flag.
 ///
 /// The parameters fMaxDT and fMaxS are used to implement a notion of whether
 /// the input hits are compatible with being a space point.  Parameter
@@ -44,6 +45,10 @@
 ///
 /// If enabled, filtering eliminates multiple space points with similar
 /// times on the same wire of the most popluated plane.
+///
+/// If enabled, merging combines multiple space points with similar 
+/// times on the same wire of the most populated plane (potentially
+/// producing space points with more hits than the number of planes).
 ///
 /// There should eventually be a better way to specify time offsets.
 ///
@@ -79,6 +84,7 @@ namespace trkf {
     // Configuration Accessors.
 
     bool filter() const {return fFilter;}
+    bool merge() const {return fMerge;}
     double maxDT() const {return fMaxDT;}
     double maxS() const {return fMaxS;}
     int minViews() const {return fMinViews;}
@@ -106,12 +112,18 @@ namespace trkf {
     // Spatial separation of hits (zero if two or fewer).
     double separation(const art::PtrVector<recob::Hit>& hits) const;
 
-    // Fill a single space point using the specified hits.
+    // Fill a single simple space point using the specified hits.
     // Hits are assumed to be compatible.
-    // Returned value is a time goodness of fit (smaller is better, like chisquare).
-    double fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
-			  const std::vector<std::vector<double> >& timeOffset,
-			  recob::SpacePoint& spt) const;
+    void fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
+			const std::vector<std::vector<double> >& timeOffset,
+			recob::SpacePoint& spt) const;
+
+    // Fill a single complex space point using the specified hits.
+    // Complex space points allow multiple hits in one plane.
+    // Hits are assumed to be compatible.
+    void fillComplexSpacePoint(const art::PtrVector<recob::Hit>& hits,
+			       const std::vector<std::vector<double> >& timeOffset,
+			       recob::SpacePoint& spt) const;
 
     // Fill a vector of space points from an unsorted collection of hits.
     // Space points are generated for all compatible combinations of hits.
@@ -122,6 +134,7 @@ namespace trkf {
     void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 			 std::vector<recob::SpacePoint>& spts,
 			 bool filter,
+			 bool merge,
 			 double maxDT,
 			 double maxS) const;
 
@@ -135,6 +148,7 @@ namespace trkf {
 				std::vector<recob::SpacePoint>& spts,
 				const std::vector<const sim::SimChannel*>& simchans,
 				bool filter,
+				bool merge,
 				double maxDT,
 				double maxS) const;
 
@@ -147,6 +161,7 @@ namespace trkf {
 			 const std::vector<const sim::SimChannel*>& simchans,
 			 bool useMC,
 			 bool filter,
+			 bool merge,
 			 double maxDT,
 			 double maxS) const;
 
@@ -161,10 +176,10 @@ namespace trkf {
     // Extended SpacePoint struct.
     // Contains extra information used for filtering (private type).
 
-    struct SpacePointX : public recob::SpacePoint {
-      SpacePointX() : goodness(0) {}
-      double goodness;
-    };
+    //struct SpacePointX : public recob::SpacePoint {
+    //  SpacePointX() : goodness(0) {}
+    //  double goodness;
+    //};
 
     // Configuration paremeters.
 
@@ -178,6 +193,7 @@ namespace trkf {
     bool fEnableV;          ///< Enable flag (V).
     bool fEnableW;          ///< Enable flag (W).
     bool fFilter;           ///< Filter flag.
+    bool fMerge;            ///< Merge flag.
 
     // Temporary variables.
 

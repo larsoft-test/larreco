@@ -12,6 +12,7 @@ argoneut_spacepointservice:
   EnableV: true
   EnableW: false
   Filter: true
+  Merge: false
 }
 
 microboone_spacepointservice:
@@ -26,6 +27,7 @@ microboone_spacepointservice:
   EnableV: true
   EnableW: true
   Filter: true
+  Merge: false
 }
 
 
@@ -41,6 +43,7 @@ lbne_spacepointservice:
   EnableV: true
   EnableW: true
   Filter: true
+  Merge: false
 }
 
 

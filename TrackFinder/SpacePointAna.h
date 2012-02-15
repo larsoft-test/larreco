@@ -45,20 +45,24 @@ namespace trkf {
 
     // Histograms.
 
-    bool fBooked;   // Have histograms been booked yet?
-    TH1F* fHDTUE;   // U-drift electrons time difference.
-    TH1F* fHDTVE;   // V-drift electrons time difference.
-    TH1F* fHDTWE;   // W-drift electrons time difference.
-    TH1F* fHDTUV;   // U-V time difference.
-    TH1F* fHDTVW;   // V-W time difference.
-    TH1F* fHDTWU;   // W-U time difference.
-    TH1F* fHS;      // Spatial separation.
-    TH1F* fHx;      // X position.
-    TH1F* fHy;      // Y position.
-    TH1F* fHz;      // Z position.
-    TH1F* fHMCdx;   // X residual (reco vs. mc truth).
-    TH1F* fHMCdy;   // Y residual (reco vs. mc truth).
-    TH1F* fHMCdz;   // Z residual (reco vs. mc truth).
+    bool fBooked;    // Have histograms been booked yet?
+    TH1F* fHDTUE;    // U-drift electrons time difference.
+    TH1F* fHDTVE;    // V-drift electrons time difference.
+    TH1F* fHDTWE;    // W-drift electrons time difference.
+    TH1F* fHDTUV;    // U-V time difference.
+    TH1F* fHDTVW;    // V-W time difference.
+    TH1F* fHDTWU;    // W-U time difference.
+    TH1F* fHS;       // Spatial separation.
+    TH1F* fHchisq;   // Space point chisquare.
+    TH1F* fHx;       // X position.
+    TH1F* fHy;       // Y position.
+    TH1F* fHz;       // Z position.
+    TH1F* fHMCdx;    // X residual (reco vs. mc truth).
+    TH1F* fHMCdy;    // Y residual (reco vs. mc truth).
+    TH1F* fHMCdz;    // Z residual (reco vs. mc truth).
+    TH1F* fHMCxpull; // X pull (reco vs. mc truth).
+    TH1F* fHMCypull; // Y pull (reco vs. mc truth).
+    TH1F* fHMCzpull; // Z pull (reco vs. mc truth).
 
     // Statistics.
 

@@ -12,7 +12,7 @@
 // ClusterModuleLabel;  // Cluster module label (e.g. "dbcluster").
 // G4ModuleLabel;       // For SimChannel (e.g. "largeant").
 // Filter;              // Filter space points?
-
+// Merge;               // Merge space points?
 //
 // Created: 15-Dec-2011  H. Greenlee
 //
@@ -44,6 +44,7 @@ namespace trkf {
     std::string fClusterModuleLabel;
     std::string fG4ModuleLabel;    // For SimChannel.
     bool fFilter;                  // Filter space points?
+    bool fMerge;                   // Merge space points?
 
     // Statistics.
 

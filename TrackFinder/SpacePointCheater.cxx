@@ -26,6 +26,7 @@ namespace trkf {
     // Arguments: pset - Module parameters.
     //
     fFilter(true),
+    fMerge(false),
     fNumEvent(0),
     fNumProng2(0),
     fNumProng3(0)
@@ -39,7 +40,8 @@ namespace trkf {
       << "SpacePointCheater configured with the following parameters:\n"
       << "  ClusterModuleLabel = " << fClusterModuleLabel << "\n"
       << "  G4ModuleLabel = " << fG4ModuleLabel << "\n"
-      << "  Filter = " << fFilter;
+      << "  Filter = " << fFilter << "\n"
+      << "  Merge = " << fMerge;
   }
 
   SpacePointCheater::~SpacePointCheater()
@@ -58,6 +60,7 @@ namespace trkf {
     fClusterModuleLabel = pset.get<std::string>("ClusterModuleLabel");
     fG4ModuleLabel = pset.get<std::string>("G4ModuleLabel");
     fFilter = pset.get<bool>("Filter");
+    fMerge = pset.get<bool>("Merge");
   }
 
   void SpacePointCheater::beginJob()
@@ -158,7 +161,8 @@ namespace trkf {
 
 	      if(sptsvc->minViews() <= 2) {
 		std::vector<recob::SpacePoint> spts;
-		sptsvc->makeMCTruthSpacePoints(hits, spts, simchanv, fFilter, 0., 0.);
+		sptsvc->makeMCTruthSpacePoints(hits, spts, simchanv,
+					       fFilter, fMerge, 0., 0.);
 
 		// If we found some space points, make a prong.
 
@@ -202,7 +206,8 @@ namespace trkf {
 		  // Make three-view space points.
 
 		  std::vector<recob::SpacePoint> spts;
-		  sptsvc->makeMCTruthSpacePoints(hits, spts, simchanv, fFilter, 0., 0.);
+		  sptsvc->makeMCTruthSpacePoints(hits, spts, simchanv,
+						 fFilter, fMerge, 0., 0.);
 
 		  // If we found some space points, make a prong.
 

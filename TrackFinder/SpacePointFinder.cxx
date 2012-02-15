@@ -26,6 +26,7 @@ namespace trkf {
     // Arguments: pset - Module parameters.
     //
     fFilter(true),
+    fMerge(false),
     fNumEvent(0),
     fNumProng2(0),
     fNumProng3(0)
@@ -38,7 +39,8 @@ namespace trkf {
     mf::LogInfo("SpacePointFinder") 
       << "SpacePointFinder configured with the following parameters:\n"
       << "  ClusterModuleLabel = " << fClusterModuleLabel << "\n"
-      << "  Filter = " << fFilter;
+      << "  Filter = " << fFilter << "\n"
+      << "  Merge = " << fMerge;
   }
 
   SpacePointFinder::~SpacePointFinder()
@@ -56,6 +58,7 @@ namespace trkf {
   {
     fClusterModuleLabel = pset.get<std::string>("ClusterModuleLabel");
     fFilter = pset.get<bool>("Filter");
+    fMerge = pset.get<bool>("Merge");
   }
 
   void SpacePointFinder::beginJob()
@@ -148,7 +151,8 @@ namespace trkf {
 
 	      if(sptsvc->minViews() <= 2) {
 		std::vector<recob::SpacePoint> spts;
-		sptsvc->makeSpacePoints(hits, spts, fFilter, 0., 0.);
+		sptsvc->makeSpacePoints(hits, spts,
+					fFilter, fMerge, 0., 0.);
 
 		// If we found some space points, make a prong.
 
@@ -192,7 +196,8 @@ namespace trkf {
 		  // Make three-view space points.
 
 		  std::vector<recob::SpacePoint> spts;
-		  sptsvc->makeSpacePoints(hits, spts, fFilter, 0., 0.);
+		  sptsvc->makeSpacePoints(hits, spts,
+					  fFilter, fMerge, 0., 0.);
 
 		  // If we found some space points, make a prong.
 

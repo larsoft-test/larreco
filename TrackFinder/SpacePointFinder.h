@@ -11,7 +11,7 @@
 //
 // ClusterModuleLabel;  // Cluster module label (e.g. "dbcluster").
 // Filter;              // Filter space points?
-
+// Merge;               // Merge space points?
 //
 // Created: 15-Dec-2011  H. Greenlee
 //
@@ -42,6 +42,7 @@ namespace trkf {
 
     std::string fClusterModuleLabel;
     bool fFilter;                  // Filter space points?
+    bool fMerge;                   // Merge space points?
 
     // Statistics.
 
