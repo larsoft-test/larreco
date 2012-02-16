@@ -435,28 +435,8 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 		tree->Fill();
 
 	// Get the clusters associated to each track in induction and collection view
-     		art::PtrVector<recob::Cluster> Icluster;
-		art::PtrVector<recob::Cluster> Ccluster;
-		
-		art::ServiceHandle<geo::Geometry> geo;
-
-		Icluster = (*trackIter)->Clusters(geo::kU); // induction
-		Ccluster = (*trackIter)->Clusters(geo::kV); // collection
-		
 		art::PtrVector<recob::Cluster> clusters;
-		clusters.clear();
-		
-		art::PtrVector<recob::Cluster>::const_iterator IclusterIter = Icluster.begin();
-		while(IclusterIter!= Icluster.end() ){
-		  clusters.push_back(*IclusterIter);
-		  IclusterIter++;
-		}
-		
-		art::PtrVector<recob::Cluster>::const_iterator CclusterIter = Ccluster.begin();
-		while(CclusterIter!= Ccluster.end() ){
-		  clusters.push_back(*CclusterIter);
-		  CclusterIter++;
-		}
+		clusters = (*trackIter)->Clusters();
 
 	// Use new Track constructor... EC, 21-Apr-2011.	
 		recob::Track  the3DTrack(clusters,spacepoints);
