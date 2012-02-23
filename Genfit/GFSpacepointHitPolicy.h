@@ -70,10 +70,12 @@ public:
   /** @brief Hit coordinates in detector plane.
    */
   TMatrixT<double> hitCoord(GFAbsRecoHit*,const GFDetPlane&);
+  TMatrixT<double> hitCoord(GFAbsRecoHit*,const GFDetPlane&,const GFDetPlane&);
 
   /** @brief Hit covariances in detector plane.
    */
   TMatrixT<double> hitCov(GFAbsRecoHit*,const GFDetPlane&);
+  TMatrixT<double> hitCov(GFAbsRecoHit*,const GFDetPlane&,const GFDetPlane&, const TMatrixT<Double_t>&);
 
   virtual ~GFSpacepointHitPolicy(){;}
 

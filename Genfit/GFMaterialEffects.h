@@ -81,7 +81,8 @@ class GFMaterialEffects : public TObject{
                        TMatrixT<Double_t>* noise = NULL,
                  const TMatrixT<Double_t>* jacobian = NULL,
                  const TVector3* directionBefore = NULL, 
-                 const TVector3* directionAfter = NULL);
+		 //                 const TVector3* directionAfter = NULL);
+                 TVector3* directionAfter = NULL);
 
   //! Returns maximum length so that a specified momentum loss will not be exceeded
   /**  The stepper returns the maximum length that the particle may travel, so that a specified relative momentum loss will not be exceeded.
@@ -326,7 +327,8 @@ class GFMaterialEffects : public TObject{
                           TMatrixT<double>* noise,
                     const TMatrixT<double>* jacobian,
                     const TVector3* directionBefore,
-                    const TVector3* directionAfter) const;
+		    //                    const TVector3* directionAfter) const;
+		    TVector3* directionAfter) const;
 
   //! Returns energy loss
   /** Can be called with any pdg, but only calculates energy loss for electrons and positrons (otherwise returns 0).

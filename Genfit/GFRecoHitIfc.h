@@ -85,6 +85,8 @@ class GFRecoHitIfc : public GFAbsRecoHit{
    *
    * Implementation in the HitPolicy
    */
+  virtual TMatrixT<Double_t> getHitCoord(const GFDetPlane& plane,const GFDetPlane& planePrev)
+  {return fPolicy.hitCoord(this,plane,planePrev);}
   virtual TMatrixT<Double_t> getHitCoord(const GFDetPlane& plane)
   {return fPolicy.hitCoord(this,plane);}
 
@@ -94,6 +96,8 @@ class GFRecoHitIfc : public GFAbsRecoHit{
    */
   virtual TMatrixT<Double_t> getHitCov(const GFDetPlane& plane)
   {return fPolicy.hitCov(this,plane);}
+  virtual TMatrixT<Double_t> getHitCov(const GFDetPlane& plane, const GFDetPlane& planePrev, const TMatrixT<Double_t>& state)
+  {return fPolicy.hitCov(this,plane,planePrev, state);}
 
   const std::string& getPolicyName(){return fPolicy.getName();}
 

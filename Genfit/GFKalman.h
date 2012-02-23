@@ -144,6 +144,7 @@ private:
    * drops off-diagonal elements and blows up diagonal by blowUpFactor
    */
   void blowUpCovs(GFTrack* trk);
+  void blowUpCovsDiag(GFTrack* trk);
 
   int fInitialDirection;
   Int_t fNumIt;
