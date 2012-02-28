@@ -16,6 +16,7 @@
 #include "SimulationBase/simbase.h"
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
+#include "Utilities/AssociationUtil.h"
 
 // Framework includes
 #include "art/Framework/Principal/Event.h"
@@ -57,13 +58,16 @@ namespace event{
   void EventCheater::produce(art::Event& evt)
   {
 
-    mf::LogError("EventCheater") << "the EventCheater is temporarily broken, please don't use it";
-
     // grab the sim::ParticleList
     sim::ParticleList plist = sim::SimListUtils::GetParticleList(evt, fG4ModuleLabel);
 
     art::Handle< std::vector<sim::Particle> > pcol;
     evt.getByLabel(fG4ModuleLabel, pcol);
+
+    // make a map of the track id for each sim::Particle to its entry in the 
+    // collection of sim::Particles
+    std::map<int, int> trackIDToPColEntry;
+    for(size_t p = 0; p < pcol->size(); ++p) trackIDToPColEntry[pcol->at(p).TrackId()] = p;
 
     // grab the vertices that have been reconstructed
     art::Handle< std::vector<recob::Vertex> > vertexcol;
@@ -84,36 +88,17 @@ namespace event{
     // loop over all prongs
     while( vertexitr != vertices.end() ){
 
-      // the ID of the vertex should be a primary particle
-      // from the event generator so the mother has to be 0
-      art::FindOne<simb::MCTruth> fomct(pcol, evt, fG4ModuleLabel);
-      //art::Ptr<simb::MCTruth> mctp;
-      for(size_t p = 0; p < pcol->size(); ++p){
-	art::Ptr<sim::Particle> pptr(pcol, p);
-	if( pptr->TrackId() == (*vertexitr)->ID() ){
-	  // do something here with the FindOne object to get the
-	  // product ID of the MCTruth object.  Probably requires
-	  // waiting for an ART version bump from v1.00.05
-	}
-      }
+      size_t pcolEntry = trackIDToPColEntry.find((*vertexitr)->ID())->second;
+      art::ProductID primary = util::FindOneP<simb::MCTruth>(pcol, evt, fG4ModuleLabel, pcolEntry).id();
       
-      art::ProductID primary;// = mctp.id();
-
-      if(vertexMap.find(primary) != vertexMap.end()){
-	  ((*vertexMapItr).second).push_back((*vertexitr));
-      }
-      else{
-	std::vector< art::Ptr<recob::Vertex> > vertexvec;
-	vertexvec.push_back(*vertexitr);
-	vertexMap[primary] = vertexvec;
-      }
+      vertexMap[primary].push_back(*vertexitr);
 
       vertexitr++;
     }// end loop over vertices
 
-    std::auto_ptr< std::vector<recob::Event> > eventcol(new std::vector<recob::Event>);
+    std::auto_ptr< std::vector<recob::Event> >               eventcol(new std::vector<recob::Event>);
     std::auto_ptr< art::Assns<recob::Event, recob::Vertex> > evassn(new art::Assns<recob::Event, recob::Vertex>);
-    std::auto_ptr< art::Assns<recob::Event, recob::Hit> > ehassn(new art::Assns<recob::Event, recob::Hit>);
+    std::auto_ptr< art::Assns<recob::Event, recob::Hit> >    ehassn(new art::Assns<recob::Event, recob::Hit>);
 
     // loop over the map and associate all vertex objects with an event
     for(vertexMapItr = vertexMap.begin(); vertexMapItr != vertexMap.end(); vertexMapItr++){
