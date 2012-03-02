@@ -17,6 +17,7 @@ argoneut_kalman:
  PosErr3:             [0.02,0.02,0.02]   #  position resolution, cm.
  MomErr3:             [0.10,0.10,0.2]   #  momentum resolution, GeV/c.
  MomStart3:           [0.10,0.10,1.5]   #  GeV/c. Will *not* be Unit norm'd.
+ PerpLimit:           2.0
  GenfPRINT:           true
 }
 

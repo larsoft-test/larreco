@@ -26,7 +26,7 @@
 #include "MCCheater/BackTracker.h"
 #include "TH1F.h"
 
-namespace {
+namespace  {
 
   // Function classes for sorting sim::IDEs according to track id.
 
@@ -51,7 +51,9 @@ namespace {
 //----------------------------------------------------------------------
 // Constructor.
 //
-trkf::SpacePointService::SpacePointService(const fhicl::ParameterSet& pset,
+namespace  trkf{
+
+SpacePointService::SpacePointService(const fhicl::ParameterSet& pset,
 					   art::ActivityRegistry& reg) :
   fMaxDT(0.),
   fMaxS(0.),
@@ -71,14 +73,14 @@ trkf::SpacePointService::SpacePointService(const fhicl::ParameterSet& pset,
 //----------------------------------------------------------------------
 // Destructor.
 //
-trkf::SpacePointService::~SpacePointService()
+SpacePointService::~SpacePointService()
 {
 }
 
 //----------------------------------------------------------------------
 // Update configuration parameters.
 //
-void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
+void SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
 {
   // Get configuration parameters.
 
@@ -122,7 +124,7 @@ void trkf::SpacePointService::reconfigure(const fhicl::ParameterSet& pset)
 //----------------------------------------------------------------------
 // Print geometry and properties constants.
 //
-void trkf::SpacePointService::update() const
+void SpacePointService::update() const
 {
   // Generate info report on first call only.
 
@@ -245,7 +247,7 @@ void trkf::SpacePointService::update() const
 //----------------------------------------------------------------------
 // Calculate time offsets.
 // Results stored in nested vector indexed by [tpc][plane]
-void trkf::SpacePointService::fillTimeOffset(std::vector<std::vector<double> >& timeOffset) const
+void SpacePointService::fillTimeOffset(std::vector<std::vector<double> >& timeOffset) const
 {
   // Get services.
 
@@ -308,7 +310,7 @@ void trkf::SpacePointService::fillTimeOffset(std::vector<std::vector<double> >& 
 
 //----------------------------------------------------------------------
 // Get corrected time for the specified hit.
-double trkf::SpacePointService::correctedTime(const recob::Hit& hit,
+double SpacePointService::correctedTime(const recob::Hit& hit,
 					      const std::vector<std::vector<double> >& timeOffset) const
 {
   // Get services.
@@ -330,7 +332,7 @@ double trkf::SpacePointService::correctedTime(const recob::Hit& hit,
 
 //----------------------------------------------------------------------
 // Spatial separation of hits (zero if two or fewer).
-double trkf::SpacePointService::separation(const art::PtrVector<recob::Hit>& hits) const
+double SpacePointService::separation(const art::PtrVector<recob::Hit>& hits) const
 {
   // Get geometry service.
 
@@ -410,7 +412,7 @@ double trkf::SpacePointService::separation(const art::PtrVector<recob::Hit>& hit
 // Check hits for compatibility.
 // Check hits pairwise for different views and maximum time difference.
 // Check three hits for spatial compatibility.
-bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
+bool SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 					 const std::vector<std::vector<double> >& timeOffset,
 					 bool useMC,
 					 double maxDT, double maxS) const
@@ -570,7 +572,7 @@ bool trkf::SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
 // Fill one space point using a colleciton of hits.
 // Assume points have already been tested for compatibility.
 //
-void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
+void SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
 					     const std::vector<std::vector<double> >& timeOffset,
 					     recob::SpacePoint& spt) const
 {
@@ -715,7 +717,7 @@ void trkf::SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& h
 // This version assumes there can be multiple hits per view,
 // and gives unequal weight to different hits.
 //
-void trkf::SpacePointService::
+void SpacePointService::
 fillComplexSpacePoint(const art::PtrVector<recob::Hit>& hits,
 		      const std::vector<std::vector<double> >& timeOffset,
 		      recob::SpacePoint& spt) const
@@ -893,7 +895,7 @@ fillComplexSpacePoint(const art::PtrVector<recob::Hit>& hits,
 // Fill a vector of space points for all compatible combinations of hits
 // from an input vector of hits (non-config-overriding, non-mc-truth version).
 //
-void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
+void SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 					      std::vector<recob::SpacePoint>& spts) const
 {
   std::vector<const sim::SimChannel*> empty;
@@ -904,7 +906,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 // Fill a vector of space points for all compatible combinations of hits
 // from an input vector of hits (config-overriding, non-mc-truth version).
 //
-void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
+void SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 					      std::vector<recob::SpacePoint>& spts,
 					      bool filter, bool merge,
 					      double maxDT, double maxS) const
@@ -917,7 +919,7 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 // Fill a vector of space points for all compatible combinations of hits
 // from an input vector of hits (non-config-overriding, mc-truth version).
 //
-void trkf::SpacePointService::makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
+void SpacePointService::makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
 						     std::vector<recob::SpacePoint>& spts,
 						     const std::vector<const sim::SimChannel*>& simchans) const
 {
@@ -928,7 +930,7 @@ void trkf::SpacePointService::makeMCTruthSpacePoints(const art::PtrVector<recob:
 // Fill a vector of space points for all compatible combinations of hits
 // from an input vector of hits (config-overriding, mc-truth version).
 //
-void trkf::SpacePointService::makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
+void SpacePointService::makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
 						     std::vector<recob::SpacePoint>& spts,
 						     const std::vector<const sim::SimChannel*>& simchans,
 						     bool filter, bool merge,
@@ -941,7 +943,7 @@ void trkf::SpacePointService::makeMCTruthSpacePoints(const art::PtrVector<recob:
 // Fill a vector of space points for all compatible combinations of hits
 // from an input vector of hits (general version).
 //
-void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
+void SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 					      std::vector<recob::SpacePoint>& spts,
 					      const std::vector<const sim::SimChannel*>& simchans,
 					      bool useMC,
@@ -1534,3 +1536,4 @@ void trkf::SpacePointService::makeSpacePoints(const art::PtrVector<recob::Hit>& 
 	<< "2-hit filtered/merged space points = " << n2filt << "\n"
 	<< "3-hit filtered/merged space points = " << n3filt;
 }
+} // end namespace trkf

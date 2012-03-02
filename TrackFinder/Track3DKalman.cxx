@@ -300,7 +300,7 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 	  {
       // Insert the GENFIT/Kalman stuff here then make the tracks. Units are cm, GeV.
 	    const double resolution = 0.5; // dunno, 5 mm
-	    const int numIT = 9; // 3->1, EC, 6-Jan-2011. Back, 7-Jan-2011.
+	    const int numIT = 3; // 3->1, EC, 6-Jan-2011. Back, 7-Jan-2011.
 
 
 	    //TVector3 mom(0.0,0.0,2.0);
@@ -310,8 +310,7 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 	    momM.SetX(gauss.fire(momM.X(),momErr.X()/* *momM.X() */));
 	    momM.SetY(gauss.fire(momM.Y(),momErr.Y()/* *momM.Y() */));
 	    momM.SetZ(gauss.fire(momM.Z(),momErr.Z()/* *momM.Z() */));
-	    //std::cout << "Track3DKalman: sort spacepoints by x (volTPC coords) for tracker's sake." << std::endl;
-
+	    //std::cout << "Track3DKalman: sort spacepoints by z
 
 	    std::sort(spacepoints.begin(), spacepoints.end(), sp_sort_3dz);
 	    

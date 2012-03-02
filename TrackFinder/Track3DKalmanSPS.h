@@ -43,6 +43,7 @@ namespace trkf {
   private:
         
     std::string     fClusterModuleLabel;// label for input collection
+    std::string     fProngModuleLabel;// label for input collection
     std::string     fGenieGenModuleLabel;// label for input MC single particle generator
     std::string     fG4ModuleLabel;// label for input MC single particle generator
     bool fGenfPRINT;
@@ -71,11 +72,19 @@ namespace trkf {
     Float_t *fshx;
     Float_t *fshy;
     Float_t *fshz;
+    Float_t *fsep;
     unsigned int fDimSize; // if necessary will get this from pset in constructor.
-  
+    Float_t *fPCmeans;
+    Float_t *fPCevals;
+    Float_t *fPCsigmas;
+    Float_t *fPC1;
+    Float_t *fPC2;
+    Float_t *fPC3;
+
     std::vector<double> fPosErr;
     std::vector<double> fMomErr;
     std::vector<double> fMomStart;
+    double fPerpLim;
     genf::GFAbsTrackRep *repMC;
     genf::GFAbsTrackRep *rep;
 

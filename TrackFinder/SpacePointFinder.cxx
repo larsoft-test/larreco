@@ -16,6 +16,7 @@
 #include "RecoBase/Hit.h"
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Prong.h"
+#include "Utilities/AssociationUtil.h"
 
 namespace trkf {
 
@@ -33,6 +34,7 @@ namespace trkf {
   {
     reconfigure(pset);
     produces<std::vector<recob::Prong> >();
+    produces<art::Assns<recob::Prong, recob::Cluster> >();
 
     // Report.
 
@@ -91,6 +93,7 @@ namespace trkf {
       // Make a collection of prongs that will eventually be inserted into the event.
 
       std::auto_ptr<std::vector<recob::Prong> > prongs(new std::vector<recob::Prong>);
+      std::auto_ptr< art::Assns<recob::Prong, recob::Cluster> > assn(new art::Assns<recob::Prong, recob::Cluster>);
     
       // Make a hit vector which will be used to store hits to be passed
       // to SpacePointService.
@@ -161,7 +164,9 @@ namespace trkf {
 		  clusters.reserve(2);
 		  clusters.push_back(piclus);
 		  clusters.push_back(pjclus);
+
 		  prongs->push_back(recob::Prong(clusters, spts));
+		  util::CreateAssn(*this, evt, *(prongs.get()), clusters,*(assn.get()));
 		  ++fNumProng2;
 		}
 	      }
@@ -220,6 +225,7 @@ namespace trkf {
       // Add prongs to event.
 
       evt.put(prongs);
+      evt.put(assn);
     }
   }
 
