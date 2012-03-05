@@ -195,10 +195,7 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   //      std::cout<<mc_trackids[i]<<" ";
     
   //   }
-  // std::cout<<"I have in total "<<mc_trackids.size()<<" different tracks"<<std::endl;
-  
-  //sim::LArVoxelList voxelList = slu->GetVoxelList();
-  
+  // std::cout<<"I have in total "<<mc_trackids.size()<<" different tracks"<<std::endl;  
   
   
   //---------------------------------------------------------------- 

@@ -69,8 +69,10 @@ namespace cluster{
     art::ServiceHandle<geo::Geometry> geo;
     int nplanes = geo->Nplanes();
 
-    art::PtrVector<recob::Cluster> Cls[nplanes];//one PtrVector for each plane in the geometry
-    std::vector<int> Cls_matches[nplanes];//vector with indicators for whether a cluster has been merged already
+    //one PtrVector for each plane in the geometry
+    art::PtrVector<recob::Cluster> Cls[nplanes];
+    //vector with indicators for whether a cluster has been merged already
+    std::vector<int> Cls_matches[nplanes];
 
     // loop over the input Clusters
     for(unsigned int i = 0; i < clusterVecHandle->size(); ++i){
@@ -100,7 +102,7 @@ namespace cluster{
     // Make a std::auto_ptr<> for the thing you want to put into the event
     // because that handles the memory management for you
     //////////////////////////////////////////////////////
-    std::auto_ptr<std::vector<recob::Cluster> > SuperClusters(new std::vector<recob::Cluster>);
+    std::auto_ptr<std::vector<recob::Cluster> >             SuperClusters(new std::vector<recob::Cluster>);
     std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
     for(int i = 0; i<nplanes; ++i){
@@ -122,7 +124,6 @@ namespace cluster{
 	Cls_matches[i][clsnum1]=1; 
 	//SuperClusters->back().SetID(clustersfound);//IDs are sequential by plane, starting from 0
 	++clustersfound;
-	// recob::Cluster SCl= SuperClusters->back(); //spitz commented this out and moved it inside the for loop.
 	
 	int clsnum2 = 0;
 	for(art::PtrVector<recob::Cluster>::const_iterator clusIter2 = Cls[i].begin(); clusIter2!=Cls[i].end();++clusIter2){
@@ -135,7 +136,7 @@ namespace cluster{
 	  
 	  // check that the slopes are the same
 	  // added 13.5 ticks/wirelength in ArgoNeuT. 
-	  // \todo need to make this detector agnostic--spitz
+	  // \todo need to make this detector agnostic
 	  // would be nice to have a LArProperties function that returns ticks/wire.
 	  bool sameSlope = SlopeCompatibility(SCl.dTdW()*(1./13.5),cl2->dTdW()*(1./13.5));  
 	  
@@ -153,11 +154,10 @@ namespace cluster{
       }
     }
 
-    std::sort(SuperClusters->begin(),SuperClusters->end());//sort before Putting
-
     mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
     mf::LogVerbatim("Summary") << "LineMerger Summary:";
-    for(unsigned int i = 0; i<SuperClusters->size(); ++i) mf::LogVerbatim("Summary") << SuperClusters->at(i) ;
+    for(unsigned int i = 0; i<SuperClusters->size(); ++i) 
+      mf::LogVerbatim("Summary") << SuperClusters->at(i);
 
     evt.put(SuperClusters);
     evt.put(assn);
