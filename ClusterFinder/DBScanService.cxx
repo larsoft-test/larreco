@@ -172,7 +172,7 @@ struct AcceptFindNeighbors {
     unsigned int wire1 = (unsigned int) (tCenter0/fWireDist + 0.5);
     unsigned int wire2 = (unsigned int) (bCenter0/fWireDist + 0.5);
     // Clamp the wize number to something resonably.
-    // \todo activating these should throw a warning or something
+    ///\todo activating these should throw a warning or something
     if (wire1 < fBadWireSum.size()) wire1 = fBadWireSum.size();
     if (wire2 < fBadWireSum.size()) wire2 = fBadWireSum.size();
     // The getSimilarity[2] wirestobridge calculation is asymmetric,
@@ -327,7 +327,7 @@ void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits,
     std::vector<double> p(dims);
     
     
-    // \todo Hardcoded drift speed here?!?
+    ///\todo Hardcoded drift speed here?!?
     p[0] = (allhits[j]->Wire()->RawDigit()->Channel())*wire_dist;
     p[1] = ((allhits[j]->StartTime()+allhits[j]->EndTime()  )/2.)*0.03069;
     p[2] =  (allhits[j]->EndTime()  -allhits[j]->StartTime())*0.03069;   //width of a hit in cm

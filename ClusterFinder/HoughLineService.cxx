@@ -533,8 +533,8 @@ size_t cluster::HoughLineService::Transform(std::vector< art::Ptr<recob::Hit> >&
   slope     = -1./tan(theta);    
   intercept = rho/sin(theta);
   
-  // \todo could eventually refine this method to throw out hits that are 
-  // \todo far from the hough line and refine the fit
+  ///\todo could eventually refine this method to throw out hits that are 
+  ///\todo far from the hough line and refine the fit
 
   return hits.size();
 }

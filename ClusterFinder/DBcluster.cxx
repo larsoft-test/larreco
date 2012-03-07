@@ -169,7 +169,7 @@ void cluster::DBcluster::produce(art::Event& evt)
   // the hits and the clusters.  not clear why the sorting was here to begin
   // with.  downstream modules should do their own sorting if they rely on
   // the clusters coming in a certain order.
-  // \todo remove following line after commenting it out has been shown not to matter
+  ///\todo remove following line after commenting it out has been shown not to matter
   // std::sort(ccol->begin(),ccol->end());//sort before Putting
 
   mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');

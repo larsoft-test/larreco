@@ -101,7 +101,7 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
     mf::LogVerbatim("Summary") << ccol->at(i);
 
     // associat the hits to this cluster
-    // \todo need to get the hits in a better way once we remove them as Cluster data members
+    ///\todo need to get the hits in a better way once we remove them as Cluster data members
     art::PtrVector<recob::Hit> ptrvs = ccol->at(i).Hits();
     util::CreateAssn(*this, evt, *(ccol.get()), ptrvs, *(assn.get()), i);
   }

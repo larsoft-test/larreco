@@ -181,7 +181,7 @@ namespace cluster{
 	  double intercept = 0.;
 	  hls->Transform(eveHits, dTdW, intercept);
 
-	  // \todo now figure out the dQdW
+	  ///\todo now figure out the dQdW
 
 	  // add a cluster to the collection.  Make the ID be the eve particle
 	  // trackID*1000 + plane number*100 + tpc that the current hits are from
