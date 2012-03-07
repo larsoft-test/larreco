@@ -168,7 +168,7 @@ namespace shwf{
 
 	// get the direction cosine for the eve ID particle
 	// just use the same for both the start and end of the prong
-	// \todo Should we make the cheater direction cosines for Prong start and end different?
+	/// \todo Should we make the cheater direction cosines for Prong start and end different?
 	const TLorentzVector initmom = plist[(*clusterMapItr).first]->Momentum();
 	double dcos[3] = { initmom.Px()/initmom.Mag(),
 			   initmom.Py()/initmom.Mag(),
