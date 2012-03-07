@@ -21,7 +21,7 @@
 #include <iostream>
 #include "stdlib.h"
 
-#include "TMath.h"
+
 #include "math.h"
 
 #include "GFAbsEnergyLoss.h"
@@ -29,6 +29,7 @@
 #include "GFEnergyLossBrems.h"
 #include "GFEnergyLossCoulomb.h"
 #include "GFException.h"
+
 #include "GFGeoMatManager.h"
 
 genf::GFMaterialEffects* genf::GFMaterialEffects::finstance = NULL;
@@ -91,8 +92,7 @@ double genf::GFMaterialEffects::effects(const std::vector<TVector3>& points,
                                         TMatrixT<Double_t>* noise,
 					const TMatrixT<Double_t>* jacobian,
 					const TVector3* directionBefore, 
-					//					const TVector3* directionAfter){
-					TVector3* directionAfter){
+					const TVector3* directionAfter){
 
   //assert(points.size()==pointPaths.size());
   fpdg = pdg;
@@ -152,7 +152,7 @@ double genf::GFMaterialEffects::effects(const std::vector<TVector3>& points,
           if (doNoise && fEnergyLossBetheBloch && fNoiseBetheBloch)
             this->noiseBetheBloch(mom, noise);
 
-          if (doNoise && fNoiseCoulomb)
+          if (/*doNoise &&*/ fNoiseCoulomb) // Force it
             this->noiseCoulomb(mom, noise, jacobian, directionBefore, directionAfter);
 
           if (fEnergyLossBrems)
@@ -386,20 +386,14 @@ void genf::GFMaterialEffects::noiseCoulomb(const double& mom,
                                            TMatrixT<double>* noise,
                                      const TMatrixT<double>* jacobian,
                                      const TVector3* directionBefore,
-					   //                                     const TVector3* directionAfter) const{
-					   TVector3* directionAfter) const{
+                                     const TVector3* directionAfter) const{
 
   // MULTIPLE SCATTERING; calculate sigma^2
   // PANDA report PV/01-07 eq(43); linear in step length
   double sigma2 = 225.E-6/(fbeta*fbeta*mom*mom) * fstep/fradiationLength * fmatZ/(fmatZ+1) * log(159.*pow(fmatZ,-1./3.))/log(287.*pow(fmatZ,-0.5)); // sigma^2 = 225E-6/mom^2 * XX0/fbeta^2 * Z/(Z+1) * ln(159*Z^(-1/3))/ln(287*Z^(-1/2)
 
-  // stop the madness, 15-Feb-2012. The 0.95 is cuz pi/2 will cause problems
-  // in tracking since perp tracks to last plane force state[1,2]=inf.
-  sigma2 = TMath::Min(sigma2,pow(0.95*TMath::Pi()/2.0,2.0));
-
   // noiseBefore
     TMatrixT<double> noiseBefore(7,7);
-    noiseBefore.Zero();
 
     // calculate euler angles theta, psi (so that directionBefore' points in z' direction)
     double psi = 0;
@@ -416,7 +410,6 @@ void genf::GFMaterialEffects::noiseCoulomb(const double& mom,
     double costheta = (*directionBefore)[2];
     double sinpsi = sin(psi);
     double cospsi = cos(psi);
-
 
     // calculate NoiseBefore Matrix R M R^T
     double noiseBefore34 =  sigma2 * cospsi * sinpsi * sintheta*sintheta; // noiseBefore_ij = noiseBefore_ji
@@ -439,27 +432,10 @@ void genf::GFMaterialEffects::noiseCoulomb(const double& mom,
     jacobianT = (*jacobian);
     jacobianT.T();
 
-    //    noiseBefore.Print();
     noiseBefore = jacobianT*noiseBefore*(*jacobian); //propagate
 
-    // Select a component, x, at random. Then force cross product=0, 
-    // Set directionAfter to 
-    // directionBefore.Rotate(sqrt(sigma2),axis) with axis
-    // chosen randomly perp to directionBefore. EC, 23-Dec-2011.
-
-    Double_t randNum1 = 2*((double)rand()/(double)RAND_MAX-0.5);
-    Double_t randNum2 = 2*((double)rand()/(double)RAND_MAX-0.5);
-    TVector3 Orthog(randNum1,
-		    randNum2,
-		    -(randNum1*directionBefore->X()+randNum2*directionBefore->Y())/directionBefore->Z()
-		    );
-    Orthog.SetMag(1.0);
-    directionAfter->Rotate(sqrt(sigma2),Orthog);
-    directionAfter->SetMag(1.0);
-    
   // noiseAfter
     TMatrixT<double> noiseAfter(7,7);
-    noiseAfter.Zero();
 
     // calculate euler angles theta, psi (so that A' points in z' direction)
     psi = 0;
@@ -495,19 +471,8 @@ void genf::GFMaterialEffects::noiseCoulomb(const double& mom,
     noiseAfter[5][5] = sigma2 * sintheta*sintheta;
 
   //calculate mean of noiseBefore and noiseAfter and update noise
-    /*
-      (*noise).Print();
-      std::cout << "... is noiseCoulomb's noise before noiseCoulomb." << std::endl;
-      (noiseBefore).Print();
-      std::cout << "... is noiseCoulomb's noiseBefore." << std::endl;
-      (noiseAfter).Print();
-      std::cout << "... is noiseCoulomb's noiseAfter." << std::endl;
-    */
     (*noise) += 0.5*noiseBefore + 0.5*noiseAfter;
-    /*
-      (*noise).Print();
-      std::cout << "... is noiseCoulomb's total noise." << std::endl;
-    */
+
 }
 
 

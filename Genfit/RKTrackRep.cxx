@@ -372,18 +372,9 @@ void genf::RKTrackRep::extrapolateToPoint(const TVector3& pos,
   GFDetPlane pl;
   int iterations(0);
 
-  // This defines a plane at the point of the data hit, but passes the
-  // state7 corresponding to that hit extrapolated fwd by fState. 
-  // Extrap() will extrapolate it up to state7's fwd position.
   while(true){
     pl.setON(pos,TVector3(state7[3][0],state7[4][0],state7[5][0]));
-    try{
-      coveredDistance =  this->Extrap(pl,&state7);
-    }
-    catch (cet::exception &)
-      {
-	throw cet::exception("RKTrackRep.cxx: ") << " Line " <<__LINE__ << ", " << __FILE__ << " ...Rethrow. \n";
-      }
+    coveredDistance =  this->Extrap(pl,&state7);
 
     if(fabs(coveredDistance)<MINSTEP) break;
     if(++iterations == maxIt) {
@@ -448,13 +439,7 @@ void genf::RKTrackRep::extrapolateToLine(const TVector3& point1,
     TVector3 currentDir(state7[3][0],state7[4][0],state7[5][0]);
     pl.setU(currentDir.Cross(point2-point1));
     pl.setV(point2-point1);
-    try{
-      coveredDistance = this->Extrap(pl,&state7);
-    }
-    catch (cet::exception &)
-      {
-	throw cet::exception("RKTrackRep.cxx: ") << " Line " <<__LINE__ << ", " << __FILE__ << " ...Rethrow. \n";
-      }
+    coveredDistance = this->Extrap(pl,&state7);
 
     if(fabs(coveredDistance)<MINSTEP) break;
     if(++iterations == maxIt) {
@@ -491,11 +476,11 @@ double genf::RKTrackRep::extrapolate(const GFDetPlane& pl,
 
   //J_pM matrix is d(x,y,z,ax,ay,az,q/p) / d(q/p,u',v',u,v)
 
-  // da{x,y,z}/du'
+  // da_x/du'
   J_pM[3][1] = fSpu/pTildeMag*(u.X()-pTilde.X()/(pTildeMag*pTildeMag)*u*pTilde);
   J_pM[4][1] = fSpu/pTildeMag*(u.Y()-pTilde.Y()/(pTildeMag*pTildeMag)*u*pTilde);
   J_pM[5][1] = fSpu/pTildeMag*(u.Z()-pTilde.Z()/(pTildeMag*pTildeMag)*u*pTilde);
-  // da{x,y,z}/dv'
+  // da_x/dv'
   J_pM[3][2] = fSpu/pTildeMag*(v.X()-pTilde.X()/(pTildeMag*pTildeMag)*v*pTilde);
   J_pM[4][2] = fSpu/pTildeMag*(v.Y()-pTilde.Y()/(pTildeMag*pTildeMag)*v*pTilde);
   J_pM[5][2] = fSpu/pTildeMag*(v.Z()-pTilde.Z()/(pTildeMag*pTildeMag)*v*pTilde);
@@ -517,15 +502,8 @@ double genf::RKTrackRep::extrapolate(const GFDetPlane& pl,
   state7[5][0] = pTilde.Z()/pTildeMag;;
   state7[6][0] = fState[0][0];
 
-  double coveredDistance(0.);
-
-  try{
-    coveredDistance = this->Extrap(pl,&state7,&cov7x7);
-  }
-  catch (cet::exception &)
-  {
-    throw cet::exception("RKTrackRep.cxx: ") << " Line " <<__LINE__ << ", " << __FILE__ << " ...Rethrow. \n";
-  }
+  double coveredDistance = this->Extrap(pl,&state7,&cov7x7);
+  
 
   TVector3 O = pl.getO();
   TVector3 U = pl.getU();
@@ -767,7 +745,7 @@ bool genf::RKTrackRep::RKutta (const GFDetPlane& plane,
     std::cout<<"Destination  X = "<<SU[0]*SU[3]<<std::endl;
 
       mf::LogInfo("RKTrackRep::RKutta(): ") << "Throw cet exception here, ... ";
-      //      throw cet::exception("RKTrackRep.cxx: ") << " Runge Kutta propagation failed. Line " <<__LINE__ << ", " << __FILE__ << "\n";
+      throw cet::exception("RKTrackRep.cxx: ") << " Runge Kutta propagation failed. Line " <<__LINE__ << ", " << __FILE__ << "\n";
 
     return(false);
 
@@ -798,8 +776,6 @@ bool genf::RKTrackRep::RKutta (const GFDetPlane& plane,
                                   fPdg);
     */
     // From Genfit svn, 27-Sep-2011.
-    // stepper() does energyLoss, not Coulomb scattering. And we don't
-    // keep any energyLoss info here.
     stepperLen = GFMaterialEffects::getInstance()->stepper(fabs(S),
                                   R[0],R[1],R[2],
                                   Ssign*A[0],Ssign*A[1],Ssign*A[2],
@@ -1099,19 +1075,13 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
 
     TVector3 directionBefore(P[3],P[4],P[5]); // direction before propagation
     directionBefore.SetMag(1.);
-    TVector3 directionBeforeHere(P[3],P[4],P[5]); // direction before propagation
-    directionBeforeHere.SetMag(1.);
     
     // propagation
     std::vector<TVector3> points;
     std::vector<double> pointPaths;
-
-    // Basically, below function walks the particle through magField and
-    // alters 6-element (pos and mom 3-vectors) P and scalar coveredDistance.
-    if( ! this->RKutta(plane,P,coveredDistance,points,pointPaths,-1.,calcCov) ) 
-      { // maxLen currently not used
+    if( ! this->RKutta(plane,P,coveredDistance,points,pointPaths,-1.,calcCov) ) { // maxLen currently not used
       //GFException exc("RKTrackRep::Extrap ==>  Runge Kutta propagation failed",__LINE__,__FILE__);
-      
+
       
       //exc.setFatal(); // stops propagation; faster, but some hits will be lost
       if ( P!=NULL ) delete P;
@@ -1119,8 +1089,7 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
       throw cet::exception("RKTrackRep.cxx: ") << " Runge Kutta propagation failed. Line " <<__LINE__ << ", " << __FILE__ << "\n";
       
       //throw exc;
-      }
-    
+    }
 
     TVector3 directionAfter(P[3],P[4],P[5]); // direction after propagation
     directionAfter.SetMag(1.);
@@ -1163,16 +1132,13 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
       throw exc;
     }
     
-
     if(calcCov){ //calculate Jacobian jac
       for(int i=0;i<7;++i){
 	      for(int j=0;j<7;++j){
-		jac[i][j] = 0.0;
 	        if(i<6) jac[i][j] = P[ (i+1)*7+j ];
 	        else jac[i][j] = P[ (i+1)*7+j ]/P[6];
 	      }  
       }
-      //      jac.Print();
       jacT = jac;
       jacT.T();
     }
@@ -1193,7 +1159,6 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
                                &directionBefore,
                                &directionAfter);
     */
-    // effects() does both energyLoss and Coulomb scattering
     momLoss = GFMaterialEffects::getInstance()->effects(pointsFilt,
                                pointPathsFilt,
                                fabs(fCharge/P[6]), // momentum
@@ -1201,44 +1166,23 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
                                calcCov,
                                &noise,
                                &jac,
-			       &directionBeforeHere,
-//			       &directionBefore,FM
+                               &directionBefore,
                                &directionAfter);
-
     
-    if(fabs(P[6])>1.E-10)
-      { // do momLoss only for defined 1/momentum .ne.0      
-	P[6] = fCharge/(fabs(fCharge/P[6])-momLoss);
-	
-	// Note to self: once/if I alter directionAfter, use it as with
-	// momLoss to alter P[3-5] here.
-	directionAfter.SetMag(1.);	    
-	P[3] = directionAfter.X();
-	P[4] = directionAfter.Y();
-	P[5] = directionAfter.Z();
-	directionBeforeHere.SetX(directionAfter.X());
-	directionBeforeHere.SetY(directionAfter.Y());
-	directionBeforeHere.SetZ(directionAfter.Z());
-	    
-      }
+    if(fabs(P[6])>1.E-10){ // do momLoss only for defined 1/momentum .ne.0      
+	    P[6] = fCharge/(fabs(fCharge/P[6])-momLoss);
+    }
     
     if(calcCov){ //propagate cov and add noise
       oldCov = *cov;
-      *cov = jacT*((oldCov)*jac) + noise;  
-      /*
-      std::cout<< "RKTrackRep:: Here's the noise after extrapolating and calculating material effects." <<std::endl;
-	    noise.Print();
-      std::cout<< "RKTrackRep:: And here's the covariance matrix..." <<std::endl;
-	    (*cov).Print();
-      */
+      *cov = jacT*((oldCov)*jac)+noise;
     }
     
     
     //we arrived at the destination plane, if we point to the active area
     //of the plane (if it is finite), and the distance is below threshold
     if( plane.inActive(TVector3(P[0],P[1],P[2]),TVector3(P[3],P[4],P[5]))) {
-      if(plane.distance(P[0],P[1],P[2])<MINSTEP) 
-	break;
+      if(plane.distance(P[0],P[1],P[2])<MINSTEP) break;
     }
   }
   (*state)[0][0] = P[0];  (*state)[1][0] = P[1];

@@ -27,7 +27,6 @@ public:
   
   // Operations ----------------------
   virtual TMatrixT<Double_t> getHMatrix(const GFAbsTrackRep* stateVector);
-  virtual TMatrixT<Double_t> getHMatrix(const GFAbsTrackRep* stateVector, const Double_t&, const Double_t&);
 
 
 private:
