@@ -94,7 +94,7 @@ namespace vertex{
     
     // Parameters temporary defined here, but possibly to be retrieved somewhere in the code
     double timetick = detprop->SamplingRate()*1.e-3; //time sample in us
-    double presamplings = 75.; // \todo - really have to fix this hard coded number
+    double presamplings = 75.; /// \todo - really have to fix this hard coded number
 
     double wire_pitch   = geom->WirePitch(0,1,0); //wire pitch in cm
     double Efield_drift = larprop->Efield();      // Electric Field in the drift region in kV/cm

@@ -33,11 +33,11 @@ extern "C" {
 namespace vertex {
 
   //-----------------------------------------------
-  AggregateVertex::AggregateVertex(fhicl::ParameterSet const& pset) : 
-    fDBScanModuleLabel(pset.get< std::string >("DBScanModuleLabel")),
-    fHoughModuleLabel(pset.get< std::string >("HoughModuleLabel")),
-    fTrack3DModuleLabel(pset.get< std::string >("Track3DModuleLabel")),
-    fEndPointModuleLabel(pset.get< std::string >("EndPointModuleLabel"))
+  AggregateVertex::AggregateVertex(fhicl::ParameterSet const& pset) 
+    : fDBScanModuleLabel  (pset.get< std::string >("DBScanModuleLabel"  ))
+    , fHoughModuleLabel   (pset.get< std::string >("HoughModuleLabel"   ))
+    , fTrack3DModuleLabel (pset.get< std::string >("Track3DModuleLabel" ))
+    , fEndPointModuleLabel(pset.get< std::string >("EndPointModuleLabel"))
   {
     produces< std::vector<recob::Vertex> >();
   }
@@ -212,8 +212,8 @@ namespace vertex {
       // Now if matching tracks were found for this vertex then create the recob::Vertex object.
     
       if (tlistAssoc.size()>0){
-	// \todo Really need to also determine the xyz position of the found vertex
-	// \todo Also should determine the ID for this vertex
+	/// \todo Really need to also determine the xyz position of the found vertex
+	/// \todo Also should determine the ID for this vertex
 	double xyz[3] = {-999., -999., -999.};
 	verts->push_back(recob::Vertex(tlistAssoc, slistAssoc, xyz));
       }

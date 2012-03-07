@@ -289,7 +289,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 	      // Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), 
 	      // assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
 	      
-	      // \todo this is completely specific to ArgoNeuT!!!!
+	      /// \todo this is completely specific to ArgoNeuT!!!!
 
 	      for(unsigned int wireout=wire-(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5);
 		  wireout <= wire+(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5) ; wireout++)
