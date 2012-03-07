@@ -23,8 +23,7 @@ namespace filter {
     bool filter(art::Event& evt);
     void beginJob();
     void endJob();
-    void Swap(int & x, int & y);
-    void Swap(double & x, double & y);
+
     void reconfigure(fhicl::ParameterSet const& p);
 
   private:  

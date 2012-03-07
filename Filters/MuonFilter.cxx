@@ -173,17 +173,18 @@ namespace filter {
 	  if((TMath::Abs(uPos1-vPos1)>fDeltaWire || TMath::Abs(uPos2-vPos2)>fDeltaWire) &&
 	     (TMath::Abs(uPos1-vPos2)<=fDeltaWire && TMath::Abs(uPos2-vPos1)<=fDeltaWire)) {
 	    mf::LogInfo("MuonFilter") << "Swapped1" ;
-	    Swap(uPos1,uPos2);
+	    std::swap(uPos1,uPos2);
 	  }
 	  //check for time tolerance 
-          if((TMath::Abs(trk1Start-trk2Start) > fTolerance && TMath::Abs(trk1End-trk2End) > fTolerance) &&  (TMath::Abs(trk1Start-trk2End) < fTolerance && TMath::Abs(trk1End-trk2Start) < fTolerance)) {
-            Swap(trk1Start,trk1End);
-            Swap(uPos1,uPos2);
+          if((TMath::Abs(trk1Start-trk2Start) > fTolerance && TMath::Abs(trk1End-trk2End) > fTolerance) &&  
+	     (TMath::Abs(trk1Start-trk2End) < fTolerance && TMath::Abs(trk1End-trk2Start) < fTolerance)) {
+	    std::swap(trk1Start,trk1End);
+	    std::swap(uPos1,uPos2);
             mf::LogInfo("MuonFilter") << "Swapped2" ;
           }
 	  mf::LogInfo("MuonFilter") << "Times: " << trk1Start <<" "<< trk2Start <<" "<<trk1End <<" "<<trk2End;
           //again needs to be fixed
-	  //\todo: the delta wire numbers seem a bit magic, should also change to using Geometry::ChannelsIntersect method
+	  ///\todo: the delta wire numbers seem a bit magic, should also change to using Geometry::ChannelsIntersect method
           if((TMath::Abs(trk1Start-trk2Start) < fTolerance && TMath::Abs(trk1End-trk2End) < fTolerance)    && 
 	     (TMath::Abs(uPos1-vPos1) <=fDeltaWire+2 && TMath::Abs(uPos2-vPos2) <= fDeltaWire+2))  {
             geom->WireEndPoints(0,uPlane,uPos1,&w1Start[0],&w1End[0]);
@@ -213,38 +214,36 @@ namespace filter {
 	    y2edge =(TMath::Abs(y2) -fCuts[1] > 0);
 	    z1edge =(TMath::Abs(z1) -fCuts[2] > 0);
 	    z2edge =(TMath::Abs(z2) -fCuts[2] > 0);
-	    if((x1edge||y1edge||z1edge) && (x2edge||y2edge||z2edge)) 
-	      {
-                tGoing.push_back(pointTemp);
-		mf::LogInfo("MuonFilter") << "outside   Removed induction ion: ";          
-		for(unsigned int h = 0; h < indSeg->Hits().size(); h++)                {
-		  mf::LogInfo("MuonFilter")<<indSeg->Hits()[h]->Charge(true)<< " ";
-                  indIon -= indSeg->Hits()[h]->Charge(true);
-		}
-		mf::LogInfo("MuonFilter")  <<"Removed collection ion: ";
-                for(unsigned int h = 0; h < colSeg->Hits().size(); h++)
-		  { 
-		    mf::LogInfo("MuonFilter") <<colSeg->Hits()[h]->Charge(true)<< " ";
-		    colIon -= colSeg->Hits()[h]->Charge(true);
-		  }
-		mf::LogInfo("MuonFilter")<<"Ionization outside track I/C: " << indIon << " "<<colIon;	 
+	    if((x1edge||y1edge||z1edge) && (x2edge||y2edge||z2edge)) {
+	      tGoing.push_back(pointTemp);
+	      mf::LogInfo("MuonFilter") << "outside   Removed induction ion: ";          
+	      for(unsigned int h = 0; h < indSeg->Hits().size(); h++){
+		mf::LogInfo("MuonFilter")<<indSeg->Hits()[h]->Charge(true) << " ";
+		indIon -= indSeg->Hits()[h]->Charge(true);
 	      }
-            else if((x1edge || y1edge || z1edge) && !(x2edge || y2edge || z2edge)   && (z2-z1)>1.2) 
-	      {
-                tGoing.push_back(pointTemp);
-		mf::LogInfo("MuonFilter") << "stopping   Removed induction ion: ";          
-		for(unsigned int h = 0; h < indSeg->Hits().size(); h++)                {
-		  mf::LogInfo("MuonFilter")<<indSeg->Hits()[h]->Charge(true)<< " ";
-                  indIon -= indSeg->Hits()[h]->Charge(true);
-		}
-		mf::LogInfo("MuonFilter")  <<"Removed collection ion: ";
-                for(unsigned int h = 0; h < colSeg->Hits().size(); h++)
-		  { 
-		    mf::LogInfo("MuonFilter") <<colSeg->Hits()[h]->Charge(true)<< " ";
+	      mf::LogInfo("MuonFilter")  <<"Removed collection ion: ";
+	      for(size_t h = 0; h < colSeg->Hits().size(); h++){ 
+		    mf::LogInfo("MuonFilter") <<colSeg->Hits()[h]->Charge(true) << " ";
 		    colIon -= colSeg->Hits()[h]->Charge(true);
-		  }
-		mf::LogInfo("MuonFilter") <<"Ionization outside track I/C: " << indIon << " "<<colIon;
 	      }
+	      mf::LogInfo("MuonFilter")<<"Ionization outside track I/C: " << indIon << " "<<colIon;	 
+	    }
+            else if((x1edge || y1edge || z1edge)  && 
+		    !(x2edge || y2edge || z2edge) && 
+		    (z2-z1)>1.2){
+	      tGoing.push_back(pointTemp);
+	      mf::LogInfo("MuonFilter") << "stopping   Removed induction ion: ";          
+	      for(size_t h = 0; h < indSeg->Hits().size(); h++){
+		mf::LogInfo("MuonFilter")<<indSeg->Hits()[h]->Charge(true) << " ";
+		indIon -= indSeg->Hits()[h]->Charge(true);
+	      }
+	      mf::LogInfo("MuonFilter")  <<"Removed collection ion: ";
+	      for(size_t h = 0; h < colSeg->Hits().size(); h++){ 
+		mf::LogInfo("MuonFilter") <<colSeg->Hits()[h]->Charge(true)<< " ";
+		colIon -= colSeg->Hits()[h]->Charge(true);
+	      }
+	      mf::LogInfo("MuonFilter") <<"Ionization outside track I/C: " << indIon << " "<<colIon;
+	    }
 	    else {
 	      pairTemp = std::make_pair(i,j);
 	      mf::LogInfo("MuonFilter") << "rLook matchnum " <<matchNum << " "<<i << " "<<j ; 
@@ -260,7 +259,7 @@ namespace filter {
     double distance=0;
     for(unsigned int i = 0; i < tGoing.size(); i++) 
       for(unsigned int j = 0; j < matched.size();j++){
-	mf::LogInfo("MuonFilter") << tGoing.size() <<" " << matched.size() <<" "<<i <<" "<<j;
+	mf::LogInfo("MuonFilter") << tGoing.size() <<" " << matched.size() << " " << i << " " << j;
 	//test if one is contained within the other in the z-direction 
 	if((tGoing[i][2] <= matched[j][2]) && 
 	   (tGoing[i][5] >= matched[j][5])) { 
@@ -286,23 +285,4 @@ namespace filter {
     else return false;
   }
  
-  void MuonFilter::Swap(int & x, int &y)  {
-
-    int temp;
-    temp = x;
-    x=y;
-    y=temp;
-
-    return;
-  }
-  void MuonFilter::Swap(double & x, double &y)  {
-
-    double temp;
-    temp = x;
-    x=y;
-    y=temp;
-
-    return;
-  }
-
 }
