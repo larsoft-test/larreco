@@ -94,6 +94,7 @@ microboone_kalman:
 {
  module_type:         "Track3DKalmanSPS"
  ClusterModuleLabel:  "dbscan"
+ ProngModuleLabel:    "spacepoints"
  GenieGenModuleLabel: "generator"     # comment out for real data.
  G4ModuleLabel:       "largeant"
  PosErr3:             [0.05,0.05,0.05]   #  position resolution, cm.

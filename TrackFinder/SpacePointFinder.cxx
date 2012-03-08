@@ -213,6 +213,8 @@ namespace trkf {
 		    clusters.push_back(pjclus);
 		    clusters.push_back(pkclus);
 		    prongs->push_back(recob::Prong(clusters, spts));
+		    util::CreateAssn(*this, evt, *(prongs.get()), clusters,*(assn.get()));
+		  
 		    ++fNumProng3;
 		  }
 		}

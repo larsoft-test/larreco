@@ -85,6 +85,7 @@ namespace trkf {
     std::vector<double> fMomErr;
     std::vector<double> fMomStart;
     double fPerpLim;
+    bool   fDoFit;
     genf::GFAbsTrackRep *repMC;
     genf::GFAbsTrackRep *rep;
 
