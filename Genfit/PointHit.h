@@ -20,6 +20,7 @@ public:
   // Constructors/Destructors ---------
   PointHit();
   PointHit(TVector3 point,double res);
+  PointHit(TVector3 point,TVector3 res);
 
   virtual ~PointHit();
 
