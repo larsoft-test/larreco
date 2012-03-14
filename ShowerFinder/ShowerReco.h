@@ -39,7 +39,7 @@ namespace shwf {
    
   //  int    Get3Daxis(float thetaI, float thetaC, float Wire_vertexI, float Wire_vertexC, float Time_vertex); // in rad
 
-    int Get3DaxisN(int iplane0,int iplane1);
+    int Get3DaxisN(unsigned int set,int iplane0,int iplane1);
 
   //  int Get3Daxis_coords();
 
@@ -49,15 +49,15 @@ namespace shwf {
 
     void   GetVertexAndAnglesFromCluster(art::Ptr< recob::Cluster > clust,unsigned int plane); // Get shower vertex and slopes.
 
-    void   GetPitchLength(); //Get pitch length of both planes
+    void   GetPitchLength(unsigned int set); //Get pitch length of both planes
   //  void   AngularDistributionI(art::PtrVector < recob::Hit> hitlistInd); //Get angular distribution of the shower (Induction plane)
   //  void   AngularDistribution(art::PtrVector < recob::Hit> hitlist);  //Get angular distribution of the shower (Collection plane) 
     void   Get2DVariables(art::PtrVector < recob::Hit> hitlist);   
 
     void   FitAngularDistributions(int plane); 
  //   void   LongTransEnergyI(art::PtrVector < recob::Hit> hitlistInd); //Longtudinal and transverse enegry of the shower (Induction plane)
-    void   LongTransEnergy(art::PtrVector < recob::Hit> hitlist); //Longtudinal and transverse enegry of the shower (Collection plane)
-   double ProjectedLength(unsigned int plane ) 	 const;
+    void   LongTransEnergy(unsigned int set,art::PtrVector < recob::Hit> hitlist); //Longtudinal and transverse enegry of the shower (Collection plane)
+   double ProjectedLength(unsigned int set,unsigned int plane ) 	 const;
 
 
 
@@ -85,12 +85,10 @@ namespace shwf {
     const static float presamplings  = 60.;
     const static float fdriftvelocity =  0.157;
     const static int    alpha           = 5;     // parameter (how many RMs (of the anglular distribution) is large the cone of the shower)
-
+    double LifetimeCorrection(float time);
  private:
 
-  double BirksCorrection(double dQdx_e);
-
-   int fRun,fEvent,fSubRun;
+  int fRun,fEvent,fSubRun;
    
    
 //input labels:
@@ -106,9 +104,9 @@ namespace shwf {
   double xyz_vertex[3];
 
 
-  float IdEdx4cm; // dedx of the first 4cm of the shower
-  float CdEdx4cm; //dedx of the first 4cm of the shower 
-  double CdEdx4cm_corr; //dedx of the first 4cm of the shower 
+//  float IdEdx4cm; // dedx of the first 4cm of the shower
+//  float CdEdx4cm; //dedx of the first 4cm of the shower 
+//  double CdEdx4cm_corr; //dedx of the first 4cm of the shower 
   double totCnrg,totCnrg_corr;
   double fMean_wire_pitch ;   // wire pitch in cm
 
@@ -119,15 +117,32 @@ namespace shwf {
 //     std::vector<double> fOmega_RMS_reb;     // RMS of the 2D angular distribution  Rebinned by 4
 //     std::vector<double> fOmega_Mean_Mean;    // Mean value of the 2D angular use mean instead of maximum
 //  //   std::vector<double> fOmega_Mean_RMS;     // RMS of the 2D angular distribution use mean instead of maximum
+    std::vector<double> fRMS_2cm; 
+    std::vector<int> fNpoints_2cm; 
 
+    std::vector<double> fRMS_4cm;  
+    std::vector<int> fNpoints_4cm; 
+
+    std::vector<double> fCorr_MeV_2cm; 
+    std::vector<double> fCorr_Charge_2cm;
+
+    std::vector<double> fCorr_MeV_4cm; 
+    std::vector<double> fCorr_Charge_4cm;
    
-
+    std::vector<int> fNpoints_corr_ADC_2cm;
+    std::vector<int> fNpoints_corr_MeV_2cm;
+    std::vector<int> fNpoints_corr_ADC_4cm;
+    std::vector<int> fNpoints_corr_MeV_4cm;
+    
     std::vector<double> fOmega_wt_Mean; // Mean value of the angular distribution (0=Ind - 1=Coll) wire,time
     std::vector<double> fOmega_wt_RMS;  // RMS of the angular distribution  (0=Ind - 1=Coll) wire,time
 
   std::vector<double> fTotChargeADC;   //Total charge in ADC/cm for each plane
   std::vector<double> fTotChargeMeV;  //Total charge in MeV/cm for each plane
 
+  std::vector<double> fChargeADC_2cm;   //Initial charge in ADC/cm for each plane first 4cm
+  std::vector<double> fChargeMeV_2cm;  //initial charge in MeV/cm for each plane first 4cm
+  
   std::vector<double> fChargeADC_4cm;   //Initial charge in ADC/cm for each plane first 4cm
   std::vector<double> fChargeMeV_4cm;  //initial charge in MeV/cm for each plane first 4cm
 
@@ -167,7 +182,7 @@ std::vector<std::vector<double> > fSingleEvtAngleVal;  //vector with the first D
 
        
   //  std::vector<double> fPitch;
-    std::vector<double> fNPitch;
+    std::vector< std::vector<double> > fNPitch;   // double array, to use each plane for each set of angles
 
 
   
