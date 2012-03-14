@@ -174,7 +174,11 @@ namespace cluster {
     double mcenergy;
     double mcphi;
     double mctheta;
-  
+    std::vector< unsigned int> mcwirevertex;  // wire coordinate of vertex for each plane
+    std::vector< double> mctimevertex;  // time coordinate of vertex for each plane
+
+    
+    
   }; // class ShowerAngleCluster
 
 }

@@ -108,7 +108,8 @@ void cluster::ShowerAngleCluster::beginJob()
   
   fNPlanes = geo->Nplanes();
   fMean_wire_pitch = geo->WirePitch(0,1,0);    //wire pitch in cm
-  ftimetick=detp->SamplingRate()/1000.;
+  ftimetick=detp->SamplingRate()/1000.; 
+  std::cout << " In SHowANgle "<<  larp->Efield() << std::endl;
   fdriftvelocity=larp->DriftVelocity(larp->Efield(),larp->Temperature());
   
   /**Get TFileService and define output Histograms*/
@@ -163,6 +164,11 @@ void cluster::ShowerAngleCluster::beginJob()
        
     ftree_cluster->Branch("wire_vertex","std::vector<unsigned int>", &fWire_vertex);
     ftree_cluster->Branch("time_vertex","std::vector<double>", &fTime_vertex);
+
+    ftree_cluster->Branch("mcwirevertex","std::vector<unsigned int>", &mcwirevertex);
+    ftree_cluster->Branch("mctimevertex","std::vector<double>", &mctimevertex);
+
+      
     ftree_cluster->Branch("wire_last","std::vector<unsigned int>", &fWire_last);
     ftree_cluster->Branch("time_last","std::vector<double>", &fTime_last);
 
@@ -217,8 +223,8 @@ void cluster::ShowerAngleCluster::beginJob()
 // ***************** //
 void cluster::ShowerAngleCluster::produce(art::Event& evt)
 { 
-
-   
+ art::ServiceHandle<util::LArProperties> larp;
+   std::cout << " In SHowANgle produce "<<  larp->Efield() << " " << larp->Efield(1) << " " << larp->Efield(2) << std::endl;
   /* Get Geometry */
   art::ServiceHandle<geo::Geometry> geo;
   fNPlanes = geo->Nplanes();
@@ -271,6 +277,9 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
  	 
   fWire_vertex.resize(fNPlanes);
   fTime_vertex.resize(fNPlanes);
+   mcwirevertex.resize(fNPlanes);  // wire coordinate of vertex for each plane 
+   mctimevertex.resize(fNPlanes);  // time coordinate of vertex for each plane
+
   fWire_last.resize(fNPlanes);
   fTime_last.resize(fNPlanes);
   fChannel_vertex.resize(fNPlanes);
@@ -798,8 +807,11 @@ if(iplane!=p)
 	}
 
 fWire_vertex[p]=wirevertex;
-fTime_vertex[p]=drifttick-(pos[0]/larp->DriftVelocity(larp->Efield(),larp->Temperature()))*(1./ftimetick);
+fTime_vertex[p]=drifttick-(pos[0]/larp->DriftVelocity(larp->Efield(),larp->Temperature()))*(1./ftimetick)+60;
 std::cout<<"wirevertex= "<<wirevertex<< " timevertex " << fTime_vertex[p] << " correction "<< (pos[0]/larp->DriftVelocity(larp->Efield(),larp->Temperature()))*(1./ftimetick) << " " << pos[0] <<std::endl;
+ mcwirevertex[p]=wirevertex;  // wire coordinate of vertex for each plane
+ mctimevertex[p]=drifttick-(pos[0]/larp->DriftVelocity(larp->Efield(),larp->Temperature()))*(1./ftimetick);  // time coordinate of vertex for each plane
+
 
 }
 
