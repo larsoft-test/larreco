@@ -27,7 +27,7 @@
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
 // LArSoft includes
-#include "Track3Dreco.h"
+#include "TrackFinder/Track3Dreco.h"
 #include "Geometry/geo.h"
 #include "RecoBase/Hit.h"
 #include "RecoBase/Cluster.h"
@@ -145,9 +145,10 @@ void trkf::Track3Dreco::produce(art::Event& evt)
    // Some variables for the hit
    unsigned int channel;  //channel number
    float time;            //hit time at maximum
-   unsigned int wire;              //hit wire number
-   unsigned int plane;             //hit plane number
-   unsigned int tpc;             //hit plane number
+   unsigned int wire;     //hit wire number
+   unsigned int plane;    //hit plane number
+   unsigned int tpc;      //hit plane number
+   unsigned int cstat;    //hit cryostat number
       
    for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii)
    {
@@ -160,6 +161,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
       
       // Gaaaaaah! Change me soon!!! But, for now, 
       // let's just chuck one plane's worth of info. EC, 30-Mar-2011.
+      ///\todo: This is very bad practice and should be changed ASAP
       if (cl->View() == geo::kW) continue;      
       
       art::PtrVector<recob::Hit> hitlist;
@@ -184,7 +186,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
          time -= presamplings;
 	  
          channel = (*theHit)->Channel();
-         geom->ChannelToWire(channel,tpc,plane,wire);
+         geom->ChannelToWire(channel,cstat,tpc,plane,wire);
 	  
          //correct for the distance between wire planes
          if(plane==1) time -= tIC;   // Collection
@@ -375,7 +377,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                //get wire - time coordinate of the hit
                unsigned int channel,wire,plane1,plane2;
                channel = minhits[imin]->Channel();
-               geom->ChannelToWire(channel,tpc,plane1,wire);
+               geom->ChannelToWire(channel,cstat,tpc,plane1,wire);
                // get the wire-time co-ordinates of the hit to be matched
                double w1;
                if(plane1==0)
@@ -406,7 +408,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
                   if(!maxhitsMatch[imax]){
                      //get wire - time coordinate of the hit
                      channel = maxhits[imax]->Channel();
-                     geom->ChannelToWire(channel,tpc,plane2,wire);
+                     geom->ChannelToWire(channel,cstat,tpc,plane2,wire);
                      double w2;
                      if(plane2==0)
                          w2 = (double)((wire+3.95)*wire_pitch);
@@ -439,7 +441,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	  
                // Get the time-wire co-ordinates of the matched hit
                channel =  maxhits[imaximum]->Channel();
-               geom->ChannelToWire(channel,tpc,plane2,wire);
+               geom->ChannelToWire(channel,cstat, tpc,plane2,wire);
                double w1_match;
                if(plane2==0)
                    w1_match = (double)((wire+3.95)*wire_pitch);

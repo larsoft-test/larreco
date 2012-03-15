@@ -37,10 +37,20 @@ namespace trkf {
 
       //Return the position along the drift ("x") direction, 
       //adjusting for spacing between planes. 
-      double DriftCoordinate(int plane, double time);
+      double DriftCoordinate(unsigned int plane, 
+			     unsigned int tpc, 
+			     unsigned int cryostat, 
+			     double time);
 
       //Do two input clusters have endpoints that are consistent in time?
-      bool   ClusterEndPointsMatch(art::Ptr<recob::Cluster> c1, art::Ptr<recob::Cluster> c2); 
+      bool   ClusterEndPointsMatch(art::Ptr<recob::Cluster> c1, 
+				   unsigned int plane1,
+				   unsigned int tpc1,
+				   unsigned int cryostat1,
+				   art::Ptr<recob::Cluster> c2,
+				   unsigned int plane2,
+				   unsigned int tpc2,
+				   unsigned int cryostat2); 
 
       //Helper functions to avoid double-counting
       bool   MultiPlane  (art::PtrVector<recob::Hit> hitList);

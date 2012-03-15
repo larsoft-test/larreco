@@ -102,12 +102,12 @@ namespace trkf {
     void update() const;
 
     // Calculate time offsets.
-    // Results stored in nested vector indexed by [tpc][plane]
-    void fillTimeOffset(std::vector<std::vector<double> >& timeOffset) const;
+    // Results stored in nested vector indexed by [cstat][tpc][plane]
+    void fillTimeOffset(std::vector< std::vector<std::vector<double> > >& timeOffset) const;
 
     // Corrected time accessors.
     double correctedTime(const recob::Hit& hit,
-			 const std::vector<std::vector<double> >& timeOffset) const;
+			 const std::vector< std::vector<std::vector<double> > >& timeOffset) const;
 
     // Spatial separation of hits (zero if two or fewer).
     double separation(const art::PtrVector<recob::Hit>& hits) const;
@@ -115,14 +115,14 @@ namespace trkf {
     // Fill a single simple space point using the specified hits.
     // Hits are assumed to be compatible.
     void fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
-			const std::vector<std::vector<double> >& timeOffset,
+			const std::vector< std::vector<std::vector<double> > >& timeOffset,
 			recob::SpacePoint& spt) const;
 
     // Fill a single complex space point using the specified hits.
     // Complex space points allow multiple hits in one plane.
     // Hits are assumed to be compatible.
     void fillComplexSpacePoint(const art::PtrVector<recob::Hit>& hits,
-			       const std::vector<std::vector<double> >& timeOffset,
+			       const std::vector< std::vector<std::vector<double> > >& timeOffset,
 			       recob::SpacePoint& spt) const;
 
     // Fill a vector of space points from an unsorted collection of hits.
@@ -168,7 +168,7 @@ namespace trkf {
     // Test whether the specified hits are compatible with a space point.
     // The last two arguments can be used to override the default cuts.
     bool compatible(const art::PtrVector<recob::Hit>& hits,
-		    const std::vector<std::vector<double> >& timeOffset,
+		    const std::vector< std::vector<std::vector<double> > >& timeOffset,
 		    bool useMC,
 		    double maxDT,
 		    double maxS) const;

@@ -143,7 +143,7 @@ namespace trkf {
 
     // Get time offsets.
 
-    std::vector<std::vector<double> > timeOffset;
+    std::vector<std::vector<std::vector<double> > > timeOffset;
     sptsvc->fillTimeOffset(timeOffset);
 
     // Get SimChannels.
@@ -212,8 +212,8 @@ namespace trkf {
 	const recob::Hit& hit = **ihit;
 
 	unsigned short channel = hit.Channel();
-	unsigned int tpc, plane, wire;
-	geom->ChannelToWire(channel, tpc, plane, wire);
+	unsigned int tpc, plane, wire, cstat;
+	geom->ChannelToWire(channel, cstat, tpc, plane, wire);
 	geo::View_t view = hit.View();
 	assert(geom->TPC(tpc).Plane(plane).View() == view);
 	double tpeak = hit.PeakTime();
@@ -326,8 +326,8 @@ namespace trkf {
 	  const recob::Hit& hit1 = **ihit;
 
 	  unsigned short channel1 = hit1.Channel();
-	  unsigned int tpc1, plane1, wire1;
-	  geom->ChannelToWire(channel1, tpc1, plane1, wire1);
+	  unsigned int tpc1, plane1, wire1, cs1;
+	  geom->ChannelToWire(channel1, cs1, tpc1, plane1, wire1);
 	  geo::View_t view1 = hit1.View();
 	  double t1 = sptsvc->correctedTime(hit1, timeOffset);
 
@@ -336,8 +336,8 @@ namespace trkf {
 	    const recob::Hit& hit2 = **jhit;
 
 	    unsigned short channel2 = hit2.Channel();
-	    unsigned int tpc2, plane2, wire2;
-	    geom->ChannelToWire(channel2, tpc2, plane2, wire2);
+	    unsigned int tpc2, plane2, wire2, cs2;
+	    geom->ChannelToWire(channel2, cs2, tpc2, plane2, wire2);
 
 	    // Require same tpc, different view.
 
