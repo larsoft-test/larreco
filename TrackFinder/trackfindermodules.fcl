@@ -21,13 +21,6 @@ argoneut_kalman:
  GenfPRINT:           true
 }
 
-argoneut_lartracker:
-{
- module_type:        "LArTracker"
- ClusterModuleLabel: "dbcluster"      #label for input cluster collection
- TMatch:             0.05             #tolerance for time matching...in centimeters
-}
-
 argoneut_spacepts:
 {
  module_type:           "SpacePts"
