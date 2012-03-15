@@ -184,15 +184,17 @@ namespace filter {
           }
 	  mf::LogInfo("MuonFilter") << "Times: " << trk1Start <<" "<< trk2Start <<" "<<trk1End <<" "<<trk2End;
           //again needs to be fixed
-	  ///\todo: the delta wire numbers seem a bit magic, should also change to using Geometry::ChannelsIntersect method
+	  ///\todo: the delta wire numbers seem a bit magic, 
+	  ///\todo: should also change to using Geometry::ChannelsIntersect method
+	  ///\todo: should also make this detector agnostic, the following assumes 1 cryostat and 1 tpc
           if((TMath::Abs(trk1Start-trk2Start) < fTolerance && TMath::Abs(trk1End-trk2End) < fTolerance)    && 
 	     (TMath::Abs(uPos1-vPos1) <=fDeltaWire+2 && TMath::Abs(uPos2-vPos2) <= fDeltaWire+2))  {
-            geom->WireEndPoints(0,uPlane,uPos1,&w1Start[0],&w1End[0]);
-            geom->WireEndPoints(0,vPlane,vPos1,&w2Start[0],&w2End[0]);
-            geom->IntersectionPoint(uPos1,vPos1,uPlane,vPlane,0,&w1Start[0],&w1End[0],&w2Start[0],&w2End[0],y1,z1);
-            geom->WireEndPoints(0,uPlane,uPos2,&w1Start[0],&w1End[0]);
-            geom->WireEndPoints(0,vPlane,vPos2,&w2Start[0],&w2End[0]);
-            geom->IntersectionPoint(uPos2,vPos2,uPlane,vPlane,0,&w1Start[0],&w1End[0],&w2Start[0],&w2End[0],y2,z2);
+            geom->WireEndPoints(0,0,uPlane,uPos1,&w1Start[0],&w1End[0]);
+            geom->WireEndPoints(0,0,vPlane,vPos1,&w2Start[0],&w2End[0]);
+            geom->IntersectionPoint(uPos1,vPos1,uPlane,vPlane,0,0,&w1Start[0],&w1End[0],&w2Start[0],&w2End[0],y1,z1);
+            geom->WireEndPoints(0,0,uPlane,uPos2,&w1Start[0],&w1End[0]);
+            geom->WireEndPoints(0,0,vPlane,vPos2,&w2Start[0],&w2End[0]);
+            geom->IntersectionPoint(uPos2,vPos2,uPlane,vPlane,0,0,&w1Start[0],&w1End[0],&w2Start[0],&w2End[0],y2,z2);
 	    x1 = (trk1Start+trk2Start)/2.0*drift-fDCenter;
 	    x2 = (trk1End+trk2End)/2.0*drift-fDCenter;
 	    mf::LogInfo("MuonFilter") <<"Match " << matchNum 

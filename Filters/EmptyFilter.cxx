@@ -76,7 +76,7 @@ namespace filt{
     int failFlag = 0;
     double indIon(0.0), colIon(0.0);
     int event = evt.id().event();
-    unsigned int chan(0), wire(0), plane(0), tpc(0); 
+    unsigned int chan(0), wire(0), plane(0), tpc(0), cs(0); 
     
     art::ServiceHandle<geo::Geometry> geom;
     art::Handle< std::vector<recob::Hit> > hitHandle;
@@ -96,15 +96,15 @@ namespace filt{
       }  
       if(failFlag==0) {
 	chan = hitvec[0]->Wire()->RawDigit()->Channel();
-	geom->ChannelToWire(chan,tpc,plane,wire);
+	geom->ChannelToWire(chan,cs,tpc,plane,wire);
 	//Check to see if either plane is empty
-	if(plane == 1){ 
+	if(geom->Cryostat(cs).TPC(tpc).Plane(plane).SignalType() == geo::kInduction){ 
 	  std::cout << "Induction empty." << std::endl;
 	  failFlag=2;
 	}
 	unsigned int j(0);  
 	//advances j to collection plane
-	while(plane ==0) {
+	while(plane == 0) {
 	  indIon+=hitvec[j]->Charge();
 	  j++;
 	  if(j == hitvec.size()) {
@@ -114,7 +114,7 @@ namespace filt{
 	  }
 	  else{
 	    chan = hitvec[j]->Wire()->RawDigit()->Channel();
-	    geom->ChannelToWire(chan,tpc,plane,wire);
+	    geom->ChannelToWire(chan,cs, tpc,plane,wire);
 	  }
 	}
 	for(; j < hitvec.size(); j++){
