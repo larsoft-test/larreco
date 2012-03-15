@@ -165,8 +165,8 @@ namespace cluster {
 			     unsigned int wire,
 			     double time);  
     
-    int GetPlaneAndTPC(art::Ptr<recob::Hit> a,unsigned int &p,unsigned int &t,unsigned int &w);
-    int GetPlaneAndTPC(art::Ptr<recob::Cluster> c,unsigned int &p,unsigned int &t,unsigned int &w);
+    int GetPlaneAndTPC(art::Ptr<recob::Hit> a,unsigned int &p,unsigned int &cs,unsigned int &t,unsigned int &w);
+    int GetPlaneAndTPC(art::Ptr<recob::Cluster> c,unsigned int &p,unsigned int &cs,unsigned int &t,unsigned int &w);
     
   
   //temporary

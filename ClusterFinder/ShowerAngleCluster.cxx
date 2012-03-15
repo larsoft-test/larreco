@@ -339,8 +339,8 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
 
       art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
       art::PtrVector<recob::Hit> hitlist = cl->Hits();
-      unsigned int p(0),w(0), t(0); //c=channel, p=plane, w=wire
-      GetPlaneAndTPC(hitlist[0],p,t,w);
+      unsigned int p(0),w(0), t(0),cs(0); //c=channel, p=plane, w=wire
+      GetPlaneAndTPC(hitlist[0],p,cs,t,w);
       
       if(hitlist.size()>15){
 	clusters.push_back(cl);
@@ -355,13 +355,13 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
       art::PtrVector<recob::Hit> hitlist;
       hitlist = clusters[ii]->Hits();
       
-      unsigned int p(0),w(0), t(0); //c=channel, p=plane, w=wire
+      unsigned int p(0),w(0), t(0), cs(0); //c=channel, p=plane, w=wire
 
-      GetPlaneAndTPC(hitlist[0],p,t,w);
+      GetPlaneAndTPC(hitlist[0],p,cs,t,w);
       //wire_end[p]=w;	
 
       for(art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin(); a != hitlist.end();  a++){ //loop over cluster hits
-	  GetPlaneAndTPC(*a,p,t,w);
+	GetPlaneAndTPC(*a,p,cs,t,w);
           hitlist_all[p].push_back(*a);
       }
     } // End loop on clusters.
@@ -429,11 +429,11 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
 
 // ******************************* //
 
-int cluster::ShowerAngleCluster::GetPlaneAndTPC(art::Ptr<recob::Hit> a,unsigned int &p,unsigned int &t,unsigned int &w)
+int cluster::ShowerAngleCluster::GetPlaneAndTPC(art::Ptr<recob::Hit> a,unsigned int &p,unsigned int &cs,unsigned int &t,unsigned int &w)
 {
   art::ServiceHandle<geo::Geometry> geo;
   unsigned int c=a->Wire()->RawDigit()->Channel(); 
-  geo->ChannelToWire(c,t,p,w);
+  geo->ChannelToWire(c,cs,t,p,w);
     
   return 0;
 }
@@ -441,9 +441,9 @@ int cluster::ShowerAngleCluster::GetPlaneAndTPC(art::Ptr<recob::Hit> a,unsigned 
 
 
 
-int cluster::ShowerAngleCluster::GetPlaneAndTPC(art::Ptr<recob::Cluster> c,unsigned int &p,unsigned int &t,unsigned int &w)
+int cluster::ShowerAngleCluster::GetPlaneAndTPC(art::Ptr<recob::Cluster> c,unsigned int &p,unsigned int &cs,unsigned int &t,unsigned int &w)
 {
- GetPlaneAndTPC(c->Hits()[0],p,t,w);
+  GetPlaneAndTPC(c->Hits()[0],p,cs,t,w);
  return 0;
 }
     
@@ -459,7 +459,7 @@ void cluster::ShowerAngleCluster::AngularDistribution(art::PtrVector < recob::Hi
   std::cout << "------ in angular distribution, n of hits " << hitlist.size() << std::endl;
   art::ServiceHandle<geo::Geometry> geom;
   double time;
-  unsigned int wire,tpc;
+  unsigned int wire,tpc, cstat;
   unsigned int plane;
 
   if(hitlist.size()==0)
@@ -467,7 +467,7 @@ void cluster::ShowerAngleCluster::AngularDistribution(art::PtrVector < recob::Hi
   
   art::Ptr<recob::Hit> theHit = (*hitlist.begin());
   time = theHit->PeakTime();  
-  GetPlaneAndTPC(hitlist[0],plane,tpc,wire);
+  GetPlaneAndTPC(hitlist[0],plane,cstat,tpc,wire);
     
   unsigned int minwire=wire,maxwire=0;;
   double mintime=99999,maxtime=0.;
@@ -479,7 +479,7 @@ void cluster::ShowerAngleCluster::AngularDistribution(art::PtrVector < recob::Hi
   for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     time = (*hitIter)->PeakTime();  
     //time_C -= (presamplings+10.1);
-    GetPlaneAndTPC((*hitIter),plane,tpc,wire);
+    GetPlaneAndTPC((*hitIter),plane,cstat,tpc,wire);
     
     maxwire=wire;   
 
@@ -510,7 +510,7 @@ void cluster::ShowerAngleCluster::AngularDistribution(art::PtrVector < recob::Hi
   for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != 				hitlist.end();  hitIter++){
     
     time =  (*hitIter)->PeakTime();  
-    GetPlaneAndTPC((*hitIter),plane,tpc,wire);
+    GetPlaneAndTPC((*hitIter),plane,cstat,tpc,wire);
   
     tgx[plane]->Fill((double)wire*fMean_wire_pitch,
 		     time*ftimetick*fdriftvelocity,(*hitIter)->Charge());
@@ -560,7 +560,7 @@ void cluster::ShowerAngleCluster::FitAngularDistributions(art::PtrVector < recob
   unsigned int wire;
   double BC,AC;
   double omega;
-  unsigned int channel,iplane,plane,tpc;
+  unsigned int channel,iplane,plane,tpc,cstat;
 
   if(hitlist.size()==0)
     return;
@@ -569,7 +569,7 @@ art::Ptr<recob::Hit> theHit = (*hitlist.begin());
     //time_C -= (presamplings+10.1);
     art::Ptr<recob::Wire> theWire = theHit->Wire();
     channel = theWire->RawDigit()->Channel();
-    geom->ChannelToWire(channel, tpc, iplane, wire);
+    geom->ChannelToWire(channel, cstat, tpc, iplane, wire);
 
 
 
@@ -582,7 +582,7 @@ art::Ptr<recob::Hit> theHit = (*hitlist.begin());
     //time_C -= (presamplings+10.1);
     art::Ptr<recob::Wire> theWire = theHit->Wire();
     channel = theWire->RawDigit()->Channel();
-    geom->ChannelToWire(channel, tpc, plane, wire);
+    geom->ChannelToWire(channel, cstat, tpc, plane, wire);
   
       BC = ((double)wire - fWire_vertex[plane])*fMean_wire_pitch; // in cm
       AC = ((double)time - fTime_vertex[plane])*ftimetick*fdriftvelocity; //in cm 
@@ -790,7 +790,7 @@ const double origin[3] = {0.};
 for(unsigned int iplane=0;iplane<fNPlanes;iplane++)
 {
 double pos[3];
-unsigned int  wirevertex, t;
+ unsigned int  wirevertex, t, cs;
 unsigned int p;
 geom->Plane(iplane).LocalToWorld(origin, pos);
 	//planex[p] = pos[0];
@@ -799,7 +799,7 @@ std::cout << "plane X positionp " << iplane << " " << pos[0] << std::endl;
 pos[1]=xyz_vertex[1];
 pos[2]=xyz_vertex[2];
  unsigned int channel2 = geom->NearestChannel(pos,iplane);
-       geom->ChannelToWire(channel2,t,p,wirevertex); 
+ geom->ChannelToWire(channel2,cs,t,p,wirevertex); 
        
 if(iplane!=p)
 	{std::cout << " error - planes don't match " << iplane << " " << p << std::endl;
@@ -884,9 +884,9 @@ TH1F * hithist2=new TH1F(Form("hithist_ev_%d_pl_%d_w",fEvent,iplane),Form("hithi
 for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     art::Ptr<recob::Hit> theHit = (*hitIter);
     double time = theHit->PeakTime() ;  
-    unsigned int wire,tpc,channel,plane;
+    unsigned int wire,cstat, tpc,channel,plane;
     channel = theHit->Wire()->RawDigit()->Channel();
-    geom->ChannelToWire(channel, tpc, plane, wire);
+    geom->ChannelToWire(channel, cstat, tpc, plane, wire);
  
     if(iplane!=plane)
       continue;
@@ -945,7 +945,7 @@ void   cluster::ShowerAngleCluster::Find2DStartPoints(std::vector< art::PtrVecto
 
   art::ServiceHandle<geo::Geometry> geom;
   double time;
-  unsigned int wire,plane,tpc;
+  unsigned int wire,plane,tpc,cstat;
 
   double a,c;
  // double wlend,tlend;
@@ -963,7 +963,7 @@ void   cluster::ShowerAngleCluster::Find2DStartPoints(std::vector< art::PtrVecto
   if(hitlist_all[iplane].size()==0) // this should never happen.
     continue;
   
-  GetPlaneAndTPC((*hitlist_all[iplane].begin()),plane,tpc,wire);
+  GetPlaneAndTPC((*hitlist_all[iplane].begin()),plane,cstat,tpc,wire);
   
   //error checking:
   if(iplane!=plane){
@@ -1030,11 +1030,11 @@ void   cluster::ShowerAngleCluster::Find2DStartPoints(std::vector< art::PtrVecto
   art::Ptr<recob::Hit> startHit=FindClosestHit(hitlist_all[iplane], wire_online_begin,time_online_begin);
   art::Ptr<recob::Hit> endHit=FindClosestHit(hitlist_all[iplane], wire_online_end,time_online_end);
   
-  GetPlaneAndTPC(startHit,plane,tpc,wire);
+  GetPlaneAndTPC(startHit,plane,cstat,tpc,wire);
   wire_start[plane]=wire;
   time_start[plane]=startHit->PeakTime();
   
-  GetPlaneAndTPC(endHit,plane,tpc,wire);
+  GetPlaneAndTPC(endHit,plane,cstat,tpc,wire);
   wire_end[plane]=wire;
   time_end[plane]=endHit->PeakTime();
   
@@ -1145,7 +1145,7 @@ void   cluster::ShowerAngleCluster::Find2DStartPoints(std::vector< art::PtrVecto
 	if(fNPlanes>=3){
 	
 	double pos[3];
-	unsigned int  wirevertex, t;
+	unsigned int  wirevertex, t,cstat;
 	unsigned int worst_plane=2;
 	if(best_planes.size()>=3)
 		worst_plane=best_planes[2];
@@ -1267,7 +1267,7 @@ void   cluster::ShowerAngleCluster::Find2DStartPoints(std::vector< art::PtrVecto
 	pos[1]=xyz_vertex_fit[1];
 	pos[2]=xyz_vertex_fit[2];
  	unsigned int channel2 = geom->NearestChannel(pos,worst_plane);
-       	geom->ChannelToWire(channel2,t,worst_plane,wirevertex); 
+       	geom->ChannelToWire(channel2,cstat,t,worst_plane,wirevertex); 
 
 
 	art::ServiceHandle<util::LArProperties> larp;
@@ -1285,7 +1285,7 @@ void   cluster::ShowerAngleCluster::Find2DStartPoints(std::vector< art::PtrVecto
     		art::Ptr<recob::Hit> theHit = (*hitIter);
     		time = theHit->PeakTime() ;  
     		unsigned int plane;
-    		GetPlaneAndTPC(theHit,plane,tpc,wire);
+    		GetPlaneAndTPC(theHit,plane,cstat,tpc,wire);
 		
 	
     		double dist_begin=TMath::Sqrt( pow((double)((int)wirevertex-(int)wire)*fMean_wire_pitch,2)+pow((timestart-time)*fdriftvelocity*ftimetick,2) );	
@@ -1436,12 +1436,12 @@ void cluster::ShowerAngleCluster::Find_Extreme_Intercepts(art::PtrVector<recob::
   inter_high=-999999;
   inter_low=999999;
 
-  unsigned int plane,tpc,wire;
+  unsigned int plane,tpc,wire,cstat;
   
   for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     art::Ptr<recob::Hit> theHit = (*hitIter);
     double time = theHit->PeakTime() ;  
-    GetPlaneAndTPC(theHit,plane,tpc,wire);
+    GetPlaneAndTPC(theHit,plane,cstat,tpc,wire);
     
     //wire_bar+=wire;
     //time_bar+=time;	
@@ -1473,13 +1473,13 @@ art::Ptr<recob::Hit> cluster::ShowerAngleCluster::FindClosestHit(art::PtrVector<
   double min_length_from_start=99999;
   art::Ptr<recob::Hit> nearHit;
    
-  unsigned int plane,tpc,wire;
+  unsigned int plane,tpc,wire,cstat;
    
    
   for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     art::Ptr<recob::Hit> theHit = (*hitIter);
     double time = theHit->PeakTime() ;  
-    GetPlaneAndTPC(theHit,plane,tpc,wire);
+    GetPlaneAndTPC(theHit,plane,cstat,tpc,wire);
     
     double dist_mod=TMath::Sqrt( pow(((double)wire_online-(double)wire*fMean_wire_pitch),2)+pow((time_online-time*fdriftvelocity*ftimetick),2) );	
 

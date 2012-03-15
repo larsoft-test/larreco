@@ -94,76 +94,78 @@ void cluster::DBcluster::produce(art::Event& evt)
   // get the ChannelFilter
   filter::ChannelFilter chanFilt;
       
-  unsigned int p(0),w(0), t(0), channel(0);
-  for(unsigned int tpc = 0; tpc < geom->NTPC(); ++tpc){
-    for(unsigned int plane = 0; plane<geom->Nplanes(tpc); ++plane){
-      geo::SigType_t sigType = geom->TPC(tpc).Plane(plane).SignalType();
-      for(size_t i = 0; i< hitcol->size(); ++i){
+  unsigned int p(0),w(0), t(0), c(0), channel(0);
+  for(unsigned int cstat = 0; cstat < geom->Ncryostats(); ++cstat){
+    for(unsigned int tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
+      for(unsigned int plane = 0; plane < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
+	geo::SigType_t sigType = geom->Cryostat(cstat).TPC(tpc).Plane(plane).SignalType();
+	for(size_t i = 0; i< hitcol->size(); ++i){
       
-	art::Ptr<recob::Hit> hit(hitcol, i);
+	  art::Ptr<recob::Hit> hit(hitcol, i);
       
-	channel=hit->Wire()->RawDigit()->Channel();
-	geom->ChannelToWire(channel,t,p,w);
+	  channel=hit->Wire()->RawDigit()->Channel();
+	  geom->ChannelToWire(channel, c, t, p, w);
     
-	if(p == plane && t == tpc) allhits.push_back(hit);
+	  if(p == plane && t == tpc && c == cstat) allhits.push_back(hit);
 	
-      }  
+	}  
       
-      dbscan->InitScan(allhits, chanFilt.SetOfBadChannels());
+	dbscan->InitScan(allhits, chanFilt.SetOfBadChannels());
 
-      //----------------------------------------------------------------
-      for(unsigned int j = 0; j < dbscan->fps.size(); ++j){
-
-	if(allhits.size() != dbscan->fps.size()) break;
-   
-	fhitwidth->Fill(dbscan->fps[j][2]);
-		
-	if(sigType == geo::kInduction)  fhitwidth_ind_test->Fill(dbscan->fps[j][2]);
-	if(sigType == geo::kCollection) fhitwidth_coll_test->Fill(dbscan->fps[j][2]);
-      }
- 
-     //*******************************************************************
-      dbscan->run_cluster();
-
-      for(size_t i = 0; i < dbscan->fclusters.size(); ++i){
-	art::PtrVector<recob::Hit> clusterHits;
-
-	for(size_t j = 0; j < dbscan->fpointId_to_clusterId.size(); ++j){	  
-	  if(dbscan->fpointId_to_clusterId[j]==i) clusterHits.push_back(allhits[j]);
+	//----------------------------------------------------------------
+	for(unsigned int j = 0; j < dbscan->fps.size(); ++j){
+	  
+	  if(allhits.size() != dbscan->fps.size()) break;
+	  
+	  fhitwidth->Fill(dbscan->fps[j][2]);
+	  
+	  if(sigType == geo::kInduction)  fhitwidth_ind_test->Fill(dbscan->fps[j][2]);
+	  if(sigType == geo::kCollection) fhitwidth_coll_test->Fill(dbscan->fps[j][2]);
 	}
+ 
+	//*******************************************************************
+	dbscan->run_cluster();
+	
+	for(size_t i = 0; i < dbscan->fclusters.size(); ++i){
+	  art::PtrVector<recob::Hit> clusterHits;
+	  
+	  for(size_t j = 0; j < dbscan->fpointId_to_clusterId.size(); ++j){	  
+	    if(dbscan->fpointId_to_clusterId[j]==i) clusterHits.push_back(allhits[j]);
+	  }
          
-	////////
-	if (clusterHits.size()>0){
-
-	  /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
-	  unsigned int sw = 0;
-	  unsigned int ew = 0;
-	  geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), t, p, sw);
-	  geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), t, p, ew);
+	  ////////
+	  if (clusterHits.size()>0){
+	    
+	    /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
+	    unsigned int sw = 0;
+	    unsigned int ew = 0;
+	    geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), c, t, p, sw);
+	    geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), c, t, p, ew);
 	 
-	  recob::Cluster cluster(clusterHits, 
-				 sw*1., 0.,
-				 clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
-				 ew*1., 0.,
-				 clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
-				 -999., 0., 
-				 -999., 0.,
-				 ccol->size());
+	    recob::Cluster cluster(clusterHits, 
+				   sw*1., 0.,
+				   clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
+				   ew*1., 0.,
+				   clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
+				   -999., 0., 
+				   -999., 0.,
+				   ccol->size());
+	    
+	    ccol->push_back(cluster);
 
-	  ccol->push_back(cluster);
-
-	  // associate the hits to this cluster
-	  util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
-
-	  clusterHits.clear();
-
-	}//end if clusterHits has at least one hit
+	    // associate the hits to this cluster
+	    util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
+	    
+	    clusterHits.clear();
+	    
+	  }//end if clusterHits has at least one hit
    
-      }//end loop over fclusters
-
-      allhits.clear();
-    }//end loop over planes
-  }//end loop over tpcs
+	}//end loop over fclusters
+	
+	allhits.clear();
+      } // end loop over planes
+    } // end loop over tpcs
+  } // end loop over cryostats
 
   // 2/10/12 comment out the sorting as it destroys the associations between
   // the hits and the clusters.  not clear why the sorting was here to begin

@@ -33,12 +33,12 @@ namespace cluster {
          
     void produce(art::Event& evt);
     void beginJob();
-    void AngularDistribution(unsigned int tpc, unsigned int plane);
-    void FindMax(unsigned int tpc, unsigned int plane);
+    void AngularDistribution(unsigned int cstat, unsigned int tpc, unsigned int plane);
+    void FindMax(unsigned int cstat, unsigned int tpc, unsigned int plane);
     //void FinalPeaks();
     void FitAngularDistributions();
-    void FindClusters(unsigned int tpc, unsigned int plane);
-    void ReassignHitID(unsigned int tpc, unsigned int plane,unsigned int HitPosition,unsigned int WrongPeakNo);
+    void FindClusters(unsigned int cstat, unsigned int tpc, unsigned int plane);
+    void ReassignHitID(unsigned int cstat, unsigned int tpc, unsigned int plane,unsigned int HitPosition,unsigned int WrongPeakNo);
  
   
      

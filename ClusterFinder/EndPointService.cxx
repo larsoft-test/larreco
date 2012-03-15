@@ -176,231 +176,234 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
   unsigned int wire    = 0;
   unsigned int wire2   = 0;
   unsigned int tpc     = 0;
-  for(unsigned int t = 0; t < geom->NTPC(); ++t){
-    for(unsigned int p = 0; p < geom->Nplanes(t); p++) {
-      art::PtrVector<recob::Hit> vHits;
-      art::PtrVector<recob::Cluster>::const_iterator clusterIter = clusIn.begin();
-      geo::View_t view = geom->Plane(p,t).View();
-      hit.clear();
-      cHits.clear();      
-      while(clusterIter!= clusIn.end() ) {
-	if((*clusterIter)->View() == view){
-	  cHits = (*clusterIter)->Hits();
-	  if(cHits.size() > 0)
-	    for(unsigned int i = 0; i < cHits.size(); i++) hit.push_back(cHits[i]);
-	}//end if cluster is in the correct view
-	clusterIter++;  
-      } 
-
-      if(hit.size() == 0) continue;
-
-      numberwires=geom->Nwires(p,t);
-      numbertimesamples=hit[0]->Wire()->fSignal.size();
-      mf::LogInfo("EndPointService") << " --- endpoints check " 
-				     << numberwires << " " 
-				     << numbertimesamples << " " 
-				     << fTimeBins;
+  unsigned int cstat   = 0;
+  for(unsigned int c = 0; c < geom->Ncryostats(); ++c){
+    for(unsigned int t = 0; t < geom->Cryostat(c).NTPC(); ++t){
+      for(unsigned int p = 0; p < geom->Cryostat(c).TPC(t).Nplanes(); p++) {
+	art::PtrVector<recob::Hit> vHits;
+	art::PtrVector<recob::Cluster>::const_iterator clusterIter = clusIn.begin();
+	geo::View_t view = geom->Plane(p,t).View();
+	hit.clear();
+	cHits.clear();      
+	while(clusterIter!= clusIn.end() ) {
+	  if((*clusterIter)->View() == view){
+	    cHits = (*clusterIter)->Hits();
+	    if(cHits.size() > 0)
+	      for(unsigned int i = 0; i < cHits.size(); i++) hit.push_back(cHits[i]);
+	  }//end if cluster is in the correct view
+	  clusterIter++;  
+	} 
+	
+	if(hit.size() == 0) continue;
+	
+	numberwires = geom->Cryostat(c).TPC(t).Plane(p).Nwires();
+	numbertimesamples = hit[0]->Wire()->fSignal.size();
+	mf::LogInfo("EndPointService") << " --- endpoints check " 
+				       << numberwires << " " 
+				       << numbertimesamples << " " 
+				       << fTimeBins;
       
-      std::vector < std::vector < double > > MatrixAsum(numberwires);
-      std::vector < std::vector < double > > MatrixBsum(numberwires);
-      std::vector < std::vector < double > > hit_map(numberwires); //the map of hits 
-
-      //the index of the hit that corresponds to the potential corner
-      std::vector < std::vector < int > > hit_loc(numberwires);
-
-      std::vector < std::vector < double > >  Cornerness(numberwires); //the "weight" of a corner
-  
-      for(unsigned int wi = 0; wi < numberwires; ++wi){  
-	hit_map[wi].resize(fTimeBins,0);
-	hit_loc[wi].resize(fTimeBins,-1);
-	Cornerness[wi].resize(fTimeBins,0);
-	MatrixAsum[wi].resize(fTimeBins,0);
-	MatrixBsum[wi].resize(fTimeBins,0);
-      }      
-      for(unsigned int i = 0; i < hit.size(); ++i){
-	channel=hit[i]->Wire()->RawDigit()->Channel();
-	geom->ChannelToWire(channel,tpc,plane,wire);
-	//pixelization using a Gaussian
-	for(int j = 0; j <= (int)(hit[i]->EndTime()-hit[i]->StartTime()+.5); ++j)    
-	  hit_map[wire][(int)((hit[i]->StartTime()+j)*(fTimeBins/numbertimesamples)+.5)]+=Gaussian((int)(j-((hit[i]->EndTime()-hit[i]->StartTime())/2.)+.5),0,hit[i]->EndTime()-hit[i]->StartTime());      
-      }
+	std::vector < std::vector < double > > MatrixAsum(numberwires);
+	std::vector < std::vector < double > > MatrixBsum(numberwires);
+	std::vector < std::vector < double > > hit_map(numberwires); //the map of hits 
 	
-      // Gaussian derivative convolution  
-      for(unsigned int wire = 1; wire < numberwires-1; ++wire){
+	//the index of the hit that corresponds to the potential corner
+	std::vector < std::vector < int > > hit_loc(numberwires);
 	
-	for(int timebin = 1; timebin < fTimeBins-1; ++timebin){
-	  MatrixAsum[wire][timebin] = 0.;
-	  MatrixBsum[wire][timebin] = 0.;
-	  n = 0;
-	  for(int i = -3; i <= 3; ++i) {
-	    windex = wire+i;
-	    if(windex < 0 ) windex = 0;
-	    // this is ok, because the line before makes sure it's not negative
-	    else if ((unsigned int)windex >= numberwires) windex = numberwires-1; 
-	    
-	    for(int j = -3; j <= 3; ++j){
-	      tindex = timebin+j;
-	      if(tindex < 0) tindex=0;
-	      else if(tindex >= fTimeBins) tindex = fTimeBins-1;
-	      
-	      MatrixAsum[wire][timebin] += wx[n]*hit_map[windex][tindex];  
-	      MatrixBsum[wire][timebin] += wy[n]*hit_map[windex][tindex]; 
-	      ++n;
-	    } // end loop over j
-	  } // end loop over i
-	} // end loop over time bins
-      }// end loop over wires
-
-      //calculate the cornerness of each pixel while making sure not to fall off the hit map.
-      for(unsigned int wire = 1; wire < numberwires-1; ++wire){
-
-	for(int timebin = 1; timebin < fTimeBins-1; ++timebin){    
-	  MatrixAAsum = 0.;
-	  MatrixBBsum = 0.;
-	  MatrixCCsum = 0.;
-	  //Gaussian smoothing convolution
-	  n = 0;
-	  for(int i = -3; i <= 3; ++i){
-	    windex = wire+i;
-	    if(windex<0) windex = 0;
-	    // this is ok, because the line before makes sure it's not negative
-	    else if((unsigned int)windex >= numberwires) windex = numberwires-1; 
-	    
-	    for(int j = -3; j <= 3; ++j){
-	      tindex = timebin+j;
-	      if(tindex < 0) tindex = 0;
-	      else if(tindex >= fTimeBins) tindex = fTimeBins-1;
-	      
-	      MatrixAAsum += w[n]*pow(MatrixAsum[windex][tindex],2);  
-	      MatrixBBsum += w[n]*pow(MatrixBsum[windex][tindex],2);                   
-	      MatrixCCsum += w[n]*MatrixAsum[windex][tindex]*MatrixBsum[windex][tindex]; 
-	      ++n;
-	    }// end loop over j
-	  }// end loop over i
-
-	  if((MatrixAAsum + MatrixBBsum) > 0)		
-	    Cornerness[wire][timebin] = (MatrixAAsum*MatrixBBsum-pow(MatrixCCsum,2))/(MatrixAAsum+MatrixBBsum);
-	  else
-	    Cornerness[wire][timebin] = 0;
+	std::vector < std::vector < double > >  Cornerness(numberwires); //the "weight" of a corner
+	
+	for(unsigned int wi = 0; wi < numberwires; ++wi){  
+	  hit_map[wi].resize(fTimeBins,0);
+	  hit_loc[wi].resize(fTimeBins,-1);
+	  Cornerness[wi].resize(fTimeBins,0);
+	  MatrixAsum[wi].resize(fTimeBins,0);
+	  MatrixBsum[wi].resize(fTimeBins,0);
+	}      
+	for(unsigned int i = 0; i < hit.size(); ++i){
+	  channel=hit[i]->Wire()->RawDigit()->Channel();
+	  geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+	  //pixelization using a Gaussian
+	  for(int j = 0; j <= (int)(hit[i]->EndTime()-hit[i]->StartTime()+.5); ++j)    
+	    hit_map[wire][(int)((hit[i]->StartTime()+j)*(fTimeBins/numbertimesamples)+.5)]+=Gaussian((int)(j-((hit[i]->EndTime()-hit[i]->StartTime())/2.)+.5),0,hit[i]->EndTime()-hit[i]->StartTime());      
+	}
+	
+	// Gaussian derivative convolution  
+	for(unsigned int wire = 1; wire < numberwires-1; ++wire){
 	  
-	  if(Cornerness[wire][timebin] > 0){	  
-	    for(unsigned int i = 0;i < hit.size(); ++i){
-	      channel = hit[i]->Wire()->RawDigit()->Channel();
-	      geom->ChannelToWire(channel,tpc,plane,wire2);	 
-	      //make sure the end point candidate coincides with an actual hit.
-	      if(wire == wire2 
-		 && hit[i]->StartTime() < timebin*(numbertimesamples/fTimeBins) 
-		 && hit[i]->EndTime() > timebin*(numbertimesamples/fTimeBins)){ 	       
-		//this index keeps track of the hit number
-		hit_loc[wire][timebin] = i;
-		Cornerness2.push_back(Cornerness[wire][timebin]);
-		break;
-	      } 	        
-	    }// end loop over hits	     
-	  }// end if cornerness > 0	    
-	} // end loop over time bins     
-      }  // end wire loop 
-
-      std::sort(Cornerness2.rbegin(), Cornerness2.rend());
-
-      for(int vertexnum = 0; vertexnum < fMaxCorners; ++vertexnum){
-	flag = 0;
-	for(unsigned int wire = 0; wire < numberwires && flag == 0; ++wire){
-	  for(int timebin = 0; timebin < fTimeBins && flag == 0; ++timebin){    
-	    if(Cornerness2.size() > (unsigned int)vertexnum)
-	      if(Cornerness[wire][timebin] == Cornerness2[vertexnum] 
-		 && Cornerness[wire][timebin] > 0. 
-		 && hit_loc[wire][timebin] > -1){
-		++flag;
-      
-		//thresholding
-		if(Cornerness2.size())
-		  if(Cornerness[wire][timebin] < (fThreshold*Cornerness2[0]))
-		    vertexnum = fMaxCorners;
-		vHits.push_back(hit[hit_loc[wire][timebin]]);
-		recob::EndPoint2D endpoint(hit[hit_loc[wire][timebin]]->PeakTime(),
-					   wire,
-					   Cornerness[wire][timebin],
-					   vtxcol.size(),
-					   view,
-					   vHits);
-		vtxcol.push_back(endpoint);
-		vHits.clear();
-
-		// non-maximal suppression on a square window. The wire coordinate units are 
-		// converted to time ticks so that the window is truly square. 
-		// Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), 
-		// assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
+	  for(int timebin = 1; timebin < fTimeBins-1; ++timebin){
+	    MatrixAsum[wire][timebin] = 0.;
+	    MatrixBsum[wire][timebin] = 0.;
+	    n = 0;
+	    for(int i = -3; i <= 3; ++i) {
+	      windex = wire+i;
+	      if(windex < 0 ) windex = 0;
+	      // this is ok, because the line before makes sure it's not negative
+	      else if ((unsigned int)windex >= numberwires) windex = numberwires-1; 
+	      
+	      for(int j = -3; j <= 3; ++j){
+		tindex = timebin+j;
+		if(tindex < 0) tindex=0;
+		else if(tindex >= fTimeBins) tindex = fTimeBins-1;
 		
-   		double drifttick  = larp->DriftVelocity(larp->Efield(),larp->Temperature());
-		drifttick *= detp->SamplingRate()*1.e-3;
-		double wirepitch  = geom->WirePitch(0,1,0);
-		double corrfactor = drifttick/wirepitch;
-				
-		for(int wireout=(int)wire-(int)((fWindow*(numbertimesamples/fTimeBins)*corrfactor)+.5);
-		    wireout <= (int)wire+(int)((fWindow*(numbertimesamples/fTimeBins)*corrfactor)+.5); ++wireout){
-		  for(int timebinout=timebin-fWindow;timebinout <= timebin+fWindow; timebinout++){
-		    if(sqrt(pow(wire-wireout,2)+pow(timebin-timebinout,2))<fWindow)//circular window 
-		      Cornerness[wireout][timebinout]=0;	  
+		MatrixAsum[wire][timebin] += wx[n]*hit_map[windex][tindex];  
+		MatrixBsum[wire][timebin] += wy[n]*hit_map[windex][tindex]; 
+		++n;
+	      } // end loop over j
+	    } // end loop over i
+	  } // end loop over time bins
+	}// end loop over wires
+
+	//calculate the cornerness of each pixel while making sure not to fall off the hit map.
+	for(unsigned int wire = 1; wire < numberwires-1; ++wire){
+	  
+	  for(int timebin = 1; timebin < fTimeBins-1; ++timebin){    
+	    MatrixAAsum = 0.;
+	    MatrixBBsum = 0.;
+	    MatrixCCsum = 0.;
+	    //Gaussian smoothing convolution
+	    n = 0;
+	    for(int i = -3; i <= 3; ++i){
+	      windex = wire+i;
+	      if(windex<0) windex = 0;
+	      // this is ok, because the line before makes sure it's not negative
+	      else if((unsigned int)windex >= numberwires) windex = numberwires-1; 
+	      
+	      for(int j = -3; j <= 3; ++j){
+		tindex = timebin+j;
+		if(tindex < 0) tindex = 0;
+		else if(tindex >= fTimeBins) tindex = fTimeBins-1;
+		
+		MatrixAAsum += w[n]*pow(MatrixAsum[windex][tindex],2);  
+		MatrixBBsum += w[n]*pow(MatrixBsum[windex][tindex],2);                   
+		MatrixCCsum += w[n]*MatrixAsum[windex][tindex]*MatrixBsum[windex][tindex]; 
+		++n;
+	      }// end loop over j
+	    }// end loop over i
+	    
+	    if((MatrixAAsum + MatrixBBsum) > 0)		
+	      Cornerness[wire][timebin] = (MatrixAAsum*MatrixBBsum-pow(MatrixCCsum,2))/(MatrixAAsum+MatrixBBsum);
+	    else
+	      Cornerness[wire][timebin] = 0;
+	    
+	    if(Cornerness[wire][timebin] > 0){	  
+	      for(unsigned int i = 0;i < hit.size(); ++i){
+		channel = hit[i]->Wire()->RawDigit()->Channel();
+		geom->ChannelToWire(channel, cstat, tpc, plane, wire2);	 
+		//make sure the end point candidate coincides with an actual hit.
+		if(wire == wire2 
+		   && hit[i]->StartTime() < timebin*(numbertimesamples/fTimeBins) 
+		   && hit[i]->EndTime() > timebin*(numbertimesamples/fTimeBins)){ 	       
+		  //this index keeps track of the hit number
+		  hit_loc[wire][timebin] = i;
+		  Cornerness2.push_back(Cornerness[wire][timebin]);
+		  break;
+		} 	        
+	      }// end loop over hits	     
+	    }// end if cornerness > 0	    
+	  } // end loop over time bins     
+	}  // end wire loop 
+
+	std::sort(Cornerness2.rbegin(), Cornerness2.rend());
+
+	for(int vertexnum = 0; vertexnum < fMaxCorners; ++vertexnum){
+	  flag = 0;
+	  for(unsigned int wire = 0; wire < numberwires && flag == 0; ++wire){
+	    for(int timebin = 0; timebin < fTimeBins && flag == 0; ++timebin){    
+	      if(Cornerness2.size() > (unsigned int)vertexnum)
+		if(Cornerness[wire][timebin] == Cornerness2[vertexnum] 
+		   && Cornerness[wire][timebin] > 0. 
+		   && hit_loc[wire][timebin] > -1){
+		  ++flag;
+		  
+		  //thresholding
+		  if(Cornerness2.size())
+		    if(Cornerness[wire][timebin] < (fThreshold*Cornerness2[0]))
+		      vertexnum = fMaxCorners;
+		  vHits.push_back(hit[hit_loc[wire][timebin]]);
+		  recob::EndPoint2D endpoint(hit[hit_loc[wire][timebin]]->PeakTime(),
+					     wire,
+					     Cornerness[wire][timebin],
+					     vtxcol.size(),
+					     view,
+					     vHits);
+		  vtxcol.push_back(endpoint);
+		  vHits.clear();
+		  
+		  // non-maximal suppression on a square window. The wire coordinate units are 
+		  // converted to time ticks so that the window is truly square. 
+		  // Note that there are 1/0.0743=13.46 time samples per 4.0 mm (wire pitch in ArgoNeuT), 
+		  // assuming a 1.5 mm/us drift velocity for a 500 V/cm E-field 
+		  
+		  double drifttick  = larp->DriftVelocity(larp->Efield(),larp->Temperature());
+		  drifttick *= detp->SamplingRate()*1.e-3;
+		  double wirepitch  = geom->WirePitch(0,1,0);
+		  double corrfactor = drifttick/wirepitch;
+		  
+		  for(int wireout=(int)wire-(int)((fWindow*(numbertimesamples/fTimeBins)*corrfactor)+.5);
+		      wireout <= (int)wire+(int)((fWindow*(numbertimesamples/fTimeBins)*corrfactor)+.5); ++wireout){
+		    for(int timebinout=timebin-fWindow;timebinout <= timebin+fWindow; timebinout++){
+		      if(sqrt(pow(wire-wireout,2)+pow(timebin-timebinout,2))<fWindow)//circular window 
+			Cornerness[wireout][timebinout]=0;	  
+		    }
 		  }
 		}
-	      }
-	  }     
+	    }     
+	  }
 	}
-      }
-      Cornerness2.clear();
-      hit.clear();
-      if(clusterIter != clusIn.end()) clusterIter++;
-
-      if((int)p == fSaveVertexMap){ 
-	unsigned char *outPix = new unsigned char [fTimeBins*numberwires];
-	//finds the maximum cell in the map for image scaling
-	int cell    = 0;
-	int pix     = 0;
-	int maxCell = 0;
-	//int xmaxx, ymaxx;
-	for (int y = 0; y < fTimeBins; ++y){
-	  for (unsigned int x = 0; x < numberwires; ++x){
-	    cell = (int)(hit_map[x][y]*1000);
-	    if (cell > maxCell){
-	      maxCell = cell;
-	    //  xmaxx=x;
-	    //  ymaxx=y;
+	Cornerness2.clear();
+	hit.clear();
+	if(clusterIter != clusIn.end()) clusterIter++;
+	
+	if((int)p == fSaveVertexMap){ 
+	  unsigned char *outPix = new unsigned char [fTimeBins*numberwires];
+	  //finds the maximum cell in the map for image scaling
+	  int cell    = 0;
+	  int pix     = 0;
+	  int maxCell = 0;
+	  //int xmaxx, ymaxx;
+	  for (int y = 0; y < fTimeBins; ++y){
+	    for (unsigned int x = 0; x < numberwires; ++x){
+	      cell = (int)(hit_map[x][y]*1000);
+	      if (cell > maxCell){
+		maxCell = cell;
+		//  xmaxx=x;
+		//  ymaxx=y;
+	      }
 	    }
 	  }
-	}
-	for (int y = 0; y < fTimeBins; ++y){
-	  for (unsigned int x = 0; x<numberwires; ++x){ 
-	    //scales the pixel weights based on the maximum cell value     
-	    if(maxCell>0)
-	      pix = (int)((1500000*hit_map[x][y])/maxCell);
+	  for (int y = 0; y < fTimeBins; ++y){
+	    for (unsigned int x = 0; x<numberwires; ++x){ 
+	      //scales the pixel weights based on the maximum cell value     
+	      if(maxCell>0)
+		pix = (int)((1500000*hit_map[x][y])/maxCell);
 	      outPix[y*numberwires + x] = pix;
+	    }
 	  }
-	}
-
-	// add 3x3 pixel squares to with the harris vertex finders to the .bmp file
-	
-	for(unsigned int ii = 0; ii < vtxcol.size(); ++ii){
-	  if(vtxcol[ii].View() == (unsigned int)view){
-	    pix = (int)(255);
-	    outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireNum()] = pix;
-	    outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireNum()-1] = pix;
-	    outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireNum()+1] = pix;
-	    outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireNum()] = pix;
-	    outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireNum()] = pix;
-	    outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireNum()-1] = pix;
-	    outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireNum()-2] = pix;
-	    outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireNum()+1] = pix;
-	    outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireNum()+2] = pix;
+	  
+	  // add 3x3 pixel squares to with the harris vertex finders to the .bmp file
+	  
+	  for(unsigned int ii = 0; ii < vtxcol.size(); ++ii){
+	    if(vtxcol[ii].View() == (unsigned int)view){
+	      pix = (int)(255);
+	      outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireNum()] = pix;
+	      outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireNum()-1] = pix;
+	      outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireNum()+1] = pix;
+	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireNum()] = pix;
+	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireNum()] = pix;
+	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireNum()-1] = pix;
+	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireNum()-2] = pix;
+	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireNum()+1] = pix;
+	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireNum()+2] = pix;
+	    }
 	  }
-	}
-	     
-	VSSaveBMPFile(Form("harrisvertexmap_%d_%d.bmp",(*clusIn.begin())->ID(),p), outPix, numberwires, fTimeBins);
-	delete [] outPix;
-      }   
-    } // end loop over planes
-  }//end loop over tpcs
-    
+	  
+	  VSSaveBMPFile(Form("harrisvertexmap_%d_%d.bmp",(*clusIn.begin())->ID(),p), outPix, numberwires, fTimeBins);
+	  delete [] outPix;
+	}   
+      } // end loop over planes
+    } // end loop over tpcs
+  } // end loop over cryostats
+  
   return vtxcol.size();   
 }
 

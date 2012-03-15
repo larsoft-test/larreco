@@ -130,80 +130,83 @@ namespace cluster{
     unsigned int plane = 0;
     unsigned int wire  = 0;
     unsigned int tpc   = 0;
+    unsigned int cstat = 0;
     for(hitMapItr = eveHitMap.begin(); hitMapItr != eveHitMap.end(); hitMapItr++){
 
       // separate out the hits for each particle into the different views
       std::vector< art::Ptr<recob::Hit> > eveHits( (*hitMapItr).second );
 
-      for(size_t t = 0; t < geo->NTPC(); ++t){
-	for(size_t pl = 0; pl < geo->Nplanes(t); ++pl){
-	  art::PtrVector<recob::Hit> ptrvs;
-	  double startWire = 1.e6;
-	  double startTime = 1.e6;
-	  double endWire   = -1.e6;
-	  double endTime   = -1.e6;
-	  double dTdW      = 0.;
-	  double dQdW      = 0.;
-
-	  for(size_t h = 0; h < eveHits.size(); ++h){
-
-	    geo->ChannelToWire(eveHits[h]->Channel(), tpc, plane, wire);
-
-	    if(plane != pl || tpc != t) continue;
-	  
-	    ptrvs.push_back(eveHits[h]);
-
-	    if(wire < startWire){
-	      startWire = wire;
-	      startTime = 1.e6;
-	    }
-	    if(wire > endWire  ){
-	      endWire = wire;
-	      endTime = -1.e-6;
-	    }
+      for(size_t c = 0; c < geo->Ncryostats(); ++c){
+	for(size_t t = 0; t < geo->Cryostat(c).NTPC(); ++t){
+	  for(size_t pl = 0; pl < geo->Cryostat(c).TPC(t).Nplanes(); ++pl){
+	    art::PtrVector<recob::Hit> ptrvs;
+	    double startWire = 1.e6;
+	    double startTime = 1.e6;
+	    double endWire   = -1.e6;
+	    double endTime   = -1.e6;
+	    double dTdW      = 0.;
+	    double dQdW      = 0.;
 	    
-	    if(wire == startWire && eveHits[h]->StartTime() < startTime) 
-	      startTime = eveHits[h]->StartTime();
+	    for(size_t h = 0; h < eveHits.size(); ++h){
+	      
+	      geo->ChannelToWire(eveHits[h]->Channel(), cstat, tpc, plane, wire);
+	      
+	      if(plane != pl || tpc != t || cstat != c) continue;
+	      
+	      ptrvs.push_back(eveHits[h]);
+	      
+	      if(wire < startWire){
+		startWire = wire;
+		startTime = 1.e6;
+	      }
+	      if(wire > endWire  ){
+		endWire = wire;
+		endTime = -1.e-6;
+	      }
+	      
+	      if(wire == startWire && eveHits[h]->StartTime() < startTime) 
+		startTime = eveHits[h]->StartTime();
+	      
+	      if(wire == endWire   && eveHits[h]->EndTime()   > endTime  ) 
+		endTime   = eveHits[h]->EndTime();
+	      
+	    } // end loop over hits for this particle	
 
-	    if(wire == endWire   && eveHits[h]->EndTime()   > endTime  ) 
-	      endTime   = eveHits[h]->EndTime();
+	    // do not create clusters with zero size hit arrays, Andrzej
+	    if(ptrvs.size()==0)
+	      continue;
+	    
+	    // figure out the rest of the cluster information using these hits
+	    
+	    // use the HoughLineService to get dTdW for these hits
+	    art::ServiceHandle<cluster::HoughLineService> hls;
+	    double intercept = 0.;
+	    hls->Transform(eveHits, dTdW, intercept);
+	    
+	    ///\todo now figure out the dQdW
+	    
+	    // add a cluster to the collection.  Make the ID be the eve particle
+	    // trackID*1000 + plane number*100 + tpc that the current hits are from
+	    
+	    clustercol->push_back(recob::Cluster(ptrvs, 
+						 startWire, 0.,
+						 startTime, 0.,
+						 endWire,   0.,
+						 endTime,   0.,
+						 dTdW,      0.,
+						 dQdW,      0.,
+						 ((*hitMapItr).first * 1000) + pl*100 + tpc*10 + cstat));
+	    
+	    // association the hits to this cluster
+	    util::CreateAssn(*this, evt, *(clustercol.get()), ptrvs, *(assn.get()));
+	    
+	    mf::LogInfo("ClusterCheater") << "adding cluster: \n" 
+					  << clustercol->back()
+					  << "\nto collection.";
 
-	  } // end loop over hits for this particle	
-
-	  // do not create clusters with zero size hit arrays, Andrzej
-	  if(ptrvs.size()==0)
-	    continue;
-
-	  // figure out the rest of the cluster information using these hits
-	  
-	  // use the HoughLineService to get dTdW for these hits
-	  art::ServiceHandle<cluster::HoughLineService> hls;
-	  double intercept = 0.;
-	  hls->Transform(eveHits, dTdW, intercept);
-
-	  ///\todo now figure out the dQdW
-
-	  // add a cluster to the collection.  Make the ID be the eve particle
-	  // trackID*1000 + plane number*100 + tpc that the current hits are from
-	  	  
-	  clustercol->push_back(recob::Cluster(ptrvs, 
-					       startWire, 0.,
-					       startTime, 0.,
-					       endWire,   0.,
-					       endTime,   0.,
-					       dTdW,      0.,
-					       dQdW,      0.,
-					       ((*hitMapItr).first * 1000) + pl*100 + tpc));
-
-	  // association the hits to this cluster
-	  util::CreateAssn(*this, evt, *(clustercol.get()), ptrvs, *(assn.get()));
-
-	  mf::LogInfo("ClusterCheater") << "adding cluster: \n" 
-					<< clustercol->back()
-					<< "\nto collection.";
-
-	} // end loop over the number of planes
-      } // end loop over the tpcs
+	  } // end loop over the number of planes
+	} // end loop over the tpcs
+      } // end loop over the cryostats
     } // end loop over the map
 
     evt.put(clustercol);
