@@ -242,6 +242,10 @@ void shwf::ShowerReco::produce(art::Event& evt)
   /** Get Geometry */
   art::ServiceHandle<geo::Geometry> geo;
   //art::ServiceHandle<util::LArProperties> larprop;
+
+  ///\todo:  Probably need to use the cryostat and TPC objects to 
+  ///\todo:  get number of planes more reliably.  ie
+  ///\todo:  fNPlanes = geo->Cryostat(cstat).TPC(tpc).Nplanes();
   fNPlanes = geo->Nplanes();
   //fdriftvelocity = larprob->DriftVelocity(Efield_SI,Temperature);
   
@@ -346,13 +350,13 @@ fNPitch.resize(fNAngles);
       art::PtrVector<recob::Hit> hitlist;
       hitlist = cl->Hits();
       hitlist.sort(shwf::SortByWire());
-      unsigned int p(0),w(0), c(0), t(0); //c=channel, p=plane, w=wire
+      unsigned int p(0),w(0), c(0), t(0), cs(0); //c=channel, p=plane, w=wire
 
       
      if(hitlist.size()==0)
        continue;
       
-      geo->ChannelToWire((*hitlist.begin())->Wire()->RawDigit()->Channel(),t,p,w);
+     geo->ChannelToWire((*hitlist.begin())->Wire()->RawDigit()->Channel(),cs, t, p, w);
       
       GetVertexAndAnglesFromCluster( cl,p);
 
@@ -361,11 +365,7 @@ fNPitch.resize(fNAngles);
       for(art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin(); a != hitlist.end();  a++) //loop over cluster hits
       {
 	c=(*a)->Wire()->RawDigit()->Channel(); 
-	geo->ChannelToWire(c,t,p,w);
-
-        //geo->Plane(i).View()
-
-	//std::cout << "+++++++ planeview in hit list   " <<  geo->Plane(p,t).View() << std::endl; 
+	geo->ChannelToWire(c,cs,t,p,w);
 
           hitlist_all[p].push_back(*a);
 
@@ -542,7 +542,7 @@ Shower3DVector->push_back(singShower);
 //     //time_C -= (presamplings+10.1);
 //     art::Ptr<recob::Wire> theWire = theHit->Wire();
 //     channel = theWire->RawDigit()->Channel();
-//     geom->ChannelToWire(channel, tpc, plane, wire);
+//     geom->ChannelToWire(channel, fTPC, plane, wire);
 //     //    if(time_C<1020)continue;
 //     wire_cm = wire * fMean_wire_pitch; //in cm
 //     time_cm = time *ftimetick*fdriftvelocity; //in cm
@@ -874,7 +874,7 @@ double fElectronsToADC = detprop->ElectronsToADC();
  
   double time;
   unsigned int wire=0,plane=0;
-
+  unsigned int cstat = 0;
 
    double chav2cm=0.,mevav2cm=0.;
    double chav4cm=0.,mevav4cm=0.;
@@ -889,7 +889,7 @@ double fElectronsToADC = detprop->ElectronsToADC();
     //time_C -= (presamplings+10.1);
     art::Ptr<recob::Wire> theWire = theHit->Wire();
     channel = theWire->RawDigit()->Channel();
-    geom->ChannelToWire(channel, tpc, plane, wire);
+    geom->ChannelToWire(channel, cstat, fTPC, plane, wire);
     //    if(time_C<1020)continue;
   //  wire_cm = wire * fMean_wire_pitch; //in cm
   //  time_cm = time *ftimetick*fdriftvelocity; //in cm
@@ -1001,7 +1001,7 @@ if( (wdist<hlimit)&&(wdist>0.2)){
       //time_C -= (presamplings+10.1);
       art::Ptr<recob::Wire> theWire = theHit->Wire();
       channel = theWire->RawDigit()->Channel();
-      geom->ChannelToWire(channel, tpc, plane, wire);
+      geom->ChannelToWire(channel, cstat, fTPC, plane, wire);
       //    if(time_C<1020)continue;
       //  wire_cm = wire * fMean_wire_pitch; //in cm
       //  time_cm = time *ftimetick*fdriftvelocity; //in cm
@@ -1067,7 +1067,7 @@ if( (wdist<hlimit)&&(wdist>0.2)){
       //time_C -= (presamplings+10.1);
       art::Ptr<recob::Wire> theWire = theHit->Wire();
       channel = theWire->RawDigit()->Channel();
-      geom->ChannelToWire(channel, tpc, plane, wire);
+      geom->ChannelToWire(channel, cstat, fTPC, plane, wire);
       //    if(time_C<1020)continue;
       //  wire_cm = wire * fMean_wire_pitch; //in cm
       //  time_cm = time *ftimetick*fdriftvelocity; //in cm

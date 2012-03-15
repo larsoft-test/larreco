@@ -186,7 +186,7 @@ std::vector<std::vector<double> > fSingleEvtAngleVal;  //vector with the first D
 
 
   
-  unsigned int tpc;    //tpc type
+  unsigned int fTPC;    //tpc type
   unsigned int fNPlanes; // number of planes  
   unsigned int fNAngles;
   
