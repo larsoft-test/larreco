@@ -36,9 +36,21 @@ genf::PointHit::PointHit(TVector3 point,double res)
   fHitCoord[1][0] = gRandom->Gaus(point.Y(),res);
   fHitCoord[2][0] = gRandom->Gaus(point.Z(),res);
 
-
-
 }
+
+genf::PointHit::PointHit(TVector3 point,TVector3 res)
+  : SpacepointRecoHit(NparHitRep){
+
+  fHitCov[0][0] = res[0]*res[0];
+  fHitCov[1][1] = res[1]*res[1];
+  fHitCov[2][2] = res[2]*res[2];
+
+
+  fHitCoord[0][0] = point.X();
+  fHitCoord[1][0] = point.Y();
+  fHitCoord[2][0] = point.Z();
+}
+
 genf::GFAbsRecoHit* genf::PointHit::clone(){
   return new PointHit(*this);
 }
