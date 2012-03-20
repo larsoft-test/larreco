@@ -326,7 +326,7 @@ namespace  trkf{
 
     // Get tpc, plane.
 
-    unsigned short channel = hit.Channel();
+    unsigned int channel = hit.Channel();
     unsigned int tpc, plane, wire, cstat;
     geom->ChannelToWire(channel, cstat, tpc, plane, wire);
 
@@ -375,7 +375,7 @@ namespace  trkf{
       // Get tpc, plane, wire.
 
       const recob::Hit& hit = *(hits[i]);
-      unsigned short channel = hit.Channel();
+      unsigned int channel = hit.Channel();
       unsigned int tpc, plane, wire, cstat;
       const geo::WireGeo& wgeom = geom->ChannelToWire(channel, cstat, tpc, plane, wire);
       tpcs[i] = tpc;
@@ -457,7 +457,7 @@ namespace  trkf{
 
       for(int ihit1 = 0; result && ihit1 < nhits-1; ++ihit1) {
 	const recob::Hit& hit1 = *(hits[ihit1]);
-	unsigned short channel1 = hit1.Channel();
+	unsigned int channel1 = hit1.Channel();
 	unsigned int tpc1, plane1, wire1, cstat1;
 	geom->ChannelToWire(channel1, cstat1, tpc1, plane1, wire1);
 	geo::View_t view1 = hit1.View();
@@ -475,7 +475,7 @@ namespace  trkf{
 
 	for(int ihit2 = ihit1+1; result && ihit2 < nhits; ++ihit2) {
 	  const recob::Hit& hit2 = *(hits[ihit2]);
-	  unsigned short channel2 = hit2.Channel();
+	  unsigned int channel2 = hit2.Channel();
 	  unsigned int tpc2, plane2, wire2, cstat2;
 	  geom->ChannelToWire(channel2, cstat2, tpc2, plane2, wire2);
 	  geo::View_t view2 = hit2.View();
@@ -549,7 +549,7 @@ namespace  trkf{
 	  // Get tpc, plane, wire.
 
 	  const recob::Hit& hit = *(hits[i]);
-	  unsigned short channel = hit.Channel();
+	  unsigned int channel = hit.Channel();
 	  unsigned int tpc0, plane, wire, cstat0;
 	  const geo::WireGeo& wgeom = geom->ChannelToWire(channel, cstat0, tpc0, plane, wire);
 	  assert(tpc0 == tpc && cstat0 == cstat);
@@ -629,7 +629,7 @@ namespace  trkf{
 	ihit != hits.end(); ++ihit) {
 
       const recob::Hit& hit = **ihit;
-      unsigned short channel = hit.Channel();
+      unsigned int channel = hit.Channel();
       unsigned int tpc, plane, wire, cstat;
       geom->ChannelToWire(channel, cstat, tpc, plane, wire);
 
@@ -679,7 +679,7 @@ namespace  trkf{
 	  ihit != hits.end(); ++ihit) {
 
 	const recob::Hit& hit = **ihit;
-	unsigned short channel = hit.Channel();
+	unsigned int channel = hit.Channel();
 	unsigned int tpc, plane, wire, cstat;
 	const geo::WireGeo& wgeom = geom->ChannelToWire(channel, cstat, tpc, plane, wire);
 
@@ -757,7 +757,7 @@ namespace  trkf{
     unsigned int cstat0 = 0;
     int nhits = hits.size();
     if(nhits > 0) {
-      unsigned short channel = hits.front()->Channel();
+      unsigned int channel = hits.front()->Channel();
       unsigned int plane, wire;
       geom->ChannelToWire(channel, cstat0, tpc0, plane, wire);
     }
@@ -777,7 +777,7 @@ namespace  trkf{
 	ihit != hits.end(); ++ihit) {
 
       const recob::Hit& hit = **ihit;
-      unsigned short channel = hit.Channel();
+      unsigned int channel = hit.Channel();
       unsigned int tpc, plane, wire, cstat;
       geom->ChannelToWire(channel, cstat, tpc, plane, wire);
       assert(cstat == cstat0);
@@ -811,7 +811,7 @@ namespace  trkf{
 	ihit != hits.end(); ++ihit) {
 
       const recob::Hit& hit = **ihit;
-      unsigned short channel = hit.Channel();
+      unsigned int channel = hit.Channel();
       unsigned int tpc, plane, wire, cstat;
       geom->ChannelToWire(channel, cstat, tpc, plane, wire);
 
@@ -861,7 +861,7 @@ namespace  trkf{
 	  ihit != hits.end(); ++ihit) {
 
 	const recob::Hit& hit = **ihit;
-	unsigned short channel = hit.Channel();
+	unsigned int channel = hit.Channel();
 	unsigned int tpc, plane, wire, cstat;
 	const geo::WireGeo& wgeom = geom->ChannelToWire(channel, cstat, tpc, plane, wire);
 
@@ -1036,7 +1036,7 @@ namespace  trkf{
 	 (view == geo::kV && fEnableV) ||
 	 (view == geo::kW && fEnableW)) {
       
-	unsigned short channel = phit->Channel();
+	unsigned int channel = phit->Channel();
 	unsigned int tpc, plane, wire, cstat;
 	geom->ChannelToWire(channel, cstat, tpc, plane, wire);
 	hitmap[cstat][tpc][plane][wire] = phit;
@@ -1206,7 +1206,7 @@ namespace  trkf{
 		  ihit1 != hitmap[cstat][tpc][plane1].end(); ++ihit1) {
 	      
 		const art::Ptr<recob::Hit>& phit1 = ihit1->second;
-		unsigned short channel1 = phit1->Channel();
+		unsigned int channel1 = phit1->Channel();
 	      
 		// Get endpoint coordinates of this wire.
 	      
@@ -1334,7 +1334,7 @@ namespace  trkf{
 	  
 	    unsigned int wire1 = ihit1->first;
 	    const art::Ptr<recob::Hit>& phit1 = ihit1->second;
-	    unsigned short channel1 = phit1->Channel();
+	    unsigned int channel1 = phit1->Channel();
 	  
 	    // Get endpoint coordinates of this wire from plane1.
 	  
