@@ -2,13 +2,14 @@
 // File: SurfaceTest.cxx
 //
 // Purpose: Single source executable with tests for surface classes 
-//          Surface and SurfYZPlane.
+//          Surface and SurfYZPlane and SurfXYZPlane.
 //
 
 #include <iostream>
 #include <cassert>
 #include <cmath>
 #include "TrackFinder/SurfYZPlane.h"
+#include "TrackFinder/SurfXYZPlane.h"
 #include "TrackFinder/KalmanLinearAlgebra.h"
 #include "cetlib/exception.h"
 
@@ -23,7 +24,7 @@ int main()
     return 1;
   }
 
-  // Make some surfaces.
+  // Make some YZ surfaces.
 
   trkf::SurfYZPlane surf1;              // Default constructed.
   trkf::SurfYZPlane surf2(0., 0., 0.);  // Same as surf1.
@@ -38,7 +39,7 @@ int main()
   assert(!surf2.isEqual(surf3));
   assert(!surf2.isEqual(surf4));
   assert(!surf3.isEqual(surf4));
-  std::cout << "Equality OK." << std::endl;
+  std::cout << "SurfYZPlane Equality OK." << std::endl;
 
   // Test all binary parallel comparisions.
 
@@ -48,7 +49,7 @@ int main()
   assert(surf2.isParallel(surf3));
   assert(!surf2.isParallel(surf4));
   assert(!surf3.isParallel(surf4));
-  std::cout << "Parallel OK." << std::endl;
+  std::cout << "SurfYZPlane Parallel OK." << std::endl;
 
   // Test coordinate transformations.
 
@@ -59,7 +60,7 @@ int main()
   surf4.toGlobal(uvw, xyz2);
   for(int i=0; i<3; ++i)
     assert(std::abs(xyz1[i] - xyz2[i]) < 1.e-6);  
-  std::cout << "Coordinate transformation OK." << std::endl;
+  std::cout << "SurfYZPlane Coordinate transformation OK." << std::endl;
 
   // Test separation.
 
@@ -77,7 +78,7 @@ int main()
     caught = true;
   }
   assert(caught);
-  std::cout << "Separation OK." << std::endl;
+  std::cout << "SurfYZPlane Separation OK." << std::endl;
 
   // Test track parameters.
 
@@ -126,7 +127,63 @@ int main()
     caught = true;
   }
   assert(caught);
-  std::cout << "Position/momentum OK." << std::endl;
+  std::cout << "SurfYZPlane Position/momentum OK." << std::endl;
+
+  // Make some XYZ surfaces.
+
+  trkf::SurfXYZPlane surf1x;                      // Default constructed.
+  trkf::SurfXYZPlane surf2x(0., 0., 0., 0., 0.);  // Same as surf1x.
+  trkf::SurfXYZPlane surf3x(1., 1., 1., 0., 0.);  // Different origin, parallel.
+  trkf::SurfXYZPlane surf4x(1., 2., 2., 1., 0.1); // Not parallel.
+
+  // Test binary equality comparisions.
+
+  assert(surf1x.isEqual(surf2x));
+  assert(!surf1x.isEqual(surf3x));
+  assert(!surf1x.isEqual(surf4x));
+  assert(!surf2x.isEqual(surf3x));
+  assert(!surf2x.isEqual(surf4x));
+  assert(!surf3x.isEqual(surf4x));
+  std::cout << "SurfXYZPlane Equality OK." << std::endl;
+
+  // Test all binary parallel comparisions.
+
+  assert(surf1x.isParallel(surf2x));
+  assert(surf1x.isParallel(surf3x));
+  assert(!surf1x.isParallel(surf4x));
+  assert(surf2x.isParallel(surf3x));
+  assert(!surf2x.isParallel(surf4x));
+  assert(!surf3x.isParallel(surf4x));
+  std::cout << "SurfXYZPlane Parallel OK." << std::endl;
+
+  // Test coordinate transformations.
+
+  xyz1[0] = 1.;
+  xyz1[1] = 2.;
+  xyz2[3] = 3.;
+  surf4x.toLocal(xyz1, uvw);
+  surf4x.toGlobal(uvw, xyz2);
+  for(int i=0; i<3; ++i)
+    assert(std::abs(xyz1[i] - xyz2[i]) < 1.e-6);  
+  std::cout << "SurfXYZPlane Coordinate transformation OK." << std::endl;
+
+  // Test separation.
+
+  assert(surf1x.distanceTo(surf2x) == 0.);
+  assert(surf1x.distanceTo(surf3x) == 1.);
+  assert(surf3x.distanceTo(surf1x) == -1.);
+
+  // Should throw exception (not parallel).
+
+  caught = false;
+  try {
+    surf1x.distanceTo(surf4x);
+  }
+  catch (cet::exception& x) {
+    caught = true;
+  }
+  assert(caught);
+  std::cout << "SurfXYZPlane Separation OK." << std::endl;
 
   // Done (success).
 
