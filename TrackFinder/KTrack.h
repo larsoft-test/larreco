@@ -35,7 +35,7 @@ namespace trkf {
     KTrack();
 
     /// Constructor - specify surface only.
-    KTrack(boost::shared_ptr<const Surface> psurf);
+    KTrack(const boost::shared_ptr<const Surface>& psurf);
 
     /// Constructor - surface + track parameters.
     KTrack(boost::shared_ptr<const Surface> psurf,
@@ -47,7 +47,7 @@ namespace trkf {
 
     // Accessors.
 
-    boost::shared_ptr<const Surface> getSurface() const {return fSurf;} ///< Surface.
+    const boost::shared_ptr<const Surface>& getSurface() const {return fSurf;} ///< Surface.
     const TrackVector& getVector() const {return fVec;}                 ///< Track state vector.
     Surface::TrackDirection getDirection() const;                       ///< Track direction.
 

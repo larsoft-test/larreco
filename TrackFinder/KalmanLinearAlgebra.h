@@ -2,44 +2,44 @@
 ///
 /// \file   KalmanLinearAlgebra.h
 ///
-/// \brief  Kalman filter linear algebra classes.
+/// \brief  Kalman filter linear algebra typedefs.
 ///
 /// \author H. Greenlee 
 ///
-/// There are six Kalman filter linear algebra classes defined
-/// in this header:
+/// There are various linear algebra typedefs defined in this header:
 ///
-/// 1. TrackVector - Track state vector, dimension 5
-/// 2. TrackError - Track error matrix, dimension 5x5.
-/// 3. MeasVector - Measurement vector, dimension N.
-/// 4. MeasError - Measurement error matrix, dimension NxN.
-/// 5. HMatrix - Kalman H matrix, dimension Nx5.
-/// 6. KMatrix - Kalman gain matrix, dimension 5XN.
+/// 1. KVector<N>::type - Vector, dimension N.
+/// 2. KSymMatrix<N>::type - Symmetric matrix, dimension NxN.
+/// 3. KMatrix<N,M>::type - A matrix with dimension NxM.
+/// 4. KHMatrix<N>::type - Matrix with dimension Nx5 (H-matrix).
+/// 5. KGMatrix<N>::type - Matrix with dimension 5xN (gain matrix).
+/// 6. TrackVector - Track state vector, fixed dimension 5
+/// 7. TrackError - Track error matrix, fixed dimension 5x5.
+/// 8. TrackMatrix - General matrix, fixed dimension 5x5.
 ///
-/// The above classes derive from some ublas (boost/numeric/ublas)
-/// linear algebra class, nonvirtually inheriting all methods, 
-/// except for locally defined default and initial-value constructors,
-/// plus compiler-generated methods.
-///
-/// We do this because of the unwieldy syntax of the underlying ublas 
-/// linear algebra package.  It would have been reasonable to use
-/// typedefs instead of derived classes, except that the last four
-/// classes are templates, and c++ does not allow templated typedefs.
+/// The above typedefs refer to some ublas (boost/numeric/ublas)
+/// linear algebra class.  The templated typedefs are defined as a
+/// member of a template class because c++ doesn't have template
+/// typedefs.
 ///
 /// All linear algebra objects use the following storage model.
 ///
 /// 1.  Matrices are stored in row major order (normal c/c++ convention).
 /// 2.  Symmetric matrices are stored in lower triangular format.
-/// 3.  Size of objects is specified at compilation time and
-///     memory is preallocated on the stack (using ublass bounded_array
-///     container).
-/// 4.  Virtual functions and allocators are avoided entirely.
+/// 3.  Amount of preallocated stack memory is specified at compilation
+///     time (the actual size of objects must still be specified at run 
+///     time).
+///
+/// Surprisingly, the ublas linear algebra package does not have any
+/// built-in symmetric matrix inverse function.  We provide one here
+/// as free function syminvert.
 ///
 ////////////////////////////////////////////////////////////////////////
 
 #ifndef KALMANLINEARALGEBRA_H
 #define KALMANLINEARALGEBRA_H
 
+#include <cmath>
 #include "boost/numeric/ublas/vector.hpp"
 #include "boost/numeric/ublas/matrix.hpp"
 #include "boost/numeric/ublas/symmetric.hpp"
@@ -49,75 +49,140 @@ namespace trkf {
   /// Define a shortened alias for ublas namespace.
   namespace ublas = boost::numeric::ublas;
 
-  /// Track state vector, dimension 5.
-  class TrackVector : public ublas::vector<double, ublas::bounded_array<double, 5> >
+  /// Vector, dimension N.
+  template<int N>
+  struct KVector
   {
-  public:
-
-    /// Default constructor.
-    TrackVector() : ublas::vector<double, ublas::bounded_array<double, 5> >(5) {}
-
-    /// Initial value constructor.
-    TrackVector(double val) : ublas::vector<double, ublas::bounded_array<double, 5> >(5, val) {}
+    typedef ublas::vector<double, ublas::bounded_array<double, N> > type;
   };
+
+  /// Symmetric matrix, dimension NxN.
+  template<int N>
+  struct KSymMatrix
+  {
+    typedef ublas::symmetric_matrix<double, ublas::lower, ublas::row_major, ublas::bounded_array<double, N*(N+1)/2> > type;
+  };
+
+  /// General matrix, dimension NxM.
+  template<int N, int M>
+  struct KMatrix
+  {
+    typedef ublas::matrix<double, ublas::row_major, ublas::bounded_array<double, N*M> > type;
+  };
+
+  /// Kalman H-matrix, dimension Nx5.
+  template<int N>
+  struct KHMatrix
+  {
+    typedef typename KMatrix<N,5>::type type;
+  };
+
+  /// Kalman gain matrix, dimension 5xN.
+  template<int N>
+  struct KGMatrix
+  {
+    typedef typename KMatrix<5,N>::type type;
+  };
+
+  /// Track state vector, dimension 5.
+  typedef typename KVector<5>::type TrackVector;
 
   /// Track error matrix, dimension 5x5.
-  class TrackError : public ublas::symmetric_matrix<double, ublas::lower, ublas::row_major, ublas::bounded_array<double, 25> >
+  typedef typename KSymMatrix<5>::type TrackError;
+
+  /// General 5x5 matrix.
+  typedef typename KMatrix<5,5>::type TrackMatrix;
+
+  /// Invert symmetric matrix (return false if singular).
+  ///
+  /// The method used is Cholesky decomposition.
+  /// This method is efficient and stable for positive-definite matrices.
+  /// In case the matrix is not positive-definite, this method will usually
+  /// work, but there can be some numerical pathologies, including "false 
+  /// singular" failures, and numerical instability.
+  /// In the Kalman filter, we expect that this method will be used
+  /// exclusively for positive-definite matrices.
+  ///
+  template <class T, class TRI, class L, class A>
+  bool syminvert(ublas::symmetric_matrix<T, TRI, L, A>& m)
   {
-  public:
+    typedef typename ublas::symmetric_matrix<T, TRI, L, A>::size_type size_type;
+    typedef typename ublas::symmetric_matrix<T, TRI, L, A>::value_type value_type;
 
-    /// Default constructor.
-    TrackError() : ublas::symmetric_matrix<double, ublas::lower, ublas::row_major, ublas::bounded_array<double, 25> >(5) {}
-  };
+    // In situ Cholesky decomposition m = LDL^T.
+    // D is diagonal matrix.
+    // L is lower triangular with ones on the diagonal (ones not stored).
 
-  /// Measurement vector, dimension N.
-  template<int N>
-  class MeasVector : public ublas::vector<double, ublas::bounded_array<double, N> >
-  {
-  public:
+    for(size_type i = 0; i < m.size1(); ++i) {
+      for(size_type j = 0; j <= i; ++j) {
 
-    /// Default constructor.
-    MeasVector() : ublas::vector<double, ublas::bounded_array<double, N> >(N) {}
+	value_type ele = m(i,j);
 
-    /// Initial value constructor.
-    MeasVector(double val) : ublas::vector<double, ublas::bounded_array<double, N> >(N, val) {}
-  };
+	for(size_type k = 0; k < j; ++k)
+	  ele -= m(k,k) * m(i,k) * m(j,k);
 
-  /// Measurement error matrix, dimension NxN.
-  template<int N>
-  class MeasError : public ublas::symmetric_matrix<double, ublas::lower, ublas::row_major, ublas::bounded_array<double, N*N> >
-  {
-  public:
+	// Diagonal elements (can't have zeroes).
 
-    /// Default constructor.
-    MeasError() : ublas::symmetric_matrix<double, ublas::lower, ublas::row_major, ublas::bounded_array<double, N*N> >(N) {}
-  };
+	if(i == j) {
+	  if(ele == 0.)
+	    return false;
+	}
 
-  /// Kalman H-matrix matrix, dimension Nx5.
-  template<int N>
-  class HMatrix : public ublas::matrix<double, ublas::row_major, ublas::bounded_array<double, 5*N> >
-  {
-  public:
+	// Off-diagonal elements.
 
-    /// Default constructor.
-    HMatrix() : ublas::matrix<double, ublas::row_major, ublas::bounded_array<double, 5*N> >(N, 5) {}
+	else
+	  ele = ele / m(j,j);
 
-    /// Initial value constructor.
-    HMatrix(double val) : ublas::matrix<double, ublas::row_major, ublas::bounded_array<double, 5*N> >(N, 5, val) {}
-  };
+	// Replace element.
 
-  /// Kalman gain matrix matrix, dimension 5xN.
-  template<int N>
-  class KMatrix : public ublas::matrix<double, ublas::row_major, ublas::bounded_array<double, 5*N> >
-  {
-  public:
+	m(i,j) = ele;
+      }
+    }
 
-    /// Default constructor.
-    KMatrix() : ublas::matrix<double, ublas::row_major, ublas::bounded_array<double, 5*N> >(5, N) {}
+    // In situ inversion of D by simple division.
+    // In situ inversion of L by back-substitution.
 
-    /// Initial value constructor.
-    KMatrix(double val) : ublas::matrix<double, ublas::row_major, ublas::bounded_array<double, 5*N> >(5, N, val) {}
-  };
+    for(size_type i = 0; i < m.size1(); ++i) {
+      for(size_type j = 0; j <= i; ++j) {
+
+	value_type ele = m(i,j);
+
+	// Diagonal elements.
+	
+	if(i == j)
+	  m(i,i) = 1./ele;
+
+	// Off diagonal elements.
+
+	else {
+	  value_type sum = -ele;
+	  for(size_type k = j+1; k < i; ++k)
+	    sum -= m(i,k) * m(k,j);
+	  m(i,j) = sum;
+	}
+      }
+    }
+
+    // Recompose the inverse matrix in situ by matrix multiplication m = L^T DL.
+
+    for(size_type i = 0; i < m.size1(); ++i) {
+      for(size_type j = 0; j <= i; ++j) {
+
+	value_type sum = m(i,i);
+	if(i != j)
+	  sum *= m(i,j);
+
+	for(size_type k = i+1; k < m.size1(); ++k)
+	  sum += m(k,k) * m(k,i) * m(k,j);
+
+	m(i,j) = sum;
+      }
+    }
+
+    // Done (success).
+
+    return true;
+  }
 }
 
 #endif

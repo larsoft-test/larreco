@@ -15,7 +15,6 @@ namespace trkf {
 
   /// Default constructor.
   KTrack::KTrack() :
-    fVec(0.),
     fDir(Surface::UNKNOWN)
   {}
 
@@ -25,9 +24,8 @@ namespace trkf {
   ///
   /// psurf - Surface pointer.
   ///
-  KTrack::KTrack(boost::shared_ptr<const Surface> psurf) :
+  KTrack::KTrack(const boost::shared_ptr<const Surface>& psurf) :
     fSurf(psurf),
-    fVec(0.),
     fDir(Surface::UNKNOWN)
   {}
 

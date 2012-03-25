@@ -38,13 +38,9 @@ namespace trkf {
     wgeom.GetCenter(xyz);
     double phi = TMath::PiOver2() - wgeom.ThetaZ();
 
-    // Invoke base class constructor (again) using placement new.
-    // Since the base class has already been default-constructed,
-    // invoke the base class destructor first.
+    // Update base class.
 
-    SurfYZPlane* base = static_cast<SurfYZPlane*>(this);
-    base->~SurfYZPlane();
-    new(base) SurfYZPlane(xyz[1], xyz[2], phi);
+    *static_cast<SurfYZPlane*>(this) = SurfYZPlane(xyz[1], xyz[2], phi);
   }
 
   /// Destructor.

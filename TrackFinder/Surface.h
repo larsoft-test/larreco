@@ -60,6 +60,8 @@ namespace trkf {
     /// Destructor.
     virtual ~Surface();
 
+    // Virtual methods.
+
     /// Clone method.
     virtual Surface* clone() const = 0;
 

@@ -14,9 +14,7 @@ namespace trkf {
 
   /// Default constructor.
   KETrack::KETrack()
-  {
-    fErr.clear();
-  }
+  {}
 
   /// Constructor - specify surface only.
   ///
@@ -24,11 +22,9 @@ namespace trkf {
   ///
   /// psurf - Surface pointer.
   ///
-  KETrack::KETrack(boost::shared_ptr<const Surface> psurf) :
+  KETrack::KETrack(const boost::shared_ptr<const Surface>& psurf) :
     KTrack(psurf)
-  {
-    fErr.clear();
-  }
+  {}
 
   /// Constructor - surface + track parameters + error matrix.
   ///
@@ -39,7 +35,7 @@ namespace trkf {
   /// err   - Track error matrix.
   /// dir   - Track direction.
   ///
-  KETrack::KETrack(boost::shared_ptr<const Surface> psurf,
+  KETrack::KETrack(const boost::shared_ptr<const Surface>& psurf,
 		   const TrackVector& vec,
 		   const TrackError& err, 
 		   Surface::TrackDirection dir) :

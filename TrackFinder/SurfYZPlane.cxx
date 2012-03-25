@@ -185,7 +185,7 @@ namespace trkf {
     if(psurf != 0) {
 
       // Test whether surface angle parameters are the same
-      // with tolerance.
+      // within tolerance.
 
       double delta_phi = TVector2::Phi_mpi_pi(fPhi - psurf->phi());
       if(abs(delta_phi) <= fPhiTolerance)
@@ -230,9 +230,9 @@ namespace trkf {
   }
 
   /// Test two surfaces for equality, within tolerance.
-  /// Here equal is defined as parallel and having zero separation,
-  /// within tolerance.  Note that this definition of equality allows
-  /// the two surfaces to have different origins.
+  /// Here equal is defined as having all surface parameters the same,
+  /// not just having the surfaces coincide spatially, so that the 
+  /// local coordinate systems are the same between the two surfaces.
   ///
   /// Arguments:
   ///
@@ -244,15 +244,21 @@ namespace trkf {
   {
     bool result = false;
 
-    // Test if the other surface is parallel.
+    // Test if the other surface is a SurfYZPlane.
 
-    bool parallel = isParallel(surf);
-    if(parallel) {
-      double dist = distanceTo(surf);
-      if(std::abs(dist) <= fSepTolerance)
+    const SurfYZPlane* psurf = dynamic_cast<const SurfYZPlane*>(&surf);
+    if(psurf != 0) {
+
+      // Test whether surface parameters are the same within tolerance.
+
+      double delta_phi = TVector2::Phi_mpi_pi(fPhi - psurf->phi());
+      double dy = fY0 - psurf->y0();
+      double dz = fZ0 - psurf->z0();
+      if(abs(delta_phi) <= fPhiTolerance && 
+	 abs(dy) <= fSepTolerance &&
+	 abs(dz) <= fSepTolerance)
 	result = true;
     }
-
     return result;
   }
 

@@ -82,7 +82,7 @@ int main()
 
   // Test track parameters.
 
-  trkf::TrackVector v;
+  trkf::TrackVector v(5);
   v(0) = 0.1;   // u.
   v(1) = 0.2;   // v.
   v(2) = 2.;    // du/dw.
