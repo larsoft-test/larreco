@@ -1,4 +1,4 @@
-TBINS := SurfaceTest.x TrackTest.x LATest.x
+TBINS := SurfaceTest.x TrackTest.x PropTest.x LATest.x
 SIMPLEBINS := $(TBINS)
 FLAGS := $(addprefix $(workdir),$(TBINS:.x=.success))
 
