@@ -24,8 +24,8 @@
 ///     updated according to the Kalman updating formula.
 ///
 /// This class does not include in its interface anything having to do
-/// with concrete measurements, predictions, or residuals, because
-/// these things have variable dimensions.
+/// with concrete measurements, predictions, or residuals, or anything
+/// with a variable dimension.
 ///
 /// As with KTrack, the surface attribute is polymorphic, and is held
 /// via boost::shared_ptr type of smart pointer, which handles memory
@@ -75,7 +75,6 @@ namespace trkf {
     // Attributes.
 
     boost::shared_ptr<const Surface>   fSurf;   ///< Track surface.
-
   };
 }
 

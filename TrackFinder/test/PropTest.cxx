@@ -89,7 +89,7 @@ int main()
     // Get initial surface and track object.
 
     const boost::shared_ptr<const trkf::Surface>& psurf1 = surfaces[isurf];
-    const trkf::KETrack trk1 = tracks[isurf];
+    const trkf::KETrack& trk1 = tracks[isurf];
     const trkf::TrackVector& vec1 = trk1.getVector();
     const trkf::TrackError& err1 = trk1.getError();
 

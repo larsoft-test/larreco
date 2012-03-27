@@ -81,18 +81,18 @@ namespace trkf {
     // Modifiers.
 
     /// Set measurement vector.
-    void setKVector(const typename KVector<N>::type& mvec) {fMvec = mvec;}
+    void setMeasVector(const typename KVector<N>::type& mvec) {fMvec = mvec;}
 
     /// Set measurement error.
-    void setKSymMatrix(const typename KSymMatrix<N>::type& merr) {fMerr = merr;}
+    void setMeasError(const typename KSymMatrix<N>::type& merr) {fMerr = merr;}
 
     // Accessors.
 
     /// Measurement vector.
-    const typename KVector<N>::type& getKVector() const {return fMvec;}
+    const typename KVector<N>::type& getMeasVector() const {return fMvec;}
 
     /// Measurement error matrix.
-    const typename KSymMatrix<N>::type& getKSymMatrix() const {return fMerr;}
+    const typename KSymMatrix<N>::type& getMeasError() const {return fMerr;}
 
     /// Prediction vector.
     const typename KVector<N>::type& getPredVector() const {return fPvec;}

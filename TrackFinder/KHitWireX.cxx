@@ -25,11 +25,11 @@ namespace trkf {
     KHit(boost::shared_ptr<const Surface>(new SurfWireX(channel)))
   {
     trkf::KVector<1>::type mvec(1, x);
-    setKVector(mvec);
+    setMeasVector(mvec);
 
     trkf::KSymMatrix<1>::type merr(1);
     merr(0,0) = xerr;
-    setKSymMatrix(merr);
+    setMeasError(merr);
   }
 
   /// Destructor.
