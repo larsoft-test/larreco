@@ -1,4 +1,4 @@
-///////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
 ///
 /// \file   SeedFinderService.cxx
 ///
@@ -59,9 +59,9 @@ void SeedFinderService::SetEventID(int EventID)
 }
 
 
-Seed SeedFinderService::FindSeedExhaustively(std::vector<recob::SpacePoint> Points)
+recob::Seed SeedFinderService::FindSeedExhaustively(std::vector<recob::SpacePoint> Points)
 {
-  Seed TrackSeedThisCombo;
+  recob::Seed TrackSeedThisCombo;
   bool KeepChopping=true;
   while(KeepChopping)
     {
@@ -81,7 +81,7 @@ Seed SeedFinderService::FindSeedExhaustively(std::vector<recob::SpacePoint> Poin
 }
 
 
-Seed SeedFinderService::FindSeedAtEnd(std::vector<recob::SpacePoint> Points)
+recob::Seed SeedFinderService::FindSeedAtEnd(std::vector<recob::SpacePoint> Points)
 
 {
   static int OldEventID = -1;
@@ -94,7 +94,7 @@ Seed SeedFinderService::FindSeedAtEnd(std::vector<recob::SpacePoint> Points)
   else
     CallsSoFar++;
 
-  Seed ReturnSeed;
+  recob::Seed ReturnSeed;
 
   std::vector<int> PointsInRange;
 
@@ -178,8 +178,13 @@ Seed SeedFinderService::FindSeedAtEnd(std::vector<recob::SpacePoint> Points)
           TVector3 SeedDirection;
           SeedDirection.SetMagThetaPhi(fSeedLength, acos( 2.0 * float(MaxCosThetaBin) / CosThetaBins - 1.0), float(MaxPhiBin)/PhiBins * 6.284);
 
-          ReturnSeed.SetPoint(HighestZPoint);
-          ReturnSeed.SetDirection(SeedDirection);
+	  double PtArray[3], DirArray[3];
+	 
+	  HighestZPoint.GetXYZ(    PtArray );
+	  SeedDirection.GetXYZ(    DirArray );
+
+          ReturnSeed.SetPoint(     PtArray );
+          ReturnSeed.SetDirection( DirArray );
         }
       else ReturnSeed.SetValidity(false);
     }
@@ -194,6 +199,8 @@ Seed SeedFinderService::FindSeedAtEnd(std::vector<recob::SpacePoint> Points)
   return ReturnSeed;
 }
 
+// This method will probably become deprecated, which is why it has 
+// not been tidied up properly.
 
 void SeedFinderService::ProduceSpacePointPlots(std::vector<std::vector<recob::SpacePoint> > Points)
 {
@@ -244,58 +251,6 @@ void SeedFinderService::ProduceSpacePointPlots(std::vector<std::vector<recob::Sp
 	    }
 	}
     }
-}
-
-
-
-Seed::Seed()
-{
-  fIsValid=false;
-}
-
-Seed::Seed(TVector3 Point, TVector3 Direction)
-{
-  fSeedPoint=Point;
-  fSeedDirection=Direction;
-  fIsValid=true;
-}
-
-
-Seed::~Seed()
-{
-}
-
-bool Seed::IsValid()
-{
-  return fIsValid;
-}
-
-
-void Seed::SetValidity(bool Validity)
-{
-  fIsValid=Validity;
-}
-
-TVector3 Seed::GetDirection()
-{
-  return fSeedDirection;
-  fIsValid=true;
-}
-
-TVector3 Seed::GetPoint()
-{
-  return fSeedPoint;
-}
-
-void Seed::SetDirection(TVector3 Direction)
-{
-  fSeedDirection = Direction;
-  fIsValid=true;
-}
-void Seed::SetPoint(TVector3 Point)
-{
-  fSeedPoint=Point;
-  fIsValid=true;
 }
   
   

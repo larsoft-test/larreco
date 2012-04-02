@@ -25,10 +25,10 @@
 #include "RecoBase/SpacePoint.h"
 #include "Simulation/SimChannel.h"
 
+#include "RecoBase/Seed.h"
 
 namespace trkf {
 
-  class Seed;
 
 
   class SeedFinderService {
@@ -43,8 +43,8 @@ namespace trkf {
     // Update configuration parameters.
     void reconfigure(const fhicl::ParameterSet& pset);
 
-    Seed FindSeedAtEnd(std::vector<recob::SpacePoint>);
-    Seed FindSeedExhaustively(std::vector<recob::SpacePoint>);
+    recob::Seed FindSeedAtEnd(std::vector<recob::SpacePoint>);
+    recob::Seed FindSeedExhaustively(std::vector<recob::SpacePoint>);
     void ProduceSpacePointPlots(std::vector<std::vector<recob::SpacePoint> > Points);
     void SetEventID(int EventID);
 
@@ -57,36 +57,6 @@ namespace trkf {
     int fEventID;
 
   };
-
-
-
-
-  class Seed
-  {
-  public:
-    Seed();
-    Seed(TVector3 Point, TVector3 Direction);
-    ~Seed();
-
-    TVector3 GetDirection();
-    TVector3 GetPoint();
-
-    void SetDirection(TVector3 Direction);
-    void SetPoint(TVector3 Point);
-
-
-
-    bool IsValid();
-    void SetValidity(bool Validity);
-
-
-  private:
-    TVector3 fSeedPoint;
-    TVector3 fSeedDirection;
-    bool     fIsValid;
-  };
-
-
 
 
 
