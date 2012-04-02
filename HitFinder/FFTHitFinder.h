@@ -29,7 +29,9 @@ namespace hit {
     double          fColWidth;      ///<Initial width for collection fit
     double          fIndMinWidth;   ///<Minimum induction hit width
     double          fColMinWidth;   ///<Minimum collection hit width
-    int             fMaxMultiHit;   ///<maximum hits for multi fit  
+    int             fMaxMultiHit;   ///<maximum hits for multi fit
+    int             fAreaMethod;    ///<Type of area calculation  
+    std::vector<double> fAreaNorms; ///<factors for converting area to same units as peak height 
   protected: 
     
   

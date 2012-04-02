@@ -11,6 +11,8 @@ standard_hitfinder:
  IndMinWidth:          4.0           #Induction Hit width threshold
  ColMinWidth:          6.0           #Collection hit width threshold
  MaxMultiHit:          3             #maximum hits for multi fit   
+ AreaMethod:           0             #0 = area by integral, 1 = area by gaussian area formula
+ AreaNorms:            [ 13.25, 26.31, 12.89, 14.51 ] #normalizations that put signal area in same scale as peak height. First half for real data, second for simulated. 
 }
 
 argoneut_hitfinder:   @local::standard_hitfinder

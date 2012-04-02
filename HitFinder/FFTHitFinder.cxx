@@ -53,6 +53,8 @@ namespace hit{
     fIndMinWidth        = p.get< double       >("IndMinWidth");
     fColMinWidth        = p.get< double       >("ColMinWidth"); 	  	
     fMaxMultiHit        = p.get< int          >("MaxMultiHit");
+    fAreaMethod         = p.get< int          >("AreaMethod");
+    fAreaNorms          = p.get< std::vector< double > >("AreaNorms");
   }  
 
   //-------------------------------------------------
@@ -272,6 +274,10 @@ namespace hit{
 	      totSig+=hitSig[(int)sigPos];
               
 	    }              	    
+            if(fAreaMethod) {
+              if(evt.isRealData()) totSig=sqrt(2*TMath::Pi())*amplitude*width/fAreaNorms[p];
+              else totSig=sqrt(2*TMath::Pi())*amplitude*width/fAreaNorms[geom->Nplanes(cs,t)+p];
+            }
 	    // make the hit
 	    recob::Hit hit(wire, 
 			   position-width, 
