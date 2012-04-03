@@ -10,12 +10,11 @@
 /// distributions which are subsequently used to seed tracks 
 /// fit by a stepping procedure.
 ///
-/// FCL parameters:
 ///
 
 
-#ifndef SPACEPOINTSERVICE_H
-#define SPACEPOINTSERVICE_H
+#ifndef SEEDFINDERSERVICE_H
+#define SEEDFINDERSERVICE_H
 
 #include <vector>
 #include <string>
