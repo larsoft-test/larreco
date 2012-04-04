@@ -19,4 +19,11 @@ namespace trkf {
   /// Destructor.
   Surface::~Surface()
   {}
+
+  /// Output operator.
+  std::ostream& operator<<(std::ostream& out, const Surface& surf)
+  {
+    return surf.Print(out);
+  }
+
 } // end namespace trkf

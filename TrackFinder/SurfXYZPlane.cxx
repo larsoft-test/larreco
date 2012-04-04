@@ -269,4 +269,12 @@ namespace trkf {
     return result;
   }
 
+  /// Printout
+  std::ostream& SurfXYZPlane::Print(std::ostream& out) const
+  {
+    out << "SurfXYZPlane{ x0=" << fX0 << ", y0=" << fY0 << ", z0=" << fZ0
+	<< ", phi=" << fPhi << ", theta=" << fTheta << "}";
+    return out;
+  }
+
 } // end namespace trkf

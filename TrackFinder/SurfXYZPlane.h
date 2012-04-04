@@ -125,6 +125,9 @@ namespace trkf {
     /// Test two surfaces for equality, within tolerance.
     virtual bool isEqual(const Surface& surf) const;
 
+    /// Printout
+    virtual std::ostream& Print(std::ostream& out) const;
+
   private:
 
     // Static attributes.

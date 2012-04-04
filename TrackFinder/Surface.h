@@ -43,6 +43,7 @@
 #ifndef SURFACE_H
 #define SURFACE_H
 
+#include <ostream>
 #include "TrackFinder/KalmanLinearAlgebra.h"
 
 namespace trkf {
@@ -90,7 +91,13 @@ namespace trkf {
 
     /// Test two surfaces for equality, within tolerance.
     virtual bool isEqual(const Surface& surf) const = 0;
+
+    /// Printout
+    virtual std::ostream& Print(std::ostream& out) const = 0;
   };
+
+  /// Output operator.
+  std::ostream& operator<<(std::ostream& out, const Surface& surf);
 }
 
 #endif
