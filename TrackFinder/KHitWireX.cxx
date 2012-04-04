@@ -13,7 +13,7 @@
 
 namespace trkf {
 
-  /// Constructor.
+  /// Constructor from channel.
   ///
   /// Arguments:
   ///
@@ -28,7 +28,27 @@ namespace trkf {
     setMeasVector(mvec);
 
     trkf::KSymMatrix<1>::type merr(1);
-    merr(0,0) = xerr;
+    merr(0,0) = xerr * xerr;
+    setMeasError(merr);
+  }
+
+  /// Constructor from surface.
+  ///
+  /// Arguments:
+  ///
+  /// psurf - Surface.
+  /// x     - X position.
+  /// xerr  - X error.
+  ///
+  KHitWireX::KHitWireX(const boost::shared_ptr<const Surface>& psurf,
+		       double x, double xerr) :
+    KHit(psurf)
+  {
+    trkf::KVector<1>::type mvec(1, x);
+    setMeasVector(mvec);
+
+    trkf::KSymMatrix<1>::type merr(1);
+    merr(0,0) = xerr * xerr;
     setMeasError(merr);
   }
 
@@ -50,11 +70,11 @@ namespace trkf {
     // Prediction is just u track perameter and error.
 
     int size = tre.getVector().size();
-    pvec.resize(size, /* preserve */ false);
+    pvec.resize(1, /* preserve */ false);
     pvec.clear();
     pvec(0) = tre.getVector()(0);
 
-    perr.resize(size, /* preserve */ false);
+    perr.resize(1, /* preserve */ false);
     perr.clear();
     perr(0,0) = tre.getError()(0,0);
 

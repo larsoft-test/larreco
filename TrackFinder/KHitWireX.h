@@ -18,7 +18,7 @@
 /// The following data are needed to fully specify an object of this
 /// class.
 ///
-/// 1.  Channel number (defines measurement surface).
+/// 1.  Channel (defines measurement surface) or surface.
 /// 2.  X position.
 /// 3.  X error.
 ///
@@ -39,8 +39,12 @@ namespace trkf {
   {
   public:
 
-    /// Constructor.
+    /// Constructor from channel.
     KHitWireX(unsigned int channel, double x, double xerr);
+
+    /// Constructor from surface.
+    KHitWireX(const boost::shared_ptr<const Surface>& psurf,
+	      double x, double xerr);
 
     /// Destructor.
     virtual ~KHitWireX();

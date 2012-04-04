@@ -32,11 +32,13 @@
 /// in a default state.
 ///
 /// The remaining attributes are filled by the prediction method.  The
-/// actual calculation of the prediction vector, prediction error
-/// matrix, and H-matrix are left to be implemented by a derived
-/// class, which must override the pure virtual method subpredict.
-/// The remaining unfilled attributes are calculated locally in this
-/// class in the prediction method inherited from KHitBase.
+/// attributes that are filled in by the prediction method are
+/// mutable, and prediction method is const.  The actual calculation
+/// of the prediction vector, prediction error matrix, and H-matrix
+/// are left to be implemented by a derived class, which must override
+/// the pure virtual method subpredict.  The remaining unfilled
+/// attributes are calculated locally in this class in the prediction
+/// method inherited from KHitBase.
 ///
 /// The intended use case is as follows.
 ///
@@ -119,7 +121,7 @@ namespace trkf {
     // Implementation of overrides is found at the bottom of this header.
 
     /// Prediction method (return false if fail).
-    bool predict(const KETrack& tre);
+    bool predict(const KETrack& tre) const;
 
     /// Update track method.
     void update(KETrack& tre) const;
@@ -136,15 +138,15 @@ namespace trkf {
 
     // Attributes.
 
-    typename KVector<N>::type fMvec;     ///< Measurement vector.
-    typename KSymMatrix<N>::type fMerr;  ///< Measurement error matrix.
-    typename KVector<N>::type fPvec;     ///< Prediction vector.
-    typename KSymMatrix<N>::type fPerr;  ///< Prediction  error matrix.
-    typename KVector<N>::type fRvec;     ///< Residual vector.
-    typename KSymMatrix<N>::type fRerr;  ///< Residual error matrix.
-    typename KSymMatrix<N>::type fRinv;  ///< Residual inverse error matrix.
-    typename KHMatrix<N>::type fH;       ///< Kalman H-matrix.
-    double fChisq;                       ///< Incremental chisquare.
+    typename KVector<N>::type fMvec;             ///< Measurement vector.
+    typename KSymMatrix<N>::type fMerr;          ///< Measurement error matrix.
+    mutable typename KVector<N>::type fPvec;     ///< Prediction vector.
+    mutable typename KSymMatrix<N>::type fPerr;  ///< Prediction  error matrix.
+    mutable typename KVector<N>::type fRvec;     ///< Residual vector.
+    mutable typename KSymMatrix<N>::type fRerr;  ///< Residual error matrix.
+    mutable typename KSymMatrix<N>::type fRinv;  ///< Residual inverse error matrix.
+    mutable typename KHMatrix<N>::type fH;       ///< Kalman H-matrix.
+    mutable double fChisq;                       ///< Incremental chisquare.
   };
 
   // Method implementations.
@@ -197,7 +199,7 @@ namespace trkf {
   /// tre - Track prediction.
   ///
   template <int N>
-  bool KHit<N>::predict(const KETrack& tre)
+  bool KHit<N>::predict(const KETrack& tre) const
   {
     // Update prediction vector, error matrox, and H-matrix.
     // Method subpredict should throw an exception if track
@@ -252,7 +254,7 @@ namespace trkf {
 
     // Calculate updated track state.
 
-    typename KVector<N>::type newvec = tre.getVector() + prod(gain, fRvec);
+    TrackVector newvec = tre.getVector() + prod(gain, fRvec);
 
     // Calculate updated error matrix.
 

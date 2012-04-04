@@ -62,7 +62,7 @@ namespace trkf {
     // Pure virtual methods.
 
     /// Prediction method (return false if fail).
-    virtual bool predict(const KETrack& tre) = 0;
+    virtual bool predict(const KETrack& tre) const = 0;
 
     /// Return incremental chisquare.
     virtual double getChisq() const = 0;
