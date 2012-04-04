@@ -30,7 +30,7 @@ int main()
   // Some simple tests.
 
   assert(!trk.isValid());
-  assert(trf.stat() == trkf::KFitTrack::INVALID);
+  assert(trf.getStat() == trkf::KFitTrack::INVALID);
 
   // Done (success).
 
