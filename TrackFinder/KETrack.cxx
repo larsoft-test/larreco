@@ -8,6 +8,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////
 
+#include <cmath>
 #include "TrackFinder/KETrack.h"
 
 namespace trkf {
@@ -34,12 +35,14 @@ namespace trkf {
   /// vec   - Track state vector.
   /// err   - Track error matrix.
   /// dir   - Track direction.
+  /// pdg   - Pdg code.
   ///
   KETrack::KETrack(const boost::shared_ptr<const Surface>& psurf,
 		   const TrackVector& vec,
 		   const TrackError& err, 
-		   Surface::TrackDirection dir) :
-    KTrack(psurf, vec, dir),
+		   Surface::TrackDirection dir,
+		   int pdg) :
+    KTrack(psurf, vec, dir, pdg),
     fErr(err)
   {}
 
@@ -58,5 +61,56 @@ namespace trkf {
   /// Destructor.
   KETrack::~KETrack()
   {}
+
+  /// Printout
+  std::ostream& KETrack::Print(std::ostream& out, bool doTitle) const
+  {
+    if(doTitle)
+      out << "KETrack:\n";
+
+    // Print base class.
+
+    KTrack::Print(out, false);
+
+    // Print diagonal errors.
+
+    out << "  Diagonal errors:\n"
+	<< "  [";
+    for(unsigned int i = 0; i < fErr.size1(); ++i) {
+      if(i != 0)
+	out << ", ";
+      double err = fErr(i,i);
+      err = (err >= 0. ? std::sqrt(err) : -std::sqrt(-err));
+      out << err;
+    }
+    out << "]\n";
+
+    // Print correlations.
+
+    out << "  Correlation matrix:";
+    for(unsigned int i = 0; i < fErr.size1(); ++i) {
+      if(i == 0)
+	out << "\n  [";
+      else
+	out << "\n   ";
+      for(unsigned int j = 0; j <= i; ++j) {
+	if(j != 0)
+	  out << ", ";
+	if(i == j)
+	  out << 1.;
+	else {
+	  double eiijj = fErr(i,i) * fErr(j,j);
+	  double eij = fErr(i,j);
+	  if(eiijj != 0.)
+	    eij /= std::sqrt(std::abs(eiijj));
+	  else
+	    eij = 0.;
+	  out << eij;
+	}
+      }
+    }
+    out << "]\n";
+    return out;
+  }
 
 } // end namespace trkf

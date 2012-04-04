@@ -39,7 +39,8 @@ namespace trkf {
     KETrack(const boost::shared_ptr<const Surface>& psurf,
 	    const TrackVector& vec,
 	    const TrackError& err, 
-	    Surface::TrackDirection dir = Surface::UNKNOWN);
+	    Surface::TrackDirection dir = Surface::UNKNOWN,
+	    int pdg = 0);
 
     /// Constructor - KTrack + error matrix.
     KETrack(const KTrack& trk, const TrackError& err);
@@ -54,6 +55,9 @@ namespace trkf {
     // Modifiers.
 
     void setError(const TrackError& err) {fErr = err;}     ///< Set error matrix.
+
+    /// Printout
+    virtual std::ostream& Print(std::ostream& out, bool doTitle = true) const;
 
   private:
 

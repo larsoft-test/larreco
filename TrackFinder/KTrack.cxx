@@ -15,7 +15,8 @@ namespace trkf {
 
   /// Default constructor.
   KTrack::KTrack() :
-    fDir(Surface::UNKNOWN)
+    fDir(Surface::UNKNOWN),
+    fPdgCode(0)
   {}
 
   /// Constructor - specify surface only.
@@ -26,7 +27,8 @@ namespace trkf {
   ///
   KTrack::KTrack(const boost::shared_ptr<const Surface>& psurf) :
     fSurf(psurf),
-    fDir(Surface::UNKNOWN)
+    fDir(Surface::UNKNOWN),
+    fPdgCode(0)
   {}
 
   /// Constructor - surface + track parameters.
@@ -36,13 +38,16 @@ namespace trkf {
   /// psurf - Surface pointer.
   /// vec   - Track state vector.
   /// dir   - Track direction.
+  /// pdg   - Pdg code.
   ///
   KTrack::KTrack(boost::shared_ptr<const Surface> psurf,
 		 const TrackVector& vec,
-		 Surface::TrackDirection dir) :
+		 Surface::TrackDirection dir,
+		 int pdg) :
     fSurf(psurf),
     fVec(vec),
-    fDir(dir)
+    fDir(dir),
+    fPdgCode(pdg)
   {}
 
   /// Destructor.
@@ -88,6 +93,34 @@ namespace trkf {
       throw cet::exception("SurfYZPlane") << "Momentum vector requested for invalid track.\n";
     Surface::TrackDirection dir = getDirection();
     fSurf->getMomentum(fVec, mom, dir);
+  }
+
+  /// Printout
+  std::ostream& KTrack::Print(std::ostream& out, bool doTitle) const
+  {
+    if(doTitle)
+      out << "KTrack:\n";
+    out << "  Surface direction = " << (fDir == Surface::FORWARD ?
+					"FORWARD" : 
+					( fDir == Surface::BACKWARD ?
+					  "BACKWARD" : "UNKNOWN" )) << "\n"
+	<< "  Pdg = " << fPdgCode << "\n"
+	<< "  Surface: " << *fSurf << "\n"
+	<< "  Track parameters:\n"
+	<< "  [";
+    for(unsigned int i = 0; i < fVec.size(); ++i) {
+      if(i != 0)
+	out << ", ";
+      out << fVec(i);
+    }
+    out << "]\n";
+    return out;
+  }
+
+  /// Output operator.
+  std::ostream& operator<<(std::ostream& out, const KTrack& trk)
+  {
+    return trk.Print(out);
   }
 
 } // end namespace trkf

@@ -63,15 +63,18 @@ namespace trkf {
 
     // Accessors.
 
-    double path() const {return fPath;}        ///< Propagation distance.
-    double chisq() const {return fChisq;}      ///< Fit chisquare.
-    FitStatus stat() const {return fStat;}     ///< Fit status.
+    double getPath() const {return fPath;}        ///< Propagation distance.
+    double getChisq() const {return fChisq;}      ///< Fit chisquare.
+    FitStatus getStat() const {return fStat;}     ///< Fit status.
 
     // Modifiers.
 
     void setPath(double path) {fPath = path;}        ///< Set propagation distance.
     void setChisq(double chisq) {fChisq = chisq;}    ///< Set chisquare.
     void setStat(FitStatus stat) {fStat = stat;}     ///< Set fit status.
+
+    /// Printout
+    virtual std::ostream& Print(std::ostream& out, bool doTitle = true) const;
 
   private:
 
