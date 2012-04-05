@@ -80,25 +80,25 @@ namespace hit{
     evt.getByLabel(fCalDataModuleLabel,wireVecHandle);
     art::ServiceHandle<geo::Geometry> geom;
    
-    std::vector<double> signal;              //vector contaning wire signal
+    std::vector<double> signal;              // vector contaning wire signal
     std::vector<int> startTimes;             // stores time of 1st local minimum
     std::vector<int> maxTimes;    	     // stores time of local maximum    
     std::vector<int> endTimes;    	     // stores time of 2nd local minimum
     std::vector<double>::iterator timeIter;  // iterator for time bins
-    int time             = 0;                // current time bin
-    int minTimeHolder    = 0;                // current start time
-    unsigned int channel = 0;                // channel number
-    unsigned int w       = 0;                // wire number
-    unsigned int p       = 0;                // plane number
-    unsigned int t       = 0;                // tpc number
-    unsigned int cs      = 0;                // cryostat number
-    bool maxFound        = false;            // Flag for whether a peak > threshold has been found
-    double threshold     = 0.;               // minimum signal size for id'ing a hit
-    double fitWidth      = 0.;               //hit fit width initial value
-    double minWidth      = 0.;               //minimum hit width
-    std::string eqn      = "gaus(0)";        // string for equation to fit
-    std::stringstream numConv;
+    int time               = 0;              // current time bin
+    int minTimeHolder      = 0;              // current start time
+    unsigned int channel   = 0;              // channel number
+    unsigned int w         = 0;              // wire number
+    unsigned int p         = 0;              // plane number
+    unsigned int t         = 0;              // tpc number
+    unsigned int cs        = 0;              // cryostat number
+    bool maxFound          = false;          // Flag for whether a peak > threshold has been found
+    double threshold       = 0.;             // minimum signal size for id'ing a hit
+    double fitWidth        = 0.;             // hit fit width initial value
+    double minWidth        = 0.;             // minimum hit width
+    std::string eqn        = "gaus(0)";      // string for equation to fit
     geo::SigType_t sigType = geo::kInduction;// type of plane we are looking at
+    std::stringstream numConv;
 
     //loop over wires
     for(unsigned int wireIter = 0; wireIter < wireVecHandle->size(); wireIter++) {
@@ -113,6 +113,7 @@ namespace hit{
       channel       = wire->RawDigit()->Channel();
       geom->ChannelToWire(channel, cs, t, p, w);
       sigType       = geom->Cryostat(cs).TPC(t).Plane(p).SignalType();
+
       //Set the appropriate signal widths and thresholds
       if(sigType == geo::kInduction){
 	threshold     = fMinSigInd;
@@ -125,7 +126,7 @@ namespace hit{
 	minWidth  = fColMinWidth;
       }
       // loop over signal
-      for(timeIter = signal.begin();timeIter+2<signal.end();timeIter++){    
+      for(timeIter = signal.begin(); timeIter+2 < signal.end(); timeIter++){    
 	//test if timeIter+1 is a local minimum
 	if(*timeIter > *(timeIter+1) && *(timeIter+1) < *(timeIter+2)){
 	  //only add points if already found a local max above threshold.
@@ -152,16 +153,17 @@ namespace hit{
       //if no inflection found before end, but peak found add end point
       if(maxTimes.size()>endTimes.size()) 
 	endTimes.push_back(signal.size()-1); 
-       if(startTimes.size() == 0) continue;
+      if(startTimes.size() == 0) continue;
+      
       //All code below does the fitting, adding of hits
       //to the hit vector and when all wires are complete 
       //saving them 
-      double totSig(0); //stores the total hit signal
-      double startT(0); //stores the start time
-      double endT(0);  //stores the end time
-      int numHits(0);  //number of consecutive hits being fitted
-      int size(0);     //size of data vector for fit
-      int hitIndex(0);  //index of current hit in sequence
+      double totSig(0); // stores the total hit signal
+      double startT(0); // stores the start time
+      double endT(0);   // stores the end time
+      int numHits(0);   // number of consecutive hits being fitted
+      int size(0);      // size of data vector for fit
+      int hitIndex(0);  // index of current hit in sequence
       double amplitude(0), position(0), width(0);  //fit parameters
       double amplitudeErr(0), positionErr(0), widthErr(0);  //fit errors
       double goodnessOfFit(0), chargeErr(0);  //Chi2/NDF and error on charge
@@ -170,13 +172,14 @@ namespace hit{
       //stores gaussian paramters first index is the hit number
       //the second refers to height, position, and width respectively
       std::vector<double>  hitSig;
-      //add found hits to hit vector
-      
-      while(hitIndex<(signed)startTimes.size()) {
+
+      //add found hits to hit vector      
+      while(hitIndex < (signed)startTimes.size()) {
 	
-	startT=endT=0;
-	numHits=1;
-        minPeakHeight=signal[maxTimes[hitIndex]];
+	startT = endT = 0;
+	numHits = 1;
+        minPeakHeight = signal[maxTimes[hitIndex]];
+
 	//consider adding pulse to group of consecutive hits if:
         //1 less than max consecutive hits
         //2 we are not at the last point in the signal vector
@@ -186,22 +189,30 @@ namespace hit{
 	      numHits+hitIndex < (signed)endTimes.size() && 
 	      signal[endTimes[hitIndex+numHits-1]] >threshold/2.0 &&  
 	      startTimes[hitIndex+numHits] - endTimes[hitIndex+numHits-1] < 2){
+
 	  if(signal[maxTimes[hitIndex+numHits]] < minPeakHeight) 
-	    minPeakHeight=signal[maxTimes[hitIndex+numHits]];
-	  numHits++;
+	    minPeakHeight = signal[maxTimes[hitIndex+numHits]];
+
+	  ++numHits;
 	}
+
 	//finds the first point > 1/2 the smallest peak
-	startT=startTimes[hitIndex];
-	while(signal[(int)startT] < minPeakHeight/2.0) startT++;
+	startT = startTimes[hitIndex];
+
+	while(signal[(int)startT] < minPeakHeight/2.0) ++startT;
+
 	//finds the first point from the end > 1/2 the smallest peak
-	endT=endTimes[hitIndex+numHits-1];
-	while(signal[(int)endT] <minPeakHeight/2.0) endT--;
+	endT = endTimes[hitIndex+numHits-1];
+
+	while(signal[(int)endT] <minPeakHeight/2.0) --endT;
 	size = (int)(endT-startT);
 	TH1D hitSignal("hitSignal","",size,startT,endT);
-	for(int i = (int)startT; i < (int)endT; i++)
+	for(int i = (int)startT; i < (int)endT; ++i)
 	  hitSignal.Fill(i,signal[i]);
+
         //build the TFormula
-        eqn="gaus(0)";	
+        eqn = "gaus(0)";	
+
 	for(int i = 3; i < numHits*3; i+=3) {
 	  eqn.append("+gaus(");
 	  numConv.str("");
@@ -209,12 +220,14 @@ namespace hit{
 	  eqn.append(numConv.str());
 	  eqn.append(")");
 	}
+
 	TF1 gSum("gSum",eqn.c_str(),0,size);
+
 	if(numHits > 1) {
 	  TArrayD data(numHits*numHits);
 	  TVectorD amps(numHits); 
-	  for(int i = 0; i < numHits; i++) {
-	    amps[i]=signal[maxTimes[hitIndex+i]];
+	  for(int i = 0; i < numHits; ++i) {
+	    amps[i] = signal[maxTimes[hitIndex+i]];
 	    for(int j = 0; j < numHits;j++) 
 	      data[i+numHits*j] = TMath::Gaus(maxTimes[hitIndex+j],
 					      maxTimes[hitIndex+i],
@@ -235,7 +248,7 @@ namespace hit{
 	    continue;
 	  }
       
-	  for(int i = 0;i < numHits; i++) {
+	  for(int i = 0; i < numHits; ++i) {
 	    //if the approximation makes a peak vanish
             //set initial height as average of threshold and
             //raw peak height
@@ -255,34 +268,39 @@ namespace hit{
 	  gSum.SetParLimits(1, startT , endT);
 	  gSum.SetParLimits(2,0.0,10.0*fitWidth);
 	}
+
 	/// \todo - just get the integral from the fit for totSig
         hitSignal.Fit(&gSum,"QNRW","", startT, endT);
-	for(int hitNumber = 0; hitNumber < numHits; hitNumber++) {
-          totSig=0;
-	  if(gSum.GetParameter(3*hitNumber) > threshold/2.0 && gSum.GetParameter(3*hitNumber+2) > minWidth) { 
-	    amplitude = gSum.GetParameter(3*hitNumber);
-	    position = gSum.GetParameter(3*hitNumber+1);
-	    width = gSum.GetParameter(3*hitNumber+2);
-            amplitudeErr = gSum.GetParError(3*hitNumber);
-	    positionErr = gSum.GetParError(3*hitNumber+1);
-	    widthErr = gSum.GetParError(3*hitNumber+2);
-            goodnessOfFit= gSum.GetChisquare()/(double)gSum.GetNDF();
-            chargeErr=TMath::Sqrt(TMath::Pi())*(amplitudeErr*width+widthErr*amplitude);   //estimate from area of Gaussian
+	for(int hitNumber = 0; hitNumber < numHits; ++hitNumber) {
+          totSig = 0;
+	  if(gSum.GetParameter(3*hitNumber)   > threshold/2.0 && 
+	     gSum.GetParameter(3*hitNumber+2) > minWidth) { 
+	    amplitude     = gSum.GetParameter(3*hitNumber);
+	    position      = gSum.GetParameter(3*hitNumber+1);
+	    width         = gSum.GetParameter(3*hitNumber+2);
+            amplitudeErr  = gSum.GetParError(3*hitNumber);
+	    positionErr   = gSum.GetParError(3*hitNumber+1);
+	    widthErr      = gSum.GetParError(3*hitNumber+2);
+            goodnessOfFit = gSum.GetChisquare()/(double)gSum.GetNDF();
+
+	    //estimate error from area of Gaussian
+            chargeErr = TMath::Sqrt(TMath::Pi())*(amplitudeErr*width+widthErr*amplitude);   
+
 	    hitSig.resize(size);
-	    for(int sigPos = 0; sigPos<size; sigPos++){
+
+	    for(int sigPos = 0; sigPos < size; ++sigPos){
 	      hitSig[sigPos] = amplitude*TMath::Gaus(sigPos+startT,position, width);
-	      totSig+=hitSig[(int)sigPos];
-              
+	      totSig += hitSig[(int)sigPos];              
 	    }              	    
-            if(fAreaMethod) {
-              if(evt.isRealData()) totSig=sqrt(2*TMath::Pi())*amplitude*width/fAreaNorms[p];
-              else totSig=sqrt(2*TMath::Pi())*amplitude*width/fAreaNorms[geom->Nplanes(cs,t)+p];
-            }
+
+            if(fAreaMethod) 
+              totSig = sqrt(2*TMath::Pi())*amplitude*width/fAreaNorms[(size_t)sigType];              
+
 	    // make the hit
 	    recob::Hit hit(wire, 
-			   position-width, 
+			   position - width, 
                            widthErr,
-			   position+width, 
+			   position + width, 
                            widthErr,
 			   position,
                            positionErr,
@@ -296,7 +314,7 @@ namespace hit{
 	    
 	  }//end if over threshold
 	}//end loop over hits
-	hitIndex+=numHits;	
+	hitIndex += numHits;	
       } // end while on hitIndex<(signed)startTimes.size()
       
     } // while on Wires
