@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////
 //
-// HoughLineService class
+// HoughLineAlg class
 //
 // joshua.spitz@yale.edu
 //
@@ -12,7 +12,7 @@
 //  Machine Vision and Applications 3, 87 (1990)  
 ////////////////////////////////////////////////////////////////////////
 
-#include "ClusterFinder/HoughLineService.h"
+#include "ClusterFinder/HoughLineAlg.h"
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -42,18 +42,18 @@ extern "C" {
 
 
 //------------------------------------------------------------------------------
-cluster::HoughLineService::HoughLineService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg)
+cluster::HoughLineAlg::HoughLineAlg(fhicl::ParameterSet const& pset)
 {
   this->reconfigure(pset);
 }
 
 //------------------------------------------------------------------------------
-cluster::HoughLineService::~HoughLineService()
+cluster::HoughLineAlg::~HoughLineAlg()
 {
 }
 
 //------------------------------------------------------------------------------
-void cluster::HoughLineService::reconfigure(fhicl::ParameterSet const& pset)
+void cluster::HoughLineAlg::reconfigure(fhicl::ParameterSet const& pset)
 {
   fMaxLines            = pset.get< int    >("MaxLines"           );
   fMinHits             = pset.get< int    >("MinHits"            );
@@ -167,7 +167,7 @@ bool cluster::HoughTransform::DoAddPoint(int x, int y)
 
 //------------------------------------------------------------------------------
 //this method saves a BMP image of the Hough Accumulator, which can be viewed with gimp
-void cluster::HoughLineService::HLSSaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy)
+void cluster::HoughLineAlg::HLSSaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy)
 {
   ofstream bmpFile(fileName, std::ios::binary);
   bmpFile.write("B", 1);
@@ -202,7 +202,7 @@ void cluster::HoughLineService::HLSSaveBMPFile(const char *fileName, unsigned ch
 }
  
 //------------------------------------------------------------------------------
-size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clusIn, 
+size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>& clusIn, 
 					    std::vector<recob::Cluster>& ccol)
 {
 
@@ -482,7 +482,7 @@ size_t cluster::HoughLineService::Transform(art::PtrVector<recob::Cluster>& clus
 }
 
 //------------------------------------------------------------------------------
-size_t cluster::HoughLineService::Transform(std::vector< art::Ptr<recob::Hit> >& hits,
+size_t cluster::HoughLineAlg::Transform(std::vector< art::Ptr<recob::Hit> >& hits,
 					    double &slope,
 					    double &intercept)
 {

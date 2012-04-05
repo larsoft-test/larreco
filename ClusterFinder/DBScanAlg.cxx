@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////
 //
-// DBSCANfinder.cxx
+// \file DBScanAlg.cxx
 //
 // kinga.partyka@yale.edu
 //
@@ -22,7 +22,9 @@
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "ClusterFinder/DBScanService.h"
+#include "Utilities/LArProperties.h"
+#include "Utilities/DetectorProperties.h"
+#include "ClusterFinder/DBScanAlg.h"
 #include "RecoBase/recobase.h"
 
 #include <cmath>
@@ -245,20 +247,20 @@ struct AcceptFindNeighbors {
 
 
 //----------------------------------------------------------
-// DBScan stuff
+// DBScanAlg stuff
 //----------------------------------------------------------
-cluster::DBScanService::DBScanService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg)
+cluster::DBScanAlg::DBScanAlg(fhicl::ParameterSet const& pset)
 {
  this->reconfigure(pset); 
 }
 
 //----------------------------------------------------------
-cluster::DBScanService::~DBScanService()
+cluster::DBScanAlg::~DBScanAlg()
 {
 }
 
 //----------------------------------------------------------
-void cluster::DBScanService::reconfigure(fhicl::ParameterSet const& p)
+void cluster::DBScanAlg::reconfigure(fhicl::ParameterSet const& p)
 {
   fEps            = p.get< double >("eps"   );
   fEps2           = p.get< double >("epstwo");
@@ -268,8 +270,9 @@ void cluster::DBScanService::reconfigure(fhicl::ParameterSet const& p)
 }
 
 //----------------------------------------------------------
-void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits, 
-				      std::set<unsigned int> badChannels) {
+void cluster::DBScanAlg::InitScan(art::PtrVector<recob::Hit>& allhits, 
+			       std::set<unsigned int> badChannels)
+{
   // clear all the data member vectors for the new set of hits
   fps.clear();
   fpointId_to_clusterId.clear();
@@ -292,7 +295,9 @@ void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits,
   //------------------------------------------------------------------
   // Determine spacing between wires (different for each detector)
   ///get 2 first wires and find their spacing (wire_dist)
-  
+
+  art::ServiceHandle<util::LArProperties> larp;
+  art::ServiceHandle<util::DetectorProperties> detp;
   art::ServiceHandle<geo::Geometry> geom;
 
   for(size_t p = 0; p < geom->Nplanes(); ++p)
@@ -307,7 +312,7 @@ void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits,
   const geo::WireGeo& wire1 = geom->Plane(0).Wire(1);
   wire1.LocalToWorld(pos, posWorld1);
   
-  double wire_dist =posWorld0[1]- posWorld1[1];
+  double wire_dist = posWorld0[1]- posWorld1[1];
 
   // Collect the bad wire list into a useful form
   if (fClusterMethod) { // Using the R*-tree
@@ -322,15 +327,15 @@ void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits,
   // Collect the hits in a useful form,
   // and take note of the maximum time width
   fMaxWidth=0.0;
-  for (unsigned int j = 0; j < allhits.size(); j++){
-    int dims=3;//our point is defined by 3 elements:wire#,center of the hit, and the hit width
+  for (unsigned int j = 0; j < allhits.size(); ++j){
+    int dims = 3;//our point is defined by 3 elements:wire#,center of the hit, and the hit width
     std::vector<double> p(dims);
-    
-    
-    ///\todo Hardcoded drift speed here?!?
+        
+    double tickToDist = larp->DriftVelocity(larp->Efield(),larp->Temperature());
+    tickToDist *= 1.e-3 * detp->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
     p[0] = (allhits[j]->Wire()->RawDigit()->Channel())*wire_dist;
-    p[1] = ((allhits[j]->StartTime()+allhits[j]->EndTime()  )/2.)*0.03069;
-    p[2] =  (allhits[j]->EndTime()  -allhits[j]->StartTime())*0.03069;   //width of a hit in cm
+    p[1] = ((allhits[j]->StartTime()+allhits[j]->EndTime()  )/2.)*tickToDist;
+    p[2] =  (allhits[j]->EndTime()  -allhits[j]->StartTime())*tickToDist;   //width of a hit in cm
 
     // check on the maximum width condition
     if ( p[2] > fMaxWidth ) fMaxWidth = p[2];
@@ -339,9 +344,8 @@ void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits,
 
     if (fClusterMethod) { // Using the R*-tree
       // Convert these same values into dbsPoints to feed into the R*-tree
-      dbsPoint pp(p[0],p[1],
-		  0.0,p[2]/2.0); // note dividing by two
-      fRTree.Insert(j,pp.bounds());
+      dbsPoint pp(p[0], p[1], 0.0, p[2]/2.0); // note dividing by two
+      fRTree.Insert(j, pp.bounds());
       // Keep a parallel list already made up. We could use fps instead, but...
       fRect.push_back(pp);
     }
@@ -363,7 +367,7 @@ void cluster::DBScanService::InitScan(art::PtrVector<recob::Hit>& allhits,
 }
 
 //----------------------------------------------------------
-double cluster::DBScanService::getSimilarity(const std::vector<double> v1, const std::vector<double> v2){
+double cluster::DBScanAlg::getSimilarity(const std::vector<double> v1, const std::vector<double> v2){
   
    
   //for Euclidean distance comment everything out except this-->>>
@@ -398,7 +402,7 @@ double cluster::DBScanService::getSimilarity(const std::vector<double> v1, const
 }
 
 //----------------------------------------------------------------
-double cluster::DBScanService::getSimilarity2(const std::vector<double> v1, const std::vector<double> v2){
+double cluster::DBScanAlg::getSimilarity2(const std::vector<double> v1, const std::vector<double> v2){
 
   //-------------------------------------------
   //return fabs( v2[1]-v1[1]);//for rectangle
@@ -435,7 +439,7 @@ double cluster::DBScanService::getSimilarity2(const std::vector<double> v1, cons
 }
 
 //----------------------------------------------------------------
-double cluster::DBScanService::getWidthFactor(const std::vector<double> v1, const std::vector<double> v2){
+double cluster::DBScanAlg::getWidthFactor(const std::vector<double> v1, const std::vector<double> v2){
  
   //double k=0.13; //this number was determined by looking at flat muon hits' widths. 
                    //The average width of these hits in cm is 0.505, so 4*2*(w1^2)=2.04 
@@ -445,26 +449,27 @@ double cluster::DBScanService::getWidthFactor(const std::vector<double> v1, cons
 
   //double k=0.78;
   //..................................................
-  double k=0.1;//for 4.5 coeff
-  double WFactor=(exp(4.6*(( v1[2]*v1[2])+( v2[2]*v2[2]))))*k;
+  double k = 0.1;//for 4.5 coeff
+  double WFactor = (exp(4.6*(( v1[2]*v1[2])+( v2[2]*v2[2]))))*k;
   //........................................................
   //Let's try something different:
   // double k=1.96;
-  //    double WFactor=(( v1[2]*v1[2])+( v2[2]*v2[2]))*k;
-  if(WFactor>1){
-    if(WFactor<6.25) {return WFactor;}//remember that we are increasing the distance in eps2 as sqrt of this number (i.e sqrt(6.25))
-    else {return 6.25;}
+  // double WFactor=(( v1[2]*v1[2])+( v2[2]*v2[2]))*k;
+  if(WFactor > 1){
+    if(WFactor < 6.25) return WFactor;  //remember that we are increasing the distance in 
+                                        //eps2 as sqrt of this number (i.e sqrt(6.25))
+    else return 6.25;
    
   }
-  else {return 1.0;}  
+  else return 1.0;  
 }
 
 //----------------------------------------------------------------
 //\todo this is O(n) in the number of hits, while the high performance
 //      claimed for DBSCAN relies on it being O(log n)!
-std::vector<unsigned int> cluster::DBScanService::findNeighbors( unsigned int pid, 
-								 double threshold,
-								 double threshold2) {
+std::vector<unsigned int> cluster::DBScanAlg::findNeighbors( unsigned int pid, 
+							  double threshold,
+							  double threshold2) {
   std::vector<unsigned int> ne;
   
   for ( int unsigned j=0; j < fsim.size(); j++){
@@ -479,7 +484,7 @@ std::vector<unsigned int> cluster::DBScanService::findNeighbors( unsigned int pi
 }
 
 //-----------------------------------------------------------------
-void cluster::DBScanService::computeSimilarity()
+void cluster::DBScanAlg::computeSimilarity()
 {
   int size = fps.size();
   fsim.resize(size, std::vector<double>(size));
@@ -491,7 +496,7 @@ void cluster::DBScanService::computeSimilarity()
 }
 
 //------------------------------------------------------------------
-void cluster::DBScanService::computeSimilarity2()
+void cluster::DBScanAlg::computeSimilarity2()
 {
   int size = fps.size();
   fsim2.resize(size, std::vector<double>(size));
@@ -503,7 +508,7 @@ void cluster::DBScanService::computeSimilarity2()
 }
 
 //------------------------------------------------------------------
-void cluster::DBScanService::computeWidthFactor()
+void cluster::DBScanAlg::computeWidthFactor()
 {
   int size = fps.size();
   fsim3.resize(size, std::vector<double>(size));
@@ -515,51 +520,12 @@ void cluster::DBScanService::computeWidthFactor()
   }
 }
 
-//------------------------------------------------------------------
-//single point output
-// std::ostream& cluster::operator<<(std::ostream& o,const std::vector<double>& p)
-// {
-//   o << "{ ";
-  
-//   for(unsigned int x=0;x<p.size();x++)
-//     {
-      
-//       o<<" "<<p[x];
-//       // o<<"SIZE OF POINT IS: "<<p.size()<<" and the point is: "<<p[x];
-//     }
-//   o << " }, ";
-  
-//   return o;
-// }
-
-// //--------------------------------------------------------------------
-// // clusters output
-// std::ostream& cluster::operator<<(std::ostream& o, const cluster::DBScanService& cs)
-// {
-   
-//   for(unsigned int i=0;i<cs.fclusters.size();i++)
-//     {
-      
-//       o<<"c("<<i+1<<")=";
-      
-      
-//       for(unsigned int j=0;j<cs.fpointId_to_clusterId.size();j++)
-// 	{
-// 	  if (cs.fpointId_to_clusterId[j]==(i+1)){
-	      
-// 	    o<<cs.fps[j];
-// 	  }
-// 	}//for
-//       o << std::endl;
-//     }//for
-//   return o;
-// }
 
 //----------------------------------------------------------------
 /////////////////////////////////////////////////////////////////
 // This is the algorithm that finds clusters:
 // Run the selected clustering algorithm
-void cluster::DBScanService::run_cluster() {
+void cluster::DBScanAlg::run_cluster() {
   switch(fClusterMethod) {
   case 2: 
     return run_dbscan_cluster();
@@ -577,11 +543,11 @@ void cluster::DBScanService::run_cluster() {
 /////////////////////////////////////////////////////////////////
 // This is the algorithm that finds clusters:
 //
-//  DWM's implementation of DBScan as much like the paper as possible
-void cluster::DBScanService::run_dbscan_cluster() {
+//  DWM's implementation of DBScanAlg as much like the paper as possible
+void cluster::DBScanAlg::run_dbscan_cluster() {
   unsigned int cid = 0;
   // foreach pid
-  for ( unsigned int pid = 0; pid < fps.size(); pid++){
+  for (size_t pid = 0; pid < fps.size(); pid++){
     // not already visited
     if (fpointId_to_clusterId[pid] == kNO_CLUSTER) {
       if ( ExpandCluster(pid,cid) ) {
@@ -592,15 +558,17 @@ void cluster::DBScanService::run_dbscan_cluster() {
   //  END DBSCAN  
 
   // Construct clusters, count noise, etc..
-  int noise=0;
+  int noise = 0;
   fclusters.resize(cid);
-  for(unsigned int y=0; y< fpointId_to_clusterId.size();++y){
-    if (fpointId_to_clusterId[y]==kNO_CLUSTER) {
+  for(size_t y = 0; y < fpointId_to_clusterId.size(); ++y){
+    if (fpointId_to_clusterId[y] == kNO_CLUSTER) {
       // This shouldn't happen...all points should be clasified by now!
       mf::LogWarning("DBscan") << "Unclassified point!";
-    } else if (fpointId_to_clusterId[y]==kNOISE_CLUSTER) {
-      noise++;
-    } else {
+    } 
+    else if (fpointId_to_clusterId[y]==kNOISE_CLUSTER) {
+      ++noise;
+    } 
+    else {
       unsigned int c = fpointId_to_clusterId[y];
       if (c >= cid) {
 	mf::LogWarning("DBscan") << "Point in cluster " << c 
@@ -613,7 +581,7 @@ void cluster::DBScanService::run_dbscan_cluster() {
   }  
   mf::LogInfo("DBscan") << "DWM (R*-tree): Found " 
 			   << cid << " clusters...";
-  for (unsigned int c=0; c<cid; ++c){
+  for (unsigned int c = 0; c < cid; ++c){
     mf::LogVerbatim("DBscan") << "\t" << "Cluster " << c << ":\t" 
 			     << fclusters[c].size();
   }
@@ -622,7 +590,7 @@ void cluster::DBScanService::run_dbscan_cluster() {
 
 //----------------------------------------------------------------
 // Find the neighbos of the given point
-std::set<unsigned int> cluster::DBScanService::RegionQuery(unsigned int point){
+std::set<unsigned int> cluster::DBScanAlg::RegionQuery(unsigned int point){
   dbsPoint region(fRect[point]);
   Visitor visitor = 
 //     fRTree.Query(RTree::AcceptOverlapping(region.bounds()),Visitor());
@@ -637,7 +605,7 @@ std::set<unsigned int> cluster::DBScanService::RegionQuery(unsigned int point){
 }
 //----------------------------------------------------------------
 // Find the neighbos of the given point
-std::vector<unsigned int> cluster::DBScanService::RegionQuery_vector(unsigned int point){
+std::vector<unsigned int> cluster::DBScanAlg::RegionQuery_vector(unsigned int point){
   dbsPoint region(fRect[point]);
   Visitor visitor = 
 //     fRTree.Query(RTree::AcceptOverlapping(region.bounds()),Visitor());
@@ -659,8 +627,9 @@ std::vector<unsigned int> cluster::DBScanService::RegionQuery_vector(unsigned in
 
 //----------------------------------------------------------------
 // Try to make a new cluster on the basis of point
-bool cluster::DBScanService::ExpandCluster(unsigned int point,
-					   unsigned int clusterID) {
+bool cluster::DBScanAlg::ExpandCluster(unsigned int point,
+				       unsigned int clusterID)
+{
   /* GetSetOfPoints for point*/
   //std::vector<unsigned int> ne = findNeighbors(point, fEps,fEps2);
   std::set< unsigned int > seeds = RegionQuery(point);
@@ -672,9 +641,7 @@ bool cluster::DBScanService::ExpandCluster(unsigned int point,
   } else {
     // Add to the currecnt cluster
     fpointId_to_clusterId[point]=clusterID;
-    for (std::set<unsigned int>::iterator itr = seeds.begin();
-	 itr != seeds.end();
-	 itr++){
+    for (std::set<unsigned int>::iterator itr = seeds.begin(); itr != seeds.end(); itr++){
       fpointId_to_clusterId[*itr]=clusterID;
     }
     seeds.erase(point);
@@ -709,12 +676,12 @@ bool cluster::DBScanService::ExpandCluster(unsigned int point,
 //
 // The original findNeignbor based code converted to use a R*-tree,
 // but not rearranged
-void cluster::DBScanService::run_FN_cluster() 
+void cluster::DBScanAlg::run_FN_cluster() 
 {
 
   unsigned int cid = 0;
   // foreach pid
-  for ( unsigned int pid = 0; pid < fps.size(); pid++){
+  for (size_t pid = 0; pid < fps.size(); pid++){
     // not already visited
     if (!fvisited[pid]){  
       
@@ -735,7 +702,7 @@ void cluster::DBScanService::run_FN_cluster()
 	c.push_back(pid);   	// assign pid to cluster
 	fpointId_to_clusterId[pid]=cid; 
 	// go to neighbors
-	for (unsigned int i = 0; i < ne.size(); i++){
+	for (size_t i = 0; i < ne.size(); ++i){
 	  unsigned int nPid = ne[i];
 	  
 	  // not already visited
@@ -749,7 +716,7 @@ void cluster::DBScanService::run_FN_cluster()
 		       	
 	      // join
 	      
-	      for(unsigned int i=0;i<ne1.size();i++){
+	      for(size_t i = 0; i < ne1.size(); ++i){
 		// join neighbord
 		ne.push_back(ne1[i]); 
 	      }
@@ -776,13 +743,13 @@ void cluster::DBScanService::run_FN_cluster()
   int noise=0;
   //no_hits=fnoise.size();
 
-  for(unsigned int y=0;y< fpointId_to_clusterId.size();++y){
+  for(size_t y = 0;y < fpointId_to_clusterId.size(); ++y){
     //if  (fpointId_to_clusterId[y]==0) noise++;
     if (fpointId_to_clusterId[y]==kNO_CLUSTER) noise++;
   }  
   mf::LogInfo("DBscan") << "FindNeighbors (R*-tree): Found " 
 			   << cid << " clusters...";
-  for (unsigned int c=0; c<cid; ++c){
+  for (unsigned int c = 0; c < cid; ++c){
     mf::LogVerbatim("DBscan") << "\t" << "Cluster " << c << ":\t" 
 			     << fclusters[c].size();
   }
@@ -795,12 +762,12 @@ void cluster::DBScanService::run_FN_cluster()
 // This is the algorithm that finds clusters:
 //
 // The original findNeighrbor-based code. 
-void cluster::DBScanService::run_FN_naive_cluster() 
+void cluster::DBScanAlg::run_FN_naive_cluster() 
 {
 
   unsigned int cid = 0;
   // foreach pid
-  for ( unsigned int pid = 0; pid < fps.size(); pid++){
+  for (size_t pid = 0; pid < fps.size(); ++pid){
     // not already visited
     if (!fvisited[pid]){  
       
@@ -818,9 +785,9 @@ void cluster::DBScanService::run_FN_naive_cluster()
 	std::vector<unsigned int> c;              // a new cluster
 	
 	c.push_back(pid);   	// assign pid to cluster
-	fpointId_to_clusterId[pid]=cid; 
+	fpointId_to_clusterId[pid] = cid; 
 	// go to neighbors
-	for (unsigned int i = 0; i < ne.size(); i++){
+	for (size_t i = 0; i < ne.size(); ++i){
 	  unsigned int nPid = ne[i];
 	  
 	  // not already visited
@@ -857,16 +824,16 @@ void cluster::DBScanService::run_FN_naive_cluster()
   } // for
   
   
-  int noise=0;
+  int noise = 0;
   //no_hits=fnoise.size();
 
-  for(unsigned int y=0;y< fpointId_to_clusterId.size();++y){
+  for(size_t y = 0; y < fpointId_to_clusterId.size(); ++y){
     //if  (fpointId_to_clusterId[y]==0) noise++;
-    if  (fpointId_to_clusterId[y]==kNO_CLUSTER) noise++;
+    if  (fpointId_to_clusterId[y] == kNO_CLUSTER) ++noise;
   }
   mf::LogInfo("DBscan") << "FindNeighbors (naive): Found " << cid 
 			   << " clusters...";
-  for (unsigned int c=0; c<cid; ++c){
+  for (unsigned int c = 0; c < cid; ++c){
     mf::LogVerbatim("DBscan") << "\t" << "Cluster " << c << ":\t" 
 			     << fclusters[c].size() << " points";
   }

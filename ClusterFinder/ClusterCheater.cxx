@@ -12,7 +12,6 @@
 #include "Geometry/geo.h"
 #include "MCCheater/BackTracker.h"
 #include "ClusterFinder/ClusterCheater.h"
-#include "ClusterFinder/HoughLineService.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
 #include "Simulation/sim.h"
@@ -31,6 +30,7 @@ namespace cluster{
 
   //--------------------------------------------------------------------
   ClusterCheater::ClusterCheater(fhicl::ParameterSet const& pset)
+    : fHLAlg(pset.get< fhicl::ParameterSet >("HoughLineAlg"))
   {
     this->reconfigure(pset);
 
@@ -48,6 +48,7 @@ namespace cluster{
   {
     fHitModuleLabel    = pset.get< std::string >("HitModuleLabel",    "hit"     );
     fG4ModuleLabel     = pset.get< std::string >("G4ModuleLabel",     "largeant");
+    fHLAlg.reconfigure(pset);
 
     return;
   }
@@ -178,10 +179,9 @@ namespace cluster{
 	    
 	    // figure out the rest of the cluster information using these hits
 	    
-	    // use the HoughLineService to get dTdW for these hits
-	    art::ServiceHandle<cluster::HoughLineService> hls;
+	    // use the HoughLineAlg to get dTdW for these hits
 	    double intercept = 0.;
-	    hls->Transform(eveHits, dTdW, intercept);
+	    fHLAlg.Transform(eveHits, dTdW, intercept);
 	    
 	    ///\todo now figure out the dQdW
 	    

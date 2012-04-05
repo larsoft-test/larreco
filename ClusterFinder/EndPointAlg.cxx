@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////
 //
-// EndPointService class
+// EndPointAlg class
 //
 // joshua.spitz@yale.edu
 //
@@ -18,58 +18,53 @@
 
 #include <iostream>
 #include <vector>
+extern "C" {
+#include <sys/types.h>
+#include <sys/stat.h>
+}
+#include <sstream>
+#include <fstream>
+#include <math.h>
+#include <algorithm>
+
+#include "TMath.h"
 
 // Framework includes
-#include "art/Framework/Principal/Event.h"
-#include "fhiclcpp/ParameterSet.h"
-#include "art/Framework/Principal/Handle.h"
-#include "art/Persistency/Common/Ptr.h"
-#include "art/Persistency/Common/PtrVector.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Framework/Services/Optional/TFileService.h"
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "ClusterFinder/EndPointService.h"
-
+#include "ClusterFinder/EndPointAlg.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/DetectorProperties.h"
-extern "C" {
-#include <sys/types.h>
-#include <sys/stat.h>
-}
-
-#include <sstream>
-#include <fstream>
-#include <math.h>
-#include <algorithm>
-#include "TMath.h"
-
-
-#include "RawData/RawDigit.h"
-#include "Filters/ChannelFilter.h"
-#include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
 
 //-----------------------------------------------------------------------------
-cluster::EndPointService::EndPointService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg) 
-  : fTimeBins        (pset.get< int    >("TimeBins")      )
-  , fMaxCorners      (pset.get< int    >("MaxCorners")    )
-  , fGsigma          (pset.get< double >("Gsigma")        )
-  , fWindow          (pset.get< int    >("Window")        )
-  , fThreshold       (pset.get< double >("Threshold")     )
-  , fSaveVertexMap   (pset.get< int    >("SaveVertexMap") )
+cluster::EndPointAlg::EndPointAlg(fhicl::ParameterSet const& pset) 
+{
+  this->reconfigure(pset);
+}
+
+//-----------------------------------------------------------------------------
+cluster::EndPointAlg::~EndPointAlg()
 {
 }
 
 //-----------------------------------------------------------------------------
-cluster::EndPointService::~EndPointService()
+void cluster::EndPointAlg::reconfigure(fhicl::ParameterSet const& p)
 {
+  fTimeBins      = p.get< int    >("TimeBins");
+  fMaxCorners    = p.get< int    >("MaxCorners");
+  fGsigma        = p.get< double >("Gsigma");
+  fWindow        = p.get< int    >("Window");
+  fThreshold     = p.get< double >("Threshold");
+  fSaveVertexMap = p.get< int    >("SaveVertexMap");
 }
 
 //-----------------------------------------------------------------------------
-double cluster::EndPointService::Gaussian(int x, int y, double sigma)
+double cluster::EndPointAlg::Gaussian(int x, int y, double sigma)
 {
   double Norm=1./sqrt(2*TMath::Pi()*pow(sigma,2));
   double value=Norm*exp(-(pow(x,2)+pow(y,2))/(2*pow(sigma,2)));
@@ -77,7 +72,7 @@ double cluster::EndPointService::Gaussian(int x, int y, double sigma)
 }
 
 //-----------------------------------------------------------------------------
-double cluster::EndPointService::GaussianDerivativeX(int x,int y)
+double cluster::EndPointAlg::GaussianDerivativeX(int x,int y)
 {
   double Norm=1./(sqrt(2*TMath::Pi())*pow(fGsigma,3));
   double value=Norm*(-x)*exp(-(pow(x,2)+pow(y,2))/(2*pow(fGsigma,2)));
@@ -85,7 +80,7 @@ double cluster::EndPointService::GaussianDerivativeX(int x,int y)
 }
 
 //-----------------------------------------------------------------------------
-double cluster::EndPointService::GaussianDerivativeY(int x,int y)
+double cluster::EndPointAlg::GaussianDerivativeY(int x,int y)
 {
   double Norm=1./(sqrt(2*TMath::Pi())*pow(fGsigma,3));
   double value=Norm*(-y)*exp(-(pow(x,2)+pow(y,2))/(2*pow(fGsigma,2)));
@@ -95,7 +90,7 @@ double cluster::EndPointService::GaussianDerivativeY(int x,int y)
 
 //-----------------------------------------------------------------------------
 //this method saves a BMP image of the vertex map space, which can be viewed with gimp
-void cluster::EndPointService::VSSaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy)
+void cluster::EndPointAlg::VSSaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy)
 {
   ofstream bmpFile(fileName, std::ios::binary);
   bmpFile.write("B", 1);
@@ -132,7 +127,7 @@ void cluster::EndPointService::VSSaveBMPFile(const char *fileName, unsigned char
 }
 
 //......................................................
-size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn, 
+size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>& clusIn, 
 					  std::vector<recob::EndPoint2D>& vtxcol)
 {
 
@@ -198,7 +193,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 	
 	numberwires = geom->Cryostat(c).TPC(t).Plane(p).Nwires();
 	numbertimesamples = hit[0]->Wire()->fSignal.size();
-	mf::LogInfo("EndPointService") << " --- endpoints check " 
+	mf::LogInfo("EndPointAlg") << " --- endpoints check " 
 				       << numberwires << " " 
 				       << numbertimesamples << " " 
 				       << fTimeBins;
@@ -224,7 +219,7 @@ size_t cluster::EndPointService::EndPoint(art::PtrVector<recob::Cluster>& clusIn
 	  geom->ChannelToWire(channel, cstat, tpc, plane, wire);
 	  //pixelization using a Gaussian
 	  for(int j = 0; j <= (int)(hit[i]->EndTime()-hit[i]->StartTime()+.5); ++j)    
-	    hit_map[wire][(int)((hit[i]->StartTime()+j)*(fTimeBins/numbertimesamples)+.5)]+=Gaussian((int)(j-((hit[i]->EndTime()-hit[i]->StartTime())/2.)+.5),0,hit[i]->EndTime()-hit[i]->StartTime());      
+	    hit_map[wire][(int)((hit[i]->StartTime()+j)*(fTimeBins/numbertimesamples)+.5)] += Gaussian((int)(j-((hit[i]->EndTime()-hit[i]->StartTime())/2.)+.5),0,hit[i]->EndTime()-hit[i]->StartTime());      
 	}
 	
 	// Gaussian derivative convolution  

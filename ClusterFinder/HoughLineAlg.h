@@ -1,19 +1,18 @@
 ////////////////////////////////////////////////////////////////////////
-// $Id: HoughLineService.h,v 1.36 2010/09/15  bpage Exp $
+// $Id: HoughLineAlg.h,v 1.36 2010/09/15  bpage Exp $
 //
-// HoughLineService class
+// HoughLineAlg class
 //
 // josh
 //
 ////////////////////////////////////////////////////////////////////////
-#ifndef HOUGHLINESERVICE_H
-#define HOUGHLINESERVICE_H
+#ifndef HOUGHLINEALG_H
+#define HOUGHLINEALG_H
 
 #include "TMath.h"
 #include <vector>
 
-#include "art/Framework/Services/Registry/ActivityRegistry.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 
 
@@ -29,8 +28,7 @@ namespace cluster {
     
     HoughTransform();
     ~HoughTransform();
-    
-    
+     
     void Init(int dx, int dy, int rhoresfact, int numACells);
     bool AddPoint(int x, int y);
     int  GetCell(int row, int col)            { return m_accum[row][col]; }
@@ -68,12 +66,12 @@ namespace cluster {
     bool DoAddPoint(int x, int y);
   }; // class HoughTransform  
 
-  class HoughLineService {
+  class HoughLineAlg {
     
   public:
     
-    HoughLineService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg); 
-    virtual ~HoughLineService();
+    HoughLineAlg(fhicl::ParameterSet const& pset); 
+    virtual ~HoughLineAlg();
          
     size_t Transform(art::PtrVector<recob::Cluster>& clusIn,
      	             std::vector<recob::Cluster>& ccol);
@@ -89,17 +87,21 @@ namespace cluster {
     void HLSSaveBMPFile(char const*, unsigned char*, int, int);
 
   
-    int    fMaxLines;      //Max number of lines that can be found 
-    int    fMinHits;       //Min number of hits in the accumulator to consider (number of hits required to be considered a line).
-    int    fSaveAccumulator;  //Save bitmap image of accumulator for debugging?
-    int    fNumAngleCells;    //Number of angle cells in the accumulator (a measure of the angular resolution of the line finder). If this number is too large than the number of votes that fall into the "correct" bin will be small and consistent with noise.
+    int    fMaxLines;         ///< Max number of lines that can be found 
+    int    fMinHits;          ///< Min number of hits in the accumulator to consider 
+                              ///< (number of hits required to be considered a line).
+    int    fSaveAccumulator;  ///< Save bitmap image of accumulator for debugging?
+    int    fNumAngleCells;    ///< Number of angle cells in the accumulator 
+                              ///< (a measure of the angular resolution of the line finder). 
+                              ///< If this number is too large than the number of votes 
+                              ///< that fall into the "correct" bin will be small and consistent with noise.
     double fMaxDistance;
     double fMaxSlope;
-    int fRhoZeroOutRange;
-    int fThetaZeroOutRange;
-    int fRhoResolutionFactor;
-    int fPerCluster;
-    int fMissedHits;
+    int    fRhoZeroOutRange;
+    int    fThetaZeroOutRange;
+    int    fRhoResolutionFactor;
+    int    fPerCluster;
+    int    fMissedHits;
       
   protected:
 
@@ -107,8 +109,6 @@ namespace cluster {
   };
   
   
-}
+}// namespace
 
-
-
-#endif // HOUGHLineFINDER_H
+#endif // HOUGHLINEALG_H

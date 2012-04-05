@@ -13,7 +13,9 @@
 #include <vector>
 #include <string>
 
-///vertex reconstruction
+#include "ClusterFinder/EndPointAlg.h"
+
+/// 2D end point reconstruction
 namespace cluster {
 
   ///module to find 2D end points 
@@ -24,11 +26,14 @@ namespace cluster {
     explicit EndPointModule(fhicl::ParameterSet const& pset); 
     virtual ~EndPointModule();        
 
+    void reconfigure(fhicl::ParameterSet const& p);
     void produce(art::Event& evt);
     
   private:
 
     std::string fDBScanModuleLabel;
+
+    EndPointAlg fEPAlg;            ///< object that contains the end point finding algorithm
    
   };
     

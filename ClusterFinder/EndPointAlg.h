@@ -1,15 +1,14 @@
 ////////////////////////////////////////////////////////////////////////
-/// \file  EndPointService.h
-/// \brief Service to find 2D endpoints
+/// \file  EndPointAlg.h
+/// \brief algorithm to find 2D endpoints
 ///
 /// \author  joshua.spitz@yale.edu
 ////////////////////////////////////////////////////////////////////////
 
-#ifndef EndPointService_H
-#define EndPointService_H
+#ifndef ENDPOINTALG_H
+#define ENDPOINTALG_H
 
-#include "art/Framework/Services/Registry/ActivityRegistry.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 
 #include "TMath.h"
@@ -23,13 +22,15 @@ namespace recob {
 
 namespace cluster {
    
-  ///Service to find 2D end points
- class EndPointService {
+  ///Algorithm to find 2D end points
+ class EndPointAlg {
     
   public:
     
-    explicit EndPointService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg); 
-    virtual ~EndPointService();        
+    explicit EndPointAlg(fhicl::ParameterSet const& pset); 
+    virtual ~EndPointAlg();        
+
+    void   reconfigure(fhicl::ParameterSet const& pset);
 
     size_t EndPoint(art::PtrVector<recob::Cluster>& clusIn, std::vector<recob::EndPoint2D>& vtxcol);
     
@@ -53,4 +54,4 @@ namespace cluster {
 
 
 
-#endif // EndPointService_H
+#endif // ENDPOINTALG_H

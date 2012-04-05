@@ -1,9 +1,12 @@
+#include "job/clusteralgorithms.fcl"
+
 BEGIN_PROLOG
 
 standard_dbcluster:
 {
  module_type:     "DBcluster"
  HitsModuleLabel: "ffthit"
+ DBScanAlg:       @local::standard_dbscanalg
 }
 
 standard_dbclusterana:
@@ -31,6 +34,7 @@ standard_houghlinefinder:
  RhoZeroOutRange:      0
  ThetaZeroOutRange:    0
  HitsPerCluster:       1
+ HoughLineAlg:         @local::standard_houghlinealg
 }
 
 standard_houghlinefinderana:
@@ -40,12 +44,6 @@ standard_houghlinefinderana:
  HitsModuleLabel:     "ffthit"
  DBScanModuleLabel:   "dbcluster"
  HoughModuleLabel:    "hough"
-}
-
-standard_houghlinemod:
-{
- module_type:          "HoughLineModule"
- DBScanModuleLabel:    "dbcluster"
 }
 
 standard_linemerger:
@@ -60,6 +58,7 @@ standard_endpointmod:
 {
  module_type:       "EndPointModule"
  DBScanModuleLabel: "dbcluster"
+ EndPointAlg:       @local::standard_endpointalg
 }
 
 standard_kingacluster:
@@ -91,41 +90,43 @@ standard_showeranglecluster:
  UseMCVertex:              1              #needed for MC vertex extraction
 }
 
-argoneut_dbcluster:          @local::standard_dbcluster
-argoneut_dbclusterana:       @local::standard_dbclusterana
-argoneut_kingacluster:       @local::standard_kingacluster
-argoneut_kingaclusterana:    @local::standard_kingaclusterana
-argoneut_houghlinefinder:    @local::standard_houghlinefinder
-argoneut_houghlinefinderana: @local::standard_houghlinefinderana
-argoneut_houghlinemod:       @local::standard_houghlinemod
-argoneut_linemerger:         @local::standard_linemerger
-argoneut_endpointmod:        @local::standard_endpointmod
-argoneut_showeranglecluster:       @local::standard_showeranglecluster
+argoneut_dbcluster:                    @local::standard_dbcluster      
+argoneut_dbcluster.DBScanAlg:          @local::argoneut_dbscanalg   
+argoneut_dbclusterana:                 @local::standard_dbclusterana   
+argoneut_kingacluster:                 @local::standard_kingacluster   
+argoneut_kingaclusterana:              @local::standard_kingaclusterana
+argoneut_houghlinefinder:              @local::standard_houghlinefinder
+argoneut_houghlinefinder.HoughLineAlg: @local::argoneut_houghlinealg
+argoneut_houghlinefinderana:           @local::standard_houghlinefinderana 
+argoneut_linemerger:                   @local::standard_linemerger         
+argoneut_endpointmod:                  @local::standard_endpointmod        
+argoneut_endpointmod.EndPointAlg:      @local::argoneut_endpointalg
+argoneut_showeranglecluster:           @local::standard_showeranglecluster
 
+microboone_dbcluster:                    @local::standard_dbcluster      
+microboone_dbcluster.DBScanAlg:          @local::microboone_dbscanalg    
+microboone_dbclusterana:                 @local::standard_dbclusterana   
+microboone_kingacluster:                 @local::standard_kingacluster   
+microboone_kingaclusterana:              @local::standard_kingaclusterana
+microboone_houghlinefinder:              @local::standard_houghlinefinder
+microboone_houghlinefinder.HoughLineAlg: @local::microboone_houghlinealg
+microboone_houghlinefinderana:           @local::standard_houghlinefinderana
+microboone_linemerger:                   @local::standard_linemerger        
+microboone_endpointmod:                  @local::standard_endpointmod       
+microboone_endpointmod.EndPointAlg:      @local::microboone_endpointalg
+microboone_showeranglecluster:           @local::standard_showeranglecluster
 
-microboone_dbcluster:          @local::standard_dbcluster
-microboone_dbclusterana:       @local::standard_dbclusterana
-microboone_kingacluster:       @local::standard_kingacluster
-microboone_kingaclusterana:    @local::standard_kingaclusterana
-microboone_houghlinefinder:    @local::standard_houghlinefinder
-microboone_houghlinefinderana: @local::standard_houghlinefinderana
-microboone_houghlinemod:       @local::standard_houghlinemod
-microboone_linemerger:         @local::standard_linemerger
-microboone_endpointmod:        @local::standard_endpointmod
-microboone_showeranglecluster:       @local::standard_showeranglecluster
-
-
-
-lbne_dbcluster:          @local::standard_dbcluster
-lbne_dbclusterana:       @local::standard_dbclusterana
-lbne_kingacluster:       @local::standard_kingacluster
-lbne_kingaclusterana:    @local::standard_kingaclusterana
-lbne_houghlinefinder:    @local::standard_houghlinefinder
-lbne_houghlinefinderana: @local::standard_houghlinefinderana
-lbne_houghlinemod:       @local::standard_houghlinemod
-lbne_linemerger:         @local::standard_linemerger
-lbne_endpointmod:        @local::standard_endpointmod
-lbne_showeranglecluster:       @local::standard_showeranglecluster
-
+lbne_dbcluster:                    @local::standard_dbcluster      
+lbne_dbcluster.DBScanAlg:          @local::lbne_dbscanalg          
+lbne_dbclusterana:                 @local::standard_dbclusterana   
+lbne_kingacluster:                 @local::standard_kingacluster   
+lbne_kingaclusterana:              @local::standard_kingaclusterana
+lbne_houghlinefinder:              @local::standard_houghlinefinder
+lbne_houghlinefinder.HoughLineAlg: @local::lbne_houghlinealg
+lbne_houghlinefinderana:           @local::standard_houghlinefinderana
+lbne_linemerger:                   @local::standard_linemerger        
+lbne_endpointmod:                  @local::standard_endpointmod       
+lbne_endpointmod.EndPointAlg:      @local::lbne_endpointalg
+lbne_showeranglecluster:           @local::standard_showeranglecluster
 
 END_PROLOG

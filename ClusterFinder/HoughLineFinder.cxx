@@ -31,8 +31,6 @@ extern "C" {
 #include "art/Framework/Principal/Event.h" 
 #include "fhiclcpp/ParameterSet.h" 
 #include "art/Framework/Principal/Handle.h" 
-#include "art/Persistency/Common/Ptr.h" 
-#include "art/Persistency/Common/PtrVector.h" 
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "art/Framework/Services/Optional/TFileDirectory.h" 
@@ -45,13 +43,14 @@ extern "C" {
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
 #include "Geometry/geo.h"
-#include "ClusterFinder/HoughLineService.h"
+#include "ClusterFinder/HoughLineAlg.h"
 #include "ClusterFinder/HoughLineFinder.h"
 
 //------------------------------------------------------------------------------
 cluster::HoughLineFinder::HoughLineFinder(fhicl::ParameterSet const& pset) 
-   : fDBScanModuleLabel       (pset.get< std::string >("DBScanModuleLabel"))
+  : fHLAlg(pset.get< fhicl::ParameterSet >("HoughLineAlg"))
 {
+  this->reconfigure(pset);
   produces< std::vector<recob::Cluster> >();
   produces< art::Assns<recob::Cluster, recob::Hit> >();
 }
@@ -59,6 +58,13 @@ cluster::HoughLineFinder::HoughLineFinder(fhicl::ParameterSet const& pset)
 //------------------------------------------------------------------------------
 cluster::HoughLineFinder::~HoughLineFinder()
 {
+}
+
+//------------------------------------------------------------------------------
+void cluster::HoughLineFinder::reconfigure(fhicl::ParameterSet const& p)
+{
+  fDBScanModuleLabel = p.get< std::string >("DBScanModuleLabel");
+  fHLAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughLineAlg"));
 }
 
 //------------------------------------------------------------------------------
@@ -79,21 +85,17 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
     clusIn.push_back(cluster);
   }
   
-  art::ServiceHandle<cluster::HoughLineService> hls;
-  
   // make a std::vector<recob::Cluster> for the output of the 
   // Hough Transform
   std::vector<recob::Cluster> clusOut;
   
-  size_t numclus = hls->Transform(clusIn, clusOut);
+  size_t numclus = fHLAlg.Transform(clusIn, clusOut);
 
-  LOG_DEBUG("HoughLineClusters") << "found " << numclus << "clusters with HoughLineService";
+  LOG_DEBUG("HoughLineClusters") << "found " << numclus << "clusters with HoughLineAlg";
 
   //Point to a collection of clusters to output.
   std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>(clusOut));
   std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
-
-  std::sort(ccol->begin(), ccol->end());//sort before Putting
 
   mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
   mf::LogVerbatim("Summary") << "HoughLineFinder Summary:";

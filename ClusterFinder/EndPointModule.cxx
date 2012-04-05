@@ -29,7 +29,7 @@
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "ClusterFinder/EndPointService.h"
+#include "ClusterFinder/EndPointAlg.h"
 #include "ClusterFinder/EndPointModule.h"
 extern "C" {
 #include <sys/types.h>
@@ -42,24 +42,27 @@ extern "C" {
 #include <algorithm>
 #include "TMath.h"
 
-
-#include "RawData/RawDigit.h"
-#include "Filters/ChannelFilter.h"
-#include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
 
 //-----------------------------------------------------------------------------
-cluster::EndPointModule::EndPointModule(fhicl::ParameterSet const& pset) :
-  fDBScanModuleLabel  (pset.get< std::string >("DBScanModuleLabel"))
-  
+cluster::EndPointModule::EndPointModule(fhicl::ParameterSet const& pset)
+  : fEPAlg(pset.get< fhicl::ParameterSet >("EndPointAlg"))
 {
+  this->reconfigure(pset);
   produces< std::vector<recob::EndPoint2D> >();
 }
 
 //-----------------------------------------------------------------------------
 cluster::EndPointModule::~EndPointModule()
 {
+}
+
+//-----------------------------------------------------------------------------
+void cluster::EndPointModule::reconfigure(fhicl::ParameterSet const& p)
+{
+  fDBScanModuleLabel = p.get<std::string>("DBScanModuleLabel");  
+  fEPAlg.reconfigure(p.get< fhicl::ParameterSet >("EndPointAlg"));
 }
 
 //-----------------------------------------------------------------------------
@@ -79,13 +82,11 @@ void cluster::EndPointModule::produce(art::Event& evt)
       clusIn.push_back(cluster);
     }
  
-  art::ServiceHandle<cluster::EndPointService> vs;
-  
   // make a std::vector<recob::Cluster> for the output of the 
   // Hough Transform
   std::vector<recob::EndPoint2D> vtxOut;
   
-  size_t numvtx = vs->EndPoint(clusIn, vtxOut);
+  size_t numvtx = fEPAlg.EndPoint(clusIn, vtxOut);
 
   LOG_DEBUG("Vertex") << "found " << numvtx << "vertices with VertexService";
 

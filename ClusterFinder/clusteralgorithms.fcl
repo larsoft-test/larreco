@@ -1,6 +1,6 @@
 BEGIN_PROLOG
 
- standard_dbscanservice:
+ standard_dbscanalg:
  {
   eps:             1.0
   epstwo:          1.5
@@ -21,12 +21,12 @@ BEGIN_PROLOG
                      #                           channel aware (not working)
  }
 
-standard_dbscanservice_fast:        @local::standard_dbscanservice
-standard_dbscanservice_fast.eps:    1.25
-standard_dbscanservice_fast.epstwo: 1.75
-standard_dbscanservice_fast.Method: 2
+standard_dbscanalg_fast:        @local::standard_dbscanalg
+standard_dbscanalg_fast.eps:    1.25
+standard_dbscanalg_fast.epstwo: 1.75
+standard_dbscanalg_fast.Method: 2
 
- standard_houghlineservice:
+ standard_houghlinealg:
  {
   MaxLines:             15
   MinHits:              3
@@ -41,7 +41,7 @@ standard_dbscanservice_fast.Method: 2
   MissedHits:           1
  }
 
- standard_endpointservice:
+ standard_endpointalg:
  {
   TimeBins:            256
   MaxCorners:          20
@@ -51,16 +51,16 @@ standard_dbscanservice_fast.Method: 2
   SaveVertexMap:       -1
  }
 
- argoneut_dbscanservice:    @local::standard_dbscanservice
- argoneut_houghlineservice: @local::standard_houghlineservice
- argoneut_endpointservice:  @local::standard_endpointservice
+ argoneut_dbscanalg:    @local::standard_dbscanalg
+ argoneut_houghlinealg: @local::standard_houghlinealg
+ argoneut_endpointalg:  @local::standard_endpointalg
 
- microboone_dbscanservice:  @local::standard_dbscanservice_fast
- microboone_houghlineservice: @local::standard_houghlineservice
- microboone_endpointservice:  @local::standard_endpointservice
+ microboone_dbscanalg:    @local::standard_dbscanalg_fast
+ microboone_houghlinealg: @local::standard_houghlinealg
+ microboone_endpointalg:  @local::standard_endpointalg
 
- lbne_dbscanservice:    @local::standard_dbscanservice_fast
- lbne_houghlineservice: @local::standard_houghlineservice
- lbne_endpointservice:  @local::standard_endpointservice 
+ lbne_dbscanalg:    @local::standard_dbscanalg_fast
+ lbne_houghlinealg: @local::standard_houghlinealg
+ lbne_endpointalg:  @local::standard_endpointalg 
 
 END_PROLOG

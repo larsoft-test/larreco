@@ -30,7 +30,6 @@
 #include "Simulation/sim.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
-#include "ClusterFinder/DBScanService.h"
 #include "ClusterFinder/DBcluster.h"
 #include "Filters/ChannelFilter.h"
 
@@ -43,7 +42,7 @@
 
 //-------------------------------------------------
 cluster::DBcluster::DBcluster(fhicl::ParameterSet const& pset)
-   
+  : fDBScan(pset.get< fhicl::ParameterSet >("DBScanAlg")) 
 {  
   this->reconfigure(pset);
   produces< std::vector<recob::Cluster> >();  
@@ -58,7 +57,8 @@ cluster::DBcluster::~DBcluster()
 //-------------------------------------------------
 void cluster::DBcluster::reconfigure(fhicl::ParameterSet const& p)
 {
-  fhitsModuleLabel=p.get< std::string >("HitsModuleLabel");
+  fhitsModuleLabel = p.get< std::string >("HitsModuleLabel");
+  fDBScan.reconfigure(p.get< fhicl::ParameterSet >("DBScanAlg"));
 }
 
 //-------------------------------------------------
@@ -88,9 +88,6 @@ void cluster::DBcluster::produce(art::Event& evt)
   // loop over all hits in the event and look for clusters (for each plane)
   art::PtrVector<recob::Hit> allhits;
 
-  // get the DBScan service
-  art::ServiceHandle<cluster::DBScanService> dbscan;
- 
   // get the ChannelFilter
   filter::ChannelFilter chanFilt;
       
@@ -110,27 +107,27 @@ void cluster::DBcluster::produce(art::Event& evt)
 	
 	}  
       
-	dbscan->InitScan(allhits, chanFilt.SetOfBadChannels());
+	fDBScan.InitScan(allhits, chanFilt.SetOfBadChannels());
 
 	//----------------------------------------------------------------
-	for(unsigned int j = 0; j < dbscan->fps.size(); ++j){
+	for(unsigned int j = 0; j < fDBScan.fps.size(); ++j){
 	  
-	  if(allhits.size() != dbscan->fps.size()) break;
+	  if(allhits.size() != fDBScan.fps.size()) break;
 	  
-	  fhitwidth->Fill(dbscan->fps[j][2]);
+	  fhitwidth->Fill(fDBScan.fps[j][2]);
 	  
-	  if(sigType == geo::kInduction)  fhitwidth_ind_test->Fill(dbscan->fps[j][2]);
-	  if(sigType == geo::kCollection) fhitwidth_coll_test->Fill(dbscan->fps[j][2]);
+	  if(sigType == geo::kInduction)  fhitwidth_ind_test->Fill(fDBScan.fps[j][2]);
+	  if(sigType == geo::kCollection) fhitwidth_coll_test->Fill(fDBScan.fps[j][2]);
 	}
  
 	//*******************************************************************
-	dbscan->run_cluster();
+	fDBScan.run_cluster();
 	
-	for(size_t i = 0; i < dbscan->fclusters.size(); ++i){
+	for(size_t i = 0; i < fDBScan.fclusters.size(); ++i){
 	  art::PtrVector<recob::Hit> clusterHits;
 	  
-	  for(size_t j = 0; j < dbscan->fpointId_to_clusterId.size(); ++j){	  
-	    if(dbscan->fpointId_to_clusterId[j]==i) clusterHits.push_back(allhits[j]);
+	  for(size_t j = 0; j < fDBScan.fpointId_to_clusterId.size(); ++j){	  
+	    if(fDBScan.fpointId_to_clusterId[j]==i) clusterHits.push_back(allhits[j]);
 	  }
          
 	  ////////
@@ -166,13 +163,6 @@ void cluster::DBcluster::produce(art::Event& evt)
       } // end loop over planes
     } // end loop over tpcs
   } // end loop over cryostats
-
-  // 2/10/12 comment out the sorting as it destroys the associations between
-  // the hits and the clusters.  not clear why the sorting was here to begin
-  // with.  downstream modules should do their own sorting if they rely on
-  // the clusters coming in a certain order.
-  ///\todo remove following line after commenting it out has been shown not to matter
-  // std::sort(ccol->begin(),ccol->end());//sort before Putting
 
   mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
   mf::LogVerbatim("Summary") << "DBcluster Summary:";

@@ -1,14 +1,14 @@
 /////////////////////////////////////////////////////////////////
-//  DBSCANfinder.h
+//  \fileDBScanAlg.h
 //  kinga.partyka@yale.edu
 ////////////////////////////////////////////////////////////////////
-#ifndef DBScanService_H
-#define DBScanService_H
+#ifndef DBSCANALG_H
+#define DBSCANALG_H
 #include <vector>
 #include <cmath>
 #include <iostream>
-#include "art/Framework/Services/Registry/ActivityRegistry.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h"
+
+#include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Ptr.h"
 #include "art/Persistency/Common/PtrVector.h"
 #include "ClusterFinder/RStarTree/RStarTree.h"
@@ -30,38 +30,38 @@ typedef RTree::BoundingBox BoundingBox;
 namespace cluster{
 
   //--------------------------------------------------------------- 
-  class DBScanService {
+  class DBScanAlg {
   public:
     
     
-    DBScanService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg);
-    virtual ~DBScanService();
+    DBScanAlg(fhicl::ParameterSet const& pset);
+    virtual ~DBScanAlg();
     
     void reconfigure(fhicl::ParameterSet const& p);
     void InitScan(art::PtrVector<recob::Hit>& allhits, std::set<unsigned int> badChannels);
-     double getSimilarity(const std::vector<double> v1, const std::vector<double> v2); 
-     std::vector<unsigned int> findNeighbors( unsigned int pid, double threshold, double threshold2);
-     void computeSimilarity();
+    double getSimilarity(const std::vector<double> v1, const std::vector<double> v2); 
+    std::vector<unsigned int> findNeighbors( unsigned int pid, double threshold, double threshold2);
+    void computeSimilarity();
     void run_cluster();     
-     double getSimilarity2(const std::vector<double> v1, const std::vector<double> v2); 
-     void computeSimilarity2();
-     double getWidthFactor(const std::vector<double> v1, const std::vector<double> v2); 
-     void computeWidthFactor();
-      
-
+    double getSimilarity2(const std::vector<double> v1, const std::vector<double> v2); 
+    void computeSimilarity2();
+    double getWidthFactor(const std::vector<double> v1, const std::vector<double> v2); 
+    void computeWidthFactor();
+    
+    
     std::vector<std::vector<unsigned int> > fclusters;               ///< collection of something
     std::vector<std::vector<double> >       fps;                     ///< the collection of points we are working on     
     std::vector<unsigned int>               fpointId_to_clusterId;   ///< mapping point_id -> clusterId     
-     std::vector<std::vector<double> >       fsim;                    ///<
-     std::vector<std::vector<double> >       fsim2;            	     ///<
-     std::vector<std::vector<double> >       fsim3;            	     ///<
+    std::vector<std::vector<double> >       fsim;                    ///<
+    std::vector<std::vector<double> >       fsim2;            	     ///<
+    std::vector<std::vector<double> >       fsim3;            	     ///<
     double fMaxWidth;
 
     RTree fRTree;
     std::vector< dbsPoint > fRect;
     
   private:
-      
+    
     // eps radius
     // Two points are neighbors if the distance 
     // between them does not exceed threshold value.
@@ -78,9 +78,10 @@ namespace cluster{
     static const unsigned int kNOISE_CLUSTER = UINT_MAX-1;
     std::vector<bool>      fnoise;	
     std::vector<bool>      fvisited;					     
-    std::vector<double>    fWirePitch;   ///< the pitch of the wires in each plane
-    std::set<unsigned int> fBadChannels; ///< set of bad channels in this detector
-    std::vector<unsigned int> fBadWireSum; ///< running total of bad channels. Used for fast intervening dead wire counting ala fBadChannelSum[m]-fBadChannelSum[n]. 
+    std::vector<double>    fWirePitch;     ///< the pitch of the wires in each plane
+    std::set<unsigned int> fBadChannels;   ///< set of bad channels in this detector
+    std::vector<unsigned int> fBadWireSum; ///< running total of bad channels. Used for fast intervening 
+                                           ///< dead wire counting ala fBadChannelSum[m]-fBadChannelSum[n]. 
     
     // Three differnt version of the clustering code
     void run_dbscan_cluster();     
@@ -96,7 +97,7 @@ namespace cluster{
     std::vector<unsigned int> RegionQuery_vector(unsigned int point);
 
 
-  }; // class DBScanService
+  }; // class DBScanAlg
 } // namespace
 
-#endif // ifndef DBScanService_H
+#endif // ifndef DBSCANALG_H
