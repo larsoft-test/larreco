@@ -91,17 +91,19 @@ namespace filt{
     if( numHits> 0) {
       totHitHist->Fill(numHits);
       if(numHits < fMinNumHits) {
-	std::cout << "Too few hits"<< std::endl; 
-	failFlag=1;
+	std::cout << "Too few hits: "<< numHits << std::endl; 
+	failFlag=1;  
       }  
       if(failFlag==0) {
 	chan = hitvec[0]->Wire()->RawDigit()->Channel();
 	geom->ChannelToWire(chan,cs,tpc,plane,wire);
 	//Check to see if either plane is empty
+/* BB: This code section is broken.
 	if(geom->Cryostat(cs).TPC(tpc).Plane(plane).SignalType() == geo::kInduction){ 
 	  std::cout << "Induction empty." << std::endl;
 	  failFlag=2;
 	}
+*/
 	unsigned int j(0);  
 	//advances j to collection plane
 	while(plane == 0) {
@@ -123,7 +125,7 @@ namespace filt{
 	double minIon=0;
 	if((1.92*indIon)>colIon) minIon = colIon;
 	else minIon=1.92*indIon;
-	std::cout <<"min ionization " << minIon <<std::endl;
+	std::cout <<"min ionization " << minIon << " " << fMinIonization <<std::endl;
 	if (minIon < fMinIonization) failFlag=3;
       }
     }
