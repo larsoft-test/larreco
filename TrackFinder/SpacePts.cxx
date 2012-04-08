@@ -532,8 +532,21 @@ void trkf::SpacePts::produce(art::Event& evt)
                recob::SpacePoint mysp(sp_hits);//3d point at end of track
                mysp.SetXYZ(hitcoord);
                mysp.SetID(spacepoints.size());
-               spacepoints.push_back(mysp);
-	  
+	       // Don't add a spacepoint right on top of the last one.
+	       const double eps(0.1); // 1mm
+	       if (spacepoints.size()>=1)
+		 {
+		   TVector3 magNew(mysp.XYZ()[0],mysp.XYZ()[1],mysp.XYZ()[2]);
+		   TVector3 magLast(spacepoints[spacepoints.size()-1].XYZ()[0],
+				    spacepoints[spacepoints.size()-1].XYZ()[1],
+				    spacepoints[spacepoints.size()-1].XYZ()[2]
+				    );
+		   if (!(magNew.Mag()>=magLast.Mag()+eps || 
+			 magNew.Mag()<=magLast.Mag()-eps)
+		       )
+		     continue;
+		 }
+	       spacepoints.push_back(mysp);	  
             }//loop over min-hits
       
 
