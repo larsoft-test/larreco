@@ -27,7 +27,7 @@
 #include <iostream>
 
 #include "TMatrixT.h"
-
+#include "TH1D.h"
 
 /** @brief Generic Kalman Filter implementation
  *
@@ -112,6 +112,8 @@ public:
   /** @brief Set the blowup factor (see blowUpCovs() )
    */
   void setBlowUpFactor(double f){fBlowUpFactor=f;}
+  void setMomLow(Double_t f){fMomLow=f;}
+  void setMomHigh(Double_t f){fMomHigh=f;}
 
   // Private Methods -----------------
 private:
@@ -148,9 +150,11 @@ private:
   int fInitialDirection;
   Int_t fNumIt;
   double fBlowUpFactor;
+  Double_t fMomLow;
+  Double_t fMomHigh;
 
-
-
+  //TH1D* fUpdate;
+  //TH1D* fIhitvUpdate;
 
 };
 
