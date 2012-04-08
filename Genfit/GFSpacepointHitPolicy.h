@@ -70,20 +70,22 @@ public:
   /** @brief Hit coordinates in detector plane.
    */
   TMatrixT<double> hitCoord(GFAbsRecoHit*,const GFDetPlane&);
+  TMatrixT<double> hitCoord(GFAbsRecoHit*,const GFDetPlane&,const GFDetPlane&);
 
   /** @brief Hit covariances in detector plane.
    */
   TMatrixT<double> hitCov(GFAbsRecoHit*,const GFDetPlane&);
-
+  TMatrixT<double> hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, const GFDetPlane& planePrev, const TMatrixT<Double_t>& state, const Double_t& mass);
   virtual ~GFSpacepointHitPolicy(){;}
 
   const std::string& getName(){return fPolicyName;}
+
  private:
   static const std::string fPolicyName;
 
   // Private Data Members ------------
   GFDetPlane fPlane;
-
+  
   // Private Methods -----------------
 
   // public:

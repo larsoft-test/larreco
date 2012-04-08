@@ -19,7 +19,8 @@ public:
 
   // Constructors/Destructors ---------
   PointHit();
-  PointHit(TVector3 point,double res);
+  PointHit(TVector3 point, double res);
+  PointHit(TVector3 point, std::vector<double> &ref);
   PointHit(TVector3 point,TVector3 res);
 
   virtual ~PointHit();
@@ -28,7 +29,7 @@ public:
   
   // Operations ----------------------
   virtual TMatrixT<Double_t> getHMatrix(const GFAbsTrackRep* stateVector);
-
+  virtual TMatrixT<Double_t> getHMatrix(const GFAbsTrackRep* stateVector, const Double_t&, const Double_t&);
 
 private:
 

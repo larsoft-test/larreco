@@ -290,6 +290,7 @@ void genf::RKTrackRep::setPDG(int i){
   fCharge = part->Charge()/(3.);
 }
 
+int genf::RKTrackRep::getPDG(){return fPdg;}
 
 TVector3 genf::RKTrackRep::getPos(const GFDetPlane& pl){
   if(pl!=fRefPlane){

@@ -143,6 +143,7 @@ class RKTrackRep : public GFAbsTrackRep {
   void switchDirection(){fDirection = (!fDirection);}
   //! Set PDG particle code
   void setPDG(int);
+  int getPDG();
 
   //! Sets state, plane and (optionally) covariance
   /** This function also sets the parameter #fSpu to the value stored in #fCacheSpu. Therefore it has to be ensured that
