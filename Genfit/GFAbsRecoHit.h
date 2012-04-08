@@ -31,6 +31,7 @@
 
 #include "GFAbsTrackRep.h"
 #include "GFDetPlane.h"
+#include<cmath>
 
 /** @brief Base Class for representing a Hit in GENFIT
  *
@@ -123,6 +124,7 @@ public:
    * For example code see implementing classes below:
    */
   virtual TMatrixT<Double_t> getHMatrix(const GFAbsTrackRep* stateVector)=0;
+  virtual TMatrixT<Double_t> getHMatrix(const GFAbsTrackRep* stateVector, const Double_t&, const Double_t&)=0;
   
   
   /** @brief Calculate residual with respect to a track representation.
@@ -142,9 +144,26 @@ public:
    */
   virtual TMatrixT<Double_t> residualVector(const GFAbsTrackRep* stateVector,
 				  const TMatrixT<Double_t>& state,
-				  const GFDetPlane& d) {
+					    const GFDetPlane& d) {
+    std::cout << "GFAbsRecoHit::residualVector(3args) Not correctly Using theta -- multiple scattering -- information !!! Fix this if you really want to use getChi2Hit" << std::endl;
     TMatrixT<Double_t> H = getHMatrix(stateVector);
     return ( getHitCoord(d) - (H*state ));
+  }
+
+  virtual TMatrixT<Double_t> residualVector(const GFAbsTrackRep* stateVector,
+				  const TMatrixT<Double_t>& state,
+					    const GFDetPlane& d,
+					    const GFDetPlane& dPrev) 
+  {
+    Double_t dist = (d.getO()-dPrev.getO()).Mag();
+    Double_t mass = 0.104; // close enough for muons, pions, I think.
+    Double_t mom = fabs(1.0/state[0][0]);
+    Double_t beta = mom/sqrt(mass*mass+mom*mom);
+    if (isnan(dist) || dist<0.2) dist=0.2; // don't allow 0s here.
+    if (isnan(beta) || beta<0.04) beta=0.04;
+
+    TMatrixT<Double_t> H = getHMatrix(stateVector,beta,dist);
+    return ( getHitCoord(d,dPrev) - (H*state ));
   }
 
   
@@ -166,6 +185,7 @@ public:
    * @sa getGFDetPlane
    */
   virtual TMatrixT<Double_t> getHitCov(const GFDetPlane&)=0;
+  virtual TMatrixT<Double_t> getHitCov(const GFDetPlane&, const GFDetPlane&, const TMatrixT<Double_t>&, const Double_t&)=0;
 
   /** @brief Get hit coordinates in a specific detector plane
    *
@@ -174,6 +194,7 @@ public:
    * coordinate system to detector plane coordinate system. 
    * @sa getDetPlane
    */
+  virtual TMatrixT<Double_t> getHitCoord(const GFDetPlane&,const GFDetPlane&)=0;
   virtual TMatrixT<Double_t> getHitCoord(const GFDetPlane&)=0;
   
   
