@@ -72,6 +72,16 @@ namespace trkf {
     Float_t *fshx;
     Float_t *fshy;
     Float_t *fshz;
+    Float_t *feshx;
+    Float_t *feshy;
+    Float_t *feshz;
+    Float_t *feshyz;
+    Float_t *fth;
+    Float_t *feth;
+    Float_t *fedudw;
+    Float_t *fedvdw;
+    Float_t *feu;
+    Float_t *fev;
     Float_t *fsep;
     unsigned int fDimSize; // if necessary will get this from pset in constructor.
     Float_t *fPCmeans;
@@ -86,6 +96,7 @@ namespace trkf {
     std::vector<double> fMomStart;
     double fPerpLim;
     bool   fDoFit;
+    int fDecimate;
     genf::GFAbsTrackRep *repMC;
     genf::GFAbsTrackRep *rep;
 

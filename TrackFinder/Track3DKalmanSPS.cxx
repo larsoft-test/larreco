@@ -70,7 +70,7 @@ static bool sp_sort_3dz(const recob::SpacePoint& h1, const recob::SpacePoint& h2
 
 //-------------------------------------------------
 trkf::Track3DKalmanSPS::Track3DKalmanSPS(fhicl::ParameterSet const& pset) :
-  fDoFit(true)
+  fDoFit(true), fDecimate(1)
 {
 
     this->reconfigure(pset);
@@ -97,6 +97,7 @@ void trkf::Track3DKalmanSPS::reconfigure(fhicl::ParameterSet const& pset)
   fMomStart              = pset.get< std::vector < double >  >("MomStart3"); // 
   fPerpLim               = pset.get< double  >("PerpLimit"); // 
   fDoFit                 = pset.get< bool  >("DoFit", true); // 
+  fDecimate              = pset.get< int  >("Decimate", 1); // 
   fGenfPRINT             = pset.get< bool >("GenfPRINT");
   
 }
@@ -131,6 +132,16 @@ void trkf::Track3DKalmanSPS::beginJob()
   fshx = new Float_t[fDimSize];
   fshy = new Float_t[fDimSize];
   fshz = new Float_t[fDimSize];
+  feshx = new Float_t[fDimSize];
+  feshy = new Float_t[fDimSize];
+  feshz = new Float_t[fDimSize];
+  feshyz = new Float_t[fDimSize];
+  fth  = new Float_t[fDimSize];
+  feth = new Float_t[fDimSize];
+  fedudw = new Float_t[fDimSize];
+  fedvdw = new Float_t[fDimSize];
+  feu = new Float_t[fDimSize];
+  fev = new Float_t[fDimSize];
   fsep = new Float_t[fDimSize];
   
   fPC1 = new Float_t[3];
@@ -166,7 +177,17 @@ void trkf::Track3DKalmanSPS::beginJob()
   tree->Branch("shx",fshx,"shx[ptsNo]/F");
   tree->Branch("shy",fshy,"shy[ptsNo]/F");
   tree->Branch("shz",fshz,"shz[ptsNo]/F");
-  tree->Branch("shz",fsep,"sep[ptsNo]/F");
+  tree->Branch("sep",fsep,"sep[ptsNo]/F");
+  tree->Branch("eshx",feshx,"eshx[ptsNo]/F");
+  tree->Branch("eshy",feshy,"eshy[ptsNo]/F");
+  tree->Branch("eshz",feshz,"eshz[ptsNo]/F");
+  tree->Branch("eshyz",feshyz,"eshyz[ptsNo]/F");
+  tree->Branch("th",fth,"th[ptsNo]/F");  
+  tree->Branch("eth",feth,"eth[ptsNo]/F");
+  tree->Branch("edudw",fedudw,"edudw[ptsNo]/F");
+  tree->Branch("edvdw",fedvdw,"edvdw[ptsNo]/F");
+  tree->Branch("eu",feu,"eu[ptsNo]/F");
+  tree->Branch("ev",fev,"ev[ptsNo]/F");
 
   tree->Branch("pcMeans", fPCmeans,"pcMeans[3]/F");
   tree->Branch("pcSigmas",fPCsigmas,"pcSigmas[3]/F");
@@ -211,6 +232,16 @@ void trkf::Track3DKalmanSPS::endJob()
   delete[] fshx;
   delete[] fshy;
   delete[] fshz;
+  delete[] feshx;
+  delete[] feshy;
+  delete[] feshyz;
+  delete[] feshz;
+  delete[] fth;
+  delete[] feth;
+  delete[] fedudw;
+  delete[] fedvdw;
+  delete[] feu;
+  delete[] fev;
   delete[] fsep;
 
   delete[] fPCmeans;
@@ -355,7 +386,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  mf::LogInfo("Track3DKalmanSPS: ")<<"\n\t found "<<spacepoints.size()<<" 3D spacepoint(s) for this prong \n";
 				  
 		  const double resolution = posErr.Mag(); 
-		  const int numIT = 3; 
+		  const int numIT = 5; 
 		  // Let's find track's principle components.
 		  // We will sort along that direction, rather than z.
 		  // Further, we will skip outliers away from main axis.
@@ -380,7 +411,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		      data[0] = spacepointss[point].XYZ()[0];
 		      data[1] = spacepointss[point].XYZ()[1];
 		      data[2] = spacepointss[point].XYZ()[2];
-		      std::cout << "Spacepoint " << point << " added:" << spacepointss[point].XYZ()[0]<< ", " << spacepointss[point].XYZ()[1]<< ", " << spacepointss[point].XYZ()[2]<< ". " << std::endl;
+		      //		      std::cout << "Spacepoint " << point << " added:" << spacepointss[point].XYZ()[0]<< ", " << spacepointss[point].XYZ()[1]<< ", " << spacepointss[point].XYZ()[2]<< ". " << std::endl;
 		      principal->AddRow(data);
 		    }
 		  delete [] data;
@@ -433,12 +464,31 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  fMomStart[2] = spacepointss[spacepointss.size()-1].XYZ()[2] - spacepointss[0].XYZ()[2];
 		  // This presumes a muon. 
 		  TVector3 mom(0.0022*fMomStart[0],0.0022*fMomStart[1],0.0022*fMomStart[2]);
-		  // Over-estimate by just enough (20%).
-		  mom.SetMag(1.2 * mom.Mag()); 
+		  // Over-estimate by just enough (10%).
+		  mom.SetMag(1.1 * mom.Mag()); 
 		  // My true 0.5 GeV/c muons need a yet bigger over-estimate.
-		  if (mom.Mag()<0.7) mom.SetMag(1.2*mom.Mag());  
+		  //if (mom.Mag()<0.7) mom.SetMag(1.2*mom.Mag());  
 		  //		  if (mom.Mag()>2.0) mom.SetMag(10.0*mom.Mag());  
 		  //		  mom.SetMag(3*mom.Mag()); // EC, 15-Feb-2012. TEMPORARY!!!
+		  // If any point is outside TPC, this track is uncontained.
+		  // Try a higher momentum starting value in that case.
+		  bool uncontained(false);
+		  double close(10.);
+		  if (
+		      spacepointss[spacepointss.size()-1].XYZ()[0] > (2.*geom->DetHalfWidth(0,0)-close) || spacepointss[spacepointss.size()-1].XYZ()[0] < close ||
+		      spacepointss[0].XYZ()[0] > (2.*geom->DetHalfWidth(0,0)-close) || spacepointss[0].XYZ()[0] < close ||
+		      spacepointss[spacepointss.size()-1].XYZ()[1] > (2.*geom->DetHalfHeight(0,0)-close) || (spacepointss[spacepointss.size()-1].XYZ()[1] < -2.*geom->DetHalfHeight(0,0)+close) ||
+		      spacepointss[0].XYZ()[1] > (2.*geom->DetHalfHeight(0,0)-close) || spacepointss[0].XYZ()[1] < (-2.*geom->DetHalfHeight(0,0)+close) ||
+		      spacepointss[spacepointss.size()-1].XYZ()[2] > (geom->DetLength(0,0)-close) || spacepointss[spacepointss.size()-1].XYZ()[2] < close ||
+		      spacepointss[0].XYZ()[2] > (geom->DetLength(0,0)-close) || spacepointss[0].XYZ()[2] < close
+		      )
+		    uncontained = true;
+		  if (uncontained) 
+		    {
+		      // mom.SetMag(10. * mom.Mag()); 
+		      std::cout<<"Track3DKalmanSPS: Uncontained track ... Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
+		    }
+
 		  TVector3 momM(mom);
 		  TVector3 momErrFit(momM[0]/100.0,
 		  		     momM[1]/100.0,
@@ -474,27 +524,43 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		      double tmp[3];
 		      principal->X2P((Double_t *)(spacepointss[point].XYZ()),tmp);
 		      sep = sqrt(tmp[1]*tmp[1]/fPCevals[1]+tmp[2]*tmp[2]/fPCevals[2]);
-			if ((fabs(sep) > fPerpLim) && (point<(spacepointss.size()-nTailPoints)))
+		      if ((fabs(sep) > fPerpLim) && (point<(spacepointss.size()-nTailPoints)))
 		      {
+			//			std::cout << "Spacepoint " << point << " DROPPED!!!:" << spacepointss[point].XYZ()[0]<< ", " << spacepointss[point].XYZ()[1]<< ", " << spacepointss[point].XYZ()[2]<< ". " << std::endl;
 			continue;
 		      }
-		      TVector3 spt3 = (TVector3)(spacepointss[point].XYZ());
-		      TVector3 err3 = (TVector3)(spacepointss[point].ErrXYZ()[0],
-						 spacepointss[point].ErrXYZ()[2],
-						 spacepointss[point].ErrXYZ()[5]
-						 ); // lower triangle diags.
-		      if (point%20) // Jump out of loop except on every 20th pt.
+		      if (point%fDecimate) // Jump out of loop except on every fDecimate^th pt. fDecimate==1 never sees continue.
 			{
-			  //continue;
+			  continue;
 			}
+		      TVector3 spt3 = (TVector3)(spacepointss[point].XYZ());
+		      std::vector <double> err3;
+		      err3.push_back(spacepointss[point].ErrXYZ()[0]);
+		      err3.push_back(spacepointss[point].ErrXYZ()[2]);
+		      err3.push_back(spacepointss[point].ErrXYZ()[4]);
+		      err3.push_back(spacepointss[point].ErrXYZ()[5]); // lower triangle diags.
 		      if (fptsNo<fDimSize)
 			{
 			  fshx[fptsNo] = spt3[0];
 			  fshy[fptsNo] = spt3[1];
 			  fshz[fptsNo] = spt3[2];
+			  feshx[fptsNo] = err3[0];
+			  feshy[fptsNo] = err3[1];
+			  feshz[fptsNo] = err3[3];
+			  feshyz[fptsNo] = err3[2];
 			  fsep[fptsNo] = sep;
+			  if (fptsNo>1)
+			    {
+			      TVector3 pointer(fshx[fptsNo]-fshx[fptsNo-1],fshy[fptsNo]-fshy[fptsNo-1],fshz[fptsNo]-fshz[fptsNo-1]);
+			      TVector3 pointerPrev(fshx[fptsNo-1]-fshx[fptsNo-2],fshy[fptsNo-1]-fshy[fptsNo-2],fshz[fptsNo-1]-fshz[fptsNo-2]);
+			      fth[fptsNo] = (pointer.Unit()).Angle(pointerPrev.Unit());
+			    }
+			  feth[fptsNo] = 0.0;
+			  fedudw[fptsNo] = 0.0;
+			  fedvdw[fptsNo] = 0.0;
+			  feu[fptsNo] = 0.0;
+			  fev[fptsNo] = 0.0;
 			}
-		      fptsNo++;
 
 
 		      mf::LogDebug("Track3DKalmanSPS: ") << "ihit xyz..." << spt3[0]<<","<< spt3[1]<<","<< spt3[2];
@@ -503,11 +569,15 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 				      1,//dummy detector id
 				      ihit++
 				      );
+		      fptsNo++;
 		    } // end loop over spacepoints.
 
+		  mf::LogInfo("Track3DKalmanSPS: ") << "Fitting on " << fptsNo << " points.";
 		  //      std::cout<<"Track3DKalmanSPS about to do GFKalman."<<std::endl;
 		  genf::GFKalman k;
 		  k.setBlowUpFactor(50); // Instead of 500 out of box. EC, 6-Jan-2011.
+		  k.setMomHigh(20.0); // Don't fit above this many GeV.
+		  k.setMomLow(0.1);   // Don't fit below this many GeV.
 		  k.setInitialDirection(+1); // Instead of 1 out of box. EC, 6-Jan-2011.
 		  k.setNumIterations(numIT);
 		  bool skipFill = false;
@@ -515,6 +585,15 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  try{
 		    //	std::cout<<"Track3DKalmanSPS about to processTrack."<<std::endl;
 		    if (fDoFit) k.processTrack(&fitTrack);
+		    std::vector < TMatrixT<Double_t> > measCov(fitTrack.getMeasuredCov());
+		    for (int ihit=0; ihit<fptsNo; ihit++)
+		      {
+			feth[ihit] = (Float_t ) (measCov.at(ihit)[0][0]); // eth
+			fedudw[ihit] = (Float_t ) (measCov.at(ihit)[1][1]); // eth
+			fedvdw[ihit] = (Float_t ) (measCov.at(ihit)[2][2]); // eth
+			feu[ihit] = (Float_t ) (measCov.at(ihit)[3][3]); // eth
+			fev[ihit] = (Float_t ) (measCov.at(ihit)[4][4]); // eth
+		      }
 		    //std::cout<<"Track3DKalmanSPS back from processTrack."<<std::endl;
 		  }
 		  //catch(GFException& e){
@@ -568,7 +647,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 			      // fpRECLE is an extrap forward from first hit. Captures MS'ing 
 			      // only macroscopically. Not really what's desired. 
 			      // fpRECL is actually the last plane's momentum estimate.
-			      fpRECLE[ii] = rep->getMom(rep->getLastPlane())[ii]; 
+			      //fpRECLE[ii] = rep->getMom(rep->getLastPlane())[ii]; 
 			      fpRECL[ii] = (dynamic_cast<genf::RKTrackRep *> (rep))->getMomLast(rep->getLastPlane())[ii]; 
 			      fpRECt3D[ii] = dircoss[ii];
 			    }
@@ -576,7 +655,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 			  
 			  fpREC[3] = rep->getMom(rep->getReferencePlane()).Mag();
 			  fpRECL[3] = (dynamic_cast<genf::RKTrackRep *> (rep))->getMomLast(rep->getLastPlane()).Mag();
-			  fpRECLE[3] = rep->getMom(rep->getLastPlane()).Mag();
+			  //fpRECLE[3] = rep->getMom(rep->getLastPlane()).Mag();
 
 			  nTrks++;
 
