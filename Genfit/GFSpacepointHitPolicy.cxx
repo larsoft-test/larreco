@@ -56,6 +56,37 @@ genf::GFSpacepointHitPolicy::hitCoord(GFAbsRecoHit* hit,const GFDetPlane& plane)
   return returnMat;
 }
 
+
+TMatrixT<Double_t> 
+genf::GFSpacepointHitPolicy::hitCoord(GFAbsRecoHit* hit,const GFDetPlane& plane,const GFDetPlane& planePrev)
+{
+  TMatrixT<Double_t> returnMat(5,1); // Just return last 2 elements. Will calculate the rest in GFKalman.cxx.
+
+  TMatrixT<Double_t> _D(3,1);
+  TVector3 _U;
+  TVector3 _V;
+
+  _D[0][0] = (plane.getO())[0];
+  _D[1][0] = (plane.getO())[1];
+  _D[2][0] = (plane.getO())[2];
+
+  _D *= -1.; 
+  _D += hit->getRawHitCoord();
+  //now the vector _D points from the origin of the plane to the hit point
+
+
+  _U = plane.getU();
+  _V = plane.getV();
+
+
+  returnMat[0][0] = _D[0][0] * _U[0] + _D[1][0] * _U[1] + _D[2][0] * _U[2];
+  returnMat[1][0] = _D[0][0] * _V[0] + _D[1][0] * _V[1] + _D[2][0] * _V[2];
+  //std::cout << "hitCoord="<<std::endl;
+  //returnMat.Print();
+  return returnMat;
+}
+
+
 TMatrixT<Double_t> 
 genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane)
 {
