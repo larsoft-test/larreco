@@ -42,18 +42,19 @@ namespace trkf {
     // Update configuration parameters.
     void reconfigure(const fhicl::ParameterSet& pset);
 
-    recob::Seed FindSeedAtEnd(std::vector<recob::SpacePoint>);
-    recob::Seed FindSeedExhaustively(std::vector<recob::SpacePoint>);
+    recob::Seed * FindSeedAtEnd(std::vector<recob::SpacePoint>);
+    std::vector<recob::Seed *> FindSeedExhaustively(std::vector<recob::SpacePoint>);
+    std::vector<recob::Seed *> FindAsManySeedsAsPossible(std::vector<recob::SpacePoint>);
     void ProduceSpacePointPlots(std::vector<std::vector<recob::SpacePoint> > Points);
     void SetEventID(int EventID);
 
   private:
 
-    double fSeedLength;
+    double          fSeedLength;
     unsigned int    fMinPointsInCluster;
     unsigned int    fMinPointsInSeed;
-    float  fMinDirectionStrength;
-    int fEventID;
+    float           fMinDirectionStrength;
+    int             fEventID;
 
   };
 

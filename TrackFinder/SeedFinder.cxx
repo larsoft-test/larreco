@@ -17,6 +17,7 @@
 #include "RecoBase/Hit.h"
 #include "RecoBase/Seed.h"
 #include "RecoBase/Cluster.h"
+#include "RecoBase/Track.h"
 #include "RecoBase/Prong.h"
 #include "Utilities/AssociationUtil.h"
 
@@ -28,9 +29,8 @@ namespace trkf {
   {
     reconfigure(pset);
     produces<std::vector<recob::Seed> >();
- 
-    // Report.
-
+  
+  
     mf::LogInfo("SeedFinder") 
       << "SeedFinder configured with the following parameters:\n"
       << "  ClusterModuleLabel = " << fClusterModuleLabel << "\n"
@@ -45,8 +45,9 @@ namespace trkf {
   void SeedFinder::reconfigure(fhicl::ParameterSet const& pset)
   {
     fClusterModuleLabel = pset.get<std::string>("ClusterModuleLabel");
-    fFilter = pset.get<bool>("Filter");
-    fMerge = pset.get<bool>("Merge");
+    fFilter             = pset.get<bool>("Filter");
+    fMerge              = pset.get<bool>("Merge");
+    fSeedMode           = pset.get<int>("SeedMode");
   }
 
   void SeedFinder::beginJob()
@@ -55,28 +56,42 @@ namespace trkf {
   void SeedFinder::produce(art::Event& evt)
   {
     art::ServiceHandle<trkf::SeedFinderService> sfsvc;  
+ 
     int EventNumber = evt.id().event();
     sfsvc->SetEventID(EventNumber);
 
     art::Handle< std::vector<recob::Cluster> > clusterh;
     evt.getByLabel(fClusterModuleLabel, clusterh);
 
+    std::auto_ptr<std::vector<recob::Seed> > seeds(new std::vector<recob::Seed>);
 
     std::vector<std::vector<recob::SpacePoint> > SpacePointVectors = GetSpacePoints(clusterh);
     if(SpacePointVectors.size() > 0)
       {
-	std::auto_ptr<std::vector<recob::Seed> > seeds(new std::vector<recob::Seed>);
 	for(std::vector<std::vector<recob::SpacePoint> >::const_iterator it=SpacePointVectors.begin(); 
 	    it!=SpacePointVectors.end();
 	    it++)
 	  {
-	    recob::Seed TheSeed = sfsvc->FindSeedExhaustively(*it);
-	    seeds->push_back(TheSeed);
-	  }
-	evt.put(seeds); 
+	    std::vector<recob::Seed*> SeedFinderOutput;
+	    if(fSeedMode==0)
+	      SeedFinderOutput = sfsvc->FindSeedExhaustively(*it);
+	    else if(fSeedMode==1)
+	      SeedFinderOutput = sfsvc->FindAsManySeedsAsPossible(*it);
+	    else 
+	      throw cet::exception("SeedFinder") << 
+		"Unkown seed mode " << fSeedMode<<"\n";
+
+	    if(SeedFinderOutput.size()>0)
+	      for(int i=0; i!=SeedFinderOutput.size(); i++)
+		if(SeedFinderOutput.at(i)->IsValid())
+		  seeds->push_back(*(SeedFinderOutput.at(i)));
+	    
+	  }			  
       }
     else
       std::cout<<"Seed finder made no seeds : no space points in event"<<std::endl;
+    
+    evt.put(seeds);
     
   }
 

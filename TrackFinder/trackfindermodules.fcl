@@ -51,6 +51,25 @@ argoneut_spacepoint_finder:
   Merge: false
 }
 
+microboone_seedfinder_kalmanseed:
+{
+  module_type:        "SeedFinder"
+  SeedMode:           0
+  ClusterModuleLabel: "dbcluster"
+  Filter:             true
+  Merge:              false
+
+}
+
+microboone_seedfinder_bezierseed:
+{
+  module_type:        "SeedFinder"
+  SeedMode:           1
+  ClusterModuleLabel: "dbcluster"
+  Filter:             true
+  Merge:              false
+}
+
 microboone_track:
 {
  module_type:        "Track3Dreco"

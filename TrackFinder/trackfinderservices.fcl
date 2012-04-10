@@ -47,4 +47,12 @@ lbne_spacepointservice:
 }
 
 
+microboone_seedfinderservice:
+{
+  SeedLength: 5
+  MinPointsInCluster: 50
+  MinPointsInSeed: 10
+  MinDirectionStrength: 0.7
+}
+
 END_PROLOG

@@ -50,8 +50,8 @@ namespace trkf {
     // Fcl Attributes.
 
     std::string fClusterModuleLabel;
-    bool fFilter, fMerge;
-    
+    bool fFilter, fMerge, fMakeEvdTracks;
+    int fSeedMode;
     
   };
 }

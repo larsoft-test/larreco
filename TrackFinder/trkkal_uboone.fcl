@@ -1,6 +1,4 @@
 #include "job/services.fcl"
-#include "job/detectorproperties.fcl"
-#include "job/simulationservices.fcl"
 #include "job/largeantmodules.fcl"
 #include "job/caldata.fcl"
 #include "job/fftfinder.fcl"
@@ -30,14 +28,12 @@ services.user.DBScanService:      @local::argoneut_dbscanservice
 services.user.EndPointService:    @local::argoneut_endpointservice
 services.user.HoughLineService:   @local::argoneut_houghlineservice
 services.user.SpacePointService:  @local::microboone_spacepointservice
-services.user.SpacePointService.UseMC: true
-#services.user.DetectorProperties.SamplingRate: 200
 
 
 source:
 {
   module_type: RootInput
-  fileNames: [ " ../trk/recon_trk_mu_dbs.root" ]
+  fileNames: [ " standard_reco.root" ]
   maxEvents: 5        # Number of events to create
 }
 
