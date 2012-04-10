@@ -19,9 +19,9 @@ microboone_spacepointservice:
 {
   MaxDT: 2.0
   MaxS:  0.3
-  TimeOffsetU:  0.75
-  TimeOffsetV:  0.75
-  TimeOffsetW:  0.75
+  TimeOffsetU:  0.
+  TimeOffsetV:  0.
+  TimeOffsetW:  0.
   MinViews: 3
   EnableU: true
   EnableV: true
