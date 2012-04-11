@@ -46,6 +46,10 @@ namespace trkf {
     std::vector<recob::Seed *> FindSeedExhaustively(std::vector<recob::SpacePoint>);
     std::vector<recob::Seed *> FindAsManySeedsAsPossible(std::vector<recob::SpacePoint>);
     void ProduceSpacePointPlots(std::vector<std::vector<recob::SpacePoint> > Points);
+
+    std::vector<std::vector<recob::Hit*> > CollectSeedHits(std::vector<recob::Seed*> TheSeed, std::vector<recob::Hit*> TheHits);
+    std::vector<recob::Seed*> RefitSeeds(std::vector<recob::Seed*> TheSeed, std::vector<recob::Hit*> TheHits);
+
     void SetEventID(int EventID);
 
   private:
@@ -53,7 +57,7 @@ namespace trkf {
     double          fSeedLength;
     unsigned int    fMinPointsInCluster;
     unsigned int    fMinPointsInSeed;
-    float           fMinDirectionStrength;
+    float           fAngularDev;
     int             fEventID;
 
   };

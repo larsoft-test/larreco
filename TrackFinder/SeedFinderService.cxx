@@ -49,8 +49,7 @@ void trkf::SeedFinderService::reconfigure(const fhicl::ParameterSet& p)
   fSeedLength            = p.get<double>("SeedLength");
   fMinPointsInCluster    = p.get<unsigned int>("MinPointsInCluster");
   fMinPointsInSeed       = p.get<unsigned int>("MinPointsInSeed");
-  fMinDirectionStrength  = p.get<float>("MinDirectionStrength");
-
+  fAngularDev            = p.get<double>("AngularDev");
 }
 
 
@@ -86,7 +85,7 @@ std::vector<recob::Seed*> SeedFinderService::FindSeedExhaustively(std::vector<re
       else
         {
           // if we found an invalid or weak seed, chop off some points and try again
-	  if(Points.size() >= fMinPointsInSeed)
+	  if(Points.size() > fMinPointsInSeed)
 	    Points.resize(Points.size()-fMinPointsInSeed);
 	  else  // or if there is nothing left to chop, leave the loop
 	    KeepChopping=false;
@@ -126,17 +125,14 @@ std::vector<recob::Seed *> SeedFinderService::FindAsManySeedsAsPossible(std::vec
       TrackSeedThisCombo = FindSeedAtEnd(Points);
       if(TrackSeedThisCombo->IsValid())
         {
-          KeepChopping=false;
 	  ReturnVector.push_back(TrackSeedThisCombo);
         }
-      else
-        {
-	  // if we found an invalid or weak seed, chop off some points and try again
-          if(Points.size() > fMinPointsInSeed)
-            Points.resize(Points.size()-fMinPointsInSeed);
-          else  // or if there is nothing left to chop, leave the loop
-            KeepChopping=false;
-        }
+      // if enough left, chop off some points and try again
+      if(Points.size() > fMinPointsInSeed)
+	Points.resize(Points.size()-fMinPointsInSeed);
+      else  // or if there is nothing left to chop, leave the loop
+	KeepChopping=false;
+      
     }
   
   return ReturnVector;
@@ -160,12 +156,13 @@ recob::Seed * SeedFinderService::FindSeedAtEnd(std::vector<recob::SpacePoint> Po
   recob::Seed * ReturnSeed;
 
   std::vector<int> PointsInRange;
+  PointsInRange.clear();
 
-  float HighestZ = Points.at(Points.size()-1).XYZ()[2];
-  float HighestZX = Points.at(Points.size()-1).XYZ()[0];
-  float HighestZY = Points.at(Points.size()-1).XYZ()[1];
+  TVector3 HighestZPoint( Points.at(Points.size()-1).XYZ()[0],
+			  Points.at(Points.size()-1).XYZ()[1],
+			  Points.at(Points.size()-1).XYZ()[2] );
 
-  double CentreOfPointsX=0,CentreOfPointsY=0,CentreOfPointsZ=0;
+  TVector3 CentreOfPoints(0.,0.,0.);
 
   for(int index=Points.size()-1; index!=-1; index--)
     {
@@ -173,44 +170,28 @@ recob::Seed * SeedFinderService::FindSeedAtEnd(std::vector<recob::SpacePoint> Po
       //  (much faster, since most will be out of range in z anyway)
  
      
-      if( ( HighestZ - Points.at(index).XYZ()[2] ) < fSeedLength)
+      if( ( HighestZPoint[2] - Points.at(index).XYZ()[2] ) < fSeedLength)
         {
-          if( ( ( pow(HighestZ-Points.at(index).XYZ()[2],2) +
-                  pow(HighestZX-Points.at(index).XYZ()[0],2) +
-                  pow(HighestZY-Points.at(index).XYZ()[1],2) ) < pow(fSeedLength,2)))
+          if( ( ( pow(HighestZPoint[0]-Points.at(index).XYZ()[0],2) +
+                  pow(HighestZPoint[1]-Points.at(index).XYZ()[1],2) +
+                  pow(HighestZPoint[2]-Points.at(index).XYZ()[2],2) ) < pow(fSeedLength,2)))
 	    {
 	      PointsInRange.push_back(index);
-	      CentreOfPointsX+=Points.at(index).XYZ()[0];
-	      CentreOfPointsY+=Points.at(index).XYZ()[1];
-	      CentreOfPointsZ+=Points.at(index).XYZ()[2];
+	      CentreOfPoints[0]+=Points.at(index).XYZ()[0];
+	      CentreOfPoints[1]+=Points.at(index).XYZ()[1];
+	      CentreOfPoints[2]+=Points.at(index).XYZ()[2];
 	    }
         }
     }
 
-  int NPoints = PointsInRange.size();
+  unsigned int NPoints = PointsInRange.size();
   if(NPoints==0) return new recob::Seed();
-  CentreOfPointsX /= NPoints;
-  CentreOfPointsY /= NPoints;
-  CentreOfPointsZ /= NPoints;
+  CentreOfPoints = (1./float(NPoints)) * CentreOfPoints;
 
-  art::ServiceHandle<art::TFileService> tfs;
-  std::stringstream HistoName("");
-
-   
-  
-  std::vector<std::map<int,std::map<int, int> > > HitMapVec;
-  HitMapVec.resize(4);
-  for(int i=0; i!=4; i++) HitMapVec.at(i).clear();
- 
-  int CosThetaBins=20;
-  int PhiBins=20;
-
-  std::cout<<"Points in range " << PointsInRange.size()<<std::endl;
-  TVector3 HighestZPoint(HighestZX,HighestZY,HighestZ);
-  TVector3 CentreOfPoints(CentreOfPointsX,CentreOfPointsY,CentreOfPointsZ);
-
-  if(PointsInRange.size()>fMinPointsInSeed)
+  if(NPoints>fMinPointsInSeed)
     {
+      float costheta=0, phi=0, costheta2=0, phi2=0;
+
 
       for(unsigned int i=0; i!=PointsInRange.size(); i++)
         {
@@ -221,107 +202,60 @@ recob::Seed * SeedFinderService::FindSeedAtEnd(std::vector<recob::SpacePoint> Po
 	  
 	  if(Step.Z()<0) Step=-Step;
  
-          float costheta = Step.CosTheta();
-          float phi      = Step.Phi();
+
+          phi       += Step.Phi();
+	  phi2      += pow(Step.Phi(),2);
+
+	  // Need to check range of costheta to avoid getting a nan.
+	  //  (if CosTheta=1, floating point errors mess us up)
+	  if(Step.CosTheta()<0.9999)
+	    {
+	      costheta     += Step.CosTheta();
+	      costheta2    += pow(Step.CosTheta(),2);
+	    } 
+	  else
+	    {
+	      costheta+=1;
+	      costheta2+=1;
+	    }
+	  //	  std::cout<<phi<< " " <<phi2<< " " <<costheta << " " <<costheta2<<std::endl;
+	}
+
+      
+      float sigtheta    = pow((costheta2 / NPoints - pow( costheta/NPoints, 2 )),0.5);
+      float sigphi      = pow((phi2   / NPoints - pow( phi/NPoints,   2 )),0.5);
+      float meantheta   = acos(costheta      / NPoints);
+      float meanphi     = phi        / NPoints;
+      
+      float AngularDev =  pow(pow(sigtheta,2)+pow(sin(sigtheta)*sigphi,2),0.5); 
+      
+      std::cout<<"SeedFinderService debug: " << AngularDev<<std::endl;
+      
+      if(AngularDev<fAngularDev)
+	{
+     
+	  double PtArray[3], DirArray[3];
+          
+	  PtArray[0]=CentreOfPoints.X();
+	  PtArray[1]=CentreOfPoints.Y();
+	  PtArray[2]=CentreOfPoints.Z();
 	  
-	  int costhetabin, phibin;	  
-
-          costhetabin = (int) ((costheta+1.)/2. * CosThetaBins - 0.5);
-	  phibin = (int) ((phi/6.284)*PhiBins-0.5);
- 	  HitMapVec.at(0)[costhetabin][phibin] = HitMapVec.at(0)[costhetabin][phibin] + 1;
-
-          costhetabin = (int) ((costheta+1.)/2. * CosThetaBins );
-	  phibin = (int) ((phi/6.284)*PhiBins-0.5);
- 	  HitMapVec.at(1)[costhetabin][phibin] = HitMapVec.at(1)[costhetabin][phibin] + 1;
-
-          costhetabin = (int) ((costheta+1.)/2. * CosThetaBins - 0.5);
-	  phibin = (int) ((phi/6.284)*PhiBins );
- 	  HitMapVec.at(2)[costhetabin][phibin] = HitMapVec.at(2)[costhetabin][phibin] + 1;
-
-          costhetabin = (int) ((costheta+1.)/2. * CosThetaBins);
-	  phibin = (int) ((phi/6.284)*PhiBins);
- 	  HitMapVec.at(3)[costhetabin][phibin] = HitMapVec.at(3)[costhetabin][phibin] + 1;
+	  // calculate direction from average over hits
 	  
-        }
-      
-      double MaxValues[4]       = {0.};
-      double MaxCosThetaBins[4] = {0.};
-      double MaxPhiBins[4]   = {0.};
-      for(int mapid=0; mapid!=4; mapid++)
-	{
+	  TVector3 SeedDirection;
 	  
-	  // find most populated bin in hitmap
-	  for(std::map<int,std::map<int, int> >::const_iterator itcostheta=HitMapVec.at(mapid).begin();
-	      itcostheta!=HitMapVec.at(mapid).end();
-	      itcostheta++)
-	    for(std::map<int, int>::const_iterator itphi=itcostheta->second.begin();
-		itphi!=itcostheta->second.end();
-		itphi++)
-	      {
-		if(itphi->second > MaxValues[mapid])
-		  {
-		    MaxValues[mapid]       = itphi->second;
-		    MaxCosThetaBins[mapid]  = itcostheta->first;
-		    MaxPhiBins[mapid]       = itphi->first;
-		  }
-	      }   
+	  SeedDirection.SetMagThetaPhi(fSeedLength, meantheta, meanphi);
+	  
+	  DirArray[0]=SeedDirection.X();
+	  DirArray[1]=SeedDirection.Y();
+	  DirArray[2]=SeedDirection.Z();
+	  
+	  ReturnSeed = new recob::Seed(PtArray,DirArray);
 	}
-            
-      //      std::cout<<"Winning seed strengths : " <<float(MaxValues[0])/PointsInRange.size()<<" " << float(MaxValues[1])/PointsInRange.size()
-      //	       <<float(MaxValues[2])/PointsInRange.size()<<" " << float(MaxValues[3])/PointsInRange.size()<<std::endl;
-
-      double theta, phi;
-      if(MaxValues[0] > int(fMinDirectionStrength * PointsInRange.size()))
-	{
-	  theta = acos(2.0*float(MaxCosThetaBins[0])/CosThetaBins-1.0);
-	  phi = float(MaxPhiBins[0])/PhiBins*6.284;
-	}
-      else if(MaxValues[1] > int(fMinDirectionStrength * PointsInRange.size()))
-	{
-	  theta = acos(2.0*float(0.5+MaxCosThetaBins[1])/CosThetaBins-1.0);
-	  phi = float(MaxPhiBins[1])/PhiBins*6.284;
-	}
-      else if(MaxValues[2] > int(fMinDirectionStrength * PointsInRange.size()))
-	{
-	  theta = acos(2.0*float(0.5+MaxCosThetaBins[2])/CosThetaBins-1.0);
-	  phi = float(0.5+MaxPhiBins[2])/PhiBins*6.284;
-	}
-      else if(MaxValues[3] > int(fMinDirectionStrength * PointsInRange.size()))
-	{
-	  theta = acos(2.0*float(0.5+MaxCosThetaBins[3])/CosThetaBins-1.0);
-	  phi = float(0.5+MaxPhiBins[3])/PhiBins*6.284;
-	}
-      else
-	{
-	  return new recob::Seed();
-	}
-      
-      TVector3 SeedDirection;
-      SeedDirection.SetMagThetaPhi(fSeedLength, theta, phi);
-      
-      double PtArray[3], DirArray[3];
-           
-      // std::cout<<"SeedFinderService debug : Point " << 
-      // 	HighestZPoint.X() << " " <<
-      //	HighestZPoint.Y() << " " <<
-      //	HighestZPoint.Z() << std::endl;
-      
-      PtArray[0]=CentreOfPoints.X();
-      PtArray[1]=CentreOfPoints.Y();
-      PtArray[2]=CentreOfPoints.Z();
-      
-      DirArray[0]=SeedDirection.X();
-      DirArray[1]=SeedDirection.Y();
-      DirArray[2]=SeedDirection.Z();
-      
-      ReturnSeed = new recob::Seed(PtArray,DirArray);
+	else ReturnSeed = new recob::Seed();
     }
   else ReturnSeed = new recob::Seed();
-
-
-  //  std::cout<<"This is the seed finding routine" <<std::endl;
-  //  std::cout<<"Called on a vector of space points of size " <<Points.size()<<std::endl;
-
+  
   return ReturnSeed;
 }
 
@@ -381,6 +315,35 @@ void SeedFinderService::ProduceSpacePointPlots(std::vector<std::vector<recob::Sp
 	}
     }
 }
+
+
+// Find the nearby hits to this seed
+
+std::vector<std::vector<recob::Hit*> > SeedFinderService::CollectSeedHits(std::vector<recob::Seed *> TheSeed, std::vector<recob::Hit*> TheHits)
+{
+  
+  std::vector<std::vector<recob::Hit*> > ReturnVec;
+  for(std::vector<recob::Hit*>::const_iterator it=TheHits.begin();
+      it!=TheHits.end();
+      it++)
+    {
+      
+
+    }
+
+  return ReturnVec;
+}
+
+
+// Refit seeds using nearby hits
+std::vector<recob::Seed*> SeedFinderService::RefitSeeds(std::vector<recob::Seed *> TheSeeds, std::vector<recob::Hit*> TheHits)
+{
+  std::vector<recob::Seed*> ReturnVec;
+  std::vector<std::vector<recob::Hit*> > NearbyHits = CollectSeedHits(TheSeeds,TheHits);
+
+  return ReturnVec;
+}  
+
   
   
 }

@@ -70,6 +70,15 @@ microboone_seedfinder_bezierseed:
   Merge:              false
 }
 
+microboone_beziertrack:
+{  
+  module_type:         "BezierTracker"
+  SeedModuleLabel:     "seedfinder"
+  HitModuleLabel:      "ffthit"
+  MaxKinkAngle:        "10"
+  MaxTrackMissAngle:   "10"
+}
+
 microboone_track:
 {
  module_type:        "Track3Dreco"

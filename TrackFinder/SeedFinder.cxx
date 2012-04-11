@@ -82,7 +82,7 @@ namespace trkf {
 		"Unkown seed mode " << fSeedMode<<"\n";
 
 	    if(SeedFinderOutput.size()>0)
-	      for(int i=0; i!=SeedFinderOutput.size(); i++)
+	      for(unsigned int i=0; i!=SeedFinderOutput.size(); i++)
 		if(SeedFinderOutput.at(i)->IsValid())
 		  seeds->push_back(*(SeedFinderOutput.at(i)));
 	    
