@@ -56,6 +56,7 @@ namespace trkf {
     const TrackVector& getVector() const {return fVec;}                 ///< Track state vector.
     Surface::TrackDirection getDirection() const;                       ///< Track direction.
     int PdgCode() const {return fPdgCode;}                              ///< Pdg code.
+    double Mass() const;                                                ///< Based on pdg code.
 
     // Modifiers.
 

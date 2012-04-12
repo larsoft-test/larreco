@@ -11,6 +11,15 @@
 #include "TrackFinder/KTrack.h"
 #include "cetlib/exception.h"
 
+// Define some particle masses here.
+
+namespace {
+  const double mumass = 0.105658367;  // Muon
+  const double pimass = 0.13957;      // Charged pion
+  const double kmass = 0.493677;      // Charged kaon
+  const double pmass = 0.938272;      // Proton
+}
+
 namespace trkf {
 
   /// Default constructor.
@@ -66,6 +75,42 @@ namespace trkf {
     return result;
   }
 
+  /// Particle mass based on pdg code.
+  double KTrack::Mass() const
+  {
+    double mass = 0.;
+    int apdg = std::abs(fPdgCode);
+
+    // Muon
+
+    if(apdg == 13)
+      mass = mumass;
+
+    // Charged pion
+
+    else if(apdg == 211)
+      mass = pimass;
+
+    // Charged kaon
+
+    else if(apdg == 321)
+      mass = kmass;
+
+    // (Anti)proton
+
+    else if(apdg == 2212)
+      mass = pmass;
+
+    // Anything else throw exception
+
+    else
+      throw cet::exception("KTrack") << "Mass requested for invalid pdg id = " << fPdgCode << "\n";
+
+    // Done.
+
+    return mass;
+  }
+
   /// Get position of track.
   /// Throw an exception if track is not valid.
   ///
@@ -76,7 +121,7 @@ namespace trkf {
   void KTrack::getPosition(double xyz[3]) const
   {
     if(!isValid())
-      throw cet::exception("SurfYZPlane") << "Position requested for invalid track.\n";
+      throw cet::exception("KTrack") << "Position requested for invalid track.\n";
     fSurf->getPosition(fVec, xyz);
   }
 
@@ -90,7 +135,7 @@ namespace trkf {
   void KTrack::getMomentum(double mom[3]) const
   {
     if(!isValid())
-      throw cet::exception("SurfYZPlane") << "Momentum vector requested for invalid track.\n";
+      throw cet::exception("KTrack") << "Momentum vector requested for invalid track.\n";
     Surface::TrackDirection dir = getDirection();
     fSurf->getMomentum(fVec, mom, dir);
   }
