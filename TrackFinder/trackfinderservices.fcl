@@ -46,15 +46,6 @@ lbne_spacepointservice:
   Merge: false
 }
 
-
-microboone_seedfinderservice:
-{
-  SeedLength: 5
-  MinPointsInCluster: 50
-  MinPointsInSeed: 10
-  AngularDev: 0.5
-}
-
 microboone_beziertrackservice:
 {
   SegmentResolution: 100

@@ -58,6 +58,11 @@ microboone_seedfinder_kalmanseed:
   ClusterModuleLabel: "dbcluster"
   Filter:             true
   Merge:              false
+  SeedLength:          5
+  MinPointsInCluster:  50
+  MinPointsInSeed:     10
+  AngularDev:          0.5
+
 
 }
 
@@ -68,6 +73,11 @@ microboone_seedfinder_bezierseed:
   ClusterModuleLabel: "dbcluster"
   Filter:             true
   Merge:              false
+  SeedLength:         5
+  MinPointsInCluster: 50
+  MinPointsInSeed:    10
+  AngularDev:         0.5
+
 }
 
 microboone_beziertrack:
