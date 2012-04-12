@@ -39,11 +39,11 @@
 #ifndef SURFYZPLANE_H
 #define SURFYZPLANE_H
 
-#include "TrackFinder/Surface.h"
+#include "TrackFinder/SurfPlane.h"
 
 namespace trkf {
 
-  class SurfYZPlane : public Surface
+  class SurfYZPlane : public SurfPlane
   {
   public:
 
