@@ -1,6 +1,3 @@
 #! /bin/bash
 
-# Example test script.
-
-exe=`basename $0 .sh`.x
-$exe
+lar -c PropTest.fcl
