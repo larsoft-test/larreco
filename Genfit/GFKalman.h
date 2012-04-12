@@ -114,6 +114,7 @@ public:
   void setBlowUpFactor(double f){fBlowUpFactor=f;}
   void setMomLow(Double_t f){fMomLow=f;}
   void setMomHigh(Double_t f){fMomHigh=f;}
+  void setMaxUpdate(Double_t f){fMaxUpdate=f;}
 
   // Private Methods -----------------
 private:
@@ -151,6 +152,7 @@ private:
   int fInitialDirection;
   Int_t fNumIt;
   double fBlowUpFactor;
+  double fMaxUpdate;
   Double_t fMomLow;
   Double_t fMomHigh;
 

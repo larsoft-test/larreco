@@ -135,7 +135,7 @@ genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, c
   tmpRawCov.push_back(rawCov[0][0]);
   tmpRawCov.push_back(rawCov[1][1]);
   tmpRawCov.push_back(rawCov[2][2]);
-  tmpRawCov.push_back(rawCov[2][1]);
+  tmpRawCov.push_back(rawCov[2][1]); // y-z correlated cov element.
 
   static std::vector <double> oldRawCov(tmpRawCov);
   static std::vector <double> oldOldRawCov(tmpRawCov);
@@ -185,7 +185,7 @@ genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, c
      ) / pow(dist,6.)
     // y-z cross-term
     +
-    3.0* (plane.getO()-planePrev.getO()).X() * (plane.getO()-planePrev.getO()).Y() * (plane.getO()-planePrev.getO()).Z() / pow(dist,5.)  * (tmpRawCov[4] + oldRawCov[4])
+    3.0* (plane.getO()-planePrev.getO()).X() * (plane.getO()-planePrev.getO()).Y() * (plane.getO()-planePrev.getO()).Z() / pow(dist,5.)  * (tmpRawCov[3] + oldRawCov[3])
     ;
 
   rawCov[4][4] = (oldRawCov[1]+tmpRawCov[1])/pow(dist,4.) *
@@ -201,7 +201,7 @@ genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, c
      ) / pow(dist,6.)
     // y-z cross-term
     +
-    3.0* ( (plane.getO()-planePrev.getO()).X() * (plane.getO()-planePrev.getO()).Y() * (plane.getO()-planePrev.getO()).Z() / pow(dist,5.) + (plane.getO()-planePrev.getO()).Z() / pow(dist,3.))* ( tmpRawCov[4] + oldRawCov[4] )
+    3.0* ( (plane.getO()-planePrev.getO()).X() * (plane.getO()-planePrev.getO()).Y() * (plane.getO()-planePrev.getO()).Z() / pow(dist,5.) + (plane.getO()-planePrev.getO()).Z() / pow(dist,3.) ) * ( tmpRawCov[3] + oldRawCov[3] )
     ;
 
   rawCov[5][5] = (oldRawCov[2]+tmpRawCov[2])/pow(dist,4.) *
@@ -217,12 +217,12 @@ genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, c
      ) / pow(dist,6.)
     +
     // y-z cross-term
-    3.0* ( (plane.getO()-planePrev.getO()).X() * (plane.getO()-planePrev.getO()).Y() * (plane.getO()-planePrev.getO()).Z() / pow(dist,5.) + (plane.getO()-planePrev.getO()).Y() / pow(dist,3.))* ( tmpRawCov[4] + oldRawCov[4] )
+    3.0* ( (plane.getO()-planePrev.getO()).X() * (plane.getO()-planePrev.getO()).Y() * (plane.getO()-planePrev.getO()).Z() / pow(dist,5.)  + (plane.getO()-planePrev.getO()).Y() / pow(dist,3.) ) * ( tmpRawCov[3] + oldRawCov[3] )
     ;
     
   
   Double_t num = (plane.getO()-planePrev.getO())*(planePrev.getO()-planePrevPrev.getO());
-  Double_t d1 = (plane.getO()-planePrev.getO()).Mag();
+  Double_t d1 = (plane.getO()-planePrev.getO()).Mag(); // same as dist above
   Double_t d2 = (planePrev.getO()-planePrevPrev.getO()).Mag();
 
   // This is the error on cosTh^2. There are 9 terms for diagonal errors, one for each
@@ -274,7 +274,7 @@ genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, c
      (plane.getO()-planePrev.getO()).Y() * (planePrev.getO()-planePrevPrev.getO()).Z() / pow(d1,3.)/d2 
      +
      3.*(plane.getO()-planePrev.getO()).Y() * (plane.getO()-planePrev.getO()).Z() * num / pow(d1,5.)/d2 
-     ) * tmpRawCov[4]
+     ) * tmpRawCov[3]
     // Next, d^2(costh)/d(z3)d(y3). Above w z1<->z3, y1<->y3
     +
     (
@@ -283,7 +283,7 @@ genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, c
     (planePrevPrev.getO()-planePrev.getO()).Y() * (planePrev.getO()-plane.getO()).Z() / pow(d1,3.)/d2 
     +
     3.*(planePrevPrev.getO()-planePrev.getO()).Y() * (planePrevPrev.getO()-planePrev.getO()).Z() * num / pow(d1,5.)/d2 
-    ) * oldOldRawCov[4]
+    ) * oldOldRawCov[3]
     // Last, d^2(costh)/d(z2)d(y2). This is an even bigger mess.
     +
     (
@@ -312,7 +312,7 @@ genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, c
 	(plane.getO()-planePrev.getO()).Z()*pow(d2,3.)/d1 
        )
       ) / pow(d1,2.) / pow(d2,6.)
-     ) * oldRawCov[4]
+     ) * oldRawCov[3]
     ;
 
   // That was delta(cos(theta))^2. I want delta(theta)^2. dTh^2 = d(cosTh)^2/sinTh^2
@@ -370,6 +370,7 @@ genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, c
   //std::cout << "hitCov="<<std::endl;
   //result.Print();
 
+  
   oldOldRawCov = oldRawCov;
   oldRawCov = tmpRawCov;
   planePrevPrev = planePrev;

@@ -94,7 +94,10 @@ private:
    * See GFTrackCand for details.
    */
   GFTrackCand fCand; // list of hits
+  // Cov and Updates at each step (on last iteration!) as calculated
+  // in GFKalman.cxx.
   std::vector < TMatrixT<Double_t> > fMeasCov;
+  std::vector < TMatrixT<Double_t> > fMeasUpdate;
     
   static const int fDefNumTrackReps = 10; //!
   unsigned int fCardinal_rep; // THE selected rep, default=0;
@@ -335,7 +338,9 @@ public:
   void setCardinalRep(unsigned int r){if((int)r<fTrackReps->GetEntriesFast())fCardinal_rep=r;}
   
   void setMeasuredCov(int ihit, TMatrixT<Double_t> MeasCov) {fMeasCov.push_back(MeasCov);}
+  void setMeasuredUpdate(int ihit, TMatrixT<Double_t> MeasUpdate) {fMeasUpdate.push_back(MeasUpdate);}
   std::vector < TMatrixT<Double_t> > getMeasuredCov() {return fMeasCov;}
+  std::vector < TMatrixT<Double_t> > getMeasuredUpdate() {return fMeasUpdate;}
   /** @brief Get residuals
    *
    * @param detId which detector?

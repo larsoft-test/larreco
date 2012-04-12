@@ -42,7 +42,7 @@
 #define COVEXC "cov_is_zero"
 
 
-genf::GFKalman::GFKalman():fInitialDirection(1),fNumIt(3),fBlowUpFactor(50.),fMomLow(-100.0),fMomHigh(100.0)
+genf::GFKalman::GFKalman():fInitialDirection(1),fNumIt(3),fBlowUpFactor(50.),fMomLow(-100.0),fMomHigh(100.0),fMaxUpdate(1.0)
 {
   art::ServiceHandle<art::TFileService> tfs;
   //fIhitvUpdate = tfs->make<TH1D>("GenfitUpdatevIhit", ";Updatesv Ihit;", 3301, -0.5, 3300.5);
@@ -295,7 +295,6 @@ genf::GFKalman::getChi2Hit(GFAbsRecoHit* hit, GFAbsTrackRep* rep)
   TMatrixT<Double_t> H = hit->getHMatrix(rep);
   // get hit covariances  
   TMatrixT<Double_t> V=hit->getHitCov(pl);
-  
   TMatrixT<Double_t> r=hit->residualVector(rep,state,pl);
   assert(r.GetNrows()>0);
 
@@ -419,6 +418,8 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
         std::cout<<"GFKalman::processHit() 1. About to throw GFException."<<std::endl;
 	throw exc;
         std::cout<<"GFKalman::processHit() 2. Back from GFException."<<std::endl;
+	TMatrixT<Double_t> V_emergency=hit->getHitCov(pl,plPrev,state,104.);
+	cov[0][0] = V_emergency[0][0];
   }
   
   /*
@@ -455,6 +456,7 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
 // will force huge error on p, and thus insensitivity to p.
   TMatrixT<Double_t> V=hit->getHitCov(pl,plPrev,state,mass);
   tr->setMeasuredCov(ihit,V);
+
   // calculate kalman gain ------------------------------
   TMatrixT<Double_t> Gain(calcGain(cov,V,H));
 
@@ -494,9 +496,10 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   // EC, 22-Feb-2012. 
   // Error is taken on th^2
   ang = (H*state)[0][0];
-  // This 5 below makes some the difference. EC, 24-Mar-2012.
-  thetaPlanes = fabs(ang*ang);// + 5.*fabs(gRandom->Gaus(0.0,V[0][0]));
-  thetaPlanes = TMath::Min(sqrt(thetaPlanes),0.95*TMath::Pi()/2.0);
+
+  // 2 is extra-fun bonus factor!
+  thetaPlanes = ang*ang + 2.0*gRandom->Gaus(0.0,V[0][0]);
+  thetaPlanes = TMath::Min(sqrt(fabs(thetaPlanes)),0.95*TMath::Pi()/2.0);
 
   Double_t dtheta =  thetaMeas - thetaPlanes; // was fabs(res[0][0]). EC, 26-Jan-2012
   if (ihit==phit || ihit==0) dtheta = 0.0;
@@ -517,15 +520,20 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   res[2][0] = (pointer*vPrev)/(pointer*wPrev) - (w*vPrev)/(w*wPrev);
 
   TMatrixT<Double_t> update=Gain*res;
+  
   //fUpdate->Fill((Double_t)(update[0][0]));
   //fIhitvUpdate->Fill((Double_t)ihit,(Double_t)(update[0][0]));
 
   // Don't let crazy ass spacepoints which pull the fit all over the place
-  // be allowed to update the state. Uxe 10xRMS from fUpdate.
+  // be allowed to update the state. Use __ xRMS from fUpdate.
+  // Use a larger limit (~0.1) when starting with too-high seed momentum.
+  // Smaller, when starting with an underestimate.
+  //
   // Don't allow fits above 15 GeV, or so. Else, 1/p will likely 
   // migrate across zero. Similarly, don't allow tiny momentum.
-
-  if (fabs(update[0][0])>1.0e-1 ) update[0][0] = 0.0;
+  // 
+  tr->setMeasuredUpdate(ihit,update);
+  if (fabs(update[0][0])>fMaxUpdate ) update[0][0] = 0.0;
   state+=update; // prediction overwritten!      
   cov-=Gain*(Hnew*cov);
 
