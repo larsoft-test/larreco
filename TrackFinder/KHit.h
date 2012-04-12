@@ -134,6 +134,9 @@ namespace trkf {
 			    typename KSymMatrix<N>::type& perr,
 			    typename KHMatrix<N>::type& hmatrix) const = 0;
 
+    /// Printout
+    virtual std::ostream& Print(std::ostream& out, bool doTitle = true) const;
+
   private:
 
     // Attributes.
@@ -266,6 +269,182 @@ namespace trkf {
 
     tre.setVector(newvec);
     tre.setError(newerr);
+  }
+
+  /// Printout
+  template <int N>
+  std::ostream& KHit<N>::Print(std::ostream& out, bool doTitle) const
+  {
+    if(doTitle)
+      out << "KHit<" << N << ">:\n";
+
+    // Print base class.
+
+    KHitBase::Print(out, false);
+
+    // Print measurement vector.
+
+    out << "  Measurement vector:\n"
+	<< "  [";
+    for(unsigned int i = 0; i < fMvec.size(); ++i) {
+      if(i != 0)
+	out << ", ";
+      out << fMvec(i);
+    }
+    out << "]\n";
+
+    // Print diagonal measurement  errors.
+
+    out << "  Diagonal measurement errors:\n"
+	<< "  [";
+    for(unsigned int i = 0; i < fMerr.size1(); ++i) {
+      if(i != 0)
+	out << ", ";
+      double err = fMerr(i,i);
+      err = (err >= 0. ? std::sqrt(err) : -std::sqrt(-err));
+      out << err;
+    }
+    out << "]\n";
+
+    // Print measurement correlations.
+
+    if(fMerr.size1() > 1) {
+      out << "  Measurement correlation matrix:";
+      for(unsigned int i = 0; i < fMerr.size1(); ++i) {
+	if(i == 0)
+	  out << "\n  [";
+	else
+	  out << "\n   ";
+	for(unsigned int j = 0; j <= i; ++j) {
+	  if(j != 0)
+	    out << ", ";
+	  if(i == j)
+	    out << 1.;
+	  else {
+	    double eiijj = fMerr(i,i) * fMerr(j,j);
+	    double eij = fMerr(i,j);
+	    if(eiijj != 0.)
+	      eij /= std::sqrt(std::abs(eiijj));
+	    else
+	      eij = 0.;
+	    out << eij;
+	  }
+	}
+      }
+      out << "]\n";
+    }
+
+    // Print prediction vector.
+
+    out << "  Prediction vector:\n"
+	<< "  [";
+    for(unsigned int i = 0; i < fPvec.size(); ++i) {
+      if(i != 0)
+	out << ", ";
+      out << fPvec(i);
+    }
+    out << "]\n";
+
+    // Print diagonal prediction  errors.
+
+    out << "  Diagonal prediction errors:\n"
+	<< "  [";
+    for(unsigned int i = 0; i < fPerr.size1(); ++i) {
+      if(i != 0)
+	out << ", ";
+      double err = fPerr(i,i);
+      err = (err >= 0. ? std::sqrt(err) : -std::sqrt(-err));
+      out << err;
+    }
+    out << "]\n";
+
+    // Print prediction correlations.
+
+    if(fPerr.size1() > 1) {
+      out << "  Prediction correlation matrix:";
+      for(unsigned int i = 0; i < fPerr.size1(); ++i) {
+	if(i == 0)
+	  out << "\n  [";
+	else
+	  out << "\n   ";
+	for(unsigned int j = 0; j <= i; ++j) {
+	  if(j != 0)
+	    out << ", ";
+	  if(i == j)
+	    out << 1.;
+	  else {
+	    double eiijj = fPerr(i,i) * fPerr(j,j);
+	    double eij = fPerr(i,j);
+	    if(eiijj != 0.)
+	      eij /= std::sqrt(std::abs(eiijj));
+	    else
+	      eij = 0.;
+	    out << eij;
+	  }
+	}
+      }
+      out << "]\n";
+    }
+
+    // Print residual vector.
+
+    out << "  Residual vector:\n"
+	<< "  [";
+    for(unsigned int i = 0; i < fRvec.size(); ++i) {
+      if(i != 0)
+	out << ", ";
+      out << fRvec(i);
+    }
+    out << "]\n";
+
+    // Print diagonal residual  errors.
+
+    out << "  Diagonal residual errors:\n"
+	<< "  [";
+    for(unsigned int i = 0; i < fRerr.size1(); ++i) {
+      if(i != 0)
+	out << ", ";
+      double err = fRerr(i,i);
+      err = (err >= 0. ? std::sqrt(err) : -std::sqrt(-err));
+      out << err;
+    }
+    out << "]\n";
+
+    // Print residual correlations.
+
+    if(fRerr.size1() > 1) {
+      out << "  Residual correlation matrix:";
+      for(unsigned int i = 0; i < fRerr.size1(); ++i) {
+	if(i == 0)
+	  out << "\n  [";
+	else
+	  out << "\n   ";
+	for(unsigned int j = 0; j <= i; ++j) {
+	  if(j != 0)
+	    out << ", ";
+	  if(i == j)
+	    out << 1.;
+	  else {
+	    double eiijj = fRerr(i,i) * fRerr(j,j);
+	    double eij = fRerr(i,j);
+	    if(eiijj != 0.)
+	      eij /= std::sqrt(std::abs(eiijj));
+	    else
+	      eij = 0.;
+	    out << eij;
+	  }
+	}
+      }
+      out << "]\n";
+    }
+
+    // Print incremental chisquare.
+
+    out << "  Incremental chisquare = " << fChisq << "\n";
+
+    // Done.
+
+    return out;
   }
 }
 

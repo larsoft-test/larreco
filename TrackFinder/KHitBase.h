@@ -36,6 +36,7 @@
 #ifndef KHITBASE_H
 #define KHITBASE_H
 
+#include <ostream>
 #include "TrackFinder/Surface.h"
 #include "TrackFinder/KETrack.h"
 #include "boost/shared_ptr.hpp"
@@ -70,12 +71,18 @@ namespace trkf {
     /// Update track method.
     virtual void update(KETrack& tre) const = 0;
 
+    /// Printout
+    virtual std::ostream& Print(std::ostream& out, bool doTitle = true) const;
+
   private:
 
     // Attributes.
 
     boost::shared_ptr<const Surface>   fSurf;   ///< Track surface.
   };
+
+  /// Output operator.
+  std::ostream& operator<<(std::ostream& out, const KHitBase& trk);
 }
 
 #endif
