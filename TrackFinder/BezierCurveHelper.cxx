@@ -2,7 +2,7 @@
 ///
 /// \file   BezierCurveHelper.cxx
 ///
-/// \brief  Service for 3D Seeds from Spacepoints
+/// \brief  Helper object for interpolating between track segments
 ///
 /// \author B J P Jones
 ///
@@ -29,6 +29,11 @@ namespace trkf{
 BezierCurveHelper::BezierCurveHelper()
 {
   fCurveResolution=100;
+}
+
+BezierCurveHelper::BezierCurveHelper(int CurveRes)
+{
+  fCurveResolution=CurveRes;
 }
 
 //----------------------------------------------------------------------
