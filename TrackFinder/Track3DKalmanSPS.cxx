@@ -127,6 +127,8 @@ void trkf::Track3DKalmanSPS::beginJob()
   fpRECL = new Float_t[4];
   fpRECLE = new Float_t[4];
   fpRECt3D = new Float_t[4];
+  fState0 = new Float_t[5];
+  fCov0 = new Float_t[25];
   fDimSize = 20000; // if necessary will get this from pset in constructor.
 
   fshx = new Float_t[fDimSize];
@@ -136,6 +138,7 @@ void trkf::Track3DKalmanSPS::beginJob()
   feshy = new Float_t[fDimSize];
   feshz = new Float_t[fDimSize];
   feshyz = new Float_t[fDimSize];
+  fupdate = new Float_t[fDimSize];
   fth  = new Float_t[fDimSize];
   feth = new Float_t[fDimSize];
   fedudw = new Float_t[fDimSize];
@@ -157,13 +160,13 @@ void trkf::Track3DKalmanSPS::beginJob()
   tree = tfs->make<TTree>("GENFITttree","GENFITttree");
   //tree->Branch("stMCT",&stMCT,"stMCT[5]/F"); // "TMatrixT<Double_t>"
 
-  tree->Branch("stMCT","TMatrixD",&stMCT,64000,0);
-  //tree->Branch("covMCT",&covMCT,"covMCT[25]/F");
+  //tree->Branch("stMCT","TMatrixD",&stMCT,64000,0);
+  //tree->Branch("covMCT",covMCT,"covMCT[25]/F");
   tree->Branch("covMCT","TMatrixD",&covMCT,64000,0);
-  //tree->Branch("stREC",&stREC,"stREC[5]/F");
-  tree->Branch("stREC","TMatrixD",&stREC,64000,0);
-  //tree->Branch("covREC",&covREC,"covREC[25]/F");
-  tree->Branch("covREC","TMatrixD",&covREC,64000,0);
+  tree->Branch("stREC",fState0,"stREC[5]/F");
+  //tree->Branch("stREC","TMatrixD",&stREC,64000,0);
+  tree->Branch("covREC",fCov0,"covREC[25]/F");
+  //tree->Branch("covREC","TMatrixD",&covREC,64000,0);
   
   
   tree->Branch("chi2",&chi2,"chi2/F");
@@ -174,6 +177,7 @@ void trkf::Track3DKalmanSPS::beginJob()
 
   tree->Branch("trkNo",&nTrks,"trkNo/I");
   tree->Branch("ptsNo",&fptsNo,"ptsNo/I");
+  tree->Branch("cont",&fcont,"cont/I"); //O? Yes, O. Not 0, not L, ...
   tree->Branch("shx",fshx,"shx[ptsNo]/F");
   tree->Branch("shy",fshy,"shy[ptsNo]/F");
   tree->Branch("shz",fshz,"shz[ptsNo]/F");
@@ -181,13 +185,15 @@ void trkf::Track3DKalmanSPS::beginJob()
   tree->Branch("eshx",feshx,"eshx[ptsNo]/F");
   tree->Branch("eshy",feshy,"eshy[ptsNo]/F");
   tree->Branch("eshz",feshz,"eshz[ptsNo]/F");
-  tree->Branch("eshyz",feshyz,"eshyz[ptsNo]/F");
+  tree->Branch("eshyz",feshyz,"eshyz[ptsNo]/F");  
+  tree->Branch("update",fupdate,"update[ptsNo]/F");
   tree->Branch("th",fth,"th[ptsNo]/F");  
   tree->Branch("eth",feth,"eth[ptsNo]/F");
   tree->Branch("edudw",fedudw,"edudw[ptsNo]/F");
   tree->Branch("edvdw",fedvdw,"edvdw[ptsNo]/F");
   tree->Branch("eu",feu,"eu[ptsNo]/F");
   tree->Branch("ev",fev,"ev[ptsNo]/F");
+
 
   tree->Branch("pcMeans", fPCmeans,"pcMeans[3]/F");
   tree->Branch("pcSigmas",fPCsigmas,"pcSigmas[3]/F");
@@ -228,6 +234,8 @@ void trkf::Track3DKalmanSPS::endJob()
   delete[] fpRECL;
   delete[] fpRECLE;
   delete[] fpRECt3D;
+  delete[] fState0;
+  delete[] fCov0;
 
   delete[] fshx;
   delete[] fshy;
@@ -236,6 +244,7 @@ void trkf::Track3DKalmanSPS::endJob()
   delete[] feshy;
   delete[] feshyz;
   delete[] feshz;
+  delete[] fupdate;
   delete[] fth;
   delete[] feth;
   delete[] fedudw;
@@ -437,7 +446,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  Double_t tmp[3], tmp2[3];
 		  principal->X2P((Double_t *)(means->GetMatrixArray()),tmp);
 		  principal->X2P((Double_t *)(sigmas->GetMatrixArray()),tmp2);
-		  for (int ii=0;ii<3;++ii)
+		  for (unsigned int ii=0;ii<3;++ii)
 		    {
 		      fPCmeans[ii] = (Float_t )(tmp[ii]);
 		      fPCsigmas[ii] = (Float_t )(tmp2[ii]);
@@ -473,7 +482,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  // If any point is outside TPC, this track is uncontained.
 		  // Try a higher momentum starting value in that case.
 		  bool uncontained(false);
-		  double close(10.);
+		  double close(10.); // cm
 		  if (
 		      spacepointss[spacepointss.size()-1].XYZ()[0] > (2.*geom->DetHalfWidth(0,0)-close) || spacepointss[spacepointss.size()-1].XYZ()[0] < close ||
 		      spacepointss[0].XYZ()[0] > (2.*geom->DetHalfWidth(0,0)-close) || spacepointss[0].XYZ()[0] < close ||
@@ -482,13 +491,17 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		      spacepointss[spacepointss.size()-1].XYZ()[2] > (geom->DetLength(0,0)-close) || spacepointss[spacepointss.size()-1].XYZ()[2] < close ||
 		      spacepointss[0].XYZ()[2] > (geom->DetLength(0,0)-close) || spacepointss[0].XYZ()[2] < close
 		      )
-		    uncontained = true;
+		    uncontained = true; 
+
 		  if (uncontained) 
-		    {
-		      // mom.SetMag(10. * mom.Mag()); 
+		    {		      
+		      // Big enough to not run out of gas right at end of
+		      // track and give large angular deviations which
+		      // will kill the fit.
+		      mom.SetMag(3.0 * mom.Mag()); 
 		      std::cout<<"Track3DKalmanSPS: Uncontained track ... Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
 		    }
-
+		  fcont = (int) (!uncontained);
 		  TVector3 momM(mom);
 		  TVector3 momErrFit(momM[0]/100.0,
 		  		     momM[1]/100.0,
@@ -560,6 +573,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 			  fedvdw[fptsNo] = 0.0;
 			  feu[fptsNo] = 0.0;
 			  fev[fptsNo] = 0.0;
+			  fupdate[fptsNo] = 0.0;
 			}
 
 
@@ -575,9 +589,10 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  mf::LogInfo("Track3DKalmanSPS: ") << "Fitting on " << fptsNo << " points.";
 		  //      std::cout<<"Track3DKalmanSPS about to do GFKalman."<<std::endl;
 		  genf::GFKalman k;
-		  k.setBlowUpFactor(50); // Instead of 500 out of box. EC, 6-Jan-2011.
+		  k.setBlowUpFactor(500); // 500 out of box. EC, 6-Jan-2011.
 		  k.setMomHigh(20.0); // Don't fit above this many GeV.
 		  k.setMomLow(0.1);   // Don't fit below this many GeV.
+		  k.setMaxUpdate(0.1); // 0 out abs(update) bigger than this.
 		  k.setInitialDirection(+1); // Instead of 1 out of box. EC, 6-Jan-2011.
 		  k.setNumIterations(numIT);
 		  bool skipFill = false;
@@ -586,13 +601,15 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		    //	std::cout<<"Track3DKalmanSPS about to processTrack."<<std::endl;
 		    if (fDoFit) k.processTrack(&fitTrack);
 		    std::vector < TMatrixT<Double_t> > measCov(fitTrack.getMeasuredCov());
-		    for (int ihit=0; ihit<fptsNo; ihit++)
+		    std::vector < TMatrixT<Double_t> > measUpdate(fitTrack.getMeasuredUpdate());
+		    for (unsigned int ihit=0; ihit<fptsNo; ihit++)
 		      {
 			feth[ihit] = (Float_t ) (measCov.at(ihit)[0][0]); // eth
-			fedudw[ihit] = (Float_t ) (measCov.at(ihit)[1][1]); // eth
-			fedvdw[ihit] = (Float_t ) (measCov.at(ihit)[2][2]); // eth
-			feu[ihit] = (Float_t ) (measCov.at(ihit)[3][3]); // eth
-			fev[ihit] = (Float_t ) (measCov.at(ihit)[4][4]); // eth
+			fedudw[ihit] = (Float_t ) (measCov.at(ihit)[1][1]); 
+			fedvdw[ihit] = (Float_t ) (measCov.at(ihit)[2][2]); 
+			feu[ihit] = (Float_t ) (measCov.at(ihit)[3][3]); 
+			fev[ihit] = (Float_t ) (measCov.at(ihit)[4][4]);
+			fupdate[ihit] = (Float_t ) (measUpdate.at(ihit)[0][0]);
 		      }
 		    //std::cout<<"Track3DKalmanSPS back from processTrack."<<std::endl;
 		  }
@@ -627,16 +644,28 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 			  *stREC = rep->getState();
 			  covREC->ResizeTo(rep->getCov());
 			  *covREC = rep->getCov();
+			  double dum[5];
+			  double dum2[5];
+			  for (unsigned int ii=0;ii<5;ii++)
+			    {
+			      stREC->ExtractRow(ii,0,dum);
+			      fState0[ii] = dum[0];
+			      covREC->ExtractRow(ii,0,dum2);
+			      for (unsigned int jj=0;jj<5;jj++)
+				{
+				  fCov0[ii*5+jj] = dum2[jj];
+				}
+			    }
 			  if(fGenfPRINT)
 			    {
 			      mf::LogInfo("Track3DKalmanSPS: ") << " First State and Cov:";
 			      stREC->Print();
 			      covREC->Print();
 			    }
-			  chi2 = rep->getChiSqu();
+			  chi2 = (Float_t)(rep->getChiSqu());
 			  ndf = rep->getNDF();
 			  nfail = fitTrack.getFailedHits();
-			  chi2ndf = chi2/ndf;
+			  chi2ndf = (Float_t)(chi2/ndf);
 			  double dircoss[3],dircose[3];
 			  //		(*trackIter)->Direction(dircoss,dircose);      
 			  for (int ii=0;ii<3;++ii)
@@ -645,7 +674,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 			      fpMCPos[ii] = MCOrigin[ii];
 			      fpREC[ii] = rep->getMom(rep->getReferencePlane())[ii];
 			      // fpRECLE is an extrap forward from first hit. Captures MS'ing 
-			      // only macroscopically. Not really what's desired. 
+			      // only macroscopically. Not really what's desired.
 			      // fpRECL is actually the last plane's momentum estimate.
 			      //fpRECLE[ii] = rep->getMom(rep->getLastPlane())[ii]; 
 			      fpRECL[ii] = (dynamic_cast<genf::RKTrackRep *> (rep))->getMomLast(rep->getLastPlane())[ii]; 

@@ -57,13 +57,16 @@ namespace trkf {
     TMatrixT<Double_t> *covREC;
     Float_t chi2;
     Float_t chi2ndf;
-    
+    int     fcont;
+
     Float_t *fpRECt3D;    
     Float_t *fpRECLE;
     Float_t *fpRECL;
     Float_t *fpREC;
     Float_t *fpMCMom;
     Float_t *fpMCPos;
+    Float_t *fState0;
+    Float_t *fCov0;
     int nfail;
     int ndf;
     unsigned int evtt;
@@ -76,6 +79,7 @@ namespace trkf {
     Float_t *feshy;
     Float_t *feshz;
     Float_t *feshyz;
+    Float_t *fupdate;
     Float_t *fth;
     Float_t *feth;
     Float_t *fedudw;
@@ -95,7 +99,7 @@ namespace trkf {
     std::vector<double> fMomErr;
     std::vector<double> fMomStart;
     double fPerpLim;
-    bool   fDoFit;
+    bool fDoFit;
     int fDecimate;
     genf::GFAbsTrackRep *repMC;
     genf::GFAbsTrackRep *rep;
