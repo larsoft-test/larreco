@@ -52,6 +52,8 @@
 
 #include "TrackFinder/KalmanLinearAlgebra.h"
 #include "TrackFinder/KETrack.h"
+#include "TrackFinder/Interactor.h"
+#include "boost/shared_ptr.hpp"
 #include "boost/optional.hpp"
 
 namespace trkf {
@@ -63,11 +65,16 @@ namespace trkf {
     /// Propagation direction enum.
     enum PropDirection {FORWARD, BACKWARD, UNKNOWN};
 
-    /// Default constructor.
-    Propagator();
+    /// Constructor.
+    Propagator(double tcut, const boost::shared_ptr<const Interactor>& interactor);
 
     /// Destructor.
     virtual ~Propagator();
+
+    // Accessors.
+
+    double getTcut() const {return fTcut;}
+    const boost::shared_ptr<const Interactor>& getInteractor() const {return fInteractor;}
 
     // Virtual methods.
 
@@ -77,7 +84,8 @@ namespace trkf {
     /// Propagate without error.
     virtual boost::optional<double> vec_prop(KTrack& trk,
 					     const boost::shared_ptr<const Surface>& psurf, 
-					     PropDirection dir = UNKNOWN,
+					     PropDirection dir,
+					     bool doDedx,
 					     TrackMatrix* prop_matrix = 0,
 					     TrackError* noise_matrix = 0) const = 0;
 
@@ -86,12 +94,25 @@ namespace trkf {
     /// Propagate with error, but without noise.
     boost::optional<double> err_prop(KETrack& tre,
 				     const boost::shared_ptr<const Surface>& psurf, 
-				     PropDirection dir = UNKNOWN) const;
+				     PropDirection dir,
+				     bool doDedx) const;
 
     /// Propagate with error and noise.
     boost::optional<double> noise_prop(KETrack& tre,
 				       const boost::shared_ptr<const Surface>& psurf, 
-				       PropDirection dir = UNKNOWN) const;
+				       PropDirection dir,
+				       bool doDedx) const;
+
+    /// Method to calculate updated momentum due to dE/dx.
+    boost::optional<double> dedx_prop(double pinv, double mass,
+				      double s, double* deriv=0) const;
+
+  private:
+
+    // Attributes.
+
+    double fTcut;                                     ///< Maximum delta ray energy for dE/dx.
+    boost::shared_ptr<const Interactor> fInteractor;  ///< Interactor (for calculating noise).
   };
 }
 

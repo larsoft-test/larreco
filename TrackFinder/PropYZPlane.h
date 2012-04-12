@@ -23,8 +23,8 @@ namespace trkf {
   {
   public:
 
-    /// Default constructor.
-    PropYZPlane();
+    /// Constructor.
+    PropYZPlane(double tcut);
 
     /// Destructor.
     virtual ~PropYZPlane();
@@ -37,7 +37,8 @@ namespace trkf {
     /// Propagate without error.
     boost::optional<double> vec_prop(KTrack& trk,
 				     const boost::shared_ptr<const Surface>& surf, 
-				     Propagator::PropDirection dir = Propagator::UNKNOWN, 
+				     Propagator::PropDirection dir, 
+				     bool doDedx,
 				     TrackMatrix* prop_matrix = 0,
 				     TrackError* noise_matrix = 0) const;
   };

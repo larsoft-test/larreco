@@ -12,12 +12,19 @@
 #include <cmath>
 #include "TrackFinder/PropYZPlane.h"
 #include "TrackFinder/SurfYZPlane.h"
+#include "TrackFinder/InteractPlane.h"
 #include "cetlib/exception.h"
 
 namespace trkf {
 
-  /// Default constructor.
-  PropYZPlane::PropYZPlane()
+  /// Constructor.
+  ///
+  /// Arguments.
+  ///
+  /// tcut   - Delta ray energy cutoff for calculating dE/dx.
+  ///
+  PropYZPlane::PropYZPlane(double tcut) :
+    Propagator(tcut, boost::shared_ptr<const Interactor>(new InteractPlane(tcut)))
   {}
 
   /// Destructor.
@@ -32,6 +39,7 @@ namespace trkf {
   /// trk   - Track to propagate.
   /// psurf - Destination surface.
   /// dir   - Propagation direction (FORWARD, BACKWARD, or UNKNOWN).
+  /// doDedx - dE/dx enable/disable flag.
   /// prop_matrix - Pointer to optional propagation matrix.
   /// noise_matrix - Pointer to optional noise matrix.
   ///
@@ -39,7 +47,8 @@ namespace trkf {
   ///
   boost::optional<double> PropYZPlane::vec_prop(KTrack& trk,
 						const boost::shared_ptr<const Surface>& psurf, 
-						Propagator::PropDirection dir, 
+						Propagator::PropDirection dir,
+						bool doDedx,
 						TrackMatrix* prop_matrix,
 						TrackError* noise_matrix) const
   {
@@ -142,22 +151,36 @@ namespace trkf {
     if(dir2 == Surface::BACKWARD)
       s = -s;
 
-    // Decide if propagation was in the right direction.
+    // Check if propagation was in the right direction.
     // (Compare sign of s with requested direction).
 
     bool sok = (dir == Propagator::UNKNOWN ||
 		(dir == Propagator::FORWARD && s >= 0.) ||
 		(dir == Propagator::BACKWARD && s <= 0.));
 
-    // Update result.
+    // If wrong direction, return failure without updating the track
+    // or propagation matrix.
 
-    result = boost::optional<double>(sok, s);		
-
-    // If final result is failure (because of wrong direction),
-    // return without updating the track or propagation matrix.
-
-    if(!result)
+    if(!sok)
       return result;
+
+    // Find final momentum.
+
+    double deriv = 1.;
+    boost::optional<double> pinv2(true, pinv);
+    if(doDedx && s != 0.) {
+      double* pderiv = (prop_matrix != 0 ? &deriv : 0);
+      pinv2 = dedx_prop(pinv, trk.Mass(), s, pderiv);
+    }
+
+    // Return failure in case of range out.
+
+    if(!pinv2)
+      return result;
+
+    // Update result object (success guaranteed).
+
+    result = boost::optional<double>(true, s);		
 
     // Update propagation matrix (if requested).
 
@@ -191,18 +214,21 @@ namespace trkf {
       pm(3,3) = 1. / (dw2dw1*dw2dw1);                      // d(dvdw2)/d(dvdw1);
       pm(4,3) = 0.;                                        // d(pinv2)/d(dvdw1);
 
-      pm(0,4) = 0.;   // du2/d(pinv1);
-      pm(1,4) = 0.;   // dv2/d(pinv1);
-      pm(2,4) = 0.;   // d(dudw2)/d(pinv1);
-      pm(3,4) = 0.;   // d(dvdw2)/d(pinv1);
-      pm(4,4) = 1.;   // d(pinv2)/d(pinv1);
+      pm(0,4) = 0.;      // du2/d(pinv1);
+      pm(1,4) = 0.;      // dv2/d(pinv1);
+      pm(2,4) = 0.;      // d(dudw2)/d(pinv1);
+      pm(3,4) = 0.;      // d(dvdw2)/d(pinv1);
+      pm(4,4) = deriv;   // d(pinv2)/d(pinv1);
     }
 
     // Update noise matrix (if requested).
 
     if(noise_matrix != 0) {
       noise_matrix->resize(vec.size(), vec.size(), false);
-      noise_matrix->clear();
+      if(getInteractor().get() != 0)
+	getInteractor()->noise(trk, s, *noise_matrix);
+      else
+	noise_matrix->clear();
     }
 
     // Construct track vector at destination surface.
@@ -212,7 +238,7 @@ namespace trkf {
     vec2(1) = v2p;
     vec2(2) = dudw2;
     vec2(3) = dvdw2;
-    vec2(4) = pinv;
+    vec2(4) = *pinv2;
 
     // Update track.
 
@@ -224,4 +250,5 @@ namespace trkf {
 
     return result;
   }
+
 } // end namespace trkf
