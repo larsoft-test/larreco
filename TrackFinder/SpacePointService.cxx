@@ -57,9 +57,6 @@ namespace  trkf{
 				       art::ActivityRegistry& reg) :
     fMaxDT(0.),
     fMaxS(0.),
-    fTimeOffsetU(0.),
-    fTimeOffsetV(0.),
-    fTimeOffsetW(0.),
     fMinViews(1000),
     fEnableU(false),
     fEnableV(false),
@@ -87,10 +84,6 @@ namespace  trkf{
     fMaxDT = pset.get<double>("MaxDT", 0.);
     fMaxS = pset.get<double>("MaxS", 0.);
 
-    fTimeOffsetU = pset.get<double>("TimeOffsetU", 0.);
-    fTimeOffsetV = pset.get<double>("TimeOffsetV", 0.);
-    fTimeOffsetW = pset.get<double>("TimeOffsetW", 0.);
-
     fMinViews = pset.get<int>("MinViews", 1000);
 
     fEnableU = pset.get<bool>("EnableU", false);
@@ -110,9 +103,6 @@ namespace  trkf{
       << "SpacePointService configured with the following parameters:\n"
       << "  MaxDT = " << fMaxDT << "\n"
       << "  MaxS = " << fMaxS << "\n"
-      << "  TimeOffsetU = " << fTimeOffsetU << "\n"
-      << "  TimeOffsetV = " << fTimeOffsetV << "\n"
-      << "  TimeOffsetW = " << fTimeOffsetW << "\n" 
       << "  MinViews = " << fMinViews << "\n"
       << "  EnableU = " << fEnableU << "\n"
       << "  EnableV = " << fEnableV << "\n"
@@ -144,35 +134,7 @@ namespace  trkf{
     if(report)
       log << "Updating geometry constants.\n";
 
-    // Update detector properties.
 
-    double samplingRate = detprop->SamplingRate();
-    double triggerOffset = detprop->TriggerOffset();
-    if(report) {
-      log << "\nDetector properties:\n"
-	  << "  Sampling Rate = " << samplingRate << " ns/tick\n"
-	  << "  Trigger offset = " << triggerOffset << " ticks\n";
-    }
-  
-    // Update LArProperties.
-  
-    double efield = larprop->Efield();
-    double temperature = larprop->Temperature();
-    double driftVelocity = larprop->DriftVelocity(efield, temperature);
-    double timePitch = 0.001 * driftVelocity * samplingRate;
-    if(report) {
-      log << "\nLAr propertoes:\n"
-	  << "  E field = " << efield << " kV/cm\n"
-	  << "  Temperature = " << temperature << " K\n"
-	  << "  Drift velocity = " << driftVelocity << " cm/us\n"
-	  << "  Time pitch = " << timePitch << " cm/tick\n";
-    }
-  
-    // Get time offsets.
-  
-    std::vector<std::vector<std::vector<double> > > timeOffset;
-    fillTimeOffset(timeOffset);
-  
     for(unsigned int cstat = 0; cstat < geom->Ncryostats(); ++cstat){
     
       // Loop over TPCs.
@@ -225,7 +187,8 @@ namespace  trkf{
 	  else
 	    throw cet::exception("SpacePointService") << "Bad orientation = " 
 						      << orient << "\n";
-	
+	  art::ServiceHandle<util::DetectorProperties> detprop;
+
 	  if(report) {
 	    const double* xyz = tpcgeom.PlaneLocation(plane);
 	    log << "\nCryostat, TPC, Plane: " << cstat << "," << tpc << ", " << plane << "\n"
@@ -236,7 +199,7 @@ namespace  trkf{
 		<< "  Plane pitch: " << tpcgeom.Plane0Pitch(plane) << "\n"
 		<< "  Wire angle: " << tpcgeom.Plane(plane).Wire(0).ThetaZ() << "\n"
 		<< "  Wire pitch: " << tpcgeom.WirePitch() << "\n"
-		<< "  Time offset: " << timeOffset[cstat][tpc][plane] << "\n";
+		<< "  Time offset: " << detprop->GetXTicksOffset(plane,tpc,cstat) << "\n";
 	  }
 	
 	  if(orient != geo::kVertical)
@@ -247,82 +210,16 @@ namespace  trkf{
     }// end loop over cryostats
   }
  
+
+
   //----------------------------------------------------------------------
-  // Calculate time offsets.
-  // Results stored in nested vector indexed by [cryostat][tpc][plane]
-  void SpacePointService::fillTimeOffset(std::vector< std::vector<std::vector<double> > >& timeOffset) const
+  // Get corrected time for the specified hit.
+  double SpacePointService::correctedTime(const recob::Hit& hit) const
   {
     // Get services.
 
     art::ServiceHandle<geo::Geometry> geom;
     art::ServiceHandle<util::DetectorProperties> detprop;
-    art::ServiceHandle<util::LArProperties> larprop;
-
-    // Clear result.
-
-    timeOffset.clear();
-
-    // Get properties needed to calculate time offsets.
-
-    double samplingRate = detprop->SamplingRate();
-    double triggerOffset = detprop->TriggerOffset();
-    double efield = larprop->Efield();
-    double temperature = larprop->Temperature();
-    double driftVelocity = larprop->DriftVelocity(efield, temperature);
-    double timePitch = 0.001 * driftVelocity * samplingRate;
-
-    // Loop over TPCs.
-    timeOffset.resize(geom->Ncryostats());
-
-    for(size_t cstat = 0; cstat < geom->Ncryostats(); ++cstat){
-      timeOffset[cstat].resize(geom->Cryostat(cstat).NTPC());
-    
-      for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc) {
-	const geo::TPCGeo& tpcgeom = geom->Cryostat(cstat).TPC(tpc);
-
-	// Loop over planes.
-      
-	int nplane = tpcgeom.Nplanes();
-	timeOffset[cstat][tpc].resize(nplane, 0.);
-
-	for(int plane = 0; plane < nplane; ++plane) {
-	  const geo::PlaneGeo& pgeom = tpcgeom.Plane(plane);
-
-	  // Calculate geometric time offset.
-	
-	  const double* xyz = tpcgeom.PlaneLocation(0);
-	  timeOffset[cstat][tpc][plane] =
-	    (-xyz[0] + tpcgeom.Plane0Pitch(plane)) / timePitch + triggerOffset;
-	
-	  // Add view-dependent time offset.
-	
-	  geo::View_t view = pgeom.View();
-	  if(view == geo::kU)
-	    timeOffset[cstat][tpc][plane] += fTimeOffsetU;
-	  else if(view == geo::kV)
-	    timeOffset[cstat][tpc][plane] += fTimeOffsetV;
-	  else if(view == geo::kW)
-	    timeOffset[cstat][tpc][plane] += fTimeOffsetW;
-	  else
-	    throw cet::exception("SpacePointService") << "Bad view = " 
-						      << view << "\n";
-	}
-      }
-    }// end loop over cryostats
-
-    return;
-  }
-
-
-
-  //----------------------------------------------------------------------
-  // Get corrected time for the specified hit.
-  double SpacePointService::correctedTime(const recob::Hit& hit,
-					  const std::vector< std::vector<std::vector<double> > >& timeOffset) const
-  {
-    // Get services.
-
-    art::ServiceHandle<geo::Geometry> geom;
 
     // Get tpc, plane.
 
@@ -332,7 +229,7 @@ namespace  trkf{
 
     // Correct time for trigger offset and plane-dependent time offsets.
 
-    double t = hit.PeakTime() - timeOffset[cstat][tpc][plane];
+    double t = hit.PeakTime() - detprop->GetXTicksOffset(plane,tpc,cstat);
 
     return t;
   }
@@ -426,13 +323,13 @@ namespace  trkf{
   // Check hits pairwise for different views and maximum time difference.
   // Check three hits for spatial compatibility.
   bool SpacePointService::compatible(const art::PtrVector<recob::Hit>& hits,
-				     const std::vector<std::vector<std::vector<double> > > & timeOffset,
 				     bool useMC,
 				     double maxDT, double maxS) const
   {
     // Get geometry service.
 
     art::ServiceHandle<geo::Geometry> geom;
+    art::ServiceHandle<util::DetectorProperties> detprop;
 
     // Get cuts.
 
@@ -461,7 +358,7 @@ namespace  trkf{
 	unsigned int tpc1, plane1, wire1, cstat1;
 	geom->ChannelToWire(channel1, cstat1, tpc1, plane1, wire1);
 	geo::View_t view1 = hit1.View();
-	double t1 = hit1.PeakTime() - timeOffset[cstat1][tpc1][plane1];
+	double t1 = hit1.PeakTime() - detprop->GetXTicksOffset(plane1,tpc,cstat);
 
 	// If using mc information, get a collection of track ids for hit 1.
 	// If not using mc information, this section of code will trigger the 
@@ -490,7 +387,7 @@ namespace  trkf{
 	    tpc = tpc1;
 	    cstat = cstat1;
 
-	    double t2 = hit2.PeakTime() - timeOffset[cstat2][tpc2][plane2];
+	    double t2 = hit2.PeakTime() - detprop->GetXTicksOffset(plane2,tpc2,cstat2);
     
 	    // Test maximum time difference.
 
@@ -588,7 +485,6 @@ namespace  trkf{
   // Assume points have already been tested for compatibility.
   //
   void SpacePointService::fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
-					 const std::vector< std::vector<std::vector<double> > >& timeOffset,
 					 recob::SpacePoint& spt) const
   {
     // Get services.
@@ -597,14 +493,7 @@ namespace  trkf{
     art::ServiceHandle<util::DetectorProperties> detprop;
     art::ServiceHandle<util::LArProperties> larprop;
 
-    // Calculate time pitch.
-
-    double efield = larprop->Efield();
-    double temperature = larprop->Temperature();
-    double driftVelocity = larprop->DriftVelocity(efield, temperature); // cm / us
-    double samplingRate = detprop->SamplingRate();                      // ns
-    double timePitch = 0.001 * driftVelocity * samplingRate;            // cm / tick
-
+    double timePitch=detprop->GetXTicksCoefficient();
     // Store hits in SpacePoint.
 
     spt = recob::SpacePoint(recob::SpacePoint(hits));
@@ -625,6 +514,7 @@ namespace  trkf{
     double sumtw = 0.;
     double sumw = 0.;
 
+
     for(art::PtrVector<recob::Hit>::const_iterator ihit = hits.begin();
 	ihit != hits.end(); ++ihit) {
 
@@ -635,7 +525,7 @@ namespace  trkf{
 
       // Correct time for trigger offset and view-dependent time offsets.
 
-      double t0 = timeOffset[cstat][tpc][plane];
+      double t0 = detprop->GetXTicksOffset(plane, tpc, cstat);
       double t = hit.PeakTime() - t0;
       double et = hit.SigmaPeakTime();
       double w = 1./(et*et);
@@ -734,7 +624,6 @@ namespace  trkf{
   //
   void SpacePointService::
   fillComplexSpacePoint(const art::PtrVector<recob::Hit>& hits,
-			const std::vector<std::vector<std::vector<double> > >& timeOffset,
 			recob::SpacePoint& spt) const
   {
     // Get services.
@@ -745,11 +634,7 @@ namespace  trkf{
 
     // Calculate time pitch.
 
-    double efield = larprop->Efield();
-    double temperature = larprop->Temperature();
-    double driftVelocity = larprop->DriftVelocity(efield, temperature); // cm / us
-    double samplingRate = detprop->SamplingRate();                      // ns
-    double timePitch = 0.001 * driftVelocity * samplingRate;            // cm / tick
+    double timePitch =    detprop->GetXTicksCoefficient();            // cm / tick
 
     // Figure out which tpc we are in.
 
@@ -817,7 +702,7 @@ namespace  trkf{
 
       // Correct time for trigger offset and view-dependent time offsets.
 
-      double t0 = timeOffset[cstat][tpc][plane];
+      double t0 = detprop->GetXTicksOffset(plane,tpc,cstat);
       double t = hit.PeakTime() - t0;
       double et = hit.SigmaPeakTime();
       double w = weight[plane]/(et*et);
@@ -974,18 +859,16 @@ namespace  trkf{
     if(maxS == 0.)
       maxS = fMaxS;  
 
-    // Get geometry service.
+    // Get services.
 
     art::ServiceHandle<geo::Geometry> geom;
+    art::ServiceHandle<util::DetectorProperties> detprop;
+
 
     // Print diagnostic information.
 
     update();
 
-    // Get time offsets.
-
-    std::vector< std::vector<std::vector<double> > > timeOffset;
-    fillTimeOffset(timeOffset);
 
     // First make result vector is empty.
 
@@ -1242,7 +1125,7 @@ namespace  trkf{
 		  hitvec.clear();
 		  hitvec.push_back(phit1);
 		  hitvec.push_back(phit2);
-		  bool ok = compatible(hitvec, timeOffset, useMC, maxDT, maxS);
+		  bool ok = compatible(hitvec,  useMC, maxDT, maxS);
 		  if(ok) {
 		  
 		    // Add a space point.
@@ -1254,11 +1137,11 @@ namespace  trkf{
 			sptmap.insert(std::pair<sptkey_type, recob::SpacePoint>(key, recob::SpacePoint()));
 		      sptkeys.insert(key);
 		      recob::SpacePoint& spt = it->second;
-		      fillSpacePoint(hitvec, timeOffset, spt);
+		      fillSpacePoint(hitvec,  spt);
 		    }
 		    else {
 		      spts.push_back(recob::SpacePoint());
-		      fillSpacePoint(hitvec, timeOffset, spts.back());
+		      fillSpacePoint(hitvec, spts.back());
 		    }
 		  }
 		}
@@ -1352,7 +1235,7 @@ namespace  trkf{
 	  
 	    // Get corrected time and oblique coordinate of first hit.
 	  
-	    double t1 = phit1->PeakTime() - timeOffset[cstat][tpc][plane1];
+	    double t1 = phit1->PeakTime() - detprop->GetXTicksOffset(plane1,tpc,cstat);
 	    double u1 = wire1 * pitch1 + dist1;
 	  
 	    // Find the plane2 wire numbers corresponding to the endpoints.
@@ -1372,7 +1255,7 @@ namespace  trkf{
 	    
 	      // Get corrected time of second hit.
 	    
-	      double t2 = phit2->PeakTime() - timeOffset[cstat][tpc][plane2];
+	      double t2 = phit2->PeakTime() - detprop->GetXTicksOffset(plane2,tpc,cstat);
 	    
 	      // Check maximum time difference with first hit.
 	    
@@ -1385,7 +1268,7 @@ namespace  trkf{
 		hitvec.clear();
 		hitvec.push_back(phit1);
 		hitvec.push_back(phit2);
-		bool h12ok = compatible(hitvec, timeOffset, useMC, maxDT, maxS);
+		bool h12ok = compatible(hitvec, useMC, maxDT, maxS);
 		if(h12ok) {
 		
 		  // Get oblique coordinate of second hit.
@@ -1409,7 +1292,7 @@ namespace  trkf{
 		  
 		    // Get corrected time of third hit.
 		  
-		    double t3 = phit3->PeakTime() - timeOffset[cstat][tpc][plane3];
+		    double t3 = phit3->PeakTime() - detprop->GetXTicksOffset(plane3,tpc,cstat);
 		  
 		    // Check time difference of third hit compared to first two hits.
 		  
@@ -1429,7 +1312,7 @@ namespace  trkf{
 			hitvec.push_back(phit1);
 			hitvec.push_back(phit2);
 			hitvec.push_back(phit3);
-			bool h123ok = compatible(hitvec, timeOffset, useMC, maxDT, maxS);
+			bool h123ok = compatible(hitvec,  useMC, maxDT, maxS);
 			if(h123ok) {
 			
 			  // Add a space point.
@@ -1441,11 +1324,11 @@ namespace  trkf{
 			      sptmap.insert(std::pair<sptkey_type, recob::SpacePoint>(key, recob::SpacePoint()));
 			    sptkeys.insert(key);
 			    recob::SpacePoint& spt = it->second;
-			    fillSpacePoint(hitvec, timeOffset, spt);
+			    fillSpacePoint(hitvec, spt);
 			  }
 			  else {
 			    spts.push_back(recob::SpacePoint());
-			    fillSpacePoint(hitvec, timeOffset, spts.back());
+			    fillSpacePoint(hitvec,  spts.back());
 			  }
 			}
 		      }
@@ -1545,7 +1428,7 @@ namespace  trkf{
 	    // Construct a complex space points using merged hits.
 	  
 	    spts.push_back(recob::SpacePoint());
-	    fillComplexSpacePoint(merged_hits, timeOffset, spts.back());
+	    fillComplexSpacePoint(merged_hits, spts.back());
 	  
 	    if(fMinViews <= 2)
 	      ++n2filt;

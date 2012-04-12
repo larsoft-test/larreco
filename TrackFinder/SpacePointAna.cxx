@@ -141,11 +141,6 @@ namespace trkf {
     art::ServiceHandle<util::DetectorProperties> detprop;
     art::ServiceHandle<geo::Geometry> geom;
 
-    // Get time offsets.
-
-    std::vector<std::vector<std::vector<double> > > timeOffset;
-    sptsvc->fillTimeOffset(timeOffset);
-
     // Get SimChannels.
     // now make a vector where each channel in the detector is an 
     // entry
@@ -329,7 +324,7 @@ namespace trkf {
 	  unsigned int tpc1, plane1, wire1, cs1;
 	  geom->ChannelToWire(channel1, cs1, tpc1, plane1, wire1);
 	  geo::View_t view1 = hit1.View();
-	  double t1 = sptsvc->correctedTime(hit1, timeOffset);
+	  double t1 = sptsvc->correctedTime(hit1);
 
 	  for(art::PtrVector<recob::Hit>::const_iterator jhit = spthits.begin();
 	      jhit != spthits.end(); ++jhit) {
@@ -344,7 +339,7 @@ namespace trkf {
 	    if(tpc1 == tpc2 && plane1 != plane2) {
 
 	      geo::View_t view2 = hit2.View();
-	      double t2 = sptsvc->correctedTime(hit2, timeOffset);
+	      double t2 = sptsvc->correctedTime(hit2);
 
 	      if(view1 == geo::kU) {
 		if(view2 == geo::kV)

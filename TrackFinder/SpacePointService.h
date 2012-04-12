@@ -14,9 +14,6 @@
 ///
 /// MaxDT - The maximum time difference (ticks) between any pair of hits.
 /// MaxS  - The maximum 3-view wire separation parameter S (cm).
-/// TimeOffsetU - Plane U time offset (ticks).
-/// TimeOffsetV - Plane V time offset (ticks).
-/// TimeOffsetW - Plane W time offset (ticks).
 /// MinViews - Minimum number of views to make a space point (2 or 3).
 /// EnableU - Use U view hits.
 /// EnableV - Use V view hits.
@@ -88,9 +85,6 @@ namespace trkf {
     double maxDT() const {return fMaxDT;}
     double maxS() const {return fMaxS;}
     int minViews() const {return fMinViews;}
-    double timeOffsetU() const {return fTimeOffsetU;}
-    double timeOffsetV() const {return fTimeOffsetV;}
-    double timeOffsetW() const {return fTimeOffsetW;}
     bool enableU() const {return fEnableU;}
     bool enableV() const {return fEnableV;}
     bool enableW() const {return fEnableW;}
@@ -101,13 +95,8 @@ namespace trkf {
     // Print constants obtained from geometry and properties services.
     void update() const;
 
-    // Calculate time offsets.
-    // Results stored in nested vector indexed by [cstat][tpc][plane]
-    void fillTimeOffset(std::vector< std::vector<std::vector<double> > >& timeOffset) const;
-
     // Corrected time accessors.
-    double correctedTime(const recob::Hit& hit,
-			 const std::vector< std::vector<std::vector<double> > >& timeOffset) const;
+    double correctedTime(const recob::Hit& hit) const;
 
     // Spatial separation of hits (zero if two or fewer).
     double separation(const art::PtrVector<recob::Hit>& hits) const;
@@ -115,14 +104,12 @@ namespace trkf {
     // Fill a single simple space point using the specified hits.
     // Hits are assumed to be compatible.
     void fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
-			const std::vector< std::vector<std::vector<double> > >& timeOffset,
 			recob::SpacePoint& spt) const;
 
     // Fill a single complex space point using the specified hits.
     // Complex space points allow multiple hits in one plane.
     // Hits are assumed to be compatible.
     void fillComplexSpacePoint(const art::PtrVector<recob::Hit>& hits,
-			       const std::vector< std::vector<std::vector<double> > >& timeOffset,
 			       recob::SpacePoint& spt) const;
 
     // Fill a vector of space points from an unsorted collection of hits.
@@ -168,7 +155,6 @@ namespace trkf {
     // Test whether the specified hits are compatible with a space point.
     // The last two arguments can be used to override the default cuts.
     bool compatible(const art::PtrVector<recob::Hit>& hits,
-		    const std::vector< std::vector<std::vector<double> > >& timeOffset,
 		    bool useMC,
 		    double maxDT,
 		    double maxS) const;
@@ -185,9 +171,6 @@ namespace trkf {
 
     double fMaxDT;          ///< Maximum time difference between planes.
     double fMaxS;           ///< Maximum space separation between wires.
-    double fTimeOffsetU;    ///< Time offset corrections (U)
-    double fTimeOffsetV;    ///< Time offset corrections (V)
-    double fTimeOffsetW;    ///< Time offset corrections (W)
     int fMinViews;          ///< Mininum number of views per space point.
     bool fEnableU;          ///< Enable flag (U).
     bool fEnableV;          ///< Enable flag (V).
