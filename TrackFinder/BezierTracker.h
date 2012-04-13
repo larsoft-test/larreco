@@ -59,6 +59,7 @@ namespace trkf {
     std::string fHitModuleLabel;
     double fMaxKinkAngle;
     double fMaxTrackMissAngle;
+    double fMaxJumpDistance;
     int fTopTrackID;
   };
 }

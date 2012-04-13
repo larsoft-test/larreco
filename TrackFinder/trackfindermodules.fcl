@@ -85,8 +85,9 @@ microboone_beziertrack:
   module_type:         "BezierTracker"
   SeedModuleLabel:     "seedfinder"
   HitModuleLabel:      "ffthit"
-  MaxKinkAngle:        "0.35"
-  MaxTrackMissAngle:   "0.18"
+  MaxKinkAngle:        0.35
+  MaxTrackMissAngle:   0.18 
+  MaxJumpDistance:     10.0
 }
 
 microboone_track:

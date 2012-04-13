@@ -40,6 +40,7 @@ namespace trkf {
     fHitModuleLabel    = pset.get<std::string>("HitModuleLabel");
     fMaxKinkAngle      = pset.get<double>("MaxKinkAngle");
     fMaxTrackMissAngle = pset.get<double>("MaxTrackMissAngle");
+    fMaxJumpDistance   = pset.get<double>("MaxJumpDistance");
 
   }
 
@@ -127,7 +128,8 @@ namespace trkf {
 	    std::cout<<"BezierTracker: " << Angle<< " " <<ProjDis<<std::endl;
 	    
             if((  abs(ThisSeed->GetAngle(*LastSeedAdded))                 < fMaxKinkAngle)
-	       &&( abs(ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded))  < fMaxTrackMissAngle))
+	       &&( abs(ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded))  < fMaxTrackMissAngle)
+	       &&( abs(ThisSeed->GetDistance(*LastSeedAdded)<fMaxJumpDistance)));
                 {
                   // if so, add it into the track, erase it from the stack
                   // and start looping at the beginning again

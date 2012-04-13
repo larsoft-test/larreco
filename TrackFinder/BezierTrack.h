@@ -31,9 +31,9 @@ namespace trkf {
     void   GetProjectedPointUVWX( double s, double* uvw, double * x,  int c, int t ) const;  
     void   GetProjectedPointUVWT( double s, double* uvw, double * ticks, int c, int t ) const;  
 
-    double GetClosestApproach( recob::Hit* hit,       double *s,  double* Distance);
-    double GetClosestApproach( recob::SpacePoint* sp, double *s,  double* Distance);
-    double GetClosestApproach( TVector3 vec,          double *s,  double* Distance);
+    void GetClosestApproach( recob::Hit* hit,       double &s,  double& Distance);
+    void GetClosestApproach( recob::SpacePoint* sp, double &s,  double& Distance);
+    void GetClosestApproach( TVector3 vec,          double &s,  double& Distance);
     
     //  void   GetTrackGradient(  double s, double* xyz )           const;
     //  void   GetTrackCurvature( double s, double* xyz )           const;
@@ -49,8 +49,8 @@ namespace trkf {
 
     std::vector<recob::Seed* > fSeedCollection;
     
-    double fTrackLength;
-
+    double  fTrackLength;
+    int     fBezierResolution;
     
     
   };

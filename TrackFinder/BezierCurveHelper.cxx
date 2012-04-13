@@ -152,13 +152,19 @@ TVector3 BezierCurveHelper::GetBezierPoint(recob::Seed * s1, recob::Seed * s2, f
 	+ 3.* ns * s * s *    Mid2[i]
 	+ s * s * s *         Pt2[i];     
     }
+
+  if(ReturnVec3[2]>1500)
+    {
+      std::cout<<"BCurve calc: " << Pt1[0]<<" "<<Pt1[1]<<" "<<Pt1[2]<<" ";
+      std::cout<<"             " << Pt2[0]<<" "<<Pt2[1]<<" "<<Pt2[2]<<" ";
+      std::cout<<"             " << Dir1[0]<<" "<<Dir1[1]<<" "<<Dir1[2]<<" ";
+      std::cout<<"             " << Dir2[0]<<" "<<Dir2[1]<<" "<<Dir2[2]<<" ";
+      std::cout<<"             " << s <<" " <<ReturnVec3[0]<<" "<<ReturnVec3[1]<<" "<<ReturnVec3[2]<<" "<<std::endl;      
+    }
+
   return ReturnVec3;
 
-  //  std::cout<<"BCurve calc: " << Pt1[0]<<" "<<Pt1[1]<<" "<<Pt1[2]<<" ";
-  //  std::cout<<"             " << Pt2[0]<<" "<<Pt2[1]<<" "<<Pt2[2]<<" ";
-  //  std::cout<<"             " << Dir1[0]<<" "<<Dir1[1]<<" "<<Dir1[2]<<" ";
-  // std::cout<<"             " << Dir2[0]<<" "<<Dir2[1]<<" "<<Dir2[2]<<" ";
-  //  std::cout<<"             " << t<<" " <<ReturnVec3[0]<<" "<<ReturnVec3[1]<<" "<<ReturnVec3[2]<<" "<<std::endl;
+
 
 }
 

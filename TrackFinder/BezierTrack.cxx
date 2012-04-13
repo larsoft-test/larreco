@@ -14,6 +14,7 @@ namespace trkf {
     recob::BezierTrackBase(btb)
   {
     CalculateSegments();
+    fBezierResolution=1000;
   }
 
 
@@ -25,6 +26,7 @@ namespace trkf {
   {
     fSeedCollection = SeedCol;
     CalculateSegments();
+    fBezierResolution=1000;
   }
 
 
@@ -128,8 +130,9 @@ namespace trkf {
                  &&( (fCumulativeLength.at(i)   / fTrackLength) > s))
               {
 		
-                double locals = (s * fTrackLength - fCumulativeLength[i-1])/fSegmentLength[i];
-                bhlp.GetBezierPointXYZ(fSeedCollection.at(i-1),fSeedCollection.at(i),locals, xyz);
+                double locals = (s * fTrackLength - fCumulativeLength[i-1])/fSegmentLength[i-1];
+		std::cout<<"s, fCum, seglength, locals " <<s<<" " << fCumulativeLength[i-1]<< " " <<fSegmentLength[i]<<" " << locals<<std::endl;
+		bhlp.GetBezierPointXYZ(fSeedCollection.at(i-1),fSeedCollection.at(i),locals, xyz);
               }
 
           }
@@ -199,6 +202,99 @@ namespace trkf {
       }
   }
 
+
+
+  //----------------------------------------------------------------------
+  //  Calculate the closest approach of this track to a given hit
+  //   and also the point where this occurs
+  //
+
+  void BezierTrack::GetClosestApproach( recob::Hit* hit,       double& s,  double& Distance)
+  {
+    art::ServiceHandle<util::DetectorProperties> det;
+    art::ServiceHandle<geo::Geometry>            geo;
+
+    unsigned int c1, t1, p1, w1;
+    
+    double xyzend1[3], xyzend2[3];
+    
+    double channel = hit->Channel();
+    geo->ChannelToWire(channel,c1,t1,p1,w1);
+    geo->WireEndPoints(c1,t1,p1,w1,xyzend1,xyzend2);
+    
+    xyzend1[0] = xyzend2[0] = det->ConvertTicksToX(hit->PeakTime(),p1,t1,c1);
+    
+    double iS, xyz[3], MinDistanceToPoint=10000, MinS=0;
+
+    for(int i=0; i!=fBezierResolution; ++i)
+      {
+	iS=float(i)/fBezierResolution;
+	GetTrackPoint(iS, xyz);
+	// calculate line to point distance in 3D
+	TVector3 end1(xyzend1[0],xyzend1[1],xyzend1[2]);
+	TVector3 end2(xyzend2[0],xyzend2[1],xyzend2[2]);
+	TVector3 trackpt(xyz[0],xyz[1],xyz[2]);
+	
+	float d = ((trackpt-end1).Cross(trackpt-end2)).Mag()/(end2-end1).Mag();
+	
+	if(d<MinDistanceToPoint)
+	  {
+	    MinDistanceToPoint=d;
+	    MinS=0;
+	  }
+      }
+   
+    s = MinS;
+    Distance = MinDistanceToPoint;
+        
+  }
+
+
+
+  //----------------------------------------------------------------------
+  //  Calculate the closest approach of this track to a given spacepoint
+  //   and also the point where this occurs
+
+  void BezierTrack::GetClosestApproach( recob::SpacePoint* sp, double& s,  double& Distance)
+  {
+    const double* xyz = sp->XYZ();
+    TVector3 Vec(xyz[0],xyz[1],xyz[2]);
+    GetClosestApproach(Vec, s, Distance);
+  }
+
+
+
+  //----------------------------------------------------------------------
+  //  Calculate the closest approach of this track to a given position
+  //   and also the point where this occurs
+
+  void BezierTrack::GetClosestApproach( TVector3 vec,          double& s,  double& Distance)
+  {
+    art::ServiceHandle<util::DetectorProperties> det;
+    art::ServiceHandle<geo::Geometry>            geo;
+
+     double iS, xyz[3], MinDistanceToPoint=10000, MinS=0;
+
+    for(int i=0; i!=fBezierResolution; ++i)
+      {
+	iS=float(i)/fBezierResolution;
+	GetTrackPoint(iS, xyz);
+	TVector3 trackpt(xyz[0],xyz[1],xyz[2]);
+
+	float d = (vec-trackpt).Mag();
+	  
+	if(d<MinDistanceToPoint)
+	  {
+	    MinDistanceToPoint=d;
+	    MinS=0;
+	  }
+      }
+   
+    s = MinS;
+    Distance = MinDistanceToPoint;
+
+
+  }
 
    
 
