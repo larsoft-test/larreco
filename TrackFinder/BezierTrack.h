@@ -23,7 +23,7 @@ namespace trkf {
      
     ~BezierTrack();
 
-    double GetLength()  const { return fTrackLength;}
+    double GetLength()                                  const;
     double GetRMSCurvature()                            const;
 
     TVector3 GetTrackPointV     (  double s )           const;
@@ -37,15 +37,10 @@ namespace trkf {
     void   GetProjectedPointUVWX( double s, double* uvw, double * x,  int c, int t ) const;  
     void   GetProjectedPointUVWT( double s, double* uvw, double * ticks, int c, int t ) const;  
 
-    void GetClosestApproach( recob::Hit* hit,       double &s,  double& Distance);
-    void GetClosestApproach( recob::SpacePoint* sp, double &s,  double& Distance);
-    void GetClosestApproach( TVector3 vec,          double &s,  double& Distance);
+    void GetClosestApproach( recob::Hit* hit,       double &s,  double& Distance) const;
+    void GetClosestApproach( recob::SpacePoint* sp, double &s,  double& Distance) const;
+    void GetClosestApproach( TVector3 vec,          double &s,  double& Distance) const;
     
-    //  void   GetTrackDirection( double s, double* xyz )           const;
-    //  void   GetTrackCurvature( double s, double* xyz )           const;
-  
-      
-   
     void   GetTrackPoint    (  double s, double* xyz )           const;
     void   GetTrackDirection(  double s, double* xyz )           const;
 

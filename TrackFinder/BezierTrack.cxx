@@ -3,7 +3,7 @@
 #include "Utilities/DetectorProperties.h"
 #include "Geometry/geo.h"
 #include "TVector3.h"
-
+#include "cetlib/exception.h"
 
 namespace trkf {
 
@@ -13,8 +13,9 @@ namespace trkf {
   BezierTrack::BezierTrack(recob::BezierTrackBase btb):
     recob::BezierTrackBase(btb)
   {
-    CalculateSegments();
     fBezierResolution=1000;
+    
+    CalculateSegments();
   }
 
 
@@ -52,8 +53,7 @@ namespace trkf {
     double Pt[3], Dir[3];
     for(int i=0; i!=NSeg; i++)
       {
-	//	std::cout<<"Adding in seed with coord " << fPtX.at(i)<<" " <<fPtY.at(i)<<" " <<fPtZ.at(i)<<std::endl; 
-	//	std::cout<<"                          " << fDirX.at(i)<<" " <<fDirY.at(i)<<" " <<fDirZ.at(i)<<std::endl; 
+
 
 	Pt[0]=fPtX.at(i);
 	Pt[1]=fPtY.at(i);
@@ -82,7 +82,11 @@ namespace trkf {
 	if(NSegments()!=0) FillSeedVector();
 	else 
 	  {
-	    std::cout<<"No points in bezier track to make segments!"<<std::endl;
+	    throw cet::exception("no points in track")
+	      <<"CalculateSegments method of Bezier track called with no"
+	      <<" track information loaded.  You must fill track with "
+	      <<"poisition and direction data before calling this method."
+	      <<std::endl;
 	    return;
 	  }
       }
@@ -98,7 +102,7 @@ namespace trkf {
 	if(!FirstSeg)
 	  {
 	    float SegmentLength=bhlp.GetSegmentLength(fSeedCollection.at(i-1),fSeedCollection.at(i));
-	    //  std::cout<<"Pushing back segment with length" << SegmentLength<<std::endl;
+	  
 	    fTrackLength+=SegmentLength;
 	    fSegmentLength.push_back(SegmentLength);
 	  }
@@ -117,21 +121,18 @@ namespace trkf {
   {
     if((s>1)||(s<0))
       {
-	std::cout<<"Error: Bezier track expects coordinate between 0 and 1"<<std::endl;
-        for(int i=0; i!=3; xyz[i]=0.);
+	throw cet::exception("track point out of range")<<" s = "<<s <<" out of range \n";
       }
     else
       {
 	BezierCurveHelper bhlp;
         for(unsigned int i=1; i!=fCumulativeLength.size(); i++)
           {
-	    //  std::cout<<"Seeking track point: " << fCumulativeLength.at(i-1)/fTrackLength << " " << fCumulativeLength.at(i)/fTrackLength<<std::endl;
             if(  (   (fCumulativeLength.at(i-1) / fTrackLength) <=  s)
                  &&( (fCumulativeLength.at(i)   / fTrackLength) > s))
               {
 		
                 double locals = (s * fTrackLength - fCumulativeLength[i-1])/fSegmentLength[i-1];
-		std::cout<<"s, fCum, seglength, locals " <<s<<" " << fCumulativeLength[i-1]<< " " <<fSegmentLength[i]<<" " << locals<<std::endl;
 		bhlp.GetBezierPointXYZ(fSeedCollection.at(i-1),fSeedCollection.at(i),locals, xyz);
               }
 
@@ -209,7 +210,7 @@ namespace trkf {
   //   and also the point where this occurs
   //
 
-  void BezierTrack::GetClosestApproach( recob::Hit* hit,       double& s,  double& Distance)
+  void BezierTrack::GetClosestApproach( recob::Hit* hit,       double& s,  double& Distance) const 
   {
     art::ServiceHandle<util::DetectorProperties> det;
     art::ServiceHandle<geo::Geometry>            geo;
@@ -255,7 +256,7 @@ namespace trkf {
   //  Calculate the closest approach of this track to a given spacepoint
   //   and also the point where this occurs
 
-  void BezierTrack::GetClosestApproach( recob::SpacePoint* sp, double& s,  double& Distance)
+  void BezierTrack::GetClosestApproach( recob::SpacePoint* sp, double& s,  double& Distance) const
   {
     const double* xyz = sp->XYZ();
     TVector3 Vec(xyz[0],xyz[1],xyz[2]);
@@ -268,7 +269,7 @@ namespace trkf {
   //  Calculate the closest approach of this track to a given position
   //   and also the point where this occurs
 
-  void BezierTrack::GetClosestApproach( TVector3 vec,          double& s,  double& Distance)
+  void BezierTrack::GetClosestApproach( TVector3 vec,          double& s,  double& Distance) const
   {
     art::ServiceHandle<util::DetectorProperties> det;
     art::ServiceHandle<geo::Geometry>            geo;
@@ -305,9 +306,17 @@ namespace trkf {
 
   void BezierTrack::GetTrackDirection(double s, double * xyz) const
   {
+
+    if((s<0.5/fBezierResolution)||(s>(1.-0.5/fBezierResolution)))
+      {
+	throw cet::exception("BezierTrack error: s out of range")<<
+	  " cannot query gradient within "<< 0.5/fBezierResolution<<
+	  " of track end.  You asked for s = "<<s <<
+	  ", which is out of range \n";
+      }
     double xyz1[3], xyz2[3];
-    GetTrackPoint(s - 1./fBezierResolution, xyz1);
-    GetTrackPoint(s + 1./fBezierResolution, xyz2);
+    GetTrackPoint(s - 0.5/fBezierResolution, xyz1);
+    GetTrackPoint(s + 0.5/fBezierResolution, xyz2);
     
     double dx = pow(pow(xyz1[0]-xyz2[0],2)+
 		    pow(xyz1[1]-xyz2[1],2)+
@@ -345,35 +354,59 @@ namespace trkf {
 
 
   //----------------------------------------------------------------------
-  // Methods for finding rate at which the track direction changes
+  // Method for finding rate at which the track direction changes
   //  (output is local dtheta/dx)
 
   double BezierTrack::GetCurvature(double s) const
   {
-    TVector3 Pos1 = GetTrackPointV(s - 1./fBezierResolution);
-    TVector3 Pos2 = GetTrackPointV(s );
-    TVector3 Pos3 = GetTrackPointV(s + 1./fBezierResolution);
+    if((s<1./fBezierResolution)||(s>(1.-1./fBezierResolution)))
+      {
+	throw cet::exception("BezierTrack error: s out of range")<<
+	  " cannot query curvature within "<< 1./fBezierResolution<<
+	  " of track end.  You asked for s = "<<s <<
+	  ", which is out of range \n";
+      }
+     
+    TVector3 Pos1 = GetTrackPointV(s - 0.5/fBezierResolution);
+    TVector3 Pos3 = GetTrackPointV(s + 0.5/fBezierResolution);
 
-    TVector3 Grad1 = GetTrackDirectionV(s - 1./fBezierResolution);
-    TVector3 Grad2 = GetTrackDirectionV(s + 1./fBezierResolution);
-    TVector3 Grad3 = GetTrackDirectionV(s + 1./fBezierResolution);
+    TVector3 Grad1 = GetTrackDirectionV(s - 0.5/fBezierResolution);
+    TVector3 Grad2 = GetTrackDirectionV(s );
+    TVector3 Grad3 = GetTrackDirectionV(s + 0.5/fBezierResolution);
    
     double dx     = (Pos3-Pos1).Mag();
-    double dtheta = Grad3.Angle(Grad2)-Grad2.Angle(Grad2);
+    double dtheta = (Grad3-Grad2).Angle(Grad2-Grad1);
     
-    return dtheta/dx;
+    return (dtheta/dx);
   }
+
+
+  //----------------------------------------------------------------------
+  // Find the RMS curvature along the entire track
+  //  (possible measure of multiple scattering)
 
   double BezierTrack::GetRMSCurvature() const
   {
     double RMS;
-    for(int i=1; i!=fBezierResolution-1; i++)
+    for(int i=1; i!=(fBezierResolution-1); ++i)
       {
 	RMS += pow(GetCurvature( float(i)/fBezierResolution),2);
       }
     return (pow(RMS/(fBezierResolution-2),0.5));
-    
   }
+
+
+
+  //----------------------------------------------------------------------
+  //  return the track length (already calculated, so easy!)
+  //  
+  
+  double BezierTrack::GetLength() const
+  {
+    return fTrackLength;
+  }
+  
+
     
 
     

@@ -124,7 +124,7 @@ namespace trkf {
             // Does this seed fit with this track?
 	    float Angle = ThisSeed->GetAngle(*LastSeedAdded);
 	    float ProjDis = ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded);
-	    std::cout<<"BezierTracker: " << Angle<< " " <<ProjDis<<std::endl;
+	    //  std::cout<<"BezierTracker: " << Angle<< " " <<ProjDis<<std::endl;
 	    
             if((  abs(ThisSeed->GetAngle(*LastSeedAdded))                 < fMaxKinkAngle)
 	       &&( abs(ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded))  < fMaxTrackMissAngle)

@@ -390,7 +390,7 @@ namespace trkf {
 	// Total angular deviation (spherical polars)
 	float AngularDev =  pow(pow(sigtheta,2) + pow(sin(sigtheta) * sigphi, 2), 0.5);
 
-	std::cout<<"SeedFinder debug: " << AngularDev<<std::endl;
+	//	std::cout<<"SeedFinder debug: " << AngularDev<<std::endl;
 
 	if(AngularDev<fAngularDev)
 	  {

@@ -66,6 +66,13 @@ microboone_seedfinder_kalmanseed:
 
 }
 
+microboone_beziertrackana:
+{
+  module_type:            "BezierTrackAna"
+  BezierTrackModuleLabel: "beziertracker"
+  
+}
+
 microboone_seedfinder_bezierseed:
 {
   module_type:        "SeedFinder"
