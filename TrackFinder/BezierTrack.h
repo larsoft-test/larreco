@@ -24,7 +24,13 @@ namespace trkf {
     ~BezierTrack();
 
     double GetLength()  const { return fTrackLength;}
-    void   GetTrackPoint(     double s, double* xyz )           const;
+    double GetRMSCurvature()                            const;
+
+    TVector3 GetTrackPointV     (  double s )           const;
+    TVector3 GetTrackDirectionV (  double s )           const;
+    double   GetCurvature(double s)                     const;
+ 
+
 
     void CalculateSegments();    
     
@@ -35,12 +41,15 @@ namespace trkf {
     void GetClosestApproach( recob::SpacePoint* sp, double &s,  double& Distance);
     void GetClosestApproach( TVector3 vec,          double &s,  double& Distance);
     
-    //  void   GetTrackGradient(  double s, double* xyz )           const;
+    //  void   GetTrackDirection( double s, double* xyz )           const;
     //  void   GetTrackCurvature( double s, double* xyz )           const;
-    //  void   GetTicks(          double s, double* t)              const;
- 
-     
+  
+      
    
+    void   GetTrackPoint    (  double s, double* xyz )           const;
+    void   GetTrackDirection(  double s, double* xyz )           const;
+
+
   private:
     void FillSeedVector();
     

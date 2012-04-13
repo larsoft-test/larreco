@@ -2,7 +2,7 @@
 #include "TrackFinder/BezierCurveHelper.h"
 #include "Utilities/DetectorProperties.h"
 #include "Geometry/geo.h"
-
+#include "TVector3.h"
 
 
 namespace trkf {
@@ -296,9 +296,84 @@ namespace trkf {
 
   }
 
+
+
+  //----------------------------------------------------------------------
+  // Calculate the direction of the track by finding the difference
+  //  in position between two points. Dir is normalized to 1
+  //
+
+  void BezierTrack::GetTrackDirection(double s, double * xyz) const
+  {
+    double xyz1[3], xyz2[3];
+    GetTrackPoint(s - 1./fBezierResolution, xyz1);
+    GetTrackPoint(s + 1./fBezierResolution, xyz2);
+    
+    double dx = pow(pow(xyz1[0]-xyz2[0],2)+
+		    pow(xyz1[1]-xyz2[1],2)+
+		    pow(xyz1[2]-xyz2[2],2),0.5);
+    
+    for(int i=0; i!=3; ++i)
+      {
+	xyz[i] = (xyz1[0]-xyz2[0])/dx;
+      }
+      
+  }
+
+
+  //----------------------------------------------------------------------
+  // Friendly versions returning TVector3's 
+  // 
+  
+     
+  TVector3 BezierTrack::GetTrackPointV(double s) const
+  {
+    double xyz[3];
+    GetTrackPoint(s,xyz);
+    TVector3 ReturnVec(xyz[0],xyz[1],xyz[2]);
+    return ReturnVec;
+  }
+
+  TVector3 BezierTrack::GetTrackDirectionV(double s) const
+  {
+    double xyz[3];
+    GetTrackDirection(s,xyz);
+    TVector3 ReturnVec(xyz[0],xyz[1],xyz[2]);
+    return ReturnVec;
+  }
+
+
+
+  //----------------------------------------------------------------------
+  // Methods for finding rate at which the track direction changes
+  //  (output is local dtheta/dx)
+
+  double BezierTrack::GetCurvature(double s) const
+  {
+    TVector3 Pos1 = GetTrackPointV(s - 1./fBezierResolution);
+    TVector3 Pos2 = GetTrackPointV(s );
+    TVector3 Pos3 = GetTrackPointV(s + 1./fBezierResolution);
+
+    TVector3 Grad1 = GetTrackDirectionV(s - 1./fBezierResolution);
+    TVector3 Grad2 = GetTrackDirectionV(s + 1./fBezierResolution);
+    TVector3 Grad3 = GetTrackDirectionV(s + 1./fBezierResolution);
    
+    double dx     = (Pos3-Pos1).Mag();
+    double dtheta = Grad3.Angle(Grad2)-Grad2.Angle(Grad2);
+    
+    return dtheta/dx;
+  }
 
-
+  double BezierTrack::GetRMSCurvature() const
+  {
+    double RMS;
+    for(int i=1; i!=fBezierResolution-1; i++)
+      {
+	RMS += pow(GetCurvature( float(i)/fBezierResolution),2);
+      }
+    return (pow(RMS/(fBezierResolution-2),0.5));
+    
+  }
     
 
     
