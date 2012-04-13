@@ -7,13 +7,19 @@
 
 namespace trkf {
 
-
+  //----------------------------------------------------------------------
+  // Constructor from Base object (for analysis)
+  //
   BezierTrack::BezierTrack(recob::BezierTrackBase btb):
     recob::BezierTrackBase(btb)
   {
     CalculateSegments();
   }
 
+
+  //----------------------------------------------------------------------
+  // Constructor from seed vector (for production)
+  //
   BezierTrack::BezierTrack(std::vector<recob::Seed*> SeedCol):
     recob::BezierTrackBase()
   {
@@ -21,10 +27,20 @@ namespace trkf {
     CalculateSegments();
   }
 
+
+
+  //----------------------------------------------------------------------
+  // Default constructor
+  //
   BezierTrack::~BezierTrack()
   {
   }
 
+
+  //----------------------------------------------------------------------
+  // Given track points, fill the seed vector.  The seeds are then used 
+  // for geomtry calculations / bezier fitting
+  //
   void BezierTrack::FillSeedVector()
   {
     int NSeg=NSegments();
@@ -50,6 +66,13 @@ namespace trkf {
     
   }
     
+
+
+  //----------------------------------------------------------------------
+  // Calculate the lengths of each bezier segment and fill useful 
+  // calculational data members
+  //
+
   void BezierTrack::CalculateSegments()
   {
     if(fSeedCollection.size()==0)
@@ -84,6 +107,10 @@ namespace trkf {
   }
 
 
+  //----------------------------------------------------------------------
+  // Find the point which is fraction s along the track and return
+  // as a double[3]
+  //
   void BezierTrack::GetTrackPoint(double s, double * xyz) const
   {
     if((s>1)||(s<0))
@@ -110,6 +137,14 @@ namespace trkf {
   }
   
 
+
+
+
+  //----------------------------------------------------------------------
+  //  Find the point which is fraction s along the track and get its 
+  //   projected point in the wire view, in system uvwx
+  //
+
   void BezierTrack::GetProjectedPointUVWX(double s, double *uvw, double*x, int t=0, int c=0) const
   {
 
@@ -132,6 +167,15 @@ namespace trkf {
     x[0]=xyz[0];
   }
 
+
+
+
+
+
+  //----------------------------------------------------------------------
+  //  Find the point which is fraction s along the track and get its 
+  //   projected point in the wire view, in system uvwt
+  //
 
   void BezierTrack::GetProjectedPointUVWT(double s, double *uvw, double*ticks, int t=0, int c=0) const
   {

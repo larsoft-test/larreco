@@ -43,6 +43,12 @@ BezierCurveHelper::~BezierCurveHelper()
 {
 }
 
+
+//----------------------------------------------------------------------
+// Find the total length of one bezier segment connecting two seeds
+// using a brute force integration
+//
+
 double BezierCurveHelper::GetSegmentLength(recob::Seed * s1, recob::Seed * s2)
 {
   double Length=0;
@@ -62,6 +68,12 @@ double BezierCurveHelper::GetSegmentLength(recob::Seed * s1, recob::Seed * s2)
     }
   return Length;
 }
+
+
+//----------------------------------------------------------------------
+// Helper method for interpolation - find optimal scales for 
+// direction vectors
+//
 
 void BezierCurveHelper::GetDirectionScales(double * Pt1, double * Pt2, double * Dir1, double * Dir2, double * Scales)
 {
@@ -95,16 +107,25 @@ void BezierCurveHelper::GetDirectionScales(double * Pt1, double * Pt2, double * 
 }
 
 
-void BezierCurveHelper::GetBezierPointXYZ(recob::Seed * s1, recob::Seed * s2, float t, double * xyz)
+//----------------------------------------------------------------------
+// Interpolate point between two seeds and return as double[3]
+//
+
+void BezierCurveHelper::GetBezierPointXYZ(recob::Seed * s1, recob::Seed * s2, float s, double * xyz)
 {
-  TVector3 BezierPoint = GetBezierPoint(s1, s2, t);
+  TVector3 BezierPoint = GetBezierPoint(s1, s2, s);
   xyz[0]=BezierPoint[0];
   xyz[1]=BezierPoint[1];
   xyz[2]=BezierPoint[2];
 
 }
 
-TVector3 BezierCurveHelper::GetBezierPoint(recob::Seed * s1, recob::Seed * s2, float t)
+
+//----------------------------------------------------------------------
+// Interpolate point between two seeds and return as a TVector3
+//
+
+TVector3 BezierCurveHelper::GetBezierPoint(recob::Seed * s1, recob::Seed * s2, float s)
 {
   TVector3 ReturnVec3;
   double Pt1[3], Pt2[3], Dir1[3], Dir2[3], Mid1[3], Mid2[3], Dummy[3];
@@ -116,7 +137,7 @@ TVector3 BezierCurveHelper::GetBezierPoint(recob::Seed * s1, recob::Seed * s2, f
   double DirScales[2];
   GetDirectionScales(Pt1,Pt2,Dir1,Dir2,DirScales);
 
-  float nt=1.-t;
+  float ns=1.-s;
   for(int i=0; i!=3; i++)
     {
       Mid1[i]=Pt1[i]+Dir1[i]*DirScales[0];
@@ -126,10 +147,10 @@ TVector3 BezierCurveHelper::GetBezierPoint(recob::Seed * s1, recob::Seed * s2, f
       Mid2[i]=Pt2[i]+Dir2[i]*DirScales[1];
       Mid2[i]=Pt2[i]+Dir2[i]*DirScales[1];
       ReturnVec3[i]=
-	nt * nt * nt *        Pt1[i]
-	+ 3.* nt * nt * t *   Mid1[i]
-	+ 3.* nt * t * t *    Mid2[i]
-	+ t * t * t *         Pt2[i];     
+	ns * ns * ns *        Pt1[i]
+	+ 3.* ns * ns * s *   Mid1[i]
+	+ 3.* ns * s * s *    Mid2[i]
+	+ s * s * s *         Pt2[i];     
     }
   return ReturnVec3;
 
@@ -140,6 +161,13 @@ TVector3 BezierCurveHelper::GetBezierPoint(recob::Seed * s1, recob::Seed * s2, f
   //  std::cout<<"             " << t<<" " <<ReturnVec3[0]<<" "<<ReturnVec3[1]<<" "<<ReturnVec3[2]<<" "<<std::endl;
 
 }
+
+
+
+//----------------------------------------------------------------------
+// Interpolate a whole vector of points between two seeds - more 
+//  efficient than doing each one separately
+//
 
 std::vector<TVector3> BezierCurveHelper::GetBezierPoints(recob::Seed * s1, recob::Seed * s2, int N)
 {
