@@ -100,7 +100,11 @@ namespace trkf {
     std::vector<double> fMomStart;
     double fPerpLim;
     bool fDoFit;
+    int fNumIt;
     int fDecimate;
+    double fMaxUpdate;
+    int fPdg;
+    
     genf::GFAbsTrackRep *repMC;
     genf::GFAbsTrackRep *rep;
 

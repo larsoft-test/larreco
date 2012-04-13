@@ -69,7 +69,7 @@ static bool sp_sort_3dz(const recob::SpacePoint& h1, const recob::SpacePoint& h2
 
 //-------------------------------------------------
 trkf::Track3DKalmanSPS::Track3DKalmanSPS(fhicl::ParameterSet const& pset) :
-  fDoFit(true), fDecimate(1)
+  fDoFit(true), fDecimate(1), fNumIt(5), fMaxUpdate(0.10)
 {
 
     this->reconfigure(pset);
@@ -94,9 +94,12 @@ void trkf::Track3DKalmanSPS::reconfigure(fhicl::ParameterSet const& pset)
   fPosErr                = pset.get< std::vector < double >  >("PosErr3");   // resolution. cm
   fMomErr                = pset.get< std::vector < double >  >("MomErr3");   // GeV
   fMomStart              = pset.get< std::vector < double >  >("MomStart3"); // 
-  fPerpLim               = pset.get< double  >("PerpLimit"); // 
-  fDoFit                 = pset.get< bool  >("DoFit", true); // 
-  fDecimate              = pset.get< int  >("Decimate", 1); // 
+  fPerpLim               = pset.get< double  >("PerpLimit", 1.e6); // PCA constraint.
+  fDoFit                 = pset.get< bool  >("DoFit", true); // Der.
+  fDecimate              = pset.get< int  >("Decimate", 1); // Sparsify data.
+  fNumIt                 = pset.get< int  >("NumIt", 5); // Number x2 passe.s
+  fMaxUpdate             = pset.get< double >("MaxUpdate", 0.1); // 0-out. 
+  fPdg                   = pset.get< int  >("PdgCode", -13); // Hypothesis.
   fGenfPRINT             = pset.get< bool >("GenfPRINT");
   
 }
@@ -394,7 +397,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  mf::LogInfo("Track3DKalmanSPS: ")<<"\n\t found "<<spacepoints.size()<<" 3D spacepoint(s) for this prong \n";
 				  
 		  const double resolution = posErr.Mag(); 
-		  const int numIT = 5; 
+
 		  // Let's find track's principle components.
 		  // We will sort along that direction, rather than z.
 		  // Further, we will skip outliers away from main axis.
@@ -517,7 +520,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 					     momM,
 					     posErr,
 					     momErrFit,
-					     -13);  // mu+ hypothesis
+					     -fPdg);  // mu+ hypothesis
 		  //      std::cout<<"Track3DKalmanSPS: about to do GFTrack. repDim is " << rep->getDim() <<std::endl;
 
 
@@ -591,24 +594,38 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  k.setBlowUpFactor(500); // 500 out of box. EC, 6-Jan-2011.
 		  k.setMomHigh(20.0); // Don't fit above this many GeV.
 		  k.setMomLow(0.1);   // Don't fit below this many GeV.
-		  k.setMaxUpdate(0.1); // 0 out abs(update) bigger than this.
+		  k.setMaxUpdate(fMaxUpdate); // 0 out abs(update) bigger than this.
 		  k.setInitialDirection(+1); // Instead of 1 out of box. EC, 6-Jan-2011.
-		  k.setNumIterations(numIT);
+		  k.setNumIterations(fNumIt);
 		  bool skipFill = false;
 		  //      std::cout<<"Track3DKalmanSPS back from setNumIterations."<<std::endl;
+		  std::vector < TMatrixT<double> > hitMeasCov;
+		  std::vector < TMatrixT<double> > hitUpdate;
+		  std::vector < TMatrixT<double> > hitCov;
+		  std::vector < TMatrixT<double> > hitState;
+		  std::vector < genf::GFDetPlane* >  hitPlane;
+		  std::vector <TVector3> hitPlaneXYZ;
+		  std::vector <TVector3> hitPlaneUxUyUz;
+
 		  try{
 		    //	std::cout<<"Track3DKalmanSPS about to processTrack."<<std::endl;
 		    if (fDoFit) k.processTrack(&fitTrack);
-		    std::vector < TMatrixT<Double_t> > measCov(fitTrack.getMeasuredCov());
-		    std::vector < TMatrixT<Double_t> > measUpdate(fitTrack.getMeasuredUpdate());
+		    hitMeasCov = fitTrack.getHitMeasuredCov();
+		    hitUpdate = fitTrack.getHitUpdate();
+		    hitCov = fitTrack.getHitCov();
+		    hitState = fitTrack.getHitState();
+		    hitPlane = fitTrack.getHitPlane();
+
 		    for (unsigned int ihit=0; ihit<fptsNo; ihit++)
 		      {
-			feth[ihit] = (Float_t ) (measCov.at(ihit)[0][0]); // eth
-			fedudw[ihit] = (Float_t ) (measCov.at(ihit)[1][1]); 
-			fedvdw[ihit] = (Float_t ) (measCov.at(ihit)[2][2]); 
-			feu[ihit] = (Float_t ) (measCov.at(ihit)[3][3]); 
-			fev[ihit] = (Float_t ) (measCov.at(ihit)[4][4]);
-			fupdate[ihit] = (Float_t ) (measUpdate.at(ihit)[0][0]);
+			hitPlaneXYZ.push_back(hitPlane.at(ihit)->getO());
+			hitPlaneUxUyUz.push_back(hitPlane.at(ihit)->getNormal());
+			feth[ihit] = (Float_t ) (hitMeasCov.at(ihit)[0][0]); // eth
+			fedudw[ihit] = (Float_t ) (hitMeasCov.at(ihit)[1][1]); 
+			fedvdw[ihit] = (Float_t ) (hitMeasCov.at(ihit)[2][2]); 
+			feu[ihit] = (Float_t ) (hitMeasCov.at(ihit)[3][3]); 
+			fev[ihit] = (Float_t ) (hitMeasCov.at(ihit)[4][4]);
+			fupdate[ihit] = (Float_t ) (hitUpdate.at(ihit)[0][0]);
 		      }
 		    //std::cout<<"Track3DKalmanSPS back from processTrack."<<std::endl;
 		  }
@@ -699,7 +716,11 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		      clusters = util::FindManyP<recob::Cluster>(prongIn, evt, fProngModuleLabel, cntp);
 		      cntp++;
 
-		      recob::Track  the3DTrack(clusters,spacepointss);
+		      std::vector <std::vector <double> > dQdxDummy;
+		      recob::Track  the3DTrack(hitPlaneXYZ,hitPlaneUxUyUz,
+					       hitCov,hitState,dQdxDummy
+					       );
+		      /*
 		      double dircosF[3];
 		      double dircosL[3];
 		      
@@ -708,9 +729,10 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 			  dircosF[ii] = fpREC[ii]/fpREC[3];
 			  dircosL[ii] = fpRECL[ii]/fpRECL[3];
 			}
-		      // Add the 3D track to the vector of the reconstructed tracks		      
+
 		      the3DTrack.SetDirection(dircosF,dircosL);
 		      the3DTrack.SetID(tcnt++);
+		      */
 		      tcol->push_back(the3DTrack);
 		      util::CreateAssn(*this, evt, *(tcol.get()), clusters,*(assn.get()));
 		      
