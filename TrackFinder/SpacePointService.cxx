@@ -275,6 +275,7 @@ namespace  trkf{
       unsigned int channel = hit.Channel();
       unsigned int tpc, plane, wire, cstat;
       const geo::WireGeo& wgeom = geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+      cstats[i] = cstat;
       tpcs[i] = tpc;
       planes[i] = plane;
 
@@ -540,7 +541,8 @@ namespace  trkf{
     double chisq = 0.;
     if(sumw != 0.) {
       drift_time = sumtw / sumw;
-      var_time = sumt2w / sumw - drift_time * drift_time;
+      //var_time = sumt2w / sumw - drift_time * drift_time;
+      var_time = 1. / sumw;
       if(var_time < 0.)
 	var_time = 0.;
       chisq = sumt2w - sumtw * drift_time;

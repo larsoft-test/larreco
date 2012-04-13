@@ -49,6 +49,9 @@ namespace trkf {
     TH1F* fHDTUE;    // U-drift electrons time difference.
     TH1F* fHDTVE;    // V-drift electrons time difference.
     TH1F* fHDTWE;    // W-drift electrons time difference.
+    TH1F* fHDTUPull; // U-drift electrons time pull.
+    TH1F* fHDTVPull; // V-drift electrons time pull.
+    TH1F* fHDTWPull; // W-drift electrons time pull.
     TH1F* fHDTUV;    // U-V time difference.
     TH1F* fHDTVW;    // V-W time difference.
     TH1F* fHDTWU;    // W-U time difference.

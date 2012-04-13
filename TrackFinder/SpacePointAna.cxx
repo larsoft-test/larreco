@@ -42,6 +42,9 @@ namespace trkf {
     fHDTUE(0),
     fHDTVE(0),
     fHDTWE(0),
+    fHDTUPull(0),
+    fHDTVPull(0),
+    fHDTWPull(0),
     fHDTUV(0),
     fHDTVW(0),
     fHDTWU(0),
@@ -92,9 +95,12 @@ namespace trkf {
       art::TFileDirectory dir = tfs->mkdir("sptana", "SpacePointAna histograms");
 
       if(mc) {
-	fHDTUE = dir.make<TH1F>("MCDTUE", "U-Drift Electrons Time Difference", 100, -50., 50.);
-	fHDTVE = dir.make<TH1F>("MCDTVE", "V-Drift Electrons Time Difference", 100, -50., 50.);
-	fHDTWE = dir.make<TH1F>("MCDTWE", "W-Drift Electrons Time Difference", 100, -50., 50.);
+	fHDTUE = dir.make<TH1F>("MCDTUE", "U-Drift Electrons Time Difference", 100, -2., 2.);
+	fHDTVE = dir.make<TH1F>("MCDTVE", "V-Drift Electrons Time Difference", 100, -2., 2.);
+	fHDTWE = dir.make<TH1F>("MCDTWE", "W-Drift Electrons Time Difference", 100, -2., 2.);
+	fHDTUPull = dir.make<TH1F>("MCDTUPull", "U-Drift Electrons Time Pull", 100, -50., 50.);
+	fHDTVPull = dir.make<TH1F>("MCDTVPull", "V-Drift Electrons Time Pull", 100, -50., 50.);
+	fHDTWPull = dir.make<TH1F>("MCDTWPull", "W-Drift Electrons Time Pull", 100, -50., 50.);
       }
       if(!sptsvc->merge()) {
 	fHDTUV = dir.make<TH1F>("DTUV", "U-V time difference", 100, -20., 20.);
@@ -114,9 +120,9 @@ namespace trkf {
 	fHMCdx = dir.make<TH1F>("MCdx", "X MC Residual", 100, -2., 2.);
 	fHMCdy = dir.make<TH1F>("MCdy", "Y MC Residual", 100, -2., 2.);
 	fHMCdz = dir.make<TH1F>("MCdz", "Z MC Residual", 100, -2., 2.);
-	fHMCxpull = dir.make<TH1F>("MCxpull", "X MC Pull", 100, -10., 10.);
-	fHMCypull = dir.make<TH1F>("MCypull", "Y MC Pull", 100, -10., 10.);
-	fHMCzpull = dir.make<TH1F>("MCzpull", "Z MC Pull", 100, -10., 10.);
+	fHMCxpull = dir.make<TH1F>("MCxpull", "X MC Pull", 100, -50., 50.);
+	fHMCypull = dir.make<TH1F>("MCypull", "Y MC Pull", 100, -50., 50.);
+	fHMCzpull = dir.make<TH1F>("MCzpull", "Z MC Pull", 100, -50., 50.);
       }
     }
   }
@@ -138,8 +144,15 @@ namespace trkf {
     // Get Services.
 
     art::ServiceHandle<trkf::SpacePointService> sptsvc;
-    art::ServiceHandle<util::DetectorProperties> detprop;
     art::ServiceHandle<geo::Geometry> geom;
+    art::ServiceHandle<util::DetectorProperties> detprop;
+    art::ServiceHandle<util::LArProperties> larprop;
+
+    // Get time pitch (cm/tick).
+
+    double samplingRate = detprop->SamplingRate();
+    double driftVelocity = larprop->DriftVelocity();
+    double timePitch = 0.001 * driftVelocity * samplingRate;
 
     // Get SimChannels.
     // now make a vector where each channel in the detector is an 
@@ -212,6 +225,9 @@ namespace trkf {
 	geo::View_t view = hit.View();
 	assert(geom->TPC(tpc).Plane(plane).View() == view);
 	double tpeak = hit.PeakTime();
+	//double tstart = hit.StartTime();
+	//double tend = hit.EndTime();
+	double terr = hit.SigmaPeakTime();
 
 	// Get SimChan associated with this hit.
 
@@ -226,19 +242,47 @@ namespace trkf {
 	// hit-electron time difference histograms.
 
 	// loop over the map of TDC to sim::IDE to get the TDC for each energy dep
-	const std::map<unsigned short, std::vector<sim::IDE> > &idemap = simchan.TDCIDEMap();
-	std::map<unsigned short, std::vector<sim::IDE> >::const_iterator mitr = idemap.begin();
-	for(mitr = idemap.begin(); mitr != idemap.end(); mitr++) {
-	  double tdc = 1.*(*mitr).first;
-	  if(view == geo::kU)
-	    fHDTUE->Fill(tpeak - tdc);
-	  else if(view == geo::kV)
-	    fHDTVE->Fill(tpeak - tdc);
-	  else if(view == geo::kW)
-	    fHDTWE->Fill(tpeak - tdc);
-	  else
-	    throw cet::exception("SpacePointAna") << "Bad view = " << view << "\n";
+	// Find the average time in ticks for this hit.
+
+	//double sumw = 0.;
+	//double sumt = 0.;
+
+	//const std::map<unsigned short, std::vector<sim::IDE> > &idemap = simchan.TDCIDEMap();
+	//std::map<unsigned short, std::vector<sim::IDE> >::const_iterator mitr = idemap.begin();
+	//for(mitr = idemap.begin(); mitr != idemap.end(); mitr++) {
+	//  double tdc = double((*mitr).first);
+	//  if(tdc >= tstart && tdc <= tend) {
+	//    const std::vector<sim::IDE>& idevec = (*mitr).second;
+	//    for(std::vector<sim::IDE>::const_iterator iide=idevec.begin();
+	//	iide != idevec.end(); ++iide) {
+	//      const sim::IDE& ide = *iide;
+	//      double w = ide.numElectrons;
+	//      sumw += w;
+	//      sumt += w*tdc;
+	//    }
+	//  }
+	//}
+	//double tav = 0.;
+	//if(sumw != 0.)
+	//  tav = sumt / sumw;
+
+	std::vector<double> hitxyz = cheat::BackTracker::HitToXYZ(simchan, *ihit);
+	double tav = detprop->ConvertXToTics(hitxyz[0], plane, tpc, cstat);
+
+	if(view == geo::kU) {
+	  fHDTUE->Fill(tpeak - tav);
+	  fHDTUPull->Fill((tpeak - tav) / terr);
 	}
+	else if(view == geo::kV) {
+	  fHDTVE->Fill(tpeak - tav);
+	  fHDTVPull->Fill((tpeak - tav) / terr);
+	}
+	else if(view == geo::kW) {
+	  fHDTWE->Fill(tpeak - tav);
+	  fHDTWPull->Fill((tpeak - tav) / terr);
+	}
+	else
+	  throw cet::exception("SpacePointAna") << "Bad view = " << view << "\n";
       }
     }
     
