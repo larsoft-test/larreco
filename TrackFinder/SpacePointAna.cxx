@@ -148,12 +148,6 @@ namespace trkf {
     art::ServiceHandle<util::DetectorProperties> detprop;
     art::ServiceHandle<util::LArProperties> larprop;
 
-    // Get time pitch (cm/tick).
-
-    double samplingRate = detprop->SamplingRate();
-    double driftVelocity = larprop->DriftVelocity();
-    double timePitch = 0.001 * driftVelocity * samplingRate;
-
     // Get SimChannels.
     // now make a vector where each channel in the detector is an 
     // entry
@@ -267,7 +261,7 @@ namespace trkf {
 	//  tav = sumt / sumw;
 
 	std::vector<double> hitxyz = cheat::BackTracker::HitToXYZ(simchan, *ihit);
-	double tav = detprop->ConvertXToTics(hitxyz[0], plane, tpc, cstat);
+	double tav = detprop->ConvertXToTicks(hitxyz[0], plane, tpc, cstat);
 
 	if(view == geo::kU) {
 	  fHDTUE->Fill(tpeak - tav);
