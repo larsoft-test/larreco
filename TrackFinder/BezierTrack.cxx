@@ -21,14 +21,22 @@ namespace trkf {
     CalculateSegments();
   }
 
-  
+  BezierTrack::~BezierTrack()
+  {
+  }
 
   void BezierTrack::FillSeedVector()
   {
     int NSeg=NSegments();
+    
+    std::cout<<"Filling seed vector of bezier track with n= "<<NSeg<<std::endl;
+  
     double Pt[3], Dir[3];
     for(int i=0; i!=NSeg; i++)
       {
+	//	std::cout<<"Adding in seed with coord " << fPtX.at(i)<<" " <<fPtY.at(i)<<" " <<fPtZ.at(i)<<std::endl; 
+	//	std::cout<<"                          " << fDirX.at(i)<<" " <<fDirY.at(i)<<" " <<fDirZ.at(i)<<std::endl; 
+
 	Pt[0]=fPtX.at(i);
 	Pt[1]=fPtY.at(i);
 	Pt[2]=fPtZ.at(i);
@@ -64,14 +72,15 @@ namespace trkf {
       {
 	if(!FirstSeg)
 	  {
-	    FirstSeg=true;
 	    float SegmentLength=bhlp.GetSegmentLength(fSeedCollection.at(i-1),fSeedCollection.at(i));
-	    
+	    //  std::cout<<"Pushing back segment with length" << SegmentLength<<std::endl;
 	    fTrackLength+=SegmentLength;
 	    fSegmentLength.push_back(SegmentLength);
 	  }
+	FirstSeg=false;
 	fCumulativeLength.push_back(fTrackLength);
       }      
+    std::cout<<"Total track length : " <<fTrackLength<<std::endl;
   }
 
 
@@ -87,10 +96,11 @@ namespace trkf {
 	BezierCurveHelper bhlp;
         for(unsigned int i=1; i!=fCumulativeLength.size(); i++)
           {
-            if(  (   (fCumulativeLength.at(i-1) / fTrackLength) <  s)
-                 &&( (fCumulativeLength.at(i)   / fTrackLength) >= s))
+	    //  std::cout<<"Seeking track point: " << fCumulativeLength.at(i-1)/fTrackLength << " " << fCumulativeLength.at(i)/fTrackLength<<std::endl;
+            if(  (   (fCumulativeLength.at(i-1) / fTrackLength) <=  s)
+                 &&( (fCumulativeLength.at(i)   / fTrackLength) > s))
               {
-
+		
                 double locals = (s * fTrackLength - fCumulativeLength[i-1])/fSegmentLength[i];
                 bhlp.GetBezierPointXYZ(fSeedCollection.at(i-1),fSeedCollection.at(i),locals, xyz);
               }
