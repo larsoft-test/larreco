@@ -26,7 +26,6 @@
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
 // LArSoft includes
-#include "TrackFinder/SpacePointService.h"
 #include "TrackFinder/Track3DKalmanSPS.h"
 #include "Geometry/geo.h"
 #include "RecoBase/recobase.h"
