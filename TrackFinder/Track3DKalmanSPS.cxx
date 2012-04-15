@@ -731,7 +731,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		      clusters = util::FindManyP<recob::Cluster>(prongIn, evt, fProngModuleLabel, cntp);
 		      cntp++;
 
-		      std::vector <std::vector <double> > dQdxDummy;
+		      std::vector <std::vector <double> > dQdxDummy(0);
 		      recob::Track  the3DTrack(hitPlaneXYZ,hitPlaneUxUyUz,
 					       hitCov,hitState,dQdxDummy
 					       );
