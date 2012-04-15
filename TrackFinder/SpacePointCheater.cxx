@@ -33,8 +33,9 @@ namespace trkf {
     fNumProng3(0)
   {
     reconfigure(pset);
-    produces<std::vector<recob::Prong> >();
+    produces<std::vector<recob::Prong>                >();
     produces<art::Assns<recob::Prong, recob::Cluster> >();
+    produces<art::Assns<recob::Prong, recob::Hit>     >();
 
     // Report.
 
@@ -104,6 +105,7 @@ namespace trkf {
 
       std::auto_ptr<std::vector<recob::Prong> > prongs(new std::vector<recob::Prong>);
       std::auto_ptr< art::Assns<recob::Prong, recob::Cluster> > assn(new art::Assns<recob::Prong, recob::Cluster>);
+      std::auto_ptr< art::Assns<recob::Prong, recob::Hit> > hassn(new art::Assns<recob::Prong, recob::Hit>);
     
       // Make a hit vector which will be used to store hits to be passed
       // to SpacePointService.
@@ -223,6 +225,14 @@ namespace trkf {
 		    clusters.push_back(pkclus);
 		    prongs->push_back(recob::Prong(clusters, spts));
 		    util::CreateAssn(*this, evt, *(prongs.get()), clusters,*(assn.get()));
+		    
+		    // associate the cluster hits with this prong as well
+		    for(size_t c = 0; c < clusters.size(); ++c){
+		      art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(clusters, evt, 
+										    fClusterModuleLabel, c);
+		      util::CreateAssn(*this, evt, *(prongs.get()), hits, *(hassn.get()));
+		    }
+
 		    ++fNumProng3;
 		  }
 		}
@@ -232,10 +242,11 @@ namespace trkf {
 	}
       }
 
-      // Add prongs to event.
+      // Add prongs and associations to event.
 
       evt.put(prongs);
       evt.put(assn);
+      evt.put(hassn);
     }
   }
 

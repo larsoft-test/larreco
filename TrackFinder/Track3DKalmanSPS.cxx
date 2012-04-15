@@ -68,14 +68,19 @@ static bool sp_sort_3dz(const recob::SpacePoint& h1, const recob::SpacePoint& h2
 }
 
 //-------------------------------------------------
-trkf::Track3DKalmanSPS::Track3DKalmanSPS(fhicl::ParameterSet const& pset) :
-  fDoFit(true), fDecimate(1), fNumIt(5), fMaxUpdate(0.10)
+trkf::Track3DKalmanSPS::Track3DKalmanSPS(fhicl::ParameterSet const& pset) 
+  : fDoFit(true)
+  , fDecimate(1)
+  , fNumIt(5)
+  , fMaxUpdate(0.10)
 {
 
     this->reconfigure(pset);
 
-    produces< std::vector<recob::Track> >();
+    produces< std::vector<recob::Track>               >();
     produces<art::Assns<recob::Track, recob::Cluster> >();
+    produces<art::Assns<recob::Track, recob::Hit>     >();
+
     // get the random number seed, use a random default if not specified    
     // in the configuration file.  
     unsigned int seed = pset.get< unsigned int >("Seed", sim::GetRandomNumberSeed());
@@ -84,6 +89,7 @@ trkf::Track3DKalmanSPS::Track3DKalmanSPS(fhicl::ParameterSet const& pset) :
 
 }
 
+//-------------------------------------------------
 void trkf::Track3DKalmanSPS::reconfigure(fhicl::ParameterSet const& pset) 
 {
   
@@ -105,7 +111,6 @@ void trkf::Track3DKalmanSPS::reconfigure(fhicl::ParameterSet const& pset)
 }
 
 //-------------------------------------------------
-
 trkf::Track3DKalmanSPS::~Track3DKalmanSPS()
 {
 }
@@ -219,6 +224,7 @@ void trkf::Track3DKalmanSPS::beginJob()
  
 }
 
+//-------------------------------------------------
 void trkf::Track3DKalmanSPS::endJob()
 {
   if (!rep) delete rep;
@@ -282,6 +288,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   //////////////////////////////////////////////////////
   std::auto_ptr<std::vector<recob::Track> > tcol(new std::vector<recob::Track>);
   std::auto_ptr< art::Assns<recob::Track, recob::Cluster> > assn(new art::Assns<recob::Track, recob::Cluster>); 
+  std::auto_ptr< art::Assns<recob::Track, recob::Hit> > hassn(new art::Assns<recob::Track, recob::Hit>); 
   unsigned int tcnt = 0;
 
   // define TPC parameters
@@ -297,7 +304,11 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 
   art::PtrVector<simb::MCTruth> mclist;
   std::vector<const sim::SimChannel*> simChannelHandle;
-  
+
+
+  /// \todo Should never test whether the event is real data in reconstruction algorithms
+  /// \todo as that introduces potential data/MC differences that are very hard to track down
+  /// \todo Remove this test as soon as possible please
   if (!evt.isRealData())
     {
 
@@ -323,6 +334,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   // std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
   mf::LogInfo("Track3DKalmanSPS: ") << "There are " <<  prongListHandle->size() << " Prongs (spacepoint clumps) in this event.";
 
+  /// \todo Why is there a RandomNumberGenerator here as it is never used?????
   art::ServiceHandle<art::RandomNumberGenerator> rng;
   CLHEP::HepRandomEngine &engine = rng->getEngine();
   CLHEP::RandGaussQ gauss(engine);
@@ -338,22 +350,25 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
       prongIn.push_back(prong);
     }
 
-      TVector3 MCOrigin;
-      TVector3 MCMomentum;
-      // TVector3 posErr(.05,.05,.05); // resolution. 0.5mm
-      // TVector3 momErr(.1,.1,0.2);   // GeV
-      TVector3 posErr(fPosErr[0],fPosErr[1],fPosErr[2]); // resolution. 0.5mm
-      TVector3 momErr(fMomErr[0],fMomErr[1],fMomErr[2]);   // GeV
-      TVector3 momErrFit(fMomErr[0],fMomErr[1],fMomErr[2]);   // GeV
-
-      // This is strictly for MC
-      if (!evt.isRealData())
+  TVector3 MCOrigin;
+  TVector3 MCMomentum;
+  // TVector3 posErr(.05,.05,.05); // resolution. 0.5mm
+  // TVector3 momErr(.1,.1,0.2);   // GeV
+  TVector3 posErr(fPosErr[0],fPosErr[1],fPosErr[2]); // resolution. 0.5mm
+  TVector3 momErr(fMomErr[0],fMomErr[1],fMomErr[2]);   // GeV
+  TVector3 momErrFit(fMomErr[0],fMomErr[1],fMomErr[2]);   // GeV
+  
+  // This is strictly for MC
+  /// \todo Should never test whether the event is real data in reconstruction algorithms
+  /// \todo as that introduces potential data/MC differences that are very hard to track down
+  /// \todo Remove this test as soon as possible please
+  if (!evt.isRealData())
+    {
+      // Below breaks are stupid, I realize. But rather than keep all the MC
+      // particles I just take the first primary, e.g., muon and only keep its
+      // info in the branches of the Ttree. I could generalize later, ...
+      for( unsigned int ii = 0; ii < mclist.size(); ++ii )
 	{
-	  // Below breaks are stupid, I realize. But rather than keep all the MC
-	  // particles I just take the first primary, e.g., muon and only keep its
-	  // info in the branches of the Ttree. I could generalize later, ...
-	  for( unsigned int ii = 0; ii < mclist.size(); ++ii )
-	    {
 	    //art::Ptr<const simb::MCTruth> mc(mctruthListHandle,i);
 	    art::Ptr<simb::MCTruth> mc(mclist[ii]);
 	    for(int jj = 0; jj < mc->NParticles(); ++jj)
@@ -735,7 +750,14 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		      */
 		      tcol->push_back(the3DTrack);
 		      util::CreateAssn(*this, evt, *(tcol.get()), clusters,*(assn.get()));
-		      
+
+		      // associate the cluster hits with the track as well
+		      for(size_t c = 0; c < clusters.size(); ++c){
+			art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(clusters, evt, 
+										      fClusterModuleLabel, c);
+			util::CreateAssn(*this, evt, *(tcol.get()), hits, *(hassn.get()));
+		      }
+
 		    } // getStatusFlag 
 
 		  if (!rep) delete rep;
@@ -746,9 +768,11 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 
       if (!repMC) delete repMC;
 
-      if (tcol->size()) 
-	{ 
-	  evt.put(tcol); 
-	  evt.put(assn);
-	}
+      // 4/15/12 BJR:  removed check on size of tcol because 
+      // we have to put everything we said was produced in this module
+      // into the event even if they are empty collections, otherwise the
+      // framework complains, its a feature, not a bug that ART does that
+      evt.put(tcol); 
+      evt.put(assn);
+      evt.put(hassn);
 }
