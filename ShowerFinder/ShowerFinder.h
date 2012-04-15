@@ -24,17 +24,17 @@ namespace shwf {
     explicit ShowerFinder(fhicl::ParameterSet const&); 
     virtual ~ShowerFinder();
          
+    void reconfigure(fhicl::ParameterSet const& p);
     void produce(art::Event& evt); 
- 
 
   private:
 
-    std::string     fVertexModuleLabel;  
-    std::string     fClusterModuleLabel;  
-    std::string     fHoughLineModuleLabel;  
-    std::string     fVertexStrengthModuleLabel;  
-    double     fRcone;  
-    double     fLcone;  
+    std::string fVertexModuleLabel;         ///< label of module finding 2D endpoint
+    std::string fClusterModuleLabel;        ///< label of module finding clusters
+    std::string fHoughLineModuleLabel;      ///< label of module finding hough line
+    std::string fVertexStrengthModuleLabel; ///< label of module finding 2D endpoint 
+    double      fRcone;                     ///< radious of cone for method
+    double      fLcone;                     ///< length of the cone
 
   protected: 
     
