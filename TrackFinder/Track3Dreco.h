@@ -31,9 +31,9 @@ namespace trkf {
 
   private:
         
-    int             ftmatch; // tolerance for time matching (in time samples) 
-    double          fchi2dof;// tolerance for chi2/dof of cluster fit to function
-    std::string     fClusterModuleLabel;// label for input cluster collection
+    int             ftmatch;             ///< tolerance for time matching (in time samples) 
+    double          fchi2dof;            ///< tolerance for chi2/dof of cluster fit to function
+    std::string     fClusterModuleLabel; ///< label for input cluster collection
 
   protected: 
     
