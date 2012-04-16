@@ -90,12 +90,12 @@ namespace trkf {
 
     // Get Services.
 
-    art::Handle< std::vector<recob::BezierTrackBase> > btbh;
+    art::Handle< std::vector<recob::Track> > btbh;
     evt.getByLabel(fBezierTrackModuleLabel, btbh);
     std::vector<trkf::BezierTrack> BTracks;
     BTracks.clear();
     for(size_t i = 0; i < btbh->size(); ++i){
-      art::Ptr<recob::BezierTrackBase> btb(btbh, i);
+      art::Ptr<recob::Track> btb(btbh, i);
       BTracks.push_back(trkf::BezierTrack(*btb));
     }
 

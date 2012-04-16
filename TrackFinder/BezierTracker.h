@@ -22,10 +22,14 @@
 namespace recob
 {
   class Seed;
-  class BezierTrackBase;
+  class Track;
+  class Hit;
 }
 
+
 namespace trkf {
+
+  class BezierTrack;
 
   class BezierTracker : public art::EDProducer
   {
@@ -37,9 +41,9 @@ namespace trkf {
     virtual ~BezierTracker();
 
     std::vector<std::vector<art::Ptr<recob::Seed> > > OrganizeSeedsIntoTracks(std::vector<art::Ptr<recob::Seed> > SeedVector);
-    // std::vector<art::PtrVector<recob::Seed> OrganizeSeedsIntoTracks(art::PtrVector<recob::Seed>  SeedVector);
-    recob::BezierTrackBase ProduceBaseTrack(std::vector<art::Ptr<recob::Seed> > Seeds);
+    recob::Track ProduceBaseTrack(std::vector<art::Ptr<recob::Seed> > Seeds);
 
+    std::vector<int> DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, BezierTrack * BTrack, double HitCollectionDistance);
     
     // Overrides.
 
@@ -60,7 +64,11 @@ namespace trkf {
     double fMaxKinkAngle;
     double fMaxTrackMissAngle;
     double fMaxJumpDistance;
+    int fTrackMode;
+    double fHitDistance;
+
     int fTopTrackID;
+
   };
 }
 

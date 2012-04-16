@@ -10,8 +10,8 @@ namespace trkf {
   //----------------------------------------------------------------------
   // Constructor from Base object (for analysis)
   //
-  BezierTrack::BezierTrack(recob::BezierTrackBase btb):
-    recob::BezierTrackBase(btb)
+  BezierTrack::BezierTrack(recob::Track btb):
+    recob::Track(btb)
   {
     fBezierResolution=1000;
     
@@ -23,7 +23,7 @@ namespace trkf {
   // Constructor from seed vector (for production)
   //
   BezierTrack::BezierTrack(std::vector<recob::Seed*> SeedCol):
-    recob::BezierTrackBase()
+    recob::Track()
   {
     fSeedCollection = SeedCol;
     CalculateSegments();
@@ -55,13 +55,13 @@ namespace trkf {
       {
 
 
-	Pt[0]=fPtX.at(i);
-	Pt[1]=fPtY.at(i);
-	Pt[2]=fPtZ.at(i);
+	Pt[0]=(fXYZ.at(i))[0];
+	Pt[1]=(fXYZ.at(i))[1];
+	Pt[2]=(fXYZ.at(i))[2];
 
-	Dir[0]=fDirX.at(i);
-	Dir[1]=fDirY.at(i);
-	Dir[2]=fDirZ.at(i);
+	Dir[0]=(fDir.at(i))[0];
+	Dir[1]=(fDir.at(i))[1];
+	Dir[2]=(fDir.at(i))[2];
 	
 	fSeedCollection.push_back(new recob::Seed(Pt,Dir));
       }
@@ -211,6 +211,53 @@ namespace trkf {
   //
 
   void BezierTrack::GetClosestApproach( recob::Hit* hit,       double& s,  double& Distance) const 
+  {
+    art::ServiceHandle<util::DetectorProperties> det;
+    art::ServiceHandle<geo::Geometry>            geo;
+
+    unsigned int c1, t1, p1, w1;
+    
+    double xyzend1[3], xyzend2[3];
+    
+    double channel = hit->Channel();
+    geo->ChannelToWire(channel,c1,t1,p1,w1);
+    geo->WireEndPoints(c1,t1,p1,w1,xyzend1,xyzend2);
+    
+    xyzend1[0] = xyzend2[0] = det->ConvertTicksToX(hit->PeakTime(),p1,t1,c1);
+    
+    double iS, xyz[3], MinDistanceToPoint=10000, MinS=0;
+
+    for(int i=0; i!=fBezierResolution; ++i)
+      {
+	iS=float(i)/fBezierResolution;
+	GetTrackPoint(iS, xyz);
+	// calculate line to point distance in 3D
+	TVector3 end1(xyzend1[0],xyzend1[1],xyzend1[2]);
+	TVector3 end2(xyzend2[0],xyzend2[1],xyzend2[2]);
+	TVector3 trackpt(xyz[0],xyz[1],xyz[2]);
+	
+	float d = ((trackpt-end1).Cross(trackpt-end2)).Mag()/(end2-end1).Mag();
+	
+	if(d<MinDistanceToPoint)
+	  {
+	    MinDistanceToPoint=d;
+	    MinS=0;
+	  }
+      }
+   
+    s = MinS;
+    Distance = MinDistanceToPoint;
+        
+  }
+
+
+
+  //----------------------------------------------------------------------
+  //  Calculate the closest approach of this track to a given hit
+  //   and also the point where this occurs
+  //
+
+  void BezierTrack::GetClosestApproach( art::Ptr<recob::Hit> hit,       double& s,  double& Distance) const 
   {
     art::ServiceHandle<util::DetectorProperties> det;
     art::ServiceHandle<geo::Geometry>            geo;

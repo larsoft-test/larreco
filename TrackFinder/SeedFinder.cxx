@@ -53,8 +53,6 @@ namespace trkf {
     fMinPointsInCluster    = pset.get<unsigned int>("MinPointsInCluster");
     fMinPointsInSeed       = pset.get<unsigned int>("MinPointsInSeed");
     fAngularDev            = pset.get<double>("AngularDev");
-
-
   }
 
   void SeedFinder::beginJob()

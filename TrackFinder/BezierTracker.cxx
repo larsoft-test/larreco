@@ -9,22 +9,25 @@
 #include <vector>
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "TrackFinder/BezierTracker.h"
+#include "TrackFinder/SeedFinder.h"
 #include "Geometry/geo.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "RecoBase/Hit.h"
 #include "RecoBase/Seed.h"
-#include "RecoBase/BezierTrackBase.h"
 #include "RecoBase/Track.h"
 #include "RecoBase/Prong.h"
+#include "TrackFinder/BezierTrack.h"
 #include "Utilities/AssociationUtil.h"
+
 
 namespace trkf {
 
   BezierTracker::BezierTracker(const fhicl::ParameterSet& pset)
   {
     reconfigure(pset);
-    produces<std::vector<recob::BezierTrackBase> >();
+    produces< std::vector<recob::Track> >();
+    produces< art::Assns<recob::Track, recob::Hit> >();
     fTopTrackID=0;
   
   }
@@ -40,6 +43,8 @@ namespace trkf {
     fMaxKinkAngle      = pset.get<double>("MaxKinkAngle");
     fMaxTrackMissAngle = pset.get<double>("MaxTrackMissAngle");
     fMaxJumpDistance   = pset.get<double>("MaxJumpDistance");
+    fHitDistance       = pset.get<double>("HitDistance");
+    fTrackMode         = pset.get<double>("TrackMode");
 
   }
 
@@ -50,16 +55,28 @@ namespace trkf {
   void BezierTracker::produce(art::Event& evt)
   {
  
-    //   int EventNumber = evt.id().event();
-
+    // Extract seeds from event
     art::Handle< std::vector<recob::Seed> > seedh;
     evt.getByLabel(fSeedModuleLabel, seedh);  
   
+
+    // Extract hits PtrVector from event
     art::Handle< std::vector<recob::Hit> > hith;
     evt.getByLabel(fHitModuleLabel, hith);
-    
-    std::auto_ptr<std::vector<recob::BezierTrackBase> > btracks(new std::vector<recob::BezierTrackBase>);
 
+    art::PtrVector<recob::Hit> HitVec;
+    for(unsigned int i=0; i < hith->size(); ++i)
+      {
+	art::Ptr<recob::Hit> hit(hith,i);
+	HitVec.push_back(hit);
+      }
+    
+
+    // Declare products to store
+    std::auto_ptr< std::vector<recob::Track > > btracks ( new std::vector<recob::Track>);
+    std::auto_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
+   
+    
     std::vector<art::Ptr<recob::Seed> > TrackSeeds;
     if(seedh->size()>0)
       for(unsigned int iseed=0; iseed!=seedh->size(); iseed++)
@@ -73,33 +90,68 @@ namespace trkf {
     for(unsigned int i=0; i!=OrgSeeds.size(); i++)
       {
 	std::cout<<"Seeds in this btrack : " << OrgSeeds.at(i).size();
-	recob::BezierTrackBase BezTrackBase = ProduceBaseTrack(OrgSeeds.at(i));
-       	btracks->push_back(BezTrackBase);
+	recob::Track BezTrackBase = ProduceBaseTrack(OrgSeeds.at(i));
+	BezierTrack BTrack(BezTrackBase);
+	
+	std::vector<int> HitsToAssoc = DetermineNearbyHits(HitVec, &BTrack, fHitDistance);
+	btracks->push_back(BezTrackBase);
+
+	art::PtrVector<recob::Hit> HitAssocCol;
+	
+	for(size_t i=0; i!=HitsToAssoc.size(); i++)
+	  {
+	    HitAssocCol.push_back(HitVec.at(HitsToAssoc.at(i)));
+	  }
+	util::CreateAssn(*this, evt, *(btracks.get()), HitAssocCol, *(assn.get())); 
+	
       }
     evt.put(btracks);
-    
+    evt.put(assn);
   }
 
-  recob::BezierTrackBase BezierTracker::ProduceBaseTrack(std::vector<art::Ptr<recob::Seed> > Seeds)
+  recob::Track BezierTracker::ProduceBaseTrack(std::vector<art::Ptr<recob::Seed> > Seeds)
   {
-    std::vector<double> PtX, PtY, PtZ, DirX, DirY, DirZ;
+
+    std::vector<TVector3> Pos;
+    std::vector<TVector3> Dir;
+    std::vector<std::vector<double > > dQdx;
+    
     double pt[3], dir[3], dummy[3];
     for(unsigned int i=0; i!=Seeds.size(); i++)
       {
 	Seeds.at(i)->GetPoint(     pt,  dummy );
 	Seeds.at(i)->GetDirection( dir, dummy );
 	
-	PtX.push_back(pt[0]);
-	PtY.push_back(pt[1]);
-	PtZ.push_back(pt[2]);
+	TVector3 ThisPos(pt[0],  pt[1],  pt[2]  );
+	TVector3 ThisDir(dir[0], dir[1], dir[2] );
 
-	DirX.push_back(dir[0]);
-	DirY.push_back(dir[1]);
-	DirZ.push_back(dir[2]);
+	Pos.push_back(ThisPos);
+	Dir.push_back(ThisDir);
       }
-    return recob::BezierTrackBase(PtX, PtY, PtZ, DirX, DirY, DirZ, fTopTrackID++);
+    return recob::Track(Pos,Dir,dQdx);
     
   }
+
+
+  //
+  // From a PtrVector of hits, determine which are nearby
+  //
+
+  std::vector<int> BezierTracker::DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, BezierTrack* BTrack, double HitCollectionDistance)
+  {
+    std::vector<int> ReturnVector;
+    double s, distance;
+    for(size_t i=0; i!=Hits.size(); i++)
+      {
+	BTrack->GetClosestApproach(Hits.at(i),s, distance);
+	std::cout<<"Hit found with distance " <<distance;
+	if(distance<HitCollectionDistance) ReturnVector.push_back(i); 
+      }
+    return ReturnVector;
+  }
+
+
+  
 
   std::vector<std::vector<art::Ptr< recob::Seed> > > BezierTracker::OrganizeSeedsIntoTracks(std::vector<art::Ptr<recob::Seed> > TrackSeeds)
   {
@@ -122,8 +174,8 @@ namespace trkf {
 	    art::Ptr<recob::Seed> ThisSeed = *it;
 	    
             // Does this seed fit with this track?
-	    float Angle = ThisSeed->GetAngle(*LastSeedAdded);
-	    float ProjDis = ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded);
+	    //  float Angle = ThisSeed->GetAngle(*LastSeedAdded);
+	    //  float ProjDis = ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded);
 	    //  std::cout<<"BezierTracker: " << Angle<< " " <<ProjDis<<std::endl;
 	    
             if((  abs(ThisSeed->GetAngle(*LastSeedAdded))                 < fMaxKinkAngle)

@@ -56,7 +56,9 @@ microboone_seedfinder_kalmanseed:
   module_type:        "SeedFinder"
   SeedMode:           0
   ClusterModuleLabel: "dbcluster"
+  HitModuleLabel:      "ffthit"
   Filter:             true
+  Source:             1
   Merge:              false
   SeedLength:          5
   MinPointsInCluster:  50
@@ -78,13 +80,15 @@ microboone_seedfinder_bezierseed:
   module_type:        "SeedFinder"
   SeedMode:           1
   ClusterModuleLabel: "dbcluster"
+  HitModuleLabel:      "ffthit"
   Filter:             true
   Merge:              false
+  Source:              2
   SeedLength:         5
   MinPointsInCluster: 50
   MinPointsInSeed:    10
   AngularDev:         0.5
-
+  
 }
 
 microboone_beziertrack:
@@ -95,6 +99,8 @@ microboone_beziertrack:
   MaxKinkAngle:        0.35
   MaxTrackMissAngle:   0.18 
   MaxJumpDistance:     10.0
+  HitDistance:         0.5
+  TrackMode:           1
 }
 
 microboone_track:
