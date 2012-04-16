@@ -40,6 +40,7 @@ namespace recob
   class SpacePoint;
   class Cluster;
   class Seed;
+  class Hit;
 }
 
 namespace trkf {
@@ -58,20 +59,33 @@ namespace trkf {
     void reconfigure(fhicl::ParameterSet const& pset);
     void beginJob();
     void produce(art::Event& evt);
+    
     void endJob();
   
     
 
 
   private:
-    
+
+   
+
+
                    
     std::vector<std::vector<recob::SpacePoint> > GetSpacePointsFromClusters(std::string ClusterModuleLabel, art::Event & evt);
               // Get space points from clusters
               //    (I expect eventually we will get from event, which
               //     will be a separate method here) 
 
+    std::vector<recob::SpacePoint> GetSpacePointsFromHitVector(art::PtrVector< recob::Hit> );
+              // Generate space points from a pointer vector of hits 
+              //  using the spacepoint service
 
+    art::PtrVector<recob::Hit> GetHitsFromEvent(std::string HitModuleLabel, art::Event & evt);
+              // Get hit vector from event 
+
+    std::vector<std::vector<recob::SpacePoint> > GetSpacePointsFromHits(std::string HitModuleLabel, art::Event & evt);
+              // Get hit vector from event 
+ 
     recob::Seed * FindSeedAtEnd(std::vector<recob::SpacePoint>);
               // Find one seed at a high Z end of a collection of spacepoints
               //    with no quality check
@@ -92,11 +106,15 @@ namespace trkf {
     // Fcl Attributes.
 
     std::string fClusterModuleLabel;           // Where to find clusters for this algorithm
+
+    std::string fHitModuleLabel;           // Where to find hits, if we need them
  
     bool            fFilter, fMerge;           // Space point service settings
                                                //  See that service for info.
     int             fSeedMode;                 // 1: Find 1 seed per track at high Z
                                                // 2: Find as many seeds as possible 
+    int             fSource;                   // 1: Use Clusters
+                                               // 2: Use Hits
     double          fSeedLength;               // Distance from highest Z point to search
                                                //  for hits
     unsigned int    fMinPointsInCluster;       // How many SP's required in a cluster before
@@ -108,6 +126,7 @@ namespace trkf {
 
 
   };
+  
 }
 
 #endif // SEEDFINDER_H

@@ -44,9 +44,11 @@ namespace trkf {
   void SeedFinder::reconfigure(fhicl::ParameterSet const& pset)
   {
     fClusterModuleLabel    = pset.get<std::string>("ClusterModuleLabel");
+    fHitModuleLabel        = pset.get<std::string>("HitModuleLabel");
     fFilter                = pset.get<bool>("Filter");
     fMerge                 = pset.get<bool>("Merge");
     fSeedMode              = pset.get<int>("SeedMode");
+    fSource                = pset.get<int>("Source");
     fSeedLength            = pset.get<double>("SeedLength");
     fMinPointsInCluster    = pset.get<unsigned int>("MinPointsInCluster");
     fMinPointsInSeed       = pset.get<unsigned int>("MinPointsInSeed");
@@ -63,7 +65,19 @@ namespace trkf {
     
     std::auto_ptr<std::vector<recob::Seed> > seeds(new std::vector<recob::Seed>);
 
-    std::vector<std::vector<recob::SpacePoint> > SpacePointVectors = GetSpacePointsFromClusters(fClusterModuleLabel, evt);
+    std::vector<std::vector<recob::SpacePoint> > SpacePointVectors;
+    if(fSource==1)
+      SpacePointVectors = GetSpacePointsFromClusters(fClusterModuleLabel, evt);
+    else if(fSource==2)
+      {
+	SpacePointVectors = GetSpacePointsFromHits(fHitModuleLabel, evt);
+	std::cout<<"Getting space points from hits"<<std::endl;
+      }
+    else	  
+      {
+	throw cet::exception("SeedFinder") << 
+	  "Unkown source mode " << fSource<<"\n";
+      }
     if(SpacePointVectors.size() > 0)
       {
 	for(std::vector<std::vector<recob::SpacePoint> >::const_iterator it=SpacePointVectors.begin(); 
@@ -91,7 +105,6 @@ namespace trkf {
     evt.put(seeds);
     
   }
-
 
 
   // Given a cluster label, produce spacepoints from the event
@@ -219,6 +232,56 @@ namespace trkf {
   }
 
 
+  // Extract vector of hits from event
+
+  art::PtrVector<recob::Hit> SeedFinder::GetHitsFromEvent(std::string HitModuleLabel, art::Event & evt)
+  {
+    art::PtrVector<recob::Hit> TheHits;
+    art::Handle< std::vector<recob::Hit> > hith;
+    evt.getByLabel(HitModuleLabel, hith);
+    for(unsigned int i=0; i<hith->size(); ++i)
+      {
+	art::Ptr<recob::Hit> hit(hith, i);
+	TheHits.push_back(hit);
+      }
+    
+    return TheHits;
+  }
+
+
+  // Generate spacepoints from hits in event to feed SeedFinder
+  std::vector<std::vector<recob::SpacePoint> > SeedFinder::GetSpacePointsFromHits(std::string HitModuleLabel, art::Event& evt)
+  {
+    std::vector<std::vector<recob::SpacePoint> > ReturnVec;
+    art::PtrVector<recob::Hit> TheHits = GetHitsFromEvent(HitModuleLabel, evt);
+    std::vector<recob::SpacePoint> TheSPs = GetSpacePointsFromHitVector(TheHits);
+    if(TheSPs.size()>0)
+      {
+	ReturnVec.push_back(TheSPs);
+      }
+    return ReturnVec;
+  }
+  
+
+
+  //
+  // Given a collection of hits, make space points.
+  // The sp vector fills the first entry of a nested
+  // vector to keep compatability with the cluster
+  // based approach
+  //
+  
+  std::vector<recob::SpacePoint>  SeedFinder::GetSpacePointsFromHitVector(art::PtrVector<recob::Hit> Hits)
+  {
+    std::vector<recob::SpacePoint> ReturnVec;
+    
+    art::ServiceHandle<trkf::SpacePointService> sptsvc;
+    sptsvc->makeSpacePoints(Hits, ReturnVec,
+			    fFilter, fMerge, 0., 0.);
+
+    return ReturnVec;
+      
+  }
 
 
 
@@ -377,8 +440,7 @@ namespace trkf {
 		costheta+=1;
 		costheta2+=1;
 	      }
-	    //      std::cout<<phi<< " " <<phi2<< " " <<costheta << " " <<costheta2<\
-	      <std::endl;
+	  
 	  }
 
 
