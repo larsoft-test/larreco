@@ -42,15 +42,34 @@ namespace trkf {
 
     // Histograms
     
-    TH1D * fRMSCurvatures;
-    TH1D * fLengths;
+    //TH1D * fRMSCurvatures;
+    //TH1D * fLengths;
     
+    TH1D * fHitDistance;
+    TH1D * fHitS;
    
     //Entries for TTree
     TTree*  fTree;
     Float_t fLength;
     Float_t fRMSCurvature;
     Int_t   fNumEvent;
+    Int_t   fNHitsU;
+    Int_t   fNHitsV;
+    Int_t   fNHitsW;
+    Int_t   fNHits;
+    Float_t fAverageS;
+    Float_t fAverageDistance;
+    
+    Float_t fdQdxU;
+    Float_t fdQdxV;
+    Float_t fdQdxW;
+    
+    Float_t fChargeU;
+    Float_t fChargeV;
+    Float_t fChargeW;
+    
+    Int_t fSegments;
+
 
   };
 }

@@ -91,6 +91,7 @@ microboone_seedfinder_bezierseed:
   
 }
 
+
 microboone_beziertrack:
 {  
   module_type:         "BezierTracker"
@@ -101,6 +102,32 @@ microboone_beziertrack:
   MaxJumpDistance:     10.0
   HitDistance:         0.5
   TrackMode:           1
+}
+
+
+
+microboone_beziertrack_iterative:
+{  
+  module_type:         "BezierTracker"
+  SeedModuleLabel:     "seedfinder"
+  HitModuleLabel:      "ffthit"
+  MaxKinkAngle:        0.35
+  MaxTrackMissAngle:   0.18 
+  MaxJumpDistance:     10.0
+  HitDistance:         0.5
+  TrackMode:           2
+
+  SeedMode:           1
+  Filter:             true
+  Merge:              false
+  Source:             2
+  SeedLength:         5
+  MinPointsInSeed:    10
+  AngularDev:         0.5
+
+  MinPointsInCluster: 0
+  ClusterModuleLabel:  ""
+
 }
 
 microboone_track:

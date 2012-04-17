@@ -31,6 +31,20 @@ namespace trkf {
   }
 
 
+  //----------------------------------------------------------------------
+  // Constructor from track coordinates
+  //
+  BezierTrack::BezierTrack(std::vector<TVector3> Pos,
+			   std::vector<TVector3> Dir,
+			   std::vector<std::vector<double> > dQdx)
+  {
+    fXYZ=Pos;
+    fDir=Dir;
+    fdQdx=dQdx;
+    fBezierResolution=1000;
+    CalculateSegments();
+  }
+
 
   //----------------------------------------------------------------------
   // Default constructor
@@ -241,7 +255,7 @@ namespace trkf {
 	if(d<MinDistanceToPoint)
 	  {
 	    MinDistanceToPoint=d;
-	    MinS=0;
+	    MinS=iS;
 	  }
       }
    
@@ -288,7 +302,7 @@ namespace trkf {
 	if(d<MinDistanceToPoint)
 	  {
 	    MinDistanceToPoint=d;
-	    MinS=0;
+	    MinS=iS;
 	  }
       }
    
@@ -334,7 +348,7 @@ namespace trkf {
 	if(d<MinDistanceToPoint)
 	  {
 	    MinDistanceToPoint=d;
-	    MinS=0;
+	    MinS=iS;
 	  }
       }
    
@@ -454,12 +468,157 @@ namespace trkf {
   }
   
 
+
+  //----------------------------------------------------------------------
+  //  Fill the dQdx vector for the track, based on a set of hits 
+  //    provided
+
+  void BezierTrack::CalculatedQdx(art::PtrVector<recob::Hit> Hits)
+  {
+    fdQdx.clear();
+
+    std::map<int, std::map<int, double> > hitmap;
+    //        ^              ^       ^
+    //       view            seg    charge
+    
+    for(size_t i=0; i!=Hits.size(); ++i)
+      {
+	double Distance, S;
+	GetClosestApproach(Hits.at(i), S, Distance);
+	//	std::cout<<"hit " << i <<"  " <<  S << " " << WhichSegment(S) << " " << Hits.at(i)->View()<<std::endl; 
+
+	(hitmap[Hits.at(i)->View()])[WhichSegment(S)] += Hits.at(i)->Charge();
+      }
+
+    int NSeg = NSegments();
+    
+    for(std::map<int,std::map<int,double> >::const_iterator itview=hitmap.begin();
+ 	itview!=hitmap.end(); ++itview)
+      {
+ 	std::vector<double> ThisViewdQdx;
+ 	ThisViewdQdx.resize(NSeg);
+ 	for(std::map<int,double>::const_iterator itseg=itview->second.begin();
+ 	    itseg!=itview->second.end(); ++itseg)
+ 	  {
+ 	    //   std::cout << itview->first<<" " <<itseg->first << " " <<itseg->second<<std::endl;
+ 	    int seg = itseg->first;
+	 
+ 	    // need to nudge hits which fell outside the track
+	    
+	    if((seg>-1) && (seg<NSeg))
+	      ThisViewdQdx[seg] = (itseg->second / fSegmentLength[seg]);
+	  }
+	fdQdx.push_back(ThisViewdQdx);
+      }
+    std::cout<<"Size of dQdx structure :" <<fdQdx.size()<<" : ";
+    for(int i=0; i!=fdQdx.size(); i++)
+      std::cout<<fdQdx.at(i).size()<<", ";
+    std::cout<<std::endl;
+    
+  }
     
 
+  //----------------------------------------------------------------------
+  //  Get dQdx for a particular S value
+  //
+
+  double BezierTrack::GetdQdx(double s, unsigned int view) const
+  {
+    if((s<0)||(s>1))
+      {
+	throw cet::exception("S out of range")
+	  <<"Bezier track S value of " << s <<" is not in the range 0<S<1" 
+	  <<std::endl;
+      }
+    if((view<0)||view>fdQdx.size()-1)
+      {
+	throw cet::exception("view out of range")
+	  <<"Bezier track view value of " << view <<" is not in the range "
+	  <<"of stored views, 0 < view < " << fdQdx.size()
+	  <<std::endl;
+      }
     
+
+    return fdQdx[view][WhichSegment(s)];  
+  }
+
+
+  //----------------------------------------------------------------------
+  //  Get RMS dQdx for a particular view
+  //
+
+  double BezierTrack::GetViewdQdx(unsigned int view) const
+  {
+    if((view<0)||view>fdQdx.size()-1)
+      {
+	throw cet::exception("view out of range")
+	  <<"Bezier track view value of " << view <<" is not in the range "
+	  <<"of stored views, 0 < view < " << fdQdx.size()
+	  <<std::endl;
+      }
+    
+    size_t NSeg = NSegments();
+    double TotaldQdx;
+    for(size_t i=0; i!=NSeg; ++i)
+      {
+	TotaldQdx+=fdQdx.at(view).at(i)*fSegmentLength[i];
+      }
+    return TotaldQdx / fTrackLength;
+  }
+
+
+
+  //----------------------------------------------------------------------
+  //  Get total charge for a particular view
+  //
+  
+  double BezierTrack::GetTotalCharge(unsigned int View) const
+  {
+    return GetViewdQdx(View) * fTrackLength;
+  }
+
+
+
+  //----------------------------------------------------------------------
+  //  Find which track segment a particular S lies in
+  //
+  int BezierTrack::WhichSegment(double s) const
+  {
+    int ReturnVal=-1;
+    for(size_t i=0; i!=fCumulativeLength.size()-1; i++)
+      {
+	if( (fCumulativeLength.at(i)/fTrackLength < s)
+	    &&(fCumulativeLength.at(i+1)/fTrackLength > s))
+	  ReturnVal=i;
+      }
+    return ReturnVal;
+  }
+
+
+  //----------------------------------------------------------------------
+  // Return the number of track segments
+  //
+
+  int BezierTrack::NSegments() const
+  {
+    return NumberTrajectoryPoints();
+  }
+
+
+  //----------------------------------------------------------------------
+  // Return a fresh copy of the RecoBase track object
+  //
+
+  recob::Track BezierTrack::GetBaseTrack()
+  { 
+    recob::Track TheTrack(fXYZ, fDir, fdQdx);
+    TheTrack.SetID(ID());
+    return TheTrack;
+  }
+
 
 }
-  
+
 
 
 
