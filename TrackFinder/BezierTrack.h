@@ -53,9 +53,10 @@ namespace trkf {
     void   GetClosestApproach( TVector3 vec,               double &s,  double& Distance) const;
     
     void   CalculatedQdx(art::PtrVector<recob::Hit>);   
+    void   FillMySpacePoints(int N);
   
     recob::Track GetBaseTrack();
-     		
+
     
   private:
  

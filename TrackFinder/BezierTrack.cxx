@@ -511,7 +511,7 @@ namespace trkf {
 	fdQdx.push_back(ThisViewdQdx);
       }
     std::cout<<"Size of dQdx structure :" <<fdQdx.size()<<" : ";
-    for(int i=0; i!=fdQdx.size(); i++)
+    for(size_t i=0; i!=fdQdx.size(); i++)
       std::cout<<fdQdx.at(i).size()<<", ";
     std::cout<<std::endl;
     
@@ -526,20 +526,32 @@ namespace trkf {
   {
     if((s<0)||(s>1))
       {
-	throw cet::exception("S out of range")
+	throw cet::exception("Bezier dQdx: S out of range")
 	  <<"Bezier track S value of " << s <<" is not in the range 0<S<1" 
 	  <<std::endl;
       }
-    if((view<0)||view>fdQdx.size()-1)
+    if((view<0)||view>(fdQdx.size()-1))
       {
-	throw cet::exception("view out of range")
+	throw cet::exception("Bezier dQdx: view out of range")
 	  <<"Bezier track view value of " << view <<" is not in the range "
 	  <<"of stored views, 0 < view < " << fdQdx.size()
 	  <<std::endl;
       }
-    
-
-    return fdQdx[view][WhichSegment(s)];  
+    int Segment = WhichSegment(s);
+    //    if((Segment>=fdQdx[view].size())||(Segment<0))
+    //      {
+    //	throw cet::exception("Bezier dQdx: segment of range")
+    //	  <<"Bezier track segment value of " << Segment <<" is not in the range "
+    //	  <<"of stored segments, 0 < seg < " << fdQdx[view].size()
+    //	  <<std::endl;
+    //     }
+    if((Segment<fdQdx[view].size())&&(Segment>1))
+      return fdQdx[view][Segment];
+    else
+      {
+	std::cout<<"GetdQdx : Bad s  " <<s<<", " <<Segment<<std::endl; 
+	return 0;
+      }
   }
 
 
@@ -617,6 +629,25 @@ namespace trkf {
   }
 
 
+  void BezierTrack::FillMySpacePoints(int N)
+  {
+    for(int i=0; i!=N; ++i)
+      {
+	recob::SpacePoint TheSP;
+	double xyz[3];
+	double ErrXYZ[3]={0.1,0.1,0.1};
+	GetTrackPoint(float(i)/N,xyz);
+	TheSP.SetID(i);
+	TheSP.SetXYZ(xyz);
+	TheSP.SetErrXYZ(ErrXYZ);
+	
+	fSpacePoints.push_back(TheSP);
+
+      }
+
+  }
+
+  
 }
 
 
