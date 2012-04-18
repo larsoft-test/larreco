@@ -125,10 +125,11 @@ namespace trkf {
 	    // Using the hits, fill in dQdx in the track
 	    std::cout<<"Calculating dQdx"<<std::endl;
 	    BTrack->CalculatedQdx(HitsToAssoc);
-	    
+	    BTrack->FillMySpacePoints(1000);
 	    
 	    //Put the base object into the auto_ptr and make associations
 	    std::cout<<"Inserting into vector and creating assn"<<std::endl;
+	   
 	    recob::Track TheTrack = BTrack->GetBaseTrack();
 	    
 	    btracks->push_back(TheTrack);       

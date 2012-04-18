@@ -87,7 +87,7 @@ microboone_seedfinder_bezierseed:
   SeedLength:         5
   MinPointsInCluster: 50
   MinPointsInSeed:    10
-  AngularDev:         0.5
+  AngularDev:         0.2
   
 }
 

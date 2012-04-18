@@ -11,7 +11,7 @@
 
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "TH1F.h"
-
+#include "TH2D.h"
 class TTree;
 
 namespace trkf {
@@ -45,8 +45,15 @@ namespace trkf {
     //TH1D * fRMSCurvatures;
     //TH1D * fLengths;
     
-    TH1D * fHitDistance;
-    TH1D * fHitS;
+    TH1D * fhHitDistance;
+    TH1D * fhHitS;
+    TH1D * fhdQdxU;
+    TH1D * fhdQdxV;
+    TH1D * fhdQdxW;
+    TH2D * fhdQdxVW;
+    TH1D * fhCurv;
+    
+    
    
     //Entries for TTree
     TTree*  fTree;

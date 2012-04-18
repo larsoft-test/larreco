@@ -25,6 +25,7 @@
 
 #include "TTree.h"
 
+#include "TH2D.h"
 namespace trkf {
 
   BezierTrackAna::BezierTrackAna(const fhicl::ParameterSet& pset) :
@@ -61,9 +62,14 @@ namespace trkf {
       //      if(mc) {
       //      }
      
-      fHitS = tfs->make<TH1D>("HitS","HitS",100,0,1);
-      fHitDistance = tfs->make<TH1D>("HitDistance","HitDistance",100,0,1);
+      fhHitS = tfs->make<TH1D>("HitS","HitS",100,0,1);
+      fhHitDistance = tfs->make<TH1D>("HitDistance","HitDistance",100, 0.0, 1.0);
+      fhdQdxU = tfs->make<TH1D>("dQdxU", "dQdxU", 100, 0.0, 1.0);
+      fhdQdxV = tfs->make<TH1D>("dQdxV", "dQdxV", 100, 0.0, 1.0);
+      fhdQdxW = tfs->make<TH1D>("dQdxW", "dQdxW", 100, 0.0, 1.0);
       
+      fhdQdxVW =  tfs->make<TH2D>("dQdxVW", "dQdxWV", 100, 600, 1200,100,600,1200);
+      fhCurv  = tfs->make<TH1D>("Curv",  "Curv",  100, 0.0, 10.0);
 
       fTree          = (TTree*)tfs->make<TTree>("EventInfo","EventInfo");
       
@@ -74,8 +80,8 @@ namespace trkf {
       fTree->Branch("NHitsU",        &fNHitsU,       "NHitsU/I");
       fTree->Branch("NHitsV",        &fNHitsV,       "NHitsV/I");
       fTree->Branch("NHitsW",        &fNHitsW,       "NHitsW/I");
-      fTree->Branch("AverageS",      &fAverageS,     "AverageS/I");
-      fTree->Branch("AverageDistance",   &fAverageDistance,   "AverageDistance/I");
+      fTree->Branch("AverageS",      &fAverageS,     "AverageS/F");
+      fTree->Branch("AverageDistance",   &fAverageDistance,   "AverageDistance/F");
       fTree->Branch("dQdxU",         &fdQdxU,       "dQdxU/F");
       fTree->Branch("dQdxV",         &fdQdxV,       "dQdxV/F");
       fTree->Branch("dQdxW",         &fdQdxW,       "dQdxW/F");
@@ -136,7 +142,8 @@ namespace trkf {
 	
 	fNHitsU=fNHitsV=fNHitsW=fNHits=0;
 	fAverageS = fAverageDistance = 0;
- 
+
+	 
 	for(art::PtrVector<recob::Hit>::const_iterator it=hits.begin();
 	    it!=hits.end(); ++it)
 	  {
@@ -148,14 +155,26 @@ namespace trkf {
 	    
 	    BTracks.at(i).GetClosestApproach(*it, S, HitDistance);
 	    
-	    fHitS->Fill(S);
-	    fHitDistance->Fill(HitDistance);
+	    fhHitS->Fill(S);
+	    fhHitDistance->Fill(HitDistance);
 	    
 	    fAverageS+=S;
 	    fAverageDistance+=HitDistance;
 	  }
 	
-
+	int jDivs = 100;
+	for(int j=1; j!=jDivs-1; j++)
+	  {
+	    float Point = float(j)/jDivs + 0.001;
+	    std::cout<<"btrkana" << Point<< " " << BTracks.at(i).GetdQdx(float(j)/jDivs,geo::kU)<<std::endl;
+	    fhdQdxU->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kU));
+	    fhdQdxV->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kV));
+	    fhdQdxW->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kW));
+	    fhdQdxVW->Fill( BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kW), BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kV));
+	    fhCurv->Fill(  Point, BTracks.at(i).GetCurvature(float(j)/jDivs));
+			 
+	  }
+	
 	fAverageS        /= fNHits;
 	fAverageDistance /= fNHits;
 	
