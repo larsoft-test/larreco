@@ -343,6 +343,7 @@ void genf::RKTrackRep::getPosMom(const GFDetPlane& pl,TVector3& pos,
 
 
 
+
 void genf::RKTrackRep::extrapolateToPoint(const TVector3& pos,
 				   TVector3& poca,
 				   TVector3& dirInPoca){
@@ -492,6 +493,18 @@ double genf::RKTrackRep::extrapolate(const GFDetPlane& pl,
   J_pM_transp.T();
 
   cov7x7 = J_pM*(fCov*J_pM_transp);
+  if (cov7x7[0][0]>=1000. || cov7x7[0][0]<1.E-50)
+    { 
+      std::cout << "RKTrackRep::extrapolate(): cov7x7[0][0] is crazy. Rescale off-diags. Try again. fCov, cov7x7 were: " << std::endl;
+      fCov.Print();
+      cov7x7.Print();
+      rescaleCovOffDiags();
+      cov7x7 = J_pM*(fCov*J_pM_transp);
+      std::cout << "New cov7x7 and fCov are ... " << std::endl;
+      cov7x7.Print();
+      fCov.Print();
+    }
+
 
   TVector3 pos = o + fState[3][0]*u + fState[4][0]*v;
   TMatrixT<Double_t> state7(7,1);
@@ -546,8 +559,8 @@ double genf::RKTrackRep::extrapolate(const GFDetPlane& pl,
   J_Mp_transp.T();
 
   covPred.ResizeTo(5,5);
-
   covPred = J_Mp*(cov7x7*J_Mp_transp);
+
 
   statePred.ResizeTo(5,1);
   statePred[0][0] = QOP;
@@ -1195,5 +1208,19 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
   return sumDistance;
 }
 
+void genf::RKTrackRep::rescaleCovOffDiags()
+{
+
+  for(int i=0;i<fCov.GetNrows();++i){
+    for(int j=0;j<fCov.GetNcols();++j){
+      if(i!=j){//off diagonal
+	fCov[i][j]=0.5*fCov[i][j];
+      }
+      else{//diagonal. Do not let diag cov element be <=0.
+	if (fCov[i][j]<=0.0) fCov[i][j] = 0.01;
+      }
+    }
+  }
+}
 
 ///ClassImp(RKTrackRep)

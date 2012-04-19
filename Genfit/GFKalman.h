@@ -115,6 +115,7 @@ public:
   void setMomLow(Double_t f){fMomLow=f;}
   void setMomHigh(Double_t f){fMomHigh=f;}
   void setMaxUpdate(Double_t f){fMaxUpdate=f;}
+  void setErrorScale(Double_t f){fErrScale=f;}
 
   // Private Methods -----------------
 private:
@@ -152,9 +153,11 @@ private:
   int fInitialDirection;
   Int_t fNumIt;
   double fBlowUpFactor;
-  double fMaxUpdate;
+
   Double_t fMomLow;
   Double_t fMomHigh;
+  Double_t fMaxUpdate;
+  Double_t fErrScale;
 
   //TH1D* fUpdate;
   //TH1D* fIhitvUpdate;

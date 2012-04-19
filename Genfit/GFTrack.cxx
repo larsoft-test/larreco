@@ -23,7 +23,7 @@
 #include "TVirtualGeoTrack.h"
 
 genf::GFTrack::GFTrack(GFAbsTrackRep* defaultRep) 
-  : fTrackReps(NULL),fCardinal_rep(0), fNextHitToFit(0)
+  : fTrackReps(NULL),fCardinal_rep(0), fNextHitToFit(0), fPDG(2112)
 {
   addTrackRep(defaultRep);
 }

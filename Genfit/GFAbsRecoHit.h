@@ -153,10 +153,12 @@ public:
   virtual TMatrixT<Double_t> residualVector(const GFAbsTrackRep* stateVector,
 				  const TMatrixT<Double_t>& state,
 					    const GFDetPlane& d,
-					    const GFDetPlane& dPrev) 
+					    const GFDetPlane& dPrev,
+					    const double &mass
+					    ) 
   {
     Double_t dist = (d.getO()-dPrev.getO()).Mag();
-    Double_t mass = 0.104; // close enough for muons, pions, I think.
+    //    Double_t mass = 0.104; // close enough for muons, pions, I think.
     Double_t mom = fabs(1.0/state[0][0]);
     Double_t beta = mom/sqrt(mass*mass+mom*mom);
     if (isnan(dist) || dist<0.2) dist=0.2; // don't allow 0s here.

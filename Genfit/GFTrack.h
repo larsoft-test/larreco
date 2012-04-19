@@ -101,6 +101,8 @@ private:
   std::vector < TMatrixT<Double_t> > fHitState;
   std::vector < TMatrixT<Double_t> > fHitCov;
   std::vector < genf::GFDetPlane* > fHitPlane;
+
+  int fPDG;
     
   static const int fDefNumTrackReps = 10; //!
   unsigned int fCardinal_rep; // THE selected rep, default=0;
@@ -345,11 +347,14 @@ public:
   void setHitState(TMatrixT<Double_t> mat) {fHitState.push_back(mat);}
   void setHitCov(TMatrixT<Double_t> mat) {fHitCov.push_back(mat);}
   void setHitPlane(genf::GFDetPlane* pl) {fHitPlane.push_back(pl);}
+  void setPDG(int pdgt) {fPDG = pdgt;}
   std::vector < TMatrixT<Double_t> > getHitMeasuredCov() {return fHitMeasCov;}
   std::vector < TMatrixT<Double_t> > getHitUpdate() {return fHitUpdate;}
   std::vector < TMatrixT<Double_t> > getHitState() {return fHitState;}
   std::vector < TMatrixT<Double_t> > getHitCov() {return fHitCov;}
   std::vector < genf::GFDetPlane* > getHitPlane() {return fHitPlane;}
+
+  int getPDG() {return fPDG;}
   /** @brief Get residuals
    *
    * @param detId which detector?
