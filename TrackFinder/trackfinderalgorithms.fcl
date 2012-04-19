@@ -1,0 +1,40 @@
+BEGIN_PROLOG
+
+argoneut_spacepointalg:
+{
+  MaxDT: 2.0
+  MaxS:  0.3
+  MinViews: 2
+  EnableU: true
+  EnableV: true
+  EnableW: false
+  Filter: true
+  Merge: false
+}
+
+microboone_spacepointalg:
+{
+  MaxDT: 2.0
+  MaxS:  0.3
+  MinViews: 3
+  EnableU: true
+  EnableV: true
+  EnableW: true
+  Filter: true
+  Merge: false
+}
+
+
+lbne_spacepointalg:
+{
+  MaxDT: 2.0
+  MaxS:  0.3
+  MinViews: 3
+  EnableU: true
+  EnableV: true
+  EnableW: true
+  Filter: true
+  Merge: false
+}
+
+END_PROLOG

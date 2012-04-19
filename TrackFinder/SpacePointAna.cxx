@@ -13,7 +13,6 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "Utilities/DetectorProperties.h"
 #include "TrackFinder/SpacePointAna.h"
-#include "TrackFinder/SpacePointService.h"
 #include "Geometry/geo.h"
 #include "Utilities/LArProperties.h"
 #include "art/Framework/Principal/Event.h"
@@ -31,6 +30,7 @@ namespace trkf {
     //
     // Arguments: pset - Module parameters.
     //
+    fSptalg(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
     fHitModuleLabel(pset.get<std::string>("HitModuleLabel")),
     fUseClusterHits(pset.get<bool>("UseClusterHits")),
     fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel")),
@@ -64,7 +64,7 @@ namespace trkf {
 
     // Report.
 
-    mf::LogInfo("SpacePointService") 
+    mf::LogInfo("SpacePointAna") 
       << "SpacePointAna configured with the following parameters:\n"
       << "  HitModuleLabel = " << fHitModuleLabel << "\n"
       << "  UseClusterHits = " << fUseClusterHits << "\n"
@@ -91,7 +91,6 @@ namespace trkf {
 
       art::ServiceHandle<geo::Geometry> geom;
       art::ServiceHandle<art::TFileService> tfs;
-      art::ServiceHandle<trkf::SpacePointService> sptsvc;
       art::TFileDirectory dir = tfs->mkdir("sptana", "SpacePointAna histograms");
 
       if(mc) {
@@ -102,7 +101,7 @@ namespace trkf {
 	fHDTVPull = dir.make<TH1F>("MCDTVPull", "V-Drift Electrons Time Pull", 100, -50., 50.);
 	fHDTWPull = dir.make<TH1F>("MCDTWPull", "W-Drift Electrons Time Pull", 100, -50., 50.);
       }
-      if(!sptsvc->merge()) {
+      if(!fSptalg.merge()) {
 	fHDTUV = dir.make<TH1F>("DTUV", "U-V time difference", 100, -20., 20.);
 	fHDTVW = dir.make<TH1F>("DTVW", "V-W time difference", 100, -20., 20.);
 	fHDTWU = dir.make<TH1F>("DTWU", "W-U time difference", 100, -20., 20.);
@@ -117,9 +116,9 @@ namespace trkf {
       fHz = dir.make<TH1F>("zpos", "Z Position",
 			   100, 0., geom->DetLength());
       if(mc) {
-	fHMCdx = dir.make<TH1F>("MCdx", "X MC Residual", 100, -2., 2.);
-	fHMCdy = dir.make<TH1F>("MCdy", "Y MC Residual", 100, -2., 2.);
-	fHMCdz = dir.make<TH1F>("MCdz", "Z MC Residual", 100, -2., 2.);
+	fHMCdx = dir.make<TH1F>("MCdx", "X MC Residual", 100, -1., 1.);
+	fHMCdy = dir.make<TH1F>("MCdy", "Y MC Residual", 100, -1., 1.);
+	fHMCdz = dir.make<TH1F>("MCdz", "Z MC Residual", 100, -1., 1.);
 	fHMCxpull = dir.make<TH1F>("MCxpull", "X MC Pull", 100, -50., 50.);
 	fHMCypull = dir.make<TH1F>("MCypull", "Y MC Pull", 100, -50., 50.);
 	fHMCzpull = dir.make<TH1F>("MCzpull", "Z MC Pull", 100, -50., 50.);
@@ -143,7 +142,6 @@ namespace trkf {
 
     // Get Services.
 
-    art::ServiceHandle<trkf::SpacePointService> sptsvc;
     art::ServiceHandle<geo::Geometry> geom;
     art::ServiceHandle<util::DetectorProperties> detprop;
     art::ServiceHandle<util::LArProperties> larprop;
@@ -287,14 +285,14 @@ namespace trkf {
     // If nonzero time cut is specified, make space points using that
     // time cut (for time histograms).
 
-    if(fMaxDT != 0 && !sptsvc->merge()) {
+    if(fMaxDT != 0 && !fSptalg.merge()) {
       if(mc && fUseMC)
-	sptsvc->makeMCTruthSpacePoints(hits, spts1, simchanv,
-				       sptsvc->filter(), sptsvc->merge(),
+	fSptalg.makeMCTruthSpacePoints(hits, spts1, simchanv,
+				       fSptalg.filter(), fSptalg.merge(),
 				       fMaxDT, 0.);
       else
-	sptsvc->makeSpacePoints(hits, spts1,
-				sptsvc->filter(), sptsvc->merge(),
+	fSptalg.makeSpacePoints(hits, spts1,
+				fSptalg.filter(), fSptalg.merge(),
 				fMaxDT, 0.);
 
       // Report number of space points.
@@ -306,14 +304,14 @@ namespace trkf {
     // If nonzero separation cut is specified, make space points using that 
     // separation cut (for separation histogram).
 
-    if(fMaxS != 0. && !sptsvc->merge()) {
+    if(fMaxS != 0. && !fSptalg.merge()) {
       if(mc && fUseMC)
-	sptsvc->makeMCTruthSpacePoints(hits, spts2, simchanv,
-				       sptsvc->filter(), sptsvc->merge(),
+	fSptalg.makeMCTruthSpacePoints(hits, spts2, simchanv,
+				       fSptalg.filter(), fSptalg.merge(),
 				       0., fMaxS);
       else
-	sptsvc->makeSpacePoints(hits, spts2,
-				sptsvc->filter(), sptsvc->merge(),
+	fSptalg.makeSpacePoints(hits, spts2,
+				fSptalg.filter(), fSptalg.merge(),
 				0., fMaxS);
 
       // Report number of space points.
@@ -325,9 +323,9 @@ namespace trkf {
     // Make space points using default cuts.
 
     if(mc && fUseMC)
-      sptsvc->makeMCTruthSpacePoints(hits, spts3, simchanv);
+      fSptalg.makeMCTruthSpacePoints(hits, spts3, simchanv);
     else
-      sptsvc->makeSpacePoints(hits, spts3);
+      fSptalg.makeSpacePoints(hits, spts3);
 
     // Report number of space points.
 
@@ -337,7 +335,7 @@ namespace trkf {
     std::vector<recob::SpacePoint>::const_iterator ibegin;
     std::vector<recob::SpacePoint>::const_iterator iend;
 
-    if(!sptsvc->merge()) {
+    if(!fSptalg.merge()) {
 
       // Loop over space points and fill time histograms.
 
@@ -362,7 +360,7 @@ namespace trkf {
 	  unsigned int tpc1, plane1, wire1, cs1;
 	  geom->ChannelToWire(channel1, cs1, tpc1, plane1, wire1);
 	  geo::View_t view1 = hit1.View();
-	  double t1 = sptsvc->correctedTime(hit1);
+	  double t1 = fSptalg.correctedTime(hit1);
 
 	  for(art::PtrVector<recob::Hit>::const_iterator jhit = spthits.begin();
 	      jhit != spthits.end(); ++jhit) {
@@ -377,7 +375,7 @@ namespace trkf {
 	    if(tpc1 == tpc2 && plane1 != plane2) {
 
 	      geo::View_t view2 = hit2.View();
-	      double t2 = sptsvc->correctedTime(hit2);
+	      double t2 = fSptalg.correctedTime(hit2);
 
 	      if(view1 == geo::kU) {
 		if(view2 == geo::kV)
@@ -417,7 +415,7 @@ namespace trkf {
 
 	// Fill separation histogram.
 
-	double sep = sptsvc->separation(spthits);
+	double sep = fSptalg.separation(spthits);
 	fHS->Fill(sep);
       }
     }

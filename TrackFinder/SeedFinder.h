@@ -14,6 +14,7 @@
 //
 // Configuration parameters.
 //
+// SpacePointAlg;       // Embedded space point algorithm.
 // ClusterModuleLabel;  // Cluster module label (e.g. "dbcluster").
 // Filter;              // Filter space points?
 // Merge;               // Merge space points?
@@ -34,6 +35,7 @@
 //
 
 #include "art/Framework/Core/EDProducer.h"
+#include "TrackFinder/SpacePointAlg.h"
 
 namespace recob
 {
@@ -105,6 +107,7 @@ namespace trkf {
     
     // Fcl Attributes.
 
+    SpacePointAlg   fSptalg;                   // Algorithm object
     std::string fClusterModuleLabel;           // Where to find clusters for this algorithm
 
     std::string fHitModuleLabel;           // Where to find hits, if we need them

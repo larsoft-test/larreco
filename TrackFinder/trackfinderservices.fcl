@@ -1,45 +1,16 @@
 BEGIN_PROLOG
 
-argoneut_spacepointservice:
-{
-  MaxDT: 2.0
-  MaxS:  0.3
-  MinViews: 2
-  EnableU: true
-  EnableV: true
-  EnableW: false
-  Filter: true
-  Merge: false
-}
-
-microboone_spacepointservice:
-{
-  MaxDT: 2.0
-  MaxS:  0.3
-  MinViews: 3
-  EnableU: true
-  EnableV: true
-  EnableW: true
-  Filter: true
-  Merge: false
-}
-
-
-lbne_spacepointservice:
-{
-  MaxDT: 2.0
-  MaxS:  0.3
-  MinViews: 3
-  EnableU: true
-  EnableV: true
-  EnableW: true
-  Filter: true
-  Merge: false
-}
-
 microboone_beziertrackservice:
 {
   SegmentResolution: 100
 }
+
+standard_kalmanfilter:
+{
+}
+
+argoneut_kalmanfilter:    @local::standard_kalmanfilter
+microboone_kalmanfilter:  @local::standard_kalmanfilter
+lbne_kalmanfilter:        @local::standard_kalmanfilter
 
 END_PROLOG

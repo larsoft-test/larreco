@@ -17,6 +17,7 @@
 //
 
 #include "art/Framework/Core/EDProducer.h"
+#include "TrackFinder/SpacePointAlg.h"
 
 namespace trkf {
 
@@ -40,6 +41,7 @@ namespace trkf {
 
     // Fcl Attributes.
 
+    SpacePointAlg fSptalg;         // Algorithm object.
     std::string fClusterModuleLabel;
     bool fFilter;                  // Filter space points?
     bool fMerge;                   // Merge space points?
@@ -49,6 +51,8 @@ namespace trkf {
     int fNumEvent;      // Number of events.
     int fNumProng2;     // Number of 2-view prongs.
     int fNumProng3;     // Number of 3-view prongs.
+    int fNumSpt2;       // Number of 2-view space points.
+    int fNumSpt3;       // Number of 3-view space points.
   };
 }
 

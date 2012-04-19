@@ -10,6 +10,7 @@
 //
 
 #include "art/Framework/Core/EDAnalyzer.h"
+#include "TrackFinder/SpacePointAlg.h"
 #include "TH1F.h"
 
 namespace trkf {
@@ -35,6 +36,7 @@ namespace trkf {
 
     // Fcl Attributes.
 
+    const SpacePointAlg fSptalg;   // Algorithm object.
     std::string fHitModuleLabel;
     bool fUseClusterHits;
     std::string fClusterModuleLabel;

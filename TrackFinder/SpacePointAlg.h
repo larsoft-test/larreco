@@ -1,12 +1,12 @@
 ////////////////////////////////////////////////////////////////////////
 ///
-/// \file   SpacePointService.h
+/// \file   SpacePointAlg.h
 ///
-/// \brief  Service for generating space points from hits.
+/// \brief  Algorithm for generating space points from hits.
 ///
 /// \author H. Greenlee 
 ///
-/// This service calculates space points (recob::SpacePoint) from an 
+/// This class calculates space points (recob::SpacePoint) from an 
 /// unsorted collection of hits (recob::Hit).  The resulting space
 /// points will contain one hit from from two or three views.
 ///
@@ -35,11 +35,6 @@
 /// comparing times in different planes, and before converting time
 /// to distance.
 ///
-/// Actual corrected times for hits use time offsets calculated using
-/// method fillTimeOffset.  These time offsets include all known geometric
-/// and electronic time offsets from Geometry, DetectorProperties, and
-/// LArProperties services, in addition to the configuration time offsets.
-///
 /// If enabled, filtering eliminates multiple space points with similar
 /// times on the same wire of the most popluated plane.
 ///
@@ -51,14 +46,13 @@
 ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifndef SPACEPOINTSERVICE_H
-#define SPACEPOINTSERVICE_H
+#ifndef SPACEPOINTALG_H
+#define SPACEPOINTALG_H
 
 #include <vector>
 #include <string>
 #include "fhiclcpp/ParameterSet.h"
 #include "art/Persistency/Common/PtrVector.h"
-#include "art/Framework/Services/Registry/ActivityRegistry.h"
 #include "RecoBase/SpacePoint.h"
 #include "Simulation/SimChannel.h"
 
@@ -69,14 +63,14 @@ namespace sim {
 
 namespace trkf {
 
-  class SpacePointService {
+  class SpacePointAlg {
   public:
 
     // Constructor.
-    SpacePointService(const fhicl::ParameterSet& pset, art::ActivityRegistry& reg);
+    SpacePointAlg(const fhicl::ParameterSet& pset);
 
     // Destructor.
-    ~SpacePointService();
+    ~SpacePointAlg();
 
     // Configuration Accessors.
 
@@ -139,6 +133,10 @@ namespace trkf {
 				double maxDT,
 				double maxS) const;
 
+    // Get hits associated with a particular space point, based on most recent 
+    // invocation of any make*SpacePoints method.
+    const art::PtrVector<recob::Hit>& getAssociatedHits(const recob::SpacePoint& spt) const;
+
   private:
 
     // This is the real method for calculating space points (each of
@@ -158,14 +156,6 @@ namespace trkf {
 		    bool useMC,
 		    double maxDT,
 		    double maxS) const;
-
-    // Extended SpacePoint struct.
-    // Contains extra information used for filtering (private type).
-
-    //struct SpacePointX : public recob::SpacePoint {
-    //  SpacePointX() : goodness(0) {}
-    //  double goodness;
-    //};
 
     // Configuration paremeters.
 
@@ -188,6 +178,7 @@ namespace trkf {
       std::vector<double> dist2;              ///< Distance to nearest neighbor hit (indexed by plane).
     };
     mutable std::map<const recob::Hit*, HitMCInfo> fHitMCMap;
+    mutable std::map<int, art::PtrVector<recob::Hit> > fSptHitMap;
   };
 }
 

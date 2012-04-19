@@ -9,10 +9,9 @@
 #include <vector>
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "TrackFinder/SeedFinder.h"
-#include "TrackFinder/SpacePointService.h"
 #include "Geometry/geo.h"
 #include "art/Framework/Principal/Event.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "RecoBase/Hit.h"
 #include "RecoBase/Seed.h"
 #include "RecoBase/Cluster.h"
@@ -23,6 +22,7 @@
 namespace trkf {
 
   SeedFinder::SeedFinder(const fhicl::ParameterSet& pset) :
+    fSptalg(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
     fFilter(true),
     fMerge(false)
   {
@@ -43,6 +43,7 @@ namespace trkf {
 
   void SeedFinder::reconfigure(fhicl::ParameterSet const& pset)
   {
+    fSptalg                = pset.get<fhicl::ParameterSet>("SpacePointAlg");
     fClusterModuleLabel    = pset.get<std::string>("ClusterModuleLabel");
     fHitModuleLabel        = pset.get<std::string>("HitModuleLabel");
     fFilter                = pset.get<bool>("Filter");
@@ -112,7 +113,6 @@ namespace trkf {
   {
     // Get Services.
 
-    art::ServiceHandle<trkf::SpacePointService> sptsvc;
     art::ServiceHandle<geo::Geometry> geom;
 
     art::Handle< std::vector<recob::Cluster> > clusterh;
@@ -123,7 +123,7 @@ namespace trkf {
     std::vector<std::vector<recob::SpacePoint> > SpacePointVectors;
 
     // Make a double or triple loop over clusters in distinct views
-    // (depending on minimum number of views configured in SpacePointService).
+    // (depending on minimum number of views configured in SpacePointAlg).
 
     if(clusterh.isValid()) {
 
@@ -140,9 +140,9 @@ namespace trkf {
 
 	// Test first view.
 
-	if((iview == geo::kU && sptsvc->enableU()) ||
-	   (iview == geo::kV && sptsvc->enableV()) ||
-	   (iview == geo::kW && sptsvc->enableW())) {
+	if((iview == geo::kU && fSptalg.enableU()) ||
+	   (iview == geo::kV && fSptalg.enableV()) ||
+	   (iview == geo::kW && fSptalg.enableW())) {
 
 	  // Store hits from first view into hit vector.
 
@@ -162,9 +162,9 @@ namespace trkf {
 
 	    // Test second view.
 
-	    if(((jview == geo::kU && sptsvc->enableU()) ||
-		(jview == geo::kV && sptsvc->enableV()) ||
-		(jview == geo::kW && sptsvc->enableW()))
+	    if(((jview == geo::kU && fSptalg.enableU()) ||
+		(jview == geo::kV && fSptalg.enableV()) ||
+		(jview == geo::kW && fSptalg.enableW()))
 	       && jview != iview) {
 
 	      // Store hits from second view into hit vector.
@@ -190,9 +190,9 @@ namespace trkf {
 
 		// Test third view.
 
-		if(((kview == geo::kU && sptsvc->enableU()) ||
-		    (kview == geo::kV && sptsvc->enableV()) ||
-		    (kview == geo::kW && sptsvc->enableW()))
+		if(((kview == geo::kU && fSptalg.enableU()) ||
+		    (kview == geo::kV && fSptalg.enableV()) ||
+		    (kview == geo::kW && fSptalg.enableW()))
 		   && kview != iview && kview != jview) {
 
 		  // Store hits from third view into hit vector.
@@ -212,7 +212,7 @@ namespace trkf {
 		  // Make three-view space points.
 
 		  std::vector<recob::SpacePoint> spts;
-		  sptsvc->makeSpacePoints(hits, spts,
+		  fSptalg.makeSpacePoints(hits, spts,
 					  fFilter, fMerge, 0., 0.);
 
 		  if(spts.size() > 0) {
@@ -273,8 +273,7 @@ namespace trkf {
   {
     std::vector<recob::SpacePoint> ReturnVec;
     
-    art::ServiceHandle<trkf::SpacePointService> sptsvc;
-    sptsvc->makeSpacePoints(Hits, ReturnVec,
+    fSptalg.makeSpacePoints(Hits, ReturnVec,
 			    fFilter, fMerge, 0., 0.);
 
     return ReturnVec;
