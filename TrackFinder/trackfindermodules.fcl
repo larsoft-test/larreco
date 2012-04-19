@@ -1,3 +1,5 @@
+#include "job/trackfinderalgorithms.fcl"
+
 BEGIN_PROLOG
 
 argoneut_track:
@@ -41,14 +43,26 @@ argoneut_spacepoint:
   G4ModuleLabel:      "largeant"
   MaxDT:              50.
   MaxS:               10.
+  SpacePointAlg:       @local::argoneut_spacepointalg
 }
 
 argoneut_spacepoint_finder:
 {
   module_type:        "SpacePointFinder"
   ClusterModuleLabel: "dbcluster"
-  Filter:             "true"
-  Merge: false
+  Filter:             true
+  Merge:              false
+  SpacePointAlg:      @local::argoneut_spacepointalg
+}
+
+argoneut_spacepointcheater:
+{
+  module_type:        "SpacePointCheater"
+  ClusterModuleLabel: "dbcluster"
+  G4ModuleLabel:      "largeant"
+  Filter:             false
+  Merge:              false
+  SpacePointAlg:      @local::argoneut_spacepointalg
 }
 
 microboone_seedfinder_kalmanseed:
@@ -173,6 +187,7 @@ microboone_kalman:
  MomErr3:             [0.10,0.10,0.20]   #  momentum resolution, GeV/c.
  MomStart3:           [0.10,0.10,1.0]    #  Will be Unit norm'd.
  GenfPRINT:           true
+ SpacePointAlg:       @local::microboone_spacepointalg
 }
 
 microboone_spacepoint:
@@ -185,14 +200,26 @@ microboone_spacepoint:
   G4ModuleLabel:      "largeant"
   MaxDT:              50.
   MaxS:               10.
+  SpacePointAlg:       @local::microboone_spacepointalg
 }
 
 microboone_spacepoint_finder:
 {
   module_type:        "SpacePointFinder"
   ClusterModuleLabel: "dbcluster"
-  Filter:             "true"
-  Merge: false
+  Filter:             true
+  Merge:              false
+  SpacePointAlg:      @local::microboone_spacepointalg
+}
+
+microboone_spacepointcheater:
+{
+  module_type:        "SpacePointCheater"
+  ClusterModuleLabel: "dbcluster"
+  G4ModuleLabel:      "largeant"
+  Filter:             false
+  Merge:              false
+  SpacePointAlg:      @local::microboone_spacepointalg
 }
 
 END_PROLOG

@@ -25,8 +25,6 @@ services:
    DetectorProperties: @local::argoneut_detproperties
    LArProperties:    @local::argoneut_properties
    LArFFT:           @local::argoneut_larfft
-   DBScanService:    @local::argoneut_dbscanservice
-   HoughLineService: @local::argoneut_houghlineservice
   }
   MessageLogger: 
   {

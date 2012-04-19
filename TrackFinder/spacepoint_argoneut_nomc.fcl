@@ -23,10 +23,6 @@ services.user.Geometry:           @local::argoneut_geo
 services.user.DetectorProperties: @local::argoneut_detproperties
 services.user.LArProperties:      @local::argoneut_properties
 services.user.LArFFT:             @local::argoneut_larfft  
-services.user.DBScanService:      @local::argoneut_dbscanservice
-services.user.EndPointService:    @local::argoneut_endpointservice
-services.user.HoughLineService:   @local::argoneut_houghlineservice
-services.user.SpacePointService:  @local::argoneut_spacepointservice
 
 services.message.destinations.debugmsg.type: "cout"
 services.message.destinations.debugmsg.categories.default.limit: 1000000
