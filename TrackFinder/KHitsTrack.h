@@ -51,7 +51,7 @@ namespace trkf {
     // Accessor.
 
     /// Measurement collection.
-    const std::vector<boost::shared_ptr<const KHitBase> > getHits() {return fHits;}
+    const std::vector<boost::shared_ptr<const KHitBase> >& getHits() {return fHits;}
 
     // Modifiers.
 
