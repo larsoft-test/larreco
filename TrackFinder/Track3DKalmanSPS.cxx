@@ -46,6 +46,7 @@
 #include "TGraph.h"
 #include "TMath.h"
 #include "TPrincipal.h"
+#include "TDatabasePDG.h"
 
 // GENFIT includes
 #include "Genfit/GFException.h"
@@ -70,9 +71,13 @@ static bool sp_sort_3dz(const recob::SpacePoint& h1, const recob::SpacePoint& h2
 //-------------------------------------------------
 trkf::Track3DKalmanSPS::Track3DKalmanSPS(fhicl::ParameterSet const& pset) 
   : fDoFit(true)
-  , fDecimate(1)
   , fNumIt(5)
+  , fErrScale(1.0)
+  , fDecimate(1)
   , fMaxUpdate(0.10)
+  , fDecimateU(1)
+  , fMaxUpdateU(0.10)
+  , fPdg(-13)
 {
 
     this->reconfigure(pset);
@@ -100,12 +105,15 @@ void trkf::Track3DKalmanSPS::reconfigure(fhicl::ParameterSet const& pset)
   fPosErr                = pset.get< std::vector < double >  >("PosErr3");   // resolution. cm
   fMomErr                = pset.get< std::vector < double >  >("MomErr3");   // GeV
   fMomStart              = pset.get< std::vector < double >  >("MomStart3"); // 
-  fPerpLim               = pset.get< double  >("PerpLimit", 1.e6); // PCA constraint.
+  fPerpLim               = pset.get< double  >("PerpLimit", 1.e6); // PCA cut.
   fDoFit                 = pset.get< bool  >("DoFit", true); // Der.
-  fDecimate              = pset.get< int  >("Decimate", 1); // Sparsify data.
-  fNumIt                 = pset.get< int  >("NumIt", 5); // Number x2 passe.s
-  fMaxUpdate             = pset.get< double >("MaxUpdate", 0.1); // 0-out. 
-  fPdg                   = pset.get< int  >("PdgCode", -13); // Hypothesis.
+  fNumIt                 = pset.get< int  >("NumIt", 5); // Number x2 passes.
+  fErrScale              = pset.get< double >("ErrScale", 1.0); // error scale.
+  fDecimate              = pset.get< int  >("DecimateC", 40); // Sparsify data.
+  fMaxUpdate             = pset.get< double >("MaxUpdateC", 0.1); // 0-out. 
+  fDecimateU             = pset.get< int  >("DecimateU", 100);// Sparsify data.
+  fMaxUpdateU            = pset.get< double >("MaxUpdateU", 0.02); // 0-out. 
+  fPdg                   = pset.get< int  >("PdgCode", -13); // mu+ Hypothesis.
   fGenfPRINT             = pset.get< bool >("GenfPRINT");
   
 }
@@ -115,6 +123,38 @@ trkf::Track3DKalmanSPS::~Track3DKalmanSPS()
 {
 }
 
+// stolen, mostly, from GFMaterialEffects.
+double trkf::Track3DKalmanSPS::energyLossBetheBloch(const double& mass,
+						    const double p=1.5
+						    )
+{
+  const double charge(1.0);
+  const double mEE(188.); // eV 
+  const double matZ(18.);
+  const double matA(40.);
+  const double matDensity(1.4);
+  const double me(0.000511);
+
+  double beta = p/sqrt(mass*mass+p*p);
+  double gammaSquare = 1./(1.0 - beta*beta);
+  // 4pi.r_e^2.N.me = 0.307075, I think.
+  double dedx = 0.307075*matDensity*matZ/matA/(beta*beta)*charge*charge;
+  double massRatio = me/mass;
+  // me=0.000511 here is in GeV. So mEE comes in here in eV.
+  double argument = gammaSquare*beta*beta*me*1.E3*2./((1.E-6*mEE) * sqrt(1+2*sqrt(gammaSquare)*massRatio + massRatio*massRatio));
+  
+  if (mass==0.0) return(0.0);
+  if (argument <= exp(beta*beta))
+    { 
+      dedx = 0.;
+    }
+  else{
+    dedx *= (log(argument)-beta*beta); // Bethe-Bloch [MeV/cm]
+    dedx *= 1.E-3;  // in GeV/cm, hence 1.e-3
+    if (dedx<0.) dedx = 0.;
+  }
+  return dedx;
+}
 
 //-------------------------------------------------
 void trkf::Track3DKalmanSPS::beginJob()
@@ -277,7 +317,8 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 
   rep=0;
   repMC=0;
-
+  double fMaxUpdateHere(10.0);
+  int fDecimateHere(1);
   // get services
   art::ServiceHandle<geo::Geometry> geom;
   art::ServiceHandle<util::LArProperties> larprop;
@@ -357,7 +398,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   TVector3 posErr(fPosErr[0],fPosErr[1],fPosErr[2]); // resolution. 0.5mm
   TVector3 momErr(fMomErr[0],fMomErr[1],fMomErr[2]);   // GeV
   TVector3 momErrFit(fMomErr[0],fMomErr[1],fMomErr[2]);   // GeV
-  
+
   // This is strictly for MC
   /// \todo Should never test whether the event is real data in reconstruction algorithms
   /// \todo as that introduces potential data/MC differences that are very hard to track down
@@ -399,6 +440,8 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 
 	} // !isRealData
       nTrks = 0;
+      TParticlePDG * part = TDatabasePDG::Instance()->GetParticle(fPdg);
+      Double_t mass = part->Mass();
 
       // loop on Prongs
       size_t cntp(0);
@@ -483,23 +526,25 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  principal->X2P((Double_t *)fPC3,tmp5);
 
 
-		  // 21-Sep. Use a mip approximation assuming muons, assuming straight lines
-		  // and a small angle wrt beam. 2.2 MeV/cm. And set momErrFit to momM/5.
+		  // Use a mip approximation assuming straight lines
+		  // and a small angle wrt beam. 
 		  fMomStart[0] = spacepointss[spacepointss.size()-1].XYZ()[0] - spacepointss[0].XYZ()[0];
 		  fMomStart[1] = spacepointss[spacepointss.size()-1].XYZ()[1] - spacepointss[0].XYZ()[1];
 		  fMomStart[2] = spacepointss[spacepointss.size()-1].XYZ()[2] - spacepointss[0].XYZ()[2];
-		  // This presumes a muon. 
-		  TVector3 mom(0.0022*fMomStart[0],0.0022*fMomStart[1],0.0022*fMomStart[2]);
+		  // This presumes a 1.0 GeV/c particle
+		  double dEdx = energyLossBetheBloch(mass, 1.0);
+		  TVector3 mom(dEdx*fMomStart[0],dEdx*fMomStart[1],dEdx*fMomStart[2]);
 		  // Over-estimate by just enough (10%).
 		  mom.SetMag(1.1 * mom.Mag()); 
 		  // My true 0.5 GeV/c muons need a yet bigger over-estimate.
 		  //if (mom.Mag()<0.7) mom.SetMag(1.2*mom.Mag());  
 		  //		  if (mom.Mag()>2.0) mom.SetMag(10.0*mom.Mag());  
 		  //		  mom.SetMag(3*mom.Mag()); // EC, 15-Feb-2012. TEMPORARY!!!
-		  // If any point is outside TPC, this track is uncontained.
-		  // Try a higher momentum starting value in that case.
+		  // If 1st/last point is close to edge of TPC, this track is 
+		  // uncontained.Give higher momentum starting value in 
+		  // that case.
 		  bool uncontained(false);
-		  double close(10.); // cm
+		  double close(20.); // cm. 
 		  if (
 		      spacepointss[spacepointss.size()-1].XYZ()[0] > (2.*geom->DetHalfWidth(0,0)-close) || spacepointss[spacepointss.size()-1].XYZ()[0] < close ||
 		      spacepointss[0].XYZ()[0] > (2.*geom->DetHalfWidth(0,0)-close) || spacepointss[0].XYZ()[0] < close ||
@@ -517,6 +562,16 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		      // will kill the fit.
 		      mom.SetMag(3.0 * mom.Mag()); 
 		      std::cout<<"Track3DKalmanSPS: Uncontained track ... Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
+		      fDecimateHere = fDecimate;
+		      fMaxUpdateHere = fMaxUpdate;
+		    }
+		  else
+		    {
+		      // Don't decimate contained tracks as drastically, 
+		      // and omit only very large corrections ...
+		      // which hurt only high momentum tracks.
+		      fDecimateHere = fDecimateU;
+		      fMaxUpdateHere = fMaxUpdateU;
 		    }
 		  fcont = (int) (!uncontained);
 		  TVector3 momM(mom);
@@ -535,11 +590,12 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 					     momM,
 					     posErr,
 					     momErrFit,
-					     -fPdg);  // mu+ hypothesis
+					     fPdg);  // mu+ hypothesis
 		  //      std::cout<<"Track3DKalmanSPS: about to do GFTrack. repDim is " << rep->getDim() <<std::endl;
 
 
 		  genf::GFTrack fitTrack(rep);//initialized with smeared rep
+		  fitTrack.setPDG(fPdg);
 		  // Gonna sort in z cuz I want to essentially transform here to volTPC coords.
 		  // volTPC coords, cuz that's what the Geant3/Geane stepper wants, as that's its understanding
 		  // from the Geant4 geometry, which it'll use. EC, 7-Jan-2011.
@@ -559,7 +615,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 			//			std::cout << "Spacepoint " << point << " DROPPED!!!:" << spacepointss[point].XYZ()[0]<< ", " << spacepointss[point].XYZ()[1]<< ", " << spacepointss[point].XYZ()[2]<< ". " << std::endl;
 			continue;
 		      }
-		      if (point%fDecimate) // Jump out of loop except on every fDecimate^th pt. fDecimate==1 never sees continue.
+		      if (point%fDecimateHere) // Jump out of loop except on every fDecimate^th pt. fDecimate==1 never sees continue.
 			{
 			  continue;
 			}
@@ -609,9 +665,12 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  k.setBlowUpFactor(500); // 500 out of box. EC, 6-Jan-2011.
 		  k.setMomHigh(20.0); // Don't fit above this many GeV.
 		  k.setMomLow(0.1);   // Don't fit below this many GeV.
-		  k.setMaxUpdate(fMaxUpdate); // 0 out abs(update) bigger than this.
+
 		  k.setInitialDirection(+1); // Instead of 1 out of box. EC, 6-Jan-2011.
 		  k.setNumIterations(fNumIt);
+		  k.setMaxUpdate(fMaxUpdateHere); // 0 out abs(update) bigger than this.		  
+		  k.setErrorScale(fErrScale);
+
 		  bool skipFill = false;
 		  //      std::cout<<"Track3DKalmanSPS back from setNumIterations."<<std::endl;
 		  std::vector < TMatrixT<double> > hitMeasCov;
@@ -730,10 +789,15 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		      // Use Assns to get the clusters for the spacepoints.
 		      clusters = util::FindManyP<recob::Cluster>(prongIn, evt, fProngModuleLabel, cntp);
 		      cntp++;
+		      std::vector <std::vector <double> > dQdxDummy(0);
+		      std::vector <double> p;
+		      p.push_back(hitState.front()[0][0]);
+		      p.push_back(hitState.back()[0][0]);
 
 		      recob::Track  the3DTrack(hitPlaneXYZ,hitPlaneUxUyUz,
-					       hitCov);
-		      /*
+					       hitCov,dQdxDummy,p
+					       );
+		      
 		      double dircosF[3];
 		      double dircosL[3];
 		      
@@ -745,7 +809,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 
 		      the3DTrack.SetDirection(dircosF,dircosL);
 		      the3DTrack.SetID(tcnt++);
-		      */
+		      
 		      tcol->push_back(the3DTrack);
 		      util::CreateAssn(*this, evt, *(tcol.get()), clusters,*(assn.get()));
 
@@ -766,10 +830,6 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 
       if (!repMC) delete repMC;
 
-      // 4/15/12 BJR:  removed check on size of tcol because 
-      // we have to put everything we said was produced in this module
-      // into the event even if they are empty collections, otherwise the
-      // framework complains, its a feature, not a bug that ART does that
       evt.put(tcol); 
       evt.put(assn);
       evt.put(hassn);

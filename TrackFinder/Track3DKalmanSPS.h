@@ -39,6 +39,9 @@ namespace trkf {
     void beginJob();
     void endJob();
     void reconfigure(fhicl::ParameterSet const& p);
+    double energyLossBetheBloch(const double& mass,
+				const double p
+				);
 
   private:
         
@@ -101,8 +104,11 @@ namespace trkf {
     double fPerpLim;
     bool fDoFit;
     int fNumIt;
+    double fErrScale;
     int fDecimate;
     double fMaxUpdate;
+    int fDecimateU;
+    double fMaxUpdateU;
     int fPdg;
     
     genf::GFAbsTrackRep *repMC;
