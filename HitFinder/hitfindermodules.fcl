@@ -1,5 +1,12 @@
 BEGIN_PROLOG
 
+standard_hitcheater:
+{
+ module_type:       "HitCheater"
+ G4ModuleLabel:     "largeant"
+ WireModuleLabel:   "caldata"
+}
+
 standard_hitfinder:
 {
  module_type:         "FFTHitFinder"
@@ -14,6 +21,13 @@ standard_hitfinder:
  AreaMethod:           0                # 0 = area by integral, 1 = area by gaussian area formula
  AreaNorms:            [ 13.25, 26.31 ] # normalizations that put signal area in 
                                         # same scale as peak height. 
+}
+
+standard_hitfinderana:
+{
+ module_type:          "HitFinderAna"
+ HitsModuleLabel:      "ffthit"
+ LArGeantModuleLabel:  "largeant"
 }
 
 argoneut_hitfinder:   @local::standard_hitfinder
