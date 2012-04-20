@@ -47,7 +47,7 @@ namespace trkf {
     fHitDistance       = pset.get<double>("HitDistance");
     fTrackMode         = pset.get<double>("TrackMode");
     
-    if(fTrackMode==2) fTheSeedFinder = new SeedFinder(pset);
+    if(fTrackMode==2) fTheSeedFinder = new SeedFinder(pset.get<fhicl::ParameterSet>("SeedConfig"));
   }
 
   void BezierTracker::beginJob()

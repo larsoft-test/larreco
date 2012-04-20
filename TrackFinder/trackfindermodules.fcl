@@ -2,7 +2,25 @@
 
 BEGIN_PROLOG
 
-argoneut_track:
+standard_trackcheater:
+{
+ module_type:         "TrackCheater"
+ CheatedClusterLabel: "cluster"
+ G4ModuleLabel:       "largeant"
+}
+
+standard_trackkalmancheater:
+{
+  module_type:        "TrackKalmanCheater"
+  UseClusterHits:     true
+  GenModuleLabel:     "generator"
+  HitModuleLabel:     "ffthit"
+  ClusterModuleLabel: "dbcluster"
+  G4ModuleLabel:      "largeant"
+  KalmanFilterAlg:    @local::standard_kalmanfilteralg
+}
+
+standard_track3Dreco:
 {
  module_type:        "Track3Dreco"
  ClusterModuleLabel: "linemerger"
@@ -10,20 +28,34 @@ argoneut_track:
  Chi2DOFmax:         10.0
 }
 
-argoneut_kalman:
+standard_track3Dkalman:
 {
  module_type:         "Track3DKalman"
  SpacePtsModuleLabel: "spacepts"
- GenieGenModuleLabel: "generator"     # comment out for real data.
+ GenieGenModuleLabel: "generator"        # comment out for real data.
  G4ModuleLabel:       "largeant"
  PosErr3:             [0.02,0.02,0.02]   #  position resolution, cm.
- MomErr3:             [0.10,0.10,0.2]   #  momentum resolution, GeV/c.
- MomStart3:           [0.10,0.10,1.5]   #  GeV/c. Will *not* be Unit norm'd.
+ MomErr3:             [0.10,0.10,0.2]    #  momentum resolution, GeV/c.
+ MomStart3:           [0.10,0.10,1.5]    #  GeV/c. Will *not* be Unit norm'd.
  PerpLimit:           2.0
  GenfPRINT:           true
 }
 
-argoneut_spacepts:
+standard_track3DkalmanSPS:
+{
+ module_type:         "Track3DKalmanSPS"
+ SpacePtsModuleLabel: "spaceppoints"
+ GenieGenModuleLabel: "generator"        # comment out for real data.
+ G4ModuleLabel:       "largeant"
+ PosErr3:             [0.02,0.02,0.02]   #  position resolution, cm.
+ MomErr3:             [0.10,0.10,0.2]    #  momentum resolution, GeV/c.
+ MomStart3:           [0.10,0.10,1.5]    #  GeV/c. Will *not* be Unit norm'd.
+ PerpLimit:           2.0
+ GenfPRINT:           true
+ SpacePointAlg:       @local::standard_spacepointalg
+}
+
+standard_spacepts:
 {
  module_type:           "SpacePts"
  TicksOffset:           75.0
@@ -33,7 +65,7 @@ argoneut_spacepts:
  vertexclusterWindow:   100.
 }
 
-argoneut_spacepoint:
+standard_spacepointana:
 {
   module_type:        "SpacePointAna"
   HitModuleLabel:     "ffthit"
@@ -43,69 +75,56 @@ argoneut_spacepoint:
   G4ModuleLabel:      "largeant"
   MaxDT:              50.
   MaxS:               10.
-  SpacePointAlg:       @local::argoneut_spacepointalg
+  SpacePointAlg:       @local::standard_spacepointalg
 }
 
-argoneut_spacepoint_finder:
+standard_spacepointfinder:
 {
   module_type:        "SpacePointFinder"
   ClusterModuleLabel: "dbcluster"
   Filter:             true
   Merge:              false
-  SpacePointAlg:      @local::argoneut_spacepointalg
+  SpacePointAlg:      @local::standard_spacepointalg
 }
 
-argoneut_spacepointcheater:
+standard_spacepointcheater:
 {
   module_type:        "SpacePointCheater"
   ClusterModuleLabel: "dbcluster"
   G4ModuleLabel:      "largeant"
   Filter:             false
   Merge:              false
-  SpacePointAlg:      @local::argoneut_spacepointalg
+  SpacePointAlg:      @local::standard_spacepointalg
 }
 
-microboone_seedfinder_kalmanseed:
+standard_seeding:
 {
-  module_type:        "SeedFinder"
-  SeedMode:           0
-  ClusterModuleLabel: "dbcluster"
+  SeedMode:            0
+  ClusterModuleLabel:  "dbcluster"
   HitModuleLabel:      "ffthit"
-  Filter:             true
-  Source:             1
-  Merge:              false
+  Filter:              true
+  Source:              1
+  Merge:               false
   SeedLength:          5
   MinPointsInCluster:  50
   MinPointsInSeed:     10
   AngularDev:          0.5
-  SpacePointAlg:       @local::microboone_spacepointalg
+  SpacePointAlg:       @local::standard_spacepointalg
 }
 
-microboone_beziertrackana:
+standard_seedfinder:
+{
+  module_type: "SeedFinder"
+  SeedConfig:  @local::standard_seeding
+}
+
+standard_beziertrackana:
 {
   module_type:            "BezierTrackAna"
   BezierTrackModuleLabel: "beziertracker"
-  
 }
 
-microboone_seedfinder_bezierseed:
-{
-  module_type:        "SeedFinder"
-  SeedMode:           1
-  ClusterModuleLabel: "dbcluster"
-  HitModuleLabel:      "ffthit"
-  Filter:             true
-  Merge:              false
-  Source:              2
-  SeedLength:         5
-  MinPointsInCluster: 50
-  MinPointsInSeed:    10
-  AngularDev:         0.2
-  SpacePointAlg:       @local::microboone_spacepointalg  
-}
-
-
-microboone_beziertrack:
+standard_beziertrack:
 {  
   module_type:         "BezierTracker"
   SeedModuleLabel:     "seedfinder"
@@ -117,50 +136,63 @@ microboone_beziertrack:
   TrackMode:           1
 }
 
+argoneut_track:                           @local::standard_track3Dreco  
 
+argoneut_kalman:                          @local::standard_track3Dkalman
 
-microboone_beziertrack_iterative:
-{  
-  module_type:         "BezierTracker"
-  SeedModuleLabel:     "seedfinder"
-  HitModuleLabel:      "ffthit"
-  MaxKinkAngle:        0.35
-  MaxTrackMissAngle:   0.18 
-  MaxJumpDistance:     10.0
-  HitDistance:         0.5
-  TrackMode:           2
+argoneut_spacepts:                        @local::standard_spacepts     
 
-  SeedMode:           1
-  Filter:             true
-  Merge:              false
-  Source:             2
-  SeedLength:         5
-  MinPointsInSeed:    10
-  AngularDev:         0.5
+argoneut_spacepoint:                      @local::standard_spacepointana
+argoneut_spacepoint.SpacePointAlg:        @local::argoneut_spacepointalg
 
-  MinPointsInCluster: 0
-  ClusterModuleLabel:  ""
+argoneut_spacepoint_finder:               @local::standard_spacepointalg
+argoneut_spacepoint_finder.SpacePointAlg: @local::argoneut_spacepointalg
 
-}
+argoneut_spacepointcheater:               @local::standard_spacepointcheater
+argoneut_spacepointcheater.SpacePointAlg: @local::argoneut_spacepointalg
 
-microboone_track:
-{
- module_type:        "Track3Dreco"
- ClusterModuleLabel: "linemerger"
- TMatch:             35
- Chi2DOFmax:         10.0
-}
+microboone_seedfinder_kalmanseed:                               @local::standard_seedfinder     
+microboone_seedfinder_kalmanseed.SpacePointAlg:                 @local::microboone_spacepointalg
 
-microboone_spacepts:
-{
- module_type:              "SpacePts"
- TicksOffset:              0.0
- ClusterModuleLabel:       "dbcluster"
- EndPoint2DModuleLabel:    "vertex2d"
- TMatch:                   11.0
- vertexclusterWindow:      10000000.
-}
+microboone_beziertrackana:                                      @local::standard_beziertrackana 
 
+microboone_seedfinder_bezierseed:                               @local::standard_seedfinder     
+microboone_seedfinder_bezierseed.SeedConfig.SeedMode:           1  
+microboone_seedfinder_bezierseed.SeedConfig.Source:             2  
+microboone_seedfinder_bezierseed.SeedConfig.AngularDev:         0.2
+microboone_seedfinder_bezierseed.SeedConfig.SpacePointAlg:      @local::microboone_spacepointalg  
+
+microboone_beziertrack:                                         @local::standard_beziertrack
+
+microboone_beziertrack_iterative:                               @local::standard_beziertrack
+microboone_beziertrack_iterative.TrackMode:                     2
+microboone_beziertrack_iterative.SeedConfig.SeedMode:           1
+microboone_beziertrack_iterative.SeedConfig.Source:             2
+microboone_beziertrack_iterative.SeedConfig.MinPointsInCluster: 0
+microboone_beziertrack_iterative.SeedConfig.ClusterModuleLabel: ""
+
+microboone_track:                                               @local::standard_track3Dreco
+
+microboone_spacepts:                                            @local::standard_spacepts
+microboone_spacepts.TicksOffset:                                0.0         
+microboone_spacepts.ClusterModuleLabel:                         "dbcluster" 
+microboone_spacepts.TMatch:                                     11.0        
+microboone_spacepts.vertexclusterWindow:                        10000000.   
+
+microboone_kalman:                                              @local::standard_track3DkalmanSPS    
+microboone_kalman.SpacePointAlg:                                @local::microboone_spacepointalg     
+
+microboone_spacepoint:                                          @local::standard_spacepointana       
+microboone_spacepoint.SpacePointAlg:                            @local::microboone_spacepointalg     
+
+microboone_spacepoint_finder:                                   @local::standard_spacepointfinder    
+microboone_spacepoint_finder.SpacePointAlg:                     @local::microboone_spacepointalg     
+
+microboone_spacepointcheater:                                   @local::standard_spacepointcheater   
+microboone_spacepointcheater.SpacePointAlg:                     @local::microboone_spacepointalg     
+
+microboone_trackkalmancheater:                                  @local::standard_trackkalmancheater  
+microboone_trackkalmancheater.KalmanFilterAlg:                  @local::microboone_kalmanfilteralg   
 
 microboone_2stg_kalman:
 {
@@ -173,63 +205,6 @@ microboone_2stg_kalman:
  MomStart3:           [0.10,0.10,1.0]    #  Will be Unit norm'd.
  TailPtsFrac:         0.9    # fraction of upstream SpacePoints to ignore in 1st stage fit.
  GenfPRINT:           true
-}
-
-microboone_kalman:
-{
- module_type:         "Track3DKalmanSPS"
- ClusterModuleLabel:  "dbscan"
- ProngModuleLabel:    "spacepoints"
- GenieGenModuleLabel: "generator"     # comment out for real data.
- G4ModuleLabel:       "largeant"
- PosErr3:             [0.05,0.05,0.05]   #  position resolution, cm.
- MomErr3:             [0.10,0.10,0.20]   #  momentum resolution, GeV/c.
- MomStart3:           [0.10,0.10,1.0]    #  Will be Unit norm'd.
- GenfPRINT:           true
- SpacePointAlg:       @local::microboone_spacepointalg
-}
-
-microboone_spacepoint:
-{
-  module_type:        "SpacePointAna"
-  HitModuleLabel:     "ffthit"
-  UseClusterHits:     true
-  ClusterModuleLabel: "dbcluster"
-  UseMC:              false
-  G4ModuleLabel:      "largeant"
-  MaxDT:              50.
-  MaxS:               10.
-  SpacePointAlg:       @local::microboone_spacepointalg
-}
-
-microboone_spacepoint_finder:
-{
-  module_type:        "SpacePointFinder"
-  ClusterModuleLabel: "dbcluster"
-  Filter:             true
-  Merge:              false
-  SpacePointAlg:      @local::microboone_spacepointalg
-}
-
-microboone_spacepointcheater:
-{
-  module_type:        "SpacePointCheater"
-  ClusterModuleLabel: "dbcluster"
-  G4ModuleLabel:      "largeant"
-  Filter:             false
-  Merge:              false
-  SpacePointAlg:      @local::microboone_spacepointalg
-}
-
-microboone_trackkalmancheater:
-{
-  module_type:        "TrackKalmanCheater"
-  UseClusterHits:     true
-  GenModuleLabel:     "generator"
-  HitModuleLabel:     "ffthit"
-  ClusterModuleLabel: "dbcluster"
-  G4ModuleLabel:      "largeant"
-  KalmanFilterAlg:    @local::microboone_kalmanfilteralg
 }
 
 END_PROLOG

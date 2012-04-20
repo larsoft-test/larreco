@@ -43,17 +43,19 @@ namespace trkf {
 
   void SeedFinder::reconfigure(fhicl::ParameterSet const& pset)
   {
-    fSptalg                = pset.get<fhicl::ParameterSet>("SpacePointAlg");
-    fClusterModuleLabel    = pset.get<std::string>("ClusterModuleLabel");
-    fHitModuleLabel        = pset.get<std::string>("HitModuleLabel");
-    fFilter                = pset.get<bool>("Filter");
-    fMerge                 = pset.get<bool>("Merge");
-    fSeedMode              = pset.get<int>("SeedMode");
-    fSource                = pset.get<int>("Source");
-    fSeedLength            = pset.get<double>("SeedLength");
-    fMinPointsInCluster    = pset.get<unsigned int>("MinPointsInCluster");
-    fMinPointsInSeed       = pset.get<unsigned int>("MinPointsInSeed");
-    fAngularDev            = pset.get<double>("AngularDev");
+    fhicl::ParameterSet seedConfig = pset.get<fhicl::ParameterSet>("SeedConfig");
+
+    fSptalg                = seedConfig.get<fhicl::ParameterSet>("SpacePointAlg");
+    fClusterModuleLabel    = seedConfig.get<std::string>("ClusterModuleLabel");
+    fHitModuleLabel        = seedConfig.get<std::string>("HitModuleLabel");
+    fFilter                = seedConfig.get<bool>("Filter");
+    fMerge                 = seedConfig.get<bool>("Merge");
+    fSeedMode              = seedConfig.get<int>("SeedMode");
+    fSource                = seedConfig.get<int>("Source");
+    fSeedLength            = seedConfig.get<double>("SeedLength");
+    fMinPointsInCluster    = seedConfig.get<unsigned int>("MinPointsInCluster");
+    fMinPointsInSeed       = seedConfig.get<unsigned int>("MinPointsInSeed");
+    fAngularDev            = seedConfig.get<double>("AngularDev");
   }
 
   void SeedFinder::beginJob()

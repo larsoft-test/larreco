@@ -1,41 +1,26 @@
 BEGIN_PROLOG
 
-argoneut_spacepointalg:
+standard_spacepointalg:
 {
-  MaxDT: 2.0
-  MaxS:  0.3
+  MaxDT:    2.0
+  MaxS:     0.3
   MinViews: 2
-  EnableU: true
-  EnableV: true
-  EnableW: false
-  Filter: true
-  Merge: false
+  EnableU:  true
+  EnableV:  true
+  EnableW:  false
+  Filter:   true
+  Merge:    false
 }
 
-microboone_spacepointalg:
-{
-  MaxDT: 2.0
-  MaxS:  0.3
-  MinViews: 3
-  EnableU: true
-  EnableV: true
-  EnableW: true
-  Filter: true
-  Merge: false
-}
+argoneut_spacepointalg: @local::standard_spacepointalg
 
+microboone_spacepointalg:          @local::standard_spacepointalg
+microboone_spacepointalg.MinViews: 3
+microboone_spacepointalg.EnableW:  true
 
-lbne_spacepointalg:
-{
-  MaxDT: 2.0
-  MaxS:  0.3
-  MinViews: 3
-  EnableU: true
-  EnableV: true
-  EnableW: true
-  Filter: true
-  Merge: false
-}
+lbne_spacepointalg:          @local::standard_spacepointalg
+lbne_spacepointalg.MinViews: 3
+lbne_spacepointalg.EnableW:  true
 
 standard_kalmanfilteralg:
 {
