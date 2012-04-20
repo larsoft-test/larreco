@@ -115,7 +115,7 @@ standard_seeding:
 standard_seedfinder:
 {
   module_type: "SeedFinder"
-  SeedConfig:  @local::standard_seeding
+  SeedFinder:  @local::standard_seeding
 }
 
 standard_beziertrack:
@@ -128,7 +128,7 @@ standard_beziertrack:
   MaxJumpDistance:     20.0
   HitDistance:         0.5
   TrackMode:           2
-  SeedConfig:          @local::standard_seeding
+  SeedFinder:          @local::standard_seeding
 }
 
 standard_beziertrackana:
@@ -159,17 +159,17 @@ microboone_seedfinder_kalmanseed.SpacePointAlg:                 @local::microboo
 microboone_beziertrackana:                                      @local::standard_beziertrackana 
 
 microboone_seedfinder_bezierseed:                               @local::standard_seedfinder
-microboone_seedfinder_bezierseed.SeedConfig.SpacePointAlg:      @local::microboone_spacepointalg
+microboone_seedfinder_bezierseed.SeedFinder.SpacePointAlg:      @local::microboone_spacepointalg
 
 microboone_beziertrack:                                         @local::standard_beziertrack
-microboone_beziertrack.SeedConfig.SpacePointAlg:                @local::microboone_spacepointalg
+microboone_beziertrack.SeedFinder.SpacePointAlg:                @local::microboone_spacepointalg
 
 microboone_beziertrack_iterative:                               @local::standard_beziertrack
 microboone_beziertrack_iterative.TrackMode:                     2
-microboone_beziertrack_iterative.SeedConfig.SeedMode:           1
-microboone_beziertrack_iterative.SeedConfig.Source:             2
-microboone_beziertrack_iterative.SeedConfig.MinPointsInCluster: 0
-microboone_beziertrack_iterative.SeedConfig.ClusterModuleLabel: ""
+microboone_beziertrack_iterative.SeedFinder.SeedMode:           1
+microboone_beziertrack_iterative.SeedFinder.Source:             2
+microboone_beziertrack_iterative.SeedFinder.MinPointsInCluster: 0
+microboone_beziertrack_iterative.SeedFinder.ClusterModuleLabel: ""
 
 microboone_track:                                               @local::standard_track3Dreco
 
