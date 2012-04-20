@@ -12,7 +12,6 @@
 #include "TrackFinder/KHitContainerWireX.h"
 #include "TrackFinder/SurfYZPlane.h"
 #include "TrackFinder/PropYZPlane.h"
-#include "TrackFinder/KalmanFilterService.h"
 #include "Geometry/geo.h"
 #include "RecoBase/Hit.h"
 #include "RecoBase/Cluster.h"
@@ -30,6 +29,7 @@
 /// p - Fcl parameters.
 ///
 trkf::TrackKalmanCheater::TrackKalmanCheater(fhicl::ParameterSet const & pset) :
+  fKFAlg(pset.get<fhicl::ParameterSet>("KalmanFilterAlg")),
   fUseClusterHits(false),
   prop(new PropYZPlane(10.)),
   fNumEvent(0),
@@ -62,6 +62,7 @@ trkf::TrackKalmanCheater::~TrackKalmanCheater()
 ///
 void trkf::TrackKalmanCheater::reconfigure(fhicl::ParameterSet const & pset)
 {
+  fKFAlg = pset.get<fhicl::ParameterSet>("KalmanFilterAlg");
   fUseClusterHits = pset.get<bool>("UseClusterHits");
   fGenModuleLabel = pset.get<std::string>("GenModuleLabel");
   fHitModuleLabel = pset.get<std::string>("HitModuleLabel");
@@ -89,7 +90,6 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
   // Get Services.
 
   art::ServiceHandle<geo::Geometry> geom;
-  art::ServiceHandle<trkf::KalmanFilterService> kf;
 
   // Get SimChannels.
   // Make a vector where each channel in the detector is an entry
@@ -254,7 +254,7 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 
 	  // Build track.
 
-	  kf->buildTrack(trh, prop, Propagator::FORWARD, cont, 100.);
+	  fKFAlg.buildTrack(trh, prop, Propagator::FORWARD, cont, 100.);
  	}
       }
     }
