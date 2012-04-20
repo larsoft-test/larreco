@@ -1,6 +1,14 @@
 BEGIN_PROLOG
 
-argoneut_harris:
+standard_vertexcheater:
+{
+ module_type:        "VertexCheater"
+ CheatedShowerLabel: "shower"
+ CheatedTrackLabel:  "track"
+ G4ModuleLabel:      "largeant"
+}
+
+standard_harrisvertexfinder:
 {
  module_type:        "HarrisVertexFinder"
  DBScanModuleLabel:  "dbscan"
@@ -12,7 +20,7 @@ argoneut_harris:
  SaveVertexMap:      -1
 }
 
-argoneut_vertexmatch:
+standard_vertexmatch:
 {
  module_type:       "VertexMatch"
  HoughModuleLabel:  "hough"
@@ -20,18 +28,24 @@ argoneut_vertexmatch:
  MaxDistance:       30.
 }
 
-argoneut_primaryvertex:
+standard_primaryvertexfinder:
 {
  module_type:       "PrimaryVertexFinder"
  TrackModuleLabel:  "track3d"
  VertexWindow:       0.5
 }
 
-argoneut_vertex2d:
+standard_vertexfinder2d:
 {
- module_type:       "VertexFinder2D"
- ClusterModuleLabel:  "linemerger"
+ module_type:        "VertexFinder2D"
+ ClusterModuleLabel: "linemerger"
 }
+
+
+argoneut_harris:        @local::standard_harrisvertexfinder
+argoneut_vertexmatch:   @local::standard_vertexmatch
+argoneut_primaryvertex: @local::standard_primaryvertexfinder
+argoneut_vertex2d:      @local::standard_vertexfinder2d
 
 
 END_PROLOG
