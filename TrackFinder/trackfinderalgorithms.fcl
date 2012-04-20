@@ -12,7 +12,17 @@ standard_spacepointalg:
   Merge:    false
 }
 
-argoneut_spacepointalg: @local::standard_spacepointalg
+microboone_spacepointalg:
+{
+  MaxDT: 2.0
+  MaxS:  0.3
+  MinViews: 3
+  EnableU: true
+  EnableV: true
+  EnableW: true
+  Filter: false
+  Merge: false
+}
 
 microboone_spacepointalg:          @local::standard_spacepointalg
 microboone_spacepointalg.MinViews: 3

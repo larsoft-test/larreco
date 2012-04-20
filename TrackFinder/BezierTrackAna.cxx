@@ -69,7 +69,7 @@ namespace trkf {
       fhdQdxW = tfs->make<TH1D>("dQdxW", "dQdxW", 100, 0.0, 1.0);
       
       fhdQdxVW =  tfs->make<TH2D>("dQdxVW", "dQdxWV", 100, 600, 1200,100,600,1200);
-      fhCurv  = tfs->make<TH1D>("Curv",  "Curv",  100, 0.0, 10.0);
+      fhCurv  = tfs->make<TH1D>("Curv",  "Curv",  1000, 0.0, 1.0);
 
       fTree          = (TTree*)tfs->make<TTree>("EventInfo","EventInfo");
       
@@ -166,7 +166,7 @@ namespace trkf {
 	for(int j=1; j!=jDivs-1; j++)
 	  {
 	    float Point = float(j)/jDivs + 0.001;
-	    std::cout<<"btrkana" << Point<< " " << BTracks.at(i).GetdQdx(float(j)/jDivs,geo::kU)<<std::endl;
+	    std::cout<<"btrkana" << Point<< " " << BTracks.at(i).GetCurvature(float(j)/jDivs)<<std::endl;
 	    fhdQdxU->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kU));
 	    fhdQdxV->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kV));
 	    fhdQdxW->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kW));

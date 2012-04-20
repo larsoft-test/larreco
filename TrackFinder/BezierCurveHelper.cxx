@@ -79,7 +79,7 @@ void BezierCurveHelper::GetDirectionScales(double * Pt1, double * Pt2, double * 
 {
 
   double PtSepVec[3];
-  for(int i=0; i!=3; ++i) PtSepVec[i]=Pt2[0]-Pt1[0];
+  for(int i=0; i!=3; ++i) PtSepVec[i]=Pt2[i]-Pt1[i];
   
   double PtSep = pow(
     pow(PtSepVec[0],2) +
@@ -137,14 +137,10 @@ TVector3 BezierCurveHelper::GetBezierPoint(recob::Seed * s1, recob::Seed * s2, f
   double DirScales[2];
   GetDirectionScales(Pt1,Pt2,Dir1,Dir2,DirScales);
 
-  float ns=1.-s;
+  double ns=1.-s;
   for(int i=0; i!=3; i++)
     {
       Mid1[i]=Pt1[i]+Dir1[i]*DirScales[0];
-      Mid1[i]=Pt1[i]+Dir1[i]*DirScales[0];
-      Mid1[i]=Pt1[i]+Dir1[i]*DirScales[0];
-      Mid2[i]=Pt2[i]+Dir2[i]*DirScales[1];
-      Mid2[i]=Pt2[i]+Dir2[i]*DirScales[1];
       Mid2[i]=Pt2[i]+Dir2[i]*DirScales[1];
       ReturnVec3[i]=
 	ns * ns * ns *        Pt1[i]
@@ -197,15 +193,11 @@ std::vector<TVector3> BezierCurveHelper::GetBezierPoints(recob::Seed * s1, recob
   for(int i=0; i!=3; i++)
     {
       Mid1[i]=Pt1[i]+Dir1[i]*DirScales[0];
-      Mid1[i]=Pt1[i]+Dir1[i]*DirScales[0];
-      Mid1[i]=Pt1[i]+Dir1[i]*DirScales[0];
-      Mid2[i]=Pt2[i]+Dir2[i]*DirScales[1];
-      Mid2[i]=Pt2[i]+Dir2[i]*DirScales[1];
       Mid2[i]=Pt2[i]+Dir2[i]*DirScales[1];
       for(int p=0; p!=N; p++)
 	{
-	  float t  = float(p) / N;
-	  float nt = 1.-t;
+	  double t  = float(p) / N;
+	  double nt = 1.-t;
 	  ReturnVec.at(p)[i] =
 	    nt*nt*nt        * Pt1[i]
 	    + 3.*nt*nt*t    * Mid1[i]

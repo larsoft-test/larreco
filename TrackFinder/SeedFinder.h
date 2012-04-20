@@ -67,12 +67,6 @@ namespace trkf {
     
 
 
-  private:
-
-   
-
-
-                   
     std::vector<std::vector<recob::SpacePoint> > GetSpacePointsFromClusters(std::string ClusterModuleLabel, art::Event & evt);
               // Get space points from clusters
               //    (I expect eventually we will get from event, which
@@ -89,6 +83,7 @@ namespace trkf {
               // Get hit vector from event 
  
     recob::Seed * FindSeedAtEnd(std::vector<recob::SpacePoint>);
+    recob::Seed * FindSeedAtEnd(std::vector<recob::SpacePoint>,std::vector<int>& ToThrow);
               // Find one seed at a high Z end of a collection of spacepoints
               //    with no quality check
 
@@ -104,6 +99,12 @@ namespace trkf {
               // Starting at high Z, find as many adequate seeds in the collection
               //     as possible
 
+  private:
+
+   
+
+
+                   
     
     // Fcl Attributes.
 

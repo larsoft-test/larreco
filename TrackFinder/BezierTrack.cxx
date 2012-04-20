@@ -14,7 +14,7 @@ namespace trkf {
     recob::Track(btb)
   {
     fBezierResolution=1000;
-    
+    SetID(btb.ID());
     CalculateSegments();
   }
 
@@ -64,6 +64,7 @@ namespace trkf {
     
     std::cout<<"Filling seed vector of bezier track with n= "<<NSeg<<std::endl;
   
+
     double Pt[3], Dir[3];
     for(int i=0; i!=NSeg; i++)
       {
@@ -135,7 +136,13 @@ namespace trkf {
   {
     if((s>1)||(s<0))
       {
-	throw cet::exception("track point out of range")<<" s = "<<s <<" out of range \n";
+	// catch these easy floating point errors
+	if((s>1)&&(s<1.00001)) s=0.9999;
+	else if((s<0)&&(s>-0.00001)) s=0.0001;
+	
+	// otherwise complain about the mistake
+	else
+	  throw cet::exception("track point out of range")<<" s = "<<s <<" out of range \n";
       }
     else
       {
@@ -370,10 +377,14 @@ namespace trkf {
 
     if((s<0.5/fBezierResolution)||(s>(1.-0.5/fBezierResolution)))
       {
-	throw cet::exception("BezierTrack error: s out of range")<<
-	  " cannot query gradient within "<< 0.5/fBezierResolution<<
-	  " of track end.  You asked for s = "<<s <<
-	  ", which is out of range \n";
+	if     (( s < 0.5 / fBezierResolution ) && ( s > -0.00001 ) ) 
+	  s = 0.5 / fBezierResolution;
+	else if((s>(1.-0.5/fBezierResolution)) && ( s < 1.00001)) s = 1.-0.5/fBezierResolution;
+	else
+	  throw cet::exception("BezierTrack error: s out of range")<<
+	    " cannot query gradient within "<< 0.5/fBezierResolution<<
+	    " of track end.  You asked for s = "<<s <<
+	    ", which is out of range \n";
       }
     double xyz1[3], xyz2[3];
     GetTrackPoint(s - 0.5/fBezierResolution, xyz1);
@@ -429,14 +440,11 @@ namespace trkf {
       }
      
     TVector3 Pos1 = GetTrackPointV(s - 0.5/fBezierResolution);
+    TVector3 Pos2 = GetTrackPointV(s );
     TVector3 Pos3 = GetTrackPointV(s + 0.5/fBezierResolution);
 
-    TVector3 Grad1 = GetTrackDirectionV(s - 0.5/fBezierResolution);
-    TVector3 Grad2 = GetTrackDirectionV(s );
-    TVector3 Grad3 = GetTrackDirectionV(s + 0.5/fBezierResolution);
-   
-    double dx     = (Pos3-Pos1).Mag();
-    double dtheta = (Grad3-Grad2).Angle(Grad2-Grad1);
+    double dx     = (1./fBezierResolution)*fTrackLength;
+    double dtheta = (Pos3-Pos2).Angle(Pos2-Pos1);
     
     return (dtheta/dx);
   }
@@ -524,6 +532,7 @@ namespace trkf {
 
   double BezierTrack::GetdQdx(double s, unsigned int view) const
   {
+    view++;
     if((s<0)||(s>1))
       {
 	throw cet::exception("Bezier dQdx: S out of range")
@@ -545,7 +554,7 @@ namespace trkf {
     //	  <<"of stored segments, 0 < seg < " << fdQdx[view].size()
     //	  <<std::endl;
     //     }
-    if((Segment<fdQdx[view].size())&&(Segment>1))
+    if( ( Segment < (int)fdQdx[view].size() ) && (Segment>1))
       return fdQdx[view][Segment];
     else
       {
@@ -561,6 +570,7 @@ namespace trkf {
 
   double BezierTrack::GetViewdQdx(unsigned int view) const
   {
+    view++;
     if((view<0)||view>fdQdx.size()-1)
       {
 	throw cet::exception("view out of range")
@@ -586,6 +596,7 @@ namespace trkf {
   
   double BezierTrack::GetTotalCharge(unsigned int View) const
   {
+    View++;
     return GetViewdQdx(View) * fTrackLength;
   }
 
@@ -646,8 +657,32 @@ namespace trkf {
       }
 
   }
-
+  /*
+// Walk off end of track looking for new hits to add in
+  recob::Seed StretchTrackEnds(art::PtrVector<recob::Hit>, double HitsPerCm, double HitDistance)
+  {
+  recob::Seed * TopSeed = fSeedCollection.at(fSeedCollection.size());
+  recob::Seed * TopSeed = fSeedCollection.at(fSeedCollection.size()-1);
   
+  TVector3 EndPoint, EndDir;
+  
+  EndPoint = GetTrackPointV(0.99);
+  EndDir =   GetTrackDirectionV(0.99);
+  
+  
+  
+}
+
+  }
+
+
+  recob::Seed ReachOutLow(art::PtrVector<Hit>, double Length)
+  {
+    
+
+
+  }
+  */
 }
 
 

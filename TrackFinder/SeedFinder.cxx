@@ -276,8 +276,9 @@ namespace trkf {
     std::vector<recob::SpacePoint> ReturnVec;
     
     fSptalg.makeSpacePoints(Hits, ReturnVec,
-			    fFilter, fMerge, 0., 0.);
+    			    fFilter, fMerge, 0., 0.);
 
+ 
     return ReturnVec;
       
   }
@@ -297,14 +298,21 @@ namespace trkf {
     if(Points.size()<fMinPointsInCluster) KeepChopping=false;
     while(KeepChopping)
       {
-	TrackSeedThisCombo = FindSeedAtEnd(Points);
+	std::vector<int> ToChop;
+	TrackSeedThisCombo = FindSeedAtEnd(Points,ToChop);
 	if(TrackSeedThisCombo->IsValid())
 	  {
 	    ReturnVector.push_back(TrackSeedThisCombo);
 	  }
 	// if enough left, chop off some points and try again
-	if(Points.size() > fMinPointsInSeed)
-	  Points.resize(Points.size()-fMinPointsInSeed);
+	if((Points.size()-ToChop.size()) > fMinPointsInSeed)
+	  {
+	    sort(ToChop.begin(), ToChop.end());
+	    for(int i=(int)ToChop.size()-1; i!=-1; i--) 
+	      {
+		Points.erase(Points.begin()+ToChop.at(i));
+	      }
+	  }
 	else  // or if there is nothing left to chop, leave the loop
 	  KeepChopping=false;
 
@@ -394,9 +402,9 @@ namespace trkf {
 
 	if( ( HighestZPoint[2] - Points.at(index).XYZ()[2] ) < fSeedLength)
 	  {
-	    if( ( ( pow(HighestZPoint[0]-Points.at(index).XYZ()[0],2) +
-		    pow(HighestZPoint[1]-Points.at(index).XYZ()[1],2) +
-		    pow(HighestZPoint[2]-Points.at(index).XYZ()[2],2) ) < pow(fSeedLength,2)))
+	    if( ( pow(HighestZPoint[0]-Points.at(index).XYZ()[0],2) + 
+		  pow(HighestZPoint[1]-Points.at(index).XYZ()[1],2) + 
+		  pow(HighestZPoint[2]-Points.at(index).XYZ()[2],2) ) < pow(fSeedLength,2))
 	      {
 		PointsInRange.push_back(index);
 		CentreOfPoints[0]+=Points.at(index).XYZ()[0];
@@ -409,7 +417,7 @@ namespace trkf {
     unsigned int NPoints = PointsInRange.size();
     if(NPoints==0) return new recob::Seed();
     CentreOfPoints = (1./float(NPoints)) * CentreOfPoints;
-
+    
     if(NPoints>fMinPointsInSeed)
       {
 	float costheta=0, phi=0, costheta2=0, phi2=0;
@@ -478,6 +486,131 @@ namespace trkf {
       }
     else ReturnSeed = new recob::Seed();
 
+    return ReturnSeed;
+  }
+
+
+
+  //
+  // Start with a vector of hits ordered in Z.
+  // Put together a seed using the last N hits, find its
+  // centre, direction and strength. Return this seed for
+  // further scrutiny.
+  //
+  recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,std::vector<int>& ToThrow)
+  {
+
+    recob::Seed * ReturnSeed;
+
+    std::vector<int> PointsInRange;
+    PointsInRange.clear();
+    ToThrow.clear();
+    
+    TVector3 HighestZPoint( Points.at(Points.size()-2).XYZ()[0],
+			    Points.at(Points.size()-2).XYZ()[1],
+			    Points.at(Points.size()-2).XYZ()[2] );
+
+  
+    TVector3 CentreOfPoints(0.,0.,0.);
+
+    for(int index=Points.size()-1; index!=-1; --index)
+      {
+	// first check z, then check total distance
+	//  (much faster, since most will be out of range in z anyway)
+
+	if( ( HighestZPoint[2] - Points.at(index).XYZ()[2] ) < fSeedLength)
+	  {
+	    double DistanceToHighZ =pow( pow(HighestZPoint[0]-Points.at(index).XYZ()[0],2) +
+				      pow(HighestZPoint[1]-Points.at(index).XYZ()[1],2) +
+					 pow(HighestZPoint[2]-Points.at(index).XYZ()[2],2),0.5 ); 
+	      if( DistanceToHighZ < fSeedLength)
+		{
+		  PointsInRange.push_back(index);
+		  CentreOfPoints[0]+=Points.at(index).XYZ()[0];
+		  CentreOfPoints[1]+=Points.at(index).XYZ()[1];
+		  CentreOfPoints[2]+=Points.at(index).XYZ()[2];
+		}
+	  }
+      }
+    
+    
+    unsigned int NPoints = PointsInRange.size();
+    if(NPoints==0) return new recob::Seed();
+    CentreOfPoints = (1./float(NPoints)) * CentreOfPoints;
+
+    std::cout<<"Trying seed at " << CentreOfPoints[0]<<" " <<
+      CentreOfPoints[1]<<" " << CentreOfPoints[2]<<" " <<NPoints<<std::endl;
+
+    if(NPoints>fMinPointsInSeed)
+      {
+	float costheta=0, phi=0, costheta2=0, phi2=0;
+
+	for(unsigned int i=0; i!=PointsInRange.size(); i++)
+	  {
+	    TVector3 ThisPoint(Points.at(PointsInRange.at(i)).XYZ()[0],
+			       Points.at(PointsInRange.at(i)).XYZ()[1],
+			       Points.at(PointsInRange.at(i)).XYZ()[2]);
+	    TVector3 Step = CentreOfPoints-ThisPoint;
+
+	    if(Step.Z()<0) Step=-Step;
+
+
+	    phi       += Step.Phi();
+	    phi2      += pow(Step.Phi(),2);
+
+	    // Need to check range of costheta to avoid getting a nan.
+	    //  (if CosTheta=1, floating point errors mess us up)
+	    if(Step.CosTheta()<0.9999)
+	      {
+		costheta     += Step.CosTheta();
+		costheta2    += pow(Step.CosTheta(),2);
+	      }
+	    else
+	      {
+		costheta+=1;
+		costheta2+=1;
+	      }
+	  
+	  }
+
+
+	float sigtheta    = pow((costheta2 / NPoints - pow( costheta/NPoints, 2 )), 0.5);
+	float sigphi      = pow((phi2      / NPoints - pow( phi/NPoints,   2 )),    0.5);
+	float meantheta   = acos(costheta      / NPoints);
+	float meanphi     = phi                / NPoints;
+
+	// Total angular deviation (spherical polars)
+	float AngularDev =  pow(pow(sigtheta,2) + pow(sin(sigtheta) * sigphi, 2), 0.5);
+
+	//	std::cout<<"SeedFinder debug: " << AngularDev<<std::endl;
+
+	if(AngularDev<fAngularDev)
+	  {
+
+	    double PtArray[3], DirArray[3];
+
+	    PtArray[0]=CentreOfPoints.X();
+	    PtArray[1]=CentreOfPoints.Y();
+	    PtArray[2]=CentreOfPoints.Z();
+
+	    // calculate direction from average over hits
+
+	    TVector3 SeedDirection;
+
+	    SeedDirection.SetMagThetaPhi(fSeedLength, meantheta, meanphi);
+
+	    DirArray[0]=SeedDirection.X();
+	    DirArray[1]=SeedDirection.Y();
+	    DirArray[2]=SeedDirection.Z();
+
+	    ReturnSeed = new recob::Seed(PtArray,DirArray);
+	  }
+        else ReturnSeed = new recob::Seed();
+      }
+    else ReturnSeed = new recob::Seed();
+    
+    ToThrow=PointsInRange;
+    
     return ReturnSeed;
   }
 

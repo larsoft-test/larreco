@@ -107,7 +107,7 @@ standard_seeding:
   Merge:               false
   SeedLength:          5
   MinPointsInCluster:  50
-  MinPointsInSeed:     10
+  MinPointsInSeed:     5
   AngularDev:          0.5
   SpacePointAlg:       @local::standard_spacepointalg
 }
@@ -124,32 +124,40 @@ standard_beziertrackana:
   BezierTrackModuleLabel: "beziertracker"
 }
 
-standard_beziertrack:
+microboone_seedfinder_bezierseed:
+{
+  module_type:        "SeedFinder"
+  SeedMode:           1
+  ClusterModuleLabel: "dbcluster"
+  HitModuleLabel:      "ffthit"
+  Filter:             false
+  Merge:              false
+  Source:             1
+  SeedLength:         5
+  MinPointsInCluster: 50
+  MinPointsInSeed:    10
+  AngularDev:         0.5
+  SpacePointAlg:       @local::microboone_spacepointalg
+  
+}
+
+
+microboone_beziertrack:
 {  
   module_type:         "BezierTracker"
   SeedModuleLabel:     "seedfinder"
   HitModuleLabel:      "ffthit"
-  MaxKinkAngle:        0.35
-  MaxTrackMissAngle:   0.18 
-  MaxJumpDistance:     10.0
+  MaxKinkAngle:        0.10
+  MaxTrackMissAngle:   0.10 
+  MaxJumpDistance:     20.0
   HitDistance:         0.5
-  TrackMode:           1
+  TrackMode:           2
+  SeedFinder:          @local::microboone_seedfinder_bezierseed
 }
 
 argoneut_track:                           @local::standard_track3Dreco  
 
 argoneut_kalman:                          @local::standard_track3Dkalman
-
-argoneut_spacepts:                        @local::standard_spacepts     
-
-argoneut_spacepoint:                      @local::standard_spacepointana
-argoneut_spacepoint.SpacePointAlg:        @local::argoneut_spacepointalg
-
-argoneut_spacepoint_finder:               @local::standard_spacepointalg
-argoneut_spacepoint_finder.SpacePointAlg: @local::argoneut_spacepointalg
-
-argoneut_spacepointcheater:               @local::standard_spacepointcheater
-argoneut_spacepointcheater.SpacePointAlg: @local::argoneut_spacepointalg
 
 microboone_seedfinder_kalmanseed:                               @local::standard_seedfinder     
 microboone_seedfinder_kalmanseed.SpacePointAlg:                 @local::microboone_spacepointalg
