@@ -221,4 +221,15 @@ microboone_spacepointcheater:
   SpacePointAlg:      @local::microboone_spacepointalg
 }
 
+microboone_trackkalmancheater:
+{
+  module_type:        "TrackKalmanCheater"
+  UseClusterHits:     true
+  GenModuleLabel:     "generator"
+  HitModuleLabel:     "ffthit"
+  ClusterModuleLabel: "dbcluster"
+  G4ModuleLabel:      "largeant"
+  KalmanFilterAlg:    @local::microboone_kalmanfilteralg
+}
+
 END_PROLOG

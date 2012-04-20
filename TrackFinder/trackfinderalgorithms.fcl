@@ -37,4 +37,12 @@ lbne_spacepointalg:
   Merge: false
 }
 
+standard_kalmanfilteralg:
+{
+}
+
+argoneut_kalmanfilteralg:    @local::standard_kalmanfilteralg
+microboone_kalmanfilteralg:  @local::standard_kalmanfilteralg
+lbne_kalmanfilteralg:        @local::standard_kalmanfilteralg
+
 END_PROLOG

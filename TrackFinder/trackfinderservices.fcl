@@ -5,12 +5,4 @@ microboone_beziertrackservice:
   SegmentResolution: 100
 }
 
-standard_kalmanfilter:
-{
-}
-
-argoneut_kalmanfilter:    @local::standard_kalmanfilter
-microboone_kalmanfilter:  @local::standard_kalmanfilter
-lbne_kalmanfilter:        @local::standard_kalmanfilter
-
 END_PROLOG
