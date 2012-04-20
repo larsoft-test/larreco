@@ -115,7 +115,7 @@ standard_seeding:
 standard_seedfinder:
 {
   module_type: "SeedFinder"
-  SeedFinder:  @local::standard_seeding
+  SeedConfig:  @local::standard_seeding
 }
 
 standard_beziertrack:
