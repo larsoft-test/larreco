@@ -90,6 +90,14 @@ standard_showeranglecluster:
  UseMCVertex:              1              #needed for MC vertex extraction
 }
 
+standard_clustercheater:
+{
+ module_type:       "ClusterCheater"
+ HitModuleLabel:    "hit"
+ G4ModuleLabel:     "largeant"
+ HoughLineAlg:      @local::standard_houghlinealg
+}
+
 argoneut_dbcluster:                    @local::standard_dbcluster      
 argoneut_dbcluster.DBScanAlg:          @local::argoneut_dbscanalg   
 argoneut_dbclusterana:                 @local::standard_dbclusterana   
