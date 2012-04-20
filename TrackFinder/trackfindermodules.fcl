@@ -99,15 +99,15 @@ standard_spacepointcheater:
 
 standard_seeding:
 {
-  SeedMode:            0
+  SeedMode:            1
   ClusterModuleLabel:  "dbcluster"
   HitModuleLabel:      "ffthit"
-  Filter:              true
-  Source:              1
+  Filter:              false
   Merge:               false
+  Source:              1
   SeedLength:          5
   MinPointsInCluster:  50
-  MinPointsInSeed:     5
+  MinPointsInSeed:     10
   AngularDev:          0.5
   SpacePointAlg:       @local::standard_spacepointalg
 }
@@ -118,31 +118,7 @@ standard_seedfinder:
   SeedConfig:  @local::standard_seeding
 }
 
-standard_beziertrackana:
-{
-  module_type:            "BezierTrackAna"
-  BezierTrackModuleLabel: "beziertracker"
-}
-
-microboone_seedfinder_bezierseed:
-{
-  module_type:        "SeedFinder"
-  SeedMode:           1
-  ClusterModuleLabel: "dbcluster"
-  HitModuleLabel:      "ffthit"
-  Filter:             false
-  Merge:              false
-  Source:             1
-  SeedLength:         5
-  MinPointsInCluster: 50
-  MinPointsInSeed:    10
-  AngularDev:         0.5
-  SpacePointAlg:       @local::microboone_spacepointalg
-  
-}
-
-
-microboone_beziertrack:
+standard_beziertrack:
 {  
   module_type:         "BezierTracker"
   SeedModuleLabel:     "seedfinder"
@@ -152,25 +128,41 @@ microboone_beziertrack:
   MaxJumpDistance:     20.0
   HitDistance:         0.5
   TrackMode:           2
-  SeedFinder:          @local::microboone_seedfinder_bezierseed
+  SeedConfig:          @local::standard_seeding
+}
+
+standard_beziertrackana:
+{
+  module_type:            "BezierTrackAna"
+  BezierTrackModuleLabel: "beziertracker"
 }
 
 argoneut_track:                           @local::standard_track3Dreco  
 
 argoneut_kalman:                          @local::standard_track3Dkalman
 
+argoneut_spacepts:                        @local::standard_spacepts     
+
+argoneut_spacepoint:                      @local::standard_spacepointana
+argoneut_spacepoint.SpacePointAlg:        @local::argoneut_spacepointalg
+
+argoneut_spacepoint_finder:               @local::standard_spacepointalg
+argoneut_spacepoint_finder.SpacePointAlg: @local::argoneut_spacepointalg
+
+argoneut_spacepointcheater:               @local::standard_spacepointcheater
+argoneut_spacepointcheater.SpacePointAlg: @local::argoneut_spacepointalg
+
+
 microboone_seedfinder_kalmanseed:                               @local::standard_seedfinder     
 microboone_seedfinder_kalmanseed.SpacePointAlg:                 @local::microboone_spacepointalg
 
 microboone_beziertrackana:                                      @local::standard_beziertrackana 
 
-microboone_seedfinder_bezierseed:                               @local::standard_seedfinder     
-microboone_seedfinder_bezierseed.SeedConfig.SeedMode:           1  
-microboone_seedfinder_bezierseed.SeedConfig.Source:             2  
-microboone_seedfinder_bezierseed.SeedConfig.AngularDev:         0.2
-microboone_seedfinder_bezierseed.SeedConfig.SpacePointAlg:      @local::microboone_spacepointalg  
+microboone_seedfinder_bezierseed:                               @local::standard_seedfinder
+microboone_seedfinder_bezierseed.SeedConfig.SpacePointAlg:      @local::microboone_spacepointalg
 
 microboone_beziertrack:                                         @local::standard_beziertrack
+microboone_beziertrack.SeedConfig.SpacePointAlg:                @local::microboone_spacepointalg
 
 microboone_beziertrack_iterative:                               @local::standard_beziertrack
 microboone_beziertrack_iterative.TrackMode:                     2
