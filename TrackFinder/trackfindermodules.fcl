@@ -78,8 +78,7 @@ microboone_seedfinder_kalmanseed:
   MinPointsInCluster:  50
   MinPointsInSeed:     10
   AngularDev:          0.5
-
-
+  SpacePointAlg:       @local::microboone_spacepointalg
 }
 
 microboone_beziertrackana:
@@ -102,7 +101,7 @@ microboone_seedfinder_bezierseed:
   MinPointsInCluster: 50
   MinPointsInSeed:    10
   AngularDev:         0.2
-  
+  SpacePointAlg:       @local::microboone_spacepointalg  
 }
 
 
