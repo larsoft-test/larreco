@@ -44,13 +44,16 @@ standard_track3Dkalman:
 standard_track3DkalmanSPS:
 {
  module_type:         "Track3DKalmanSPS"
- SpacePtsModuleLabel: "spaceppoints"
+ ClusterModuleLabel:  "dbscan"
+ ProngModuleLabel:    "spacepoints"
+ SpacePtsModuleLabel: "spacepoints"
  GenieGenModuleLabel: "generator"        # comment out for real data.
  G4ModuleLabel:       "largeant"
  PosErr3:             [0.02,0.02,0.02]   #  position resolution, cm.
  MomErr3:             [0.10,0.10,0.2]    #  momentum resolution, GeV/c.
  MomStart3:           [0.10,0.10,1.5]    #  GeV/c. Will *not* be Unit norm'd.
- PerpLimit:           2.0
+ PerpLimit:           1000.0
+ PdgCode:	      -13 # mu+
  GenfPRINT:           true
  SpacePointAlg:       @local::standard_spacepointalg
 }
