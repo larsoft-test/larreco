@@ -73,6 +73,9 @@ namespace trkf {
     void setChisq(double chisq) {fChisq = chisq;}    ///< Set chisquare.
     void setStat(FitStatus stat) {fStat = stat;}     ///< Set fit status.
 
+    /// Combine two tracks.
+    bool combineFit(const KFitTrack& trf);
+
     /// Printout
     virtual std::ostream& Print(std::ostream& out, bool doTitle = true) const;
 

@@ -10,6 +10,7 @@
 
 #include <cmath>
 #include "TrackFinder/KETrack.h"
+#include "cetlib/exception.h"
 
 namespace trkf {
 
@@ -61,6 +62,106 @@ namespace trkf {
   /// Destructor.
   KETrack::~KETrack()
   {}
+
+  /// Combine two tracks.
+  ///
+  /// Arguments:
+  ///
+  /// tre - Another track.
+  ///
+  /// Returns: Chisquare + success flag.
+  ///
+  /// This method updates the current track to be the weighted average
+  /// of itself and another track.  The chisquare of the combination
+  /// is returned as the result value.  The combination can fail
+  /// because the sum of the two error matrices is singular, in which
+  /// case the success flag embedded in the return value is false.
+  ///
+  boost::optional<double> KETrack::combineTrack(const KETrack& tre)
+  {
+    // Make sure that the two track surfaces are the same.
+    // Throw an exception if they are not.
+
+    if(!getSurface()->isEqual(*tre.getSurface()))
+      throw cet::exception("KETrack") << "Track combination surfaces are not the same.\n";
+
+    // Default result is failure.
+
+    boost::optional<double> result(false, 0.);
+
+    // We will use asymmetric versions of the updating formulas, such
+    // that the result is calculated as a perturbation on the
+    // better-measured track.  We define the better measured track as
+    // the one with the smaller error matrix trace.
+
+    // Extract the two state vectors and error matrices as pointers.
+
+    const TrackVector* vec1 = &getVector();
+    const TrackError* err1 = &getError();
+    const TrackVector* vec2 = &tre.getVector();
+    const TrackError* err2 = &tre.getError();
+
+    // Calculate the traces of the error matrices.
+
+    double tr1 = 0;
+    for(unsigned int i=0; i<err1->size1(); ++i)
+      tr1 += (*err1)(i,i);
+
+    double tr2 = 0;
+    for(unsigned int i=0; i<err2->size1(); ++i)
+      tr2 += (*err2)(i,i);
+
+    // Define vec1, err1 as belong to the better measured track.
+    // Swap if necessary.
+
+    if(tr1 > tr2) {
+      const TrackVector* tvec = vec1;
+      vec1 = vec2;
+      vec2 = tvec;
+      const TrackError* terr = err1;
+      err1 = err2;
+      err2 = terr;
+    }
+
+    // Calculate the difference vector and difference error matrix.
+
+    TrackVector dvec = *vec1 - *vec2;
+    TrackError derr = *err1 + *err2;
+
+    // Invert the difference error matrix.
+    // This is the only place where a detectable failure can occur.
+
+    bool ok = syminvert(derr);
+    if(ok) {
+
+      // Calculate updated state vector.
+      // vec1 = vec1 - err1 * derr * dvec
+
+      TrackVector tvec1 = prod(derr, dvec);
+      TrackVector tvec2 = prod(*err1, tvec1);
+      TrackVector tvec3 = *vec1 - tvec2;
+      setVector(tvec3);
+
+      // Calculate updated error matrix.
+      // err1 = err1 - err1 * derr * err1
+
+      TrackMatrix terr1 = prod(derr, *err1);
+      TrackError terr2 = prod(*err1, terr1);
+      TrackError terr3 = *err1 - terr2;
+      setError(terr3);
+
+      // Calculate chisquare.
+      // chisq = dvec^T * derr * dvec
+
+      TrackVector dvec1 = prod(derr, dvec);
+      double chisq = inner_prod(dvec, dvec1);
+      result = boost::optional<double>(true, chisq);
+    }
+
+    // Done.
+
+    return result;
+  }
 
   /// Printout
   std::ostream& KETrack::Print(std::ostream& out, bool doTitle) const

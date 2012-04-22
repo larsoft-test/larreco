@@ -22,6 +22,7 @@
 #define KETRACK_H
 
 #include "TrackFinder/KTrack.h"
+#include "boost/optional.hpp"
 
 namespace trkf {
 
@@ -55,6 +56,9 @@ namespace trkf {
     // Modifiers.
 
     void setError(const TrackError& err) {fErr = err;}     ///< Set error matrix.
+
+    /// Combine two tracks.
+    boost::optional<double> combineTrack(const KETrack& tre);
 
     /// Printout
     virtual std::ostream& Print(std::ostream& out, bool doTitle = true) const;
