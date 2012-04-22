@@ -24,6 +24,7 @@ lbne_spacepointalg.EnableW:  true
 
 standard_kalmanfilteralg:
 {
+  Trace: false
 }
 
 argoneut_kalmanfilteralg:    @local::standard_kalmanfilteralg

@@ -62,7 +62,7 @@ trkf::TrackKalmanCheater::~TrackKalmanCheater()
 ///
 void trkf::TrackKalmanCheater::reconfigure(fhicl::ParameterSet const & pset)
 {
-  fKFAlg = pset.get<fhicl::ParameterSet>("KalmanFilterAlg");
+  fKFAlg.reconfigure(pset.get<fhicl::ParameterSet>("KalmanFilterAlg"));
   fUseClusterHits = pset.get<bool>("UseClusterHits");
   fGenModuleLabel = pset.get<std::string>("GenModuleLabel");
   fHitModuleLabel = pset.get<std::string>("HitModuleLabel");
@@ -223,7 +223,7 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	  const art::PtrVector<recob::Hit>& trackhits = hitmap[trackid];
 	  assert(trackhits.size() > 0);
 
-	  // Make a seed track (KHitsTrack).
+	  // Make a seed track (KTrack).
 
 	  boost::shared_ptr<const Surface> psurf(new SurfYZPlane(y, z, 0.));
 	  TrackVector vec(5);
@@ -232,29 +232,22 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	  vec(2) = px / pz;
 	  vec(3) = py / pz;
 	  vec(4) = 1. / p;
-	  TrackError err(5);
-	  err.clear();
-	  //err(0,0) = 1000.;
-	  //err(1,1) = 1000.;
-	  //err(2,2) = 10.;
-	  //err(3,3) = 10.;
-	  err(0,0) = 1.;
-	  err(1,1) = 1.;
-	  err(2,2) = 0.005;
-	  err(3,3) = 0.005;
-	  err(4,4) = 1.;
 	  Surface::TrackDirection dir = (pz > 0. ? Surface::FORWARD : Surface::BACKWARD);
-	  KHitsTrack trh(KETrack(psurf, vec, err, dir, pdg));
-	  trh.setStat(KFitTrack::UNKNOWN);
+	  KTrack trk(psurf, vec, dir, pdg);
 
 	  // Fill KHitContainer with hits.
 
 	  KHitContainerWireX cont;
-	  cont.fill(trackhits, 0);
+	  cont.fill(trackhits, 2);
 
-	  // Build track.
+	  // Build and smooth track.
 
-	  fKFAlg.buildTrack(trh, prop, Propagator::FORWARD, cont, 100.);
+	  KGTrack trg;
+	  bool ok = fKFAlg.buildTrack(trk, trg, prop, Propagator::FORWARD, cont, 100.);
+	  if(ok)
+	    fKFAlg.setTrace(true);
+	    ok = fKFAlg.smoothTrack(trg, prop);
+	    fKFAlg.setTrace(false);
  	}
       }
     }
