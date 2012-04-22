@@ -98,7 +98,10 @@ namespace trkf {
     // Make a crude estimate of the range of the track.
 
     double p = 1./std::abs(pinv);
-    double t = std::sqrt(p*p + mass*mass) - mass;
+    double p2 = p*p;
+    double e2 = p2 + mass*mass;
+    double e = std::sqrt(e2);
+    double t = e - mass;
     double dedx = 0.001 * larprop->Eloss(p, mass, getTcut());
     double range = t / dedx;
     if(range > 100.)
@@ -114,9 +117,9 @@ namespace trkf {
 
     double betainv = std::sqrt(1. + pinv*pinv * mass*mass);
     double theta_fact = (0.0136 * pinv * betainv) * (1. + 0.038 * std::log(range/x0));
-    double theta02 = theta_fact*theta_fact * (s/x0);
+    double theta02 = theta_fact*theta_fact * std::abs(s/x0);
 
-    // Calculate some sommon factors.
+    // Calculate some sommon factors needed for multiple scattering.
 
     double ufact2 = 1. + dudw*dudw;
     double vfact2 = 1. + dvdw*dvdw;
@@ -125,6 +128,11 @@ namespace trkf {
     double uv = dudw * dvdw;
     double dist2_3 = s*s / 3.;
     double dist_2 = s / 2.;
+
+    // Calculate energy loss fluctuations.
+
+    double evar = 1.e-6 * larprop->ElossVar(p, mass) * std::abs(s); // E variance (GeV^2).
+    double pinvvar = evar * e2 / (p2*p2*p2);                        // Inv. p variance (1/GeV^2)
 
     // Fill elements of noise matrix.
 
@@ -157,9 +165,9 @@ namespace trkf {
     noise_matrix(4,2) = 0.;                                   // sigma^2(pinv, u')
     noise_matrix(4,3) = 0.;                                   // sigma^2(pinv, v')
 
-    // Energy loss fluctuations (should eventually have something nonzero here).
+    // Energy loss fluctuations.
 
-    noise_matrix(4,4) = 0.;                                   // sigma^2(pinv, pinv)
+    noise_matrix(4,4) = pinvvar;                              // sigma^2(pinv, pinv)
   }
 
 } // end namespace trkf
