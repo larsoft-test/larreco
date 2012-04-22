@@ -38,7 +38,7 @@ namespace trkf {
   /// KHitGroup objects.
   ///
   void KHitContainerWireX::fill(const art::PtrVector<recob::Hit>& hits,
-				int only_plane)
+				unsigned int only_plane)
   {
     // Get services.
 
