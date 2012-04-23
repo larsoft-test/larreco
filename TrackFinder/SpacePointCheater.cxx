@@ -280,6 +280,8 @@ namespace trkf {
       evt.put(prongs);
       evt.put(assn);
       evt.put(hassn);
+      evt.put(spts);
+      evt.put(spassn);
     }
   }
 
