@@ -169,18 +169,20 @@ namespace trkf {
 	      // If two-view space points are allowed, make them here.
 
 	      if(fSptalg.minViews() <= 2) {
-		fSptalg.makeSpacePoints(hits, *spts,
+		std::vector<recob::SpacePoint> new_spts;
+		fSptalg.makeSpacePoints(hits, new_spts,
 					fFilter, fMerge, 0., 0.);
 
 		// If we found some space points, make a prong.
 
-		if(spts->size() > 0) {
+		if(new_spts.size() > 0) {
+		  fNumSpt2 += new_spts.size();
 		  art::PtrVector<recob::Cluster> clusters;
 		  clusters.reserve(2);
 		  clusters.push_back(piclus);
 		  clusters.push_back(pjclus);
 
-		  prongs->push_back(recob::Prong(clusters, *spts));
+		  prongs->push_back(recob::Prong(clusters, new_spts));
 		  util::CreateAssn(*this, evt, *(prongs.get()), clusters,*(assn.get()));
 
 		  // associate the cluster hits with this prong as well
@@ -190,9 +192,14 @@ namespace trkf {
 		    util::CreateAssn(*this, evt, *(prongs.get()), hits, *(hassn.get()));
 		  }
 
+		  // Insert newly found space points into event collection.
+
+		  int nspt = spts->size();
+		  spts->insert(spts->end(), new_spts.begin(), new_spts.end());
+
 		  // Associate space points with hits.
 
-		  for(unsigned int ispt = 0; ispt < spts->size(); ++ispt) {
+		  for(unsigned int ispt = nspt; ispt < spts->size(); ++ispt) {
 		    const recob::SpacePoint& spt = (*spts)[ispt];
 		    const art::PtrVector<recob::Hit>& hits = fSptalg.getAssociatedHits(spt);
 		    util::CreateAssn(*this, evt, *spts, hits, *spassn, ispt);
@@ -231,18 +238,20 @@ namespace trkf {
 
 		  // Make three-view space points.
 
-		  fSptalg.makeSpacePoints(hits, *spts,
+		  std::vector<recob::SpacePoint> new_spts;
+		  fSptalg.makeSpacePoints(hits, new_spts,
 					  fFilter, fMerge, 0., 0.);
 
 		  // If we found some space points, make a prong.
 
-		  if(spts->size() > 0) {
+		  if(new_spts.size() > 0) {
+		    fNumSpt3 += new_spts.size();
 		    art::PtrVector<recob::Cluster> clusters;
 		    clusters.reserve(3);
 		    clusters.push_back(piclus);
 		    clusters.push_back(pjclus);
 		    clusters.push_back(pkclus);
-		    prongs->push_back(recob::Prong(clusters, *spts));
+		    prongs->push_back(recob::Prong(clusters, new_spts));
 		    util::CreateAssn(*this, evt, *(prongs.get()), clusters,*(assn.get()));
 		  
 		    // associate the cluster hits with this prong as well
@@ -252,9 +261,14 @@ namespace trkf {
 		      util::CreateAssn(*this, evt, *(prongs.get()), hits, *(hassn.get()));
 		    }
 
+		    // Insert newly found space points into event collection.
+
+		    int nspt = spts->size();
+		    spts->insert(spts->end(), new_spts.begin(), new_spts.end());
+
 		    // Associate space points with hits.
 
-		    for(unsigned int ispt = 0; ispt < spts->size(); ++ispt) {
+		    for(unsigned int ispt = nspt; ispt < spts->size(); ++ispt) {
 		      const recob::SpacePoint& spt = (*spts)[ispt];
 		      const art::PtrVector<recob::Hit>& hits = fSptalg.getAssociatedHits(spt);
 		      util::CreateAssn(*this, evt, *spts, hits, *spassn, ispt);
@@ -289,6 +303,8 @@ namespace trkf {
       << "SpacePointFinder statistics:\n"
       << "  Number of events = " << fNumEvent << "\n"
       << "  Number of 2-view prongs created = " << fNumProng2 << "\n"
-      << "  Number of 3-view prongs created = " << fNumProng3;
+      << "  Number of 3-view prongs created = " << fNumProng3 << "\n"
+      << "  Number of 2-view space points created = " << fNumSpt2 << "\n"
+      << "  Number of 3-view space points created = " << fNumSpt3;
   }
 }// end namespace
