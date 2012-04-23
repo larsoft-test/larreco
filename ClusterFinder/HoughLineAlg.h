@@ -73,12 +73,15 @@ namespace cluster {
     HoughLineAlg(fhicl::ParameterSet const& pset); 
     virtual ~HoughLineAlg();
          
-    size_t Transform(art::PtrVector<recob::Cluster>& clusIn,
-     	             std::vector<recob::Cluster>& ccol);
+    size_t Transform(art::PtrVector<recob::Cluster>                 & clusIn,
+     	             std::vector<recob::Cluster>               	    & ccol,  
+		     std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
+		     art::Event                                const& evt,
+		     std::string                               const& label);
 
     size_t Transform(std::vector< art::Ptr<recob::Hit> >& hits,
-		     double &slope,
-		     double &intercept);
+		     double                             & slope,
+		     double                             & intercept);
 
     void reconfigure(fhicl::ParameterSet const& pset);
           

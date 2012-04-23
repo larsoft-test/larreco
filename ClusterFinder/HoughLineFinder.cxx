@@ -86,10 +86,12 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
   }
   
   // make a std::vector<recob::Cluster> for the output of the 
-  // Hough Transform
-  std::vector<recob::Cluster> clusOut;
+  // Hough Transform and a std::vector< art::PtrVector<recob::Hit> >
+  // to hold the associated hits
+  std::vector<recob::Cluster>               clusOut;
+  std::vector< art::PtrVector<recob::Hit> > clusHitsOut;
   
-  size_t numclus = fHLAlg.Transform(clusIn, clusOut);
+  size_t numclus = fHLAlg.Transform(clusIn, clusOut, clusHitsOut, evt, fDBScanModuleLabel);
 
   LOG_DEBUG("HoughLineClusters") << "found " << numclus << "clusters with HoughLineAlg";
 
@@ -103,9 +105,7 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
     mf::LogVerbatim("Summary") << ccol->at(i);
 
     // associat the hits to this cluster
-    ///\todo need to get the hits in a better way once we remove them as Cluster data members
-    art::PtrVector<recob::Hit> ptrvs = ccol->at(i).Hits();
-    util::CreateAssn(*this, evt, *(ccol.get()), ptrvs, *(assn.get()), i);
+    util::CreateAssn(*this, evt, *(ccol.get()), clusHitsOut[i], *(assn.get()), i);
   }
 
   evt.put(ccol);

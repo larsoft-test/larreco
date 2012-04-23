@@ -12,7 +12,6 @@
 //  Machine Vision and Applications 3, 87 (1990)  
 ////////////////////////////////////////////////////////////////////////
 
-#include "ClusterFinder/HoughLineAlg.h"
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -34,12 +33,13 @@ extern "C" {
 #include "art/Framework/Services/Optional/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
  
+#include "ClusterFinder/HoughLineAlg.h"
 #include "Filters/ChannelFilter.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/DetectorProperties.h"
-
+#include "Utilities/AssociationUtil.h"
 
 //------------------------------------------------------------------------------
 cluster::HoughLineAlg::HoughLineAlg(fhicl::ParameterSet const& pset)
@@ -202,8 +202,11 @@ void cluster::HoughLineAlg::HLSSaveBMPFile(const char *fileName, unsigned char *
 }
  
 //------------------------------------------------------------------------------
-size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>& clusIn, 
-					    std::vector<recob::Cluster>& ccol)
+size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>                 & clusIn,
+					std::vector<recob::Cluster>                    & ccol,  
+					std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
+					art::Event                                const& evt,
+					std::string                               const& label)
 {
 
   std::vector<int> skip;  
@@ -215,7 +218,6 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>& clusIn,
   HoughTransform c;
 
   extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
-  art::PtrVector<recob::Hit> cHits;
   art::PtrVector<recob::Hit> hit;
 
   for(size_t cs = 0; cs < geom->Ncryostats(); ++cs){
@@ -223,35 +225,34 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>& clusIn,
       for(unsigned int p = 0; p < geom->Cryostat(cs).TPC(t).Nplanes(); ++p) {
 	art::PtrVector<recob::Cluster>::const_iterator clusterIter = clusIn.begin();
 	int clusterID = 0;//the unique ID of the cluster
+
 	// This is the loop over clusters. The algorithm searches for lines on a 
 	// (DBSCAN) cluster-by-cluster basis. 
 	//get the view of the current plane
-	geo::View_t view = geom->Cryostat(cs).TPC(t).Plane(p).View();
-	
+	geo::View_t    view = geom->Cryostat(cs).TPC(t).Plane(p).View();
+	geo::SigType_t sigt = geom->Cryostat(cs).TPC(t).Plane(p).SignalType();
+
+	size_t cinctr = 0;
 	while(clusterIter != clusIn.end()) {
 	  hit.clear();
-	  cHits.clear();
 	  if(fPerCluster){
-	    if((*clusterIter)->View() == view) hit = (*clusterIter)->Hits();
+	    if((*clusterIter)->View() == view) hit = util::FindManyP<recob::Hit>(clusIn, evt, label, cinctr);
 	  }
 	  else{   
 	    while(clusterIter != clusIn.end()){
 	      if( (*clusterIter)->View() == view ){
-		///\todo Get the cluster associated hits using FindMany
-		cHits = (*clusterIter)->Hits();
-		if(cHits.size() > 0){
-		  art::PtrVector<recob::Hit>::const_iterator hitIter = cHits.begin();
-		  while (hitIter != cHits.end()){
-		    hit.push_back((*hitIter));
-		    hitIter++;
-		  }
-		}
+
+		hit = util::FindManyP<recob::Hit>(clusIn, evt, label, cinctr);
 	      }// end if cluster is in correct view
 	      clusterIter++;
+	      ++cinctr;
 	    }//end loop over clusters
 	  }//end if not fPerCluster
 	  if(hit.size() == 0){ 
-	    if(fPerCluster) clusterIter++;
+	    if(fPerCluster){
+	      clusterIter++;
+	      ++cinctr;
+	    }
 	    continue;
 	  }
 	  //factor to make x and y scale the same units
@@ -359,7 +360,7 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>& clusIn,
 	    /// \todo: the collection plane's characteristic hit width's are, 
 	    /// \todo: on average, about 5 time samples wider than the induction plane's. 
 	    /// \todo: this is hard-coded for now.
-	    if(p == 0)
+	    if(sigt == geo::kInduction)
 	      indcolscaling = 5.;
 	    else
 	      indcolscaling = 0.;
@@ -415,7 +416,6 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>& clusIn,
 	      sc = (*clusterHits.begin())->Wire()->RawDigit()->Channel(); 
 	      geom->ChannelToWire(sc, cstat, tpc, plane, sw);
 	      
-	  //there doesn't seem to be a std::vector::back() method to get the last element of the vector here
 	      ec = (*(clusterHits.end()-1))->Wire()->RawDigit()->Channel(); 
 	      geom->ChannelToWire(ec, cstat, tpc, plane, ew);
 	      
@@ -430,6 +430,7 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>& clusIn,
 	      
 	      ++clusterID;
 	      ccol.push_back(cluster);
+	      clusHitsOut.push_back(clusterHits);
 	      //allow double assignment of first and last hits
 	      for(size_t i = 0; i < lastHits.size(); ++i){ 
 		if(skip[hitTemp[lastHits[i]]] ==1){
@@ -469,7 +470,10 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>& clusIn,
 	  
 	  hit.clear();
 	  lastHits.clear();
-	  if(clusterIter != clusIn.end()) clusterIter++;
+	  if(clusterIter != clusIn.end()){
+	    clusterIter++;
+	    ++cinctr;
+	  }
 	  listofxmax.clear();
 	  listofymax.clear();
 	}//end loop over clusters
@@ -483,8 +487,8 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>& clusIn,
 
 //------------------------------------------------------------------------------
 size_t cluster::HoughLineAlg::Transform(std::vector< art::Ptr<recob::Hit> >& hits,
-					    double &slope,
-					    double &intercept)
+					double                              &slope,
+					double                              &intercept)
 {
   HoughTransform c;
 
