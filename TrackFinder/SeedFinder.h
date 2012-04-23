@@ -82,22 +82,27 @@ namespace trkf {
     std::vector<std::vector<recob::SpacePoint> > GetSpacePointsFromHits(std::string HitModuleLabel, art::Event & evt);
               // Get hit vector from event 
  
-    recob::Seed * FindSeedAtEnd(std::vector<recob::SpacePoint>);
-    recob::Seed * FindSeedAtEnd(std::vector<recob::SpacePoint>,std::vector<int>& ToThrow);
+    recob::Seed * FindSeedAtEnd(std::vector<recob::SpacePoint>,std::vector<recob::SpacePoint>&);
+    recob::Seed * FindSeedAtEnd(std::vector<recob::SpacePoint>,std::vector<recob::SpacePoint>&, std::vector<int>& ToThrow);
               // Find one seed at a high Z end of a collection of spacepoints
               //    with no quality check
 
 
     
-    std::vector<recob::Seed *> FindSeedExhaustively(std::vector<recob::SpacePoint>);
+    std::vector<recob::Seed *> FindSeedExhaustively(std::vector<recob::SpacePoint>,std::vector<std::vector<recob::SpacePoint> >&);
               // Generate seed at high Z end, check quality, discard if not adequate
               //    repeat until a strong seed found
 
 
  
-    std::vector<recob::Seed *> FindAsManySeedsAsPossible(std::vector<recob::SpacePoint>);
+    std::vector<recob::Seed *> FindAsManySeedsAsPossible(std::vector<recob::SpacePoint>, std::vector<std::vector<recob::SpacePoint> >&);
               // Starting at high Z, find as many adequate seeds in the collection
               //     as possible
+
+    void RefitSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> SpacePoints);
+
+
+
 
   private:
 
@@ -128,6 +133,7 @@ namespace trkf {
     float           fAngularDev;               // Angular standard deviation in radians
                                                //  for seed to meet directionality requirement
 
+    int             fRefits;                   // Number of times to iteratively refit seeds
 
   };
   

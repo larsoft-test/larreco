@@ -55,6 +55,7 @@ namespace trkf {
     
     void   CalculatedQdx(art::PtrVector<recob::Hit>);   
     void   FillMySpacePoints(int N);
+    void   RefitToHits(art::PtrVector<recob::Hit>);
   
     recob::Track GetBaseTrack();
 

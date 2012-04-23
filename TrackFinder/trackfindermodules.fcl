@@ -105,13 +105,14 @@ standard_seeding:
   SeedMode:            1
   ClusterModuleLabel:  "dbcluster"
   HitModuleLabel:      "ffthit"
-  Filter:              false
+  Filter:              true
   Merge:               false
   Source:              1
-  SeedLength:          5
+  SeedLength:          8
   MinPointsInCluster:  50
   MinPointsInSeed:     10
-  AngularDev:          0.5
+  AngularDev:          0.5 
+  Refits:              2
   SpacePointAlg:       @local::standard_spacepointalg
 }
 
@@ -131,7 +132,7 @@ standard_beziertrack:
   MaxJumpDistance:     20.0
   HitDistance:         0.5
   TrackMode:           2
-  SeedFinder:          @local::standard_seeding
+  SeedFinder:          @local::standard_seedfinder
 }
 
 standard_beziertrackana:

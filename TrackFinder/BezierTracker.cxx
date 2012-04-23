@@ -28,6 +28,7 @@ namespace trkf {
   {
     reconfigure(pset);
     produces< std::vector<recob::Track> >();
+    produces< std::vector<recob::Hit> >();
     produces< art::Assns<recob::Track, recob::Hit> >();
     fTopTrackID=0;
   
@@ -77,16 +78,15 @@ namespace trkf {
     // Declare products to store
 
     std::auto_ptr< std::vector<recob::Track > > btracks ( new std::vector<recob::Track>);
+    std::auto_ptr< std::vector<recob::Hit > > leftovers ( new std::vector<recob::Hit>);
     std::auto_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
    
-
     if(fTrackMode==1)
       {
-	
+	std::map<int,bool> UsedHitIDs;
+
 	// Load a vector of track seeds from the event
-	
-	
-	art::Handle< std::vector<recob::Seed> > seedh;
+      	art::Handle< std::vector<recob::Seed> > seedh;
 	evt.getByLabel(fSeedModuleLabel, seedh);  
 	
 	std::vector<art::Ptr<recob::Seed> > TrackSeeds;
@@ -123,6 +123,7 @@ namespace trkf {
 	    std::cout<<"Finding hits "<<std::endl;
 	    for(size_t i=0; i!=HitIDs.size(); i++)
 	      {
+		UsedHitIDs[HitIDs.at(i)]=true;
 		HitsToAssoc.push_back(HitVec.at(HitIDs.at(i)));
 	      }
 	    
@@ -141,6 +142,10 @@ namespace trkf {
 	    btracks->push_back(TheTrack);       
 	    util::CreateAssn(*this, evt, *(btracks.get()), HitsToAssoc, *(assn.get())); 
 	    
+	    for(size_t i=0; i!=HitVec.size(); i++)
+	      {
+		if(UsedHitIDs[i]!=true) leftovers->push_back(*HitVec.at(i));
+	      }
 	  }
       }
 
@@ -165,8 +170,14 @@ namespace trkf {
 	      fTheSeedFinder->GetSpacePointsFromHitVector(HitsToProcess);
 	    
 	    // Find seeds in these SPs
-	    std::vector<recob::Seed*> TrackSeeds = fTheSeedFinder->FindAsManySeedsAsPossible(SPVec);
-	   
+	    std::vector<std::vector<recob::SpacePoint> > SPUsed;
+	    std::vector<recob::Seed*> TrackSeeds = fTheSeedFinder->FindAsManySeedsAsPossible(SPVec, SPUsed);
+	    for(size_t i=0; i!=TrackSeeds.size(); i++)
+	      {
+		fTheSeedFinder->RefitSeed(TrackSeeds.at(i),SPUsed.at(i));
+	      }
+	    
+
 	    // Organize these seeds into tracklike collections
 	    std::vector<std::vector<recob::Seed* > > OrgSeeds = OrganizeSeedsIntoTracks(TrackSeeds);
 	    
@@ -223,6 +234,10 @@ namespace trkf {
 	    btracks->push_back(TheTrack);
 	    util::CreateAssn(*this, evt, *(btracks.get()), HitsForBTracks.at(i), *(assn.get())); 
 	  }
+	for(size_t i=0; i!=HitsToProcess.size(); i++)
+	  {
+	    leftovers->push_back(*HitsToProcess.at(i));
+	  }
 
       }
 
@@ -242,8 +257,10 @@ namespace trkf {
 	    std::vector<recob::SpacePoint> SPVec = 
 	      fTheSeedFinder->GetSpacePointsFromHitVector(HitsToProcess);
 	    
+	    std::vector<std::vector<recob::SpacePoint> > SPUsed;
+
 	    // Find seeds in these SPs
-	    std::vector<recob::Seed*> TrackSeeds = fTheSeedFinder->FindAsManySeedsAsPossible(SPVec);
+	    std::vector<recob::Seed*> TrackSeeds = fTheSeedFinder->FindAsManySeedsAsPossible(SPVec, SPUsed);
 	    std::cout<<"Filling vector"<<std::endl;
 	    AllTheSeeds.insert(AllTheSeeds.end(), TrackSeeds.begin(), TrackSeeds.end());
 	    
@@ -314,7 +331,10 @@ namespace trkf {
 	    util::CreateAssn(*this, evt, *(btracks.get()), HitsToAssoc, *(assn.get())); 
 	    
 	  }
-
+	for(size_t i=0; i!=HitsToProcess.size(); i++)
+	  {
+	    leftovers->push_back(*HitsToProcess.at(i));
+	  }
 
       }
 
@@ -325,6 +345,7 @@ namespace trkf {
     std::cout<<"Storing in evt"<<std::endl;
     evt.put(btracks);
     evt.put(assn);
+    evt.put(leftovers);
   }
 
 

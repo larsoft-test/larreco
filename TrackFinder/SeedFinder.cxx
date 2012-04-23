@@ -18,6 +18,7 @@
 #include "RecoBase/Track.h"
 #include "RecoBase/Prong.h"
 #include "Utilities/AssociationUtil.h"
+#include "Utilities/DetectorProperties.h"
 
 namespace trkf {
 
@@ -56,6 +57,7 @@ namespace trkf {
     fMinPointsInCluster    = seedConfig.get<unsigned int>("MinPointsInCluster");
     fMinPointsInSeed       = seedConfig.get<unsigned int>("MinPointsInSeed");
     fAngularDev            = seedConfig.get<double>("AngularDev");
+    fRefits                = seedConfig.get<double>("Refits");
   }
 
   void SeedFinder::beginJob()
@@ -85,19 +87,28 @@ namespace trkf {
 	    it!=SpacePointVectors.end();
 	    it++)
 	  {
-	    std::vector<recob::Seed*> SeedFinderOutput;
+	    std::vector<std::vector<recob::SpacePoint> > PointsUsed;
+	    std::vector<recob::Seed*>                    SeedFinderOutput;
 	    if(fSeedMode==0)
-	      SeedFinderOutput = FindSeedExhaustively(*it);
+	      SeedFinderOutput = FindSeedExhaustively(*it, PointsUsed);
 	    else if(fSeedMode==1)
-	      SeedFinderOutput = FindAsManySeedsAsPossible(*it);
+	      SeedFinderOutput = FindAsManySeedsAsPossible(*it, PointsUsed);
 	    else 
 	      throw cet::exception("SeedFinder") << 
 		"Unkown seed mode " << fSeedMode<<"\n";
 
+	   
 	    if(SeedFinderOutput.size()>0)
-	      for(unsigned int i=0; i!=SeedFinderOutput.size(); i++)
+	      {
+		PointsUsed.resize(SeedFinderOutput.size());
+		for(unsigned int i=0; i!=SeedFinderOutput.size(); i++)
 		if(SeedFinderOutput.at(i)->IsValid())
-		  seeds->push_back(*(SeedFinderOutput.at(i)));	    
+		  {
+		    if(fRefits>0)
+		      RefitSeed(SeedFinderOutput.at(i), PointsUsed.at(i));		    
+		    seeds->push_back(*SeedFinderOutput.at(i));
+		  }
+	      }
 	  }			  
       }
     else
@@ -289,9 +300,10 @@ namespace trkf {
   // Take a collection of spacepoints and return a
   // vector of as many straight line seeds as possible
   //
-  std::vector<recob::Seed *> SeedFinder::FindAsManySeedsAsPossible(std::vector<recob::SpacePoint> Points)
+  std::vector<recob::Seed *> SeedFinder::FindAsManySeedsAsPossible(std::vector<recob::SpacePoint> Points, std::vector<std::vector<recob::SpacePoint> > & PointsUsed)
   {
     std::vector<recob::Seed*> ReturnVector;
+    PointsUsed.clear();
 
     recob::Seed* TrackSeedThisCombo;
     bool KeepChopping=true;
@@ -299,10 +311,13 @@ namespace trkf {
     while(KeepChopping)
       {
 	std::vector<int> ToChop;
-	TrackSeedThisCombo = FindSeedAtEnd(Points,ToChop);
+	std::vector<recob::SpacePoint> SPs;
+
+	TrackSeedThisCombo = FindSeedAtEnd(Points,SPs,ToChop);
 	if(TrackSeedThisCombo->IsValid())
 	  {
 	    ReturnVector.push_back(TrackSeedThisCombo);
+	    PointsUsed.push_back(SPs);
 	  }
 	// if enough left, chop off some points and try again
 	if((Points.size()-ToChop.size()) > fMinPointsInSeed)
@@ -330,7 +345,7 @@ namespace trkf {
   // Take a collection of spacepoints sorted in Z and find
   // exactly one straight seed, as high in Z as possible.
   //
-  std::vector<recob::Seed*> SeedFinder::FindSeedExhaustively(std::vector<recob::SpacePoint> Points)
+  std::vector<recob::Seed*> SeedFinder::FindSeedExhaustively(std::vector<recob::SpacePoint> Points, std::vector<std::vector<recob::SpacePoint> >& PointsUsed)
   {
     recob::Seed* TrackSeedThisCombo;
     bool KeepChopping=true;
@@ -338,11 +353,14 @@ namespace trkf {
     if(Points.size()<=fMinPointsInCluster) KeepChopping=false;
     while(KeepChopping)
       {
-	TrackSeedThisCombo = FindSeedAtEnd(Points);
+	std::vector<recob::SpacePoint> SPs;
+	TrackSeedThisCombo = FindSeedAtEnd(Points, SPs);
 	if(TrackSeedThisCombo->IsValid())
 	  {
 	    KeepChopping=false;
+	    PointsUsed.push_back(SPs);
 	    FoundValidSeed=true;
+	    
 	  }
 	else
 	  {
@@ -377,9 +395,9 @@ namespace trkf {
   // centre, direction and strength. Return this seed for
   // further scrutiny.
   //
-  recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points)
+  recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points, std::vector<recob::SpacePoint>& PointsUsed)
   {
-
+    PointsUsed.clear();
     recob::Seed * ReturnSeed;
 
     std::vector<int> PointsInRange;
@@ -410,6 +428,7 @@ namespace trkf {
 		CentreOfPoints[0]+=Points.at(index).XYZ()[0];
 		CentreOfPoints[1]+=Points.at(index).XYZ()[1];
 		CentreOfPoints[2]+=Points.at(index).XYZ()[2];
+		PointsUsed.push_back(Points.at(index));
 	      }
 	  }
       }
@@ -497,11 +516,11 @@ namespace trkf {
   // centre, direction and strength. Return this seed for
   // further scrutiny.
   //
-  recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,std::vector<int>& ToThrow)
+recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,std::vector<recob::SpacePoint>& PointsUsed, std::vector<int>& ToThrow)
   {
 
     recob::Seed * ReturnSeed;
-
+    PointsUsed.clear();
     std::vector<int> PointsInRange;
     PointsInRange.clear();
     ToThrow.clear();
@@ -529,6 +548,7 @@ namespace trkf {
 		  CentreOfPoints[0]+=Points.at(index).XYZ()[0];
 		  CentreOfPoints[1]+=Points.at(index).XYZ()[1];
 		  CentreOfPoints[2]+=Points.at(index).XYZ()[2];
+		  PointsUsed.push_back(Points.at(index));
 		}
 	  }
       }
@@ -616,9 +636,190 @@ namespace trkf {
 
 
 
+  void SeedFinder::RefitSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> SpacePoints)
+  {
+
+    std::cout<<"Refit module called on vector of " << SpacePoints.size() << " space points " << std::endl;
+
+    // Get the services we need
+    art::ServiceHandle<geo::Geometry>            geom;
+    art::ServiceHandle<util::DetectorProperties> det;
+
+    if((geom->NTPC()!=1)||geom->NTPC()!=1)
+      {
+	throw cet::exception("SeedFinder : Refit only works for 1 tpc, 1 cryostat detector")<<
+	  "seed refitting feature not yet developped for multi cryostat or "<<
+	  "multi TPC detector - see TrackFinder/SeedFinder.cxx"<<std::endl;	
+      }
+    size_t Planes = geom->TPC(0).Nplanes();
+   
+   
+    // Get this hits in each view that made this seed
+
+    std::map<int,art::PtrVector<recob::Hit> > HitMap;
+    
+    // for each spacepoint
+    for(std::vector<recob::SpacePoint>::const_iterator itSP=SpacePoints.begin();
+	itSP!=SpacePoints.end(); itSP++)
+      {
+	// get hits from each plane
+	for(size_t plane=0; plane!=Planes; plane++)
+	  {
+	    art::PtrVector<recob::Hit> HitsThisSP = itSP->Hits(plane);
+	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
+		itHit!=HitsThisSP.end(); itHit++)
+	      {
+		HitMap[plane].push_back(*itHit);
+	      }
+	  }
+      }
 
 
+    // Begin iterative refit procedure
 
+    // Loop the prescribed number of times
+    for(int loop=0; loop!=fRefits; loop++)
+      {
+	std::cout<<"SeedFinder running refit " << loop<<std::endl;
+	for(size_t plane=0; plane!=Planes; plane++)
+	  {
+	    art::PtrVector<recob::Hit> HitsThisPlane = HitMap[plane];
+	    
+
+	    std::cout<<"Making centre of mass refit" << std::endl;
+	    // Adjust centre of mass
+	    //-----------------------
+
+	    // Get seed central point in wire, time coordinates
+
+	    double SeedCentralWire, SeedCentralTime;
+	    
+	    double SeedPt[3], Err[3], SeedDir[3];
+	    TheSeed->GetPoint(    SeedPt,   Err);
+	    TheSeed->GetDirection(SeedDir,  Err);
+
+	    TVector3 SeedPoint(SeedPt[0],      SeedPt[1],  SeedPt[2]);
+	    TVector3 SeedDirection(SeedDir[0], SeedDir[1], SeedDir[2]);
+
+	    int centralchannel = geom->NearestChannel(SeedPt, plane, 0, 0);
+	   
+	    unsigned int c,t,p,w ;
+	    geom->ChannelToWire(centralchannel, c,t,p,w);
+	    SeedCentralWire = w;
+	    SeedCentralTime = det->ConvertXToTicks(SeedPt[0],p,t,c);
+
+	    
+	    //Get the centre of mass of hits in this view
+	    
+
+	    double HitCentralTime, HitCentralWire, TotalCharge;
+	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisPlane.begin(); itHit!=HitsThisPlane.end(); itHit++)
+	      {
+		unsigned int Wire;
+		geom->ChannelToWire((*itHit)->Channel(), c, t, p, Wire);		
+		HitCentralTime+=(*itHit)->PeakTime() * (*itHit)->Charge();
+		HitCentralWire+=Wire * (*itHit)->Charge();
+		TotalCharge+=(*itHit)->Charge();
+	      }
+	    
+	    HitCentralTime/=TotalCharge;
+	    HitCentralWire/=TotalCharge;
+
+
+	    // Move the new centre of mass half way between these two
+	    double CentralWireShift = 0.5*(HitCentralWire - SeedCentralWire);
+	    double CentralTimeShift = 0.5*(HitCentralTime - SeedCentralTime);
+	   
+
+	    // Find the direction in which we are allowed to shift the central point (perp to wires)
+	    double Wire1End1[3],Wire1End2[3];
+
+	    geom->WireEndPoints(0,0,plane,1, Wire1End1, Wire1End2);
+	    
+	    TVector3 WireVec(Wire1End2[0]-Wire1End1[0],
+			     Wire1End2[1]-Wire1End1[1],
+			     Wire1End2[2]-Wire1End1[2]);
+	    
+	    TVector3 XVec(1,0,0);
+	    
+	    TVector3 PlaneNormDirection=(WireVec.Cross(XVec)).Unit();
+	    
+	    double WirePitch = geom->WirePitch();
+	   
+
+	    // Move seed point
+
+	    SeedPt[0] = det->ConvertTicksToX(SeedCentralTime + CentralTimeShift,plane,0,0);
+	    SeedPt[1] = SeedPoint[1] + CentralWireShift * WirePitch * PlaneNormDirection[1] ;
+	    SeedPt[2] = SeedPoint[2] + CentralWireShift * WirePitch * PlaneNormDirection[2] ;
+
+	    TheSeed->SetPoint(SeedPt);
+
+	    for(int i=0; i!=3; i++)
+	      SeedPoint[i]=SeedPt[i];
+	    
+	    SeedCentralWire += CentralWireShift;
+	    SeedCentralTime += CentralTimeShift;
+
+	    
+
+	    // Adjust direction
+	    //-----------------------
+	    
+
+	    std::cout<<"Making direction refit" << std::endl;
+
+	    double TanThetaFactor =  WirePitch / det->GetXTicksCoefficient();
+	    
+	    double Theta=0;
+	
+	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisPlane.begin(); itHit!=HitsThisPlane.end(); itHit++)
+	      {
+		unsigned int Wire;
+		double Time;
+		geom->ChannelToWire((*itHit)->Channel(), c, t, p, Wire);
+		Time=(*itHit)->PeakTime();
+		
+		Theta += atan( (double(Wire)-SeedCentralWire) * TanThetaFactor / (Time-SeedCentralTime) ) * (*itHit)->Charge();
+	      }
+	    Theta/=TotalCharge;
+	    
+	    // Project seed direction vector into parts parallel and perp to pitch
+
+	    double SeedPlaneComp     = SeedDirection.Dot(PlaneNormDirection);
+	    double SeedTimeComp      = SeedDirection.Dot(XVec);
+	    double SeedOutOfPlaneComp= SeedDirection.Dot(WireVec.Unit());
+
+	    double SeedLengthInPlane = pow( pow(SeedPlaneComp,2)+pow(SeedTimeComp,2), 0.5);
+	    
+
+	    double SeedTheta = atan(SeedPlaneComp / SeedTimeComp);
+
+	    
+	    // Shift theta half way between the two
+	    SeedTheta = 0.5*(Theta + SeedTheta); 
+	    
+	    // Set seed direction to this theta without changing length
+	    SeedPlaneComp = SeedLengthInPlane * sin(SeedTheta);
+	    SeedTimeComp  = SeedLengthInPlane * cos(SeedTheta);
+	    
+	    // build the new direction from these 3 orthogonal components
+	    SeedDirection = 
+	      SeedTimeComp       * XVec +
+	      SeedPlaneComp      * PlaneNormDirection + 
+	      SeedOutOfPlaneComp * WireVec.Unit(); 
+	    
+	    // Set the seed direction accordingly
+	    for(int i=0; i!=3; i++)
+	      SeedDir[i]=SeedDirection[i];
+	    
+	    TheSeed->SetDirection(SeedDir);
+	    
+	  } // next plane
+      } // next iteration
+    
+	
+  }
 
 
 
