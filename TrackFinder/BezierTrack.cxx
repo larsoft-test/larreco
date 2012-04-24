@@ -228,6 +228,79 @@ namespace trkf {
 
   //----------------------------------------------------------------------
   //  Calculate the closest approach of this track to a given hit
+  //   - this fast version is for ennumerating which members of a hit
+  //     collection are within d, how far each is and where the closest
+  //     approach occurs.  This version is optimized for speed for this
+  //     application
+
+  void BezierTrack::GetClosestApproaches( art::PtrVector<recob::Hit> hits,     std::vector<double>& s,  std::vector<double>& Distances) const 
+  {
+    art::ServiceHandle<util::DetectorProperties> det;
+    art::ServiceHandle<geo::Geometry>            geo;
+
+    s.clear();
+    Distances.clear();
+    
+    
+    // Pull all the relevant information out of hits and into simple vectors
+
+    std::vector<TVector3> HitEnd1s, HitEnd2s;
+    std::vector<double> WireLengths;
+
+    HitEnd1s.resize(hits.size());
+    HitEnd2s.resize(hits.size());
+    WireLengths.resize(hits.size());
+
+    unsigned int c1, t1, p1, w1;
+    double End1[3], End2[3];
+
+    size_t NHits = hits.size();
+
+    for(size_t i=0; i!=NHits; i++)
+      {
+	Distances.push_back(10000);
+	s.push_back(-1);
+	
+	geo->ChannelToWire(hits.at(i)->Channel(),c1,t1,p1,w1);
+	
+	geo->WireEndPoints(c1,t1,p1,w1,End1,End2);
+	
+	HitEnd1s.at(i)[0]= HitEnd2s.at(i)[0]= det->ConvertTicksToX(hits.at(i)->PeakTime(),p1,t1,c1);
+	HitEnd1s.at(i)[1]= End1[1];
+	HitEnd2s.at(i)[1]= End2[1];
+	HitEnd1s.at(i)[2]= End1[2];
+	HitEnd2s.at(i)[2]= End2[2];
+	
+	WireLengths.at(i)=((HitEnd1s.at(i)-HitEnd2s.at(i)).Mag());
+      }
+    
+
+    double iS;
+
+    for(int ipt=0; ipt!=fBezierResolution; ++ipt)
+      {
+	iS=float(ipt)/fBezierResolution;
+	TVector3 trackpt = GetTrackPointV(iS);
+
+	for(size_t ihit=0; ihit!=NHits; ++ihit)
+	  {
+	    float d = ((trackpt-HitEnd1s.at(ihit)).Cross(trackpt-HitEnd2s.at(ihit))).Mag()/WireLengths.at(ihit);
+	    
+	    if(d<Distances.at(ihit))
+	      {
+		Distances.at(ihit)=d;
+		s.at(ihit)=iS;
+	      }
+	  }
+      }
+    
+  }
+
+
+
+
+  //----------------------------------------------------------------------
+  //  Calculate the closest approach of this track to a given hit
   //   and also the point where this occurs
   //
 
@@ -496,6 +569,53 @@ namespace trkf {
 	//	std::cout<<"hit " << i <<"  " <<  S << " " << WhichSegment(S) << " " << Hits.at(i)->View()<<std::endl; 
 
 	(hitmap[Hits.at(i)->View()])[WhichSegment(S)] += Hits.at(i)->Charge();
+      }
+
+    int NSeg = NSegments();
+    
+    for(std::map<int,std::map<int,double> >::const_iterator itview=hitmap.begin();
+ 	itview!=hitmap.end(); ++itview)
+      {
+ 	std::vector<double> ThisViewdQdx;
+ 	ThisViewdQdx.resize(NSeg);
+ 	for(std::map<int,double>::const_iterator itseg=itview->second.begin();
+ 	    itseg!=itview->second.end(); ++itseg)
+ 	  {
+ 	    //   std::cout << itview->first<<" " <<itseg->first << " " <<itseg->second<<std::endl;
+ 	    int seg = itseg->first;
+	 
+ 	    // need to nudge hits which fell outside the track
+	    
+	    if((seg>-1) && (seg<NSeg))
+	      ThisViewdQdx[seg] = (itseg->second / fSegmentLength[seg]);
+	  }
+	fdQdx.push_back(ThisViewdQdx);
+      }
+    std::cout<<"Size of dQdx structure :" <<fdQdx.size()<<" : ";
+    for(size_t i=0; i!=fdQdx.size(); i++)
+      std::cout<<fdQdx.at(i).size()<<", ";
+    std::cout<<std::endl;
+    
+  }
+
+
+
+  //----------------------------------------------------------------------
+  //  Fill the dQdx vector for the track, based on a set of hits 
+  //    provided - optimized version
+
+  void BezierTrack::CalculatedQdx(art::PtrVector<recob::Hit> Hits, std::vector<double> SValues)
+  {
+    fdQdx.clear();
+
+    std::map<int, std::map<int, double> > hitmap;
+    //        ^              ^       ^
+    //       view            seg    charge
+    
+    for(size_t i=0; i!=Hits.size(); ++i)
+      {
+
+	(hitmap[Hits.at(i)->View()])[WhichSegment(SValues.at(i))] += Hits.at(i)->Charge();
       }
 
     int NSeg = NSegments();

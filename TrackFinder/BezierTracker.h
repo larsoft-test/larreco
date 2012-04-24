@@ -48,7 +48,7 @@ namespace trkf {
     BezierTrack* ProduceTrackFromSeeds(std::vector<art::Ptr<recob::Seed> > Seeds);
     BezierTrack* ProduceTrackFromSeeds(std::vector<recob::Seed* > Seeds);
 
-    std::vector<int> DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, BezierTrack * BTrack, double HitCollectionDistance);
+    std::vector<int> DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, BezierTrack * BTrack, double HitCollectionDistance, std::vector<double>& SValues);
     
     // Overrides.
 

@@ -117,19 +117,22 @@ namespace trkf {
 	    // Collect hits in the vicinity of this track
 	    
 	    std::cout<<"Determining nearby hits for bezier track"<<std::endl;
-	    std::vector<int> HitIDs = DetermineNearbyHits(HitVec, BTrack, fHitDistance);
+	    std::vector<double> SValues;
+	    std::vector<int> HitIDs = DetermineNearbyHits(HitVec, BTrack, fHitDistance, SValues);
 	    art::PtrVector<recob::Hit> HitsToAssoc;	
 	    
 	    std::cout<<"Finding hits "<<std::endl;
+	    std::vector<double> SValuesFordQdx;
 	    for(size_t i=0; i!=HitIDs.size(); i++)
 	      {
+		SValuesFordQdx.push_back(SValues.at(i));
 		UsedHitIDs[HitIDs.at(i)]=true;
 		HitsToAssoc.push_back(HitVec.at(HitIDs.at(i)));
 	      }
 	    
 	    // Using the hits, fill in dQdx in the track
 	    std::cout<<"Calculating dQdx"<<std::endl;
-	    BTrack->CalculatedQdx(HitsToAssoc);
+	    BTrack->CalculatedQdx(HitsToAssoc,SValuesFordQdx);
 	    BTrack->FillMySpacePoints(1000);
 	    
 	    //Put the base object into the auto_ptr and make associations
@@ -164,20 +167,23 @@ namespace trkf {
 	bool KeepTrying=true;
 	while(KeepTrying)
 	  {
-
+	    std::cout<<"Getting space points" <<std::endl;
+	    
 	    // Make remaining hits into SPs
 	    std::vector<recob::SpacePoint> SPVec = 
 	      fTheSeedFinder->GetSpacePointsFromHitVector(HitsToProcess);
 	    
 	    // Find seeds in these SPs
 	    std::vector<std::vector<recob::SpacePoint> > SPUsed;
+	    std::cout<<"Getting seeds " <<std::endl;
 	    std::vector<recob::Seed*> TrackSeeds = fTheSeedFinder->FindAsManySeedsAsPossible(SPVec, SPUsed);
+	    std::cout<<"Beginning iterative refitting " <<std::endl;
 	    for(size_t i=0; i!=TrackSeeds.size(); i++)
 	      {
-		fTheSeedFinder->RefitSeed(TrackSeeds.at(i),SPUsed.at(i));
+		//		fTheSeedFinder->RefitSeed(TrackSeeds.at(i),SPUsed.at(i));
 	      }
 	    
-
+	    std::cout<<"Organizing seed collections " <<std::endl;
 	    // Organize these seeds into tracklike collections
 	    std::vector<std::vector<recob::Seed* > > OrgSeeds = OrganizeSeedsIntoTracks(TrackSeeds);
 	    
@@ -187,7 +193,8 @@ namespace trkf {
 		KeepTrying=false;
 		continue;
 	      }
-
+	    
+	    std::cout<<"Making tracks from  " << OrgSeeds.size()<<" seed collections"<<std::endl;
 	    // For each of them make 1 track
 	    for(unsigned int i=0; i!=OrgSeeds.size(); i++)
 	      {
@@ -196,31 +203,39 @@ namespace trkf {
 		//  and build a BezierTrack on top of it.		
 		BezierTrack *BTrack = ProduceTrackFromSeeds(OrgSeeds.at(i));
 		
-		// Collect hits in the vicinity of this track	    
-		std::vector<int> HitIDs = DetermineNearbyHits(HitsToProcess, BTrack, fHitDistance);
+		// Collect hits in the vicinity of this track
+		std::vector<double> SValues;
+		std::vector<int> HitIDs = DetermineNearbyHits(HitsToProcess, BTrack, fHitDistance, SValues);
 	   
 		art::PtrVector<recob::Hit> HitsToAssoc;	
 		HitsToAssoc.clear();
-
+		std::cout<<"seeking hits for associations"<<std::endl;
+		std::vector<double> SValuesFordQdx;
+		std::cout<<"Found " << HitIDs.size()<<" nearby hits" <<std::endl;
 		for(size_t i=0; i!=HitIDs.size(); i++)
 		  {
 		    HitsToAssoc.push_back(HitsToProcess.at(HitIDs.at(i)));
+		    SValuesFordQdx.push_back(SValues.at(i));
 		  }
 		
 		HitsForBTracks.push_back(HitsToAssoc);
 	    
 		// Using the hits, make SPs and fill dQdx in the track
+		std::cout<<"filling spacepoints"<<std::endl;
 		BTrack->FillMySpacePoints(100);
-		BTrack->CalculatedQdx(HitsToAssoc);
+		std::cout<<"Calulating dqdx"<<std::endl;
+		BTrack->CalculatedQdx(HitsToAssoc,SValuesFordQdx);
 	    
 		//Put the base object into a vector for storage later
 		TracksToStore.push_back(BTrack); 
 			
 		// Remove the hits we used from the vector and go around
+		std::cout<<"Removing used hits"<<std::endl;
 		for(int  i=HitIDs.size()-1; i!=-1; --i)
 		  {
 		    HitsToProcess.erase(HitsToProcess.begin() + HitIDs.at(i));
 		  }
+		std::cout<<"Uncollected hit size : " << HitsToProcess.size()<<std::endl;
 		if(HitsToProcess.size()<3) KeepTrying=false;
 		
 	      }	    
@@ -284,7 +299,8 @@ namespace trkf {
 		BezierTrack *BTrack = ProduceTrackFromSeeds(OrgSeeds.at(i));
 		
 		// Collect hits in the vicinity of this track	    
-		std::vector<int> HitIDs = DetermineNearbyHits(HitsToProcess, BTrack, fHitDistance);
+		std::vector<double> SValues;
+		std::vector<int> HitIDs = DetermineNearbyHits(HitsToProcess, BTrack, fHitDistance, SValues);
 	   
 		// Remove the hits we used from the vector and go around
 		for(int  i=HitIDs.size()-1; i!=-1; --i)
@@ -310,17 +326,20 @@ namespace trkf {
 	    BezierTrack *BTrack = ProduceTrackFromSeeds(OrgSeeds.at(i));
 	    
 	    // Collect hits in the vicinity of this track
-	    std::vector<int> HitIDs = DetermineNearbyHits(HitVec, BTrack, fHitDistance);
+	    std::vector<double> SValues;
+	    std::vector<int> HitIDs = DetermineNearbyHits(HitVec, BTrack, fHitDistance,SValues);
 	    art::PtrVector<recob::Hit> HitsToAssoc;	
 	    
+	    std::vector<double> SValuesFordQdx;
 	    for(size_t i=0; i!=HitIDs.size(); i++)
 	      {
+		SValuesFordQdx.push_back(SValues.at(i));
 		HitsToAssoc.push_back(HitVec.at(HitIDs.at(i)));
 	      }
 	    
 	    // Using the hits, fill in dQdx in the track
 	    std::cout<<"Calculating dQdx"<<std::endl;
-	    BTrack->CalculatedQdx(HitsToAssoc);
+	    BTrack->CalculatedQdx(HitsToAssoc,SValuesFordQdx);
 	    BTrack->FillMySpacePoints(1000);
 	    
 	    //Put the base object into the auto_ptr and make associations
@@ -456,16 +475,18 @@ namespace trkf {
   // From a PtrVector of hits, determine which are nearby
   //
 
-  std::vector<int> BezierTracker::DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, BezierTrack* BTrack, double HitCollectionDistance)
+  std::vector<int> BezierTracker::DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, BezierTrack* BTrack, double HitCollectionDistance, std::vector<double>& SValues)
   {
     std::vector<int> ReturnVector;
-    double s, distance;
+    std::vector<double> s, distance;
     std::cout<<"Size of hit vector : " <<Hits.size()<<std::endl;
+    BTrack->GetClosestApproaches(Hits,SValues, distance);
+
     for(size_t i=0; i!=Hits.size(); ++i)
       {
-	//	if((i%100)==0) std::cout<< i <<"  ";
-	BTrack->GetClosestApproach(Hits.at(i),s, distance);
-	if(distance<HitCollectionDistance) ReturnVector.push_back(i); 
+
+	if((distance.at(i)<HitCollectionDistance)&&(SValues.at(i)<1)&&(SValues.at(i)>0)) ReturnVector.push_back(i); 
+	//       	std::cout<< i <<"  "<< Hits.at(i)->View()<<"  "<<distance.at(i)<<std::endl;
       }
     return ReturnVector;
   }

@@ -52,8 +52,11 @@ namespace trkf {
     void   GetClosestApproach( recob::SpacePoint* sp,      double &s,  double& Distance) const;
     void   GetClosestApproach( TVector3 vec,               double &s,  double& Distance) const;
 
+    void   GetClosestApproaches( art::PtrVector<recob::Hit> hits,     std::vector<double>& s, std::vector<double>& Distances) const;
+
     
     void   CalculatedQdx(art::PtrVector<recob::Hit>);   
+    void   CalculatedQdx(art::PtrVector<recob::Hit>, std::vector<double> SValues);   
     void   FillMySpacePoints(int N);
     void   RefitToHits(art::PtrVector<recob::Hit>);
   

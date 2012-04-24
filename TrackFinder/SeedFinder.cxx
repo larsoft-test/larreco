@@ -657,19 +657,26 @@ recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,st
     // Get this hits in each view that made this seed
 
     std::map<int,art::PtrVector<recob::Hit> > HitMap;
-    
+    std::map<unsigned short, bool>            HitsClaimed;
+
+
     // for each spacepoint
     for(std::vector<recob::SpacePoint>::const_iterator itSP=SpacePoints.begin();
 	itSP!=SpacePoints.end(); itSP++)
       {
-	// get hits from each plane
+	// get hits from each plane (ensuring each used once only)
 	for(size_t plane=0; plane!=Planes; plane++)
 	  {
 	    art::PtrVector<recob::Hit> HitsThisSP = itSP->Hits(plane);
 	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
 		itHit!=HitsThisSP.end(); itHit++)
 	      {
-		HitMap[plane].push_back(*itHit);
+		if(!HitsClaimed[(*itHit)->Channel()])
+		  {
+		    HitMap[plane].push_back(*itHit);
+		    HitsClaimed[(*itHit)->Channel()]=true;
+		  }
+		
 	      }
 	  }
       }
@@ -692,7 +699,7 @@ recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,st
 
 	    // Get seed central point in wire, time coordinates
 
-	    double SeedCentralWire, SeedCentralTime;
+	    double SeedCentralWire=0, SeedCentralTime=0;
 	    
 	    double SeedPt[3], Err[3], SeedDir[3];
 	    TheSeed->GetPoint(    SeedPt,   Err);
@@ -706,20 +713,20 @@ recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,st
 	    unsigned int c,t,p,w ;
 	    geom->ChannelToWire(centralchannel, c,t,p,w);
 	    SeedCentralWire = w;
-	    SeedCentralTime = det->ConvertXToTicks(SeedPt[0],p,t,c);
+	    SeedCentralTime = det->ConvertXToTicks(SeedPt[0],plane,t,c);
 
 	    
 	    //Get the centre of mass of hits in this view
 	    
 
-	    double HitCentralTime, HitCentralWire, TotalCharge;
+	    double HitCentralTime=0, HitCentralWire=0, TotalCharge=0;
 	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisPlane.begin(); itHit!=HitsThisPlane.end(); itHit++)
 	      {
 		unsigned int Wire;
 		geom->ChannelToWire((*itHit)->Channel(), c, t, p, Wire);		
-		HitCentralTime+=(*itHit)->PeakTime() * (*itHit)->Charge();
-		HitCentralWire+=Wire * (*itHit)->Charge();
-		TotalCharge+=(*itHit)->Charge();
+		HitCentralTime  += (*itHit)->PeakTime() * (*itHit)->Charge();
+		HitCentralWire  += Wire                 * (*itHit)->Charge();
+		TotalCharge     += (*itHit)->Charge();
 	      }
 	    
 	    HitCentralTime/=TotalCharge;
@@ -729,8 +736,10 @@ recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,st
 	    // Move the new centre of mass half way between these two
 	    double CentralWireShift = 0.5*(HitCentralWire - SeedCentralWire);
 	    double CentralTimeShift = 0.5*(HitCentralTime - SeedCentralTime);
-	   
-
+	    
+	    std::cout<<"SeedFinder suggests moving COM from " << SeedCentralWire <<", " << SeedCentralTime;
+	    std::cout<<" to " << HitCentralWire<<" " << HitCentralTime<<std::endl;		
+	    
 	    // Find the direction in which we are allowed to shift the central point (perp to wires)
 	    double Wire1End1[3],Wire1End2[3];
 
@@ -780,7 +789,7 @@ recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,st
 		geom->ChannelToWire((*itHit)->Channel(), c, t, p, Wire);
 		Time=(*itHit)->PeakTime();
 		
-		Theta += atan( (double(Wire)-SeedCentralWire) * TanThetaFactor / (Time-SeedCentralTime) ) * (*itHit)->Charge();
+		Theta += atan( (Time-SeedCentralTime) /  ((double(Wire)-SeedCentralWire) * TanThetaFactor)) * (*itHit)->Charge();
 	      }
 	    Theta/=TotalCharge;
 	    
@@ -793,15 +802,18 @@ recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,st
 	    double SeedLengthInPlane = pow( pow(SeedPlaneComp,2)+pow(SeedTimeComp,2), 0.5);
 	    
 
-	    double SeedTheta = atan(SeedPlaneComp / SeedTimeComp);
+	    double SeedTheta = atan( SeedTimeComp / SeedPlaneComp);
 
+	    std::cout<<"Refit suggests moving from theta "<< SeedTheta << " to " << Theta<<std::endl;
 	    
 	    // Shift theta half way between the two
 	    SeedTheta = 0.5*(Theta + SeedTheta); 
 	    
+	
+	
 	    // Set seed direction to this theta without changing length
-	    SeedPlaneComp = SeedLengthInPlane * sin(SeedTheta);
-	    SeedTimeComp  = SeedLengthInPlane * cos(SeedTheta);
+	    SeedPlaneComp = SeedLengthInPlane * cos(SeedTheta);
+	    SeedTimeComp  = SeedLengthInPlane * sin(SeedTheta);
 	    
 	    // build the new direction from these 3 orthogonal components
 	    SeedDirection = 
