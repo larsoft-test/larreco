@@ -331,7 +331,11 @@ namespace trkf {
 
     TrackMatrix fact = ublas::identity_matrix<TrackVector::value_type>(size);
     fact -= prod(gain, fH);
-    TrackError newerr = prod(fact, terr);
+    TrackMatrix errtemp1 = prod(terr, trans(fact));
+    TrackError errtemp2 = prod(fact, errtemp1);
+    typename KHMatrix<N>::type errtemp3 = prod(fMerr, trans(gain));
+    TrackError errtemp4 = prod(gain, errtemp3);
+    TrackError newerr = errtemp2 + errtemp4;
 
     // Update track.
 

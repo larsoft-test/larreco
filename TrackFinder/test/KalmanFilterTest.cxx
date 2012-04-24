@@ -10,6 +10,7 @@
 #include "TrackFinder/KHitWireX.h"
 #include "TrackFinder/SurfYZPlane.h"
 #include "TrackFinder/PropYZPlane.h"
+#include "TrackFinder/KHitMulti.h"
 
 namespace trkf {
 
@@ -102,6 +103,40 @@ namespace trkf {
       std::cout << "Track after update:" << std::endl;
       std::cout << tre2 << std::endl;
     }
+
+    // Make another new starting track.
+
+    KETrack tre3(psurf, vec2, err2, trkf::Surface::FORWARD, 13);
+
+    // Add all measurements into a single composit measurement.
+
+    std::cout << "\nCompound hit method." << std::endl;
+    KHitMulti mhit;
+    for(unsigned int i=0; i<phits.size(); ++i) {
+      boost::shared_ptr<const KHitBase>& phit = phits[i];
+      mhit.addMeas(phit);
+    }
+    mhit.predict(tre3, &prop);
+    mhit.update(tre3);
+    std::cout << "Track after update:" << std::endl;
+    std::cout << tre3 << std::endl;
+
+    // Try again.
+
+    tre3.setError(err2);
+    mhit.predict(tre3, &prop);
+    mhit.update(tre3);
+    std::cout << "Track after second update:" << std::endl;
+    std::cout << tre3 << std::endl;
+
+    // Try again.
+
+    tre3.setError(err2);
+    mhit.predict(tre3, &prop);
+    mhit.update(tre3);
+    std::cout << "Track after third update:" << std::endl;
+    std::cout << tre3 << std::endl;
+    
 
     // Done (success).
 
