@@ -14,31 +14,39 @@
 /// KHit class inherits the following attribute from KHitBase.
 ///
 /// 1.  Measurement surface.
+/// 2.  Prediction surface.
 ///
 /// KHit adds the following attributes.
 ///
-/// 2.  Measurement vector.
-/// 3.  Measurement error matrix.
-/// 4.  Prediction vector.
-/// 5.  Prediction error matrix.
-/// 6.  Residual vector.
-/// 7.  Residual error matrix.
-/// 8.  Inverse of residual error matrix.
-/// 9.  Kalman H-matrix.
-/// 10.  Incremental chisquare.
+/// 3.  Measurement vector.
+/// 4.  Measurement error matrix.
+/// 5.  Prediction vector.
+/// 6.  Prediction error matrix.
+/// 7.  Residual vector.
+/// 8.  Residual error matrix.
+/// 9.  Inverse of residual error matrix.
+/// 10.  Kalman H-matrix.
+/// 11.  Incremental chisquare.
 ///
 /// The first two attributes (measurement vector + error matrix) are
 /// filled during construction, and the remaining attributes are left
 /// in a default state.
 ///
-/// The remaining attributes are filled by the prediction method.  The
-/// attributes that are filled in by the prediction method are
-/// mutable, and prediction method is const.  The actual calculation
-/// of the prediction vector, prediction error matrix, and H-matrix
-/// are left to be implemented by a derived class, which must override
-/// the pure virtual method subpredict.  The remaining unfilled
-/// attributes are calculated locally in this class in the prediction
-/// method inherited from KHitBase.
+/// The remaining attributes (also prediction surface attribute of
+/// base class) are filled by the prediction method.  The attributes
+/// that are filled in by the prediction method are mutable, and
+/// prediction method is const.  The actual calculation of the
+/// prediction vector, prediction error matrix, and H-matrix are left
+/// to be implemented by a derived class, which must override the pure
+/// virtual method subpredict.  The remaining unfilled attributes are
+/// calculated locally in this class in the prediction method
+/// inherited from KHitBase.
+///
+/// The measurement and prediction surfaces are not required to be the
+/// same.  If they are different, the method predict is required to
+/// make an internal propagation from the prediction surface to the
+/// measurement surface, which propagation influeces the calculated
+/// H-matrix, as well as the prediction vector and error.
 ///
 /// The intended use case is as follows.
 ///
@@ -121,7 +129,7 @@ namespace trkf {
     // Implementation of overrides is found at the bottom of this header.
 
     /// Prediction method (return false if fail).
-    bool predict(const KETrack& tre) const;
+    bool predict(const KETrack& tre, const Propagator* prop = 0) const;
 
     /// Update track method.
     void update(KETrack& tre) const;
@@ -199,34 +207,94 @@ namespace trkf {
   ///
   /// Arguments;
   ///
-  /// tre - Track prediction.
+  /// tre  - Track prediction.
+  /// prop - Propagator.
   ///
   template <int N>
-  bool KHit<N>::predict(const KETrack& tre) const
+  bool KHit<N>::predict(const KETrack& tre, const Propagator* prop) const
   {
+    // Update the prediction surface to be the track surface.
+
+    fPredSurf = tre.getSurface();
+
+    // Default result.
+
+    bool ok = false;
+
     // Update prediction vector, error matrox, and H-matrix.
-    // Method subpredict should throw an exception if track
-    // surface does not match measurement surface.
 
-    bool ok = subpredict(tre, fPvec, fPerr, fH);
+    // First test whether the prediction surface matches the
+    // measurement surface.
+
+    if(getMeasSurface()->isEqual(*fPredSurf)) {
+
+      // Prediction and measurement surfaces agree.
+      //Just call subpredict method (don't do propagation).
+
+      ok = subpredict(tre, fPvec, fPerr, fH);
+    }
+    else {
+
+      // Track surface does not match the prediction surface, so an
+      // internal propagation will be required.  Throw an exception if
+      // no propagator was provided.
+
+      if(prop == 0)
+	throw cet::exception("KHit") << "Track surface does not match measurement surface and no propagator.\n";
+
+      // First make a copy of the original KETrack.
+
+      KETrack treprop(tre);
+
+      // Make a no-noise, no-dE/dx propagation to the measurement
+      // surface.  But do calculate the propagation matrix, which we
+      // will use to update the H-matrix calculated in the derived
+      // class.
+
+      TrackMatrix prop_matrix;
+      ok = prop->err_prop(treprop, getMeasSurface(), Propagator::UNKNOWN, 
+			  false, &prop_matrix);
+      if(ok) {
+
+	// Now we are ready to calculate the prediction on the
+	// measurement surface.
+
+	typename KHMatrix<N>::type hmatrix;
+	ok = subpredict(treprop, fPvec, fPerr, hmatrix);
+	if(ok) {
+
+	  // Use the propagation matrix to transform the H-matrix back
+	  // to the prediction surface.
+
+	  fH = prod(hmatrix, prop_matrix);
+	}
+      }
+    }
+    if(ok) {
+
+      // Update residual
+
+      fRvec = fMvec - fPvec;
+      fRerr = fMerr + fPerr;
+      fRinv = fRerr;
+      ok = syminvert(fRinv);
+      if(ok) {
+
+	// Calculate incremental chisquare.
+
+	typename KVector<N>::type rtemp = prod(fRinv, fRvec);
+	fChisq = inner_prod(fRvec, rtemp);
+      }
+    }
+
+    // If a problem occured at any step, clear the prediction surface pointer.
+
     if(!ok)
-      return ok;
+      fPredSurf.reset();
 
-    // Update residual
+    // Done.
 
-    fRvec = fMvec - fPvec;
-    fRerr = fMerr + fPerr;
-    fRinv = fRerr;
-    ok = syminvert(fRinv);
-    if(!ok)
-      return ok;
-
-    // Calculate incremental chisquare.
-
-    typename KVector<N>::type rtemp = prod(fRinv, fRvec);
-    fChisq = inner_prod(fRvec, rtemp);
-
-    return true;
+    return ok;
   }
 
   /// Update track method.
@@ -238,11 +306,11 @@ namespace trkf {
   template <int N>
   void KHit<N>::update(KETrack& tre) const
   {
-    // Make sure that the track surface and the measurement surface are the same.
+    // Make sure that the track surface and the prediction surface are the same.
     // Throw an exception if they are not.
 
-    if(!getSurface()->isEqual(*tre.getSurface()))
-      throw cet::exception("KHit") << "Track surface not the same as measurement surface.\n";
+    if(!getPredSurface()->isEqual(*tre.getSurface()))
+      throw cet::exception("KHit") << "Track surface not the same as prediction surface.\n";
 
     const TrackVector& tvec = tre.getVector();
     const TrackError& terr = tre.getError();

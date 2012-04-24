@@ -1,0 +1,116 @@
+//
+// File: KalmanFilterTest.cxx
+//
+// Purpose: Test KalmanFilterAlg.
+//
+
+#include <iostream>
+#include <cassert>
+#include "TrackFinder/test/KalmanFilterTest.h"
+#include "TrackFinder/KHitWireX.h"
+#include "TrackFinder/SurfYZPlane.h"
+#include "TrackFinder/PropYZPlane.h"
+
+namespace trkf {
+
+  KalmanFilterTest::KalmanFilterTest(const fhicl::ParameterSet& pset) :
+    fKFAlg(pset.get<fhicl::ParameterSet>("KalmanFilterAlg"))
+  {}
+
+  void KalmanFilterTest::beginJob()
+  {
+    // Make sure assert is enabled.
+
+    bool assert_flag = false;
+    assert((assert_flag = true, assert_flag));
+    if ( ! assert_flag ) {
+      std::cerr << "Assert is disabled" << std::endl;
+      abort();
+    }
+
+    // Make a test track.
+
+    boost::shared_ptr<const trkf::Surface> psurf(new trkf::SurfYZPlane(0., 1000., 0.));
+    TrackVector vec(5);
+    vec(0) = 10.;
+    vec(1) = 0.;
+    vec(2) = 0.5;
+    vec(3) = 0.7;
+    vec(4) = 1.;
+    TrackError err(5);
+    err.clear();
+    err(0, 0) = 1000.;
+    err(1, 1) = 1000.;
+    err(2, 2) = 10.;
+    err(3, 3) = 10.;
+    err(4, 4) = 10.;
+    KETrack tre(psurf, vec, err, trkf::Surface::FORWARD, 13);
+
+    PropYZPlane prop(100.);
+
+    // Make some test measurements.
+
+    int nsurf = 20;
+    std::vector<boost::shared_ptr<const trkf::KHitBase> > phits;
+    for(int i=0; i<nsurf; ++i) {
+      int channel = 0;
+      if(i%3 == 0)
+	channel = 1000 + 100*i;
+      if(i%3 == 1)
+	channel = 4000 + 100*i;
+      else
+	channel = 6000 + 100*i;
+      trkf::KHitWireX hit(channel, 0., 0.);
+
+      // Propagate track to measurement surface.
+
+      KETrack treprop(tre);
+      bool ok = prop.vec_prop(treprop, hit.getMeasSurface(), trkf::Propagator::UNKNOWN, false);
+      assert(ok);
+      double x = treprop.getVector()(0);
+      phits.push_back(boost::shared_ptr<const trkf::KHitBase>(new KHitWireX(channel, x, 0.1)));
+    }
+
+    // Make a new starting track.
+
+    TrackVector vec2(5);
+    vec2(0) = 0.;
+    vec2(1) = 0.;
+    vec2(2) = 0.4;
+    vec2(3) = 0.6;
+    vec2(4) = 1.;
+    TrackError err2(5);
+    err2.clear();
+    err2(0, 0) = 1000.;
+    err2(1, 1) = 1000.;
+    err2(2, 2) = 10.;
+    err2(3, 3) = 10.;
+    err2(4, 4) = 10.;
+    KETrack tre2(psurf, vec2, err2, trkf::Surface::FORWARD, 13);
+
+    // Loop over measurements.
+
+    for(unsigned int i=0; i<phits.size(); ++i) {
+      const KHitBase& hit = *(phits[i]);
+      std::cout << "\nMeasurement " << i << std::endl;
+      std::cout << "Original track:" << std::endl;
+      std::cout << tre2;
+      hit.predict(tre2, &prop);
+      std::cout << "Hit after prediction:" << std::endl;
+      std::cout << hit << std::endl;
+      hit.update(tre2);
+      std::cout << "Track after update:" << std::endl;
+      std::cout << tre2 << std::endl;
+    }
+
+    // Done (success).
+
+    std::cout << "KalmanFilterTest: All tests passed." << std::endl;
+  }
+
+  KalmanFilterTest::~KalmanFilterTest()
+  {}
+
+  void KalmanFilterTest::analyze(const art::Event& evt)
+  {}
+}

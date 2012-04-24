@@ -38,7 +38,7 @@ namespace trkf {
   /// KHitGroup objects.
   ///
   void KHitContainerWireX::fill(const art::PtrVector<recob::Hit>& hits,
-				unsigned int only_plane)
+				int only_plane)
   {
     // Get services.
 
@@ -79,7 +79,7 @@ namespace trkf {
 
       // Choose plane.
 
-      if(only_plane >= 0 && plane != only_plane)
+      if(only_plane >= 0 && plane != (unsigned int)(only_plane))
 	continue;
 
       // Calculate position and error.

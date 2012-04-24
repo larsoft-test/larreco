@@ -1,19 +1,24 @@
 PACKAGE     := TrackFinderTest
 LIB_TYPE    := shared
 LIB         := lib$(PACKAGE)
-LIBCXXFILES := PropTest.cxx
+LIBCXXFILES := PropTest.cxx KalmanFilterTest.cxx
 
 LIBLINK     := -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -l$(PACKAGE)
 
 TBINS := SurfaceTest.x TrackTest.x LATest.x
 SIMPLEBINS := $(TBINS)
-FLAGS := $(addprefix $(workdir),$(TBINS:.x=.success)) $(workdir)PropTest.success
+FLAGS := $(addprefix $(workdir),$(TBINS:.x=.success)) $(workdir)PropTest.success $(workdir)KalmanFilterTest.success
 
 test: tbin $(FLAGS)
 
 $(workdir)PropTest.success: $(libdir)libTrackFinderTest.so
 
+$(workdir)KalmanFilterTest.success: $(libdir)libTrackFinderTest.so
+
 $(bindir)PropTest.x:
+	touch $@
+
+$(bindir)KalmanFilterTest.x:
 	touch $@
 
 $(FLAGS): $(workdir)%.success: $(curdir)%.sh $(bindir)%.x

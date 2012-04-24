@@ -16,6 +16,7 @@
   
 trkf::KalmanFilterAlg::KalmanFilterAlg(const fhicl::ParameterSet& pset) :
   fTrace(false),
+  fPlane(-1),
   fErr(5)
 {
   mf::LogInfo("KalmanFilterAlg") << "KalmanFilterAlg instantiated.";
@@ -126,10 +127,16 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
       log << "  Estimated distance = " << path_est << "\n";
     }
 
-    // Propagate track to the surface of the KHitGroup.
+    // Propagate track to the surface of the KHitGroup.  However, skip
+    // propagation if a preferred plane has been set and KHitGroup
+    // also has a preferred plane set.
 
-    boost::shared_ptr<const Surface> psurf = gr.getSurface();
-    boost::optional<double> dist = prop->noise_prop(trf, psurf, Propagator::UNKNOWN, true);
+    bool doprop = false;
+    boost::optional<double> dist(true, 0.);
+    if(doprop && (fPlane < 0 || gr.getPlane() < 0 || fPlane == gr.getPlane())) {
+      boost::shared_ptr<const Surface> psurf = gr.getSurface();
+      boost::optional<double> dist = prop->noise_prop(trf, psurf, Propagator::UNKNOWN, true);
+    }
     if(!!dist) {
 
       // Propagation succeeded.
@@ -163,7 +170,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 	// Update predction using current track hypothesis and get
 	// incremental chisquare.
 
-	bool ok = hit.predict(trf);
+	bool ok = hit.predict(trf, prop);
 	if(ok) {
 	  double chisq = hit.getChisq();
 	  if(best_hit.get() == 0 || chisq < best_chisq) {
@@ -378,9 +385,15 @@ bool trkf::KalmanFilterAlg::smoothTrack(KGTrack& trg,
 	const KHitBase& hit = *(trh.getHit());
 
 	// Propagate KFitTrack to current measurement surface.
+	// However, skip propagation if measurement is on a
+	// non-preferred plane.
 	  
-	boost::shared_ptr<const Surface> psurf = hit.getSurface();
-	boost::optional<double> dist = prop->noise_prop(trf, psurf, Propagator::UNKNOWN, true);
+	bool doprop = false;
+	boost::optional<double> dist(true, 0.);
+	if(doprop && (fPlane < 0 || hit.getMeasPlane() < 0 || fPlane == hit.getMeasPlane())) {
+	  boost::shared_ptr<const Surface> psurf = hit.getMeasSurface();
+	  boost::optional<double> dist = prop->noise_prop(trf, psurf, Propagator::UNKNOWN, true);
+	}
 	if(!dist) {
 
 	  // If propagation failed, abandon the fit and return failure.
@@ -437,7 +450,7 @@ bool trkf::KalmanFilterAlg::smoothTrack(KGTrack& trg,
 	  // Update measurement predction using current track hypothesis and get
 	  // incremental chisquare.
 
-	  bool ok = hit.predict(trf);
+	  bool ok = hit.predict(trf, prop);
 	  if(!ok) {
 
 	    // If prediction failed, abandon the fit and return failure.

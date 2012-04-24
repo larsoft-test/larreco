@@ -21,21 +21,7 @@ namespace trkf {
   /// path     - Estimated path distance (optional).
   ///
   KHitGroup::KHitGroup(bool has_path, double path) :
-    fHasPath(has_path),
-    fPath(path)
-  {}
-
-  /// Initializing Constructor.
-  ///
-  /// Arguments:
-  ///
-  /// psurf    - Common surface.
-  /// has_path - Path flag (optional).
-  /// path     - Estimated path distance (optional).
-  ///
-  KHitGroup::KHitGroup(const boost::shared_ptr<const Surface>& psurf,
-		       bool has_path, double path) :
-    fSurf(psurf),
+    fPlane(-1),
     fHasPath(has_path),
     fPath(path)
   {}
@@ -63,11 +49,15 @@ namespace trkf {
     // the common surface (pointer to same surface object).
     // Throw exception if the new surface doesn't match.
 
-    if(fSurf.get() == 0)
-      fSurf = hit->getSurface();
+    if(fSurf.get() == 0) {
+      fSurf = hit->getMeasSurface();
+      fPlane = hit->getMeasPlane();
+    }
     else {
-      if(fSurf.get() != hit->getSurface().get())
+      if(fSurf.get() != hit->getMeasSurface().get())
 	throw cet::exception("KHitGroup") << "Attempt to add non-matching measurement.\n";
+      if(hit->getMeasPlane() != fPlane)
+	fPlane = -1;
     }
 
     // Everything OK.  Add the measurement.

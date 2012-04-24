@@ -1,14 +1,12 @@
 #include "job/services.fcl"
+#include "job/trackfinderalgorithms.fcl"
 
-process_name: PropTest
+process_name: KalmanFilterTest
 
 services:
 {
-  user: {}
+  user: {Geometry: @local::microboone_geo}
 }
-
-services.user.DatabaseUtil:       @local::microboone_database
-services.user.LArProperties:      @local::microboone_properties
 
 source:
 {
@@ -25,12 +23,12 @@ physics:
 
  analyzers:
  {
-  proptest: { module_type: "PropTest" }
+  kftest: { module_type: "KalmanFilterTest" }
  }
 
  #define the path for analyzer modules, order does not matter.
  #see lines starting physics.analyzers below
- ana:  [ proptest ]
+ ana:  [ kftest ]
 
  #trigger_paths is a keyword and contains the paths that modify the art::event, 
  #ie filters and producers
@@ -41,7 +39,9 @@ physics:
  end_paths:     [ana]  
 }
 
-physics.analyzers.proptest:
+physics.analyzers.kftest:
 {
-  module_type: "PropTest"
+  module_type: "KalmanFilterTest"
+  KalmanFilterAlg: @local::microboone_kalmanfilteralg
 }
+physics.analyzers.kftest.KalmanFilterAlg.Trace: true

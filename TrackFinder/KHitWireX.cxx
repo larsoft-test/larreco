@@ -10,6 +10,7 @@
 
 #include "TrackFinder/KHitWireX.h"
 #include "TrackFinder/SurfWireX.h"
+#include "Geometry/geo.h"
 
 namespace trkf {
 
@@ -30,6 +31,16 @@ namespace trkf {
     trkf::KSymMatrix<1>::type merr(1);
     merr(0,0) = xerr * xerr;
     setMeasError(merr);
+
+    // Get geometry service.
+
+    art::ServiceHandle<geo::Geometry> geom;
+
+    // Get wire geometry.
+
+    unsigned int cstat, tpc, plane, wire;
+    geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+    setMeasPlane(plane);
   }
 
   /// Constructor from surface.
@@ -64,7 +75,7 @@ namespace trkf {
     // Make sure that the track surface and the measurement surface are the same.
     // Throw an exception if they are not.
 
-    if(!getSurface()->isEqual(*tre.getSurface()))
+    if(!getMeasSurface()->isEqual(*tre.getSurface()))
       throw cet::exception("KHitWireX") << "Track surface not the same as measurement surface.\n";
  
     // Prediction is just u track perameter and error.

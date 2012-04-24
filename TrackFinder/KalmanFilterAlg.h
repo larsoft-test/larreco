@@ -34,10 +34,12 @@ namespace trkf {
     // Accessors.
 
     bool getTrace() const {return fTrace;}      ///< Trace config parameters.
+    int getPlane() const {return fPlane;}       ///< Preferred view plane.
 
     // Modifiers.
 
     void setTrace(bool trace) {fTrace = trace;} ///< Set trace config parameter.
+    void setPlane(int plane) {fPlane = plane;}  ///< Set preferred view plane.
 
     // Methods.
 
@@ -61,6 +63,7 @@ namespace trkf {
 
     // Other attributes.
 
+    int fPlane;        ///< Preferred view plane.
     TrackError fErr;   ///< Starting error matrix ("infinite" error).
   };
 }

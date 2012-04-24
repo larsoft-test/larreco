@@ -42,18 +42,21 @@ namespace trkf {
   boost::optional<double> Propagator::err_prop(KETrack& tre,
 					       const boost::shared_ptr<const Surface>& psurf, 
 					       PropDirection dir,
-					       bool doDedx) const
+					       bool doDedx,
+					       TrackMatrix* prop_matrix) const
   {
     // Propagate without error, get propagation matrix.
 
-    TrackMatrix prop_matrix;
-    boost::optional<double> result = vec_prop(tre, psurf, dir, doDedx, &prop_matrix, 0);
+    TrackMatrix prop_temp;
+    if(prop_matrix == 0)
+      prop_matrix = &prop_temp;
+    boost::optional<double> result = vec_prop(tre, psurf, dir, doDedx, prop_matrix, 0);
 
     // If propagation succeeded, update track error matrix.
 
     if(!!result) {
-      TrackMatrix temp = prod(tre.getError(), trans(prop_matrix));
-      TrackError newerr = prod(prop_matrix, temp);
+      TrackMatrix temp = prod(tre.getError(), trans(*prop_matrix));
+      TrackError newerr = prod(*prop_matrix, temp);
       tre.setError(newerr);
     }
 

@@ -238,14 +238,15 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	  // Fill KHitContainer with hits.
 
 	  KHitContainerWireX cont;
-	  cont.fill(trackhits, 2);
+	  cont.fill(trackhits, -1);
 
 	  // Build and smooth track.
 
 	  KGTrack trg;
+	  fKFAlg.setPlane(2);
+	  fKFAlg.setTrace(true);
 	  bool ok = fKFAlg.buildTrack(trk, trg, prop, Propagator::FORWARD, cont, 100.);
 	  if(ok)
-	    fKFAlg.setTrace(true);
 	    ok = fKFAlg.smoothTrack(trg, prop);
 	    fKFAlg.setTrace(false);
  	}

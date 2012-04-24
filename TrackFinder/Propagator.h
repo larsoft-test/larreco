@@ -95,7 +95,8 @@ namespace trkf {
     boost::optional<double> err_prop(KETrack& tre,
 				     const boost::shared_ptr<const Surface>& psurf, 
 				     PropDirection dir,
-				     bool doDedx) const;
+				     bool doDedx,
+				     TrackMatrix* prop_matrix = 0) const;
 
     /// Propagate with error and noise.
     boost::optional<double> noise_prop(KETrack& tre,

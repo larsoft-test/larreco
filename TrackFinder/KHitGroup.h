@@ -16,9 +16,10 @@
 /// This class includes the following attributes.
 ///
 /// 1.  Pointer to common surface.
-/// 2.  Measurement collection.
-/// 3.  Estimated path flag.
-/// 4.  Estimated path distance.
+/// 2.  Plane index.
+/// 3.  Measurement collection.
+/// 4.  Estimated path flag.
+/// 5.  Estimated path distance.
 ///
 /// The last two attributes is included as an aid in sorting
 /// measurements for inclusion in tracks.
@@ -40,10 +41,6 @@ namespace trkf {
     /// Default constructor.
     KHitGroup(bool has_path = false, double path = 0.);
 
-    /// Initializing Constructor.
-    KHitGroup(const boost::shared_ptr<const Surface>& psurf,
-	      bool has_path = false, double path = 0.);
-
     /// Destructor.
     virtual ~KHitGroup();
 
@@ -51,6 +48,9 @@ namespace trkf {
 
     /// Surface accessor.
     const boost::shared_ptr<const Surface>& getSurface() const {return fSurf;}
+
+    /// Plane index.
+    int getPlane() const {return fPlane;}
 
     /// Measurement collection accessor.
     const std::vector<boost::shared_ptr<const KHitBase> >& getHits() const {return fHits;}
@@ -82,6 +82,7 @@ namespace trkf {
     // Attributes.
 
     boost::shared_ptr<const Surface> fSurf;                  ///< Common surface.
+    int fPlane;                                              ///< Plane index of measurements.
     std::vector<boost::shared_ptr<const KHitBase> > fHits;   ///< Measuement collection.
     bool fHasPath;                                           ///< Path flag.
     double fPath;                                            ///< Estimated path distance.

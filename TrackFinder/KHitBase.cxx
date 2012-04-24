@@ -13,17 +13,19 @@
 namespace trkf {
 
   /// Default Constructor.
-  KHitBase::KHitBase()
+  KHitBase::KHitBase() :
+    fMeasPlane(-1)
   {}
 
   /// Initializing Constructor.
   ///
   /// Arguments:
   ///
-  /// psurf - Surface pointer.
+  /// psurf - Measurement surface pointer.
   ///
-  KHitBase::KHitBase(const boost::shared_ptr<const Surface>& psurf) :
-    fSurf(psurf)
+  KHitBase::KHitBase(const boost::shared_ptr<const Surface>& psurf, int plane) :
+    fMeasSurf(psurf),
+    fMeasPlane(plane)
   {}
 
   /// Destructor.
@@ -35,7 +37,8 @@ namespace trkf {
   {
     if(doTitle)
       out << "KHitBase:\n";
-    out << "  Surface: " << *fSurf << "\n";
+    out << "  Measurement Surface: " << *fMeasSurf << "\n";
+    out << "  Measurement Plane: " << fMeasPlane << "\n";
     return out;
   }
 
