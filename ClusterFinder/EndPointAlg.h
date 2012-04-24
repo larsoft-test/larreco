@@ -18,6 +18,7 @@
 namespace recob { 
   class Cluster;
   class EndPoint2D; 
+  class Hit;
 }
 
 namespace cluster {
@@ -32,7 +33,11 @@ namespace cluster {
 
     void   reconfigure(fhicl::ParameterSet const& pset);
 
-    size_t EndPoint(art::PtrVector<recob::Cluster>& clusIn, std::vector<recob::EndPoint2D>& vtxcol);
+    size_t EndPoint(art::PtrVector<recob::Cluster>                 & clusIn, 
+		    std::vector<recob::EndPoint2D>                 & vtxcol,
+		    std::vector< art::PtrVector<recob::Hit> >      & vtxHitsOut,
+		    art::Event                                const& evt,
+		    std::string                               const& label);
     
   private:
 

@@ -360,19 +360,21 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
       GetPlaneAndTPC(hitlist[0],p,cs,t,w);
       //wire_end[p]=w;	
 
-      for(art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin(); a != hitlist.end();  a++){ //loop over cluster hits
+      //loop over cluster hits
+      for(art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin(); a != hitlist.end();  a++){ 
 	GetPlaneAndTPC(*a,p,cs,t,w);
-          hitlist_all[p].push_back(*a);
+	hitlist_all[p].push_back(*a);
       }
     } // End loop on clusters.
 
 
    // GetVertex(evt) from MC - should be cut out?;
+  /// \todo Never have checks on MC in reconstruction algorithms
   if(fUseMCVertex)
       GetVertexN(evt);
 
 
-  for(unsigned int i=0;i<fNPlanes;i++)
+  for(unsigned int i = 0; i < fNPlanes; ++i)
     AngularDistribution(hitlist_all[i]); // 2D Direction of the shower in consecutive planes
 
   Find2DStartPoints(hitlist_all);
@@ -398,14 +400,23 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
   std::auto_ptr<std::vector<recob::Cluster> > ShowerAngleCluster(new std::vector<recob::Cluster>);
   std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
-  for(unsigned int iplane=0;iplane<fNPlanes;iplane++){
+  for(size_t iplane = 0; iplane < fNPlanes; ++iplane){
+    
+    // figure out the view and total charge for this cluster
+    geo::View_t view = hitlist_all[iplane][0]->View();
+    double totalQ    = 0.;
+    for(size_t ih = 0; ih < hitlist_all[iplane].size(); ++ih)
+      totalQ += hitlist_all[iplane][ih]->Charge();
+
     recob::Cluster temp(hitlist_all[iplane],
-		    fWire_vertex[iplane], fWire_vertex[iplane]*0.05,
-		    fTime_vertex[iplane], fTime_vertex[iplane]*0.05, 
-		    fWire_last[iplane], fWire_last[iplane]*0.05,
-		    fTime_last[iplane], fTime_last[iplane]*0.05, 
-		    slope[iplane], slope[iplane]*0.05, lineslope[iplane],lineinterc[iplane], 
-		    iplane);
+			fWire_vertex[iplane], fWire_vertex[iplane]*0.05,
+			fTime_vertex[iplane], fTime_vertex[iplane]*0.05, 
+			fWire_last[iplane], fWire_last[iplane]*0.05,
+			fTime_last[iplane], fTime_last[iplane]*0.05, 
+			slope[iplane], slope[iplane]*0.05, lineslope[iplane],lineinterc[iplane], 
+			totalQ,
+			view,
+			iplane);
 
 
     ShowerAngleCluster->push_back(temp);

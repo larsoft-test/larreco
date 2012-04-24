@@ -398,8 +398,11 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>          
 	      
 	      if(currentHits.size() > lastHits.size()) lastHits = currentHits;
 	      clusterHits.clear();    
+	      double totalQ = 0.;
+
 	      for(size_t i = 0; i < lastHits.size(); ++i) {
 		clusterHits.push_back(hit[hitTemp[lastHits[i]]]);
+		totalQ += clusterHits.back()->Charge();
 		skip[hitTemp[lastHits[i]]]=1;
 	      } 
 	      //protection against very steep uncorrelated hits
@@ -426,6 +429,8 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>          
 				     (clusterHits[clusterHits.size()-1])->PeakTime(), 0.,
 				     slope, 0., 
 				     -999., 0., 
+				     totalQ,
+				     geom->Cryostat(cstat).TPC(tpc).Plane(plane).View(),
 				     clusterID);	      
 	      
 	      ++clusterID;

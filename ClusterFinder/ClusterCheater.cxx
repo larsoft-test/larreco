@@ -147,7 +147,9 @@ namespace cluster{
 	    double endTime   = -1.e6;
 	    double dTdW      = 0.;
 	    double dQdW      = 0.;
-	    
+	    double totalQ    = 0.;
+	    geo::View_t view = geo->Cryostat(c).TPC(t).Plane(pl).View();
+
 	    for(size_t h = 0; h < eveHits.size(); ++h){
 	      
 	      geo->ChannelToWire(eveHits[h]->Channel(), cstat, tpc, plane, wire);
@@ -155,6 +157,7 @@ namespace cluster{
 	      if(plane != pl || tpc != t || cstat != c) continue;
 	      
 	      ptrvs.push_back(eveHits[h]);
+	      totalQ += eveHits[h]->Charge();
 	      
 	      if(wire < startWire){
 		startWire = wire;
@@ -195,6 +198,8 @@ namespace cluster{
 						 endTime,   0.,
 						 dTdW,      0.,
 						 dQdW,      0.,
+						 totalQ,
+						 view,
 						 ((*hitMapItr).first * 1000) + pl*100 + tpc*10 + cstat));
 	    
 	    // association the hits to this cluster

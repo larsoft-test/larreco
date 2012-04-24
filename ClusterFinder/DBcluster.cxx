@@ -125,9 +125,13 @@ void cluster::DBcluster::produce(art::Event& evt)
 	
 	for(size_t i = 0; i < fDBScan.fclusters.size(); ++i){
 	  art::PtrVector<recob::Hit> clusterHits;
-	  
+	  double totalQ = 0.;
+
 	  for(size_t j = 0; j < fDBScan.fpointId_to_clusterId.size(); ++j){	  
-	    if(fDBScan.fpointId_to_clusterId[j]==i) clusterHits.push_back(allhits[j]);
+	    if(fDBScan.fpointId_to_clusterId[j]==i){
+	      clusterHits.push_back(allhits[j]);
+	      totalQ += clusterHits.back()->Charge();
+	    }
 	  }
          
 	  ////////
@@ -146,6 +150,8 @@ void cluster::DBcluster::produce(art::Event& evt)
 				   clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
 				   -999., 0., 
 				   -999., 0.,
+				   totalQ,
+				   geom->Cryostat(c).TPC(t).Plane(p).View(),
 				   ccol->size());
 	    
 	    ccol->push_back(cluster);

@@ -29,8 +29,6 @@
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "ClusterFinder/EndPointAlg.h"
-#include "ClusterFinder/EndPointModule.h"
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -44,6 +42,9 @@ extern "C" {
 
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
+#include "ClusterFinder/EndPointAlg.h"
+#include "ClusterFinder/EndPointModule.h"
+#include "Utilities/AssociationUtil.h"
 
 //-----------------------------------------------------------------------------
 cluster::EndPointModule::EndPointModule(fhicl::ParameterSet const& pset)
@@ -51,6 +52,7 @@ cluster::EndPointModule::EndPointModule(fhicl::ParameterSet const& pset)
 {
   this->reconfigure(pset);
   produces< std::vector<recob::EndPoint2D> >();
+  produces< art::Assns<recob::EndPoint2D, recob::Hit> >();
 }
 
 //-----------------------------------------------------------------------------
@@ -85,14 +87,19 @@ void cluster::EndPointModule::produce(art::Event& evt)
   // make a std::vector<recob::Cluster> for the output of the 
   // Hough Transform
   std::vector<recob::EndPoint2D> vtxOut;
-  
-  size_t numvtx = fEPAlg.EndPoint(clusIn, vtxOut);
+  std::vector< art::PtrVector<recob::Hit> > vtxHitsOut;
+  size_t numvtx = fEPAlg.EndPoint(clusIn, vtxOut, vtxHitsOut, evt, fDBScanModuleLabel);
 
   LOG_DEBUG("Vertex") << "found " << numvtx << "vertices with VertexService";
 
   //Point to a collection of vertices to output.
   std::auto_ptr<std::vector<recob::EndPoint2D> > vtxcol(new std::vector<recob::EndPoint2D>(vtxOut));
+  std::auto_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assn(new art::Assns<recob::EndPoint2D, recob::Hit>);
+
+  for(size_t v = 0; v < vtxcol->size(); ++v)
+    util::CreateAssn(*this, evt, *(vtxcol.get()), vtxHitsOut[v], *(assn.get()), v);
   
   evt.put(vtxcol);   
+  evt.put(assn);
 }
 

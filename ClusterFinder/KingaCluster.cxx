@@ -310,11 +310,12 @@ void cluster::KingaCluster::produce(art::Event& evt)
 	//********************************************************************         
 	for(size_t ClusterNo = 0; ClusterNo < MaxStartPoint.size(); ++ClusterNo) {
 	  
+	  double totalQ = 0.;
 	  for(size_t j = 0; j < HitsWithClusterID.size(); ++j){
 	    
 	    if(HitsWithClusterID[j] == (ClusterNo+1)){
-	    
 	      clusterHits.push_back(allhits[j]);
+	      totalQ += clusterHits.back()->Charge();
 	    } //if
 	    
 	  } //loop over HitsWithClusterID
@@ -344,6 +345,8 @@ void cluster::KingaCluster::produce(art::Event& evt)
 				   clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
 				   -999., 0., 
 				   -999., 0.,
+				   totalQ,
+				   fGeom->Cryostat(c).TPC(t).Plane(p).View(),
 				   ClusterNo);
 	    
 	    ccol->push_back(cluster);

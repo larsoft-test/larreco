@@ -38,6 +38,7 @@ extern "C" {
 #include "ClusterFinder/EndPointAlg.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/DetectorProperties.h"
+#include "Utilities/AssociationUtil.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
 
@@ -127,8 +128,11 @@ void cluster::EndPointAlg::VSSaveBMPFile(const char *fileName, unsigned char *pi
 }
 
 //......................................................
-size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>& clusIn, 
-					  std::vector<recob::EndPoint2D>& vtxcol)
+size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>                 & clusIn, 
+				      std::vector<recob::EndPoint2D>		     & vtxcol,
+				      std::vector< art::PtrVector<recob::Hit> >      & vtxHitsOut,
+				      art::Event                                const& evt,
+				      std::string                               const& label)
 {
 
   art::ServiceHandle<geo::Geometry> geom;
@@ -139,7 +143,6 @@ size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>& clusIn,
   //extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   
   //Point to a collection of vertices to output.
-  art::PtrVector<recob::Hit> cHits;
   art::PtrVector<recob::Hit> hit;
    
   int flag   = 0;
@@ -177,16 +180,15 @@ size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>& clusIn,
       for(unsigned int p = 0; p < geom->Cryostat(c).TPC(t).Nplanes(); p++) {
 	art::PtrVector<recob::Hit> vHits;
 	art::PtrVector<recob::Cluster>::const_iterator clusterIter = clusIn.begin();
-	geo::View_t view = geom->Plane(p,t).View();
+	geo::View_t view = geom->Plane(p,t,c).View();
 	hit.clear();
-	cHits.clear();      
+	size_t cinctr = 0;
 	while(clusterIter!= clusIn.end() ) {
 	  if((*clusterIter)->View() == view){
-	    cHits = (*clusterIter)->Hits();
-	    if(cHits.size() > 0)
-	      for(unsigned int i = 0; i < cHits.size(); i++) hit.push_back(cHits[i]);
+	    hit = util::FindManyP<recob::Hit>(clusIn, evt, label, cinctr);
 	  }//end if cluster is in the correct view
 	  clusterIter++;  
+	  ++cinctr;
 	} 
 	
 	if(hit.size() == 0) continue;
@@ -315,13 +317,20 @@ size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>& clusIn,
 		    if(Cornerness[wire][timebin] < (fThreshold*Cornerness2[0]))
 		      vertexnum = fMaxCorners;
 		  vHits.push_back(hit[hit_loc[wire][timebin]]);
+		  
+		  // get the total charge from the associated hits
+		  double totalQ = 0.;
+		  for(size_t vh = 0; vh < vHits.size(); ++vh) totalQ += vHits[vh]->Charge();
+
 		  recob::EndPoint2D endpoint(hit[hit_loc[wire][timebin]]->PeakTime(),
 					     wire,
 					     Cornerness[wire][timebin],
 					     vtxcol.size(),
 					     view,
+					     totalQ,
 					     vHits);
 		  vtxcol.push_back(endpoint);
+		  vtxHitsOut.push_back(vHits);
 		  vHits.clear();
 		  
 		  // non-maximal suppression on a square window. The wire coordinate units are 
