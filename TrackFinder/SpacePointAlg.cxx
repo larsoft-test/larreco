@@ -894,7 +894,7 @@ namespace  trkf{
     // If using mc information, also generate maps of sim::IDEs and mc 
     // position indexed by hit.
 
-    std::vector< std::vector<std::vector<std::map<unsigned int, art::Ptr<recob::Hit> > > > > hitmap;
+    std::vector< std::vector<std::vector<std::multimap<unsigned int, art::Ptr<recob::Hit> > > > > hitmap;
     fHitMCMap.clear();
 
     unsigned int ncstat = geom->Ncryostats();
@@ -919,7 +919,7 @@ namespace  trkf{
 	unsigned int channel = phit->Channel();
 	unsigned int tpc, plane, wire, cstat;
 	geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-	hitmap[cstat][tpc][plane][wire] = phit;
+	hitmap[cstat][tpc][plane].insert(std::make_pair(wire, phit));
       }
     }
 
