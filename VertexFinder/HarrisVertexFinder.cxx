@@ -40,15 +40,14 @@ extern "C" {
 #include <math.h>
 #include <algorithm>
 #include "TMath.h"
+#include "TH2.h"
 
 
 #include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
-#include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
-#include "TH2.h"
-
+#include "Utilities/AssociationUtil.h"
 
 //-----------------------------------------------------------------------------
 vertex::HarrisVertexFinder::HarrisVertexFinder(fhicl::ParameterSet const& pset) 
@@ -61,6 +60,7 @@ vertex::HarrisVertexFinder::HarrisVertexFinder(fhicl::ParameterSet const& pset)
   , fSaveVertexMap   (pset.get< int         >("SaveVertexMap") )
 {
   produces< std::vector<recob::EndPoint2D> >();
+  produces< art::Assns<recob::EndPoint2D, recob::Hit> >();
 }
 
 //-----------------------------------------------------------------------------
@@ -110,8 +110,10 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
   
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
-  //Point to a collection of vertices to output.
+
+  //Point to a collection of vertices to output and the associations with the hits
   std::auto_ptr<std::vector<recob::EndPoint2D> > vtxcol(new std::vector<recob::EndPoint2D>);
+  std::auto_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assn(new art::Assns<recob::EndPoint2D, recob::Hit>);
 
   filter::ChannelFilter chanFilt;  
   art::PtrVector<recob::Hit> cHits;
@@ -159,6 +161,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
       for(unsigned int p = 0; p < geom->Cryostat(cs).TPC(t).Nplanes(); ++p) {
 	art::PtrVector<recob::Hit> vHits;
 	art::PtrVector<recob::Cluster>::const_iterator clusterIter = clusIn.begin();
+	geo::View_t view = geom->Plane(p,t,cs).View();
 	hit.clear();
 	cHits.clear();      
 	while(clusterIter != clusIn.end() ) {
@@ -279,14 +282,23 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 		  if(Cornerness2.size())
 		    if(Cornerness[wire][timebin] < (fThreshold*Cornerness2[0]))
 		      vertexnum = fMaxCorners;
+
 		  vHits.push_back(hit[hit_loc[wire][timebin]]);
+		  // get the total charge from the associated hits
+		  double totalQ = 0.;
+		  for(size_t vh = 0; vh < vHits.size(); ++vh) totalQ += vHits[vh]->Charge();
+
 		  recob::EndPoint2D vertex(hit[hit_loc[wire][timebin]]->PeakTime(),
 					   wire,
 					   Cornerness[wire][timebin],
 					   vtxcol->size(),
-					   vHits[0]->View(),
+					   view,
+					   totalQ,
 					   vHits);
 		  vtxcol->push_back(vertex);
+
+		  util::CreateAssn(*this, evt, *(vtxcol.get()), vHits, *(assn.get()));
+
 		  vHits.clear();
 		  // non-maximal suppression on a square window. The wire coordinate units are 
 		  // converted to time ticks so that the window is truly square. 

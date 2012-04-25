@@ -35,11 +35,11 @@
 
 #include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
-#include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/DetectorProperties.h"
+#include "Utilities/AssociationUtil.h"
 
 #include "TH1D.h"
 #include "TVectorD.h"
@@ -56,6 +56,9 @@ namespace vertex{
     this->reconfigure(pset);    
     produces< std::vector<recob::Vertex> >();
     produces< std::vector<recob::EndPoint2D> >();
+    produces< art::Assns<recob::EndPoint2D, recob::Hit> >();
+    produces< art::Assns<recob::Vertex, recob::Shower> >();
+    produces< art::Assns<recob::Vertex, recob::Track> >();
   }
 //-----------------------------------------------------------------------------
   VertexFinder2D::~VertexFinder2D()
@@ -116,8 +119,11 @@ namespace vertex{
     }
 
     //Point to a collection of vertices to output.
-    std::auto_ptr<std::vector<recob::Vertex> > vcol(new std::vector<recob::Vertex>);          //3D vertex
-    std::auto_ptr<std::vector<recob::EndPoint2D> >epcol(new std::vector<recob::EndPoint2D>);  //2D vertex
+    std::auto_ptr<std::vector<recob::Vertex> >                 vcol(new std::vector<recob::Vertex>);          //3D vertex
+    std::auto_ptr<std::vector<recob::EndPoint2D> >            epcol(new std::vector<recob::EndPoint2D>);  //2D vertex
+    std::auto_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assnep(new art::Assns<recob::EndPoint2D, recob::Hit>);
+    std::auto_ptr< art::Assns<recob::Vertex, recob::Shower> >  assnsh(new art::Assns<recob::Vertex, recob::Shower>);
+    std::auto_ptr< art::Assns<recob::Vertex, recob::Track> >   assntr(new art::Assns<recob::Vertex, recob::Track>);
 
     for(size_t cstat = 0; cstat < geom->Ncryostats(); ++cstat){
       for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
@@ -154,8 +160,8 @@ namespace vertex{
 	  std::vector<double> wires;
 	  std::vector<double> times;
 	  
-	  art::PtrVector<recob::Hit> hit;
-	  hit = clusters[iclu]->Hits();
+	  art::PtrVector<recob::Hit> hit = util::FindManyP<recob::Hit>(clusters, evt, fClusterModuleLabel, iclu);
+
 	  int n = 0;
 	  for(size_t i = 0; i < hit.size(); ++i){
 	    time = hit[i]->PeakTime();
@@ -208,7 +214,8 @@ namespace vertex{
 	    double lclu1 = -999;
 	    double lclu2 = -999;
 	    for (unsigned j = 0; j<Cls[i].size(); ++j){
-	      double lclu = sqrt(pow((clusters[Cls[i][j]]->StartPos()[0]-clusters[Cls[i][j]]->EndPos()[0])*13.5,2)+pow(clusters[Cls[i][j]]->StartPos()[1]-clusters[Cls[i][j]]->EndPos()[1],2));
+	      double lclu = sqrt(pow((clusters[Cls[i][j]]->StartPos()[0]-clusters[Cls[i][j]]->EndPos()[0])*13.5,2)
+				 +pow(clusters[Cls[i][j]]->StartPos()[1]-clusters[Cls[i][j]]->EndPos()[1],2));
 	      bool rev = false;
 	      bool deltaraylike = false;
 	      bool enoughhits = false;
@@ -305,16 +312,23 @@ namespace vertex{
 	    }
 	    //save 2D vertex
 	    // make an empty art::PtrVector of hits
-	    // \todo should really get the actual vector of hits corresponding to this
-	    // end point
-	    art::PtrVector<recob::Hit> hits;
+	    /// \todo should really get the actual vector of hits corresponding to end point
+	    /// \todo for now will get all hits from the current cluster
+	    art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(clusters, evt, fClusterModuleLabel, Cls[i][0]);
+	    double totalQ = 0.;
+	    for(size_t h = 0; h < hits.size(); ++h) totalQ += hits[h]->Charge();
+
 	    recob::EndPoint2D vertex(vtx_t.back(),
 				     int(vtx_w.back()),
 				     1,
 				     epcol->size(),
 				     clusters[Cls[i][0]]->View(),
+				     totalQ,
 				     hits);
 	    epcol->push_back(vertex);
+
+	    util::CreateAssn(*this, evt, *(epcol.get()), hits, *(assnep.get()));
+
 	  }
 	  else{
 	    //no cluster found
@@ -360,13 +374,20 @@ namespace vertex{
 	  vtxcoord[2] = -99999;
 	}
 	
-	//need to implement this
+	/// \todo need to actually make tracks and showers to go into 3D vertex
+	/// \todo currently just passing empty collections to the ctor
 	art::PtrVector<recob::Track> vTracks_vec;
 	art::PtrVector<recob::Shower> vShowers_vec;
 	
 	recob::Vertex the3Dvertex(vTracks_vec, vShowers_vec, vtxcoord);
 	vcol->push_back(the3Dvertex);
+
+	if(vShowers_vec.size() > 0)
+	  util::CreateAssn(*this, evt, *(vcol.get()), vShowers_vec, *(assnsh.get()));
+	if(vTracks_vec.size() > 0)
+	  util::CreateAssn(*this, evt, *(vcol.get()), vTracks_vec, *(assntr.get()));
 	
+
       }//end loop over tpc
     }// end loop over cryostats
 
@@ -377,7 +398,10 @@ namespace vertex{
     
     evt.put(epcol);
     evt.put(vcol);
-    
+    evt.put(assnep);
+    evt.put(assntr);
+    evt.put(assnsh);
+
   } // end of produce
 } // end of vertex namespace
 

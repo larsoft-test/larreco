@@ -39,35 +39,40 @@ extern "C" {
 
 #include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
-#include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
+#include "Utilities/AssociationUtil.h"
 
-
-vertex::VertexMatch::VertexMatch(fhicl::ParameterSet const& pset) : 
-  fVertexModuleLabel(pset.get< std::string >("VertexModuleLabel")),
-  fHoughModuleLabel (pset.get< std::string >("HoughModuleLabel")),
-  fMaxDistance      (pset.get< double      >("MaxDistance"))
+//------------------------------------------------------------------------------
+vertex::VertexMatch::VertexMatch(fhicl::ParameterSet const& pset) 
+  : fVertexModuleLabel(pset.get< std::string >("VertexModuleLabel"))
+  , fHoughModuleLabel (pset.get< std::string >("HoughModuleLabel"))
+  , fMaxDistance      (pset.get< double      >("MaxDistance"))
 {
   produces< std::vector<recob::EndPoint2D> >();
+  produces< art::Assns<recob::EndPoint2D, recob::Hit> >();
 }
 
+//------------------------------------------------------------------------------
 vertex::VertexMatch::~VertexMatch()
 {
 }
 
+//------------------------------------------------------------------------------
 bool sort_pred(const std::pair<art::Ptr<recob::Hit>,double>& left, 
 	       const std::pair<art::Ptr<recob::Hit>,double>& right)
 {
   return left.first < right.first;
 }
 
+//------------------------------------------------------------------------------
 bool sort_pred2(const std::pair<art::Ptr<recob::Hit>,double>& left, 
 		const std::pair<art::Ptr<recob::Hit>,double>& right)
 {
   return left.second < right.second;
 }
 
+//------------------------------------------------------------------------------
 void vertex::VertexMatch::produce(art::Event& evt)
 {
 
@@ -78,6 +83,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
   evt.getByLabel(fHoughModuleLabel,houghListHandle);
   
   std::auto_ptr<std::vector<recob::EndPoint2D> > mvertexcol(new std::vector<recob::EndPoint2D>);
+  std::auto_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assn(new art::Assns<recob::EndPoint2D, recob::Hit>);
   
   art::ServiceHandle<geo::Geometry> geom;
   //hits associated with a vertex
@@ -257,14 +263,21 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	  } 
 	  
 	  // strongvertex is a collection of hits
+	  double totalQ = 0.;
+	  for(size_t h = 0; h < strongvertex.size(); ++h) totalQ += strongvertex[h]->Charge();
+
 	  recob::EndPoint2D vertex((matchedvertex[i].first)->PeakTime(),
 				   wire,
 				   strongvertexstrength[i],   
 				   id,
 				   geom->Cryostat(cs).TPC(tpc).Plane(plane).View(),
+				   totalQ,
 				   strongvertex);      
 	  
 	  mvertexcol->push_back(vertex);
+
+	  util::CreateAssn(*this, evt, *(mvertexcol.get()), strongvertex, *(assn.get()));
+
 	  strongvertex.clear();
 	  
 	}
@@ -277,6 +290,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
   }// end loop over cryostats
 
   evt.put(mvertexcol);
+  evt.put(assn);
 }
   
 
