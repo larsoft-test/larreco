@@ -1767,12 +1767,14 @@ void cluster::KingaCluster::FindClusters(unsigned int cstat,
   TempMaxStartPoint.clear();
   TempMaxEndPoint.clear();
 
-
-  for(size_t pk = FinalPeaks.size()-1; pk >= 0; --pk){
+  // second conditional in outside loop ensures that we don't go off the end 
+  // when --pk tries to take it less than 0
+  /// \todo should really use iterators for these loops
+  for(int pk = FinalPeaks.size()-1; pk >= 0; --pk){
     for(size_t pk2 = 0; pk2 < FinalPeaks.size(); ++pk2){
 
       /// \todo 3 is a magic number
-      if(pk != pk2 && abs(FinalPeaks[pk]-FinalPeaks[pk2]) < 3){
+      if(pk != (int)pk2 && abs(FinalPeaks[pk]-FinalPeaks[pk2]) < 3){
   
 	for(size_t i = 0; i < FinalPeaks.size(); ++i){
 	  if(i != pk){ 
