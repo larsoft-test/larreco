@@ -41,7 +41,7 @@
 #define COVEXC "cov_is_zero"
 
 
-genf::GFKalman::GFKalman():fInitialDirection(1),fNumIt(3),fBlowUpFactor(50.),fMomLow(-100.0),fMomHigh(100.0),fMaxUpdate(1.0),fErrScale(1.0)
+genf::GFKalman::GFKalman():fInitialDirection(1),fNumIt(3),fBlowUpFactor(50.),fMomLow(-100.0),fMomHigh(100.0),fMaxUpdate(1.0),fErrScaleSTh(1.0),fErrScaleMTh(1.0)
 {
   art::ServiceHandle<art::TFileService> tfs;
 }
@@ -313,6 +313,7 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   TMatrixT<Double_t> state(repDim,1);
   TMatrixT<Double_t> cov(repDim,repDim);
   static TMatrixT<Double_t> covFilt(cov);
+  const double pi2(10.0);
   GFDetPlane pl, plPrev;
   unsigned int nhits=tr->getNumHits();
   int phit=ihit;
@@ -362,6 +363,16 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
     // I will alter below.
     try{
       rep->extrapolate(pl,state,cov);
+      /*
+      if ( isnan(cov[0][0]) )
+	{
+	  cov = covFilt;
+	}
+      else
+	{
+	  covFilt = cov; 
+	}
+      */
     }
     catch (cet::exception &)
       {
@@ -409,7 +420,7 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
 	cov.Print();
         std::cout<<"GFKalman::processHit() 1. No longer throw exception. Force cov[0][0] to 0.01."<<std::endl;
         // std::cout<<"GFKalman::processHit() 1. About to throw GFException."<<std::endl;
-	cov[0][0] = 0.01;
+	cov[0][0] = pi2;
 	//	throw exc;
         // std::cout<<"GFKalman::processHit() 2. Back from GFException."<<std::endl;
 
@@ -439,13 +450,14 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   Double_t beta = mom/sqrt(mass*mass+mom*mom);
   const Double_t lowerLim(0.01);
   if (isnan(dist) || dist<=0.0) dist=lowerLim; // don't allow 0s here.
-  if (isnan(beta) || beta<0.04) beta=0.04;
+  if (isnan(beta) || beta<0.01) beta=0.01;
   TMatrixT<Double_t> H=hit->getHMatrix(rep,beta,dist);
 
 
   // Can force huge error here on p, and thus insensitivity to p, by
   // setting V[0][0]->inf.
   TMatrixT<Double_t> V=hit->getHitCov(pl,plPrev,state,mass);
+  V[0][0] = V[0][0]*fErrScaleMTh;
   tr->setHitMeasuredCov(V);
 
   // calculate kalman gain ------------------------------
@@ -483,8 +495,8 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   // Error is taken on th^2
   ang = (H*state)[0][0];
 
-  // 2/4 is extra-fun bonus factor!
-  thetaPlanes = ang*ang + fErrScale*gRandom->Gaus(0.0,V[0][0]);
+  // fErrScale is extra-fun bonus factor!
+  thetaPlanes = ang*ang + fErrScaleSTh*gRandom->Gaus(0.0,V[0][0]);
   thetaPlanes = TMath::Min(sqrt(fabs(thetaPlanes)),0.95*TMath::Pi()/2.0);
 
   Double_t dtheta =  thetaMeas - thetaPlanes; // was fabs(res[0][0]). EC, 26-Jan-2012
@@ -532,7 +544,19 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
     }
   
   cov-=Gain*(Hnew*cov);
-  covFilt = cov;
+  // Below is protection required at end of contained track when
+  // momentum is tiny and cov[0][0] gets huge.
+  /*
+  if (cov[0][0]>pi2/Hnew[0][0] || cov[0][0] <= 0.0) 
+    {
+      //    cov[0][0]=pi2/Hnew[0][0];
+      cov = covFilt;
+    }
+  else  // store away a good cov matrix
+    {
+      covFilt = cov;
+    }
+  */
   tr->setHitCov(cov);
   tr->setHitState(state);
 

@@ -115,7 +115,8 @@ public:
   void setMomLow(Double_t f){fMomLow=f;}
   void setMomHigh(Double_t f){fMomHigh=f;}
   void setMaxUpdate(Double_t f){fMaxUpdate=f;}
-  void setErrorScale(Double_t f){fErrScale=f;}
+  void setErrorScaleSTh(Double_t f){fErrScaleSTh=f;}
+  void setErrorScaleMTh(Double_t f){fErrScaleMTh=f;}
 
   // Private Methods -----------------
 private:
@@ -157,7 +158,8 @@ private:
   Double_t fMomLow;
   Double_t fMomHigh;
   Double_t fMaxUpdate;
-  Double_t fErrScale;
+  Double_t fErrScaleSTh; // simulated theta error scale 
+  Double_t fErrScaleMTh; // measured theta error scale 
 
   //TH1D* fUpdate;
   //TH1D* fIhitvUpdate;
