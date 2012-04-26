@@ -104,11 +104,14 @@ namespace trkf {
     double fPerpLim;
     bool fDoFit;
     int fNumIt;
-    double fErrScale;
+    double fErrScaleS;
+    double fErrScaleM;
     int fDecimate;
     double fMaxUpdate;
     int fDecimateU;
     double fMaxUpdateU;
+    double fMomLow;
+    double fMomHigh;
     int fPdg;
     
     genf::GFAbsTrackRep *repMC;
