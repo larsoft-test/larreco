@@ -129,7 +129,7 @@ namespace trkf {
     // Implementation of overrides is found at the bottom of this header.
 
     /// Prediction method (return false if fail).
-    bool predict(const KETrack& tre, const Propagator* prop = 0) const;
+    bool predict(const KETrack& tre, const Propagator* prop = 0, const KTrack* ref = 0) const;
 
     /// Update track method.
     void update(KETrack& tre) const;
@@ -209,13 +209,15 @@ namespace trkf {
   ///
   /// tre  - Track prediction.
   /// prop - Propagator.
+  /// ref  - Reference track.
   ///
   template <int N>
-  bool KHit<N>::predict(const KETrack& tre, const Propagator* prop) const
+    bool KHit<N>::predict(const KETrack& tre, const Propagator* prop, const KTrack* ref) const
   {
     // Update the prediction surface to be the track surface.
 
     fPredSurf = tre.getSurface();
+    fPredDist = 0.;
 
     // Default result.
 
@@ -246,15 +248,31 @@ namespace trkf {
 
       KETrack treprop(tre);
 
+      // Also make a copy of the reference track (if specified).
+
+      KTrack refprop;
+      KTrack* prefprop = 0;
+      if(ref != 0) {
+	refprop = *ref;
+	prefprop = &refprop;
+      }
+      
+
       // Make a no-noise, no-dE/dx propagation to the measurement
       // surface.  But do calculate the propagation matrix, which we
       // will use to update the H-matrix calculated in the derived
       // class.
 
       TrackMatrix prop_matrix;
-      ok = prop->err_prop(treprop, getMeasSurface(), Propagator::UNKNOWN, 
-			  false, &prop_matrix);
+      boost::optional<double> dist = prop->err_prop(treprop, getMeasSurface(),
+						    Propagator::UNKNOWN, false, 
+						    prefprop, &prop_matrix);
+      ok = !!dist;
       if(ok) {
+
+	// Update prediction distance.
+
+	fPredDist = *dist;
 
 	// Now we are ready to calculate the prediction on the
 	// measurement surface.
@@ -289,8 +307,10 @@ namespace trkf {
 
     // If a problem occured at any step, clear the prediction surface pointer.
 
-    if(!ok)
+    if(!ok) {
       fPredSurf.reset();
+      fPredDist = 0.;
+    }
 
     // Done.
 

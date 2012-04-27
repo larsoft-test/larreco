@@ -88,13 +88,14 @@ namespace trkf {
   ///
   /// tre  - Track hypothesis.
   /// prop - Propagator.
+  /// ref  - Reference track.
   ///
   /// Returns: True if success.
   ///
   /// This class calls the predict method of each underlying
   /// measurement and updates the combined prediction attributes.
   ///
-  bool KHitMulti::predict(const KETrack& tre, const Propagator* prop) const
+  bool KHitMulti::predict(const KETrack& tre, const Propagator* prop, const KTrack* ref) const
   {
     // Resize and clear all linear algebra objects.
 
@@ -125,6 +126,7 @@ namespace trkf {
     // Update the prediction surface to be the track surface.
 
     fPredSurf = tre.getSurface();
+    fPredDist = 0.;
 
     // Result.
 
@@ -137,9 +139,11 @@ namespace trkf {
 
       // Update prediction for this measurement.
 
-      ok = meas.predict(tre, prop);
+      ok = meas.predict(tre, prop, ref);
       if(!ok)
 	break;
+
+      // 
 
       // Update objects that are concatenations of underlying measurements.
 
@@ -178,8 +182,10 @@ namespace trkf {
 
     // If a problem occured at any step, clear the prediction surface pointer.
 
-    if(!ok)
+    if(!ok) {
       fPredSurf.reset();
+      fPredDist = 0.;
+    }
 
     // Done.
 

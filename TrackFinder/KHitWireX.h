@@ -44,7 +44,7 @@ namespace trkf {
 
     /// Constructor from surface.
     KHitWireX(const boost::shared_ptr<const Surface>& psurf,
-	      double x, double xerr);
+	      double x, double xerr, int plane);
 
     /// Destructor.
     virtual ~KHitWireX();

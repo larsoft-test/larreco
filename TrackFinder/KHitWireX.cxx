@@ -50,9 +50,10 @@ namespace trkf {
   /// psurf - Surface.
   /// x     - X position.
   /// xerr  - X error.
+  /// plane - Plane index.
   ///
   KHitWireX::KHitWireX(const boost::shared_ptr<const Surface>& psurf,
-		       double x, double xerr) :
+		       double x, double xerr, int plane) :
     KHit(psurf)
   {
     trkf::KVector<1>::type mvec(1, x);
@@ -61,6 +62,7 @@ namespace trkf {
     trkf::KSymMatrix<1>::type merr(1);
     merr(0,0) = xerr * xerr;
     setMeasError(merr);
+    setMeasPlane(plane);
   }
 
   /// Destructor.

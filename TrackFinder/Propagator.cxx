@@ -10,6 +10,7 @@
 
 #include "TrackFinder/Propagator.h"
 #include "Utilities/LArProperties.h"
+#include "cetlib/exception.h"
 
 namespace trkf {
 
@@ -28,14 +29,94 @@ namespace trkf {
   Propagator::~Propagator()
   {}
 
+  /// Linearized propagate without error.
+  ///
+  /// Arguments:
+  ///
+  /// trk          - Track to propagate.
+  /// psurf        - Destination surface.
+  /// dir          - Propagation direction (FORWARD, BACKWARD, or UNKNOWN).
+  /// doDedx       - dE/dx enable/disable flag.
+  /// ref          - Reference track (for linearized propagation).  Can be null.
+  /// prop_matrix  - Return propagation matrix if not null.
+  /// noise_matrix - Return noise matrix if not null.
+  ///
+  /// Returned value: Propagation distance & success flag.
+  ///
+  /// If the reference track is null, this method simply calls vec_prop.
+  ///
+  boost::optional<double> Propagator::lin_prop(KTrack& trk,
+					       const boost::shared_ptr<const Surface>& psurf, 
+					       PropDirection dir,
+					       bool doDedx,
+					       KTrack* ref,
+					       TrackMatrix* prop_matrix,
+					       TrackError* noise_matrix) const
+  {
+    // Default result.
+
+    boost::optional<double> result;
+
+    if(ref == 0)
+      result = vec_prop(trk, psurf, dir, doDedx, prop_matrix, noise_matrix);
+    else {
+
+      // A reference track has been provided.
+
+      // It is an error (throw exception) if the reference track and
+      // the track to be propagted are not on the same surface.
+
+      if(!trk.getSurface()->isEqual(*(ref->getSurface())))
+	throw cet::exception("Propagator") << 
+	  "Input track and reference track not on same surface.\n";
+
+      // Remember the starting state vector of the reference track.
+
+      TrackVector ref0 = ref->getVector();
+
+      // Propagate the reference track.  Make sure we calculate the
+      // propagation matrix.
+
+      TrackMatrix prop_temp;
+      if(prop_matrix == 0)
+	prop_matrix = &prop_temp;
+
+      // Do the propgation.  The returned result will be the result of
+      // this propagatrion.
+
+      result = vec_prop(*ref, psurf, dir, doDedx, prop_matrix, noise_matrix);
+      if(!!result) {
+
+	// Propagation of reference track succeeded.  Update the track
+	// state vector and surface of the track to be propagated.
+
+	TrackVector diff = trk.getVector() - ref0;
+	TrackVector newvec = ref->getVector() + prod(*prop_matrix, diff);
+
+	// Store updated state vector and surface.
+
+	trk.setVector(newvec);
+	trk.setSurface(psurf);
+	assert(trk.getSurface()->isEqual(*(ref->getSurface())));
+      }
+    }
+
+    // Done.
+
+    return result;
+  }
+
+
   /// Propagate with error, but without noise (i.e. reversibly).
   ///
   /// Arguments:
   ///
-  /// tre    - Track to propagate.
-  /// psurf  - Destination surface.
-  /// dir    - Propagation direction (FORWARD, BACKWARD, or UNKNOWN).
-  /// doDedx - dE/dx enable/disable flag.
+  /// tre         - Track to propagate.
+  /// psurf       - Destination surface.
+  /// dir         - Propagation direction (FORWARD, BACKWARD, or UNKNOWN).
+  /// doDedx      - dE/dx enable/disable flag.
+  /// ref         - Reference track (for linearized propagation).  Can be null.
+  /// prop_matrix - Return propagation matrix if not null.
   ///
   /// Returned value: propagation distance + success flag.
   ///
@@ -43,6 +124,7 @@ namespace trkf {
 					       const boost::shared_ptr<const Surface>& psurf, 
 					       PropDirection dir,
 					       bool doDedx,
+					       KTrack* ref,
 					       TrackMatrix* prop_matrix) const
   {
     // Propagate without error, get propagation matrix.
@@ -50,7 +132,7 @@ namespace trkf {
     TrackMatrix prop_temp;
     if(prop_matrix == 0)
       prop_matrix = &prop_temp;
-    boost::optional<double> result = vec_prop(tre, psurf, dir, doDedx, prop_matrix, 0);
+    boost::optional<double> result = lin_prop(tre, psurf, dir, doDedx, ref, prop_matrix, 0);
 
     // If propagation succeeded, update track error matrix.
 
@@ -69,23 +151,25 @@ namespace trkf {
   ///
   /// Arguments:
   ///
-  /// tre   - Track to propagate.
-  /// psurf - Destination surface.
-  /// dir   - Propagation direction (FORWARD, BACKWARD, or UNKNOWN).
+  /// tre    - Track to propagate.
+  /// psurf  - Destination surface.
+  /// dir    - Propagation direction (FORWARD, BACKWARD, or UNKNOWN).
   /// doDedx - dE/dx enable/disable flag.
+  /// ref    - Reference track (for linearized propagation).  Can be null.
   ///
   /// Returned value: propagation distance + success flag.
   ///
   boost::optional<double> Propagator::noise_prop(KETrack& tre,
 						 const boost::shared_ptr<const Surface>& psurf, 
 						 PropDirection dir,
-						 bool doDedx) const
+						 bool doDedx,
+						 KTrack* ref) const
   {
     // Propagate without error, get propagation matrix and noise matrix.
 
     TrackMatrix prop_matrix;
     TrackError noise_matrix;
-    boost::optional<double> result = vec_prop(tre, psurf, dir, doDedx, 
+    boost::optional<double> result = lin_prop(tre, psurf, dir, doDedx, ref,
 					      &prop_matrix, &noise_matrix);
 
     // If propagation succeeded, update track error matrix.

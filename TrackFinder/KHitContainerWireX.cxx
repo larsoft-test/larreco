@@ -111,7 +111,7 @@ namespace trkf {
       if(psurf.get() == 0)
 	phit = boost::shared_ptr<const KHitBase>(new KHitWireX(channel, x, xerr));
       else
-	phit = boost::shared_ptr<const KHitBase>(new KHitWireX(psurf, x, xerr));
+	phit = boost::shared_ptr<const KHitBase>(new KHitWireX(psurf, x, xerr, pgr->getPlane()));
 
       // Insert hit into KHitGroup.
 

@@ -10,29 +10,32 @@
 /// (KTrack or KETrack) from its current surface to some destionation
 /// surface.
 ///
-/// This class supports three use cases.
+/// This class supports various use cases.
 ///
 /// 1.  Propagate without error (method vec_prop).
-/// 2.  Propagate with error, but without noise (method err_prop).
-/// 3.  Propagate with error and noise (method noise_prop).
+/// 2.  Linearized propagate without error (method lin_prop).
+/// 3.  Propagate with error, but without noise (method err_prop).
+/// 4.  Propagate with error and noise (method noise_prop).
 ///
-/// The second and third use cases are implemented locally within this
-/// class in terms of the first use case (propagate without error),
-/// which is defined by a single pure virtual method (vec_prop).
-/// Method vec_prop includes optional hooks for returning the
-/// propagation matrix and the noise matrix.  The propgation matrix
-/// and noise matrix provide enough information to update the track
-/// error matrix locally within this class.  Therefore, methods
-/// err_prop and noise_prop are not virtual.
+/// The second, third, and fourth use cases are implemented locally
+/// within this class in terms of the first use case (propagate
+/// without error), which is defined by a single pure virtual method,
+/// vec_prop.  Linearized propagation uses a linear approximation of
+/// the propagation function about some reference trajectory.  Method
+/// vec_prop includes optional hooks for returning the propagation
+/// matrix and the noise matrix.  The propgation matrix and noise
+/// matrix provide enough information to update the track error matrix
+/// locally within this class.  Therefore, methods err_prop and
+/// noise_prop are not virtual.
 ///
 /// All propagation methods update the surface and track state vector,
 /// provided the propagation is successful.  The error and noise
 /// propagation methods additionally update the track error matrix.
 ///
-/// Use case two (propagate with error, but without noise) updates the
+/// Use case three (propagate with error, but without noise) updates the
 /// track error matrix reversibly.
 ///
-/// Use case three (propagate with error and noise) adds irreversible
+/// Use case four (propagate with error and noise) adds irreversible
 /// propagation noise to the error matrix.
 ///
 /// All propagation methods allow the direction of propagation to be 
@@ -91,18 +94,28 @@ namespace trkf {
 
     // Error and noise propagation methods are not virtual.
 
+    /// Linearized propagate without error.
+    virtual boost::optional<double> lin_prop(KTrack& trk,
+					     const boost::shared_ptr<const Surface>& psurf, 
+					     PropDirection dir,
+					     bool doDedx,
+					     KTrack* ref = 0,
+					     TrackMatrix* prop_matrix = 0,
+					     TrackError* noise_matrix = 0) const;
     /// Propagate with error, but without noise.
     boost::optional<double> err_prop(KETrack& tre,
 				     const boost::shared_ptr<const Surface>& psurf, 
 				     PropDirection dir,
 				     bool doDedx,
+				     KTrack* ref = 0,
 				     TrackMatrix* prop_matrix = 0) const;
 
     /// Propagate with error and noise.
     boost::optional<double> noise_prop(KETrack& tre,
 				       const boost::shared_ptr<const Surface>& psurf, 
 				       PropDirection dir,
-				       bool doDedx) const;
+				       bool doDedx,
+				       KTrack* ref = 0) const;
 
     /// Method to calculate updated momentum due to dE/dx.
     boost::optional<double> dedx_prop(double pinv, double mass,

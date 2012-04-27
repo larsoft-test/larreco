@@ -12,6 +12,8 @@
 ///
 /// 1.  Measurement surface.
 /// 2.  Measurement plane index.
+/// 3.  Prediction surface.
+/// 4.  Prediction distance.
 ///
 /// This class has the following pure virtual methods.
 ///
@@ -69,6 +71,9 @@ namespace trkf {
     /// Predition surface.
     const boost::shared_ptr<const Surface>& getPredSurface() const {return fPredSurf;}
 
+    /// Prediction distance.
+    double getPredDistance() const {return fPredDist;}
+
     /// Measurement surface.
     const boost::shared_ptr<const Surface>& getMeasSurface() const {return fMeasSurf;}
 
@@ -81,7 +86,8 @@ namespace trkf {
     // Pure virtual methods.
 
     /// Prediction method (return false if fail).
-    virtual bool predict(const KETrack& tre, const Propagator* prop = 0) const = 0;
+    virtual bool predict(const KETrack& tre, const Propagator* prop = 0,
+			 const KTrack* ref = 0) const = 0;
 
     /// Return incremental chisquare.
     virtual double getChisq() const = 0;
@@ -97,6 +103,7 @@ namespace trkf {
   protected:
 
     mutable boost::shared_ptr<const Surface> fPredSurf;   ///< Prediction surface.
+    mutable double fPredDist;                             ///< Prediction distance.
 
   private:
 

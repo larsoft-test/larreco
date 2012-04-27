@@ -109,7 +109,8 @@ namespace trkf {
     // Overrides.
 
     /// Prediction method (return false if fail).
-    bool predict(const KETrack& tre, const Propagator* prop = 0) const;
+    bool predict(const KETrack& tre, const Propagator* prop = 0,
+		 const KTrack* ref = 0) const;
 
     /// Update track method.
     void update(KETrack& tre) const;

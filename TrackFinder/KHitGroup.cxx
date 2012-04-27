@@ -49,6 +49,7 @@ namespace trkf {
     // the common surface (pointer to same surface object).
     // Throw exception if the new surface doesn't match.
 
+    assert(hit->getMeasPlane() >= 0);
     if(fSurf.get() == 0) {
       fSurf = hit->getMeasSurface();
       fPlane = hit->getMeasPlane();
@@ -58,6 +59,7 @@ namespace trkf {
 	throw cet::exception("KHitGroup") << "Attempt to add non-matching measurement.\n";
       if(hit->getMeasPlane() != fPlane)
 	fPlane = -1;
+      assert(fPlane >= 0);
     }
 
     // Everything OK.  Add the measurement.

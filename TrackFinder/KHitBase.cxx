@@ -14,6 +14,7 @@ namespace trkf {
 
   /// Default Constructor.
   KHitBase::KHitBase() :
+    fPredDist(0.),
     fMeasPlane(-1)
   {}
 
@@ -24,6 +25,7 @@ namespace trkf {
   /// psurf - Measurement surface pointer.
   ///
   KHitBase::KHitBase(const boost::shared_ptr<const Surface>& psurf, int plane) :
+    fPredDist(0.),
     fMeasSurf(psurf),
     fMeasPlane(plane)
   {}
@@ -39,6 +41,10 @@ namespace trkf {
       out << "KHitBase:\n";
     out << "  Measurement Surface: " << *fMeasSurf << "\n";
     out << "  Measurement Plane: " << fMeasPlane << "\n";
+    if(fPredSurf.get() != 0) {
+      out << "  Prediction Surface: " << *fPredSurf << "\n";
+      out << "  Prediction Distance: " << fPredDist << "\n";
+    }
     return out;
   }
 
