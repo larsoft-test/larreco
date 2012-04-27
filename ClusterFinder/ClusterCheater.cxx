@@ -48,7 +48,7 @@ namespace cluster{
   {
     fHitModuleLabel    = pset.get< std::string >("HitModuleLabel",    "hit"     );
     fG4ModuleLabel     = pset.get< std::string >("G4ModuleLabel",     "largeant");
-    fHLAlg.reconfigure(pset);
+    fHLAlg.reconfigure(pset.get< fhicl::ParameterSet >("HoughLineAlg"));
 
     return;
   }
