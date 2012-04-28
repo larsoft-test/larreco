@@ -246,9 +246,19 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	  fKFAlg.setPlane(2);
 	  fKFAlg.setTrace(true);
 	  bool ok = fKFAlg.buildTrack(trk, trg, prop, Propagator::FORWARD, cont, 100.);
-	  if(ok)
-	    ok = fKFAlg.smoothTrack(trg, prop);
-	    fKFAlg.setTrace(false);
+	  if(ok) {
+	    KGTrack trg1;
+	    ok = fKFAlg.smoothTrack(trg, &trg1, prop);
+	    if(ok) {
+	      KGTrack trg2;
+	      ok = fKFAlg.smoothTrack(trg1, &trg2, prop);
+	      if(ok) {
+		KGTrack trg3;
+		ok = fKFAlg.smoothTrack(trg2, &trg3, prop);
+	      }
+	    }
+	  }
+	  fKFAlg.setTrace(false);
  	}
       }
     }

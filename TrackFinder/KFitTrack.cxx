@@ -92,7 +92,9 @@ namespace trkf {
     FitStatus stat2 = trf.getStat();
     FitStatus statu = UNKNOWN;
     if((stat1 == FORWARD && stat2 == BACKWARD_PREDICTED) ||
-       (stat1 == FORWARD_PREDICTED && stat2 == BACKWARD))
+       (stat1 == FORWARD_PREDICTED && stat2 == BACKWARD) ||
+       (stat1 == BACKWARD && stat2 == FORWARD_PREDICTED) ||
+       (stat1 == BACKWARD_PREDICTED && stat2 == FORWARD))
       statu = OPTIMAL;
     else if(stat1 == FORWARD_PREDICTED && stat2 == BACKWARD_PREDICTED)
       statu = OPTIMAL_PREDICTED;

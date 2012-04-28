@@ -9,7 +9,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "TrackFinder/KalmanFilterAlg.h"
-#include "TrackFinder/KHitMulti.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "cetlib/exception.h"
 
@@ -100,10 +99,12 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
   KETrack tre(trk, fErr);
   KFitTrack trf(tre, path, tchisq);
 
-  // Make a composite hit for the seed measurement.
+  // Also use the starting track as the reference track for linearized
+  // propagation, until the track is established with reasonably small
+  // errors.
 
-  bool doseed = true;   // Set this to false after seed measurement is closed.
-  boost::shared_ptr<KHitMulti> mhit(new KHitMulti(trk.getSurface()));
+  KTrack ref(trk);
+  KTrack* pref = &ref;
 
   mf::LogInfo log("KalmanFilterAlg");
 
@@ -136,16 +137,16 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
     }
 
     // Propagate track to the surface of the KHitGroup.  However, skip
-    // propagation if a preferred plane has been set and KHitGroup
-    // also has a preferred plane set, or if the seed measurement has
-    // not been closed.
+    // propagation if a preferred plane has been set and KHitGroup has
+    // a different plane set, or if the seed measurement has not been
+    // closed.
 
     double preddist = 0.;
     boost::optional<double> dist(true, 0.);
     assert(gr.getPlane() >= 0);
-    if(!doseed && (fPlane < 0 || gr.getPlane() < 0 || fPlane == gr.getPlane())) {
+    if(fPlane < 0 || gr.getPlane() < 0 || fPlane == gr.getPlane()) {
       boost::shared_ptr<const Surface> psurf = gr.getSurface();
-      dist = prop->noise_prop(trf, psurf, Propagator::UNKNOWN, true);
+      dist = prop->noise_prop(trf, psurf, Propagator::UNKNOWN, true, pref);
     }
     if(!!dist) {
 
@@ -202,61 +203,27 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
       // fit information.
 
       if(best_hit.get() != 0 && best_chisq < maxChisq) {
-	if(doseed) {
-
-	  // Update seed measurement.
-
-	  mhit->addMeas(best_hit);
-
-	  // Do predition + update using seed measurement.
-
-	  trf = KFitTrack(tre, path, tchisq);
-	  mhit->predict(trf, prop);
-	  mhit->update(trf);
-	  tchisq = mhit->getChisq();
-	  trf.setChisq(tchisq);
-	  if(dir == Propagator::FORWARD)
-	    trf.setStat(KFitTrack::FORWARD);
-	  else {
-	    assert(dir == Propagator::BACKWARD);
-	    trf.setStat(KFitTrack::BACKWARD);
-	  }
-
-	  if(fTrace) {
-	    log << "Seed track after update\n";
-	    log << "KHitMulti has " << mhit->getMeasDim() << " hits.\n";
-	    log << trf;
-	  }
-
-	  // Decide if seed measurement should be closed.
-
-	  if(mhit->getMeasDim() >= 30) {
-	    doseed = false;
-
-	    // Make a KHitTrack and add it to the KGTrack.
-
-	    KHitTrack trh(trf, mhit);
-	    trg.addTrack(trh);
-	  }
-	}
+	best_hit->update(trf);
+	tchisq += best_chisq;
+	trf.setChisq(tchisq);
+	if(dir == Propagator::FORWARD)
+	  trf.setStat(KFitTrack::FORWARD);
 	else {
+	  assert(dir == Propagator::BACKWARD);
+	  trf.setStat(KFitTrack::BACKWARD);
+	}
 
-	  // Add single measurement to track.
+	// Make a KHitTrack and add it to the KGTrack.
 
-	  best_hit->update(trf);
-	  tchisq += best_chisq;
-	  trf.setChisq(tchisq);
-	  if(dir == Propagator::FORWARD)
-	    trf.setStat(KFitTrack::FORWARD);
-	  else {
-	    assert(dir == Propagator::BACKWARD);
-	    trf.setStat(KFitTrack::BACKWARD);
-	  }
+	KHitTrack trh(trf, best_hit);
+	trg.addTrack(trh);
 
-	  // Make a KHitTrack and add it to the KGTrack.
+	// Decide if we want to kill the reference track.
 
-	  KHitTrack trh(trf, best_hit);
-	  trg.addTrack(trh);
+	if(trg.getTrackMap().size() >= 30) {
+	  pref = 0;
+	  if(fTrace)
+	    log << "Killing reference track.\n";
 	}
 
 	if(fTrace) {
@@ -300,6 +267,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 /// Arguments:
 ///
 /// trg  - Track to be smoothed.
+/// trg1 - Track to receive result of unidirectional fit.
 /// prop - Propagator.
 ///
 /// Returns: True if success.
@@ -309,6 +277,11 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 /// end.  It is an error if the fit status is not optimal at either
 /// end.  If the fit status is optimal at both ends, do nothing, but
 /// return success.
+///
+/// If the second argument is non-null, save the result of the
+/// unidirectional track fit produced as a byproduct of the smoothing
+/// operation.  This track can be smoothed in order to iterate the
+/// Kalman fit, etc.
 ///
 /// The Kalman smoothing algorithm starts at the optimal end and fits
 /// the track in the reverse direction, calculating optimal track
@@ -323,6 +296,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 /// an undefined state.
 ///
 bool trkf::KalmanFilterAlg::smoothTrack(KGTrack& trg,
+					KGTrack* trg1,
 					const Propagator* prop)
 {
   assert(prop != 0);
@@ -425,6 +399,7 @@ bool trkf::KalmanFilterAlg::smoothTrack(KGTrack& trg,
 
       // Loop starts here.
 
+      result = true;             // Result success unless we find an error.
       int step = 0;              // Step count.
       while(dofit && it != itend) {
 	++step;
@@ -513,8 +488,7 @@ bool trkf::KalmanFilterAlg::smoothTrack(KGTrack& trg,
 	    }
 	  }
 
-	  // Update measurement predction using current track hypothesis and get
-	  // incremental chisquare.
+	  // Update measurement predction using current track hypothesis.
 
 	  bool ok = hit.predict(trf, prop, &ref);
 	  if(!ok) {
@@ -549,6 +523,14 @@ bool trkf::KalmanFilterAlg::smoothTrack(KGTrack& trg,
 	      log << "Reverse fit track after update:\n";
 	      log << trf;
 	    }
+
+	    // If unidirectional track pointer is not null, make a
+	    // KHitTrack and save it in the unidirectional track.
+
+	    if(trg1 != 0) {
+	      KHitTrack trh1(trf, trh.getHit());
+	      trg1->addTrack(trh1);
+	    }
 	  }
 	}
 
@@ -558,6 +540,19 @@ bool trkf::KalmanFilterAlg::smoothTrack(KGTrack& trg,
 	  ++it;
 
       }    // Loop over KHitTracks.
+
+      // If fit was successful and the unidirectional track pointer
+      // is not null, set the fit status of the last added KHitTrack
+      // to optimal.
+
+      if(result && trg1 != 0) {
+	if(dir == Propagator::FORWARD)
+	  trg1->endTrack().setStat(KFitTrack::OPTIMAL);
+	else {
+	  assert(dir == Propagator::BACKWARD);
+	  trg1->startTrack().setStat(KFitTrack::OPTIMAL);
+	}
+      }
     }      // Do fit.
   }        // KGTrack valid.
 

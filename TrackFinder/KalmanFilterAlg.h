@@ -53,6 +53,7 @@ namespace trkf {
 
     /// Smooth track.
     bool smoothTrack(KGTrack& trg,                         // Global track to be smoothed.
+		     KGTrack* trg1,                        // Result of unidirectional fit.
 		     const Propagator* prop);              // Propagator.
 
   private:
