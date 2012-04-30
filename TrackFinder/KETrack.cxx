@@ -63,6 +63,21 @@ namespace trkf {
   KETrack::~KETrack()
   {}
 
+  /// Calculate track pointing error (sigma, in radians).
+  ///
+  /// This method calculates a single pointing error (sigma, in
+  /// radians) based on the track parameters and error matrix.  The
+  /// actual calculation is done by the similarly names method of the
+  /// surface class, since this class doesn't know what the track
+  /// parameters mean.
+  ///
+  double KETrack::PointingError() const
+  {
+    if(!isValid())
+      throw cet::exception("KETrack") << "Pointing error requested for invalid track.\n";
+    return getSurface()->PointingError(getVector(), fErr);
+  }
+
   /// Combine two tracks.
   ///
   /// Arguments:
@@ -211,6 +226,7 @@ namespace trkf {
       }
     }
     out << "]\n";
+    out << "  Pointing error = " << PointingError() << "\n";
     return out;
   }
 

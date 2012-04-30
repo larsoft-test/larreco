@@ -50,7 +50,7 @@ namespace trkf {
     // Accessor.
 
     /// Measurement.
-    const boost::shared_ptr<const KHitBase>& getHit() {return fHit;}
+    const boost::shared_ptr<const KHitBase>& getHit() const {return fHit;}
 
     // Modifiers.
 

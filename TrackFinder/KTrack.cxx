@@ -8,6 +8,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////
 
+#include <cmath>
 #include "TrackFinder/KTrack.h"
 #include "cetlib/exception.h"
 
@@ -125,6 +126,39 @@ namespace trkf {
     fSurf->getPosition(fVec, xyz);
   }
 
+  /// Get x-latitude.
+  ///
+  /// The x-latitude is the latitude defined with respect to the
+  /// x-axis.  The x-latitude is zero of the track is traveling
+  /// parallel to the wire planes.
+  ///
+  double KTrack::XLatitude() const
+  {
+    double mom[3];
+    getMomentum(mom);
+    double ptx = std::sqrt(mom[1]*mom[1] + mom[2]*mom[2]);
+    double result = 0.;
+    if(ptx > 0. || mom[0] > 0.)
+      result = atan2(ptx, mom[0]);
+    return result;
+  }
+
+  /// Get x-longitude.
+  ///
+  /// The x-longitude is the longitude defined with respect to the y-
+  /// and z-axes.  The x-longitude is zero of the track is parallel to
+  /// the z-axis in the yz-plane.
+  ///
+  double KTrack::XLongitude() const
+  {
+    double mom[3];
+    getMomentum(mom);
+    double result = 0.;
+    if(mom[1] != 0. || mom[2] != 0.)
+      result = atan2(mom[1], mom[2]);
+    return result;
+  }
+
   /// Get momentum vector of track.
   /// Throw an exception if track is not valid.
   ///
@@ -159,6 +193,8 @@ namespace trkf {
       out << fVec(i);
     }
     out << "]\n";
+    out << "  X-Latitude  = " << XLatitude() << "\n";
+    out << "  X-Longitude = " << XLongitude() << "\n";
     return out;
   }
 

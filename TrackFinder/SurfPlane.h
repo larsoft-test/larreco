@@ -10,7 +10,7 @@
 /// (base class Surface), and concrete planar surfaces (like
 /// SurfYZPlane and SurfXYZPlane).  It does not include any attributes
 /// or methods of its own.  However, it guarantees the existence of a
-/// local Cartesian coordinate system (u,v,w), in which this place is
+/// local Cartesian coordinate system (u,v,w), in which this plane is
 /// located at w=0, and the track parameters are (u, v, du/dw, dv/dw,
 /// q/p).  This class does not specify how the local Cartesian
 /// coordinate system is related to the global coordinate system.
@@ -34,6 +34,11 @@ namespace trkf {
 
     /// Destructor.
     virtual ~SurfPlane();
+
+    // Overrides.
+
+    /// Get pointing error of track.
+    double PointingError(const TrackVector& vec, const TrackError& err) const;
   };
 }
 

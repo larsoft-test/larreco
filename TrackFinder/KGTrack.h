@@ -68,6 +68,9 @@ namespace trkf {
     /// Add track.
     void addTrack(const KHitTrack& trh);
 
+    /// Recalibrate track map.
+    void recalibrate();
+
     /// Clear track collection.
     void clear() {fTrackMap.clear();}
 

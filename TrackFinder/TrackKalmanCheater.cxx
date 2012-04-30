@@ -244,7 +244,7 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 
 	  KGTrack trg;
 	  fKFAlg.setPlane(2);
-	  fKFAlg.setTrace(true);
+	  //fKFAlg.setTrace(true);
 	  bool ok = fKFAlg.buildTrack(trk, trg, prop, Propagator::FORWARD, cont, 100.);
 	  if(ok) {
 	    KGTrack trg1;
@@ -255,10 +255,22 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	      if(ok) {
 		KGTrack trg3;
 		ok = fKFAlg.smoothTrack(trg2, &trg3, prop);
+		if(ok) {
+		  KGTrack trg4;
+		  ok = fKFAlg.smoothTrack(trg3, &trg4, prop);
+		  if(ok) {
+		    KGTrack trg5;
+		    ok = fKFAlg.smoothTrack(trg4, &trg5, prop);
+		  }
+		}
 	      }
 	    }
 	  }
-	  fKFAlg.setTrace(false);
+	  if(ok)
+	    log << "Build track succeeded.\n";
+	  else
+	    log << "Build track failed.\n";
+	  //fKFAlg.setTrace(false);
  	}
       }
     }

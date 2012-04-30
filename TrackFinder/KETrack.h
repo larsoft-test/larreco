@@ -52,6 +52,7 @@ namespace trkf {
     // Accessors.
 
     const TrackError& getError() const {return fErr;}      ///< Track error matrix.
+    double PointingError() const;                          ///< Pointing error (radians).
 
     // Modifiers.
 

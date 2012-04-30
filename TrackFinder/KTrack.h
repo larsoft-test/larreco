@@ -75,6 +75,12 @@ namespace trkf {
     /// Get momentum vector of track.
     void getMomentum(double mom[3]) const;
 
+    /// Get x-latitude.
+    double XLatitude() const;
+
+    /// Get x-longitude.
+    double XLongitude() const;
+
     /// Printout
     virtual std::ostream& Print(std::ostream& out, bool doTitle = true) const;
 

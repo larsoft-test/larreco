@@ -83,6 +83,9 @@ namespace trkf {
     virtual void getMomentum(const TrackVector& vec, double mom[3], 
 			     TrackDirection dir=UNKNOWN) const = 0;
 
+    /// Get pointing error of track.
+    virtual double PointingError(const TrackVector& vec, const TrackError& err) const = 0;
+
     /// Test whether two surfaces are parallel, within tolerance.
     virtual bool isParallel(const Surface& surf) const = 0;
 
