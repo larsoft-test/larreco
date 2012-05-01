@@ -71,6 +71,7 @@ namespace trkf {
     double fMaxJumpDistance;
     int fTrackMode;
     double fHitDistance;
+    bool fProcessHits;
 
     int fTopTrackID;
 

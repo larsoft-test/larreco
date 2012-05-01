@@ -85,6 +85,23 @@ namespace trkf {
     
 
 
+
+  void BezierTrack::FillTrajectoryVectors()
+  {
+    double Pt[3], Dir[3], ErrPt[3], ErrDir[3];
+    for(std::vector<recob::Seed*>::const_iterator it=fSeedCollection.begin();
+	it!=fSeedCollection.end(); ++it)
+      {
+	(*it)->GetPoint(Pt,ErrPt);
+	(*it)->GetDirection(Dir, ErrDir);
+	TVector3 Point(Pt[0],Pt[1],Pt[2]);
+	TVector3 Direction(Dir[0],Dir[1],Dir[2]);
+	fXYZ.push_back(Point);
+	fDir.push_back(Direction);
+      }
+  }
+
+
   //----------------------------------------------------------------------
   // Calculate the lengths of each bezier segment and fill useful 
   // calculational data members
@@ -105,6 +122,11 @@ namespace trkf {
 	    return;
 	  }
       }
+    if(NSegments()==0)
+      {
+	if(!fSeedCollection.size()!=0) FillTrajectoryVectors();
+      }
+    
     std::cout<<"Loading bezier track with ID "<<  ID()<<std::endl;
     BezierCurveHelper bhlp(100);
     
@@ -134,11 +156,27 @@ namespace trkf {
   //
   void BezierTrack::GetTrackPoint(double s, double * xyz) const
   {
-    if((s>1)||(s<0))
+    if((s>=1)||(s<=0))
       {
 	// catch these easy floating point errors
-	if((s>1)&&(s<1.00001)) s=0.9999;
-	else if((s<0)&&(s>-0.00001)) s=0.0001;
+	if((s>0.9999)&&(s<1.00001)) 
+	  {
+	    TVector3 End1 = fXYZ.at(fXYZ.size()-1);
+	    xyz[0]=End1[0];
+	    xyz[1]=End1[1];
+	    xyz[2]=End1[2];
+	    
+	    return;
+	  }
+	else if((s<0.0001)&&(s>-0.00001))
+	  {
+	    TVector3 End0 = fXYZ.at(0);
+	    xyz[0]=End0[0];
+	    xyz[1]=End0[1];
+	    xyz[2]=End0[2];
+	    
+	    return;
+	  }
 	
 	// otherwise complain about the mistake
 	else
@@ -730,10 +768,11 @@ namespace trkf {
     int ReturnVal=-1;
     for(size_t i=0; i!=fCumulativeLength.size()-1; i++)
       {
-	if( (fCumulativeLength.at(i)/fTrackLength < s)
-	    &&(fCumulativeLength.at(i+1)/fTrackLength > s))
+	if( (fCumulativeLength.at(i)/fTrackLength <= s)
+	    &&(fCumulativeLength.at(i+1)/fTrackLength >= s))
 	  ReturnVal=i;
       }
+    if( ( s<(fCumulativeLength.at(0)/fTrackLength)) && (s>-0.0001)) ReturnVal=0;
     return ReturnVal;
   }
 
@@ -777,32 +816,83 @@ namespace trkf {
       }
 
   }
-  /*
-// Walk off end of track looking for new hits to add in
-  recob::Seed StretchTrackEnds(art::PtrVector<recob::Hit>, double HitsPerCm, double HitDistance)
+
+
+  recob::Track BezierTrack::GetJoinedBaseTrack(BezierTrack * Other)
   {
-  recob::Seed * TopSeed = fSeedCollection.at(fSeedCollection.size());
-  recob::Seed * TopSeed = fSeedCollection.at(fSeedCollection.size()-1);
   
-  TVector3 EndPoint, EndDir;
+    std::vector<TVector3> XYZ = fXYZ;
+    std::vector<TVector3> Dir = fDir;
+    std::vector<std::vector<double> > dQdx = fdQdx;
   
-  EndPoint = GetTrackPointV(0.99);
-  EndDir =   GetTrackDirectionV(0.99);
-  
-  
-  
-}
-
-  }
-
-
-  recob::Seed ReachOutLow(art::PtrVector<Hit>, double Length)
-  {
+    if((dQdx.size()!=Other->fdQdx.size()))
+      {
+	throw cet::exception("BezierTrack combination error ")<<
+	  "Two vectors do not share the same dQdx vector size" <<
+	  dQdx.size()<<", "<< Other->fdQdx.size()<<std::endl;
+      }
     
-
-
+    XYZ.insert(XYZ.end(), Other->fXYZ.begin(), Other->fXYZ.end());  
+    Dir.insert(Dir.end(), Other->fDir.begin(), Other->fDir.end());
+    for(size_t i=0; i!=dQdx.size(); i++)
+      dQdx.at(i).insert(dQdx.at(i).end(), Other->fdQdx.at(i).begin(), Other->fdQdx.at(i).end());
+    
+    return recob::Track(XYZ,Dir,dQdx);
+    
   }
-  */
+
+
+  recob::Track BezierTrack::GetJoinedPartBaseTrack(BezierTrack * Other, int mybegin, int myend, int theirbegin, int theirend)
+  {
+  
+    std::vector<TVector3> XYZ ;
+    std::vector<TVector3> Dir ;
+    std::vector<std::vector<double> > dQdx ;
+    
+    dQdx.resize(fdQdx.size());
+
+    if((dQdx.size()!=Other->fdQdx.size()))
+      {
+	throw cet::exception("BezierTrack combination error ")<<
+	  "Two vectors do not share the same dQdx vector size" <<
+	  dQdx.size()<<", "<< Other->fdQdx.size()<<std::endl;
+      }
+  
+    
+    XYZ.insert(XYZ.end(), fXYZ.begin()+mybegin, fXYZ.begin()+myend);
+    Dir.insert(Dir.end(), fDir.begin()+mybegin, fDir.begin()+myend);
+    for(size_t i=0; i!=dQdx.size(); i++)
+      dQdx.at(i).insert(dQdx.at(i).end(), fdQdx.at(i).begin()+mybegin, fdQdx.at(i).begin()+myend);
+    
+    XYZ.insert(XYZ.end(), Other->fXYZ.begin()+theirbegin, Other->fXYZ.begin()+theirend);  
+    Dir.insert(Dir.end(), Other->fDir.begin()+theirbegin, Other->fDir.begin()+theirend);
+    for(size_t i=0; i!=dQdx.size(); i++)
+      dQdx.at(i).insert(dQdx.at(i).end(), Other->fdQdx.at(i).begin()+theirbegin, Other->fdQdx.at(i).end()+theirend);
+    
+    return recob::Track(XYZ,Dir,dQdx);
+    
+  }
+
+
+  recob::Track BezierTrack::GetReverseBaseTrack()
+  {
+    std::vector<TVector3> XYZ = fXYZ;
+    std::vector<TVector3> Dir = fDir;
+    std::vector<std::vector<double> > dQdx = fdQdx;
+    
+    for(size_t i=0; i!=dQdx.size(); i++)      
+      reverse(dQdx.at(i).begin(), dQdx.at(i).end());
+
+    reverse(XYZ.begin(), XYZ.end());
+    reverse(Dir.begin(), Dir.end());
+
+    // flip trajectory points
+    for(size_t i=0; i!=Dir.size(); i++) Dir[i]=-Dir[i];
+
+    recob::Track TheTrack(XYZ, Dir, dQdx);
+    TheTrack.SetID(ID());
+    return TheTrack;
+  }
 }
 
 

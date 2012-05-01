@@ -142,8 +142,20 @@ namespace trkf {
 	
 	fNHitsU=fNHitsV=fNHitsW=fNHits=0;
 	fAverageS = fAverageDistance = 0;
+	
+	std::vector<double> SVals; std::vector<double> DVals;
+	BTracks.at(i).GetClosestApproaches(hits, SVals, DVals);
 
-	 
+	for(size_t j=0; j!=SVals.size();++j)
+	  {
+	    fhHitS->Fill(SVals.at(j));
+	    fhHitDistance->Fill(DVals.at(j));
+	    
+	    fAverageS+=SVals.at(j);
+	    fAverageDistance+=DVals.at(j);
+
+	  }
+	/*
 	for(art::PtrVector<recob::Hit>::const_iterator it=hits.begin();
 	    it!=hits.end(); ++it)
 	  {
@@ -153,38 +165,33 @@ namespace trkf {
 	    if((*it)->View()==geo::kW) fNHitsW++;
 	    double HitDistance, S;
 	    
-	    BTracks.at(i).GetClosestApproach(*it, S, HitDistance);
 	    
-	    fhHitS->Fill(S);
-	    fhHitDistance->Fill(HitDistance);
-	    
-	    fAverageS+=S;
-	    fAverageDistance+=HitDistance;
+	   
 	  }
-	
+	*/
 	int jDivs = 100;
 	for(int j=1; j!=jDivs-1; j++)
 	  {
 	    float Point = float(j)/jDivs + 0.001;
 	    std::cout<<"btrkana" << Point<< " " << BTracks.at(i).GetCurvature(float(j)/jDivs)<<std::endl;
-	    fhdQdxU->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kU));
-	    fhdQdxV->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kV));
-	    fhdQdxW->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kW));
-	    fhdQdxVW->Fill( BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kW), BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kV));
+	    //	    fhdQdxU->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kU));
+	    //	    fhdQdxV->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kV));
+	    //	    fhdQdxW->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kW));
+	    //	    fhdQdxVW->Fill( BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kW), BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kV));
 	    fhCurv->Fill(  Point, BTracks.at(i).GetCurvature(float(j)/jDivs));
 			 
 	  }
 	
-	fAverageS        /= fNHits;
-	fAverageDistance /= fNHits;
+	//	fAverageS        /= fNHits;
+	//fAverageDistance /= fNHits;
 	
-	fdQdxU = BTracks.at(i).GetViewdQdx(geo::kU);
-  	fdQdxV = BTracks.at(i).GetViewdQdx(geo::kV);
-  	fdQdxW = BTracks.at(i).GetViewdQdx(geo::kW);
+	//	fdQdxU = BTracks.at(i).GetViewdQdx(geo::kU);
+	// 	fdQdxV = BTracks.at(i).GetViewdQdx(geo::kV);
+	// 	fdQdxW = BTracks.at(i).GetViewdQdx(geo::kW);
 
-  	fChargeU = BTracks.at(i).GetTotalCharge(geo::kU);
-  	fChargeV = BTracks.at(i).GetTotalCharge(geo::kV);
-  	fChargeW = BTracks.at(i).GetTotalCharge(geo::kW);
+	//  	fChargeU = BTracks.at(i).GetTotalCharge(geo::kU);
+	//	fChargeV = BTracks.at(i).GetTotalCharge(geo::kV);
+	//	fChargeW = BTracks.at(i).GetTotalCharge(geo::kW);
 	
   	fSegments = BTracks.at(i).NSegments();
 	

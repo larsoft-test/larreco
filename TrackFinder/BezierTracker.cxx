@@ -47,6 +47,8 @@ namespace trkf {
     fMaxJumpDistance   = pset.get<double>("MaxJumpDistance");
     fHitDistance       = pset.get<double>("HitDistance");
     fTrackMode         = pset.get<double>("TrackMode");
+    fProcessHits       = pset.get<bool>("ProcessHits");
+
     
     if((fTrackMode==2)||(fTrackMode==3)); 
       {
@@ -113,26 +115,29 @@ namespace trkf {
 	    //  and build a BezierTrack on top of it.
 	    
 	    BezierTrack *BTrack = ProduceTrackFromSeeds(OrgSeeds.at(i));
-	    
+
+	    art::PtrVector<recob::Hit> HitsToAssoc;	  
+
 	    // Collect hits in the vicinity of this track
+	    if(fProcessHits)
+	      {   
+		std::cout<<"Determining nearby hits for bezier track"<<std::endl;
+		std::vector<double> SValues;
+		std::vector<int> HitIDs = DetermineNearbyHits(HitVec, BTrack, fHitDistance, SValues);
+				
+		std::cout<<"Finding hits "<<std::endl;
+		std::vector<double> SValuesFordQdx;
+		for(size_t i=0; i!=HitIDs.size(); i++)
+		  {
+		    SValuesFordQdx.push_back(SValues.at(i));
+		    UsedHitIDs[HitIDs.at(i)]=true;
+		    HitsToAssoc.push_back(HitVec.at(HitIDs.at(i)));
+		  }
 	    
-	    std::cout<<"Determining nearby hits for bezier track"<<std::endl;
-	    std::vector<double> SValues;
-	    std::vector<int> HitIDs = DetermineNearbyHits(HitVec, BTrack, fHitDistance, SValues);
-	    art::PtrVector<recob::Hit> HitsToAssoc;	
-	    
-	    std::cout<<"Finding hits "<<std::endl;
-	    std::vector<double> SValuesFordQdx;
-	    for(size_t i=0; i!=HitIDs.size(); i++)
-	      {
-		SValuesFordQdx.push_back(SValues.at(i));
-		UsedHitIDs[HitIDs.at(i)]=true;
-		HitsToAssoc.push_back(HitVec.at(HitIDs.at(i)));
+		// Using the hits, fill in dQdx in the track
+		std::cout<<"Calculating dQdx"<<std::endl;
+		BTrack->CalculatedQdx(HitsToAssoc,SValuesFordQdx);
 	      }
-	    
-	    // Using the hits, fill in dQdx in the track
-	    std::cout<<"Calculating dQdx"<<std::endl;
-	    BTrack->CalculatedQdx(HitsToAssoc,SValuesFordQdx);
 	    BTrack->FillMySpacePoints(1000);
 	    
 	    //Put the base object into the auto_ptr and make associations
@@ -204,10 +209,12 @@ namespace trkf {
 		BezierTrack *BTrack = ProduceTrackFromSeeds(OrgSeeds.at(i));
 		
 		// Collect hits in the vicinity of this track
+
+		art::PtrVector<recob::Hit> HitsToAssoc;	
+	
 		std::vector<double> SValues;
 		std::vector<int> HitIDs = DetermineNearbyHits(HitsToProcess, BTrack, fHitDistance, SValues);
-	   
-		art::PtrVector<recob::Hit> HitsToAssoc;	
+		
 		HitsToAssoc.clear();
 		std::cout<<"seeking hits for associations"<<std::endl;
 		std::vector<double> SValuesFordQdx;
@@ -217,18 +224,24 @@ namespace trkf {
 		    HitsToAssoc.push_back(HitsToProcess.at(HitIDs.at(i)));
 		    SValuesFordQdx.push_back(SValues.at(i));
 		  }
-		
-		HitsForBTracks.push_back(HitsToAssoc);
+		 
 	    
 		// Using the hits, make SPs and fill dQdx in the track
 		std::cout<<"filling spacepoints"<<std::endl;
-		BTrack->FillMySpacePoints(100);
+		
 		std::cout<<"Calulating dqdx"<<std::endl;
-		BTrack->CalculatedQdx(HitsToAssoc,SValuesFordQdx);
-	    
+		if(fProcessHits)
+		  BTrack->CalculatedQdx(HitsToAssoc,SValuesFordQdx);	
+		
+		BTrack->FillMySpacePoints(100);
+		
+		if(fProcessHits)
+		  HitsForBTracks.push_back(HitsToAssoc);
+		else
+		  HitsForBTracks.push_back(art::PtrVector<recob::Hit>());
 		//Put the base object into a vector for storage later
 		TracksToStore.push_back(BTrack); 
-			
+		
 		// Remove the hits we used from the vector and go around
 		std::cout<<"Removing used hits"<<std::endl;
 		for(int  i=HitIDs.size()-1; i!=-1; --i)
@@ -244,8 +257,20 @@ namespace trkf {
 	// Associate hits to the tracks we found
 	for(size_t i=0; i!=TracksToStore.size(); i++)
 	  {
-	    recob::Track TheTrack = TracksToStore.at(i)->GetBaseTrack();
+	    recob::Track TheTrack;
+
+	    // if track points high to low z, flip it
+	    if(TracksToStore.at(i)->GetTrackPointV(0.99)[2]<TracksToStore.at(i)->GetTrackPointV(0.01)[2])
+	      {
+		std::cout<<"Bezier tracker reversing track direction" << std::endl;
+		TheTrack = TracksToStore.at(i)->GetReverseBaseTrack();
+	      }
+	    else 
+	      TheTrack = TracksToStore.at(i)->GetBaseTrack();
+	    
+
 	    TheTrack.SetID(TracksToStore.at(i)->ID());
+	    
 	    btracks->push_back(TheTrack);
 	    util::CreateAssn(*this, evt, *(btracks.get()), HitsForBTracks.at(i), *(assn.get())); 
 	  }
@@ -255,109 +280,6 @@ namespace trkf {
 	  }
 
       }
-
-    else if(fTrackMode==3)
-      {
-	std::cout<<"Ready to try to do iterative tracking"<<std::endl;
-
-	art::PtrVector<recob::Hit> HitsToProcess = HitVec;
-
-	std::vector<recob::Seed*> AllTheSeeds;
-
-	bool KeepTrying=true;
-	while(KeepTrying)
-	  {
-	    
-	    // Make remaining hits into SPs
-	    std::vector<recob::SpacePoint> SPVec = 
-	      fTheSeedFinder->GetSpacePointsFromHitVector(HitsToProcess);
-	    
-	    std::vector<std::vector<recob::SpacePoint> > SPUsed;
-
-	    // Find seeds in these SPs
-	    std::vector<recob::Seed*> TrackSeeds = fTheSeedFinder->FindAsManySeedsAsPossible(SPVec, SPUsed);
-	    std::cout<<"Filling vector"<<std::endl;
-	    AllTheSeeds.insert(AllTheSeeds.end(), TrackSeeds.begin(), TrackSeeds.end());
-	    
-	   
-	    // Organize these seeds into tracklike collections
-	    std::vector<std::vector<recob::Seed* > > OrgSeeds = OrganizeSeedsIntoTracks(TrackSeeds);
-	    
-	    // If we didn't find any, continue and quit
-	    if(OrgSeeds.size()==0) 
-	      {
-		KeepTrying=false;
-		continue;
-	      }
-
-	    // For each of them make 1 track
-	    for(unsigned int i=0; i!=OrgSeeds.size(); i++)
-	      {
-		    
-		// Make a base track using seed positions and directions
-		//  and build a BezierTrack on top of it.		
-		BezierTrack *BTrack = ProduceTrackFromSeeds(OrgSeeds.at(i));
-		
-		// Collect hits in the vicinity of this track	    
-		std::vector<double> SValues;
-		std::vector<int> HitIDs = DetermineNearbyHits(HitsToProcess, BTrack, fHitDistance, SValues);
-	   
-		// Remove the hits we used from the vector and go around
-		for(int  i=HitIDs.size()-1; i!=-1; --i)
-		  {
-		    HitsToProcess.erase(HitsToProcess.begin() + HitIDs.at(i));
-		  }
-		if(HitsToProcess.size()<3) KeepTrying=false;
-		delete BTrack;
-		
-	      }    
-	  }
-	std::cout<<"Produced all seeds"<<std::endl;
-
-	// Now we have fully seeded, try to make best tracks we can
-
-	std::vector<std::vector<recob::Seed* > > OrgSeeds = OrganizeSeedsIntoTracks(AllTheSeeds);
-	
-	// Loop through track candidate seed collections
-	for(unsigned int i=0; i!=OrgSeeds.size(); i++)
-	  {
-	    // Make a base track using seed positions and directions
-	    //  and build a BezierTrack on top of it.
-	    BezierTrack *BTrack = ProduceTrackFromSeeds(OrgSeeds.at(i));
-	    
-	    // Collect hits in the vicinity of this track
-	    std::vector<double> SValues;
-	    std::vector<int> HitIDs = DetermineNearbyHits(HitVec, BTrack, fHitDistance,SValues);
-	    art::PtrVector<recob::Hit> HitsToAssoc;	
-	    
-	    std::vector<double> SValuesFordQdx;
-	    for(size_t i=0; i!=HitIDs.size(); i++)
-	      {
-		SValuesFordQdx.push_back(SValues.at(i));
-		HitsToAssoc.push_back(HitVec.at(HitIDs.at(i)));
-	      }
-	    
-	    // Using the hits, fill in dQdx in the track
-	    std::cout<<"Calculating dQdx"<<std::endl;
-	    BTrack->CalculatedQdx(HitsToAssoc,SValuesFordQdx);
-	    BTrack->FillMySpacePoints(1000);
-	    
-	    //Put the base object into the auto_ptr and make associations
-	    recob::Track TheTrack = BTrack->GetBaseTrack();
-	 
-	    btracks->push_back(TheTrack);
-	    
-	    util::CreateAssn(*this, evt, *(btracks.get()), HitsToAssoc, *(assn.get())); 
-	    
-	  }
-	for(size_t i=0; i!=HitsToProcess.size(); i++)
-	  {
-	    leftovers->push_back(*HitsToProcess.at(i));
-	  }
-
-      }
-
-
 
 
     // Store the fruits of our labour in the event
@@ -384,7 +306,7 @@ namespace trkf {
       {
 	Seeds.at(i)->GetPoint(     pt,  dummy );
 	Seeds.at(i)->GetDirection( dir, dummy );
-
+	/*
 	if(i==0)  // put in beginning seed
 	  {
 	    double ExtraPoint[3];
@@ -396,13 +318,13 @@ namespace trkf {
 	    Pos.push_back(ThisPos);
 	    Dir.push_back(ThisDir);
 	  }
-	
+	*/
 	TVector3 ThisPos(pt[0],  pt[1],  pt[2]  );
 	TVector3 ThisDir(dir[0], dir[1], dir[2] );
 
 	Pos.push_back(ThisPos);
 	Dir.push_back(ThisDir);
-
+	/*
 	if(i==Seeds.size()-1)  // put in end seed
 	  {
 	    double ExtraPoint[3];
@@ -414,7 +336,7 @@ namespace trkf {
 	    Pos.push_back(ThisPos);
 	    Dir.push_back(ThisDir);
 	  }
-
+	*/
       }
     BezierTrack * TheTrack = new BezierTrack(Pos,Dir,dQdx);
     TheTrack->SetID(fTopTrackID++);
@@ -452,7 +374,7 @@ namespace trkf {
 	Pos.push_back(ThisPos);
 	Dir.push_back(ThisDir);
 
-	if(i==Seeds.size()-1)  // put in end seed
+	if(i==(Seeds.size()-1))  // put in end seed
 	  {
 	    double ExtraPoint[3];
 	    for(int j=0; j!=3; ++j)
@@ -517,12 +439,12 @@ namespace trkf {
 	    
             // Does this seed fit with this track?
 	    double SeedPos[3],Err[3];
-	    float Angle = ThisSeed->GetAngle(*LastSeedAdded);
-	    float ProjDis = ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded);
 	    ThisSeed->GetPoint(SeedPos,Err);
-	    
-	    std::cout<<"BezierTracker: " << Angle << " " << ProjDis << "  for seed : "; 
-	    std::cout<<double(SeedPos[0]) << " " << double(SeedPos[1]) << " " << double(SeedPos[2]) << std::endl;
+
+	    // float Angle = ThisSeed->GetAngle(*LastSeedAdded);
+	    // float ProjDis = ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded);	    
+	    // std::cout<<"BezierTracker: " << Angle << " " << ProjDis << "  for seed : "; 
+	    //   std::cout<<double(SeedPos[0]) << " " << double(SeedPos[1]) << " " << double(SeedPos[2]) << std::endl;
             if((  abs(ThisSeed->GetAngle(*LastSeedAdded))                 < fMaxKinkAngle)
 	       &&( abs(ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded))  < fMaxTrackMissAngle)
 	       &&( abs(ThisSeed->GetDistance(*LastSeedAdded)<fMaxJumpDistance)))
@@ -566,12 +488,14 @@ namespace trkf {
 	    
             // Does this seed fit with this track?
 	    double SeedPos[3],Err[3];
-	    float Angle = ThisSeed->GetAngle(*LastSeedAdded);
-	    float ProjDis = ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded);
+
 	    ThisSeed->GetPoint(SeedPos,Err);
 	    
-	    std::cout<<"BezierTracker: " << Angle << " " << ProjDis << "  for seed : "; 
-	    std::cout<<double(SeedPos[0]) << " " << double(SeedPos[1]) << " " << double(SeedPos[2]) << std::endl;
+
+	    //  float Angle = ThisSeed->GetAngle(*LastSeedAdded);
+	    //  float ProjDis = ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded);
+	    //  std::cout<<"BezierTracker: " << Angle << " " << ProjDis << "  for seed : "; 
+	    //  std::cout<<double(SeedPos[0]) << " " << double(SeedPos[1]) << " " << double(SeedPos[2]) << std::endl;
             if((  abs(ThisSeed->GetAngle(*LastSeedAdded))                 < fMaxKinkAngle)
 	       &&( abs(ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded))  < fMaxTrackMissAngle)
 	       &&( abs(ThisSeed->GetDistance(*LastSeedAdded)<fMaxJumpDistance)))
