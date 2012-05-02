@@ -207,8 +207,8 @@ namespace hit{
   
   unsigned int channel = 0, c = 0, t = 0, p = 0, w = 0;
 
-  std::cout<<std::endl;
-  std::cout<<"Number of Hits in the Event = "<<hitHandle->size()<<std::endl;
+ // std::cout<<std::endl;
+ // std::cout<<"Number of Hits in the Event = "<<hitHandle->size()<<std::endl;
   fnhits = hitHandle->size();
 
   // #########################

@@ -100,13 +100,7 @@ void GausHitFinder::endJob()
 void GausHitFinder::produce(art::Event& evt)
 {
 TH1::AddDirectory(kFALSE);
-std::cout<<std::endl;
-std::cout<<" ================================================================"<<std::endl;
-std::cout<<" ================================================================"<<std::endl;
-std::cout << "run    : " << evt.run() <<" event  : "<<evt.id().event() << std::endl;
-std::cout<<" ================================================================"<<std::endl;
-std::cout<<" ================================================================"<<std::endl;
-std::cout<<std::endl;
+
 
   // ---------------------------
   // --- Seed Fit Functions  --- (This function used to "seed" the mean peak position)
