@@ -16,6 +16,9 @@
   
 trkf::KalmanFilterAlg::KalmanFilterAlg(const fhicl::ParameterSet& pset) :
   fTrace(false),
+  fMaxPErr(0.),
+  fGoodPErr(0.),
+  fMaxLDist(0.),
   fPlane(-1),
   fErr(5)
 {
