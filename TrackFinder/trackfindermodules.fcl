@@ -18,6 +18,7 @@ standard_trackkalmancheater:
   ClusterModuleLabel: "dbcluster"
   G4ModuleLabel:      "largeant"
   KalmanFilterAlg:    @local::standard_kalmanfilteralg
+  SpacePointAlg:      @local::standard_spacepointalg
 }
 
 standard_track3Dreco:
@@ -95,6 +96,7 @@ standard_spacepointcheater:
   module_type:        "SpacePointCheater"
   ClusterModuleLabel: "dbcluster"
   G4ModuleLabel:      "largeant"
+  MinHits:            10
   Filter:             false
   Merge:              false
   SpacePointAlg:      @local::standard_spacepointalg
@@ -196,6 +198,8 @@ microboone_spacepointcheater.SpacePointAlg:                     @local::microboo
 
 microboone_trackkalmancheater:                                  @local::standard_trackkalmancheater  
 microboone_trackkalmancheater.KalmanFilterAlg:                  @local::microboone_kalmanfilteralg   
+microboone_trackkalmancheater.SpacePointAlg:                    @local::microboone_spacepointalg   
+microboone_trackkalmancheater.SpacePointAlg.MinViews:           2
 
 microboone_2stg_kalman:
 {
