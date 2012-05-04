@@ -27,6 +27,8 @@
 
 #include <map>
 #include "TrackFinder/KHitTrack.h"
+#include "TrackFinder/SpacePointAlg.h"
+#include "RecoBase/Track.h"
 
 namespace trkf {
 
@@ -73,6 +75,15 @@ namespace trkf {
 
     /// Clear track collection.
     void clear() {fTrackMap.clear();}
+
+    // Methods.
+
+    /// Fill a recob::Track.
+    void fillTrack(recob::Track& track) const;
+
+    /// Fill a collection of space points.
+    void fillSpacePoints(std::vector<recob::SpacePoint>& spts,
+			 const SpacePointAlg& sptalg) const;
 
   private:
 
