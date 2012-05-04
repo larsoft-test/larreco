@@ -45,6 +45,7 @@ namespace trkf {
     SpacePointAlg fSptalg;         // Algorithm object.
     std::string fClusterModuleLabel;
     std::string fG4ModuleLabel;    // For SimChannel.
+    unsigned int fMinHits;         // Minimum number of hits per cluster.
     bool fFilter;                  // Filter space points?
     bool fMerge;                   // Merge space points?
 

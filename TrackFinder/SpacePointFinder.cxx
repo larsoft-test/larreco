@@ -27,6 +27,7 @@ namespace trkf {
     // Arguments: pset - Module parameters.
     //
     : fSptalg(pset.get<fhicl::ParameterSet>("SpacePointAlg"))
+    , fMinHits(0)
     , fFilter(true)
     , fMerge(false)
     , fNumEvent(0)
@@ -47,6 +48,7 @@ namespace trkf {
     mf::LogInfo("SpacePointFinder") 
       << "SpacePointFinder configured with the following parameters:\n"
       << "  ClusterModuleLabel = " << fClusterModuleLabel << "\n"
+      << "  Minimum Hits per Cluster = " << fMinHits << "\n"
       << "  Filter = " << fFilter << "\n"
       << "  Merge = " << fMerge;
   }
@@ -68,6 +70,7 @@ namespace trkf {
   {
     fSptalg.reconfigure(pset.get<fhicl::ParameterSet>("SpacePointAlg"));
     fClusterModuleLabel = pset.get<std::string>("ClusterModuleLabel");
+    fMinHits = pset.get<unsigned int>("MinHits");
     fFilter = pset.get<bool>("Filter");
     fMerge = pset.get<bool>("Merge");
   }
@@ -125,9 +128,10 @@ namespace trkf {
 
 	// Test first view.
 
-	if((iview == geo::kU && fSptalg.enableU()) ||
-	   (iview == geo::kV && fSptalg.enableV()) ||
-	   (iview == geo::kW && fSptalg.enableW())) {
+	if(piclus->Hits().size() >= fMinHits &&
+	   ((iview == geo::kU && fSptalg.enableU()) ||
+	    (iview == geo::kV && fSptalg.enableV()) ||
+	    (iview == geo::kW && fSptalg.enableW()))) {
 
 	  // Store hits from first view into hit vector.
 
@@ -147,7 +151,8 @@ namespace trkf {
 
 	    // Test second view.
 
-	    if(((jview == geo::kU && fSptalg.enableU()) ||
+	    if(pjclus->Hits().size() >= fMinHits &&
+	       ((jview == geo::kU && fSptalg.enableU()) ||
 		(jview == geo::kV && fSptalg.enableV()) ||
 		(jview == geo::kW && fSptalg.enableW()))
 	       && jview != iview) {
@@ -217,7 +222,8 @@ namespace trkf {
 
 		// Test third view.
 
-		if(((kview == geo::kU && fSptalg.enableU()) ||
+		if(pkclus->Hits().size() >= fMinHits &&
+		   ((kview == geo::kU && fSptalg.enableU()) ||
 		    (kview == geo::kV && fSptalg.enableV()) ||
 		    (kview == geo::kW && fSptalg.enableW()))
 		   && kview != iview && kview != jview) {
