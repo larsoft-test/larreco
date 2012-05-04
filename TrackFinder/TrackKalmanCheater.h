@@ -40,6 +40,7 @@ namespace trkf {
     // Fcl parameters.
 
     KalmanFilterAlg fKFAlg;            ///< Kalman filter algorithm.
+    SpacePointAlg fSpacePointAlg;      ///< Space point algorithm.
     bool fUseClusterHits;              ///< Use cluster hits or all hits?
     std::string fGenModuleLabel;       ///< MC truth.
     std::string fHitModuleLabel;       ///< Unclustered Hits.

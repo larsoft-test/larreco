@@ -157,6 +157,34 @@ namespace trkf {
     track = recob::Track(xyz, dxdydz, dQdx, momentum);
   }
 
+  /// Fill a PtrVector of Hits.
+  ///
+  /// Arguments:
+  ///
+  /// hits - Hit vector to fill.
+  ///
+  void KGTrack::fillHits(art::PtrVector<recob::Hit>& hits) const
+  {
+    hits.reserve(hits.size() + fTrackMap.size());
+
+    // Loop over KHitTracks and fill hits belonging to this track.
+
+    for(std::multimap<double, KHitTrack>::const_iterator it = fTrackMap.begin();
+	it != fTrackMap.end(); ++it) {
+      const KHitTrack& track = (*it).second;
+
+      // Extrack Hit from track.
+
+      const boost::shared_ptr<const KHitBase>& hit = track.getHit();
+      const KHitWireX* phit = dynamic_cast<const KHitWireX*>(&*hit);
+      if(phit != 0) {
+	const art::Ptr<recob::Hit> prhit = phit->getHit();
+	if(!prhit.isNull())
+	  hits.push_back(prhit);
+      }
+    }
+  }
+
   /// Fill a collection of space points.
   ///
   /// Arguments:

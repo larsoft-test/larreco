@@ -8,6 +8,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <vector>
+#include <deque>
 #include "TrackFinder/TrackKalmanCheater.h"
 #include "TrackFinder/KHitContainerWireX.h"
 #include "TrackFinder/SurfYZPlane.h"
@@ -30,6 +31,7 @@
 ///
 trkf::TrackKalmanCheater::TrackKalmanCheater(fhicl::ParameterSet const & pset) :
   fKFAlg(pset.get<fhicl::ParameterSet>("KalmanFilterAlg")),
+  fSpacePointAlg(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
   fUseClusterHits(false),
   prop(new PropYZPlane(10.)),
   fNumEvent(0),
@@ -37,7 +39,10 @@ trkf::TrackKalmanCheater::TrackKalmanCheater(fhicl::ParameterSet const & pset) :
 {
   reconfigure(pset);
   produces<std::vector<recob::Track> >();
+  produces<std::vector<recob::SpacePoint>            >();
   produces<art::Assns<recob::Track, recob::Hit> >();
+  produces<art::Assns<recob::Track, recob::SpacePoint> >();
+  produces<art::Assns<recob::SpacePoint, recob::Hit> >();
 
   // Report.
 
@@ -63,6 +68,7 @@ trkf::TrackKalmanCheater::~TrackKalmanCheater()
 void trkf::TrackKalmanCheater::reconfigure(fhicl::ParameterSet const & pset)
 {
   fKFAlg.reconfigure(pset.get<fhicl::ParameterSet>("KalmanFilterAlg"));
+  fSpacePointAlg.reconfigure(pset.get<fhicl::ParameterSet>("SpacePointAlg"));
   fUseClusterHits = pset.get<bool>("UseClusterHits");
   fGenModuleLabel = pset.get<std::string>("GenModuleLabel");
   fHitModuleLabel = pset.get<std::string>("HitModuleLabel");
@@ -87,9 +93,30 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 {
   ++fNumEvent;
 
+  // Make a collection of tracks, plus associations, that will
+  // eventually be inserted into the event.
+
+  std::auto_ptr<std::vector<recob::Track> > tracks(new std::vector<recob::Track>);
+  std::auto_ptr< art::Assns<recob::Track, recob::Hit> > th_assn(new art::Assns<recob::Track, recob::Hit>);
+  std::auto_ptr< art::Assns<recob::Track, recob::SpacePoint> > tsp_assn(new art::Assns<recob::Track, recob::SpacePoint>);
+
+  // Make a collection of space points, plus associations, that will
+  // be inserted into the event.
+
+  std::auto_ptr<std::vector<recob::SpacePoint> > spts(new std::vector<recob::SpacePoint>);
+  std::auto_ptr< art::Assns<recob::SpacePoint, recob::Hit> > sph_assn(new art::Assns<recob::SpacePoint, recob::Hit>);
+
+  // Make a collection of KGTracks where we will save our results.
+
+  std::deque<KGTrack> kalman_tracks;
+
   // Get Services.
 
   art::ServiceHandle<geo::Geometry> geom;
+
+  // Reset space point algorithm.
+
+  fSpacePointAlg.clearHitMap();
 
   // Get SimChannels.
   // Make a vector where each channel in the detector is an entry
@@ -244,7 +271,6 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 
 	  KGTrack trg;
 	  fKFAlg.setPlane(2);
-	  //fKFAlg.setTrace(true);
 	  bool ok = fKFAlg.buildTrack(trk, trg, prop, Propagator::FORWARD, cont, 100.);
 	  if(ok) {
 	    KGTrack trg1;
@@ -261,6 +287,10 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 		  if(ok) {
 		    KGTrack trg5;
 		    ok = fKFAlg.smoothTrack(trg4, &trg5, prop);
+		    if(ok) {
+		      ++fNumTrack;
+		      kalman_tracks.push_back(trg5);
+		    }
 		  }
 		}
 	      }
@@ -270,11 +300,67 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	    log << "Build track succeeded.\n";
 	  else
 	    log << "Build track failed.\n";
-	  //fKFAlg.setTrace(false);
  	}
       }
     }
   }
+
+  // Process Kalman filter tracks into persistent objects.
+
+  tracks->reserve(kalman_tracks.size());
+  for(std::deque<KGTrack>::const_iterator k = kalman_tracks.begin();
+      k != kalman_tracks.end(); ++k) {
+    const KGTrack& kalman_track = *k;
+
+    // Add Track object to collection.
+
+    tracks->push_back(recob::Track());
+    kalman_track.fillTrack(tracks->back());
+    tracks->back().SetID(tracks->size() - 1);
+
+    // Make Track to Hit associations.  
+
+    art::PtrVector<recob::Hit> trhits;
+    kalman_track.fillHits(hits);
+    util::CreateAssn(*this, evt, *tracks, trhits, *th_assn, tracks->size()-1);
+
+    // Make space points from this track.
+
+    int nspt = spts->size();
+    kalman_track.fillSpacePoints(*spts, fSpacePointAlg);
+
+    // Associate newly created space points with hits.
+    // Also associate track with newly created space points.
+
+    art::PtrVector<recob::SpacePoint> sptvec;
+
+    // Loop over newly created space points.
+      
+    for(unsigned int ispt = nspt; ispt < spts->size(); ++ispt) {
+      const recob::SpacePoint& spt = (*spts)[ispt];
+      art::ProductID sptid = getProductID<std::vector<recob::SpacePoint> >(evt);
+      art::Ptr<recob::SpacePoint> sptptr(sptid, ispt, evt.productGetter(sptid));
+      sptvec.push_back(sptptr);
+
+      // Make space point to hit associations.
+
+      const art::PtrVector<recob::Hit>& sphits = 
+	fSpacePointAlg.getAssociatedHits(spt);
+      util::CreateAssn(*this, evt, *spts, sphits, *sph_assn, ispt);
+    }
+
+    // Make track to space point associations.
+
+    util::CreateAssn(*this, evt, *tracks, sptvec, *tsp_assn, tracks->size()-1);
+  }
+
+  // Add tracks and associations to event.
+
+  evt.put(tracks);
+  evt.put(spts);
+  evt.put(th_assn);
+  evt.put(tsp_assn);
+  evt.put(sph_assn);
 }
 
 /// End job method.

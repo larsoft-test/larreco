@@ -81,6 +81,9 @@ namespace trkf {
     /// Fill a recob::Track.
     void fillTrack(recob::Track& track) const;
 
+    /// Fill a PtrVector of Hits.
+    void fillHits(art::PtrVector<recob::Hit>& hits) const;
+
     /// Fill a collection of space points.
     void fillSpacePoints(std::vector<recob::SpacePoint>& spts,
 			 const SpacePointAlg& sptalg) const;
