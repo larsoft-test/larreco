@@ -95,6 +95,13 @@ namespace trkf {
     // Spatial separation of hits (zero if two or fewer).
     double separation(const art::PtrVector<recob::Hit>& hits) const;
 
+    // Test whether the specified hits are compatible with a space point.
+    // The last two arguments can be used to override the default cuts.
+    bool compatible(const art::PtrVector<recob::Hit>& hits,
+		    bool useMC = false,
+		    double maxDT = 0.,
+		    double maxS = 0.) const;
+
     // Fill a single simple space point using the specified hits.
     // Hits are assumed to be compatible.
     void fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
@@ -137,6 +144,12 @@ namespace trkf {
     // invocation of any make*SpacePoints method.
     const art::PtrVector<recob::Hit>& getAssociatedHits(const recob::SpacePoint& spt) const;
 
+    // Clear space point to Hit associations.
+    void clearHitMap() const {fSptHitMap.clear();}
+
+    // Return number of space point to Hit associations.
+    int numHitMap() const {return fSptHitMap.size();}
+
   private:
 
     // This is the real method for calculating space points (each of
@@ -149,13 +162,6 @@ namespace trkf {
 			 bool merge,
 			 double maxDT,
 			 double maxS) const;
-
-    // Test whether the specified hits are compatible with a space point.
-    // The last two arguments can be used to override the default cuts.
-    bool compatible(const art::PtrVector<recob::Hit>& hits,
-		    bool useMC,
-		    double maxDT,
-		    double maxS) const;
 
     // Configuration paremeters.
 
