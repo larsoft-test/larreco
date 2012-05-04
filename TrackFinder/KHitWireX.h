@@ -8,17 +8,18 @@
 ///
 /// This class is a type of one-dimensional Kalman filter measurement
 /// reprsenting a single wire-time hit on a surface parallel to the
-/// x-axis (nonmagnetic LAr tpc).
+/// x-axis (approprite for nonmagnetic LAr tpc).
 ///
 /// This class derives from base class KHit<1>, which is the general
-/// one-dimensional measurement base class.  It does not have any
-/// data attributes of its own.  It adds its own constructor and
-/// overrides virtual base class method subpredict.
+/// one-dimensional measurement base class.  It is constructed from a
+/// art::Ptr<recob::Hit>, which pointer is saved in this class as a
+/// data member.  This class overrides virtual base class method
+/// subpredict.
 ///
-/// The following data are needed to fully specify an object of this
-/// class.
+/// The following data are extracted from the Hit, and are stored in
+/// the base class.
 ///
-/// 1.  Channel (defines measurement surface) or surface.
+/// 1.  Channel (defines measurement surface).
 /// 2.  X position.
 /// 3.  X error.
 ///
@@ -32,6 +33,8 @@
 #define KHITWIREX_H
 
 #include "TrackFinder/KHit.h"
+#include "RecoBase/Hit.h"
+#include "art/Persistency/Common/Ptr.h"
 
 namespace trkf {
 
@@ -39,21 +42,34 @@ namespace trkf {
   {
   public:
 
-    /// Constructor from channel.
-    KHitWireX(unsigned int channel, double x, double xerr);
+    /// Constructor from Hit.
+    KHitWireX(const art::Ptr<recob::Hit>& hit,
+	      const boost::shared_ptr<const Surface>& psurf);
 
-    /// Constructor from surface.
-    KHitWireX(const boost::shared_ptr<const Surface>& psurf,
-	      double x, double xerr, int plane);
+    /// Constructor from channel (mainly for testing).
+    KHitWireX(unsigned int channel, double x, double xerr);
 
     /// Destructor.
     virtual ~KHitWireX();
 
+    // Accessors.
+
+    /// Get original hit.
+    const art::Ptr<recob::Hit>& getHit() const {return fHit;}
+
     // Overrides.
+
+    // Prediction method.
     virtual bool subpredict(const KETrack& tre,
 			    KVector<1>::type& pvec,
 			    KSymMatrix<1>::type& perr,
 			    KHMatrix<1>::type& hmatrix) const;
+
+  private:
+
+    // Attributes.
+
+    art::Ptr<recob::Hit> fHit;
   };
 }
 

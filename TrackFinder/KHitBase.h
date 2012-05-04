@@ -81,6 +81,11 @@ namespace trkf {
     int getMeasPlane() const {return fMeasPlane;}
 
     // Modifiers.
+
+    /// Measurement surface.
+    void setMeasSurface(const boost::shared_ptr<const Surface>& psurf) {fMeasSurf = psurf;}
+
+    /// Measurement plane.
     void setMeasPlane(int plane) {fMeasPlane = plane;}
 
     // Pure virtual methods.

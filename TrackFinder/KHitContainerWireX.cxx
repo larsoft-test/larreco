@@ -58,21 +58,12 @@ namespace trkf {
 	ihit != hits.end(); ++ihit) {
       const recob::Hit& hit = **ihit;
 
-      // Extract the information that we need from the Hit.
-      // That's channel, time, and time error.
+      // Extract the channel number from the Hit.
 
       unsigned int channel = hit.Channel();
-      double t = hit.PeakTime();
-      double terr = hit.SigmaPeakTime();
-
-      // Don't let the time error be less than 1./sqrt(12.).
-      // This should be removed when hit errors are fixed.
-
-      if(terr < 1./std::sqrt(12.))
-	terr = 1./std::sqrt(12.);
 
       // Extract the cryostat, tpc, and plane.
-      // We need these to get the time offset.
+      // We only care about the plane.
 
       unsigned int cstat, tpc, plane, wire;
       geom->ChannelToWire(channel, cstat, tpc, plane, wire);
@@ -81,11 +72,6 @@ namespace trkf {
 
       if(only_plane >= 0 && plane != (unsigned int)(only_plane))
 	continue;
-
-      // Calculate position and error.
-
-      double x = detprop->ConvertTicksToX(t, plane, tpc, cstat);
-      double xerr = terr * detprop->GetXTicksCoefficient();
 
       // See if we need to make a new KHitGroup.
 
@@ -104,14 +90,8 @@ namespace trkf {
       const boost::shared_ptr<const Surface>& psurf = pgr->getSurface();
 
       // Construct KHitWireX object.
-      // If the surface pointer is valid, use that surface.
-      // Otherwise make a new surface.
 
-      boost::shared_ptr<const KHitBase> phit;
-      if(psurf.get() == 0)
-	phit = boost::shared_ptr<const KHitBase>(new KHitWireX(channel, x, xerr));
-      else
-	phit = boost::shared_ptr<const KHitBase>(new KHitWireX(psurf, x, xerr, pgr->getPlane()));
+      boost::shared_ptr<const KHitBase> phit(new KHitWireX(*ihit, psurf));
 
       // Insert hit into KHitGroup.
 

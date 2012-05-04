@@ -11,58 +11,112 @@
 #include "TrackFinder/KHitWireX.h"
 #include "TrackFinder/SurfWireX.h"
 #include "Geometry/geo.h"
+#include "Utilities/DetectorProperties.h"
+#include "cetlib/exception.h"
 
 namespace trkf {
 
-  /// Constructor from channel.
+  /// Constructor.
   ///
   /// Arguments:
   ///
-  /// channel - Readout channel number.
-  /// x       - X position.
+  /// hit   - Hit.
+  /// psurf - Measurement surface (can be null).
+  ///
+  /// The measurement surface is only a suggestion.  It is allowed to
+  /// be specified to allow measurements to whare surfaces to save
+  /// memory.
+  ///
+  KHitWireX::KHitWireX(const art::Ptr<recob::Hit>& hit,
+		       const boost::shared_ptr<const Surface>& psurf) :
+    KHit(psurf),
+    fHit(hit)
+  {
+    // Get services.
+
+    art::ServiceHandle<geo::Geometry> geom;
+    art::ServiceHandle<util::DetectorProperties> detprop;
+
+    // Extract channel number.
+
+    unsigned int channel = hit->Channel();
+
+    // Check the surface (determined by channel number).  If the
+    // surface pointer is null, make a new SurfWireX surface and
+    // update the base class appropriately.  Otherwise, just check
+    // that the specified surface agrees with the channel number.
+
+    if(psurf.get() == 0) {
+      boost::shared_ptr<const Surface> new_psurf(new SurfWireX(channel));
+      setMeasSurface(new_psurf);
+    }
+    else {
+      SurfWireX check_surf(channel);
+      if(!check_surf.isEqual(*psurf))
+	throw cet::exception("KHitWireX") << "Measurement surface doesn't match channel.\n";
+    }
+
+    // Get cryostat, tpc, plane, and wire number.
+
+    unsigned int cstat, tpc, plane, wire;
+    geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+    setMeasPlane(plane);
+
+    // Extract time information from hit.
+
+    double t = hit->PeakTime();
+    double terr = hit->SigmaPeakTime();
+
+    // Don't let the time error be less than 1./sqrt(12.) ticks.
+    // This should be removed when hit errors are fixed.
+
+    if(terr < 1./std::sqrt(12.))
+      terr = 1./std::sqrt(12.);
+
+    // Calculate position and error.
+
+    double x = detprop->ConvertTicksToX(t, plane, tpc, cstat);
+    double xerr = terr * detprop->GetXTicksCoefficient();
+
+    // Update measurement vector and error matrix.
+
+    trkf::KVector<1>::type mvec(1, x);
+    setMeasVector(mvec);
+
+    trkf::KSymMatrix<1>::type merr(1);
+    merr(0,0) = xerr * xerr;
+    setMeasError(merr);
+  }
+
+  /// Constructor.
+  ///
+  /// Arguments:
+  ///
+  /// channel - Channel number.
+  /// x       - X coordinate.
   /// xerr    - X error.
   ///
   KHitWireX::KHitWireX(unsigned int channel, double x, double xerr) :
     KHit(boost::shared_ptr<const Surface>(new SurfWireX(channel)))
   {
-    trkf::KVector<1>::type mvec(1, x);
-    setMeasVector(mvec);
-
-    trkf::KSymMatrix<1>::type merr(1);
-    merr(0,0) = xerr * xerr;
-    setMeasError(merr);
-
-    // Get geometry service.
+    // Get services.
 
     art::ServiceHandle<geo::Geometry> geom;
 
-    // Get wire geometry.
+    // Get plane number.
 
     unsigned int cstat, tpc, plane, wire;
     geom->ChannelToWire(channel, cstat, tpc, plane, wire);
     setMeasPlane(plane);
-  }
 
-  /// Constructor from surface.
-  ///
-  /// Arguments:
-  ///
-  /// psurf - Surface.
-  /// x     - X position.
-  /// xerr  - X error.
-  /// plane - Plane index.
-  ///
-  KHitWireX::KHitWireX(const boost::shared_ptr<const Surface>& psurf,
-		       double x, double xerr, int plane) :
-    KHit(psurf)
-  {
+    // Update measurement vector and error matrix.
+
     trkf::KVector<1>::type mvec(1, x);
     setMeasVector(mvec);
 
     trkf::KSymMatrix<1>::type merr(1);
     merr(0,0) = xerr * xerr;
     setMeasError(merr);
-    setMeasPlane(plane);
   }
 
   /// Destructor.
