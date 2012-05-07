@@ -18,20 +18,12 @@ trkf::KalmanFilterAlg::KalmanFilterAlg(const fhicl::ParameterSet& pset) :
   fTrace(false),
   fMaxPErr(0.),
   fGoodPErr(0.),
+  fMinLHits(0),
   fMaxLDist(0.),
-  fPlane(-1),
-  fErr(5)
+  fMaxPredDist(0.),
+  fPlane(-1)
 {
   mf::LogInfo("KalmanFilterAlg") << "KalmanFilterAlg instantiated.";
-
-  // Fill starting error matrix.
-
-  fErr.clear();
-  fErr(0, 0) = 1000.;
-  fErr(1, 1) = 1000.;
-  fErr(2, 2) = 10.;
-  fErr(3, 3) = 10.;
-  fErr(4, 4) = 10.;
 
   // Load fcl parameters.
 
@@ -48,7 +40,9 @@ void trkf::KalmanFilterAlg::reconfigure(const fhicl::ParameterSet& pset)
   fTrace = pset.get<bool>("Trace");
   fMaxPErr = pset.get<double>("MaxPErr");
   fGoodPErr = pset.get<double>("GoodPErr");
+  fMinLHits = pset.get<int>("MinLHits");
   fMaxLDist = pset.get<double>("MaxLDist");
+  fMaxPredDist = pset.get<double>("MaxPredDist");
 }
 
 /// Add hits to track.
@@ -102,7 +96,9 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
   // Make a copy of the starting track, in the form of a KFitTrack,
   // which we will update as we go.
 
-  KETrack tre(trk, fErr);
+  TrackError err;
+  trk.getSurface()->getStartingError(err);
+  KETrack tre(trk, err);
   KFitTrack trf(tre, path, tchisq);
 
   // Also use the starting track as the reference track for linearized
@@ -194,7 +190,8 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 	bool ok = hit.predict(trf, prop);
 	if(ok) {
 	  double chisq = hit.getChisq();
-	  if(best_hit.get() == 0 || chisq < best_chisq) {
+	  double preddist = hit.getPredDistance();
+	  if(best_hit.get() == 0 || (abs(preddist) < fMaxPredDist && chisq < best_chisq) ) {
 	    best_hit = *ihit;
 	    best_chisq = chisq;
 	  }
@@ -211,7 +208,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
       // chisquare passes the cut, add it to the track and update 
       // fit information.
 
-      if(best_hit.get() != 0 && best_chisq < maxChisq) {
+      if(best_hit.get() != 0 && (pref != 0 || best_chisq < maxChisq)) {
 	ds += best_hit->getPredDistance();
 	best_hit->update(trf);
 	tchisq += best_chisq;
@@ -239,7 +236,8 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 
 	// Decide if we want to kill the reference track.
 
-	if(pref != 0 && (trf.PointingError() < fGoodPErr || path > fMaxLDist)) {
+	if(pref != 0 && trg.getTrackMap().size() >= fMinLHits &&
+	   (trf.PointingError() < fGoodPErr || path > fMaxLDist)) {
 	  pref = 0;
 	  if(fTrace)
 	    log << "Killing reference track.\n";
@@ -260,7 +258,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 
     // If the propagation distance was negative, resort the measurements.
 
-    if(!!dist && ds < 0.) {
+    if(pref == 0 && !!dist && ds < 0.) {
       if(fTrace)
 	log << "Resorting measurements.\n";
       hits.sort(trf, false, prop);
@@ -401,7 +399,9 @@ bool trkf::KalmanFilterAlg::smoothTrack(KGTrack& trg,
       // Construct starting KFitTrack with track information and distance
       // taken from the optimal end, but with "infinite" errors.
 
-      KETrack tre(*trk, fErr);
+      TrackError err;
+      trk->getSurface()->getStartingError(err);
+      KETrack tre(*trk, err);
       KFitTrack trf(tre, path, tchisq);
 
       // Make initial reference track to be same as initial fit track.

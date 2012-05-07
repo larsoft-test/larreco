@@ -39,6 +39,9 @@ namespace trkf {
 
     /// Get pointing error of track.
     double PointingError(const TrackVector& vec, const TrackError& err) const;
+
+    /// Get starting error matrix for Kalman filter.
+    void getStartingError(TrackError& err) const;
   };
 }
 

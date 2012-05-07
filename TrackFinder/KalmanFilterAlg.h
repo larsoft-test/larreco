@@ -60,15 +60,16 @@ namespace trkf {
 
     // Fcl parameters.
 
-    bool fTrace;         ///< Trace flag.
-    double fMaxPErr;     ///< Maximum pointing error for free propagation.
-    double fGoodPErr;    ///< Pointing error threshold for switching to free propagation.
-    double fMaxLDist;    ///< Maximum propagation distance for linearized propagation.
+    bool fTrace;             ///< Trace flag.
+    double fMaxPErr;         ///< Maximum pointing error for free propagation.
+    double fGoodPErr;        ///< Pointing error threshold for switching to free propagation.
+    unsigned int fMinLHits;  ///< Minimum number of hits for linearized propagation.
+    double fMaxLDist;        ///< Maximum propagation distance for linearized propagation.
+    double fMaxPredDist;     ///< Maximum prediciton distance to accept a hit.
 
     // Other attributes.
 
     int fPlane;          ///< Preferred view plane.
-    TrackError fErr;     ///< Starting error matrix ("infinite" error).
   };
 }
 

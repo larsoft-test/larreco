@@ -58,4 +58,20 @@ namespace trkf {
     return etheta;
   }
 
+  /// Get starting error matrix for Kalman filter.
+  ///
+  /// Arguments:
+  ///
+  /// err - Error matrix.
+  ///
+  void SurfPlane::getStartingError(TrackError& err) const {
+    err.resize(5, false);
+    err.clear();
+    err(0, 0) = 1000.;
+    err(1, 1) = 1000.;
+    err(2, 2) = 0.25;
+    err(3, 3) = 0.25;
+    err(4, 4) = 10.;
+  }
+
 } // end namespace trkf

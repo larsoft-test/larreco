@@ -36,7 +36,9 @@ trkf::TrackKalmanCheater::TrackKalmanCheater(fhicl::ParameterSet const & pset) :
   fKFAlg(pset.get<fhicl::ParameterSet>("KalmanFilterAlg")),
   fSpacePointAlg(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
   fUseClusterHits(false),
-  prop(new PropYZPlane(10.)),
+  fMaxIncChisq(0.),
+  fMaxTcut(0.),
+  fProp(0),
   fHIncChisq(0),
   fHPull(0),
   fNumEvent(0),
@@ -80,6 +82,11 @@ void trkf::TrackKalmanCheater::reconfigure(fhicl::ParameterSet const & pset)
   fHitModuleLabel = pset.get<std::string>("HitModuleLabel");
   fClusterModuleLabel = pset.get<std::string>("ClusterModuleLabel");
   fG4ModuleLabel = pset.get<std::string>("G4ModuleLabel");
+  fMaxIncChisq = pset.get<double>("MaxIncChisq");
+  fMaxTcut = pset.get<double>("MaxTcut");
+  if(fProp != 0)
+    delete fProp;
+  fProp = new PropYZPlane(fMaxTcut);
 }
 
 /// Begin job method.
@@ -284,26 +291,46 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	  KHitContainerWireX cont;
 	  cont.fill(trackhits, -1);
 
+	  // Count hits in each plane.  Set the preffered plane to be
+	  // the one with the most hits.
+
+	  std::vector<unsigned int> planehits(3, 0);
+	  for(art::PtrVector<recob::Hit>::const_iterator ih = trackhits.begin();
+	      ih != trackhits.end(); ++ih) {
+	    const recob::Hit& hit = **ih;
+	    unsigned int channel = hit.Channel();
+	    unsigned int cstat, tpc, plane, wire;
+	    geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+	    assert(plane >= 0 && plane < planehits.size());
+	    ++planehits[plane];
+	  }
+	  unsigned int prefplane = 0;
+	  for(unsigned int i=0; i<planehits.size(); ++i) {
+	    if(planehits[i] > planehits[prefplane])
+	      prefplane = i;
+	  }
+	  log << "Preferred plane = " << prefplane << "\n";
+
 	  // Build and smooth track.
 
 	  KGTrack trg;
-	  fKFAlg.setPlane(2);
-	  bool ok = fKFAlg.buildTrack(trk, trg, prop, Propagator::FORWARD, cont, 100.);
+	  fKFAlg.setPlane(prefplane);
+	  bool ok = fKFAlg.buildTrack(trk, trg, fProp, Propagator::FORWARD, cont, fMaxIncChisq);
 	  if(ok) {
 	    KGTrack trg1;
-	    ok = fKFAlg.smoothTrack(trg, &trg1, prop);
+	    ok = fKFAlg.smoothTrack(trg, &trg1, fProp);
 	    if(ok) {
 	      KGTrack trg2;
-	      ok = fKFAlg.smoothTrack(trg1, &trg2, prop);
+	      ok = fKFAlg.smoothTrack(trg1, &trg2, fProp);
 	      if(ok) {
 		KGTrack trg3;
-		ok = fKFAlg.smoothTrack(trg2, &trg3, prop);
+		ok = fKFAlg.smoothTrack(trg2, &trg3, fProp);
 		if(ok) {
 		  KGTrack trg4;
-		  ok = fKFAlg.smoothTrack(trg3, &trg4, prop);
+		  ok = fKFAlg.smoothTrack(trg3, &trg4, fProp);
 		  if(ok) {
 		    KGTrack trg5;
-		    ok = fKFAlg.smoothTrack(trg4, &trg5, prop);
+		    ok = fKFAlg.smoothTrack(trg4, &trg5, fProp);
 		    if(ok) {
 		      ++fNumTrack;
 		      kalman_tracks.push_back(trg5);

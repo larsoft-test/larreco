@@ -18,6 +18,8 @@ standard_trackkalmancheater:
   HitModuleLabel:     "ffthit"
   ClusterModuleLabel: "dbcluster"
   G4ModuleLabel:      "largeant"
+  MaxIncChisq:        100.          # Incremental chisquare cut.
+  MaxTcut:            10.           # Maximum delta ray energy in MeV for restricted dE/dx
   KalmanFilterAlg:    @local::standard_kalmanfilteralg
   SpacePointAlg:      @local::standard_spacepointalg
 }

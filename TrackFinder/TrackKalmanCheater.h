@@ -48,9 +48,11 @@ namespace trkf {
     std::string fHitModuleLabel;       ///< Unclustered Hits.
     std::string fClusterModuleLabel;   ///< Clustered Hits.
     std::string fG4ModuleLabel;        ///< For SimChannel.
+    double fMaxIncChisq;               ///< Maximum incremental chisquare.
+    double fMaxTcut;                   ///< Maximum delta ray energy in MeV for restricted dE/dx.
 
     /// Propagator.
-    const Propagator* prop;
+    const Propagator* fProp;
 
     // Histograms.
 

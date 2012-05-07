@@ -139,7 +139,7 @@ namespace trkf {
     double ptx = std::sqrt(mom[1]*mom[1] + mom[2]*mom[2]);
     double result = 0.;
     if(ptx > 0. || mom[0] > 0.)
-      result = atan2(ptx, mom[0]);
+      result = atan2(mom[0], ptx);
     return result;
   }
 
