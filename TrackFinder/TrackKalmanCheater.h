@@ -9,8 +9,18 @@
 // MC truth information is used to associate Hits used as input to
 // the Kalman filter.
 //
-// Generated at Wed Mar 28 13:43:51 2012 by Herbert Greenlee using artmod
-// from art v1_00_11.
+// Configuration parameters:
+//
+// Hist               - Histogram flag (generate histograms if true).
+// UseClusterHits     - Use clustered hits if true, use all hits if false.
+// HitModuleLabel     - Module label for unclustered Hits.
+// ClusterModuleLabel - Module label for Clusters.
+// G4ModuleLabel      - Module label for MC truth particles.
+// MaxIncChisq        - Maximum incremental chisquare cut.
+// MaxTcut            - Maximum delta ray energy in Mev for dE/dx.
+// KalmanFilterAlg    - Parameter set for KalmanFilterAlg.
+// SpacePointAlg      - Parmaeter set for space points.
+//
 ////////////////////////////////////////////////////////////////////////
 
 #include "art/Framework/Core/EDProducer.h"
@@ -44,7 +54,6 @@ namespace trkf {
     KalmanFilterAlg fKFAlg;            ///< Kalman filter algorithm.
     SpacePointAlg fSpacePointAlg;      ///< Space point algorithm.
     bool fUseClusterHits;              ///< Use cluster hits or all hits?
-    std::string fGenModuleLabel;       ///< MC truth.
     std::string fHitModuleLabel;       ///< Unclustered Hits.
     std::string fClusterModuleLabel;   ///< Clustered Hits.
     std::string fG4ModuleLabel;        ///< For SimChannel.

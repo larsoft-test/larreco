@@ -56,7 +56,6 @@ trkf::TrackKalmanCheater::TrackKalmanCheater(fhicl::ParameterSet const & pset) :
   mf::LogInfo("TrackKalmanCheater") 
     << "TrackKalmanCheater configured with the following parameters:\n"
     << "  UseClusterHits = " << fUseClusterHits << "\n"
-    << "  GenModuleLabel = " << fGenModuleLabel << "\n"
     << "  HitModuleLabel = " << fHitModuleLabel << "\n"
     << "  ClusterModuleLabel = " << fClusterModuleLabel << "\n"
     << "  G4ModuleLabel = " << fG4ModuleLabel;
@@ -78,7 +77,6 @@ void trkf::TrackKalmanCheater::reconfigure(fhicl::ParameterSet const & pset)
   fKFAlg.reconfigure(pset.get<fhicl::ParameterSet>("KalmanFilterAlg"));
   fSpacePointAlg.reconfigure(pset.get<fhicl::ParameterSet>("SpacePointAlg"));
   fUseClusterHits = pset.get<bool>("UseClusterHits");
-  fGenModuleLabel = pset.get<std::string>("GenModuleLabel");
   fHitModuleLabel = pset.get<std::string>("HitModuleLabel");
   fClusterModuleLabel = pset.get<std::string>("ClusterModuleLabel");
   fG4ModuleLabel = pset.get<std::string>("G4ModuleLabel");
