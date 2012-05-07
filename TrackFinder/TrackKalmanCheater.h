@@ -15,6 +15,7 @@
 
 #include "art/Framework/Core/EDProducer.h"
 #include "TrackFinder/KalmanFilterAlg.h"
+#include "TH1F.h"
 
 namespace trkf {
 
@@ -39,6 +40,7 @@ namespace trkf {
 
     // Fcl parameters.
 
+    bool fHist;                        ///< Make histograms.
     KalmanFilterAlg fKFAlg;            ///< Kalman filter algorithm.
     SpacePointAlg fSpacePointAlg;      ///< Space point algorithm.
     bool fUseClusterHits;              ///< Use cluster hits or all hits?
@@ -49,6 +51,11 @@ namespace trkf {
 
     /// Propagator.
     const Propagator* prop;
+
+    // Histograms.
+
+    TH1F* fHIncChisq;   ///< Incremental chisquare.
+    TH1F* fHPull;       ///< Hit pull.
 
     // Statistics.
 

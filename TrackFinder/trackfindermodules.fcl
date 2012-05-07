@@ -12,6 +12,7 @@ standard_trackcheater:
 standard_trackkalmancheater:
 {
   module_type:        "TrackKalmanCheater"
+  Hist:               false
   UseClusterHits:     true
   GenModuleLabel:     "generator"
   HitModuleLabel:     "ffthit"

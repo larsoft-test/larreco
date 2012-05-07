@@ -13,6 +13,7 @@
 #include "TrackFinder/KHitContainerWireX.h"
 #include "TrackFinder/SurfYZPlane.h"
 #include "TrackFinder/PropYZPlane.h"
+#include "TrackFinder/KHit.h"
 #include "Geometry/geo.h"
 #include "RecoBase/Hit.h"
 #include "RecoBase/Cluster.h"
@@ -20,6 +21,7 @@
 #include "Simulation/SimListUtils.h"
 #include "MCCheater/BackTracker.h"
 #include "Utilities/AssociationUtil.h"
+#include "art/Framework/Services/Optional/TFileService.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 
@@ -30,10 +32,13 @@
 /// p - Fcl parameters.
 ///
 trkf::TrackKalmanCheater::TrackKalmanCheater(fhicl::ParameterSet const & pset) :
+  fHist(false),
   fKFAlg(pset.get<fhicl::ParameterSet>("KalmanFilterAlg")),
   fSpacePointAlg(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
   fUseClusterHits(false),
   prop(new PropYZPlane(10.)),
+  fHIncChisq(0),
+  fHPull(0),
   fNumEvent(0),
   fNumTrack(0)
 {
@@ -67,6 +72,7 @@ trkf::TrackKalmanCheater::~TrackKalmanCheater()
 ///
 void trkf::TrackKalmanCheater::reconfigure(fhicl::ParameterSet const & pset)
 {
+  fHist = pset.get<bool>("Hist");
   fKFAlg.reconfigure(pset.get<fhicl::ParameterSet>("KalmanFilterAlg"));
   fSpacePointAlg.reconfigure(pset.get<fhicl::ParameterSet>("SpacePointAlg"));
   fUseClusterHits = pset.get<bool>("UseClusterHits");
@@ -78,7 +84,18 @@ void trkf::TrackKalmanCheater::reconfigure(fhicl::ParameterSet const & pset)
 
 /// Begin job method.
 void trkf::TrackKalmanCheater::beginJob()
-{}
+{
+  if(fHist) {
+
+    // Book histograms.
+
+    art::ServiceHandle<art::TFileService> tfs;
+    art::TFileDirectory dir = tfs->mkdir("hitkalman", "TrackKalmanCheater histograms");
+
+    fHIncChisq = dir.make<TH1F>("IncChisq", "Incremental Chisquare", 100, 0., 20.);
+    fHPull = dir.make<TH1F>("Pull", "Hit Pull", 100, -10., 10.);
+  }
+}
 
 /// Produce method.
 ///
@@ -301,6 +318,31 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	  else
 	    log << "Build track failed.\n";
  	}
+      }
+    }
+  }
+
+  // Fill histograms.
+
+  // First loop over tracks.
+
+  for(std::deque<KGTrack>::const_iterator k = kalman_tracks.begin();
+      k != kalman_tracks.end(); ++k) {
+    const KGTrack& trg = *k;
+
+    // Loop over measurements in this track.
+
+    const std::multimap<double, KHitTrack>& trackmap = trg.getTrackMap();
+    for(std::multimap<double, KHitTrack>::const_iterator ih = trackmap.begin();
+	ih != trackmap.end(); ++ih) {
+      const KHitTrack& trh = (*ih).second;
+      const boost::shared_ptr<const KHitBase>& hit = trh.getHit();
+      double chisq = hit->getChisq();
+      fHIncChisq->Fill(chisq);
+      const KHit<1>* ph1 = dynamic_cast<const KHit<1>*>(&*hit);
+      if(ph1 != 0) {
+	double pull = ph1->getResVector()(0) / std::sqrt(ph1->getResError()(0, 0));
+	fHPull->Fill(pull);
       }
     }
   }
