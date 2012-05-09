@@ -88,6 +88,7 @@ standard_spacepointfinder:
 {
   module_type:        "SpacePointFinder"
   ClusterModuleLabel: "dbcluster"
+  MinHits:            10
   Filter:             true
   Merge:              false
   SpacePointAlg:      @local::standard_spacepointalg
