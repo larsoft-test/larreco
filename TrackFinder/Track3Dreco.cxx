@@ -165,6 +165,10 @@ void trkf::Track3Dreco::produce(art::Event& evt)
      art::PtrVector<recob::Hit> hitlist;
      hitlist = cl->Hits();
      if(hitlist.size() == 1) continue;//only one Hit in this Cluster...will cause TGraph fit to fail.
+
+     // sort the hit list to be sure it is in the correct order 
+     // using the Hit < operator
+     hitlist.sort();
      
      TGraph *the2Dtrack = new TGraph(hitlist.size());
      
