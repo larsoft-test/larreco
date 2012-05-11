@@ -138,7 +138,8 @@ namespace trkf {
 
     if(!!result) {
       TrackMatrix temp = prod(tre.getError(), trans(*prop_matrix));
-      TrackError newerr = prod(*prop_matrix, temp);
+      TrackMatrix temp2 = prod(*prop_matrix, temp);
+      TrackError newerr = ublas::symmetric_adaptor<TrackMatrix>(temp2);
       tre.setError(newerr);
     }
 
@@ -176,7 +177,8 @@ namespace trkf {
 
     if(!!result) {
       TrackMatrix temp = prod(tre.getError(), trans(prop_matrix));
-      TrackError newerr = prod(prop_matrix, temp);
+      TrackMatrix temp2 = prod(prop_matrix, temp);
+      TrackError newerr = ublas::symmetric_adaptor<TrackMatrix>(temp2);
       newerr += noise_matrix;
       tre.setError(newerr);
     }

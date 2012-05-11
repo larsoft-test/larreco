@@ -18,9 +18,14 @@ trkf::KalmanFilterAlg::KalmanFilterAlg(const fhicl::ParameterSet& pset) :
   fTrace(false),
   fMaxPErr(0.),
   fGoodPErr(0.),
+  fMaxIncChisq(0.),
   fMinLHits(0),
   fMaxLDist(0.),
   fMaxPredDist(0.),
+  fMaxPropDist(0.),
+  fMinSortDist(0.),
+  fMaxSortDist(0.),
+  fMaxSamePlane(0),
   fPlane(-1)
 {
   mf::LogInfo("KalmanFilterAlg") << "KalmanFilterAlg instantiated.";
@@ -40,9 +45,14 @@ void trkf::KalmanFilterAlg::reconfigure(const fhicl::ParameterSet& pset)
   fTrace = pset.get<bool>("Trace");
   fMaxPErr = pset.get<double>("MaxPErr");
   fGoodPErr = pset.get<double>("GoodPErr");
+  fMaxIncChisq = pset.get<double>("MaxIncChisq");
   fMinLHits = pset.get<int>("MinLHits");
   fMaxLDist = pset.get<double>("MaxLDist");
   fMaxPredDist = pset.get<double>("MaxPredDist");
+  fMaxPropDist = pset.get<double>("MaxPropDist");
+  fMinSortDist = pset.get<double>("MinSortDist");
+  fMaxSortDist = pset.get<double>("MaxSortDist");
+  fMaxSamePlane = pset.get<int>("MaxSamePlane");
 }
 
 /// Add hits to track.
@@ -54,7 +64,6 @@ void trkf::KalmanFilterAlg::reconfigure(const fhicl::ParameterSet& pset)
 /// prop     - Propagator.
 /// dir      - Direction.
 /// hits     - Candidate hits.
-/// maxChisq - Incremental chisquare cut.
 ///
 /// Returns: True if success.
 ///
@@ -72,8 +81,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 				       KGTrack& trg,
 				       const Propagator* prop,
 				       const Propagator::PropDirection dir,
-				       KHitContainer& hits,
-				       double maxChisq)
+				       KHitContainer& hits) const
 {
   assert(prop != 0);
 
@@ -92,6 +100,8 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
   double tchisq = 0.;        // Cumulative chisquare.
   double path = 0.;          // Cumulative path distance.
   int step = 0;              // Step count.
+  int nsame = 0;             // Number of consecutive measurements in same plane.
+  int last_plane = -1;       // Last plane.
 
   // Make a copy of the starting track, in the form of a KFitTrack,
   // which we will update as we go.
@@ -116,7 +126,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
     ++step;
     if(fTrace) {
       log << "Build Step " << step << "\n";
-      log << "KGTrack has " << trg.getTrackMap().size() << " hits.\n";
+      log << "KGTrack has " << trg.numHits() << " hits.\n";
       log << trf;
     }
 
@@ -151,6 +161,8 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
     // Propagate track to the prediction surface.
 
     boost::optional<double> dist = prop->noise_prop(trf, psurf, Propagator::UNKNOWN, true, pref);
+    if(!!dist && std::abs(*dist) > fMaxPropDist)
+      dist = boost::optional<double>(false, 0.);
     double ds = 0.;
 
     if(!!dist) {
@@ -171,7 +183,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 	log << "After propagation\n";
 	log << "  Incremental distance = " << ds << "\n";
 	log << "  Actual distance = " << path << "\n";
-	log << "KGTrack has " << trg.getTrackMap().size() << " hits.\n";
+	log << "KGTrack has " << trg.numHits() << " hits.\n";
 	log << trf;
       }
 
@@ -191,7 +203,8 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 	if(ok) {
 	  double chisq = hit.getChisq();
 	  double preddist = hit.getPredDistance();
-	  if(best_hit.get() == 0 || (abs(preddist) < fMaxPredDist && chisq < best_chisq) ) {
+	  if((pref != 0 || best_chisq < fMaxIncChisq) && abs(preddist) < fMaxPredDist &&
+	     (best_hit.get() == 0 || chisq < best_chisq) ) {
 	    best_hit = *ihit;
 	    best_chisq = chisq;
 	  }
@@ -208,7 +221,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
       // chisquare passes the cut, add it to the track and update 
       // fit information.
 
-      if(best_hit.get() != 0 && (pref != 0 || best_chisq < maxChisq)) {
+      if(best_hit.get() != 0) {
 	ds += best_hit->getPredDistance();
 	best_hit->update(trf);
 	tchisq += best_chisq;
@@ -229,24 +242,41 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 	  break;
 	}
 	  
-	// Make a KHitTrack and add it to the KGTrack.
+	// Test number of consecutive measurements in the same plane.
 
-	KHitTrack trh(trf, best_hit);
-	trg.addTrack(trh);
-
-	// Decide if we want to kill the reference track.
-
-	if(pref != 0 && trg.getTrackMap().size() >= fMinLHits &&
-	   (trf.PointingError() < fGoodPErr || path > fMaxLDist)) {
-	  pref = 0;
-	  if(fTrace)
-	    log << "Killing reference track.\n";
+	if(gr.getPlane() >= 0) {
+	  if(gr.getPlane() == last_plane)
+	    ++nsame;
+	  else {
+	    nsame = 1;
+	    last_plane = gr.getPlane();
+	  }
 	}
+	else {
+	  nsame = 0;
+	  last_plane = -1;
+	}
+	if(nsame <= fMaxSamePlane) {
 
-	if(fTrace) {
-	  log << "After update\n";
-	  log << "KGTrack has " << trg.getTrackMap().size() << " hits.\n";
-	  log << trf;
+	  // Make a KHitTrack and add it to the KGTrack.
+
+	  KHitTrack trh(trf, best_hit);
+	  trg.addTrack(trh);
+
+	  // Decide if we want to kill the reference track.
+
+	  if(pref != 0 && trg.numHits() >= fMinLHits &&
+	     (trf.PointingError() < fGoodPErr || path > fMaxLDist)) {
+	    pref = 0;
+	    if(fTrace)
+	      log << "Killing reference track.\n";
+	  }
+
+	  if(fTrace) {
+	    log << "After update\n";
+	    log << "KGTrack has " << trg.numHits() << " hits.\n";
+	    log << trf;
+	  }
 	}
       }
     }
@@ -256,35 +286,42 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 
     hits.getUnused().splice(hits.getUnused().end(), hits.getSorted(), it);
 
-    // If the propagation distance was negative, resort the measurements.
+    // If the propagation distance was the wrong direction, resort the measurements.
 
-    if(pref == 0 && !!dist && ds < 0.) {
+    if(pref == 0 && !!dist && 
+       ((dir == Propagator::FORWARD && (ds < fMinSortDist || ds > fMaxSortDist)) ||
+	(dir == Propagator::BACKWARD && (-ds < fMinSortDist || -ds > fMaxSortDist)))) {
       if(fTrace)
 	log << "Resorting measurements.\n";
-      hits.sort(trf, false, prop);
+      hits.sort(trf, true, prop, dir);
     }
   }
 
-  // Set the fit status of the last added KHitTrack to optimal.
+  // Set the fit status of the last added KHitTrack to optimal and get
+  // the final chisquare.
 
-  if(dir == Propagator::FORWARD)
+  double fchisq = 0.;
+  if(dir == Propagator::FORWARD) {
     trg.endTrack().setStat(KFitTrack::OPTIMAL);
+    fchisq = trg.endTrack().getChisq();
+  }
   else {
     assert(dir == Propagator::BACKWARD);
     trg.startTrack().setStat(KFitTrack::OPTIMAL);
+    fchisq = trg.startTrack().getChisq();
   }
 
   // Summary.
 
   log << "KalmanFilterAlg build track summary.\n"
       << "Build direction = " << (dir == Propagator::FORWARD ? "FORWARD" : "BACKWARD") << "\n"
-      << "Track has " << trg.getTrackMap().size() << " hits.\n"
+      << "Track has " << trg.numHits() << " hits.\n"
       << "Track length = " << trg.endTrack().getPath() - trg.startTrack().getPath() << "\n"
-      << "Track chisquare = " << trg.endTrack().getChisq() << "\n";
+      << "Track chisquare = " << fchisq << "\n";
 
   // Done.  Return success if we added at least one measurement.
 
-  return trg.getTrackMap().size() > 0;
+  return trg.numHits() > 0;
 }
 
 /// Smooth track.
@@ -322,7 +359,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 ///
 bool trkf::KalmanFilterAlg::smoothTrack(KGTrack& trg,
 					KGTrack* trg1,
-					const Propagator* prop)
+					const Propagator* prop) const
 {
   assert(prop != 0);
 
@@ -588,17 +625,359 @@ bool trkf::KalmanFilterAlg::smoothTrack(KGTrack& trg,
 
     }      // Do fit.
 
+    // Get the final chisquare.
+
+    double fchisq = 0.5 * (trg.startTrack().getChisq() + trg.endTrack().getChisq());
+
     // Summary.
 
     mf::LogInfo log("KalmanFilterAlg");
     log << "KalmanFilterAlg smooth track summary.\n"
 	<< "Smooth direction = " << (dir == Propagator::FORWARD ? "FORWARD" : "BACKWARD") << "\n"
-	<< "Track has " << trg.getTrackMap().size() << " hits.\n"
+	<< "Track has " << trg.numHits() << " hits.\n"
 	<< "Track length = " << trg.endTrack().getPath() - trg.startTrack().getPath() << "\n"
-	<< "Track chisquare = " << trg.endTrack().getChisq() << "\n";
+	<< "Track chisquare = " << fchisq << "\n";
   }
 
   // Done.
 
   return result;
 }
+
+/// Add hits to existing track.
+///
+/// Arguments:
+///
+/// trg - Track to extend.
+/// prop - Propagator.
+/// hits - Hit collection to choose hits from.
+///
+/// This method extends a KGTrack by adding hits.  The KGTrack must
+/// have previously been produced by a unidirectional Kalman fit (it
+/// should be optimal at one end).  This method finds the optimal end
+/// and extends the track in that direction.  If any hits are added,
+/// the originally optimal end has its status reset to forward or
+/// backward, and the new endpoint is optimal.  In any case, the final
+/// result is unidirectionally fit KGTrack.
+///
+bool trkf::KalmanFilterAlg::extendTrack(KGTrack& trg,
+					const Propagator* prop,
+					KHitContainer& hits) const
+{
+  assert(prop != 0);
+
+  // Default result failure.
+
+  bool result = false;
+
+  // Remember the original number of measurement.
+
+  unsigned int nhits0 = trg.numHits();
+
+  // It is an error if the KGTrack is not valid.
+
+  if(trg.isValid()) {
+    mf::LogInfo log("KalmanFilterAlg");
+
+    // Examine the track endpoints and figure out which end of the
+    // track to extend.  The track is always extended from the optimal
+    // end.  It is an error if neither end point is optimal, or both
+    // endoints are optimal.  Reset the status of the optimal, and
+    // make a copy of the starting track fit.  Also get starting path
+    // and chisquare.
+
+    KHitTrack& trh0 = trg.startTrack();
+    KHitTrack& trh1 = trg.endTrack();
+    KFitTrack::FitStatus stat0 = trh0.getStat();
+    KFitTrack::FitStatus stat1 = trh1.getStat();
+    bool dofit = false;
+    Propagator::PropDirection dir = Propagator::UNKNOWN;
+    KFitTrack trf;
+    double path = 0.;
+    double tchisq = 0.;
+
+    if(stat0 == KFitTrack::OPTIMAL) {
+      if(stat1 == KFitTrack::OPTIMAL) {
+
+	// Both ends optimal (do nothing, return failure).
+
+	dofit = false;
+	result = false;
+
+      }
+      else {
+
+	// Start optimal.  Extend backward.
+
+	dofit = true;
+	dir = Propagator::BACKWARD;
+	trh0.setStat(KFitTrack::BACKWARD);
+	trf = trh0;
+	path = trh0.getPath();
+	tchisq = trh0.getChisq();
+      }
+    }
+    else {
+      if(stat1 == KFitTrack::OPTIMAL) {
+
+	// End optimal.  Extend forward.
+
+	dofit = true;
+	dir = Propagator::FORWARD;
+	trh1.setStat(KFitTrack::FORWARD);
+	trf = trh1;
+	path = trh1.getPath();
+	tchisq = trh1.getChisq();
+      }
+      else {
+
+	// Neither end optimal (do nothing, return failure).
+
+	dofit = false;
+	result = false;
+      }
+    }
+    if(dofit) {
+
+      // Sort hit container using starting track.
+
+      hits.sort(trf, true, prop, dir);
+
+      // Extend loop starts here.
+
+      int step = 0;
+      int nsame = 0;
+      int last_plane = -1;
+      while(hits.getSorted().size() > 0) {
+	++step;
+	if(fTrace) {
+	  log << "Extend Step " << step << "\n";
+	  log << "KGTrack has " << trg.numHits() << " hits.\n";
+	  log << trf;
+	}
+
+	// Get an iterator for the next KHitGroup.
+
+	std::list<KHitGroup>::iterator it;
+	if(dir == Propagator::FORWARD)
+	  it = hits.getSorted().begin();
+	else {
+	  assert(dir == Propagator::BACKWARD);
+	  it = hits.getSorted().end();
+	  --it;
+	}
+	const KHitGroup& gr = *it;
+
+	if(fTrace) {
+	  double path_est = gr.getPath();
+	  log << "Next surface: " << *(gr.getSurface()) << "\n";
+	  log << "  Estimated distance = " << path_est << "\n";
+	}
+
+	// Get the next prediction surface.  If this KHitGroup is on the
+	// preferred plane, use that as the prediction surface.
+	// Otherwise, use the current track surface as the prediction
+	// surface.
+
+	boost::shared_ptr<const Surface> psurf = trf.getSurface();
+	assert(gr.getPlane() >= 0);
+	if(fPlane < 0 || gr.getPlane() < 0 || fPlane == gr.getPlane())
+	  psurf = gr.getSurface();
+
+	// Propagate track to the prediction surface.
+
+	boost::optional<double> dist = prop->noise_prop(trf, psurf, Propagator::UNKNOWN, true);
+	if(!!dist && std::abs(*dist) > fMaxPropDist)
+	  dist = boost::optional<double>(false, 0.);
+	double ds = 0.;
+
+	if(!!dist) {
+
+	  // Propagation succeeded.
+	  // Update cumulative path distance and track status.
+
+	  ds = *dist;
+	  path += ds;
+	  trf.setPath(path);
+	  if(dir == Propagator::FORWARD)
+	    trf.setStat(KFitTrack::FORWARD_PREDICTED);
+	  else {
+	    assert(dir == Propagator::BACKWARD);
+	    trf.setStat(KFitTrack::BACKWARD_PREDICTED);
+	  }
+	  if(fTrace) {
+	    log << "After propagation\n";
+	    log << "  Incremental distance = " << ds << "\n";
+	    log << "  Actual distance = " << path << "\n";
+	    log << "KGTrack has " << trg.numHits() << " hits.\n";
+	    log << trf;
+	  }
+
+	  // Loop over measurements in this group.
+
+	  const std::vector<boost::shared_ptr<const KHitBase> >& hits = gr.getHits();
+	  double best_chisq = 0.;
+	  boost::shared_ptr<const KHitBase> best_hit;
+	  for(std::vector<boost::shared_ptr<const KHitBase> >::const_iterator ihit = hits.begin();
+	      ihit != hits.end(); ++ihit) {
+	    const KHitBase& hit = **ihit;
+
+	    // Update predction using current track hypothesis and get
+	    // incremental chisquare.
+
+	    bool ok = hit.predict(trf, prop);
+	    if(ok) {
+	      double chisq = hit.getChisq();
+	      double preddist = hit.getPredDistance();
+	      if(chisq < fMaxIncChisq && abs(preddist) < fMaxPredDist &&
+		 (best_hit.get() == 0 || chisq < best_chisq)) {
+		best_hit = *ihit;
+		best_chisq = chisq;
+	      }
+	    }
+	  }
+	  if(fTrace) {
+	    if(best_hit.get() != 0) {
+	      log << "Hit after prediction\n";
+	      log << *best_hit;
+	    }
+	  }
+
+	  // If we found a best measurement, and if the incremental
+	  // chisquare passes the cut, add it to the track and update 
+	  // fit information.
+
+	  if(best_hit.get() != 0) {
+	    ds += best_hit->getPredDistance();
+	    best_hit->update(trf);
+	    tchisq += best_chisq;
+	    trf.setChisq(tchisq);
+	    if(dir == Propagator::FORWARD)
+	      trf.setStat(KFitTrack::FORWARD);
+	    else {
+	      assert(dir == Propagator::BACKWARD);
+	      trf.setStat(KFitTrack::BACKWARD);
+	    }
+
+	    // If the pointing error got too large, quit.
+
+	    if(trf.PointingError() > fMaxPErr) {
+	      if(fTrace)
+		log << "Quitting because pointing error got too large.\n";
+	      break;
+	    }
+
+	    // Test number of consecutive measurements in the same plane.
+
+	    if(gr.getPlane() >= 0) {
+	      if(gr.getPlane() == last_plane)
+		++nsame;
+	      else {
+		nsame = 1;
+		last_plane = gr.getPlane();
+	      }
+	    }
+	    else {
+	      nsame = 0;
+	      last_plane = -1;
+	    }
+	    if(nsame <= fMaxSamePlane) {
+
+	      // Make a KHitTrack and add it to the KGTrack.
+
+	      KHitTrack trh(trf, best_hit);
+	      trg.addTrack(trh);
+
+	      if(fTrace) {
+		log << "After update\n";
+		log << "KGTrack has " << trg.numHits() << " hits.\n";
+		log << trf;
+	      }
+	    }
+	  }
+	}
+
+	// The current KHitGroup is now resolved.
+	// Move it to unused list.
+
+	hits.getUnused().splice(hits.getUnused().end(), hits.getSorted(), it);
+
+	// If the propagation distance was the wrong direction, resort the measurements.
+
+	if(!!dist &&
+	   ((dir == Propagator::FORWARD && (ds < fMinSortDist || ds > fMaxSortDist)) ||
+	    (dir == Propagator::BACKWARD && (-ds < fMinSortDist || -ds > fMaxSortDist)))) {
+	  if(fTrace)
+	    log << "Resorting measurements.\n";
+	  hits.sort(trf, true, prop, dir);
+	}
+      }
+    }
+
+    // Set the fit status of the last added KHitTrack to optimal and
+    // get the final chisquare.
+
+    double fchisq = 0.;
+    if(dir == Propagator::FORWARD) {
+      trg.endTrack().setStat(KFitTrack::OPTIMAL);
+      fchisq = trg.endTrack().getChisq();
+    }
+    else {
+      assert(dir == Propagator::BACKWARD);
+      trg.startTrack().setStat(KFitTrack::OPTIMAL);
+      fchisq = trg.startTrack().getChisq();
+    }
+
+    // Summary.
+
+    log << "KalmanFilterAlg extend track summary.\n"
+	<< "Extend direction = " << (dir == Propagator::FORWARD ? "FORWARD" : "BACKWARD") << "\n"
+	<< "Track has " << trg.numHits() << " hits.\n"
+	<< "Track length = " << trg.endTrack().getPath() - trg.startTrack().getPath() << "\n"
+	<< "Track chisquare = " << fchisq << "\n";
+  }
+
+  // Done.
+
+  result = (trg.numHits() > nhits0);
+  return result;
+}
+
+/// Iteratively smooth a track.
+///
+/// Arguments:
+///
+/// nsmooth - Number of iterations.
+/// trg     - Track to be smoothed.
+/// prop    - Propagator.
+///
+/// Returns: True if success.
+///
+/// The initial track should have been unidirectionally fit.
+///
+bool trkf::KalmanFilterAlg::smoothTrackIter(int nsmooth,
+					    KGTrack& trg,
+					    const Propagator* prop) const
+{
+  bool ok = true;
+
+  // Call smoothTrack method in a loop.
+
+  for(int ismooth = 0; ok && ismooth < nsmooth-1; ++ismooth) {
+    KGTrack trg1;
+    ok = smoothTrack(trg, &trg1, prop);
+    if(ok)
+      trg = trg1;
+  }
+
+  // Do one final smooth without generating a new unidirectional
+  // track.
+
+  if(ok)
+    ok = smoothTrack(trg, 0, prop);
+
+  // Done.
+
+  return ok;
+}
+

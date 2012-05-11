@@ -47,6 +47,9 @@ namespace trkf {
     /// KHitTrack collection, indexed by path distance.
     const std::multimap<double, KHitTrack>& getTrackMap() const {return fTrackMap;}
 
+    /// Number of measurements in track.
+    size_t numHits() const {return fTrackMap.size();}
+
     /// Track at start point.
     const KHitTrack& startTrack() const;
 

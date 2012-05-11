@@ -27,9 +27,14 @@ standard_kalmanfilteralg:
   Trace: false
   MaxPErr: 0.25     # Maximum pointing error for free propagation.
   GoodPErr: 0.1     # Pointing error threshold for switching from linearized to free propataion.
+  MaxIncChisq: 100. # Incremental chisquare cut.
   MinLHits: 20      # Minimum number of measurements for linearized propagation.
   MaxLDist: 10.     # Maximum distance to use linearized propagation using starting guess.
   MaxPredDist: 2.   # Maximum prediction distance to accept a hit.
+  MaxPropDist: 50.  # Maximum propagation distance to candidate surface.
+  MinSortDist: 0.   # Low threshold to resort hits.
+  MaxSortDist: 2.   # High threshold to resort hits.
+  MaxSamePlane: 3   # Maximum consecutive hits in same plane.
 }
 
 argoneut_kalmanfilteralg:    @local::standard_kalmanfilteralg

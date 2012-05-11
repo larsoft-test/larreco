@@ -17,7 +17,6 @@ standard_trackkalmancheater:
   HitModuleLabel:     "ffthit"
   ClusterModuleLabel: "dbcluster"
   G4ModuleLabel:      "largeant"
-  MaxIncChisq:        100.          # Incremental chisquare cut.
   MaxTcut:            10.           # Maximum delta ray energy in MeV for restricted dE/dx
   KalmanFilterAlg:    @local::standard_kalmanfilteralg
   SpacePointAlg:      @local::standard_spacepointalg
@@ -162,6 +161,22 @@ development_beziertrackana:
   BezierTrackModuleLabel: "beziertracker"
 }
 
+standard_track3Dkalmanhit:
+{
+  module_type:        "Track3DKalmanHit"
+  Hist:               false
+  UseClusterHits:     true
+  HitModuleLabel:     "ffthit"
+  ClusterModuleLabel: "dbcluster"
+  MaxTcut:            10.           # Maximum delta ray energy in MeV for restricted dE/dx
+  MinSeedHits:        20            # Minimum number of hits per track seed.
+  MaxSeedChiDF:       20.           # Maximum seed track chisquare/dof.
+  MinSeedSlope:       0.05          # Minimum seed slope (dx/dz).
+  KalmanFilterAlg:    @local::standard_kalmanfilteralg
+  SeedFinder:         @local::development_seedfinder
+  SpacePointAlg:      @local::standard_spacepointalg
+}
+
 argoneut_track:                           @local::standard_track3Dreco  
 
 argoneut_kalman:                          @local::standard_track3Dkalman
@@ -203,6 +218,12 @@ microboone_trackkalmancheater:                                  @local::standard
 microboone_trackkalmancheater.KalmanFilterAlg:                  @local::microboone_kalmanfilteralg   
 microboone_trackkalmancheater.SpacePointAlg:                    @local::microboone_spacepointalg   
 microboone_trackkalmancheater.SpacePointAlg.MinViews:           2
+
+microboone_track3Dkalmanhit:                                    @local::standard_track3Dkalmanhit
+microboone_track3Dkalmanhit.KalmanFilterAlg:                    @local::microboone_kalmanfilteralg
+microboone_track3Dkalmanhit.SeedFinder.SpacePointAlg:           @local::microboone_spacepointalg
+microboone_track3Dkalmanhit.SpacePointAlg:                      @local::microboone_spacepointalg
+microboone_track3Dkalmanhit.SpacePointAlg.MinViews:             2
 
 microboone_2stg_kalman:
 {

@@ -1,13 +1,11 @@
-#ifndef TrackKalmanCheater_h
-#define TrackKalmanCheater_h
+#ifndef Track3DKalmanHit_h
+#define Track3DKalmanHit_h
 ////////////////////////////////////////////////////////////////////////
-// Class:       TrackKalmanCheater
+// Class:       Track3DKalmanHit
 // Module Type: producer
-// File:        TrackKalmanCheater.h
+// File:        Track3DKalmanHit.h
 //
-// This class produces RecoBase/Track objects using KalmanFilterService.
-// MC truth information is used to associate Hits used as input to
-// the Kalman filter.
+// This class produces RecoBase/Track objects using KalmanFilterAlgorithm.
 //
 // Configuration parameters:
 //
@@ -19,24 +17,26 @@
 // MaxTcut            - Maximum delta ray energy in Mev for dE/dx.
 // KalmanFilterAlg    - Parameter set for KalmanFilterAlg.
 // SpacePointAlg      - Parmaeter set for space points.
+// SeedFinder         - Parameter set for seed finder.
 //
 ////////////////////////////////////////////////////////////////////////
 
 #include "art/Framework/Core/EDProducer.h"
 #include "TrackFinder/KalmanFilterAlg.h"
+#include "TrackFinder/SeedFinder.h"
 #include "TH1F.h"
 
 namespace trkf {
 
   class Propagator;
 
-  class TrackKalmanCheater : public art::EDProducer {
+  class Track3DKalmanHit : public art::EDProducer {
   public:
 
     // Copnstructors, destructor.
 
-    explicit TrackKalmanCheater(fhicl::ParameterSet const & pset);
-    virtual ~TrackKalmanCheater();
+    explicit Track3DKalmanHit(fhicl::ParameterSet const & pset);
+    virtual ~Track3DKalmanHit();
 
     // Overrides.
 
@@ -50,13 +50,19 @@ namespace trkf {
     // Fcl parameters.
 
     bool fHist;                        ///< Make histograms.
-    KalmanFilterAlg fKFAlg;            ///< Kalman filter algorithm.
-    SpacePointAlg fSpacePointAlg;      ///< Space point algorithm.
     bool fUseClusterHits;              ///< Use cluster hits or all hits?
     std::string fHitModuleLabel;       ///< Unclustered Hits.
     std::string fClusterModuleLabel;   ///< Clustered Hits.
-    std::string fG4ModuleLabel;        ///< For SimChannel.
     double fMaxTcut;                   ///< Maximum delta ray energy in MeV for restricted dE/dx.
+    double fMinSeedHits;               ///< Minimum number of hits per track seed.
+    double fMaxSeedChiDF;              ///< Maximum seed track chisquare/dof.
+    double fMinSeedSlope;              ///< Minimum seed slope (dx/dz).
+
+    // Algorithm objects.
+
+    KalmanFilterAlg fKFAlg;            ///< Kalman filter algorithm.
+    SeedFinder fSeedFinder;            ///< Seed finder.
+    SpacePointAlg fSpacePointAlg;      ///< Space point algorithm.
 
     /// Propagator.
     const Propagator* fProp;
