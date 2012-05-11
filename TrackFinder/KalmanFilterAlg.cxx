@@ -26,6 +26,8 @@ trkf::KalmanFilterAlg::KalmanFilterAlg(const fhicl::ParameterSet& pset) :
   fMinSortDist(0.),
   fMaxSortDist(0.),
   fMaxSamePlane(0),
+  fGapDist(0.),
+  fMaxNoiseHits(0),
   fPlane(-1)
 {
   mf::LogInfo("KalmanFilterAlg") << "KalmanFilterAlg instantiated.";
@@ -53,6 +55,8 @@ void trkf::KalmanFilterAlg::reconfigure(const fhicl::ParameterSet& pset)
   fMinSortDist = pset.get<double>("MinSortDist");
   fMaxSortDist = pset.get<double>("MaxSortDist");
   fMaxSamePlane = pset.get<int>("MaxSamePlane");
+  fGapDist = pset.get<double>("GapDist");
+  fMaxNoiseHits = pset.get<double>("MaxNoiseHits");
 }
 
 /// Add hits to track.
@@ -265,7 +269,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 
 	  // Decide if we want to kill the reference track.
 
-	  if(pref != 0 && trg.numHits() >= fMinLHits &&
+	  if(pref != 0 && int(trg.numHits()) >= fMinLHits &&
 	     (trf.PointingError() < fGoodPErr || path > fMaxLDist)) {
 	    pref = 0;
 	    if(fTrace)
@@ -296,6 +300,10 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
       hits.sort(trf, true, prop, dir);
     }
   }
+
+  // Clean track.
+
+  cleanTrack(trg);
 
   // Set the fit status of the last added KHitTrack to optimal and get
   // the final chisquare.
@@ -914,6 +922,10 @@ bool trkf::KalmanFilterAlg::extendTrack(KGTrack& trg,
       }
     }
 
+    // Clean track.
+
+    cleanTrack(trg);
+
     // Set the fit status of the last added KHitTrack to optimal and
     // get the final chisquare.
 
@@ -981,3 +993,78 @@ bool trkf::KalmanFilterAlg::smoothTrackIter(int nsmooth,
   return ok;
 }
 
+/// Clean track by removing noise hits near endpoints.
+///
+/// Arguments:
+///
+/// trg - Track.
+///
+void trkf::KalmanFilterAlg::cleanTrack(KGTrack& trg) const
+{
+  // Get hold of a modifiable track map from trg.
+
+  std::multimap<double, KHitTrack>& trackmap = trg.getTrackMap();
+
+  // Do an indefinite loop until we no longer find any noise clusters.
+
+  bool done = false;
+  while(!done) {
+
+    // If track map has fewer than fMaxNoiseHits tracks, then this is a
+    // noise track.  Clear the map, making the whole track invalid.
+
+    if(int(trackmap.size()) <= fMaxNoiseHits) {
+      trackmap.clear();
+      done = true;
+      break;
+    }
+
+    // Loop over successive pairs of elements of track map.  Look for
+    // adjacent elements with distance separation greater than
+    // fGapDist.
+
+    std::multimap<double, KHitTrack>::iterator it = trackmap.begin();
+    std::multimap<double, KHitTrack>::iterator jt = trackmap.end();
+    int nb = 0;                // Number of elements from begin to jt.
+    int ne = trackmap.size();  // Number of elements it to end.
+    bool found_noise = false;
+    for(; it != trackmap.end(); ++it, ++nb, --ne) {
+      if(jt == trackmap.end())
+	jt = trackmap.begin();
+      else {
+	assert(nb >= 1);
+	assert(ne >= 1);
+	double disti = (*it).first;
+	double distj = (*jt).first;
+	double sep = disti - distj;
+	assert(sep >= 0.);
+	if(sep > fGapDist) {
+
+	  // Found a gap.  See if we want to trim track.
+
+	  if(nb <= fMaxNoiseHits) {
+
+	    // Trim front.
+
+	    found_noise = true;
+	    trackmap.erase(trackmap.begin(), it);
+	    break;
+	  }
+	  if(ne <= fMaxNoiseHits) {
+
+	    // Trim back.
+
+	    found_noise = true;
+	    trackmap.erase(it, trackmap.end());
+	    break;
+	  }
+	}
+	++jt;
+      }
+    }
+
+    // Decide if we are done.
+
+    done = !found_noise;
+  }
+}

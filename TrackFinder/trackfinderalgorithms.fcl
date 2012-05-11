@@ -35,6 +35,8 @@ standard_kalmanfilteralg:
   MinSortDist: 0.   # Low threshold to resort hits.
   MaxSortDist: 2.   # High threshold to resort hits.
   MaxSamePlane: 3   # Maximum consecutive hits in same plane.
+  GapDist: 3.       # Minimum gap distance.
+  MaxNoiseHits: 3   # Maximum number of hits in noise cluster.
 }
 
 argoneut_kalmanfilteralg:    @local::standard_kalmanfilteralg

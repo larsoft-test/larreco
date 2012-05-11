@@ -19,6 +19,8 @@
 /// MinSortDist  - Sort low distance threshold.
 /// MaxSortDist  - Sort high distance threshold.
 /// MaxSamePlane - Maximum consecutive hits in same plane.
+/// GapDist      - Minimum gap distance.
+/// MaxNoiseHits - Maximum number of hits in noise cluster.
 ///
 ////////////////////////////////////////////////////////////////////////
 
@@ -79,6 +81,9 @@ namespace trkf {
 			 KGTrack& trg,                     // Global track.
 			 const Propagator* prop) const;    // Propagator.
 
+    /// Clean track by removing noise hits near endpoints.
+    void cleanTrack(KGTrack& trg) const;
+
   private:
 
     // Fcl parameters.
@@ -87,13 +92,15 @@ namespace trkf {
     double fMaxPErr;         ///< Maximum pointing error for free propagation.
     double fGoodPErr;        ///< Pointing error threshold for switching to free propagation.
     double fMaxIncChisq;     ///< Maximum incremental chisquare to accept a hit.
-    unsigned int fMinLHits;  ///< Minimum number of hits to turn off linearized propagation.
+    int fMinLHits;           ///< Minimum number of hits to turn off linearized propagation.
     double fMaxLDist;        ///< Maximum distance for linearized propagation.
     double fMaxPredDist;     ///< Maximum prediciton distance to accept a hit.
     double fMaxPropDist;     ///< Maximum propagation distance to candidate surface.
     double fMinSortDist;     ///< Sort low distance threshold.
     double fMaxSortDist;     ///< Sort high distance threshold.
     int fMaxSamePlane;       ///< Maximum consecutive hits in same plane.
+    double fGapDist;         ///< Minimum gap distance.
+    int fMaxNoiseHits;       ///< Maximum number of hits in noise cluster.
 
     // Other attributes.
 
