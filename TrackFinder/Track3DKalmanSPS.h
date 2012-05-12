@@ -62,8 +62,6 @@ namespace trkf {
     Float_t chi2ndf;
     int     fcont;
 
-    Float_t *fpRECt3D;    
-    Float_t *fpRECLE;
     Float_t *fpRECL;
     Float_t *fpREC;
     Float_t *fpMCMom;

@@ -18,6 +18,7 @@
 #include "art/Framework/Principal/Event.h" 
 #include "fhiclcpp/ParameterSet.h" 
 #include "art/Framework/Principal/Handle.h" 
+#include "art/Framework/Principal/View.h" 
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
@@ -178,8 +179,6 @@ void trkf::Track3DKalmanSPS::beginJob()
   fpMCPos = new Float_t[4];
   fpREC = new Float_t[4];
   fpRECL = new Float_t[4];
-  fpRECLE = new Float_t[4];
-  fpRECt3D = new Float_t[4];
   fState0 = new Float_t[5];
   fCov0 = new Float_t[25];
   fDimSize = 20000; // if necessary will get this from pset in constructor.
@@ -260,8 +259,6 @@ void trkf::Track3DKalmanSPS::beginJob()
   tree->Branch("pMCPos",fpMCPos,"pMCPos[4]/F");
   tree->Branch("pRECKalF",fpREC,"pRECKalF[4]/F");
   tree->Branch("pRECKalL",fpRECL,"pRECKalL[4]/F");
-  tree->Branch("pRECKalLE",fpRECLE,"pRECKalLE[4]/F");
-  tree->Branch("pRECt3D",fpRECt3D,"pRECt3D[4]/F");
   
 
   //TGeoManager* geomGENFIT = new TGeoManager("Geometry", "Geane geometry");
@@ -286,8 +283,6 @@ void trkf::Track3DKalmanSPS::endJob()
 
   delete[] fpREC;
   delete[] fpRECL;
-  delete[] fpRECLE;
-  delete[] fpRECt3D;
   delete[] fState0;
   delete[] fCov0;
 
@@ -343,21 +338,18 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   // get input Hit object(s).
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fClusterModuleLabel,clusterListHandle);
-  art::Handle< std::vector<recob::Prong> > prongListHandle;
-  evt.getByLabel(fProngModuleLabel,prongListHandle);
-  // Below is an alternative way of sucking in prongs. Obviously,
-  // lotsa code below would have to change from using prongListHandle to 
-  // prongConsts if I did this.
-  /*
-  try{
-    std::vector<const recob::Prong*> prongConsts;
-    evt.getView(fProngModuleLabel,prongConsts);
-  }
-  catch(cet::exception& e){
-    mf::LogError("Get Prongs and Track upcast failed. You're SOL.");  
-    e.what();
-    }
-  */
+
+  //art::Handle< std::vector<recob::Prong> > prongListHandle;
+  //evt.getByLabel(fProngModuleLabel,prongListHandle);
+  // Below is an alternative way of sucking in prongs. This allows
+  // them to be Tracks as well as Prongs, from whom Tracks inherit.
+  // However, no one tells you that later when you need to pull out
+  // Assns, you need a PtrVector specifically of Prongs or Tracks.
+  // the View leaves you with a std::vector which can not be cast 
+  // to a PtrVector.
+
+  art::View < recob::Prong > prongListHandle;
+  evt.getView(fProngModuleLabel,prongListHandle);
 
   art::PtrVector<simb::MCTruth> mclist;
   std::vector<const sim::SimChannel*> simChannelHandle;
@@ -387,9 +379,9 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   //create collection of spacepoints that will be used when creating the Track object
 
   art::PtrVector<recob::Cluster> clusterIn;
-  art::PtrVector<recob::Prong> prongIn;
+
   // std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
-  mf::LogInfo("Track3DKalmanSPS: ") << "There are " <<  prongListHandle->size() << " Prongs (spacepoint clumps) in this event.";
+  mf::LogInfo("Track3DKalmanSPS: ") << "There are " <<  prongListHandle.vals().size() << " Prongs (spacepoint clumps) in this event.";
 
   /// \todo Why is there a RandomNumberGenerator here as it is never used?????
   art::ServiceHandle<art::RandomNumberGenerator> rng;
@@ -401,11 +393,23 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
       art::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
       clusterIn.push_back(cluster);
     }
-  for(unsigned int ii = 0; ii < prongListHandle->size(); ++ii)
+
+  // These 3 lines commit to Prongs or Tracks for subsequent Assn-making
+  // based on RTTI.
+  TString pclass(typeid(prongListHandle).name());
+  if (pclass.Contains("Prong"))
     {
-      art::Ptr<recob::Prong> prong(prongListHandle, ii);
-      prongIn.push_back(prong);
+      mf::LogInfo("Track3DKalmanSPS: ") << " Reading Prongs not Tracks. " ;
     }
+  else
+    {
+      mf::LogInfo("Track3DKalmanSPS: ") <<" Some incorrect type has been read in when expecting Tracks or Prongs. " ;
+      throw cet::exception("Track3DKalmanSPS.cxx: ") << " Line " << __LINE__ << ", " << __FILE__ << " Throw. \n";
+    }
+
+  art::PtrVector<recob::Prong> prongIn;
+  prongListHandle.fill(prongIn);
+  art::PtrVector<recob::Prong>::const_iterator pprong = prongIn.begin();
 
   TVector3 MCOrigin;
   TVector3 MCMomentum;
@@ -461,7 +465,6 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 
       // loop on Prongs
       size_t cntp(0);
-      art::PtrVector<recob::Prong>::const_iterator pprong = prongIn.begin();
       while (pprong!=prongIn.end()) 
 	{
 	  const std::vector<recob::SpacePoint>& spacepoints = (*pprong)->SpacePoints();
@@ -551,8 +554,8 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 	  fMomStart[0] = spacepointss[spacepointss.size()-1].XYZ()[0] - spacepointss[0].XYZ()[0];
 	  fMomStart[1] = spacepointss[spacepointss.size()-1].XYZ()[1] - spacepointss[0].XYZ()[1];
 	  fMomStart[2] = spacepointss[spacepointss.size()-1].XYZ()[2] - spacepointss[0].XYZ()[2];
-	  // This presumes a 1.0 GeV/c particle
-	  double dEdx = energyLossBetheBloch(mass, 1.0);
+	  // This presumes a 0.8 GeV/c particle
+	  double dEdx = 1.02*energyLossBetheBloch(mass, 1.0);
 	  // mom is really KE. 
 	  TVector3 mom(dEdx*fMomStart[0],dEdx*fMomStart[1],dEdx*fMomStart[2]);
 	  double pmag2 = pow(mom.Mag()+mass, 2. - mass*mass);
@@ -584,7 +587,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 	      // track and give large angular deviations which
 	      // will kill the fit.
 	      mom.SetMag(3.0 * mom.Mag()); 
-	      std::cout<<"Track3DKalmanSPS: Uncontained track ... Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
+	      std::cout<<"Track3DKalmanSPS: Uncontained track ... "<<std::endl;
 	      fDecimateHere = fDecimateU;
 	      fMaxUpdateHere = fMaxUpdateU;
 	      fErrScaleSHere = 1.0;
@@ -711,6 +714,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 	  std::vector < TMatrixT<double> > hitMeasCov;
 	  std::vector < TMatrixT<double> > hitUpdate;
 	  std::vector < TMatrixT<double> > hitCov;
+	  std::vector < TMatrixT<double> > hitCov7x7;
 	  std::vector < TMatrixT<double> > hitState;
 	  std::vector < genf::GFDetPlane* >  hitPlane;
 	  std::vector <TVector3> hitPlaneXYZ;
@@ -719,23 +723,6 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 	  try{
 	    //	std::cout<<"Track3DKalmanSPS about to processTrack."<<std::endl;
 	    if (fDoFit) k.processTrack(&fitTrack);
-	    hitMeasCov = fitTrack.getHitMeasuredCov();
-	    hitUpdate = fitTrack.getHitUpdate();
-	    hitCov = fitTrack.getHitCov();
-	    hitState = fitTrack.getHitState();
-	    hitPlane = fitTrack.getHitPlane();
-	    
-	    for (unsigned int ihit=0; ihit<fptsNo; ihit++)
-	      {
-		hitPlaneXYZ.push_back(hitPlane.at(ihit)->getO());
-		hitPlaneUxUyUz.push_back(hitPlane.at(ihit)->getNormal());
-		feth[ihit] = (Float_t ) (hitMeasCov.at(ihit)[0][0]); // eth
-		fedudw[ihit] = (Float_t ) (hitMeasCov.at(ihit)[1][1]); 
-		fedvdw[ihit] = (Float_t ) (hitMeasCov.at(ihit)[2][2]); 
-		feu[ihit] = (Float_t ) (hitMeasCov.at(ihit)[3][3]); 
-		fev[ihit] = (Float_t ) (hitMeasCov.at(ihit)[4][4]);
-		fupdate[ihit] = (Float_t ) (hitUpdate.at(ihit)[0][0]);
-	      }
 	    //std::cout<<"Track3DKalmanSPS back from processTrack."<<std::endl;
 	  }
 	  //catch(GFException& e){
@@ -765,6 +752,26 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 	      
 	      if (!skipFill)
 		{
+
+		  hitMeasCov = fitTrack.getHitMeasuredCov();
+		  hitUpdate = fitTrack.getHitUpdate();
+		  hitCov = fitTrack.getHitCov();
+		  hitCov7x7 = fitTrack.getHitCov7x7();
+		  hitState = fitTrack.getHitState();
+		  hitPlane = fitTrack.getHitPlane();
+		  
+		  for (unsigned int ihit=0; ihit<fptsNo; ihit++)
+		    {
+		      hitPlaneXYZ.push_back(hitPlane.at(ihit)->getO());
+		      hitPlaneUxUyUz.push_back(hitPlane.at(ihit)->getNormal());
+		      feth[ihit] = (Float_t ) (hitMeasCov.at(ihit)[0][0]); // eth
+		      fedudw[ihit] = (Float_t ) (hitMeasCov.at(ihit)[1][1]); 
+		      fedvdw[ihit] = (Float_t ) (hitMeasCov.at(ihit)[2][2]); 
+		      feu[ihit] = (Float_t ) (hitMeasCov.at(ihit)[3][3]); 
+		      fev[ihit] = (Float_t ) (hitMeasCov.at(ihit)[4][4]);
+		      fupdate[ihit] = (Float_t ) (hitUpdate.at(ihit)[0][0]);
+		    }
+
 		  stREC->ResizeTo(rep->getState());
 		  *stREC = rep->getState();
 		  covREC->ResizeTo(rep->getCov());
@@ -791,72 +798,64 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  ndf = rep->getNDF();
 		  nfail = fitTrack.getFailedHits();
 		  chi2ndf = (Float_t)(chi2/ndf);
-		  double dircoss[3],dircose[3];
-		  //		(*trackIter)->Direction(dircoss,dircose);      
+		  
+		  nTrks++;
+		  
+		  mf::LogInfo("Track3DKalmanSPS: ") << "Track3DKalmanSPS about to do tree->Fill(). Chi2/ndf is " << chi2/ndf << ".";
+
 		  for (int ii=0;ii<3;++ii)
 		    {
 		      fpMCMom[ii] = MCMomentum[ii];
 		      fpMCPos[ii] = MCOrigin[ii];
-		      fpREC[ii] = rep->getMom(rep->getReferencePlane())[ii];
-		      // fpRECLE is an extrap forward from first hit. Captures MS'ing 
-		      // only macroscopically. Not really what's desired.
-		      // fpRECL is actually the last plane's momentum estimate.
-		      //fpRECLE[ii] = rep->getMom(rep->getLastPlane())[ii]; 
-		      fpRECL[ii] = (dynamic_cast<genf::RKTrackRep *> (rep))->getMomLast(rep->getLastPlane())[ii]; 
-		      fpRECt3D[ii] = dircoss[ii];
+		      fpREC[ii]   = hitPlaneUxUyUz.front()[ii];
+		      fpRECL[ii]  = hitPlaneUxUyUz.back()[ii];
 		    }
 		  fpMCMom[3] = MCMomentum.Mag();
 		  
-		  fpREC[3] = rep->getMom(rep->getReferencePlane()).Mag();
-		  fpRECL[3] = (dynamic_cast<genf::RKTrackRep *> (rep))->getMomLast(rep->getLastPlane()).Mag();
-		  //fpRECLE[3] = rep->getMom(rep->getLastPlane()).Mag();
-		  
-		  nTrks++;
-		  
-		  mf::LogInfo("Track3DKalmanSPS: ") << "Track3DKalmanSPS about to do tree->Fill(). Chi2/ndf is " << chi2/ndf << ". All in volTPC coords .... pMCT[0-3] is " << fpMCMom[0] << ", " << fpMCMom[1] << ", " << fpMCMom[2] << ", " << fpMCMom[3] << ". pREC[0-3] is " << fpREC[0] << ", "<< fpREC[1] << ", " << fpREC[2] << ", " << fpREC[3] <<  ". pRECL[0-3] is " << fpRECL[0] << ", "<< fpRECL[1] << ", " << fpRECL[2] << ", " << fpRECL[3] << ".";
-		  
-		} // end !skipFill
-	      
-	      evtt = (unsigned int) evt.id().event();
-	      tree->Fill();
-	      
-	      art::PtrVector<recob::Cluster> clusters;
-	      // Use Assns to get the clusters for the spacepoints.
-	      clusters = util::FindManyP<recob::Cluster>(prongIn, evt, fProngModuleLabel, cntp);
-	      cntp++;
-	      std::vector <std::vector <double> > dQdxDummy(0);
-	      std::vector <double> p;
-	      p.push_back(hitState.front()[0][0]);
-	      p.push_back(hitState.back()[0][0]);
 
-	      recob::Track  the3DTrack(hitPlaneXYZ,hitPlaneUxUyUz,
-				       hitCov,dQdxDummy,p
-				       );
 	      
-	      double dircosF[3];
-	      double dircosL[3];
+		  evtt = (unsigned int) evt.id().event();
+
 	      
-	      for (int ii=0;ii<3;++ii)
-		{
-		  dircosF[ii] = fpREC[ii]/fpREC[3];
-		  dircosL[ii] = fpRECL[ii]/fpRECL[3];
-		}
+		  art::PtrVector<recob::Cluster> clusters;
+		  // Use Assns to get the clusters for the spacepoints.
+		  clusters = util::FindManyP<recob::Cluster>(prongIn, evt, fProngModuleLabel, cntp);
+		  cntp++;
+		  std::vector <std::vector <double> > dQdxDummy(0);
+		  // Calculate FirstLast momentum and cov7x7.
+		  std::vector <double> pFL;
+		  std::vector < TMatrixT<double> > c7x7FL;
+		  pFL.push_back(1./hitState.front()[0][0]);
+		  pFL.push_back(1./hitState.back()[0][0]);
+		  // hitCov -> hitCov7x7 !! EC, 11-May-2012.
+		  c7x7FL.push_back(hitCov7x7.front());
+		  c7x7FL.push_back(hitCov7x7.back());
+		  fpREC[3]  = pFL[0];
+		  fpRECL[3] = pFL[1];
+
+		  tree->Fill();
+		  
+		  recob::Track  the3DTrack(hitPlaneXYZ,hitPlaneUxUyUz,
+					   c7x7FL,dQdxDummy,pFL
+					   );
 	      
-	      the3DTrack.SetDirection(dircosF,dircosL);
-	      the3DTrack.SetID(tcnt++);
-		      
-	      tcol->push_back(the3DTrack);
-	      util::CreateAssn(*this, evt, *(tcol.get()), clusters,*(assn.get()));
-	      
-	      // associate the cluster hits with the track as well
-	      for(size_t c = 0; c < clusters.size(); ++c)
-		{
-		  art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(clusters, evt, 
-										fClusterModuleLabel, c);
-		  util::CreateAssn(*this, evt, *(tcol.get()), hits, *(hassn.get()));
-		}
-	      
-	    } // getStatusFlag 
+		  // SetDirection knows how to use just the first 3 of each of
+		  // the 4-element vectors pointed to here by their pointers.
+		  the3DTrack.SetDirection((double*)fpREC, (double*)fpRECL);
+		  the3DTrack.SetID(tcnt++);
+		  
+		  tcol->push_back(the3DTrack);
+		  util::CreateAssn(*this, evt, *(tcol.get()), clusters,*(assn.get()));
+		  
+		  // associate the cluster hits with the track as well
+		  for(size_t c = 0; c < clusters.size(); ++c)
+		    {
+		      art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(clusters, evt, fClusterModuleLabel, c);
+		      util::CreateAssn(*this, evt, *(tcol.get()), hits, *(hassn.get()));
+		    }
+		} // end !skipFill
+	    } // getStatusFlag
+	  
 
 	  if (!rep) delete rep;
 	  
