@@ -100,6 +100,7 @@ private:
   std::vector < TMatrixT<Double_t> > fHitUpdate;
   std::vector < TMatrixT<Double_t> > fHitState;
   std::vector < TMatrixT<Double_t> > fHitCov;
+  std::vector < TMatrixT<Double_t> > fHitCov7x7;
   std::vector < genf::GFDetPlane* > fHitPlane;
 
   int fPDG;
@@ -346,12 +347,14 @@ public:
   void setHitUpdate(TMatrixT<Double_t> mat) {fHitUpdate.push_back(mat);}
   void setHitState(TMatrixT<Double_t> mat) {fHitState.push_back(mat);}
   void setHitCov(TMatrixT<Double_t> mat) {fHitCov.push_back(mat);}
+  void setHitCov7x7(TMatrixT<Double_t> mat) {fHitCov7x7.push_back(mat);}
   void setHitPlane(genf::GFDetPlane* pl) {fHitPlane.push_back(pl);}
   void setPDG(int pdgt) {fPDG = pdgt;}
   std::vector < TMatrixT<Double_t> > getHitMeasuredCov() {return fHitMeasCov;}
   std::vector < TMatrixT<Double_t> > getHitUpdate() {return fHitUpdate;}
   std::vector < TMatrixT<Double_t> > getHitState() {return fHitState;}
   std::vector < TMatrixT<Double_t> > getHitCov() {return fHitCov;}
+  std::vector < TMatrixT<Double_t> > getHitCov7x7() {return fHitCov;}
   std::vector < genf::GFDetPlane* > getHitPlane() {return fHitPlane;}
 
   int getPDG() {return fPDG;}

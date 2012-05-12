@@ -244,7 +244,7 @@ double genf::GFKalman::chi2Increment(const TMatrixT<Double_t>& r,const TMatrixT<
     }
   catch (cet::exception &)
     {
-      GFException e("Kalman Chi2Increment: R is not even invertable. But keep plowing on ... ",__LINE__,__FILE__);
+      GFException e("Kalman Chi2Increment: R is not even invertible. But keep plowing on ... ",__LINE__,__FILE__);
       //e.setFatal();
       //throw e;
     }
@@ -515,9 +515,11 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   TVector3 wPrev(u.Cross(v));
   // We want the newest momentum vector's du,v/dw defined in the plPrev plane. 
   // That is the predicted du,v/dw. We will subtract from the actual.
+  // But the u's and v's need to come from the State not the Planes!!
+  // w is good. The Prev quantities however are from the Planes!
   res[1][0] = (pointer*uPrev)/(pointer*wPrev) - (w*uPrev)/(w*wPrev);
   res[2][0] = (pointer*vPrev)/(pointer*wPrev) - (w*vPrev)/(w*wPrev);
-  // res[1][0] = 0.0;
+  //res[1][0] = 0.0;
   // res[2][0] = 0.0;
 
   TMatrixT<Double_t> update=Gain*res;
@@ -531,7 +533,7 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   // migrate across zero. Similarly, don't allow tiny momentum.
   // 
   tr->setHitUpdate(update);
-  if (fabs(update[0][0])>fMaxUpdate ) update[0][0] = 0.0;
+  if (fabs(update[0][0])>fMaxUpdate ) update[0][0] = 0.0;/* update.Zero();*/
   state+=update; // prediction overwritten!      
 
   // Debugging purposes
@@ -557,7 +559,10 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
       covFilt = cov;
     }
   */
+
+  TMatrixT<double> cov7x7(calcCov7x7(cov,pl));
   tr->setHitCov(cov);
+  tr->setHitCov7x7(cov7x7);
   tr->setHitState(state);
 
   if (fabs(1.0/state[0][0])<fMomLow) 
@@ -595,10 +600,13 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   tr->setHitPlane(&plFilt);  
   // calculate filtered chisq from filtered residuals
   TMatrixT<Double_t> r=hit->residualVector(rep,state,plFilt,plPrev,mass);
+  if (direction==-1) wold.Rotate(TMath::Pi(),wold.Orthogonal());
   dtheta = thetaMeas - TMath::Min(fabs(wold.Angle(plFilt.getNormal())),0.95*TMath::Pi()/2.);
   r[0][0] = dtheta;
   r[1][0] = (pointer*uPrev)/(pointer*wPrev) - (wf*uPrev)/(wf*wPrev);
   r[2][0] = (pointer*vPrev)/(pointer*wPrev) - (wf*vPrev)/(wf*wPrev);
+  //  r[1][0] = 0.;
+  // r[2][0] = 0.;
 
   double chi2 = chi2Increment(r,Hnew,cov,V);
   int ndf = r.GetNrows();
@@ -621,14 +629,80 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   //rep->setReferencePlane(pl);
 
   // Since I've tilted the planes, d(u,v)/dw=0 by construction.
-  state[1][0] = 0.0;
-  state[2][0] = 0.0;
+  // But, I *haven't* tilted the planes! EC, 11-May-2012.
+  //state[1][0] = 0.0;
+  //state[2][0] = 0.0;
   rep->setData(state,pl,&cov); // This is where fState,
                                // fRefPlane and fCov are updated.
   tr->setRepAtHit(irep,ihit);
 
 }
 
+TMatrixT<Double_t>
+genf::GFKalman::calcCov7x7(const TMatrixT<Double_t>& cov, const GFDetPlane& plane) 
+{
+  // This ends up, confusingly, as: 7 columns, 5 rows!
+  TMatrixT<Double_t> jac(7,5); // X,Y,Z,UX,UY,UZ,Theta in detector coords
+
+  TVector3 u=plane.getU();
+  TVector3 v=plane.getV();
+  TVector3 w=u.Cross(v);
+
+  // Below line has been done, with code change in GFKalman that has updated
+  // the plane orientation by now.
+  //  TVector3 pTilde = 1.0 * (w + state[1][0] * u + state[2][0] * v);
+  TVector3 pTilde = w;
+  double pTildeMag = pTilde.Mag();
+
+  jac.Zero();
+  jac[6][0] = 1.0; // C; // 1/C;
+
+  jac[0][3] = u[0];
+  jac[1][3] = u[1];
+  jac[2][3] = u[2];
+
+  jac[0][4] = v[0];
+  jac[1][4] = v[1];
+  jac[2][4] = v[2];
+
+  // cnp'd from RKTrackRep.cxx, line ~496
+  // da{x,y,z}/du'
+  jac[3][1] = 1.0/pTildeMag*(u.X()-pTilde.X()/(pTildeMag*pTildeMag)*u*pTilde);
+  jac[4][1] = 1.0/pTildeMag*(u.Y()-pTilde.Y()/(pTildeMag*pTildeMag)*u*pTilde);
+  jac[5][1] = 1.0/pTildeMag*(u.Z()-pTilde.Z()/(pTildeMag*pTildeMag)*u*pTilde);
+  // da{x,y,z}/dv'
+  jac[3][2] = 1.0/pTildeMag*(v.X()-pTilde.X()/(pTildeMag*pTildeMag)*v*pTilde);
+  jac[4][2] = 1.0/pTildeMag*(v.Y()-pTilde.Y()/(pTildeMag*pTildeMag)*v*pTilde);
+  jac[5][2] = 1.0/pTildeMag*(v.Z()-pTilde.Z()/(pTildeMag*pTildeMag)*v*pTilde);
+
+  // y = A.x => x = A^T.A.A^T.y
+  // Thus, y's Jacobians Jac become for x (Jac^T.Jac)^(-1) Jac^T
+
+  TMatrixT<Double_t> jac_t(TMatrixT<Double_t>::kTransposed,jac);
+  TMatrixT<Double_t> jjInv(jac_t * jac);
+  //jInv.Zero();
+
+  double det(0.0);
+  try {
+    jjInv.Invert(&det); // this is all 1s on the diagonal, perhaps
+                        // to no one's surprise.
+  }
+  catch (cet::exception &)
+    {
+      GFException e("GFKalman: Jac.T*Jac is not invertible. But keep plowing on ... ",__LINE__,__FILE__);
+      e.setFatal();
+      throw e;
+    }
+  if(TMath::IsNaN(det)) {
+    GFException e("GFKalman: det of Jac.T*Jac is nan",__LINE__,__FILE__);
+    e.setFatal();
+    throw e;
+  }
+
+  TMatrixT<Double_t> j5x7 = jjInv*jac_t; 
+  TMatrixT<Double_t> c7x7 = j5x7.T() * (cov * j5x7);
+  return c7x7;
+}
 
 TMatrixT<Double_t>
 genf::GFKalman::calcGain(const TMatrixT<Double_t>& cov, 

@@ -25,6 +25,7 @@
 
 #include <map>
 #include <iostream>
+#include "GFDetPlane.h"
 
 #include "TMatrixT.h"
 #include "TH1D.h"
@@ -139,6 +140,7 @@ private:
   TMatrixT<Double_t> calcGain(const TMatrixT<Double_t>& cov, 
 						const TMatrixT<Double_t>& HitCov,
 						const TMatrixT<Double_t>& H);
+  TMatrixT<Double_t> calcCov7x7(const TMatrixT<Double_t>& cov, const genf::GFDetPlane& plane) ;
 
   /** @brief this returns the reduced chi2 increment for a hit
    */
