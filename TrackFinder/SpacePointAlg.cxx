@@ -1106,8 +1106,8 @@ namespace  trkf{
 		double wire21 = (-xyz1[1] * c2 + xyz1[2] * s2 - dist2) / pitch2;
 		double wire22 = (-xyz2[1] * c2 + xyz2[2] * s2 - dist2) / pitch2;
 	      
-		int wmin = std::min(wire21, wire22);
-		int wmax = std::max(wire21, wire22) + 1.;
+		int wmin = std::max(0., std::min(wire21, wire22));
+		int wmax = std::max(0., std::max(wire21, wire22) + 1.);
 	      
 		for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator 
 		      ihit2 = hitmap[cstat][tpc][plane2].lower_bound(wmin);
@@ -1242,8 +1242,8 @@ namespace  trkf{
 	    double wire21 = (-xyz1[1] * c2 + xyz1[2] * s2 - dist2) / pitch2;
 	    double wire22 = (-xyz2[1] * c2 + xyz2[2] * s2 - dist2) / pitch2;
 
-	    int wmin = std::min(wire21, wire22);
-	    int wmax = std::max(wire21, wire22) + 1.;
+	    int wmin = std::max(0., std::min(wire21, wire22));
+	    int wmax = std::max(0., std::max(wire21, wire22) + 1.);
 	  
 	    for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator 
 		  ihit2 = hitmap[cstat][tpc][plane2].lower_bound(wmin);
@@ -1279,8 +1279,8 @@ namespace  trkf{
 		  double u3pred = (-u1*s23 - u2*s31) / s12;
 		  double w3pred = (u3pred - dist3) / pitch3;
 		  double w3delta = std::abs(maxS / (s12 * pitch3));
-		  int w3min = std::ceil(w3pred - w3delta);
-		  int w3max = std::floor(w3pred + w3delta);
+		  int w3min = std::max(0., std::ceil(w3pred - w3delta));
+		  int w3max = std::max(0., std::floor(w3pred + w3delta));
 		
 		  for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator 
 			ihit3 = hitmap[cstat][tpc][plane3].lower_bound(w3min);
