@@ -306,17 +306,21 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
   cleanTrack(trg);
 
   // Set the fit status of the last added KHitTrack to optimal and get
-  // the final chisquare.
+  // the final chisquare and path length.
 
   double fchisq = 0.;
-  if(dir == Propagator::FORWARD) {
-    trg.endTrack().setStat(KFitTrack::OPTIMAL);
-    fchisq = trg.endTrack().getChisq();
-  }
-  else {
-    assert(dir == Propagator::BACKWARD);
-    trg.startTrack().setStat(KFitTrack::OPTIMAL);
-    fchisq = trg.startTrack().getChisq();
+  path = 0.;
+  if(trg.isValid()) {
+    path = trg.endTrack().getPath() - trg.startTrack().getPath();
+    if(dir == Propagator::FORWARD) {
+      trg.endTrack().setStat(KFitTrack::OPTIMAL);
+      fchisq = trg.endTrack().getChisq();
+    }
+    else {
+      assert(dir == Propagator::BACKWARD);
+      trg.startTrack().setStat(KFitTrack::OPTIMAL);
+      fchisq = trg.startTrack().getChisq();
+    }
   }
 
   // Summary.
@@ -324,7 +328,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
   log << "KalmanFilterAlg build track summary.\n"
       << "Build direction = " << (dir == Propagator::FORWARD ? "FORWARD" : "BACKWARD") << "\n"
       << "Track has " << trg.numHits() << " hits.\n"
-      << "Track length = " << trg.endTrack().getPath() - trg.startTrack().getPath() << "\n"
+      << "Track length = " << path << "\n"
       << "Track chisquare = " << fchisq << "\n";
 
   // Done.  Return success if we added at least one measurement.
@@ -927,17 +931,21 @@ bool trkf::KalmanFilterAlg::extendTrack(KGTrack& trg,
     cleanTrack(trg);
 
     // Set the fit status of the last added KHitTrack to optimal and
-    // get the final chisquare.
+    // get the final chisquare and path length.
 
     double fchisq = 0.;
-    if(dir == Propagator::FORWARD) {
-      trg.endTrack().setStat(KFitTrack::OPTIMAL);
-      fchisq = trg.endTrack().getChisq();
-    }
-    else {
-      assert(dir == Propagator::BACKWARD);
-      trg.startTrack().setStat(KFitTrack::OPTIMAL);
-      fchisq = trg.startTrack().getChisq();
+    path = 0.;
+    if(trg.isValid()) {
+      path = trg.endTrack().getPath() - trg.startTrack().getPath();
+      if(dir == Propagator::FORWARD) {
+	trg.endTrack().setStat(KFitTrack::OPTIMAL);
+	fchisq = trg.endTrack().getChisq();
+      }
+      else {
+	assert(dir == Propagator::BACKWARD);
+	trg.startTrack().setStat(KFitTrack::OPTIMAL);
+	fchisq = trg.startTrack().getChisq();
+      }
     }
 
     // Summary.
@@ -945,7 +953,7 @@ bool trkf::KalmanFilterAlg::extendTrack(KGTrack& trg,
     log << "KalmanFilterAlg extend track summary.\n"
 	<< "Extend direction = " << (dir == Propagator::FORWARD ? "FORWARD" : "BACKWARD") << "\n"
 	<< "Track has " << trg.numHits() << " hits.\n"
-	<< "Track length = " << trg.endTrack().getPath() - trg.startTrack().getPath() << "\n"
+	<< "Track length = " << path << "\n"
 	<< "Track chisquare = " << fchisq << "\n";
   }
 
@@ -1005,7 +1013,7 @@ void trkf::KalmanFilterAlg::cleanTrack(KGTrack& trg) const
 
   std::multimap<double, KHitTrack>& trackmap = trg.getTrackMap();
 
-  // Do an indefinite loop until we no longer find any noise clusters.
+  // Do an indefinite loop until we no longer find any dirt.
 
   bool done = false;
   while(!done) {
@@ -1017,6 +1025,42 @@ void trkf::KalmanFilterAlg::cleanTrack(KGTrack& trg) const
       trackmap.clear();
       done = true;
       break;
+    }
+
+    // Make sure the first two and last two tracks belong to different
+    // views.  If not, remove the first or last track.
+
+    if(trackmap.size() >= 2) {
+
+      // Check start.
+
+      std::multimap<double, KHitTrack>::iterator it = trackmap.begin();
+      int plane1 = (*it).second.getHit()->getMeasPlane();
+      if(plane1 >= 0) {
+	++it;
+	int plane2 = (*it).second.getHit()->getMeasPlane();
+	if(plane2 >= 0 && plane1 == plane2) {
+	  trackmap.erase(trackmap.begin(), it);
+	  done = false;
+	  continue;
+	}
+      }
+
+      // Check end.
+
+      it = trackmap.end();
+      --it;
+      plane1 = (*it).second.getHit()->getMeasPlane();
+      if(plane1 >= 0) {
+	--it;
+	int plane2 = (*it).second.getHit()->getMeasPlane();
+	if(plane2 >= 0 && plane1 == plane2) {
+	  ++it;
+	  trackmap.erase(it, trackmap.end());
+	  done = false;
+	  continue;
+	}
+      }
     }
 
     // Loop over successive pairs of elements of track map.  Look for
