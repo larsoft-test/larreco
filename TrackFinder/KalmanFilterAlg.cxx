@@ -580,35 +580,38 @@ bool trkf::KalmanFilterAlg::smoothTrack(KGTrack& trg,
 	  }
 	  else {
 
-	    // Prediction succeeded.
-	    // Get incremental chisquare.
-	    // Don't make cut, but do update cumulative chisquare.
+	    // Prediction succeeded.  Get incremental chisquare.  If
+	    // this hit fails incremental chisquare cut, this hit will
+	    // be dropped from the unidirecitonal Kalman fit track,
+	    // but may still be in the smoothed track.
 
 	    double chisq = hit.getChisq();
-	    tchisq += chisq;
-	    trf.setChisq(tchisq);
+	    if(chisq < fMaxIncChisq) {
+	      tchisq += chisq;
+	      trf.setChisq(tchisq);
 
-	    // Update the reverse fitting track using the current measurement
-	    // (both track parameters and status).
+	      // Update the reverse fitting track using the current measurement
+	      // (both track parameters and status).
 
-	    hit.update(trf);
-	    if(dir == Propagator::FORWARD)
-	      trf.setStat(KFitTrack::FORWARD);
-	    else {
-	      assert(dir == Propagator::BACKWARD);
-	      trf.setStat(KFitTrack::BACKWARD);
-	    }
-	    if(fTrace) {
-	      log << "Reverse fit track after update:\n";
-	      log << trf;
-	    }
+	      hit.update(trf);
+	      if(dir == Propagator::FORWARD)
+		trf.setStat(KFitTrack::FORWARD);
+	      else {
+		assert(dir == Propagator::BACKWARD);
+		trf.setStat(KFitTrack::BACKWARD);
+	      }
+	      if(fTrace) {
+		log << "Reverse fit track after update:\n";
+		log << trf;
+	      }
 
-	    // If unidirectional track pointer is not null, make a
-	    // KHitTrack and save it in the unidirectional track.
+	      // If unidirectional track pointer is not null, make a
+	      // KHitTrack and save it in the unidirectional track.
 
-	    if(trg1 != 0) {
-	      KHitTrack trh1(trf, trh.getHit());
-	      trg1->addTrack(trh1);
+	      if(trg1 != 0) {
+		KHitTrack trh1(trf, trh.getHit());
+		trg1->addTrack(trh1);
+	      }
 	    }
 	  }
 	}
