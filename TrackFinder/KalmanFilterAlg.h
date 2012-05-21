@@ -12,6 +12,7 @@
 /// MaxPErr      - Maximum pointing error for free propagation.
 /// GoodPErr     - Pointing error threshold for switching to free propagation.
 /// MaxIncChisq  - Maximum incremental chisquare to accept a hit.
+/// MaxEndChisq  - Maximum incremental chisquare for endpoint hit.
 /// MinLHits     - Minimum number of hits to turn off linearized propagation.
 /// MaxLDist     - Maximum distance for linearized propagation.
 /// MaxPredDist  - Maximum prediciton distance to accept a hit.
@@ -92,6 +93,7 @@ namespace trkf {
     double fMaxPErr;         ///< Maximum pointing error for free propagation.
     double fGoodPErr;        ///< Pointing error threshold for switching to free propagation.
     double fMaxIncChisq;     ///< Maximum incremental chisquare to accept a hit.
+    double fMaxEndChisq;     ///< Maximum incremental chisquare for endpoint hit.
     int fMinLHits;           ///< Minimum number of hits to turn off linearized propagation.
     double fMaxLDist;        ///< Maximum distance for linearized propagation.
     double fMaxPredDist;     ///< Maximum prediciton distance to accept a hit.

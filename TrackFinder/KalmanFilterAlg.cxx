@@ -19,6 +19,7 @@ trkf::KalmanFilterAlg::KalmanFilterAlg(const fhicl::ParameterSet& pset) :
   fMaxPErr(0.),
   fGoodPErr(0.),
   fMaxIncChisq(0.),
+  fMaxEndChisq(0.),
   fMinLHits(0),
   fMaxLDist(0.),
   fMaxPredDist(0.),
@@ -48,6 +49,7 @@ void trkf::KalmanFilterAlg::reconfigure(const fhicl::ParameterSet& pset)
   fMaxPErr = pset.get<double>("MaxPErr");
   fGoodPErr = pset.get<double>("GoodPErr");
   fMaxIncChisq = pset.get<double>("MaxIncChisq");
+  fMaxEndChisq = pset.get<double>("MaxEndChisq");
   fMinLHits = pset.get<int>("MinLHits");
   fMaxLDist = pset.get<double>("MaxLDist");
   fMaxPredDist = pset.get<double>("MaxPredDist");
@@ -1021,7 +1023,8 @@ void trkf::KalmanFilterAlg::cleanTrack(KGTrack& trg) const
     // If track map has fewer than fMaxNoiseHits tracks, then this is a
     // noise track.  Clear the map, making the whole track invalid.
 
-    if(int(trackmap.size()) <= fMaxNoiseHits) {
+    int ntrack = trackmap.size();
+    if(ntrack <= fMaxNoiseHits) {
       trackmap.clear();
       done = true;
       break;
@@ -1030,36 +1033,46 @@ void trkf::KalmanFilterAlg::cleanTrack(KGTrack& trg) const
     // Make sure the first two and last two tracks belong to different
     // views.  If not, remove the first or last track.
 
-    if(trackmap.size() >= 2) {
+    if(ntrack >= 2) {
 
       // Check start.
 
       std::multimap<double, KHitTrack>::iterator it = trackmap.begin();
-      int plane1 = (*it).second.getHit()->getMeasPlane();
-      if(plane1 >= 0) {
-	++it;
-	int plane2 = (*it).second.getHit()->getMeasPlane();
-	if(plane2 >= 0 && plane1 == plane2) {
-	  trackmap.erase(trackmap.begin(), it);
-	  done = false;
-	  continue;
-	}
+      const KHitTrack& trh1a = (*it).second;
+      const KHitBase& hit1a = *(trh1a.getHit());
+      int plane1 = hit1a.getMeasPlane();
+      double chisq1 = hit1a.getChisq();
+      ++it;
+      const KHitTrack& trh2a = (*it).second;
+      const KHitBase& hit2a = *(trh2a.getHit());
+      int plane2 = hit2a.getMeasPlane();
+      double chisq2 = hit2a.getChisq();
+      if((plane1 >= 0 && plane2 >= 0 && plane1 == plane2) ||
+	 chisq1 > fMaxEndChisq || chisq2 > fMaxEndChisq) {
+	trackmap.erase(trackmap.begin(), it);
+	done = false;
+	continue;
       }
 
       // Check end.
 
       it = trackmap.end();
       --it;
-      plane1 = (*it).second.getHit()->getMeasPlane();
-      if(plane1 >= 0) {
-	--it;
-	int plane2 = (*it).second.getHit()->getMeasPlane();
-	if(plane2 >= 0 && plane1 == plane2) {
-	  ++it;
-	  trackmap.erase(it, trackmap.end());
-	  done = false;
-	  continue;
-	}
+      const KHitTrack& trh1b = (*it).second;
+      const KHitBase& hit1b = *(trh1b.getHit());
+      plane1 = hit1b.getMeasPlane();
+      chisq1 = hit1b.getChisq();
+      --it;
+      const KHitTrack& trh2b = (*it).second;
+      const KHitBase& hit2b = *(trh2b.getHit());
+      plane2 = hit2b.getMeasPlane();
+      chisq2 = hit2b.getChisq();
+      if((plane1 >= 0 && plane2 >= 0 && plane1 == plane2) ||
+	 chisq1 > fMaxEndChisq || chisq2 > fMaxEndChisq) {
+	++it;
+	trackmap.erase(it, trackmap.end());
+	done = false;
+	continue;
       }
     }
 
@@ -1070,7 +1083,7 @@ void trkf::KalmanFilterAlg::cleanTrack(KGTrack& trg) const
     std::multimap<double, KHitTrack>::iterator it = trackmap.begin();
     std::multimap<double, KHitTrack>::iterator jt = trackmap.end();
     int nb = 0;                // Number of elements from begin to jt.
-    int ne = trackmap.size();  // Number of elements it to end.
+    int ne = ntrack;           // Number of elements it to end.
     bool found_noise = false;
     for(; it != trackmap.end(); ++it, ++nb, --ne) {
       if(jt == trackmap.end())

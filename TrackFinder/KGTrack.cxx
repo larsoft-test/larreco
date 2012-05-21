@@ -11,6 +11,7 @@
 #include <cmath>
 #include "TrackFinder/KGTrack.h"
 #include "TrackFinder/KHitWireX.h"
+#include "Geometry/geo.h"
 #include "cetlib/exception.h"
 
 namespace trkf {
@@ -119,16 +120,23 @@ namespace trkf {
   ///
   void KGTrack::fillTrack(recob::Track& track) const
   {
+    // Get geometry service.
+
+    art::ServiceHandle<geo::Geometry> geom;
+    int nview = geom->Nviews();
+
     // Fill collections of trajectory points and direction vectors.
 
     std::vector<TVector3> xyz;
     std::vector<TVector3> dxdydz;
     std::vector<double> momentum;
-    std::vector<std::vector<double> > dQdx;
+    std::vector<std::vector<double> > dqdx(nview);
 
     xyz.reserve(fTrackMap.size());
     dxdydz.reserve(fTrackMap.size());
     momentum.reserve(fTrackMap.size());
+    for(int iview=0; iview<nview; ++iview)
+      dqdx[iview].reserve(fTrackMap.size());
 
     // Loop over KHitTracks.
 
@@ -143,6 +151,7 @@ namespace trkf {
       xyz.push_back(TVector3(pos[0], pos[1], pos[2]));
 
       // Get momentum vector.
+      // Fill direction unit vector and momentum.
 
       double mom[3];
       trh.getMomentum(mom);
@@ -150,11 +159,36 @@ namespace trkf {
       assert(p != 0.);
       dxdydz.push_back(TVector3(mom[0]/p, mom[1]/p, mom[2]/p));
       momentum.push_back(p);
+
+      // Get charge.
+      // Only implemented for KHitWireX type measurements.
+
+      for(int iview=0; iview<nview; ++iview)
+	dqdx[iview].push_back(0.);
+      const boost::shared_ptr<const KHitBase>& phit = trh.getHit();
+      if(phit.get() != 0) {
+	const KHitWireX* phitx = dynamic_cast<const KHitWireX*>(&*phit);
+	if(phitx != 0) {
+	  const art::Ptr<recob::Hit>& parthit = phitx->getHit();
+	  if(parthit.get() != 0) {
+	    const recob::Hit& arthit = *parthit;
+	    geo::View_t view = arthit.View();
+	    double pitch = geom->WirePitch(view);
+	    double charge = arthit.Charge();
+	    double dudw = trh.getVector()[2];
+	    double dvdw = trh.getVector()[3];
+	    double dist = pitch * std::sqrt(1. + dudw * dudw + dvdw * dvdw);
+	    double qdist = charge / dist;
+	    assert(view >= 0 && view < nview);
+	    dqdx[view].back() = qdist;
+	  }
+	}
+      }
     }
 
     // Fill track.
 
-    track = recob::Track(xyz, dxdydz, dQdx, momentum);
+    track = recob::Track(xyz, dxdydz, dqdx, momentum);
   }
 
   /// Fill a PtrVector of Hits.
