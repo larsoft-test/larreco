@@ -716,7 +716,6 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 	  std::vector < TMatrixT<double> > hitCov;
 	  std::vector < TMatrixT<double> > hitCov7x7;
 	  std::vector < TMatrixT<double> > hitState;
-	  std::vector < genf::GFDetPlane* >  hitPlane;
 	  std::vector <TVector3> hitPlaneXYZ;
 	  std::vector <TVector3> hitPlaneUxUyUz;
 	  
@@ -758,18 +757,22 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  hitCov = fitTrack.getHitCov();
 		  hitCov7x7 = fitTrack.getHitCov7x7();
 		  hitState = fitTrack.getHitState();
-		  hitPlane = fitTrack.getHitPlane();
+		  hitPlaneXYZ = fitTrack.getHitPlaneXYZ();
+		  hitPlaneUxUyUz = fitTrack.getHitPlaneUxUyUz();
+		  unsigned int totHits = hitState.size(); 
 		  
-		  for (unsigned int ihit=0; ihit<fptsNo; ihit++)
+		  //		  for (unsigned int ihit=0; ihit<fptsNo; ihit++)
+		  // Pick up info from last fwd pass.
+		  unsigned int jhit=0;
+		  for (unsigned int ihit=totHits-2*fptsNo; ihit<(totHits-fptsNo-7); ihit++)
 		    {
-		      hitPlaneXYZ.push_back(hitPlane.at(ihit)->getO());
-		      hitPlaneUxUyUz.push_back(hitPlane.at(ihit)->getNormal());
-		      feth[ihit] = (Float_t ) (hitMeasCov.at(ihit)[0][0]); // eth
-		      fedudw[ihit] = (Float_t ) (hitMeasCov.at(ihit)[1][1]); 
-		      fedvdw[ihit] = (Float_t ) (hitMeasCov.at(ihit)[2][2]); 
-		      feu[ihit] = (Float_t ) (hitMeasCov.at(ihit)[3][3]); 
-		      fev[ihit] = (Float_t ) (hitMeasCov.at(ihit)[4][4]);
-		      fupdate[ihit] = (Float_t ) (hitUpdate.at(ihit)[0][0]);
+		      feth[jhit] = (Float_t ) (hitMeasCov.at(ihit)[0][0]); // eth
+		      fedudw[jhit] = (Float_t ) (hitMeasCov.at(ihit)[1][1]); 
+		      fedvdw[jhit] = (Float_t ) (hitMeasCov.at(ihit)[2][2]); 
+		      feu[jhit] = (Float_t ) (hitMeasCov.at(ihit)[3][3]); 
+		      fev[jhit] = (Float_t ) (hitMeasCov.at(ihit)[4][4]);
+		      fupdate[jhit] = (Float_t ) (hitUpdate.at(ihit)[0][0]);
+		      jhit++;
 		    }
 
 		  stREC->ResizeTo(rep->getState());
@@ -800,20 +803,16 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  chi2ndf = (Float_t)(chi2/ndf);
 		  
 		  nTrks++;
-		  
 		  mf::LogInfo("Track3DKalmanSPS: ") << "Track3DKalmanSPS about to do tree->Fill(). Chi2/ndf is " << chi2/ndf << ".";
-
+		  fpMCMom[3] = MCMomentum.Mag();
 		  for (int ii=0;ii<3;++ii)
 		    {
 		      fpMCMom[ii] = MCMomentum[ii];
 		      fpMCPos[ii] = MCOrigin[ii];
-		      fpREC[ii]   = hitPlaneUxUyUz.front()[ii];
-		      fpRECL[ii]  = hitPlaneUxUyUz.back()[ii];
+		      fpREC[ii]   = hitPlaneUxUyUz.at(totHits-2*fptsNo)[ii];
+		      fpRECL[ii]  = hitPlaneUxUyUz.at(totHits-fptsNo-1)[ii];
 		    }
-		  fpMCMom[3] = MCMomentum.Mag();
-		  
-
-	      
+		  	      
 		  evtt = (unsigned int) evt.id().event();
 
 	      
@@ -825,12 +824,12 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  // Calculate FirstLast momentum and cov7x7.
 		  std::vector <double> pFL;
 		  std::vector < TMatrixT<double> > c7x7FL;
-		  pFL.push_back(1./hitState.front()[0][0]);
-		  pFL.push_back(1./hitState.back()[0][0]);
+		  pFL.push_back(1./hitState.at(totHits-2*fptsNo)[0][0]);
+		  pFL.push_back(1./hitState.at(totHits-fptsNo-1)[0][0]);
 		  // hitCov -> hitCov7x7 !! EC, 11-May-2012.
-		  c7x7FL.push_back(hitCov7x7.front());
-		  c7x7FL.push_back(hitCov7x7.back());
-		  fpREC[3]  = pFL[0];
+		  c7x7FL.push_back(hitCov7x7.at(totHits-2*fptsNo+1));
+		  c7x7FL.push_back(hitCov7x7.at(totHits-fptsNo-1));
+		  fpREC[3]  = rep->getMom(rep->getReferencePlane()).Mag();
 		  fpRECL[3] = pFL[1];
 
 		  tree->Fill();
