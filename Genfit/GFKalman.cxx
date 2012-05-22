@@ -320,6 +320,7 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   static TMatrixT<Double_t> oldState(5,1);
   static std::vector<TVector3> pointsPrev;
 
+  const double eps(1.0e-6);
   if (direction>0 && ihit>0)
     {
       phit = ihit - 1;
@@ -391,7 +392,8 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   // state has accumulated the material/magnetic field changes since last
   // step. Here, we make the *plane* at this step know about that bend.
   // We will not, in the end, save this plane, cuz Genfit knows to properly
-  // calculate it later.
+  // calculate it later. 
+  // Actually, I do *not* change the plane. EC, 11-May-2012.
   TVector3 u(pl.getU());
   TVector3 v(pl.getV());
   TVector3 wold(u.Cross(v));
@@ -414,13 +416,13 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
       pl.setV(v.Unit());
     }
   */
-  if(cov[0][0]<1.E-50){
+  if(cov[0][0]<1.E-50 || TMath::IsNaN(cov[0][0])){
         std::cout<<"GFKalman::processHit() 0. Calling Exception."<<std::endl;
 	GFException exc(COVEXC,__LINE__,__FILE__);
 	cov.Print();
         std::cout<<"GFKalman::processHit() 1. No longer throw exception. Force cov[0][0] to 0.01."<<std::endl;
         // std::cout<<"GFKalman::processHit() 1. About to throw GFException."<<std::endl;
-	cov[0][0] = pi2;
+	cov = covFilt;
 	//	throw exc;
         // std::cout<<"GFKalman::processHit() 2. Back from GFException."<<std::endl;
 
@@ -513,14 +515,23 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   TVector3 uPrev(plPrev.getU());
   TVector3 vPrev(plPrev.getV());
   TVector3 wPrev(u.Cross(v));
-  // We want the newest momentum vector's du,v/dw defined in the plPrev plane. 
+  // We want the newest momentum vector's du,v/dw defined in the prev plane. 
   // That is the predicted du,v/dw. We will subtract from the actual.
-  // But the u's and v's need to come from the State not the Planes!!
-  // w is good. The Prev quantities however are from the Planes!
+  // But the u's and v's need to come from the State not the Planes, cuz I
+  // haven't updated pl,plPrev per latest State. plFilt, the updated plPrev,
+  // is what we want. w is from updated new plane pl, per latest State. 
+  // e.g. plFilt.
+  static GFDetPlane plFilt;//(pl);
+  if (plFilt.getO().Mag()>eps) 
+    {
+      uPrev = plFilt.getU();
+      vPrev = plFilt.getV();
+      wPrev = plFilt.getNormal();
+    }
   res[1][0] = (pointer*uPrev)/(pointer*wPrev) - (w*uPrev)/(w*wPrev);
   res[2][0] = (pointer*vPrev)/(pointer*wPrev) - (w*vPrev)/(w*wPrev);
-  //res[1][0] = 0.0;
-  // res[2][0] = 0.0;
+  res[1][0] = 0.0;
+  res[2][0] = 0.0;
 
   TMatrixT<Double_t> update=Gain*res;
 
@@ -541,15 +552,14 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   if (GH[0][0] > 1.)
     {
       //      std::cout << "GFKalman:: Beginnings of a problem." << std::endl;
-      const double eps(1.0e-6);
       Hnew[0][0] = Hnew[0][0] - eps/Gain[0][0];
     }
   
   cov-=Gain*(Hnew*cov);
   // Below is protection required at end of contained track when
   // momentum is tiny and cov[0][0] gets huge.
-  /*
-  if (cov[0][0]>pi2/Hnew[0][0] || cov[0][0] <= 0.0) 
+  
+  if (cov[0][0]>pi2/Hnew[0][0] || cov[0][0] <= 0.0 || TMath::IsNaN(cov[0][0])) 
     {
       //    cov[0][0]=pi2/Hnew[0][0];
       cov = covFilt;
@@ -558,7 +568,7 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
     {
       covFilt = cov;
     }
-  */
+  
 
   TMatrixT<double> cov7x7(calcCov7x7(cov,pl));
   tr->setHitCov(cov);
@@ -575,7 +585,6 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   // Use those to calculate filtered chisq and pass to setHitPlane()
   // for plane-by-plane correct "filtered" track pointing that gets
   // stuffed into the Track(). 
-  GFDetPlane plFilt(pl);
   TVector3 uf(pl.getU());
   TVector3 vf(pl.getV());
   TVector3 wf(uf.Cross(vf));
@@ -597,7 +606,8 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   plFilt.setO(pposf);
   plFilt.setNormal(pf.Unit());
 
-  tr->setHitPlane(&plFilt);  
+  tr->setHitPlaneXYZ(plFilt.getO());
+  tr->setHitPlaneUxUyUz(plFilt.getNormal());
   // calculate filtered chisq from filtered residuals
   TMatrixT<Double_t> r=hit->residualVector(rep,state,plFilt,plPrev,mass);
   if (direction==-1) wold.Rotate(TMath::Pi(),wold.Orthogonal());
@@ -605,8 +615,8 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   r[0][0] = dtheta;
   r[1][0] = (pointer*uPrev)/(pointer*wPrev) - (wf*uPrev)/(wf*wPrev);
   r[2][0] = (pointer*vPrev)/(pointer*wPrev) - (wf*vPrev)/(wf*wPrev);
-  //  r[1][0] = 0.;
-  // r[2][0] = 0.;
+  r[1][0] = 0.;
+  r[2][0] = 0.;
 
   double chi2 = chi2Increment(r,Hnew,cov,V);
   int ndf = r.GetNrows();
