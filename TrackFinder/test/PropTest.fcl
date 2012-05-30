@@ -8,6 +8,7 @@ services:
 }
 
 services.user.DatabaseUtil:       @local::microboone_database
+services.user.DatabaseUtil.ShouldConnect: false
 services.user.LArProperties:      @local::microboone_properties
 
 source:

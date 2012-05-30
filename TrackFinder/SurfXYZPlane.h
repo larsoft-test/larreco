@@ -94,11 +94,11 @@ namespace trkf {
     virtual ~SurfXYZPlane();
 
     // Accessors.
-    double x0() const {return fX0;}     ///< X origin.
-    double y0() const {return fY0;}     ///< Y origin.
-    double z0() const {return fZ0;}     ///< Z origin.
-    double phi() const {return fPhi;}   ///< Rot. angle about x-axis (wire angle).
-    double theta() const {return fPhi;} ///< Rot. angle about y'-axis (projected Lorentz angle).
+    double x0() const {return fX0;}       ///< X origin.
+    double y0() const {return fY0;}       ///< Y origin.
+    double z0() const {return fZ0;}       ///< Z origin.
+    double phi() const {return fPhi;}     ///< Rot. angle about x-axis (wire angle).
+    double theta() const {return fTheta;} ///< Rot. angle about y'-axis (projected Lorentz angle).
 
     /// Clone method.
     virtual Surface* clone() const;
