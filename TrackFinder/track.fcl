@@ -10,7 +10,7 @@
 #include "job/clustermodules.fcl"
 #include "job/clusteralgorithms.fcl"
 #include "job/trackfindermodules.fcl"
-#include "job/caloitaliano.fcl"
+#include "job/calorimetry.fcl"
 
 
 process_name: FindTracks
