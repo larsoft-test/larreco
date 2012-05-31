@@ -2,7 +2,7 @@
 #include "job/trackfinderservices.fcl"
 #include "job/trackfindermodules.fcl"
 #include "job/mccheatermodules.fcl"
-#include "job/fftfinderana.fcl"
+#include "job/hitfindermodules.fcl"
 
 process_name: ProngReco
 
