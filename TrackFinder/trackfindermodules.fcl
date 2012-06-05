@@ -88,6 +88,7 @@ standard_spacepointfinder:
   module_type:        "SpacePointFinder"
   ClusterModuleLabel: "dbcluster"
   MinHits:            10
+  ClusterAssns:       true
   Filter:             true
   Merge:              false
   SpacePointAlg:      @local::standard_spacepointalg
@@ -99,6 +100,7 @@ standard_spacepointcheater:
   ClusterModuleLabel: "dbcluster"
   G4ModuleLabel:      "largeant"
   MinHits:            10
+  ClusterAssns:       true
   Filter:             false
   Merge:              false
   SpacePointAlg:      @local::standard_spacepointalg

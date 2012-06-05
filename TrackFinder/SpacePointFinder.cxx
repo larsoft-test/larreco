@@ -28,6 +28,7 @@ namespace trkf {
     //
     : fSptalg(pset.get<fhicl::ParameterSet>("SpacePointAlg"))
     , fMinHits(0)
+    , fClusterAssns(false)
     , fFilter(true)
     , fMerge(false)
     , fNumEvent(0)
@@ -42,6 +43,8 @@ namespace trkf {
     produces<art::Assns<recob::Prong, recob::Hit>      >();
     produces<std::vector<recob::SpacePoint>            >();
     produces<art::Assns<recob::SpacePoint, recob::Hit> >();
+    if(fClusterAssns)
+      produces<art::Assns<recob::SpacePoint, recob::Cluster> >();
 
     // Report.
 
@@ -49,6 +52,7 @@ namespace trkf {
       << "SpacePointFinder configured with the following parameters:\n"
       << "  ClusterModuleLabel = " << fClusterModuleLabel << "\n"
       << "  Minimum Hits per Cluster = " << fMinHits << "\n"
+      << "  Cluster associations = " << fClusterAssns << "\n"
       << "  Filter = " << fFilter << "\n"
       << "  Merge = " << fMerge;
   }
@@ -71,6 +75,7 @@ namespace trkf {
     fSptalg.reconfigure(pset.get<fhicl::ParameterSet>("SpacePointAlg"));
     fClusterModuleLabel = pset.get<std::string>("ClusterModuleLabel");
     fMinHits = pset.get<unsigned int>("MinHits");
+    fClusterAssns = pset.get<bool>("ClusterAssns");
     fFilter = pset.get<bool>("Filter");
     fMerge = pset.get<bool>("Merge");
   }
@@ -112,7 +117,8 @@ namespace trkf {
       // Make a collection of space points that will be inserted into the event.
 
       std::auto_ptr<std::vector<recob::SpacePoint> > spts(new std::vector<recob::SpacePoint>);
-      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Hit> > spassn(new art::Assns<recob::SpacePoint, recob::Hit>);
+      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Hit> > sphitassn(new art::Assns<recob::SpacePoint, recob::Hit>);
+      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Cluster> > spclassn(new art::Assns<recob::SpacePoint, recob::Cluster>);
     
       // Make a hit vector which will be used to store hits to be passed
       // to SpacePointAlg.
@@ -202,12 +208,14 @@ namespace trkf {
 		  int nspt = spts->size();
 		  spts->insert(spts->end(), new_spts.begin(), new_spts.end());
 
-		  // Associate space points with hits.
+		  // Associate space points with hits and clusters.
 
 		  for(unsigned int ispt = nspt; ispt < spts->size(); ++ispt) {
 		    const recob::SpacePoint& spt = (*spts)[ispt];
 		    const art::PtrVector<recob::Hit>& hits = fSptalg.getAssociatedHits(spt);
-		    util::CreateAssn(*this, evt, *spts, hits, *spassn, ispt);
+		    util::CreateAssn(*this, evt, *spts, hits, *sphitassn, ispt);
+		    if(fClusterAssns)
+		      util::CreateAssn(*this, evt, *spts, clusters, *spclassn, ispt);
 		  }
 
 		  ++fNumProng2;
@@ -272,12 +280,14 @@ namespace trkf {
 		    int nspt = spts->size();
 		    spts->insert(spts->end(), new_spts.begin(), new_spts.end());
 
-		    // Associate space points with hits.
+		    // Associate space points with hits and clusters.
 
 		    for(unsigned int ispt = nspt; ispt < spts->size(); ++ispt) {
 		      const recob::SpacePoint& spt = (*spts)[ispt];
 		      const art::PtrVector<recob::Hit>& hits = fSptalg.getAssociatedHits(spt);
-		      util::CreateAssn(*this, evt, *spts, hits, *spassn, ispt);
+		      util::CreateAssn(*this, evt, *spts, hits, *sphitassn, ispt);
+		      if(fClusterAssns)
+			util::CreateAssn(*this, evt, *spts, clusters, *spclassn, ispt);
 		    }
 
 		    ++fNumProng3;
@@ -295,7 +305,9 @@ namespace trkf {
       evt.put(assn);
       evt.put(hassn);
       evt.put(spts);
-      evt.put(spassn);
+      evt.put(sphitassn);
+      if(fClusterAssns)
+	evt.put(spclassn);
     }
   }
 

@@ -46,6 +46,7 @@ namespace trkf {
     std::string fClusterModuleLabel;
     std::string fG4ModuleLabel;    // For SimChannel.
     unsigned int fMinHits;         // Minimum number of hits per cluster.
+    bool fClusterAssns;            // Make Cluster-SpacePoint associations.
     bool fFilter;                  // Filter space points?
     bool fMerge;                   // Merge space points?
 
