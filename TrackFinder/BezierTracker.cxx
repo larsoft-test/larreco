@@ -185,7 +185,7 @@ namespace trkf {
 	    std::cout<<"Beginning iterative refitting " <<std::endl;
 	    for(size_t i=0; i!=TrackSeeds.size(); i++)
 	      {
-		//		fTheSeedFinder->RefitSeed(TrackSeeds.at(i),SPUsed.at(i));
+		fTheSeedFinder->RefitSeed(TrackSeeds.at(i),SPUsed.at(i));
 	      }
 	    
 	    std::cout<<"Organizing seed collections " <<std::endl;

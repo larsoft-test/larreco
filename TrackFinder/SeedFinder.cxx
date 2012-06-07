@@ -19,6 +19,8 @@
 #include "RecoBase/Prong.h"
 #include "Utilities/AssociationUtil.h"
 #include "Utilities/DetectorProperties.h"
+#include "TMatrixD.h"
+#include "TVectorD.h"
 
 namespace trkf {
 
@@ -634,7 +636,7 @@ recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,st
     return ReturnSeed;
   }
 
-
+  
 
   void SeedFinder::RefitSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> SpacePoints)
   {
@@ -749,6 +751,8 @@ recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,st
 			     Wire1End2[1]-Wire1End1[1],
 			     Wire1End2[2]-Wire1End1[2]);
 	    
+	    WireVec=WireVec.Unit();
+
 	    TVector3 XVec(1,0,0);
 	    
 	    TVector3 PlaneNormDirection=(WireVec.Cross(XVec)).Unit();
@@ -778,42 +782,77 @@ recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,st
 
 	    std::cout<<"Making direction refit" << std::endl;
 
-	    double TanThetaFactor =  WirePitch / det->GetXTicksCoefficient();
+	    double OneTickInX = det->GetXTicksCoefficient();
 	    
+	    double d2=0, d=0, N=0, dx=0, x=0;
+
+
 	    double Theta=0;
-	
+	    TotalCharge=0;
 	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisPlane.begin(); itHit!=HitsThisPlane.end(); itHit++)
 	      {
 		unsigned int Wire;
 		double Time;
+		double XDisp;
+		double DDisp;
+
 		geom->ChannelToWire((*itHit)->Channel(), c, t, p, Wire);
-		Time=(*itHit)->PeakTime();
+		DDisp = (double(Wire)-SeedCentralWire)*WirePitch;
 		
-		Theta += atan( (Time-SeedCentralTime) /  ((double(Wire)-SeedCentralWire) * TanThetaFactor)) * (*itHit)->Charge();
+		Time=(*itHit)->PeakTime();
+		XDisp = Time*OneTickInX;
+		
+		x  += XDisp;
+		d  += DDisp;
+		dx += DDisp*XDisp;
+		N  += 1;
+		d2 += DDisp*DDisp;
+
+		TotalCharge+=(*itHit)->Charge();
+	
+ 		Theta += atan( (Time-SeedCentralTime)*OneTickInX
+			       /  ((double(Wire)-SeedCentralWire) * WirePitch)) * (*itHit)->Charge();
 	      }
 	    Theta/=TotalCharge;
-	    
+
+	    TMatrixD LeastSquaresLHS(2,2);
+	    LeastSquaresLHS[0][0]=d2;
+	    LeastSquaresLHS[0][1]=d;
+	    LeastSquaresLHS[1][0]=d;
+	    LeastSquaresLHS[1][1]=N;
+
+	    TVectorD LeastSquaresRHS(2);
+	    LeastSquaresRHS[0]=dx;
+	    LeastSquaresRHS[1]=x;
+
+	    LeastSquaresLHS.Invert();
+
+	    TVectorD LeastSquaresResult(2);
+	    LeastSquaresResult = LeastSquaresLHS*LeastSquaresRHS;
+
+	    // parameters for t = ac + b
+	    double a = LeastSquaresResult[0];
+	    double b = LeastSquaresResult[1];
+
+
 	    // Project seed direction vector into parts parallel and perp to pitch
 
-	    double SeedPlaneComp     = SeedDirection.Dot(PlaneNormDirection);
-	    double SeedTimeComp      = SeedDirection.Dot(XVec);
+	    double SeedPlaneComp     = SeedDirection.Dot(PlaneNormDirection.Unit());
+	    double SeedTimeComp      = SeedDirection.Dot(XVec.Unit());
 	    double SeedOutOfPlaneComp= SeedDirection.Dot(WireVec.Unit());
 
 	    double SeedLengthInPlane = pow( pow(SeedPlaneComp,2)+pow(SeedTimeComp,2), 0.5);
 	    
+	    std::cout<<"Previous  a in plane : " << SeedTimeComp / SeedPlaneComp<<std::endl;
+	    std::cout<<"Suggested a in plane : " << a <<std::endl;
 
-	    double SeedTheta = atan( SeedTimeComp / SeedPlaneComp);
 
-	    std::cout<<"Refit suggests moving from theta "<< SeedTheta << " to " << Theta<<std::endl;
+	    double Newa=0.5*(a+SeedTimeComp/SeedPlaneComp);
 	    
-	    // Shift theta half way between the two
-	    SeedTheta = 0.5*(Theta + SeedTheta); 
+	    double OriginalSeedLength = SeedDirection.Mag();
 	    
-	
-	
 	    // Set seed direction to this theta without changing length
-	    SeedPlaneComp = SeedLengthInPlane * cos(SeedTheta);
-	    SeedTimeComp  = SeedLengthInPlane * sin(SeedTheta);
+	    SeedTimeComp  = Newa*SeedPlaneComp;
 	    
 	    // build the new direction from these 3 orthogonal components
 	    SeedDirection = 
@@ -821,6 +860,8 @@ recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,st
 	      SeedPlaneComp      * PlaneNormDirection + 
 	      SeedOutOfPlaneComp * WireVec.Unit(); 
 	    
+	    SeedDirection.SetMag(OriginalSeedLength);
+
 	    // Set the seed direction accordingly
 	    for(int i=0; i!=3; i++)
 	      SeedDir[i]=SeedDirection[i];
