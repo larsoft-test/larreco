@@ -116,7 +116,7 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
     double totCharge =  0.;
     int multiplicity =  1 ;
     while(tdcVsEitr->first <  *endItr){
-      double adc = fElectronsToADC*tdcVsEitr->first;
+      double adc = fElectronsToADC*tdcVsEitr->second;
       totCharge += adc;
       if(adc > maxCharge){
 	maxCharge = adc;
