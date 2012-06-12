@@ -137,7 +137,7 @@ TH1::AddDirectory(kFALSE);
   int minTimeHolder    = 0;                         // current start time
 
   std::string eqn        = "gaus(0)";      // string for equation for gaus fit
-  std::string seed        = "gaus(0)";      // string for equation seed gaus fit
+  //std::string seed        = "gaus(0)";      // string for equation seed gaus fit
   
   
   bool maxFound        = false;            // Flag for whether a peak > threshold has been found
@@ -214,10 +214,8 @@ TH1::AddDirectory(kFALSE);
 		    		//keep these in case new hit starts right away
 		   		minTimeHolder = time+2; 
 		  		}
-		  	else 
-				{
-				minTimeHolder = time+1; 
-				}
+		  	else minTimeHolder = time+1; 
+				
 			}//<---End Checking if this is a minimum
 		
 		
@@ -274,14 +272,9 @@ TH1::AddDirectory(kFALSE);
   	int numHits(0);  						//number of consecutive hits being fitted
   	int size(0);     						//size of data vector for fit
   	int hitIndex(0);						//index of current hit in sequence
-	//int position(0);  						//fit parameters
   	double amplitude(0);             			        //fit parameters
-  	//double amplitudeErr(0), positionErr(0), widthErr(0);  		//fit errors
-  	//double goodnessOfFit(0), chargeErr(0);  			//Chi2/NDF and error on charge
   	double minPeakHeight(0);  					//lowest peak height in multi-hit fit
-	
-	//bool MergedPulses = false;
-	
+		
 	
 	StartIime = 0; 							// stores the start time of the hit
         StartTimeError = 0;						// stores the error assoc. with the start time of the hit
@@ -331,6 +324,7 @@ TH1::AddDirectory(kFALSE);
 				}//<---Only move the mean peakHeight in this hit
 				 
 		  	numHits++;//<---Interate the multihit function
+			
 			}//<---End multihit while loop
 		
 		
@@ -355,7 +349,6 @@ TH1::AddDirectory(kFALSE);
 		// ###############################################################
 		// ### Putting the current considered hit into a 1-D Histogram ###
 		// ###############################################################
-		
 		//--- Size of hit = endT - startT ---
 		size = (int)(endT-startT);
 		// --- TH1D HitSignal ---
@@ -390,7 +383,7 @@ TH1::AddDirectory(kFALSE);
 		// ### Building TFormula for seedHit and basic Gaussian ###
 		// ########################################################
         	eqn = "gaus(0)";
-		seed = "gaus(0)";	
+		//seed = "gaus(0)";	
 		for(int i = 3; i < numHits*3; i+=3) 
 			{
 	 	 	eqn.append("+gaus(");
@@ -400,18 +393,18 @@ TH1::AddDirectory(kFALSE);
 	  		eqn.append(")");
 			}
 			
-		for(int j = 3; j < numHits*3; j+=3)
+		/*for(int j = 3; j < numHits*3; j+=3)
 			{
 			seed.append("+gaus(");
 			numConv.str("");
 			numConv << j;
 			seed.append(numConv.str());
 	  		seed.append(")");
-			}
+			}*/
 		
 		// --- TF1 function for GausHit and seedHit ---
 		TF1 Gaus("Gaus",eqn.c_str(),0,size);
-		TF1 seedGaus("seedGaus",seed.c_str(),0,size);
+		//TF1 seedGaus("seedGaus",seed.c_str(),0,size);
 		
 		// #############################################################################
 		// ### For multipulse hits we loop over all the hits and fit N Gaus function ###
@@ -495,7 +488,7 @@ TH1::AddDirectory(kFALSE);
 		// ####################################################
 		// ### PERFORMING THE TOTAL GAUSSIAN FIT OF THE HIT ###
 		// ####################################################
-		hitSignal.Fit(&Gaus,"QNR0LLi","", startT, endT);
+		hitSignal.Fit(&Gaus,"QNRW","", startT, endT);
 		
 		for(int hitNumber = 0; hitNumber < numHits; ++hitNumber) 
 			{
@@ -517,7 +510,6 @@ TH1::AddDirectory(kFALSE);
 				EndTimeError			= TMath::Sqrt( (Gaus.GetParError(3*hitNumber+1)*Gaus.GetParError(3*hitNumber+1)) + 
 							                       (Gaus.GetParError(3*hitNumber+2)*Gaus.GetParError(3*hitNumber+2)));
 				MeanPosition			= Gaus.GetParameter(3*hitNumber+1);
-				//MeanPosError			= seedGaus.GetParError(3*hitNumber+1);
 				MeanPosError			= Gaus.GetParError(3*hitNumber+1);
 				
 				hitSig.resize(size);
@@ -554,7 +546,7 @@ TH1::AddDirectory(kFALSE);
 				// #############################
 				// ### Perform Hit on Signal ###
 				// #############################
-				hitSignal.Fit(hit,"NRQ0LLi","", StartIime, EndTime);
+				hitSignal.Fit(hit,"QNRW","", StartIime, EndTime);
 				
 				
 				FitGoodnes			= hit->GetChisquare() / hit->GetNDF();
@@ -614,7 +606,7 @@ TH1::AddDirectory(kFALSE);
   
 
 
-  hit->Delete();  
+ // hit->Delete();  
 
 } // End of produce()  
 
