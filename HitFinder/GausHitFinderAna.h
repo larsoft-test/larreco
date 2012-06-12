@@ -59,7 +59,7 @@ namespace hit {
       Int_t fSingleHit; //<<---Set a indicator to know if this is a single pulse hit or multihit
       Int_t fMultiHit;  //<<---Set a indicator to know if this is a single pulse hit or multihit
       
-      Float_t fWiren1; //<---Wire number of hit with multiplicity of 1
+      Int_t fWiren1; //<---Wire number of hit with multiplicity of 1
       Float_t fgoodoffitn1; //<---Goodness of hit with mulitplicity of 1
       Float_t fChargen1; //<---Charge of hit with multiplicity of 1
       Float_t fSigmaChargen1; //<---Uncertainty of charge of hit with multiplicity of 1
@@ -72,7 +72,7 @@ namespace hit {
       Float_t fEndTimeUncertn1; //<---End Time Uncertainty of the hit with multiplicity of 1
       
       
-      Float_t fWirenGT1; //<---Wire number of hit with multiplicity of 1
+      Int_t fWirenGT1; //<---Wire number of hit with multiplicity of 1
       Float_t fWidthnGT1; //<---Width of the Hit (Endtime - Peaktime) with multiplicity > 1
       Float_t fPeaknGT1; //<---Peak time of hit with multiplicity > 1
       Float_t fPeakUncertnGT1; //<---Uncertainty in the peak position of the hit with multiplicity > 1
