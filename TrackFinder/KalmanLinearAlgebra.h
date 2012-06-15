@@ -183,6 +183,20 @@ namespace trkf {
 
     return true;
   }
+
+  /// Trace of matrix.
+  ///
+  template <class M>
+  typename M::value_type trace(const M& m)
+  {
+    typename M::size_type n = std::min(m.size1(), m.size2());
+    typename M::value_type result = 0.;
+
+    for(typename M::size_type i = 0; i < n; ++i)
+      result += m(i,i);
+
+    return result;
+  }
 }
 
 #endif
