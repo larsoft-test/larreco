@@ -60,6 +60,8 @@ namespace trkf {
 
     // Modifiers.
 
+    TrackVector& getVector() {return fVec;}                          ///< Modifiable state vector.
+
     /// Set surface.
     void setSurface(const boost::shared_ptr<const Surface>& psurf) {fSurf = psurf;}
     void setVector(const TrackVector& vec) {fVec = vec;}                ///< Set state vector.

@@ -56,6 +56,7 @@ namespace trkf {
 
     // Modifiers.
 
+    TrackError& getError() {return fErr;}                 ///< Modifiable error matrix.
     void setError(const TrackError& err) {fErr = err;}     ///< Set error matrix.
 
     /// Combine two tracks.
