@@ -31,6 +31,7 @@ namespace hit {
     int             fMaxMultiHit;   ///<maximum hits for multi fit 
     int             fAreaMethod;    ///<Type of area calculation  
     std::vector<double> fAreaNorms; ///<factors for converting area to same units as peak height 
+    double	    fChi2NDF;       ///maximum Chisquared / NDF allowed for a hit to be saved
     
     	double	WireNumber[100000];
 	double 	TotalSignal[100000];

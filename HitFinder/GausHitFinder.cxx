@@ -8,6 +8,7 @@
 //
 // V 1.0 (JAsaadi Syracuse University)
 // 05/02/12: Fully functional, still need to work on speed of the algorithm
+// 06/14/12: Fixed speed issues by changing ROOT fitting options
 // -----------------------------------
 // This algorithm is based on the FFTHitFinder and keeps many of the 
 // same variable definitions but attempts to clean up many of the 
@@ -74,6 +75,7 @@ void GausHitFinder::reconfigure(fhicl::ParameterSet const& p)
   fMaxMultiHit        = p.get< int          >("MaxMultiHit");
   fAreaMethod         = p.get< int          >("AreaMethod");
   fAreaNorms          = p.get< std::vector< double > >("AreaNorms");
+  fChi2NDF	      = p.get< double       >("Chi2NDF");
   
 }  
 
@@ -383,7 +385,6 @@ TH1::AddDirectory(kFALSE);
 		// ### Building TFormula for seedHit and basic Gaussian ###
 		// ########################################################
         	eqn = "gaus(0)";
-		//seed = "gaus(0)";	
 		for(int i = 3; i < numHits*3; i+=3) 
 			{
 	 	 	eqn.append("+gaus(");
@@ -393,18 +394,10 @@ TH1::AddDirectory(kFALSE);
 	  		eqn.append(")");
 			}
 			
-		/*for(int j = 3; j < numHits*3; j+=3)
-			{
-			seed.append("+gaus(");
-			numConv.str("");
-			numConv << j;
-			seed.append(numConv.str());
-	  		seed.append(")");
-			}*/
+
 		
-		// --- TF1 function for GausHit and seedHit ---
+		// --- TF1 function for GausHit  ---
 		TF1 Gaus("Gaus",eqn.c_str(),0,size);
-		//TF1 seedGaus("seedGaus",seed.c_str(),0,size);
 		
 		// #############################################################################
 		// ### For multipulse hits we loop over all the hits and fit N Gaus function ###
@@ -552,20 +545,8 @@ TH1::AddDirectory(kFALSE);
 				FitGoodnes			= hit->GetChisquare() / hit->GetNDF();
 				
 				
-				
-				/*std::cout<<std::endl;
-				std::cout<<"The start time of fit = "<<startT<<std::endl;
-				std::cout<<"The end time of fit   = "<<endT<<std::endl;
-				std::cout<<std::endl;
-				std::cout<<"Start Time = "<<StartIime<<" +/- "<<StartTimeError<<std::endl;
-				std::cout<<"End Time   = "<<EndTime<<" +/- "<<EndTimeError<<std::endl;
-				std::cout<<"Mean Time  = "<<MeanPosition <<" +/- "<<MeanPosError<<std::endl;
-				std::cout<<std::endl;
-				std::cout<<"Fit Goodness   = "<<FitGoodnes<<std::endl;
-				std::cout<<"Multiplicity   = "<<NumOfHits<<std::endl;
-				std::cout<<"Charge         = "<<Charge<<" +/- "<<ChargeError<<std::endl;
-				std::cout<<std::endl;*/
-				
+				// ### skipping hits with a chi2/NDF larger than the value defined in the .fcl file
+				if(FitGoodnes > fChi2NDF){continue;}
 				
 				recob::Hit hit(wire, 
 				StartIime, 

@@ -37,6 +37,7 @@ gaus_hitfinder:
  AreaMethod:           0                # 0 = area by integral, 1 = area by gaussian area formula
  AreaNorms:            [ 13.25, 26.31 ] # normalizations that put signal area in 
                                         # same scale as peak height. 
+ Chi2NDF:              15               # maximum Chisquared / NDF allowed for a hit to be saved
 }
 
 standard_hitfinderana:
