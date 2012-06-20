@@ -117,8 +117,8 @@ development_seeding:
   SeedLength:          8
   MinPointsInCluster:  50
   MinPointsInSeed:     10
-  AngularDev:          0.5 
-  Refits:              3
+  AngularDev:          0.3 
+  Refits:              20
   SpacePointAlg:       @local::microboone_spacepointalg
 }
 
@@ -135,9 +135,10 @@ development_beziertrack:
   module_type:         "BezierTracker"
   SeedModuleLabel:     "seedfinder"
   HitModuleLabel:      "ffthit"
-  MaxKinkAngle:        0.15
-  MaxTrackMissAngle:   0.15 
-  MaxJumpDistance:     15.0
+  MaxKinkAngle:        0.15 
+  MaxTrackMissAngle:   100.0 	
+  MaxTrackMissDist:    2.0 
+  MaxJumpDistance:     25.0
   HitDistance:         0.5
   TrackMode:           2
   ProcessHits:         true

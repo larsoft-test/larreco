@@ -41,11 +41,10 @@ namespace trkf {
     explicit BezierTracker(fhicl::ParameterSet const& pset);
     virtual ~BezierTracker();
 
-    std::vector<std::vector<art::Ptr<recob::Seed> > > OrganizeSeedsIntoTracks(std::vector<art::Ptr<recob::Seed> > SeedVector);
-
+ 
     std::vector<std::vector<recob::Seed* > > OrganizeSeedsIntoTracks(std::vector<recob::Seed* > SeedVector);
+    std::vector<std::vector<recob::Seed* > > OrganizeSeedsIntoTracks(std::vector<art::Ptr<recob::Seed> > SeedVector);
 
-    BezierTrack* ProduceTrackFromSeeds(std::vector<art::Ptr<recob::Seed> > Seeds);
     BezierTrack* ProduceTrackFromSeeds(std::vector<recob::Seed* > Seeds);
 
     std::vector<int> DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, BezierTrack * BTrack, double HitCollectionDistance, std::vector<double>& SValues);
@@ -68,6 +67,7 @@ namespace trkf {
     std::string fHitModuleLabel;
     double fMaxKinkAngle;
     double fMaxTrackMissAngle;
+    double fMaxTrackMissDist;
     double fMaxJumpDistance;
     int fTrackMode;
     double fHitDistance;
