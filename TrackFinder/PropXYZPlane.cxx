@@ -46,12 +46,13 @@ namespace trkf {
   ///
   /// Returned value: propagation distance + success flag.
   ///
-  boost::optional<double> PropXYZPlane::vec_prop(KTrack& trk,
-						 const boost::shared_ptr<const Surface>& psurf, 
-						 Propagator::PropDirection dir,
-						 bool doDedx,
-						 TrackMatrix* prop_matrix,
-						 TrackError* noise_matrix) const
+  boost::optional<double>
+  PropXYZPlane::short_vec_prop(KTrack& trk,
+			       const boost::shared_ptr<const Surface>& psurf, 
+			       Propagator::PropDirection dir,
+			       bool doDedx,
+			       TrackMatrix* prop_matrix,
+			       TrackError* noise_matrix) const
   {
     // Set the default return value to be unitialized with value 0.
 

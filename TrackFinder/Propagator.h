@@ -12,21 +12,29 @@
 ///
 /// This class supports various use cases.
 ///
-/// 1.  Propagate without error (method vec_prop).
-/// 2.  Linearized propagate without error (method lin_prop).
-/// 3.  Propagate with error, but without noise (method err_prop).
-/// 4.  Propagate with error and noise (method noise_prop).
+/// 1.  Propagate without error, short distance (method short_vec_prop).
+/// 2.  Propagate without error, long distance (method vec_prop).
+/// 3.  Linearized propagation without error, short distance (method lin_prop).
+/// 4.  Propagate with error, but without noise (method err_prop).
+/// 5.  Propagate with error and noise (method noise_prop).
 ///
-/// The second, third, and fourth use cases are implemented locally
-/// within this class in terms of the first use case (propagate
-/// without error), which is defined by a single pure virtual method,
-/// vec_prop.  Linearized propagation uses a linear approximation of
-/// the propagation function about some reference trajectory.  Method
-/// vec_prop includes optional hooks for returning the propagation
-/// matrix and the noise matrix.  The propgation matrix and noise
-/// matrix provide enough information to update the track error matrix
-/// locally within this class.  Therefore, methods err_prop and
-/// noise_prop are not virtual.
+///
+/// All methods except short_vec_prop are implemented locally within
+/// this class by calling short_vec_prop, which is pure virtual.
+///
+/// The long distance propagation method (vec_prop) divides
+/// propagation into steps if the distance exceeds some threshold
+///
+/// Linearized propagation uses a linear approximation of the
+/// propagation function with respect to some reference trajectory.
+/// This type of propagation only makes sense for short distance
+/// propagation, so lin_prop is implemented by calling short_vec_prop.
+///
+/// All of the *vec_prop methods include optional hooks for returning
+/// the propagation matrix and the noise matrix.  These hooks provide
+/// enough information to propagate the error matrix (methods err_prop
+/// and noise_prop) locally within this class in terms of method
+/// vec_prop (so long distance propagation with error is supported).
 ///
 /// All propagation methods update the surface and track state vector,
 /// provided the propagation is successful.  The error and noise
@@ -84,24 +92,30 @@ namespace trkf {
     /// Clone method.
     virtual Propagator* clone() const = 0;
 
-    /// Propagate without error.
-    virtual boost::optional<double> vec_prop(KTrack& trk,
-					     const boost::shared_ptr<const Surface>& psurf, 
-					     PropDirection dir,
-					     bool doDedx,
-					     TrackMatrix* prop_matrix = 0,
-					     TrackError* noise_matrix = 0) const = 0;
+    /// Propagate without error (short distance).
+    virtual boost::optional<double> short_vec_prop(KTrack& trk,
+						   const boost::shared_ptr<const Surface>& psurf, 
+						   PropDirection dir,
+						   bool doDedx,
+						   TrackMatrix* prop_matrix = 0,
+						   TrackError* noise_matrix = 0) const = 0;
 
-    // Error and noise propagation methods are not virtual.
+    /// Propagate without error (long distance).
+    boost::optional<double> vec_prop(KTrack& trk,
+				     const boost::shared_ptr<const Surface>& psurf, 
+				     PropDirection dir,
+				     bool doDedx,
+				     TrackMatrix* prop_matrix = 0,
+				     TrackError* noise_matrix = 0) const;
 
     /// Linearized propagate without error.
-    virtual boost::optional<double> lin_prop(KTrack& trk,
-					     const boost::shared_ptr<const Surface>& psurf, 
-					     PropDirection dir,
-					     bool doDedx,
-					     KTrack* ref = 0,
-					     TrackMatrix* prop_matrix = 0,
-					     TrackError* noise_matrix = 0) const;
+    boost::optional<double> lin_prop(KTrack& trk,
+				     const boost::shared_ptr<const Surface>& psurf, 
+				     PropDirection dir,
+				     bool doDedx,
+				     KTrack* ref = 0,
+				     TrackMatrix* prop_matrix = 0,
+				     TrackError* noise_matrix = 0) const;
     /// Propagate with error, but without noise.
     boost::optional<double> err_prop(KETrack& tre,
 				     const boost::shared_ptr<const Surface>& psurf, 

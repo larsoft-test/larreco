@@ -35,12 +35,12 @@ namespace trkf {
     Propagator* clone() const {return new PropXYZPlane(*this);}
 
     /// Propagate without error.
-    boost::optional<double> vec_prop(KTrack& trk,
-				     const boost::shared_ptr<const Surface>& surf, 
-				     Propagator::PropDirection dir, 
-				     bool doDedx,
-				     TrackMatrix* prop_matrix = 0,
-				     TrackError* noise_matrix = 0) const;
+    boost::optional<double> short_vec_prop(KTrack& trk,
+					   const boost::shared_ptr<const Surface>& surf, 
+					   Propagator::PropDirection dir, 
+					   bool doDedx,
+					   TrackMatrix* prop_matrix = 0,
+					   TrackError* noise_matrix = 0) const;
   };
 }
 
