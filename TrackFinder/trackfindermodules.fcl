@@ -114,9 +114,10 @@ development_seeding:
   Filter:              true
   Merge:               false
   Source:              2
-  SeedLength:          8
+  SeedLength:          5
   MinPointsInCluster:  50
   MinPointsInSeed:     10
+  MaxViewRMS:          [0.09, 0.20, 0.10]
   AngularDev:          0.3 
   Refits:              20
   SpacePointAlg:       @local::microboone_spacepointalg
@@ -138,7 +139,7 @@ development_beziertrack:
   MaxKinkAngle:        0.15 
   MaxTrackMissAngle:   100.0 	
   MaxTrackMissDist:    2.0 
-  MaxJumpDistance:     25.0
+  MaxJumpDistance:     30.0
   HitDistance:         0.5
   TrackMode:           2
   ProcessHits:         true

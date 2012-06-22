@@ -176,19 +176,13 @@ namespace trkf {
 	    std::cout<<"Getting space points" <<std::endl;
 	    
 	    // Make remaining hits into SPs
-	    std::vector<recob::SpacePoint> SPVec = 
-	      fTheSeedFinder->GetSpacePointsFromHitVector(HitsToProcess);
+	    std::vector<std::vector<recob::SpacePoint> > SPVec;
+	    SPVec.push_back( fTheSeedFinder->GetSpacePointsFromHitVector(HitsToProcess));
 	    
 	    // Find seeds in these SPs
-	    std::vector<std::vector<recob::SpacePoint> > SPUsed;
 	    std::cout<<"Getting seeds " <<std::endl;
-	    std::vector<recob::Seed*> TrackSeeds = fTheSeedFinder->FindAsManySeedsAsPossible(SPVec, SPUsed);
-	    std::cout<<"Beginning iterative refitting " <<std::endl;
-	    for(size_t i=0; i!=TrackSeeds.size(); i++)
-	      {
-		fTheSeedFinder->RefitSeed(TrackSeeds.at(i),SPUsed.at(i));
-	      }
-	    
+	    std::vector<recob::Seed*> TrackSeeds = fTheSeedFinder->ProduceSeeds(SPVec);	    
+
 	    std::cout<<"Organizing seed collections " <<std::endl;
 	    // Organize these seeds into tracklike collections
 	    std::vector<std::vector<recob::Seed* > > OrgSeeds = OrganizeSeedsIntoTracks(TrackSeeds);

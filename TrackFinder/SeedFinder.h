@@ -65,8 +65,8 @@ namespace trkf {
     void endJob();
   
     
-
-
+    std::vector<recob::Seed*> ProduceSeeds(std::vector<std::vector<recob::SpacePoint> > );
+    
     std::vector<std::vector<recob::SpacePoint> > GetSpacePointsFromClusters(std::string ClusterModuleLabel, art::Event & evt);
               // Get space points from clusters
               //    (I expect eventually we will get from event, which
@@ -101,6 +101,7 @@ namespace trkf {
 
     void RefitSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> SpacePoints);
 
+    std::vector<double> GetHitRMS(recob::Seed* TheSeed, std::vector<recob::SpacePoint>);
 
 
 
@@ -134,6 +135,8 @@ namespace trkf {
                                                //  for seed to meet directionality requirement
 
     int             fRefits;                   // Number of times to iteratively refit seeds
+    
+    std::vector<double>   fMaxViewRMS;
 
   };
   
