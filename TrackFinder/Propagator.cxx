@@ -419,7 +419,13 @@ namespace trkf {
   boost::optional<double> Propagator::dedx_prop(double pinv, double mass,
 						double s, double* deriv) const
   {
-    // Set the default return value to be unitialized with value 0.
+    // For infinite initial momentum, return with success status,
+    // still infinite momentum.
+
+    if(pinv == 0.)
+      return boost::optional<double>(true, 0.);
+
+    // Set the default return value to be uninitialized with value 0.
 
     boost::optional<double> result(false, 0.);
 
