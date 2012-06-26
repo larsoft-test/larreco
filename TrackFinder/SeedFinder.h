@@ -82,8 +82,7 @@ namespace trkf {
     std::vector<std::vector<recob::SpacePoint> > GetSpacePointsFromHits(std::string HitModuleLabel, art::Event & evt);
               // Get hit vector from event 
  
-    recob::Seed * FindSeedAtEnd(std::vector<recob::SpacePoint>,std::vector<recob::SpacePoint>&);
-    recob::Seed * FindSeedAtEnd(std::vector<recob::SpacePoint>,std::vector<recob::SpacePoint>&, std::vector<int>& ToThrow);
+    recob::Seed * FindSeedAtEnd(std::vector<recob::SpacePoint>,std::map<int, bool>, std::vector<int>&);
               // Find one seed at a high Z end of a collection of spacepoints
               //    with no quality check
 
@@ -108,6 +107,7 @@ namespace trkf {
   private:
 
    
+    double CountHits(std::vector<recob::SpacePoint> Points);
 
 
                    
@@ -137,6 +137,8 @@ namespace trkf {
     int             fRefits;                   // Number of times to iteratively refit seeds
     
     std::vector<double>   fMaxViewRMS;
+
+    float           fExtendThresh;
 
   };
   

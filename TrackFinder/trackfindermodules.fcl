@@ -114,9 +114,10 @@ development_seeding:
   Filter:              true
   Merge:               false
   Source:              2
-  SeedLength:          5
+  SeedLength:          8
   MinPointsInCluster:  50
   MinPointsInSeed:     10
+  ExtendThresh:        0.9
   MaxViewRMS:          [0.09, 0.20, 0.10]
   AngularDev:          0.3 
   Refits:              20
