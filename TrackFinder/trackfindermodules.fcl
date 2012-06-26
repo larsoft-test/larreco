@@ -117,7 +117,7 @@ development_seeding:
   SeedLength:          8
   MinPointsInCluster:  50
   MinPointsInSeed:     10
-  ExtendThresh:        0.9
+  ExtendThresh:        0.
   MaxViewRMS:          [0.09, 0.20, 0.10]
   AngularDev:          0.3 
   Refits:              20

@@ -326,25 +326,23 @@ namespace trkf {
   //
   std::vector<recob::Seed *> SeedFinder::FindAsManySeedsAsPossible(std::vector<recob::SpacePoint> AllSpacePoints, std::vector<std::vector<recob::SpacePoint> > & PointsInSeeds)
   {
-      std::vector<recob::Seed*>       ReturnVector;
-    std::map<int,bool>              PointsRejected;
+    std::vector<recob::Seed*>       ReturnVector;
+    std::map<int,int>               PointStatus;
     
     ReturnVector.clear();
 
-    PointsRejected.clear();
+    PointStatus.clear();
     PointsInSeeds.clear();
 
     recob::Seed* TrackSeedThisCombo;
     bool KeepChopping=true;
-     if((AllSpacePoints.size()-PointsRejected.size())<fMinPointsInCluster) 
-      KeepChopping=false;
     while(KeepChopping)
       {
 	// Entries in this vector:
 	//  first vector, spacepoint IDs in seed
 	//  second vector, spacepoint IDs to chop
 	std::vector<int> PointsUsed;
-	TrackSeedThisCombo = FindSeedAtEnd(AllSpacePoints, PointsRejected, PointsUsed);
+	TrackSeedThisCombo = FindSeedAtEnd(AllSpacePoints, PointStatus, PointsUsed);
 	if(TrackSeedThisCombo->IsValid())
 	  {
 	    ReturnVector.push_back(TrackSeedThisCombo);
@@ -358,19 +356,22 @@ namespace trkf {
 	// if enough left, chop off some points and try again
 	for(size_t i=0; i!=PointsUsed.size(); i++)
 	  {
-	    PointsRejected[PointsUsed.at(i)] = true;
+	    if(TrackSeedThisCombo->IsValid())
+	      PointStatus[PointsUsed.at(i)] = 1;
+	    else
+	      PointStatus[PointsUsed.at(i)]=2;
 	  }
-	int TotalRejected=0;
-	for(std::map<int,bool>::const_iterator it=PointsRejected.begin();
-	    it!=PointsRejected.end();
+
+	int TotalUsed=0;
+	for(std::map<int,int>::const_iterator it=PointStatus.begin();
+	    it!=PointStatus.end();
 	    ++it)
 	  {
-	    if(it->second==true) TotalRejected++;
-	    
+	    if(it->second>0) TotalUsed++; 
 	  }
 
 
-	if( (AllSpacePoints.size() - TotalRejected) < fMinPointsInSeed)
+	if( (AllSpacePoints.size() - TotalUsed) < fMinPointsInSeed)
 	  KeepChopping=false;
 
       }
@@ -395,9 +396,9 @@ namespace trkf {
     while(KeepChopping)
       {
 	std::vector<int>   SPIDs;
-	std::map<int,bool> Rejected;
+	std::map<int,int>  Status;
 	std::vector<recob::SpacePoint> SPs;
-	TrackSeedThisCombo = FindSeedAtEnd(Points, Rejected, SPIDs);
+	TrackSeedThisCombo = FindSeedAtEnd(Points, Status, SPIDs);
 	if(TrackSeedThisCombo->IsValid())
 	  {
 	    KeepChopping=false;
@@ -469,7 +470,7 @@ namespace trkf {
   // centre, direction and strength. Return this seed for
   // further scrutiny.
   //
-  recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,std::map<int,bool> PointsRejected, std::vector<int>& PointsInRange)
+  recob::Seed * SeedFinder::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,std::map<int,int> PointStatus, std::vector<int>& PointsInRange)
   {
     
     recob::Seed * ReturnSeed;
@@ -486,7 +487,7 @@ namespace trkf {
     int counter = Points.size()-1; 
     while(NoPointFound==true)
       {
-	if(PointsRejected[counter]!=true)
+	if(PointStatus[counter]==0)
 	  {
 	    HighestZPoint = TVector3(Points.at(counter).XYZ()[0],
 				     Points.at(counter).XYZ()[1],
@@ -503,7 +504,7 @@ namespace trkf {
       {
 	// first check z, then check total distance
 	//  (much faster, since most will be out of range in z anyway)
-	if(!PointsRejected[index])
+	if(PointStatus[index]==0)
 	  {
 	    if( ( HighestZPoint[2] - Points.at(index).XYZ()[2] ) < fSeedLength)
 	      {
@@ -597,26 +598,32 @@ namespace trkf {
         else return new recob::Seed();
       }
     else return new recob::Seed();
+	bool ThrowOutSeed = false;
    
-
-    if(fRefits>0)
-      RefitSeed(ReturnSeed, PointsUsed);
-    
-
-    bool ThrowOutSeed = false;
-
-    if(fMaxViewRMS.at(0)>0)
+    if(fExtendThresh>0)
       {
-	std::vector<double> RMS = GetHitRMS(ReturnSeed, PointsUsed);
-	std::cout<<"RMS vector size : " << RMS.size() <<", contents ";
-	for(size_t j=0; j!=fMaxViewRMS.size(); j++)
-	  {
-	    std::cout<<RMS.at(j)<<" ";
-	    if(fMaxViewRMS.at(j)<RMS.at(j)) ThrowOutSeed=true;
-	  }
-	std::cout<<std::endl;
+	ThrowOutSeed = ExtendSeed(ReturnSeed, Points, PointsInRange, PointStatus);
       }
-
+    else
+      {
+	
+	if(fRefits>0)
+	  RefitSeed(ReturnSeed, PointsUsed);
+	
+	
+	
+	if(fMaxViewRMS.at(0)>0)
+	  {
+	    std::vector<double> RMS = GetHitRMS(ReturnSeed, PointsUsed);
+	    std::cout<<"RMS vector size : " << RMS.size() <<", contents ";
+	    for(size_t j=0; j!=fMaxViewRMS.size(); j++)
+	      {
+		std::cout<<RMS.at(j)<<" ";
+		if(fMaxViewRMS.at(j)<RMS.at(j)) ThrowOutSeed=true;
+	      }
+	    std::cout<<std::endl;
+	  }
+      }
     if(!ThrowOutSeed)
       return ReturnSeed;
     else
@@ -624,7 +631,11 @@ namespace trkf {
     
   }
 
-
+  bool SeedFinder::ExtendSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> AllSpacePoints, std::vector<int> PointsUsed, std::map<int,int> PointStatus)
+  {
+    std::cout<<"Placeholder for ExtendSeed method"<<std::endl;
+    return true;
+  }
 
   std::vector<double> SeedFinder::GetHitRMS(recob::Seed * TheSeed, std::vector<recob::SpacePoint> SpacePoints)
   {
@@ -920,7 +931,7 @@ namespace trkf {
 
 	    // parameters for t = ac + b
 	    double a = LeastSquaresResult[0];
-	    double b = LeastSquaresResult[1];
+	    //   double b = LeastSquaresResult[1];
 
 
 	    // Project seed direction vector into parts parallel and perp to pitch
@@ -929,7 +940,7 @@ namespace trkf {
 	    double SeedTimeComp      = SeedDirection.Dot(XVec.Unit());
 	    double SeedOutOfPlaneComp= SeedDirection.Dot(WireVec.Unit());
 
-	    double SeedLengthInPlane = pow( pow(SeedPlaneComp,2)+pow(SeedTimeComp,2), 0.5);
+	    //  double SeedLengthInPlane = pow( pow(SeedPlaneComp,2)+pow(SeedTimeComp,2), 0.5);
 	    
 	    //	    std::cout<<"Previous  a in plane : " << SeedTimeComp / SeedPlaneComp<<std::endl;
 	    //   std::cout<<"Suggested a in plane : " << a <<std::endl;
