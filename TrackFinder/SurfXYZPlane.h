@@ -87,8 +87,12 @@ namespace trkf {
     /// Default constructor.
     SurfXYZPlane();
 
-    /// Initializing constructor.
+    /// Initializing constructor (angles).
     SurfXYZPlane(double x0, double y0, double z0, double phi, double theta);
+
+    /// Initializing constructor (normal vector).
+    SurfXYZPlane(double x0, double y0, double z0,
+		 double nx, double ny, double nz);
 
     /// Destructor.
     virtual ~SurfXYZPlane();

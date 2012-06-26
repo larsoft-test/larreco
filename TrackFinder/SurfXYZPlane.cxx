@@ -46,6 +46,30 @@ namespace trkf {
     fTheta(theta)
   {}
 
+  /// Initializing constructor (normal vector).
+  ///
+  /// Arguments:
+  ///
+  /// x0, y0, z0 - Global coordinates of local origin.
+  /// nx, ny, nz - Normal vector in global coordinate system.
+  ///
+  SurfXYZPlane::SurfXYZPlane(double x0, double y0, double z0,
+			     double nx, double ny, double nz) :
+    fX0(x0),
+    fY0(y0),
+    fZ0(z0),
+    fPhi(0.),
+    fTheta(0.)
+  {
+    // Calculate angles.
+
+    double nyz = std::sqrt(ny*ny + nz*nz);
+    fTheta = atan2(nx, nyz);
+    fPhi = 0.;
+    if(nyz != 0.)
+      fPhi = atan2(-ny, nz);
+  }
+
   /// Destructor.
   SurfXYZPlane::~SurfXYZPlane()
   {}
