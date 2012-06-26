@@ -11,6 +11,8 @@
 #include <cmath>
 #include "TrackFinder/KGTrack.h"
 #include "TrackFinder/KHitWireX.h"
+#include "SurfXYZPlane.h"
+#include "PropXYZPlane.h"
 #include "Geometry/geo.h"
 #include "cetlib/exception.h"
 
@@ -125,10 +127,15 @@ namespace trkf {
     art::ServiceHandle<geo::Geometry> geom;
     int nview = geom->Nviews();
 
+    // Make propagator for propating to standard track surface.
+
+    PropXYZPlane prop(0.);
+
     // Fill collections of trajectory points and direction vectors.
 
     std::vector<TVector3> xyz;
     std::vector<TVector3> dxdydz;
+    std::vector<TMatrixD> cov;
     std::vector<double> momentum;
     std::vector<std::vector<double> > dqdx(nview);
 
@@ -140,8 +147,9 @@ namespace trkf {
 
     // Loop over KHitTracks.
 
+    unsigned int n = 0;
     for(std::multimap<double, KHitTrack>::const_iterator itr = fTrackMap.begin();
-	itr != fTrackMap.end(); ++itr) {
+	itr != fTrackMap.end(); ++itr, ++n) {
       const KHitTrack& trh = (*itr).second;
 
       // Get position.
@@ -159,6 +167,27 @@ namespace trkf {
       assert(p != 0.);
       dxdydz.push_back(TVector3(mom[0]/p, mom[1]/p, mom[2]/p));
       momentum.push_back(p);
+
+      // Fill error matrix.
+
+      if(n == 0 || n == fTrackMap.size() - 1) {
+
+	TMatrixD covar(5,5);
+
+	// Construct surface perpendicular to track momentun, and
+	// propagate track to that surface (zero distance).
+
+	const boost::shared_ptr<const Surface> psurf(new SurfXYZPlane(pos[0], pos[1], pos[2],
+								      mom[0], mom[1], mom[2]));
+	KETrack tre(trh);
+	boost::optional<double> dist = prop.err_prop(tre, psurf, Propagator::UNKNOWN, false);
+	assert(!!dist);
+	for(int i=0; i<5; ++i) {
+	  for(int j=0; j<5; ++j)
+	    covar(i,j) = tre.getError()(i,j);
+	}
+	cov.push_back(covar);
+      }
 
       // Get charge.
       // Only implemented for KHitWireX type measurements.
@@ -188,7 +217,7 @@ namespace trkf {
 
     // Fill track.
 
-    track = recob::Track(xyz, dxdydz, dqdx, momentum);
+    track = recob::Track(xyz, dxdydz, cov, dqdx, momentum);
   }
 
   /// Fill a PtrVector of Hits.
