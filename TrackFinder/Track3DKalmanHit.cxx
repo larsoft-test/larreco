@@ -486,9 +486,13 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
 
 		KGTrack trg2;
 		ok = fKFAlg.smoothTrack(trg1, &trg2, fProp);
-		if(ok)
+		if(ok) {
+		  KETrack tremom;
+		  bool pok = fKFAlg.fitMomentum(trg1, fProp, tremom);
+		  if(pok)
+		    fKFAlg.updateMomentum(tremom, fProp, trg2);
 		  trg1 = trg2;
-
+		}
 	      }
 
 	      // Do a final smooth.
@@ -496,6 +500,10 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
 	      if(ok) {
 		ok = fKFAlg.smoothTrack(trg1, 0, fProp);
 		if(ok) {
+		  KETrack tremom;
+		  bool pok = fKFAlg.fitMomentum(trg1, fProp, tremom);
+		  if(pok)
+		    fKFAlg.updateMomentum(tremom, fProp, trg1);
 
 		  // Save this track.
 

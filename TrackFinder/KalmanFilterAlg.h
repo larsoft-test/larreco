@@ -8,20 +8,23 @@
 ///
 /// Configuration parameters:
 ///
-/// Trace        - Trace flag.
-/// MaxPErr      - Maximum pointing error for free propagation.
-/// GoodPErr     - Pointing error threshold for switching to free propagation.
-/// MaxIncChisq  - Maximum incremental chisquare to accept a hit.
-/// MaxEndChisq  - Maximum incremental chisquare for endpoint hit.
-/// MinLHits     - Minimum number of hits to turn off linearized propagation.
-/// MaxLDist     - Maximum distance for linearized propagation.
-/// MaxPredDist  - Maximum prediciton distance to accept a hit.
-/// MaxPropDist  - Maximum propagation distance to candidate surface.
-/// MinSortDist  - Sort low distance threshold.
-/// MaxSortDist  - Sort high distance threshold.
-/// MaxSamePlane - Maximum consecutive hits in same plane.
-/// GapDist      - Minimum gap distance.
-/// MaxNoiseHits - Maximum number of hits in noise cluster.
+/// Trace         - Trace flag.
+/// MaxPErr       - Maximum pointing error for free propagation.
+/// GoodPErr      - Pointing error threshold for switching to free propagation.
+/// MaxIncChisq   - Maximum incremental chisquare to accept a hit.
+/// MaxEndChisq   - Maximum incremental chisquare for endpoint hit.
+/// MinLHits      - Minimum number of hits to turn off linearized propagation.
+/// MaxLDist      - Maximum distance for linearized propagation.
+/// MaxPredDist   - Maximum prediciton distance to accept a hit.
+/// MaxPropDist   - Maximum propagation distance to candidate surface.
+/// MinSortDist   - Sort low distance threshold.
+/// MaxSortDist   - Sort high distance threshold.
+/// MaxSamePlane  - Maximum consecutive hits in same plane.
+/// GapDist       - Minimum gap distance.
+/// MaxNoiseHits  - Maximum number of hits in noise cluster.
+/// MinSampleDist - Minimum sample distance (for momentum measurement).
+/// FitMomRange   - Fit momentum using range.
+/// FitMomMS      - Fit momentum using multiple scattering.
 ///
 ////////////////////////////////////////////////////////////////////////
 
@@ -77,6 +80,26 @@ namespace trkf {
 		     const Propagator* prop,               // Propagator.
 		     KHitContainer& hits) const;           // Candidate measurements.
 
+    /// Estimate track momentum using range.
+    bool fitMomentumRange(const KGTrack& trg,              // Global track.
+			  const Propagator* prop,          // Propagator.
+			  KETrack& tremom) const;          // Track with updated momentum.
+
+    /// Estimate track momentum using multiple scattering.
+    bool fitMomentumMS(const KGTrack& trg,                 // Global track.
+		       const Propagator* prop,             // Propagator.
+		       KETrack& tremom) const;             // Track with updated momentum.
+
+    /// Estimate track momentum using either range or multiple scattering.
+    bool fitMomentum(const KGTrack& trg,                   // Global track.
+		     const Propagator* prop,               // Propagator.
+		     KETrack& tremom) const;               // Track with updated momentum.
+
+    /// Set track momentum at each track surface.
+    bool updateMomentum(const KETrack& tremom,             // Track with momentum estimate.
+			const Propagator* prop,            // Propagator.
+			KGTrack& trg) const;               // Global track to be updated.
+
     /// Iteratively smooth a track.
     bool smoothTrackIter(int niter,                        // Number of iterations.
 			 KGTrack& trg,                     // Global track.
@@ -103,6 +126,9 @@ namespace trkf {
     int fMaxSamePlane;       ///< Maximum consecutive hits in same plane.
     double fGapDist;         ///< Minimum gap distance.
     int fMaxNoiseHits;       ///< Maximum number of hits in noise cluster.
+    double fMinSampleDist;   ///< Minimum sample distance (for momentum measurement).
+    bool fFitMomRange;       ///< Fit momentum using range.
+    bool fFitMomMS;          ///< Fit momentum using multiple scattering.
 
     // Other attributes.
 

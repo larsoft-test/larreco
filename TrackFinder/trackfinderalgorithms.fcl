@@ -38,6 +38,9 @@ standard_kalmanfilteralg:
   MaxSamePlane: 3    # Maximum consecutive hits in same plane.
   GapDist: 3.        # Minimum gap distance.
   MaxNoiseHits: 3    # Maximum number of hits in noise cluster.
+  MinSampleDist: 20. # Minimum sample distance (for momentum measurement).
+  FitMomRange: true  # Fit momentum using range.
+  FitMomMS: false    # Fit momentum using multiple scattering.
 }
 
 argoneut_kalmanfilteralg:    @local::standard_kalmanfilteralg

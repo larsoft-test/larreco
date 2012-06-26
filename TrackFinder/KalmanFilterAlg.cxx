@@ -11,6 +11,109 @@
 #include "TrackFinder/KalmanFilterAlg.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "cetlib/exception.h"
+#include "boost/numeric/ublas/vector_proxy.hpp"
+#include "boost/numeric/ublas/matrix_proxy.hpp"
+
+// Local functions.
+
+namespace {
+
+  void update_momentum(const trkf::KVector<2>::type& defl,
+		       const trkf::KSymMatrix<2>::type& errc,
+		       const trkf::KSymMatrix<2>::type& errn,
+		       double mass, double& invp, double& var_invp)
+  // Momentum updater.
+  //
+  // Arguments: defl - Deflection (2D slope residual between two
+  //                   sampled points on track).
+  //            errc - Error matrix of deflection residual 
+  //                   exclusive of multiple scattering.
+  //            errn - Part of deflection noise error matrix
+  //                   proportional to 1/(beta*momentum).
+  //            mass - Mass of particle.
+  //            invp - Modified 1/momentum track parameter.
+  //            var_invp - Modified 1/momentum variance.
+  //
+  // Returns: True if success.
+  //
+  // The total deflection residual error matrix is 
+  //
+  // err = errc + [1/(beta*momentum)] * errn.
+  //
+  // The inverse momentum and error are updated using using log-likelihood
+  //
+  // log(L) = -0.5 * log(det(err)) - 0.5 * defl^T * err^(-1) * defl.
+  // log(L) = -0.5 * tr(log(err)) - 0.5 * defl^T * err^(-1) * defl.
+  //
+  {
+    // Calculate original k = 1./(beta*p), and original variance of k.
+
+    double invp2 = invp*invp;
+    double invp3 = invp*invp2;
+    double invp4 = invp2*invp2;
+    double mass2 = mass*mass;
+    double k = std::sqrt(invp2 + mass2 * invp4);
+    double dkdinvp = (invp + 2.*mass2*invp3) / k;
+    double vark = var_invp * dkdinvp*dkdinvp;
+
+    // First, find current inverse error matrix using momentum hypothesis.
+
+    trkf::KSymMatrix<2>::type inverr = errc + k * errn;
+    trkf::syminvert(inverr);
+
+    // Find the first and second derivatives of the log likelihood
+    // with respact to k.
+
+    trkf::KMatrix<2, 2>::type temp1 = prod(inverr, errn);
+    trkf::KMatrix<2, 2>::type temp2 = prod(temp1, temp1);
+
+    trkf::KVector<2>::type vtemp1 = prod(inverr, defl);
+    trkf::KVector<2>::type vtemp2 = prod(temp1, vtemp1);
+    trkf::KVector<2>::type vtemp3 = prod(temp1, vtemp2);
+    double derivk1 = -0.5 * trkf::trace(temp1) + 0.5 * inner_prod(defl, vtemp2);
+    double derivk2 = 0.5 * trkf::trace(temp2) - inner_prod(defl, vtemp3);
+
+    // We expect the log-likelihood to be most nearly Gaussian
+    // with respect to variable q = k^(-1/2) = sqrt(beta*p).
+    // Therefore, transform the original variables and log-likelihood
+    // derivatives to q-space.
+
+    double q = 1./sqrt(k);
+    double varq = vark / (4.*k*k*k);
+    double derivq1 = (-2.*k/q) * derivk1;
+    double derivq2 = 6.*k*k * derivk1 + 4.*k*k*k * derivk2;
+
+    if(derivq2 < 0.) {
+
+      // Estimate the measurement in q-space.
+
+      double q1 = q - derivq1 / derivq2;
+      double varq1 = -1./derivq2;
+
+      // Get updated estimated q, combining original estimate and
+      // update from the current measurement.
+
+      double newvarq = 1. / (1./varq + 1./varq1);
+      double newq = newvarq * (q/varq + q1/varq1);
+      q = newq;
+      varq = newvarq;
+      
+      // Calculate updated c = 1./p and variance.
+
+      double q2 = q*q;
+      double q4 = q2*q2;
+      double c2 = 2. / (q4 + q2 * std::sqrt(q4 + 4.*mass2));
+      double c = std::sqrt(c2);
+      double dcdq = -2. * (c/q) * (1. + mass2*c2) / (1. + 2.*mass2*c2);
+      double varc = varq * dcdq*dcdq;
+
+      // Update result.
+
+      invp = c;
+      var_invp = varc;
+    }
+  }
+}
 
 /// Constructor.
   
@@ -29,6 +132,9 @@ trkf::KalmanFilterAlg::KalmanFilterAlg(const fhicl::ParameterSet& pset) :
   fMaxSamePlane(0),
   fGapDist(0.),
   fMaxNoiseHits(0),
+  fMinSampleDist(0.),
+  fFitMomRange(false),
+  fFitMomMS(false),
   fPlane(-1)
 {
   mf::LogInfo("KalmanFilterAlg") << "KalmanFilterAlg instantiated.";
@@ -59,6 +165,9 @@ void trkf::KalmanFilterAlg::reconfigure(const fhicl::ParameterSet& pset)
   fMaxSamePlane = pset.get<int>("MaxSamePlane");
   fGapDist = pset.get<double>("GapDist");
   fMaxNoiseHits = pset.get<double>("MaxNoiseHits");
+  fMinSampleDist = pset.get<double>("MinSampleDist");
+  fFitMomRange = pset.get<bool>("FitMomRange");
+  fFitMomMS = pset.get<bool>("FitMomMS");
 }
 
 /// Add hits to track.
@@ -720,7 +829,7 @@ bool trkf::KalmanFilterAlg::extendTrack(KGTrack& trg,
 
 	dofit = false;
 	result = false;
-
+	return result;
       }
       else {
 
@@ -745,6 +854,14 @@ bool trkf::KalmanFilterAlg::extendTrack(KGTrack& trg,
 	trf = trh1;
 	path = trh1.getPath();
 	tchisq = trh1.getChisq();
+
+	// Make sure forward extend track momentum is over some
+	// minimum value.
+
+	if(trf.getVector()(4) > 2.) {
+	  trf.getVector()(4) = 2.;
+	  trf.getError()(4,4) = 2.;
+	}
       }
       else {
 
@@ -752,6 +869,7 @@ bool trkf::KalmanFilterAlg::extendTrack(KGTrack& trg,
 
 	dofit = false;
 	result = false;
+	return result;
       }
     }
     if(dofit) {
@@ -965,6 +1083,501 @@ bool trkf::KalmanFilterAlg::extendTrack(KGTrack& trg,
   // Done.
 
   result = (trg.numHits() > nhits0);
+  return result;
+}
+
+/// Estimate track momentum using range.
+///
+/// Arguments:
+///
+/// trg    - Global track.
+/// prop   - Propagator.
+/// tremom - Track with momentum estimate.
+///
+/// Returns: True if success.
+///
+/// This method generates a momentum-estimating track by extracting
+/// the last track from a global track, and setting its momentum to
+/// some small value.
+///
+bool trkf::KalmanFilterAlg::fitMomentumRange(const KGTrack& trg,
+					     const Propagator* prop,
+					     KETrack& tremom) const
+{
+  if(!trg.isValid())
+    return false;
+
+  // Extract track with lowest momentum.
+
+  const KHitTrack& trh = trg.endTrack();
+  assert(trh.getStat() != KFitTrack::INVALID);
+  tremom = trh;
+
+  // Set track momentum to a small value.
+
+  tremom.getVector()(4) = 100.;
+  tremom.getError()(4,0) = 0.;
+  tremom.getError()(4,1) = 0.;
+  tremom.getError()(4,2) = 0.;
+  tremom.getError()(4,3) = 0.;
+  tremom.getError()(4,4) = 10000.;
+
+  // Done.
+
+  return true;
+}
+
+/// Estimate track momentum using multiple scattering.
+///
+/// Arguments:
+///
+/// trg    - Global track.
+/// prop   - Propagator.
+/// tremom - Track containing momentum estimate.
+///
+/// Returns: True if success.
+///
+/// This method estimates the momentum of the specified track using
+/// multiple scattering.  As a result of calling this method, the
+/// original global track is not updated, but a KETrack is produced
+/// near the starting surface that has the estimated momentum.
+///
+/// The global track passed as argument should have been smoothed
+/// prior to calling this method so that all or most fits are optimal.
+/// If either the first or last fit is not optimal, return false.
+///
+/// This method assumes that track parameter four is 1/p.  This sort
+/// of momentum estimation only makes sense if the momentum track
+/// parameter is uncorrelated with any other track parameter.  The
+/// error matrix of the first and last fit is checked for this.  If it
+/// is found that either error matrix has correlated track parameter
+/// four with any other track parameter, this method returns without
+/// doing anything (return false).
+///
+bool trkf::KalmanFilterAlg::fitMomentumMS(const KGTrack& trg,
+					  const Propagator* prop,
+					  KETrack& tremom) const
+{
+  // Get iterators pointing to the first and last tracks.
+
+  const std::multimap<double, KHitTrack>& trackmap = trg.getTrackMap();
+  if(trackmap.size() < 2)
+    return false;
+  std::multimap<double, KHitTrack>::const_iterator itend[2];
+  itend[0] = trackmap.begin();
+  itend[1] = trackmap.end();
+  --itend[1];
+
+  // Check the fit status and error matrix of the first and last
+  // track.
+
+  bool result = true;
+
+  for(int i=0; result && i<2; ++i) {
+    const KHitTrack& trh = itend[i]->second;
+    KFitTrack::FitStatus stat = trh.getStat();
+    if(stat != KFitTrack::OPTIMAL)
+      result = false;
+    const TrackError& err = trh.getError();
+    for(int j=0; j<4; ++j) {
+      if(err(4,j) != 0.)
+	result = false;
+    }
+  }
+  if(!result)
+    return result;
+
+  // We will periodically sample the track trajectory.  At each sample
+  // point, collect the following information.
+  //
+  // 1.  The path distance at the sample point.
+  // 2.  The original momentum of the track at the sample point and its error.
+  // 3.  One copy of the track (KETrack) that will be propagated without noise
+  //     (infinite momentum track).
+  // 3.  A second copy of the track (KETrack) that will be propagated with the
+  //     minimum allowed momentum (range out track).
+  // 4.  A third copy of the track (KETrack) that will propagated with noise
+  //     with some intermediate momentum (noise track).
+  //
+  // Collect the first sample from the maximum path distance track.
+
+  double s_sample = itend[1]->first;
+  const KETrack& tre = itend[1]->second;
+  KETrack tre_inf(tre);
+  KTrack trk_range(tre);
+  KETrack tre_noise(tre);
+  tre_inf.getVector()(4) = 0.;
+  tre_inf.getError()(4,4) = 0.;
+  trk_range.getVector()(4) = 100.;
+  tre_noise.getError()(4,4) = 0.;
+  tre_noise.getVector()(4) = 1.;
+  tre_noise.getError()(4,4) = 10.;
+  double invp0 = tre_noise.getVector()(4);
+  double var_invp0 = tre_noise.getError()(4,4);
+
+  // Loop over fits, starting at the high path distance (low momentum)
+  // end.  
+
+  for(std::multimap<double, KHitTrack>::const_reverse_iterator it = trackmap.rbegin();
+      it != trackmap.rend(); ++it) {
+    double s = it->first;
+    const KHitTrack& trh = it->second;
+
+    // Ignore non-optimal fits.
+
+    KFitTrack::FitStatus stat = trh.getStat();
+    if(stat != KFitTrack::OPTIMAL)
+      continue;
+
+    // See if this track is far enough from the previous sample to
+    // make a new sample point.
+
+    if(std::abs(s - s_sample) > fMinSampleDist) {
+
+      // Propagate tracks to the current track surface.
+
+      boost::shared_ptr<const Surface> psurf = trh.getSurface();
+      boost::optional<double> dist_inf = prop->err_prop(tre_inf, psurf,
+							Propagator::UNKNOWN, false);
+      boost::optional<double> dist_range = prop->vec_prop(trk_range, psurf,
+							  Propagator::UNKNOWN, false);
+      boost::optional<double> dist_noise = prop->noise_prop(tre_noise, psurf,
+							    Propagator::UNKNOWN, true);
+
+      // All propagations should normally succeed.  If they don't,
+      // ignore this sample for the purpose of updating the momentum.
+
+      bool momentum_updated = false;
+      if(!!dist_inf && !!dist_range && !!dist_noise) {
+
+	// Extract the momentum at the new sample point.
+
+	double invp1 = tre_noise.getVector()(4);
+	double var_invp1 = tre_noise.getError()(4,4);
+
+	// Get the average momentum and error for this pair of
+	// sample points, and other data.
+
+	double invp = 0.5 * (invp0 + invp1);
+	double var_invp = 0.5 * (var_invp0 + var_invp1);
+	double mass = tre_inf.Mass();
+	double beta = std::sqrt(1. + mass*mass*invp*invp);
+	double invbp = invp / beta;
+
+	// Extract slope subvectors and sub-error-matrices.
+	// We have the following variables.
+	//
+	// slope0 - Predicted slope vector (from infinite momentum track).
+	// slope1 - Measured slope vector (from new sample point).
+	// defl - Deflection (slope residual = difference between measured 
+	//        and predicted slope vector).
+	// err0 - Slope error matrix of prediction.
+	// err1 - Slope error matrix of measurement
+	// errc - Slope residual error matrix = err0 + err1.
+	// errn - Noise slope error matrix divided by (1/beta*momentum).
+
+	KVector<2>::type slope0 = project(tre_inf.getVector(), ublas::range(2, 4));
+	KVector<2>::type slope1 = project(trh.getVector(), ublas::range(2, 4));
+	KVector<2>::type defl = slope1 - slope0;
+	KSymMatrix<2>::type err0 =
+	  project(tre_inf.getError(), ublas::range(2, 4), ublas::range(2, 4));
+	KSymMatrix<2>::type err1 =
+	  project(trh.getError(), ublas::range(2, 4), ublas::range(2, 4));
+	KSymMatrix<2>::type errc = err0 + err1;
+	KSymMatrix<2>::type errn =
+	  project(tre_noise.getError(), ublas::range(2, 4), ublas::range(2, 4));
+	errn -= err0;
+	errn /= invbp;
+
+	// Calculate updated average momentum and error.
+
+	double new_invp = invp;
+	double new_var_invp = var_invp;
+	update_momentum(defl, errc, errn, mass, new_invp, new_var_invp);
+
+	// Calculate updated momentum and error at the second sample
+	// point.
+
+	double dp = 1./new_invp - 1./invp;
+	invp0 = 1./(1./invp1 + dp);
+	var_invp0 = new_var_invp;
+	momentum_updated = true;
+
+	// Make sure that updated momentum is not less than minimum
+	// allowed momentum.
+
+	double invp_range = trk_range.getVector()(4);
+	if(invp0 > invp_range)
+	  invp0 = invp_range;
+      }
+
+      // Update sample.
+
+      if(momentum_updated) {
+	s_sample = s;
+	tre_inf = trh;
+	tre_inf.getVector()(4) = 0.;
+	tre_inf.getError()(4,4) = 0.;
+	double invp_range = trk_range.getVector()(4);
+	trk_range = trh;
+	trk_range.getVector()(4) = invp_range;
+	tre_noise = trh;
+	tre_noise.getVector()(4) = invp0;
+	tre_noise.getError()(4,4) = var_invp0;
+      }
+    }
+  }
+
+  // Propagate noise track to starting (high momentum) track surface
+  // to get final starting momentum.  This propagation should normally
+  // always succeed, but if it doesn't, don't update the track.
+
+  const KHitTrack& trh0 = itend[0]->second;
+  boost::shared_ptr<const Surface> psurf = trh0.getSurface();
+  boost::optional<double> dist_noise = prop->noise_prop(tre_noise, psurf,
+							Propagator::UNKNOWN, true);
+  result = !!dist_noise;
+
+  // Update momentum-estimating track.
+
+  mf::LogInfo log("KalmanFilterAlg");
+  if(result)
+    tremom = tre_noise;
+
+  // Done.
+
+  return result;
+}
+
+/// Estimate track momentum using either range or multiple scattering.
+///
+/// Arguments:
+///
+/// trg    - Global track whose momentum is to be updated.
+/// prop   - Propagator.
+/// tremom - Track with momentum estimate.
+///
+/// Returns: True if success.
+///
+bool trkf::KalmanFilterAlg::fitMomentum(const KGTrack& trg,
+					const Propagator* prop,
+					KETrack& tremom) const
+{
+  mf::LogInfo log("KalmanFilterAlg");
+  double invp_range = 0.;
+  double invp_ms = 0.;
+
+  // Get multiple scattering momentum estimate.
+
+  KETrack tremom_ms;
+  bool ok_ms = false;
+  if(fFitMomMS) {
+    ok_ms = fitMomentumMS(trg, prop, tremom_ms);
+    if(ok_ms) {
+      KGTrack trg_ms(trg);
+      ok_ms = updateMomentum(tremom_ms, prop, trg_ms);
+      if(ok_ms) {
+	invp_ms = trg_ms.startTrack().getVector()(4);
+	double var_invp = trg_ms.startTrack().getError()(4,4);
+	double p = 0.;
+	if(invp_ms != 0.)
+	  p = 1./invp_ms;
+	double err_p = p*p * std::sqrt(var_invp);
+	log << "Multiple scattering momentum estimate = " << p << "+-" << err_p << "\n";
+      }
+    }
+  }
+
+  // Get range momentum estimate.
+
+  KETrack tremom_range;
+  bool ok_range = false;
+  if(fFitMomRange) {
+    ok_range = fitMomentumRange(trg, prop, tremom_range);
+    if(ok_range) {
+      KGTrack trg_range(trg);
+      ok_range = updateMomentum(tremom_range, prop, trg_range);
+      if(ok_range) {
+	invp_range = trg_range.startTrack().getVector()(4);
+	double var_invp = trg_range.startTrack().getError()(4,4);
+	double p = 0.;
+	if(invp_range != 0.)
+	  p = 1./invp_range;
+	double err_p = p*p * std::sqrt(var_invp);
+	log << "Range momentum estimate               = " << p << "+-" << err_p << "\n";
+      }
+    }
+  }
+
+  bool result = false;
+  if(ok_range) {
+    tremom = tremom_range;
+    result = ok_range;
+  }
+  else if(ok_ms) {
+    tremom= tremom_ms;
+    result = ok_ms;
+  }
+  return result;
+}
+
+/// Set track momentum at each track surface.
+///
+/// Arguments:
+///
+/// tremom - Track containing momentum estimate.
+/// prop   - Propagator.
+/// trg    - Global track to be updated.
+///
+/// The track containing the momentum estimate is propagated to the
+/// first or last track fit of the global track (whichever is closer),
+/// then the momentum estimate is transfered to that track fit.  In
+/// similar fashion, the momentum estimate is successively transfered
+/// from that track fit to each track fit of the global track.
+///
+/// Only momentum track parameters of the global track fits are
+/// updated.  Other track parameters and their errors are unmodified.
+/// Unreachable track fits are deleted from the global track.  Overall
+/// failure will occur if the momentum-estimating track can't be
+/// propagated to the initial track fit, or if the final global track
+/// has no valid track fits.
+///
+bool trkf::KalmanFilterAlg::updateMomentum(const KETrack& tremom,
+					   const Propagator* prop,
+					   KGTrack& trg) const
+{
+  // Get modifiable track map.
+
+  std::multimap<double, KHitTrack>& trackmap = trg.getTrackMap();
+
+  // If track map is empty, immediately return failure.
+
+  if(trackmap.size() == 0)
+    return false;
+
+  // Make trial propagations to the first and last track fit to figure
+  // out which track fit is closer to the momentum estimating track.
+
+  // Find distance to first track fit.
+  
+  KETrack tre0(tremom);
+  boost::optional<double> dist0 = prop->vec_prop(tre0, trackmap.begin()->second.getSurface(),
+						 Propagator::UNKNOWN, false, 0, 0);
+  // Find distance to last track fit.
+  
+  KETrack tre1(tremom);
+  boost::optional<double> dist1 = prop->vec_prop(tre1, trackmap.rbegin()->second.getSurface(),
+						 Propagator::UNKNOWN, false, 0, 0);
+
+  // Based on distances, make starting iterator and direction flag.
+
+  bool forward = true;
+  std::multimap<double, KHitTrack>::iterator it = trackmap.begin();
+  if(!!dist0) {
+
+    // Propagation to first track succeeded.
+
+    if(!!dist1) {
+
+      // Propagation to both ends succeeded.  If the last track is
+      // closer, initialize iterator and direction flag for reverse
+      // direction.
+
+      if(std::abs(*dist0) > std::abs(*dist1)) {
+	it = trackmap.end();
+	--it;
+	forward = false;
+      }
+    }
+  }
+  else {
+
+    // Propagation to first track failed.  Initialize iterator and
+    // direction flag for reverse direction, provided that the
+    // propagation to the last track succeeded.
+
+    if(!!dist1) {
+      it = trackmap.end();
+      --it;
+      forward = false;
+    }
+    else {
+
+      // Propagation to both ends failed.  Return failure.
+
+      return false;
+    }
+  }
+
+  // Loop over track fits in global track.
+  
+  KETrack tre(tremom);
+  bool done = false;
+  while(!done) {
+    KHitTrack& trh = it->second;
+    assert(trh.getStat() != KFitTrack::INVALID);
+
+    // Propagate momentum-estimating track to current track surface
+    // and update momentum.
+
+    boost::optional<double> dist = prop->noise_prop(tre, trh.getSurface(),
+						    Propagator::UNKNOWN, true);
+
+    // Copy momentum to global track.
+
+    std::multimap<double, KHitTrack>::iterator erase_it = trackmap.end();
+    if(!!dist) {
+      trh.getVector()(4) = tre.getVector()(4);
+      trh.getError()(4,0) = 0.;
+      trh.getError()(4,1) = 0.;
+      trh.getError()(4,2) = 0.;
+      trh.getError()(4,3) = 0.;
+      trh.getError()(4,4) = tre.getError()(4,4);
+    }
+    else {
+
+      // If the propagation failed, remember that we are supposed to
+      // erase this track from the global track.
+
+      erase_it = it;
+    }
+
+    // Advance the iterator and set the done flag.
+
+    if(forward) {
+      ++it;
+      done = (it == trackmap.end());
+    }
+    else {
+      done = (it == trackmap.begin());
+      if(!done)
+	--it;
+    }
+
+    // Update momentum-estimating track from just-updated global track
+    // fit, or erase global track fit.
+
+    if(erase_it == trackmap.end())
+      tre = trh;
+    else
+      trackmap.erase(erase_it);
+  }
+
+  bool result = (trackmap.size() > 0);
+
+  // Print value of momentum at start of track.
+
+  //if(result) {
+  //  mf::LogInfo log("KalmanFilterAlg");
+  //  double invp = trg.startTrack().getVector()(4);
+  //  double var_invp = trg.startTrack().getError()(4,4);
+  //  double p = 0.;
+  //  if(invp != 0.)
+  //    p = 1./invp;
+  //  double err_p = p*p * std::sqrt(var_invp);
+  //  log << "Updated momentum estimate = " << p << "+-" << err_p;
+  //}
+
   return result;
 }
 
