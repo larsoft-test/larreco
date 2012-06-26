@@ -315,6 +315,10 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	  if(ok) {
 	    ok = fKFAlg.smoothTrackIter(5, trg, fProp);
 	    if(ok) {
+	      KETrack tremom;
+	      bool pok = fKFAlg.fitMomentum(trg, fProp, tremom);
+	      if(pok)
+		fKFAlg.updateMomentum(tremom, fProp, trg);
 	      ++fNumTrack;
 	      kalman_tracks.push_back(trg);
 	    }
@@ -330,25 +334,28 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 
   // Fill histograms.
 
-  // First loop over tracks.
+  if(fHist) {
 
-  for(std::deque<KGTrack>::const_iterator k = kalman_tracks.begin();
-      k != kalman_tracks.end(); ++k) {
-    const KGTrack& trg = *k;
+    // First loop over tracks.
 
-    // Loop over measurements in this track.
+    for(std::deque<KGTrack>::const_iterator k = kalman_tracks.begin();
+	k != kalman_tracks.end(); ++k) {
+      const KGTrack& trg = *k;
 
-    const std::multimap<double, KHitTrack>& trackmap = trg.getTrackMap();
-    for(std::multimap<double, KHitTrack>::const_iterator ih = trackmap.begin();
-	ih != trackmap.end(); ++ih) {
-      const KHitTrack& trh = (*ih).second;
-      const boost::shared_ptr<const KHitBase>& hit = trh.getHit();
-      double chisq = hit->getChisq();
-      fHIncChisq->Fill(chisq);
-      const KHit<1>* ph1 = dynamic_cast<const KHit<1>*>(&*hit);
-      if(ph1 != 0) {
-	double pull = ph1->getResVector()(0) / std::sqrt(ph1->getResError()(0, 0));
-	fHPull->Fill(pull);
+      // Loop over measurements in this track.
+
+      const std::multimap<double, KHitTrack>& trackmap = trg.getTrackMap();
+      for(std::multimap<double, KHitTrack>::const_iterator ih = trackmap.begin();
+	  ih != trackmap.end(); ++ih) {
+	const KHitTrack& trh = (*ih).second;
+	const boost::shared_ptr<const KHitBase>& hit = trh.getHit();
+	double chisq = hit->getChisq();
+	fHIncChisq->Fill(chisq);
+	const KHit<1>* ph1 = dynamic_cast<const KHit<1>*>(&*hit);
+	if(ph1 != 0) {
+	  double pull = ph1->getResVector()(0) / std::sqrt(ph1->getResError()(0, 0));
+	  fHPull->Fill(pull);
+	}
       }
     }
   }
