@@ -5,6 +5,8 @@
 #
 #
 include SoftRelTools/arch_spec_root.mk
+include SoftRelTools/arch_spec_geant4.mk
+include SoftRelTools/arch_spec_xercesc.mk
 
 LIB_TYPE    := shared
 LIB         := lib$(PACKAGE)
@@ -18,4 +20,4 @@ LIBLINK    := -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)
 include SoftRelTools/standard.mk
 include SoftRelTools/arch_spec_art.mk
 
-override LIBLIBS += $(LOADLIBES) -L$(ART_LIB) -lart_Framework_Services_Optional_TFileService_service -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -lSimulation -lRecoBase -lGenfit -lUtilities -lGeometry -lRawData -lMCCheater
+override LIBLIBS += $(LOADLIBES) -L$(ART_LIB) -lart_Framework_Services_Optional_TFileService_service -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -lSimulation -lRecoBase -lGenfit -lUtilities -lGeometry -lRawData -lMCCheater -L$(CLHEP_BASE)/lib -lCLHEP 

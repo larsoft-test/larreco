@@ -1,0 +1,18 @@
+////////////////////////////////////////////////////////////////////////
+//
+// MagDriftAna class
+//
+// dmckee@phys.ksu.edu
+//
+//  
+////////////////////////////////////////////////////////////////////////
+// Framework includes
+#include "art/Framework/Core/ModuleMacros.h" 
+
+#include "TrackFinder/MagDriftAna.h"
+
+namespace hit{
+
+  DEFINE_ART_MODULE(MagDriftAna);
+
+} // end of hit namespace

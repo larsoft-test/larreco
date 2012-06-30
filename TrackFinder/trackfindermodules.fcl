@@ -243,4 +243,11 @@ microboone_2stg_kalman:
  GenfPRINT:           true
 }
 
+standard_magdriftana:
+{
+ module_type:           "MagDriftAna"
+ HitsModuleLabel:       "ffthit"
+ LArGeantModuleLabel:   "largeant"
+}
+
 END_PROLOG
