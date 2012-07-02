@@ -193,21 +193,8 @@ namespace hit{
     // We're going to want to compare the reconstructed Z with the
     // simulted Z. For that purpose we use the simultion backtracking.
     //
-    // Get the references to sim::SimChannels from the event
-    //std::vector<const sim::SimChannel*> sccol;
-    std::vector<const sim::SimChannel*> scFromEvent;
-    evt.getView(fLArG4ModuleLabel, scFromEvent);
 
-    // Each channel number should be associated with the
-    // sim::SimChannel object(s) that caused a signal on that channel
-    //std::vector<const sim::SimChannel*> scs(geom->Nchannels(),0);
-    std::vector<std::vector<const sim::SimChannel*> > scMapping(geom->Nchannels());
-    //    for(size_t i = 0; i < sccol.size(); ++i) {
-    for(std::vector<const sim::SimChannel*>::iterator i=scFromEvent.begin();
-	i != scFromEvent.end(); 
-	++i) {
-      scMapping[(*i)->Channel()].push_back(*i);
-    }
+    art::ServiceHandle<cheat::BackTracker> bt;
 
     //    art::PtrVector<recob::Hit> hits;
     std::vector< art::Ptr<recob::Hit> > hits;
@@ -245,23 +232,11 @@ namespace hit{
       fHitZpos->Fill(HitZpos,Charge);
 	
       // Charge deposition in the detector
-      //
-      // There may be more than one sim::SimChannel associated with
-      // each recob::Hit
-      if (channel != (*itr)->Channel()) {
-	std::cerr << "Channel mismatch: " << channel 
-		  << ", " << (*itr)->Channel()
-		  << std::endl;
-      }
-      std::vector<const sim::SimChannel*> scVec = scMapping[(*itr)->Channel()];
-      for (std::vector<const sim::SimChannel*>::iterator i=scVec.begin();
-	   i!=scVec.end();
-	   ++i ) {
-	std::vector<double> xyz = cheat::BackTracker::HitToXYZ(**i,*itr);
-	fChargeXpos->Fill(xyz[0],Charge);
-	fChargeYpos->Fill(xyz[1],Charge);
-	double ChargeZpos = xyz[2];
-	fChargeZpos->Fill(ChargeZpos,Charge);
+      std::vector<double> xyz = bt->HitToXYZ(*itr);
+      fChargeXpos->Fill(xyz[0],Charge);
+      fChargeYpos->Fill(xyz[1],Charge);
+      double ChargeZpos = xyz[2];
+      fChargeZpos->Fill(ChargeZpos,Charge);
 
 // 	// Delta-Y
 // 	fDriftDeltaY->Fill(HitYpos-ChargeYpos,Charge);
@@ -269,22 +244,21 @@ namespace hit{
 // 	fDeltaYoverX->Fill((HitYpos-ChargeYpos)/xyz[0],Charge);
 // 	fDeltaYvsX->Fill(xyz[0],HitYpos-ChargeZpos,Charge);
 
-	// Delta-Z
-	//
-	// Compares the collected z position from the wire to the
-	// simulated z position
-	double DeltaZ = HitZpos-ChargeZpos;
-	fDriftDeltaZ->Fill(DeltaZ,Charge);
-	// Delta Z correlation with X
-	fDeltaZoverX->Fill(DeltaZ/xyz[0],Charge);
-	fDeltaZvsX->Fill(xyz[0],DeltaZ,Charge);
-	// The X related histograms know the dimensions of the
-	// detector, so we use them to set the "away" limit
-	if (xyz[0] >  (fChargeYpos->GetXaxis()->GetXmax() * 0.80) ) {  
-	  fDriftDeltaZAway->Fill(DeltaZ,Charge);
-	  fDeltaZoverXAway->Fill(DeltaZ/xyz[0],Charge);
-	} 
-      } // Loop over multiple sim::SimChannels associated with this wire
+      // Delta-Z
+      //
+      // Compares the collected z position from the wire to the
+      // simulated z position
+      double DeltaZ = HitZpos-ChargeZpos;
+      fDriftDeltaZ->Fill(DeltaZ,Charge);
+      // Delta Z correlation with X
+      fDeltaZoverX->Fill(DeltaZ/xyz[0],Charge);
+      fDeltaZvsX->Fill(xyz[0],DeltaZ,Charge);
+      // The X related histograms know the dimensions of the
+      // detector, so we use them to set the "away" limit
+      if (xyz[0] >  (fChargeYpos->GetXaxis()->GetXmax() * 0.80) ) {  
+	fDriftDeltaZAway->Fill(DeltaZ,Charge);
+	fDeltaZoverXAway->Fill(DeltaZ/xyz[0],Charge);
+      } 
 
     } // loop on Hits
     
