@@ -43,12 +43,12 @@ extern "C" {
 #include "TTree.h"
 
 // LArSoft includes
-
 #include "ShowerFinder/ShowerReco.h"
 #include "Geometry/geo.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
 #include "Utilities/LArProperties.h"
+#include "Utilities/PhysicalConstants.h"
 #include "Utilities/DetectorProperties.h"
 #include "SummaryData/summary.h"
 
@@ -81,9 +81,9 @@ shwf::ShowerReco::~ShowerReco()
 namespace shwf {
   struct SortByWire 
   {
-    bool operator() (recob::Hit const& h1, recob::Hit const& h2) const 
+    bool operator() (art::Ptr<recob::Hit> const& h1, art::Ptr<recob::Hit> const& h2) const 
     { 
-      return (h1.Wire()->RawDigit()->Channel() < h2.Wire()->RawDigit()->Channel());
+      return (h1->Wire()->RawDigit()->Channel() < h2->Wire()->RawDigit()->Channel());
     }
   };
 }
@@ -319,8 +319,9 @@ void shwf::ShowerReco::produce(art::Event& evt)
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fClusterModuleLabel,clusterListHandle);
 
+  art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fClusterModuleLabel);
 
-  std::vector< art::PtrVector < recob::Hit> > hitlist_all;
+  std::vector< std::vector< art::Ptr<recob::Hit> > > hitlist_all;
   //art::PtrVector < recob::Hit> hitlistInd;
   hitlist_all.resize(fNPlanes);
   
@@ -333,9 +334,8 @@ void shwf::ShowerReco::produce(art::Event& evt)
     
     //get vertex position and slope information to start with:
     
-    art::PtrVector<recob::Hit> hitlist;
-    hitlist = cl->Hits();
-    hitlist.sort(shwf::SortByWire());
+    std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(ii);
+    std::sort(hitlist.begin(), hitlist.end(), shwf::SortByWire());
     unsigned int p(0),w(0), c(0), t(0), cs(0); //c=channel, p=plane, w=wire
     
     
@@ -365,7 +365,7 @@ void shwf::ShowerReco::produce(art::Event& evt)
   
   
   for(unsigned int i = 0; i < fNPlanes; ++i){
-    hitlist_all[i].sort(shwf::SortByWire());
+    std::sort(hitlist_all[i].begin(), hitlist_all[i].end(),shwf::SortByWire());
     // Get2DVariables(hitlist_all[i]);
   }
  
@@ -461,42 +461,35 @@ void shwf::ShowerReco::produce(art::Event& evt)
   
   //}
   
-  //double xyz[3]={};
-  
-  recob::SpacePoint singlepoint;
-  singlepoint.SetXYZ(xyz_vertex);
-  spcpts.push_back(singlepoint);
-  
-  
-  recob::Shower  singShower(prodvec,spcpts);
-  
-  
+  //get direction cosines and set them for the shower  
   // TBD determine which angle to use for the actual shower
   double fPhi=fPhiN_ang[0];
   double fTheta=fThetaN_ang[0];
   
-  double dcosstart[3]={TMath::Cos(fPhi*pi/180)*TMath::Sin(fTheta*pi/180),TMath::Cos(fTheta*pi/180),TMath::Sin(fPhi*pi/180)*TMath::Sin(fTheta*pi/180)};
+  double dcosVtx[3]={TMath::Cos(fPhi*pi/180)*TMath::Sin(fTheta*pi/180),
+		     TMath::Cos(fTheta*pi/180),
+		     TMath::Sin(fPhi*pi/180)*TMath::Sin(fTheta*pi/180)};
+  /// \todo really need to determine the values of the arguments of the recob::Shower ctor
+  // fill with bogus values for now
+  double dcosVtxErr[3] = { util::kBogusD };
+  double maxTransWidth[2] = { util::kBogusD };
+  double distMaxWidth = util::kBogusD;
   
-  
-  singShower.SetDirection(dcosstart,dcosstart);
-  singShower.SetID(1);
+  recob::Shower  singShower(dcosVtx, dcosVtxErr, maxTransWidth, distMaxWidth, 1);
   
   std::auto_ptr<std::vector<recob::Shower> > Shower3DVector(new std::vector<recob::Shower>);
   std::auto_ptr< art::Assns<recob::Shower, recob::Cluster> > cassn(new art::Assns<recob::Shower, recob::Cluster>);
   std::auto_ptr< art::Assns<recob::Shower, recob::Hit>     > hassn(new art::Assns<recob::Shower, recob::Hit>);
   
   Shower3DVector->push_back(singShower);
-  
-  //get direction cosines and set them for the shower
-  
-  
+    
   // associate the shower with its clusters
-  util::CreateAssn(*this, evt, *(Shower3DVector.get()), prodvec, *(cassn.get()));
+  util::CreateAssn(*this, evt, *Shower3DVector, prodvec, *cassn);
   
   // get the hits associated with each cluster and associate those with the shower
   for(size_t p = 0; p < prodvec.size(); ++p){
-    art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(prodvec, evt, fClusterModuleLabel, p);
-    util::CreateAssn(*this, evt, *(Shower3DVector.get()), hits, *(hassn.get()));
+    std::vector< art::Ptr<recob::Hit> > hits = fmh.at(p);
+    util::CreateAssn(*this, evt, *Shower3DVector, hits, *hassn);
   }
 
 
@@ -847,7 +840,7 @@ int shwf::ShowerReco::Get3DaxisN(unsigned int set,int iplane0,int iplane1){
 // }
 
 //------------------------------------------------------------------------------
-void shwf::ShowerReco::LongTransEnergy(unsigned int set,art::PtrVector < recob::Hit> hitlist)
+void shwf::ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob::Hit> > hitlist)
 {
   // alogorithm for energy vs dx of the shower (roto-translation) COLLECTION VIEW
   // double  wire_cm, time_cm;

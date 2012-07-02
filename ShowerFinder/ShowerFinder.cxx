@@ -93,13 +93,15 @@ namespace shwf{
     art::Handle< std::vector<recob::Cluster> > clusterListHandle;
     evt.getByLabel(fClusterModuleLabel,clusterListHandle);
 
+    art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fClusterModuleLabel);
+
     // Read in the vertex Strength List object(s).
     art::Handle< std::vector<recob::EndPoint2D> > vertexStrengthListHandle;
     evt.getByLabel(fVertexStrengthModuleLabel,vertexStrengthListHandle);
     
     art::PtrVector<recob::Cluster> protoShowers; //vector of clusters associated to a cone
 
-    art::PtrVector<recob::Hit> clusterhits; //hits in the cluster
+    std::vector< art::Ptr<recob::Hit> > clusterhits; //hits in the cluster
 
     art::ServiceHandle<geo::Geometry> geom;
     
@@ -200,7 +202,7 @@ namespace shwf{
 	    
 		//Get the hits vector from the cluster
 		plane = p;
-		clusterhits = clust->Hits(plane);
+		clusterhits = fmh.at(iclust);
 		if(clusterhits.size() == 0) continue;
 
 		//Loop over ALL hits in the cluster. Looking if the cluster's hit is comprised in the cone
@@ -240,18 +242,33 @@ namespace shwf{
 
 	      if(protoShowers.size() == 0) continue;
 
-	      recob::Shower shower(protoShowers);
-	      showercol->push_back(shower);
+	      // loop over hits in the protoShowers to determine the total charge of the shower
+	      double totalCharge = 0.;
+
+	      art::FindManyP<recob::Hit> fmhps(protoShowers, evt, fClusterModuleLabel);
+
+	      for(size_t p = 0; p < protoShowers.size(); ++p){
+		std::vector< art::Ptr<recob::Hit> > hits = fmhps.at(p);
+		for(size_t h = 0; h < hits.size(); ++h)
+		  if(hits[h]->SignalType() == geo::kCollection) totalCharge += hits[h]->Charge();
+	      }
+
+	      /// \todo really need to determine the values of the arguments of the recob::Shower ctor
+	      // fill with bogus values for now
+	      double dcosVtx[3]    = { util::kBogusD };
+	      double dcosVtxErr[3] = { util::kBogusD };
+	      double maxTransWidth[2] = { util::kBogusD };
+	      double distMaxWidth = util::kBogusD;
+	      showercol->push_back( recob::Shower(dcosVtx, dcosVtxErr, maxTransWidth, totalCharge, distMaxWidth) );
 	      
 	      // associate the shower with its clusters
-	      util::CreateAssn(*this, evt, *(showercol.get()), protoShowers, *(cassn.get()));
+	      util::CreateAssn(*this, evt, *showercol, protoShowers, *cassn);
 	      
 	      // get the hits associated with each cluster and associate those with the shower
 	      for(size_t p = 0; p < protoShowers.size(); ++p){
-		art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(protoShowers, evt, fClusterModuleLabel, p);
-		util::CreateAssn(*this, evt, *(showercol.get()), hits, *(hassn.get()));
+		std::vector< art::Ptr<recob::Hit> > hits = fmhps.at(p);
+		util::CreateAssn(*this, evt, *showercol, hits, *hassn);
 	      }
-
 
 	      protoShowers.clear();
 

@@ -13,6 +13,7 @@
 #include "ShowerFinder/ShowerCheater.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
+#include "Utilities/PhysicalConstants.h"
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
 
@@ -33,8 +34,11 @@ namespace shwf{
     this->reconfigure(pset);
 
     produces< std::vector<recob::Shower> >();
+    produces< std::vector<recob::SpacePoint> >();
     produces< art::Assns<recob::Shower, recob::Cluster> >();
+    produces< art::Assns<recob::Shower, recob::SpacePoint> >();
     produces< art::Assns<recob::Shower, recob::Hit> >();
+    produces< art::Assns<recob::Hit, recob::SpacePoint> >();
   }
 
   //--------------------------------------------------------------------
@@ -54,20 +58,8 @@ namespace shwf{
   //--------------------------------------------------------------------
   void ShowerCheater::produce(art::Event& evt)
   {
-
-    // grab the sim::ParticleList
-    sim::ParticleList plist = sim::SimListUtils::GetParticleList(evt, fG4ModuleLabel);
-
-    // get the sim::SimChannels
-    // get the sim::SimChannels as well
-    std::vector<const sim::SimChannel*> sccol;
-    evt.getView(fG4ModuleLabel, sccol);
-    
-    //now make a vector where each channel in the detector is an 
-    // entry
+    art::ServiceHandle<cheat::BackTracker> bt;
     art::ServiceHandle<geo::Geometry> geo;
-    std::vector<const sim::SimChannel*> scs(geo->Nchannels(),0);
-    for(size_t i = 0; i < sccol.size(); ++i) scs[sccol[i]->Channel()] = sccol[i];
 
     // grab the clusters that have been reconstructed
     art::Handle< std::vector<recob::Cluster> > clustercol;
@@ -113,8 +105,11 @@ namespace shwf{
 
     // loop over the map and make prongs
     std::auto_ptr< std::vector<recob::Shower> > showercol(new std::vector<recob::Shower>);
+    std::auto_ptr< std::vector<recob::SpacePoint> > spcol(new std::vector<recob::SpacePoint>);
     std::auto_ptr< art::Assns<recob::Shower, recob::Cluster> > scassn(new art::Assns<recob::Shower, recob::Cluster>);
     std::auto_ptr< art::Assns<recob::Shower, recob::Hit> > shassn(new art::Assns<recob::Shower, recob::Hit>);
+    std::auto_ptr< art::Assns<recob::Shower, recob::SpacePoint> > sspassn(new art::Assns<recob::Shower, recob::SpacePoint>);
+    std::auto_ptr< art::Assns<recob::Hit, recob::SpacePoint> > sphassn(new art::Assns<recob::Hit, recob::SpacePoint>);
 
     for(clusterMapItr = eveClusterMap.begin(); clusterMapItr != eveClusterMap.end(); clusterMapItr++){
 
@@ -123,68 +118,84 @@ namespace shwf{
 
       art::PtrVector<recob::Cluster> ptrvs;
 
-      std::vector<recob::SpacePoint> spacePoints;
+      size_t startSPIndx = spcol->size();
+
+      double totalCharge = 0.;
 
       for(size_t c = 0; c < eveClusters.size(); ++c){
 	ptrvs.push_back(eveClusters[c]);
-	
+	size_t cindx = ptrvs.size() - 1;
 	// need to make the space points for this prong
 	// loop over the hits for this cluster and make 
 	// a space point for each one
 	// set the SpacePoint ID to be the cluster ID*10000 
 	// + the hit index in the cluster PtrVector of hits
-	art::PtrVector<recob::Hit> hits = eveClusters[c]->Hits();
+	art::FindManyP<recob::Hit> fmh(ptrvs, evt, fCheatedClusterLabel);
+	std::vector< art::Ptr<recob::Hit> > hits = fmh.at(cindx);
+	
 	for(size_t h = 0; h < hits.size(); ++h){
 	  art::Ptr<recob::Hit> hit = hits[h];
-	  std::vector<double> xyz = cheat::BackTracker::HitToXYZ(*(scs[hit->Channel()]), hit);
-
-	  // make a PtrVector containing just this hit
-	  art::PtrVector<recob::Hit> sphit;
-	  sphit.push_back(hits[h]);
+	  // add up the charge from the hits on the collection plane
+	  if(hit->SignalType() == geo::kCollection) totalCharge += hit->Charge();
+	  std::vector<double> xyz = bt->HitToXYZ(hit);
+	  double sperr[6] = {0.01, 0.01, 0.1, 0.001, 0.001, 0.001};
 
 	  // make the space point and set its ID and XYZ
-	  recob::SpacePoint sp(sphit);
-	  sp.SetID(eveClusters[c]->ID()*10000 + h);
-	  sp.SetXYZ(&xyz[0]);
+	  // the errors and chi^2 are set to "good" values as we know the information perfectly
+	  recob::SpacePoint sp(&xyz[0],
+			       sperr,
+			       0.9,
+			       eveClusters[c]->ID()*10000 + h);
+	  spcol->push_back(sp);
 
-	  spacePoints.push_back(sp);
+	  // associate the space point to the hit
+	  util::CreateAssn(*this, evt, *spcol, hit, *sphassn);
+
 	}
       }
+      
+      size_t endSPIndx = spcol->size();
 
       // is this prong electro-magnetic in nature or 
       // hadronic/muonic?  EM --> shower, everything else is a track
-      if( abs(plist[(*clusterMapItr).first]->PdgCode()) == 11  ||
-	  abs(plist[(*clusterMapItr).first]->PdgCode()) == 22  ||
-	  abs(plist[(*clusterMapItr).first]->PdgCode()) == 111 ){
+      if( abs(bt->ParticleList()[(*clusterMapItr).first]->PdgCode()) == 11  ||
+	  abs(bt->ParticleList()[(*clusterMapItr).first]->PdgCode()) == 22  ||
+	  abs(bt->ParticleList()[(*clusterMapItr).first]->PdgCode()) == 111 ){
 
 	mf::LogInfo("ShowerCheater") << "prong of " << (*clusterMapItr).first 
 				    << " is a shower with pdg code "
-				    << plist[(*clusterMapItr).first]->PdgCode();
-
-	// add a prong to the collection.  Make the prong
-	// ID be the same as the track ID for the eve particle
-	showercol->push_back(recob::Shower(ptrvs, spacePoints));
-	showercol->at(showercol->size() - 1).SetID((*clusterMapItr).first);
+				    << bt->ParticleList()[(*clusterMapItr).first]->PdgCode();
 
 	// get the direction cosine for the eve ID particle
 	// just use the same for both the start and end of the prong
-	/// \todo Should we make the cheater direction cosines for Prong start and end different?
-	const TLorentzVector initmom = plist[(*clusterMapItr).first]->Momentum();
+	const TLorentzVector initmom = bt->ParticleList()[(*clusterMapItr).first]->Momentum();
 	double dcos[3] = { initmom.Px()/initmom.Mag(),
 			   initmom.Py()/initmom.Mag(),
 			   initmom.Pz()/initmom.Mag() };
+	double dcosErr[3] = { 1.e-3, 1.e-3, 1.e-3 };
+	
+	/// \todo figure out the max transverse width of the shower in the x and y directions
+	double maxTransWidth[2] = { util::kBogusD, util::kBogusD };
+	double distanceMaxWidth = util::kBogusD;
 
-	showercol->back().SetDirection(dcos, dcos);
+	// add a prong to the collection.  Make the prong
+	// ID be the same as the track ID for the eve particle
+	showercol->push_back(recob::Shower(dcos, dcosErr, maxTransWidth, 
+					   distanceMaxWidth, totalCharge, (*clusterMapItr).first));
 
 	// associate the shower with its clusters
-	util::CreateAssn(*this, evt, *(showercol.get()), ptrvs, *(scassn.get()));
+	util::CreateAssn(*this, evt, *showercol, ptrvs, *scassn);
 
-	// get the hits associated with each cluster and associate those with the track
+	art::FindManyP<recob::Hit> fmh(ptrvs, evt, fCheatedClusterLabel);
+
+	// get the hits associated with each cluster and associate those with the shower
 	for(size_t p = 0; p < ptrvs.size(); ++p){
-	  art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(ptrvs, evt, fCheatedClusterLabel, p);
-	  util::CreateAssn(*this, evt, *(showercol.get()), hits, *(shassn.get()));
+	  std::vector< art::Ptr<recob::Hit> > hits = fmh.at(p);
+	  util::CreateAssn(*this, evt, *showercol, hits, *shassn);
 	}
 
+	// associate the shower with the space points
+	util::CreateAssn(*this, evt, *(showercol.get()), *(spcol.get()), *(sspassn.get()), startSPIndx, endSPIndx);
 
 	mf::LogInfo("ShowerCheater") << "adding shower: \n" 
 				     << showercol->back()
@@ -194,8 +205,11 @@ namespace shwf{
     } // end loop over the map
 
     evt.put(showercol);
+    evt.put(spcol);
     evt.put(scassn);
     evt.put(shassn);
+    evt.put(sspassn);
+    evt.put(sphassn);
 
     return;
 

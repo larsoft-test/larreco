@@ -56,7 +56,7 @@ namespace shwf {
 
     void   FitAngularDistributions(int plane); 
  //   void   LongTransEnergyI(art::PtrVector < recob::Hit> hitlistInd); //Longtudinal and transverse enegry of the shower (Induction plane)
-    void   LongTransEnergy(unsigned int set,art::PtrVector < recob::Hit> hitlist); //Longtudinal and transverse enegry of the shower (Collection plane)
+    void   LongTransEnergy(unsigned int set, std::vector< art::Ptr<recob::Hit> > hitlist); //Longtudinal and transverse enegry of the shower (Collection plane)
    double ProjectedLength(unsigned int set,unsigned int plane ) 	 const;
 
 
