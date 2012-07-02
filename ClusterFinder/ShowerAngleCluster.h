@@ -50,13 +50,13 @@ namespace cluster {
 
 
     
-//    float LastWire[2];  // last wire of the shower
-//    float LastTime[2];  // last t_hit of the shower
+    //    float LastWire[2];  // last wire of the shower
+    //    float LastTime[2];  // last t_hit of the shower
     
      
     
 
- private:
+  private:
 
     const static float pi            = 3.1415;
     float ftimetick; // time sample in us
@@ -137,7 +137,7 @@ namespace cluster {
 
 
 
-   // unsigned int tpc;    //tpc type
+    // unsigned int tpc;    //tpc type
     unsigned int fNPlanes; // number of planes  
 
     TH1F* fh_theta[3]; 
@@ -150,26 +150,25 @@ namespace cluster {
     TH2F *tgx[3];
     TH2F *tgx2[3];
 
-  // TH1F * hithist[3];
+    // TH1F * hithist[3];
   
     void Find2DStartPoints(std::vector< art::PtrVector < recob::Hit> > hitlist_all);
 
     void Find2DBestPlanes(std::vector<int> &best_planes);
   
     void Find_Extreme_Intercepts(art::PtrVector<recob::Hit> hitlist,
-			     double perpslope,
-			     double &inter_high,
-			     double &inter_low);  
+				 double perpslope,
+				 double &inter_high,
+				 double &inter_low);  
     
     art::Ptr<recob::Hit> FindClosestHit(art::PtrVector<recob::Hit> hitlist,
-			     unsigned int wire,
-			     double time);  
+					unsigned int wire,
+					double time);  
     
     int GetPlaneAndTPC(art::Ptr<recob::Hit> a,unsigned int &p,unsigned int &cs,unsigned int &t,unsigned int &w);
-    int GetPlaneAndTPC(art::Ptr<recob::Cluster> c,unsigned int &p,unsigned int &cs,unsigned int &t,unsigned int &w);
     
   
-  //temporary
+    //temporary
     int mcpdg;
     double mcenergy;
     double mcphi;

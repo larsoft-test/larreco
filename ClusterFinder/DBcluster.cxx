@@ -143,8 +143,7 @@ void cluster::DBcluster::produce(art::Event& evt)
 	    geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), c, t, p, sw);
 	    geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), c, t, p, ew);
 	 
-	    recob::Cluster cluster(clusterHits, 
-				   sw*1., 0.,
+	    recob::Cluster cluster(sw*1., 0.,
 				   clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
 				   ew*1., 0.,
 				   clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),

@@ -112,13 +112,15 @@ namespace cluster{
 	  ++clsnum1;
 	  continue;
 	}
+
+	art::FindManyP<recob::Hit> fmh(Cls[i], evt, fClusterModuleLabel);
 	
 	// make a new cluster to put into the SuperClusters collection 
 	// because we want to be able to adjust it later
 	recob::Cluster cl1( *( Cls[i][c].get() ) ); 
 
 	// find the hits associated with the current cluster
-	art::PtrVector<recob::Hit> ptrvs = util::FindManyP<recob::Hit>(Cls[i], evt, fClusterModuleLabel, c);
+	std::vector< art::Ptr<recob::Hit> > ptrvs = fmh.at(c);
 
 	Cls_matches[i][clsnum1] = 1; 
 	++clustersfound;
@@ -134,7 +136,7 @@ namespace cluster{
 	  }
 
 	  // find the hits associated with this second cluster
-	  art::PtrVector<recob::Hit> ptrvs2 = util::FindManyP<recob::Hit>(Cls[i], evt, fClusterModuleLabel, c2);
+	  std::vector< art::Ptr<recob::Hit> > ptrvs2 = fmh.at(c2);
 	  
 	  // check that the slopes are the same
 	  // added 13.5 ticks/wirelength in ArgoNeuT. 

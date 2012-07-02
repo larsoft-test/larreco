@@ -10,7 +10,6 @@
 //  Niblack, W. and Petkovic, D. On Improving the Accuracy of the Hough Transform", Machine Vision and Applications 3, 87 (1990)  
 ////////////////////////////////////////////////////////////////////////
 
-#include "HoughLineFinderAna.h"
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -42,10 +41,12 @@ extern "C" {
 #include "art/Framework/Services/Optional/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
  
+#include "HoughLineFinderAna.h"
 #include "SimulationBase/simbase.h"
 #include "RawData/RawDigit.h"
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
+#include "Utilities/AssociationUtil.h"
 
 cluster::HoughLineFinderAna::HoughLineFinderAna(fhicl::ParameterSet const& pset) : 
   fHoughModuleLabel (pset.get< std::string >("HoughModuleLabel")),
@@ -119,22 +120,23 @@ void cluster::HoughLineFinderAna::analyze(const art::Event& evt)
   art::Handle< std::vector<recob::Cluster> > dbscanListHandle;
   evt.getByLabel(fDBScanModuleLabel,dbscanListHandle);
   
+  art::FindManyP<recob::Hit> fmh(dbscanListHandle, evt, fDBScanModuleLabel);
+  art::FindManyP<recob::Hit> fmhhl(hlfListHandle, evt, fHoughModuleLabel);
+
   art::PtrVector<recob::Cluster> clusters;  
   art::PtrVector<recob::Cluster> dbclusters;
   //   art::PtrVector<recob::Hit> hits;// unused, as yet. EC, 5-Oct-2010.
     
-  for (unsigned int ii = 0; ii <  hlfListHandle->size(); ++ii)
-    {
-      art::Ptr<recob::Cluster> cluster(hlfListHandle,ii);
-      clusters.push_back(cluster);
-    }
-    
-  for (unsigned int ii = 0; ii <  dbscanListHandle->size(); ++ii)
-    {
-      art::Ptr<recob::Cluster> dbcluster(dbscanListHandle,ii);
-      dbclusters.push_back(dbcluster);
-    }
-      
+  for (size_t ii = 0; ii <  hlfListHandle->size(); ++ii){
+    art::Ptr<recob::Cluster> cluster(hlfListHandle,ii);
+    clusters.push_back(cluster);
+  }
+  
+  for (size_t ii = 0; ii <  dbscanListHandle->size(); ++ii){
+    art::Ptr<recob::Cluster> dbcluster(dbscanListHandle,ii);
+    dbclusters.push_back(dbcluster);
+  }
+  
   std::cout << "run    : " << evt.id().run() << std::endl;
   //std::cout << "subrun : " << evt.subRun() << std::endl;
   std::cout << "event  : " << evt.id().event() << std::endl;
@@ -161,15 +163,15 @@ void cluster::HoughLineFinderAna::analyze(const art::Event& evt)
 
 	for(size_t j = 0; j < dbclusters.size(); ++j) {
 	  if(dbclusters[j]->View() == view){
-	    art::PtrVector<recob::Hit> _dbhits=dbclusters[j]->Hits();
-	    fm_dbsize+=_dbhits.size();
+	    std::vector< art::Ptr<recob::Hit> > _dbhits = fmh.at(j);
+	    fm_dbsize += _dbhits.size();
 	  } 
 	}
     
 	for(size_t j = 0; j < clusters.size(); ++j) {
 	  if(clusters[j]->View() == view){
 	    fm_clusterid=clusters[j]->ID();
-	    art::PtrVector<recob::Hit> _hits=clusters[j]->Hits();
+	    std::vector< art::Ptr<recob::Hit> > _hits = fmhhl.at(j);
 	    fm_clusterslope=(double)clusters[j]->dTdW();
 	    fm_clusterintercept=(double)clusters[j]->StartPos()[1];
 	    if(_hits.size()!=0){

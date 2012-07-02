@@ -19,6 +19,7 @@
 #include "TDatabasePDG.h"
 #include "TSystem.h"
 #include "TMath.h"
+#include "TTree.h"
 
 #include "art/Framework/Principal/Event.h" 
 #include "fhiclcpp/ParameterSet.h" 
@@ -44,30 +45,27 @@
 #include "RecoBase/recobase.h"
 #include "Geometry/geo.h"
 #include "Utilities/LArProperties.h"
-#include "TTree.h"
-#include "ClusterFinder/ClusterCheater.h"
+#include "Utilities/LArProperties.h"
 #include "MCCheater/BackTracker.h"
-
+#include "Utilities/AssociationUtil.h"
 
  
 //-------------------------------------------------
-cluster::KingaClusterAna::KingaClusterAna(fhicl::ParameterSet const& pset) : 
-  
-  fLineMergerModuleLabel    (pset.get< std::string >("LineMergerModuleLabel")),
-  fKingaModuleLabel         (pset.get< std::string >("KingaModuleLabel")        ),
-  fEndPoint2DModuleLabel    (pset.get< std::string >("EndPoint2DModuleLabel")),
-  fClusterCheaterModuleLabel(pset.get< std::string >("ClusterCheaterModuleLabel")),
-  fGenieGenModuleLabel      (pset.get< std::string >("GenieGenModuleLabel")),
-  fLArGeantModuleLabel      (pset.get< std::string >("LArGeantModuleLabel")),
-  frun(0),
-  fevent(0),
-  ftime_vertex_true(0),
-  fno_clusters_true(200),
-  fno_clusters_reco(200),
-  fno_clusters_linemerger(200),
-  fno_primaries(200),
-  fgenie_no_primaries(200)
-  
+cluster::KingaClusterAna::KingaClusterAna(fhicl::ParameterSet const& pset)
+  : fKingaModuleLabel         (pset.get< std::string >("KingaModuleLabel")     )
+  , fLineMergerModuleLabel    (pset.get< std::string >("LineMergerModuleLabel"))
+  , fEndPoint2DModuleLabel    (pset.get< std::string >("EndPoint2DModuleLabel"))
+  , fClusterCheaterModuleLabel(pset.get< std::string >("ClusterCheaterModuleLabel"))
+  , fGenieGenModuleLabel      (pset.get< std::string >("GenieGenModuleLabel"))
+  , fLArGeantModuleLabel      (pset.get< std::string >("LArGeantModuleLabel"))
+  , frun(0)
+  , fevent(0)
+  , ftime_vertex_true(0)
+  , fno_clusters_true(200)
+  , fno_clusters_reco(200)
+  , fno_clusters_linemerger(200)
+  , fno_primaries(200)
+  , fgenie_no_primaries(200)
 {
 
 }
@@ -279,23 +277,12 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
   //.....................................................................
   art::ServiceHandle<geo::Geometry> geom;
   art::ServiceHandle<util::LArProperties> larp;
-  sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArGeantModuleLabel);
+  art::ServiceHandle<cheat::BackTracker> bt;
+
+  sim::ParticleList _particleList = bt->ParticleList();
   
   mf::LogInfo("KingaClusterAna")<<"geom->Nchannels()= "<<geom->Nchannels();
-  // get the sim::SimChannels
-  std::vector<const sim::SimChannel*> sccol;
-  evt.getView(fLArGeantModuleLabel, sccol);
-  mf::LogInfo("KingaClusterAna")<<" ^^^^^^^^ sccol.size()= "<<sccol.size();
-  std::vector<const sim::SimChannel*> scs(geom->Nchannels(),0);
-  for(size_t i = 0; i < sccol.size(); ++i) scs[sccol[i]->Channel()] = sccol[i];
-  
-  
-  
-    
   //..................................................................
-  
-
-  
    
   ftime_vertex.clear();
   fwire_vertex.clear();
@@ -466,12 +453,16 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
   flinemergerCl_near_vertex_p0=0;
   flinemergerCl_near_vertex_p1=0;
     
+  art::FindManyP<recob::Hit> fmh(linemergerclusterListHandle, evt, fLineMergerModuleLabel);
+
   for(unsigned int ii = 0; ii < linemergerclusterListHandle->size(); ++ii){
     art::Ptr<recob::Cluster> cluster(linemergerclusterListHandle, ii);
     LineMergerClusIn.push_back(cluster);
+
+    std::vector< art::Ptr<recob::Hit> > hits = fmh.at(ii);
       
     //Fill TTree:
-    flinemerger_cluster_size[ii]=cluster->Hits().size();
+    flinemerger_cluster_size[ii] = hits.size();
       
     if(cluster->View()==geo::kU){
       flinemergerclusters_planeNo[ii]=0;
@@ -486,7 +477,7 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
 	
     }
       
-    if(cluster->Hits().size()>2 && cluster->View()==geo::kU){
+    if(hits.size()>2 && cluster->View()==geo::kU){
 	
       flinemergerCl_p0++;
 	
@@ -498,11 +489,12 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
 	
     }
     //..........
-    if(cluster->Hits().size()>2 && cluster->View()==geo::kV){
+    if(hits.size()>2 && cluster->View()==geo::kV){
       
       flinemergerCl_p1++;
 	
-      if(fabs(cluster->StartPos()[0]-fwire_vertex_true[1])<6 && fabs(cluster->StartPos()[1]-ftime_vertex[1])<90 ){
+      if(fabs(cluster->StartPos()[0]-fwire_vertex_true[1])<6 && 
+	 fabs(cluster->StartPos()[1]-ftime_vertex[1])<90 ){
 	flinemergerCl_near_vertex_p1++;
 	  
       }
@@ -513,13 +505,11 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
     // find out what particle each cluster belongs to:
       
       
-    hits=cluster->Hits();
-      
     for(size_t h = 0; h < hits.size(); ++h){
 	
       //mf::LogInfo("KingaClusterAna")<<"hits[h] channel= "<<hits[h]->Wire()->RawDigit()->Channel();
 	
-      std::vector<cheat::TrackIDE> trackides = cheat::BackTracker::HitToTrackID(*scs[hits[h]->Channel()], hits[h]);
+      std::vector<cheat::TrackIDE> trackides = bt->HitToTrackID(hits[h]);
 	
       std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
       //mf::LogInfo("KingaClusterAna")<<"trackides= "<<trackides.size();
@@ -586,6 +576,8 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
   art::Handle< std::vector<recob::Cluster>  > kingaListHandle;
   evt.getByLabel(fKingaModuleLabel,kingaListHandle);
   art::PtrVector<recob::Cluster> KingaClusIn;    
+
+  art::FindManyP<recob::Hit> fmhkc(kingaListHandle, evt, fKingaModuleLabel);
     
   fkingaCl_p0=0;
   fkingaCl_p1=0;
@@ -596,6 +588,8 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
   for(unsigned int ii = 0; ii < kingaListHandle->size(); ++ii){
     art::Ptr<recob::Cluster> cluster(kingaListHandle, ii);
     KingaClusIn.push_back(cluster);
+
+    std::vector< art::Ptr<recob::Hit> > hits = fmhkc.at(ii);
       
     if(cluster->View()==geo::kU){
       fclusters_planeNo_reco[ii]=0;
@@ -628,14 +622,11 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
     //*********************************
     // find out what particle each cluster belongs to:
       
-      
-    hits=cluster->Hits();
-      
     for(size_t h = 0; h < hits.size(); ++h){
 	
       //mf::LogInfo("KingaClusterAna")<<"hits[h] channel= "<<hits[h]->Wire()->RawDigit()->Channel();
 	
-      std::vector<cheat::TrackIDE> trackides = cheat::BackTracker::HitToTrackID(*scs[hits[h]->Channel()], hits[h]);
+      std::vector<cheat::TrackIDE> trackides = bt->HitToTrackID(hits[h]);
 	
       std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
    
@@ -707,13 +698,17 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
   evt.getByLabel(fClusterCheaterModuleLabel,cheatedclusterListHandle);
   art::PtrVector<recob::Cluster> CheatedClusIn;
     
+  art::FindManyP<recob::Hit> fmcc(cheatedclusterListHandle, evt, fClusterCheaterModuleLabel);
+
   for(unsigned int ii = 0; ii < cheatedclusterListHandle->size(); ++ii){
     mf::LogInfo("KingaClusterAna")<<"working on cluster #"<<ii;
     art::Ptr<recob::Cluster> cluster(cheatedclusterListHandle, ii);
     CheatedClusIn.push_back(cluster);
+
+    std::vector< art::Ptr<recob::Hit> > hits = fmcc.at(ii);
       
     //Fill TTree:
-    fcheated_cluster_size[ii]=cluster->Hits().size();
+    fcheated_cluster_size[ii]=hits.size();
       
     if(cluster->View()==geo::kU){
       fclusters_planeNo_true[ii]=0;
@@ -726,7 +721,7 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
       fStart_pt_t_true[ii]=cluster->StartPos()[1];
     }
  
-    if(cluster->Hits().size()>2 && cluster->View()==geo::kU){
+    if(hits.size()>2 && cluster->View()==geo::kU){
       
       fcheatedCl_p0++;
        
@@ -737,7 +732,7 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
        
        
     }
-    if(cluster->Hits().size()>2 && cluster->View()==geo::kV){
+    if(hits.size()>2 && cluster->View()==geo::kV){
        
       fcheatedCl_p1++;
        
@@ -751,14 +746,11 @@ void cluster::KingaClusterAna::analyze(const art::Event& evt)
     //*********************************
     // find out what particle each cluster belongs to:
      
-     
-    hits=cluster->Hits();
-     
     for(size_t h = 0; h < hits.size(); ++h){
        
       //mf::LogInfo("KingaClusterAna")<<"hits[h] channel= "<<hits[h]->Wire()->RawDigit()->Channel();
        
-      std::vector<cheat::TrackIDE> trackides = cheat::BackTracker::HitToTrackID(*scs[hits[h]->Channel()], hits[h]);
+      std::vector<cheat::TrackIDE> trackides = bt->HitToTrackID(hits[h]);
        
       std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
       //mf::LogInfo("KingaClusterAna")<<"trackides= "<<trackides.size();

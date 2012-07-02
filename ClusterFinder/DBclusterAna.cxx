@@ -29,7 +29,6 @@
 #include "art/Framework/Services/Optional/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
-
 #include "ClusterFinder/DBclusterAna.h"
 #include "Geometry/geo.h"
 #include "SimulationBase/simbase.h"
@@ -38,7 +37,7 @@
 #include "RecoBase/recobase.h"
 #include "RawData/RawDigit.h"
 #include "MCCheater/BackTracker.h"
-
+#include "Utilities/AssociationUtil.h"
 
  
 //--------------------------------------------------------------------
@@ -128,7 +127,8 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
       exit (1);
     }
 
-  art::ServiceHandle<geo::Geometry> geom;  
+  art::ServiceHandle<geo::Geometry>      geom;  
+  art::ServiceHandle<cheat::BackTracker> bt;
   
   art::Handle< std::vector<raw::RawDigit>  > rdListHandle;
   evt.getByLabel(fDigitModuleLabel,rdListHandle);
@@ -141,52 +141,37 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   art::Handle< std::vector<recob::Wire> > wireListHandle;
   evt.getByLabel(fCalDataModuleLabel,wireListHandle);
 
-    // get the sim::SimChannels as well
-  std::vector<const sim::SimChannel*> sccol;
-  evt.getView(fLArG4ModuleLabel, sccol);
-    
-  //now make a vector where each channel in the detector is an 
-  // entry
-  std::vector<const sim::SimChannel*> scs(geom->Nchannels(),0);
-  for(size_t i = 0; i < sccol.size(); ++i) scs[sccol[i]->Channel()] = sccol[i];
+  art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fClusterFinderModuleLabel);
 
-  
-  //  std::cout<<"****simdigit.size()= "<<simdigit.size()<<std::endl;
-  //   for(int i=0; i<simdigit.size();i++){
-  //     std::cout<<"***numofele: "<<simdigit[i]->NumberOfElectrons()<<"  ";}
-  
-  // std::cout<<"simdigit->getelecetrons: "<<*simdigit[0]->GetElectrons(0)<<"  ";
-  
   //----------------------------------------------------------------
 
   //----------------------------------------------------------------   
   
   art::PtrVector<raw::RawDigit> rawdigits;
   
-  for (unsigned int ii = 0; ii <  rdListHandle->size(); ++ii)
-    {
-      art::Ptr<raw::RawDigit> rawdigit(rdListHandle,ii);
-      rawdigits.push_back(rawdigit);
-    }
+  for (size_t ii = 0; ii <  rdListHandle->size(); ++ii){
+    art::Ptr<raw::RawDigit> rawdigit(rdListHandle,ii);
+    rawdigits.push_back(rawdigit);
+  }
 
-  //get the sim::Particle collection from the art::Event and then use the Simulation/SimListUtils object to create a sim::ParticleList from the art::Event.  
-  sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
-
+  //get the sim::Particle collection from the art::Event and then use the 
+  //Simulation/SimListUtils object to create a sim::ParticleList from the art::Event.  
+  bt->SetEveIdCalculator(new sim::EmEveIdCalculator);
+  
+  sim::ParticleList _particleList = bt->ParticleList();
   
   std::vector<int> mc_trackids;
   
   //check_particleList(_particleList[0]);
   //std::cout<<"checking trackID: ";
-  for ( sim::ParticleList::const_iterator i = _particleList.begin();
-	i != _particleList.end(); ++i )
-    {
-      // const sim::Particle* particle = (*i).second;
-      //int pdgcode=particle->PdgCode();
-      //  std::cout<<"pdg= "<<pdgcode<<" ";
-      int trackID = (*i).first;
-      //std::cout<<"trackID= "<<trackID<<std::endl;
-      mc_trackids.push_back(trackID);      
-    }
+  for ( sim::ParticleList::const_iterator i = _particleList.begin(); i != _particleList.end(); ++i ){
+    // const sim::Particle* particle = (*i).second;
+    //int pdgcode=particle->PdgCode();
+    //  std::cout<<"pdg= "<<pdgcode<<" ";
+    int trackID = (*i).first;
+    //std::cout<<"trackID= "<<trackID<<std::endl;
+    mc_trackids.push_back(trackID);      
+  }
   
   // std::cout<<std::endl;
   // std::cout<<" Track ID list from MC: "<<std::endl;
@@ -200,11 +185,10 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   
   //---------------------------------------------------------------- 
   art::PtrVector<simb::MCTruth> mclist;
-  for (unsigned int ii = 0; ii <  mctruthListHandle->size(); ++ii)
-    {
-      art::Ptr<simb::MCTruth> mctparticle(mctruthListHandle,ii);
-      mclist.push_back(mctparticle);
-    }
+  for (size_t ii = 0; ii <  mctruthListHandle->size(); ++ii){
+    art::Ptr<simb::MCTruth> mctparticle(mctruthListHandle,ii);
+    mclist.push_back(mctparticle);
+  }
 
   // art::PtrVector<recob::Hit> hits;
   //   for (unsigned int ii = 0; ii <  hitListHandle->size(); ++ii)
@@ -221,24 +205,22 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   //---------------------------------------------------
 
   art::PtrVector<recob::Cluster> clusters;
-  for (unsigned int ii = 0; ii <  clusterListHandle->size(); ++ii)
-    {
-      art::Ptr<recob::Cluster> clusterHolder(clusterListHandle,ii);
-      clusters.push_back(clusterHolder);
-    }
+  for (unsigned int ii = 0; ii <  clusterListHandle->size(); ++ii){
+    art::Ptr<recob::Cluster> clusterHolder(clusterListHandle,ii);
+    clusters.push_back(clusterHolder);
+  }
 
   std::cout<<"in Efficiency, clusters.size()= "<<clusters.size()<<std::endl;
   
   //---------------------------------------------------------------
   art::PtrVector<recob::Wire> wirelist;
   
-  for (unsigned int ii = 0; ii <  wireListHandle->size(); ++ii)
-    {
-      art::Ptr<recob::Wire> wireHolder(wireListHandle,ii);
-      
-      wirelist.push_back(wireHolder);
-      
-    }
+  for (size_t ii = 0; ii <  wireListHandle->size(); ++ii){
+    art::Ptr<recob::Wire> wireHolder(wireListHandle,ii);
+    
+    wirelist.push_back(wireHolder);
+    
+  }
     
   
   
@@ -252,8 +234,6 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   // How many clusters it takes to contain a particle???
   // take each TrackID and count in how many clusters it appears
   //.........................................................................
-  
-  _particleList.AdoptEveIdCalculator(new sim::EmEveIdCalculator);
   
   double no_of_particles_in_cluster=0;
   double sum_vec_trackid=0;
@@ -294,26 +274,22 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
     for(unsigned int plane=0;plane<geom->Nplanes();++plane){
       geo::View_t view = geom->Plane(plane).View();
       //art::PtrVector<recob::Cluster>::const_iterator clusterIter = clusters.begin();      
-      for(unsigned int j=0; j<clusters.size();++j) 
-	{
+      for(size_t j = 0; j < clusters.size(); ++j){
 	 
 	  //	std::cout<<"I AM ON PLANE #"<<plane<<std::endl;
 	  if( clusters[j]->View() == view){
 	  
 	    //std::cout<<"working on cluster # "<<j<<std::endl;
-	    art::PtrVector<recob::Hit> _hits; 
+	    std::vector< art::Ptr<recob::Hit> > _hits = fmh.at(j);
 	    art::Ptr<recob::Hit> _hits_ptr; //
-	    
-	   
-	    _hits=clusters[j]->Hits();
 	    
 	    //delete
 	    //std::cout<<"_hits.size()= "<<_hits.size()<<std::endl;
-	    for(unsigned int p =0; p<_hits.size();++p){
+	    for(size_t p = 0; p<_hits.size(); ++p){
 	      _hits_ptr=_hits[p];
 	      hits_vec.push_back(_hits_ptr);
 	      //std::cout<<"hit # "<<p<<" charge= "<<_hits[p]->Charge()<<std::endl;
-	      total_Q_cluster_hits+=_hits[p]->Charge();
+	      total_Q_cluster_hits += _hits[p]->Charge();
 	    }	
 	    
 
@@ -328,98 +304,94 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
 		
 	      hit_energy=_hits[itr-hits_vec.begin()]->Charge();
 		
-	      std::vector<cheat::TrackIDE> trackides = cheat::BackTracker::HitToTrackID(*(scs[(*itr)->Channel()]), *itr);
-		
-		
-	      std::vector<cheat::TrackIDE> eveides   = cheat::BackTracker::HitToEveID(_particleList, *(scs[(*itr)->Channel()]), *itr);
+	      std::vector<cheat::TrackIDE> trackides = bt->HitToTrackID(*itr);
+	 		
+	      std::vector<cheat::TrackIDE> eveides   = bt->HitToEveID(*itr);
 		
 	      std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
 		
-			   
-
-		  
-	      while( idesitr != trackides.end() )
-		{
+	      while( idesitr != trackides.end() ){
 		    
-		  //int eveID = _particleList.EveId( (*idesitr).trackID );
-		    
-		  // std::cout<<"track id: " << (*idesitr).trackID<<" contributed " << (*idesitr).energyFrac<< " to the current hit and has eveID: " << eveID<<std::endl;
-		     
-		  // double energy=voxelData.Energy(i);
-		  // std::cout<<"check4-3"<<std::endl;
-		  // std::cout<<"energy= "<<energy<<std::endl;
-		  // fEnergy->Fill(energy);
-		      
-		  vec_trackid.push_back((*idesitr).trackID);
-		      
-		  //for( unsigned int i=0; i<_particleList.size(); ++i )
-		  // {
-		  // 			  // const sim::ParticleList* particleList = _particleList[i];
-		  // 			  //particleList = _particleList[i];
-		  // 			  
-		  // 			  
-		  // 			  // 	double energyTrackID=voxelData.Energy[trackID];
-		  // 			  //  	std::cout<<"ENERGY OF PRIMARY TRACKID= "<<energyTrackID<<std::endl;
-		  const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
-		  // 			  
-    		  int pdg = particle->PdgCode();
-		  // std::cout<<"pdg= "<<pdg<<std::endl;
-		  // 			  
-		  // 			  double energy2=voxelData.Energy(i);
-		  // 			  // std::cout<<"energy2= "<<energy2<<std::endl;
-		  // 			  
-		  // 			  // std::cout<<"part eng= "<<particle->E()<<std::endl;
-		  if(pdg==13 || pdg==-13){_hit_13++;
-		    _en_13+=hit_energy*((*idesitr).energyFrac);
-		    // std::cout<<"_en_13= "<<_en_13<<std::endl;
-		  }
-		  // 			  if(pdg==11){_hit_11++;
-		  // 			    _en_11+=energy2;
-		  // 			    // std::cout<<"in clus: _en_11="<<_en_11<<std::endl;
-		  // 			  }
-		  // 			  if(pdg==-11){_hit_m_11++;
-		  // 			    _en_m11+=energy2;}
-		  // 			  if(pdg==111){_hit_111++;
-		  // 			    _en_111+=energy2;}
-		  // 			  if(pdg==22){_hit_22++;
-		  // 			    _en_22+=energy2;}
-		  // 			  if(pdg==211){_hit_211++;
-		  // 			    _en_211+=energy2;}
-		  // 			  if(pdg==-211){_hit_m211++;
-		  // 			    _en_m211+=energy2;}
-		  // 			  if(pdg==2212){_hit_2212++;
-		  // 			    _en_2212+=energy2;}
-		  // 			  if(pdg==2112){_hit_2112++;
-		  // 			    _en_2112+=energy2;}
-		  // 		    
-		  // 			  //std::cout<<"True PDG= "<<pdg<<std::endl;
-		  // 			  vec_pdg.push_back(pdg);
-		  // 			  // std::cout<<"_en_11= "<<_en_11<<std::endl;
-		  // 			  //while particle is not a primary particle and going up in a chain of trackIDs is not going to change its pdg code, go up the chain.
-		  // 			  while ( (! _particleList.IsPrimary( trackID )) && (((_particleList.at(particle->Mother()))->PdgCode())==pdg))
-		  // 			    {
-		  // 			      trackID = particle->Mother();
-		  // 			      //std::cout<<"((NOt a PRIMARY ORIGINALLY!!! ) trackID= "<<trackID<<std::endl;
-		  // 			      particle = _particleList.at( trackID );
-		  // 			      pdg= particle->PdgCode();
-		  // 			      //	 std::cout<<"(NOt a PRIMARY ORIGINALLY!!! ) The PDG from HIT is: "<<pdg<<std::endl;
-		  // 			  
-		  // 			    }
-		  // 		    
-		  // 			  // std::cout<<"The PDG from HIT is: "<<pdg<<std::endl;
-		  // 			  //std::cout<<"after mother trackid= "<<trackID<<std::endl;
-		  // 			  vec_trackid_mother.push_back(trackID);
-		  // 			  if(energy>(7e-5)){ vec_trackid_mother_en.push_back(trackID);}
-		  // 			}
+		//int eveID = _particleList.EveId( (*idesitr).trackID );
 		
+		// std::cout<<"track id: " << (*idesitr).trackID<<" contributed " << (*idesitr).energyFrac<< " to the current hit and has eveID: " << eveID<<std::endl;
 		
+		// double energy=voxelData.Energy(i);
+		// std::cout<<"check4-3"<<std::endl;
+		// std::cout<<"energy= "<<energy<<std::endl;
+		// fEnergy->Fill(energy);
 		
-		  idesitr++;
+		vec_trackid.push_back((*idesitr).trackID);
 		
+		//for( unsigned int i=0; i<_particleList.size(); ++i )
+		// {
+		// 			  // const sim::ParticleList* particleList = _particleList[i];
+		// 			  //particleList = _particleList[i];
+		// 			  
+		// 			  
+		// 			  // 	double energyTrackID=voxelData.Energy[trackID];
+		// 			  //  	std::cout<<"ENERGY OF PRIMARY TRACKID= "<<energyTrackID<<std::endl;
+		const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+		// 			  
+		int pdg = particle->PdgCode();
+		// std::cout<<"pdg= "<<pdg<<std::endl;
+		// 			  
+		// 			  double energy2=voxelData.Energy(i);
+		// 			  // std::cout<<"energy2= "<<energy2<<std::endl;
+		// 			  
+		// 			  // std::cout<<"part eng= "<<particle->E()<<std::endl;
+		if(pdg==13 || pdg==-13){
+		  _hit_13++;
+		  _en_13+=hit_energy*((*idesitr).energyFrac);
+		  // std::cout<<"_en_13= "<<_en_13<<std::endl;
 		}
+		// 			  if(pdg==11){_hit_11++;
+		// 			    _en_11+=energy2;
+		// 			    // std::cout<<"in clus: _en_11="<<_en_11<<std::endl;
+		// 			  }
+		// 			  if(pdg==-11){_hit_m_11++;
+		// 			    _en_m11+=energy2;}
+		// 			  if(pdg==111){_hit_111++;
+		// 			    _en_111+=energy2;}
+		// 			  if(pdg==22){_hit_22++;
+		// 			    _en_22+=energy2;}
+		// 			  if(pdg==211){_hit_211++;
+		// 			    _en_211+=energy2;}
+		// 			  if(pdg==-211){_hit_m211++;
+		// 			    _en_m211+=energy2;}
+		// 			  if(pdg==2212){_hit_2212++;
+		// 			    _en_2212+=energy2;}
+		// 			  if(pdg==2112){_hit_2112++;
+		// 			    _en_2112+=energy2;}
+		// 		    
+		// 			  //std::cout<<"True PDG= "<<pdg<<std::endl;
+		// 			  vec_pdg.push_back(pdg);
+		// 			  // std::cout<<"_en_11= "<<_en_11<<std::endl;
+		// 			  //while particle is not a primary particle and going up in a chain of trackIDs is not going to change its pdg code, go up the chain.
+		// 			  while ( (! _particleList.IsPrimary( trackID )) && (((_particleList.at(particle->Mother()))->PdgCode())==pdg))
+		// 			    {
+		// 			      trackID = particle->Mother();
+		// 			      //std::cout<<"((NOt a PRIMARY ORIGINALLY!!! ) trackID= "<<trackID<<std::endl;
+		// 			      particle = _particleList.at( trackID );
+		// 			      pdg= particle->PdgCode();
+		// 			      //	 std::cout<<"(NOt a PRIMARY ORIGINALLY!!! ) The PDG from HIT is: "<<pdg<<std::endl;
+		// 			  
+		// 			    }
+		// 		    
+		// 			  // std::cout<<"The PDG from HIT is: "<<pdg<<std::endl;
+		// 			  //std::cout<<"after mother trackid= "<<trackID<<std::endl;
+		// 			  vec_trackid_mother.push_back(trackID);
+		// 			  if(energy>(7e-5)){ vec_trackid_mother_en.push_back(trackID);}
+		// 			}
 		
+		
+		
+		idesitr++;
+		
+	      }
+	      
 	      ////////////////////////////////////////////
-	    
+	      
 	      // int numberPrimaries = particleList->NumberOfPrimaries();
 	      // 	     std::cout<<"no of PRIMARIES: "<<numberPrimaries<<std::endl;
 	      // 	    for ( int i = 0; i != numberPrimaries; ++i )
@@ -749,8 +721,8 @@ void cluster::DBclusterAna::analyze(const art::Event& evt)
   std::vector< art::Ptr<recob::Hit> >::iterator itr = hits.begin();
   while(itr != hits.end()) {
    
-    std::vector<cheat::TrackIDE> trackides = cheat::BackTracker::HitToTrackID(*(scs[(*itr)->Channel()]), *itr);
-    std::vector<cheat::TrackIDE> eveides   = cheat::BackTracker::HitToEveID(_particleList, *(scs[(*itr)->Channel()]), *itr);
+    std::vector<cheat::TrackIDE> trackides = bt->HitToTrackID(*itr);
+    std::vector<cheat::TrackIDE> eveides   = bt->HitToEveID(*itr);
 		
     std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
 		

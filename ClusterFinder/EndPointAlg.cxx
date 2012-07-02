@@ -143,7 +143,9 @@ size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>            
   //extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   
   //Point to a collection of vertices to output.
-  art::PtrVector<recob::Hit> hit;
+  std::vector< art::Ptr<recob::Hit> > hit;
+
+  art::FindManyP<recob::Hit> fmh(clusIn, evt, label);
    
   int flag   = 0;
   int windex = 0;//the wire index to make sure the end point finder does not fall off the edge of the hit map
@@ -185,7 +187,7 @@ size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>            
 	size_t cinctr = 0;
 	while(clusterIter!= clusIn.end() ) {
 	  if((*clusterIter)->View() == view){
-	    hit = util::FindManyP<recob::Hit>(clusIn, evt, label, cinctr);
+	    hit = fmh.at(cinctr);
 	  }//end if cluster is in the correct view
 	  clusterIter++;  
 	  ++cinctr;
@@ -327,8 +329,7 @@ size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>            
 					     Cornerness[wire][timebin],
 					     vtxcol.size(),
 					     view,
-					     totalQ,
-					     vHits);
+					     totalQ);
 		  vtxcol.push_back(endpoint);
 		  vtxHitsOut.push_back(vHits);
 		  vHits.clear();

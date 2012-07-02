@@ -45,7 +45,6 @@ extern "C" {
 #include "Simulation/sim.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
-//#include "Utilities/LArProperties.h"
 
 //-------------------------------------------------
 cluster::KingaCluster::KingaCluster(fhicl::ParameterSet const& pset)
@@ -191,13 +190,15 @@ void cluster::KingaCluster::produce(art::Event& evt)
 
   art::PtrVector<recob::Cluster> clusIn;
  
-  art::PtrVector<recob::Hit> hits;
+  std::vector< art::Ptr<recob::Hit> > hits;
   art::PtrVector<recob::Hit> clusterHits;
   
   for(size_t ii = 0; ii < clusterListHandle->size(); ++ii){
     art::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
     clusIn.push_back(cluster);
   }
+
+  art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fDBScanModuleLabel);
   mf::LogInfo("KingaCluster")<<"No of DBSCAN clusters= "<<clusIn.size();
 
   unsigned int p(0),w(0),t(0),cs(0), channel(0);
@@ -212,7 +213,8 @@ void cluster::KingaCluster::produce(art::Event& evt)
 	go_ahead_at_reassign=0;
 	for(size_t j = 0; j < clusIn.size(); ++j) {
 	  
-	  hits=clusIn[j]->Hits();
+	  hits = fmh.at(j);
+
 	  for(size_t i = 0; i < hits.size(); ++i){
 	    channel=hits[i]->Wire()->RawDigit()->Channel();
 	    fGeom->ChannelToWire(channel, cs, t, p, w);
@@ -338,8 +340,7 @@ void cluster::KingaCluster::produce(art::Event& evt)
 	    
 	    clusterHits.sort(cluster::SortByWire());
 	    
-	    recob::Cluster cluster(clusterHits, 
-				   sw*1., 0.,
+	    recob::Cluster cluster(sw*1., 0.,
 				   clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
 				   ew*1., 0.,
 				   clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
@@ -1767,8 +1768,8 @@ void cluster::KingaCluster::FindClusters(unsigned int cstat,
   TempMaxStartPoint.clear();
   TempMaxEndPoint.clear();
 
-  // second conditional in outside loop ensures that we don't go off the end 
-  // when --pk tries to take it less than 0
+  // outside loop is an int instead of size_t to prevent --pk 
+  // trying to take it less than 0
   /// \todo should really use iterators for these loops
   for(int pk = FinalPeaks.size()-1; pk >= 0; --pk){
     for(size_t pk2 = 0; pk2 < FinalPeaks.size(); ++pk2){

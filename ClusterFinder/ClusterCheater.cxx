@@ -56,12 +56,8 @@ namespace cluster{
   //--------------------------------------------------------------------
   void ClusterCheater::produce(art::Event& evt)
   {
-    art::ServiceHandle<geo::Geometry> geo;
-    // grab the sim::ParticleList
-    sim::ParticleList plist = sim::SimListUtils::GetParticleList(evt, fG4ModuleLabel);
-
-    // print the list of particles first
-    mf::LogInfo("ClusterCheater") << plist;
+    art::ServiceHandle<geo::Geometry>      geo;
+    art::ServiceHandle<cheat::BackTracker> bt;
 
     // grab the hits that have been reconstructed
     art::Handle< std::vector<recob::Hit> > hitcol;
@@ -72,22 +68,13 @@ namespace cluster{
     std::vector< art::Ptr<recob::Hit> > hits;
     art::fill_ptr_vector(hits, hitcol);
     
-    // get the sim::SimChannels as well
-    std::vector<const sim::SimChannel*> sccol;
-    evt.getView(fG4ModuleLabel, sccol);
-    
-    // now make a vector where each channel in the detector is an 
-    // entry
-    std::vector<const sim::SimChannel*> scs(geo->Nchannels(),0);
-    for(size_t i = 0; i < sccol.size(); ++i) scs[sccol[i]->Channel()] = sccol[i];
-
     // loop over the hits and figure out which particle contributed to each one
     std::vector< art::Ptr<recob::Hit> >::iterator itr = hits.begin();
 
     // adopt an EmEveIdCalculator to find the eve ID.  
     // will return a primary particle if it doesn't find 
     // a responsible particle for an EM process
-    plist.AdoptEveIdCalculator(new sim::EmEveIdCalculator);
+    bt->SetEveIdCalculator(new sim::EmEveIdCalculator);
 
     // make a map of vectors of art::Ptrs keyed by eveID values
     std::map< int, std::vector< art::Ptr<recob::Hit> > > eveHitMap;
@@ -96,7 +83,7 @@ namespace cluster{
     // loop over all hits and fill in the map
     while( itr != hits.end() ){
 
-      std::vector<cheat::TrackIDE> eveides = cheat::BackTracker::HitToEveID(plist, *(scs[(*itr)->Channel()]), *itr);
+      std::vector<cheat::TrackIDE> eveides = bt->HitToEveID(*itr);
 
       // loop over all eveides for this hit
       for(size_t e = 0; e < eveides.size(); ++e){
@@ -191,8 +178,7 @@ namespace cluster{
 	    // add a cluster to the collection.  Make the ID be the eve particle
 	    // trackID*1000 + plane number*100 + tpc that the current hits are from
 	    
-	    clustercol->push_back(recob::Cluster(ptrvs, 
-						 startWire, 0.,
+	    clustercol->push_back(recob::Cluster(startWire, 0.,
 						 startTime, 0.,
 						 endWire,   0.,
 						 endTime,   0.,

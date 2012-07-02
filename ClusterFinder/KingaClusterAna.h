@@ -51,16 +51,16 @@ namespace cluster {
   std::vector<int> fclusters_planeNo_reco_;
   std::vector<double> fStart_pt_w_reco_;
   std::vector<double> fStart_pt_t_reco_;
-    int fkingaCl_near_vertex_p0;
-    int fkingaCl_near_vertex_p1;
-    int fcheatedCl_p0;
-    int fcheatedCl_p1;
-    int flinemergerCl_p0;
-    int flinemergerCl_p1;
-    int fcheatedCl_near_vertex_p0;
-    int fcheatedCl_near_vertex_p1;
-    int flinemergerCl_near_vertex_p0;
-    int flinemergerCl_near_vertex_p1;
+  int fkingaCl_near_vertex_p0;
+  int fkingaCl_near_vertex_p1;
+  int fcheatedCl_p0;
+  int fcheatedCl_p1;
+  int flinemergerCl_p0;
+  int flinemergerCl_p1;
+  int fcheatedCl_near_vertex_p0;
+  int fcheatedCl_near_vertex_p1;
+  int flinemergerCl_near_vertex_p0;
+  int flinemergerCl_near_vertex_p1;
     
   TH1F *fdiff_time_vtx_p0;
   TH1F *fdiff_wire_vtx_p0;
@@ -77,31 +77,31 @@ namespace cluster {
   TH1F *fNoProtonTracks_p1_kingaCl;
     
    //TTree:
-     TTree* fTree;
-     int frun;
-    int fevent;
-    double ftime_vertex_true;
-    int fno_clusters_true;
-    int fno_clusters_reco;
-    int fno_clusters_linemerger;
-   
-    double *fwire_vertex_true;
-    double *fTTree_wire_vertex_reco;
-    double *fTTree_time_vertex_reco;
-    int *fclusters_planeNo_true;
-    int *fclusters_planeNo_reco;
-    double *fStart_pt_w_true;
-    double *fStart_pt_t_true;
-    double *fStart_pt_w_reco;
-    double *fStart_pt_t_reco;
-    double *fStart_pt_t_linemerger;
-    double *fStart_pt_w_linemerger;
-     int *flinemergerclusters_planeNo;
-    int *fcheated_cluster_size;
-    int *flinemerger_cluster_size;
-    
-    int fno_primaries;
-    int *fprimaries_pdg;
+  TTree* fTree;
+  int frun;
+  int fevent;
+  double ftime_vertex_true;
+  int fno_clusters_true;
+  int fno_clusters_reco;
+  int fno_clusters_linemerger;
+  
+  double *fwire_vertex_true;
+  double *fTTree_wire_vertex_reco;
+  double *fTTree_time_vertex_reco;
+  int *fclusters_planeNo_true;
+  int *fclusters_planeNo_reco;
+  double *fStart_pt_w_true;
+  double *fStart_pt_t_true;
+  double *fStart_pt_w_reco;
+  double *fStart_pt_t_reco;
+  double *fStart_pt_t_linemerger;
+  double *fStart_pt_w_linemerger;
+  int *flinemergerclusters_planeNo;
+  int *fcheated_cluster_size;
+  int *flinemerger_cluster_size;
+  
+  int fno_primaries;
+  int *fprimaries_pdg;
   double *fEng;
   double *fPx;
   double *fPy;
@@ -116,19 +116,19 @@ namespace cluster {
   int ccnc_truth;
   int mode_truth;
 
-//from genie:
- int fgenie_no_primaries;
+  //from genie:
+  int fgenie_no_primaries;
   double *fgenie_primaries_pdg;
   double *fgenie_Eng;
-   double *fgenie_Px;
-    double *fgenie_Py;
-     double *fgenie_Pz;
-      double *fgenie_P;
-       int *fgenie_status_code;
-       double *fgenie_mass;
-       int *fgenie_trackID;
-       int *fgenie_ND;
-       int *fgenie_mother;
+  double *fgenie_Px;
+  double *fgenie_Py;
+  double *fgenie_Pz;
+  double *fgenie_P;
+  int *fgenie_status_code;
+  double *fgenie_mass;
+  int *fgenie_trackID;
+  int *fgenie_ND;
+  int *fgenie_mother;
 
 
 

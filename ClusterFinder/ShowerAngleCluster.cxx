@@ -45,13 +45,13 @@ extern "C" {
 // LArSoft includes
 #include "Simulation/sim.h"
 #include "ClusterFinder/ShowerAngleCluster.h"
-//#include "ClusterFinder/EndPointService.h"
 #include "Geometry/geo.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
 
 #include "SimulationBase/simbase.h"
 #include "RawData/RawDigit.h"
+#include "Utilities/AssociationUtil.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/DetectorProperties.h"
 #include "SummaryData/summary.h"
@@ -223,8 +223,12 @@ void cluster::ShowerAngleCluster::beginJob()
 // ***************** //
 void cluster::ShowerAngleCluster::produce(art::Event& evt)
 { 
- art::ServiceHandle<util::LArProperties> larp;
-   std::cout << " In SHowANgle produce "<<  larp->Efield() << " " << larp->Efield(1) << " " << larp->Efield(2) << std::endl;
+  art::ServiceHandle<util::LArProperties> larp;
+  mf::LogInfo("ShowerAngleCluster") << " In SHowANgle produce "
+				    <<  larp->Efield() << " " 
+				    << larp->Efield(1) << " " 
+				    << larp->Efield(2);
+
   /* Get Geometry */
   art::ServiceHandle<geo::Geometry> geo;
   fNPlanes = geo->Nplanes();
@@ -277,9 +281,9 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
  	 
   fWire_vertex.resize(fNPlanes);
   fTime_vertex.resize(fNPlanes);
-   mcwirevertex.resize(fNPlanes);  // wire coordinate of vertex for each plane 
-   mctimevertex.resize(fNPlanes);  // time coordinate of vertex for each plane
-
+  mcwirevertex.resize(fNPlanes);  // wire coordinate of vertex for each plane 
+  mctimevertex.resize(fNPlanes);  // time coordinate of vertex for each plane
+  
   fWire_last.resize(fNPlanes);
   fTime_last.resize(fNPlanes);
   fChannel_vertex.resize(fNPlanes);
@@ -327,60 +331,44 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fClusterModuleLabel,clusterListHandle);
 
+  art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fClusterModuleLabel);
+
   std::vector< art::PtrVector < recob::Hit> > hitlist_all;
   hitlist_all.resize(fNPlanes);
  
   art::PtrVector<recob::Cluster> clusters;
 
-
- // this is temporary until the cluster coming in will represent the actual shower. Currently it sums up showers which are big enough. Will cause problems with multiple showers. 
+  // this is temporary until the cluster coming in will represent the actual shower.
+  // Currently it sums up showers which are big enough. 
+  // Will cause problems with multiple showers. 
   
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii){
 
-      art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
-      art::PtrVector<recob::Hit> hitlist = cl->Hits();
-      unsigned int p(0),w(0), t(0),cs(0); //c=channel, p=plane, w=wire
-      GetPlaneAndTPC(hitlist[0],p,cs,t,w);
-      
-      if(hitlist.size()>15){
-	clusters.push_back(cl);
-      }
-      
-      
-  } // end temporary loop determining big enough clusters.
-
+    art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
+    std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(ii);
+    unsigned int p(0),w(0), t(0),cs(0); //c=channel, p=plane, w=wire
+    GetPlaneAndTPC(hitlist[0],p,cs,t,w);
     
-    //create an overall hitlist from the Clusters in consideration
-  for(unsigned int ii = 0; ii < clusters.size(); ++ii){
-      art::PtrVector<recob::Hit> hitlist;
-      hitlist = clusters[ii]->Hits();
-      
-      unsigned int p(0),w(0), t(0), cs(0); //c=channel, p=plane, w=wire
-
-      GetPlaneAndTPC(hitlist[0],p,cs,t,w);
-      //wire_end[p]=w;	
+    if(hitlist.size()>15){
+      clusters.push_back(cl);
 
       //loop over cluster hits
       for(art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin(); a != hitlist.end();  a++){ 
 	GetPlaneAndTPC(*a,p,cs,t,w);
 	hitlist_all[p].push_back(*a);
       }
-    } // End loop on clusters.
-
-
-   // GetVertex(evt) from MC - should be cut out?;
+    }
+  } // end temporary loop determining big enough clusters.  
+  
+  // GetVertex(evt) from MC - should be cut out?;
   /// \todo Never have checks on MC in reconstruction algorithms
-  if(fUseMCVertex)
-      GetVertexN(evt);
-
-
+  if(fUseMCVertex) GetVertexN(evt);
+  
   for(unsigned int i = 0; i < fNPlanes; ++i)
     AngularDistribution(hitlist_all[i]); // 2D Direction of the shower in consecutive planes
 
   Find2DStartPoints(hitlist_all);
   
-
-
   for(unsigned int i=0;i<fNPlanes;i++){
     hitlist_all[i].sort(cluster::SortByWire());
     fh_omega_evt[i]->Reset();
@@ -408,8 +396,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
     for(size_t ih = 0; ih < hitlist_all[iplane].size(); ++ih)
       totalQ += hitlist_all[iplane][ih]->Charge();
 
-    recob::Cluster temp(hitlist_all[iplane],
-			fWire_vertex[iplane], fWire_vertex[iplane]*0.05,
+    recob::Cluster temp(fWire_vertex[iplane], fWire_vertex[iplane]*0.05,
 			fTime_vertex[iplane], fTime_vertex[iplane]*0.05, 
 			fWire_last[iplane], fWire_last[iplane]*0.05,
 			fTime_last[iplane], fTime_last[iplane]*0.05, 
@@ -439,11 +426,14 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
 
 
 // ******************************* //
-
-int cluster::ShowerAngleCluster::GetPlaneAndTPC(art::Ptr<recob::Hit> a,unsigned int &p,unsigned int &cs,unsigned int &t,unsigned int &w)
+int cluster::ShowerAngleCluster::GetPlaneAndTPC(art::Ptr<recob::Hit> a,
+						unsigned int &p,
+						unsigned int &cs,
+						unsigned int &t,
+						unsigned int &w)
 {
   art::ServiceHandle<geo::Geometry> geo;
-  unsigned int c=a->Wire()->RawDigit()->Channel(); 
+  unsigned int c = a->Wire()->RawDigit()->Channel(); 
   geo->ChannelToWire(c,cs,t,p,w);
     
   return 0;
@@ -451,19 +441,7 @@ int cluster::ShowerAngleCluster::GetPlaneAndTPC(art::Ptr<recob::Hit> a,unsigned 
 
 
 
-
-int cluster::ShowerAngleCluster::GetPlaneAndTPC(art::Ptr<recob::Cluster> c,unsigned int &p,unsigned int &cs,unsigned int &t,unsigned int &w)
-{
-  GetPlaneAndTPC(c->Hits()[0],p,cs,t,w);
- return 0;
-}
-    
-
-
 //*********************************//
-
-
-
 // Angular distribution of the energy of the shower - Collection view
 void cluster::ShowerAngleCluster::AngularDistribution(art::PtrVector < recob::Hit>  hitlist){
  

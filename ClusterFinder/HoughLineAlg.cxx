@@ -211,6 +211,8 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>          
 
   std::vector<int> skip;  
 
+  art::FindManyP<recob::Hit> fmh(clusIn, evt, label);
+
   art::ServiceHandle<geo::Geometry> geom;
   art::ServiceHandle<util::LArProperties> larprop;
   art::ServiceHandle<util::DetectorProperties> detprop;
@@ -218,7 +220,7 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>          
   HoughTransform c;
 
   extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
-  art::PtrVector<recob::Hit> hit;
+  std::vector< art::Ptr<recob::Hit> > hit;
 
   for(size_t cs = 0; cs < geom->Ncryostats(); ++cs){
     for(size_t t = 0; t < geom->Cryostat(cs).NTPC(); ++t){
@@ -236,13 +238,13 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>          
 	while(clusterIter != clusIn.end()) {
 	  hit.clear();
 	  if(fPerCluster){
-	    if((*clusterIter)->View() == view) hit = util::FindManyP<recob::Hit>(clusIn, evt, label, cinctr);
+	    if((*clusterIter)->View() == view) hit = fmh.at(cinctr);
 	  }
 	  else{   
 	    while(clusterIter != clusIn.end()){
 	      if( (*clusterIter)->View() == view ){
 
-		hit = util::FindManyP<recob::Hit>(clusIn, evt, label, cinctr);
+		hit = fmh.at(cinctr);
 	      }// end if cluster is in correct view
 	      clusterIter++;
 	      ++cinctr;
@@ -422,8 +424,7 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>          
 	      ec = (*(clusterHits.end()-1))->Wire()->RawDigit()->Channel(); 
 	      geom->ChannelToWire(ec, cstat, tpc, plane, ew);
 	      
-	      recob::Cluster cluster(clusterHits,
-				     sw, 0.,
+	      recob::Cluster cluster(sw, 0.,
 				     (*clusterHits.begin())->PeakTime(), 0.,
 				     ew, 0., 
 				     (clusterHits[clusterHits.size()-1])->PeakTime(), 0.,
