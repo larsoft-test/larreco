@@ -36,6 +36,7 @@ extern "C" {
 #include "Geometry/WireGeo.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/DetectorProperties.h"
+#include "Utilities/AssociationUtil.h"
 
 namespace filter {
 
@@ -92,6 +93,9 @@ namespace filter {
     geo::View_t uView = geom->Plane(uPlane).View();
     art::Handle< std::vector< recob::Cluster > > clustHandle;
     evt.getByLabel(fClusterModuleLabel,clustHandle);
+
+    art::FindManyP<recob::Hit> fmh(clustHandle, evt, fClusterModuleLabel);
+
     art::PtrVector<recob::Cluster> clusters;
     for(unsigned int i = 0; i < clustHandle->size(); ++i) {
       art::Ptr<recob::Cluster> prod(clustHandle,i);
@@ -107,10 +111,11 @@ namespace filter {
     std::vector<double> pointTemp(6);
     std::pair<int,int> pairTemp;
     double ionSum(0.0);
-    for(unsigned int cluster = 0; cluster < clusters.size(); cluster++) {
+    for(size_t cluster = 0; cluster < clusters.size(); ++cluster) {
       ionSum=0.0;
-      for(unsigned int hit = 0; hit < clusters[cluster]->Hits().size(); hit++) {
-	ionSum+=clusters[cluster]->Hits()[hit]->Charge(true);
+      std::vector< art::Ptr<recob::Hit> > hits = fmh.at(cluster);
+      for(unsigned int hit = 0; hit < hits.size(); hit++) {
+	ionSum+=hits[hit]->Charge(true);
       }
       if(clusters[cluster]->View() == uView) indIon+=ionSum;
       else if(clusters[cluster]->View() == vView) colIon+=ionSum;
@@ -124,11 +129,17 @@ namespace filter {
       art::Ptr<recob::Cluster> prod(lines,i);
       lineVec.push_back(prod);
     }
-    for(unsigned int cl = 0;cl < clusters.size(); cl++) {
-      if (clusters[cl]->Hits().size()>0 && clusters[cl]->View()==uView)
+
+    for(size_t cl = 0;cl < clusters.size(); cl++) {
+      std::vector< art::Ptr<recob::Hit> > hits = fmh.at(cl);
+      if (hits.size()>0 && clusters[cl]->View()==uView)
 	inductionSegments.push_back(clusters[cl]);
-      else if(clusters[cl]->Hits().size()>0 && clusters[cl]->View() == vView) collectionSegments.push_back(clusters[cl]);
+      else if(hits.size()>0 && clusters[cl]->View() == vView) collectionSegments.push_back(clusters[cl]);
     } 
+    
+    art::FindManyP<recob::Hit> fmhi(inductionSegments,  evt, fClusterModuleLabel);
+    art::FindManyP<recob::Hit> fmhc(collectionSegments, evt, fClusterModuleLabel);
+
     if(inductionSegments.size() == 0 || collectionSegments.size() == 0) { 
       mf::LogInfo("MuonFilter") << "At least one plane with no track";
     }
@@ -139,6 +150,7 @@ namespace filter {
       std::vector<double> w1End(3);
       std::vector<double> w2Start(3);
       std::vector<double> w2End(3);
+
       for(unsigned int i = 0; i < inductionSegments.size(); i++) { 
 	if(indMap[i]) continue;
 	for(unsigned int j = 0; j < collectionSegments.size(); j++) {
@@ -146,6 +158,10 @@ namespace filter {
 
 	  art::Ptr<recob::Cluster>  indSeg = inductionSegments[i];
 	  art::Ptr<recob::Cluster>  colSeg = collectionSegments[j];
+
+	  std::vector< art::Ptr<recob::Hit> > indHits = fmhi.at(i);
+	  
+	  std::vector< art::Ptr<recob::Hit> > colHits = fmhc.at(j);
           
 	  double trk1Start = indSeg->StartPos()[1]+fDelay;
 	  double trk1End = indSeg->EndPos()[1]+fDelay;
@@ -219,14 +235,16 @@ namespace filter {
 	    if((x1edge||y1edge||z1edge) && (x2edge||y2edge||z2edge)) {
 	      tGoing.push_back(pointTemp);
 	      mf::LogInfo("MuonFilter") << "outside   Removed induction ion: ";          
-	      for(unsigned int h = 0; h < indSeg->Hits().size(); h++){
-		mf::LogInfo("MuonFilter")<<indSeg->Hits()[h]->Charge(true) << " ";
-		indIon -= indSeg->Hits()[h]->Charge(true);
+
+	      for(size_t h = 0; h < indHits.size(); h++){
+		mf::LogInfo("MuonFilter") << indHits[h]->Charge(true) << " ";
+		indIon -= indHits[h]->Charge(true);
 	      }
 	      mf::LogInfo("MuonFilter")  <<"Removed collection ion: ";
-	      for(size_t h = 0; h < colSeg->Hits().size(); h++){ 
-		    mf::LogInfo("MuonFilter") <<colSeg->Hits()[h]->Charge(true) << " ";
-		    colIon -= colSeg->Hits()[h]->Charge(true);
+
+	      for(size_t h = 0; h < colHits.size(); h++){ 
+		    mf::LogInfo("MuonFilter") << colHits[h]->Charge(true) << " ";
+		    colIon -= colHits[h]->Charge(true);
 	      }
 	      mf::LogInfo("MuonFilter")<<"Ionization outside track I/C: " << indIon << " "<<colIon;	 
 	    }
@@ -235,14 +253,14 @@ namespace filter {
 		    (z2-z1)>1.2){
 	      tGoing.push_back(pointTemp);
 	      mf::LogInfo("MuonFilter") << "stopping   Removed induction ion: ";          
-	      for(size_t h = 0; h < indSeg->Hits().size(); h++){
-		mf::LogInfo("MuonFilter")<<indSeg->Hits()[h]->Charge(true) << " ";
-		indIon -= indSeg->Hits()[h]->Charge(true);
+	      for(size_t h = 0; h < indHits.size(); h++){
+		mf::LogInfo("MuonFilter") <<indHits[h]->Charge(true) << " ";
+		indIon -= indHits[h]->Charge(true);
 	      }
 	      mf::LogInfo("MuonFilter")  <<"Removed collection ion: ";
-	      for(size_t h = 0; h < colSeg->Hits().size(); h++){ 
-		mf::LogInfo("MuonFilter") <<colSeg->Hits()[h]->Charge(true)<< " ";
-		colIon -= colSeg->Hits()[h]->Charge(true);
+	      for(size_t h = 0; h < colHits.size(); h++){ 
+		mf::LogInfo("MuonFilter") << colHits[h]->Charge(true)<< " ";
+		colIon -= colHits[h]->Charge(true);
 	      }
 	      mf::LogInfo("MuonFilter") <<"Ionization outside track I/C: " << indIon << " "<<colIon;
 	    }
@@ -272,10 +290,10 @@ namespace filter {
 	  mf::LogInfo("MuonFilter") <<"distance "<< distance;
 	  if(distance < 6){ 
 	    mf::LogInfo("MuonFilter") <<"Removing delta ion "<<rLook.size()<<" "<<rLook[j].first<<" "<<matchNum;
-	    art::PtrVector<recob::Hit > temp = inductionSegments[rLook[j].first]->Hits();
+	    std::vector< art::Ptr<recob::Hit> > temp = fmhi.at(rLook[j].first);
 	    for(unsigned int h = 0; h < temp.size();h++)	 
 	      indIon -= temp[h]->Charge(true);
-	    temp = collectionSegments[rLook[j].second]->Hits();
+	    temp = fmhc.at(rLook[j].second);
 	    for(unsigned int h = 0; h < temp.size();h++)	   
 	      colIon -= temp[h]->Charge(true);   
 	  }
