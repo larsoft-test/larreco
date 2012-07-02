@@ -64,6 +64,8 @@ namespace event{
     art::Handle< std::vector<sim::Particle> > pcol;
     evt.getByLabel(fG4ModuleLabel, pcol);
 
+    art::FindOneP<simb::MCTruth> fo(pcol, evt, fG4ModuleLabel);
+
     // make a map of the track id for each sim::Particle to its entry in the 
     // collection of sim::Particles
     std::map<int, int> trackIDToPColEntry;
@@ -72,6 +74,8 @@ namespace event{
     // grab the vertices that have been reconstructed
     art::Handle< std::vector<recob::Vertex> > vertexcol;
     evt.getByLabel(fCheatedVertexLabel, vertexcol);
+
+    art::FindManyP<recob::Hit> fm(vertexcol, evt, fCheatedVertexLabel);
 
     // make a vector of them - we aren't writing anything out to a file
     // so no need for a art::PtrVector here
@@ -82,14 +86,14 @@ namespace event{
     std::vector< art::Ptr<recob::Vertex> >::iterator vertexitr = vertices.begin();
 
     // make a map of primary product id's to collections of vertices
-    std::map<art::ProductID, std::vector< art::Ptr<recob::Vertex> > > vertexMap;
-    std::map<art::ProductID, std::vector< art::Ptr<recob::Vertex> > >::iterator vertexMapItr = vertexMap.begin();
+    std::map<art::Ptr<simb::MCTruth>, std::vector< art::Ptr<recob::Vertex> > > vertexMap;
+    std::map<art::Ptr<simb::MCTruth>, std::vector< art::Ptr<recob::Vertex> > >::iterator vertexMapItr = vertexMap.begin();
 
     // loop over all prongs
     while( vertexitr != vertices.end() ){
 
       size_t pcolEntry = trackIDToPColEntry.find((*vertexitr)->ID())->second;
-      art::ProductID primary = util::FindOneP<simb::MCTruth>(pcol, evt, fG4ModuleLabel, pcolEntry).id();
+      const art::Ptr<simb::MCTruth> primary = fo.at(pcolEntry);
       
       vertexMap[primary].push_back(*vertexitr);
 
@@ -103,25 +107,20 @@ namespace event{
     // loop over the map and associate all vertex objects with an event
     for(vertexMapItr = vertexMap.begin(); vertexMapItr != vertexMap.end(); vertexMapItr++){
 
-      // Vertex objects require PtrVectors of showers and tracks as well
-      // as a vertex position for their constructor
       art::PtrVector<recob::Vertex> ptrvs;
 
       std::vector< art::Ptr<recob::Vertex> > verts( (*vertexMapItr).second );
 
-      for(size_t v = 0; v < verts.size(); ++v)
-	ptrvs.push_back(verts[v]);
-	
       // add an event to the collection.  
-      eventcol->push_back(recob::Event(ptrvs, (*vertexMapItr).first.productIndex()));
+      eventcol->push_back(recob::Event(eventcol->size()-1));
 
       // associate the event with its vertices
-      util::CreateAssn(*this, evt, *(eventcol.get()), ptrvs, *(evassn.get()));
+      util::CreateAssn(*this, evt, *eventcol, verts, *evassn);
       
       // get the hits associated with each vertex and associate those with the event
       for(size_t p = 0; p < ptrvs.size(); ++p){
-	art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(ptrvs, evt, fCheatedVertexLabel, p);
-	util::CreateAssn(*this, evt, *(eventcol.get()), hits, *(ehassn.get()));
+	std::vector< art::Ptr<recob::Hit> > hits = fm.at(p);
+	util::CreateAssn(*this, evt, *eventcol, hits, *ehassn);
       }
 
 

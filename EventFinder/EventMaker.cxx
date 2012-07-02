@@ -10,6 +10,7 @@
 #include "art/Framework/Principal/Event.h"
 #include "EventFinder/EventMaker.h"
 #include "RecoBase/recobase.h"
+#include "Utilities/AssociationUtil.h"
 
 //--------------------------------------------------------
 event::EventMaker::EventMaker(fhicl::ParameterSet const &p)
@@ -17,6 +18,8 @@ event::EventMaker::EventMaker(fhicl::ParameterSet const &p)
   this->reconfigure(p);
   
   produces< std::vector<recob::Event> >();
+  produces< art::Assns<recob::Event, recob::Vertex> >();
+  produces< art::Assns<recob::Event, recob::Hit> >();
 }
 
 //--------------------------------------------------------
@@ -31,6 +34,8 @@ void event::EventMaker::produce(art::Event &e)
 
   // make the auto_ptr of the vector for the recob::Events
   std::auto_ptr< std::vector<recob::Event> > eventcol(new std::vector<recob::Event>);
+  std::auto_ptr< art::Assns<recob::Event, recob::Vertex> > evassn(new art::Assns<recob::Event, recob::Vertex>);
+  std::auto_ptr< art::Assns<recob::Event, recob::Hit> >    ehassn(new art::Assns<recob::Event, recob::Hit>);
 
   // first get the recob::Vertex objects out of the event
   art::Handle< std::vector<recob::Vertex> > vtxHandle;
@@ -44,9 +49,21 @@ void event::EventMaker::produce(art::Event &e)
   if(vtxs.size() == 1){
     art::PtrVector<recob::Vertex> vtxvec;
     vtxvec.push_back(*(vtxs.begin()));
-    recob::Event evt(vtxvec, 0);
+    recob::Event evt(0);
     eventcol->push_back(evt);
+
+    // associate the event with its vertex
+    util::CreateAssn(*this, e, *eventcol, vtxvec, *evassn);
+    
+    // get the hits associated with the vertex and associate those with the event
+    art::FindManyP<recob::Hit> fmh(vtxvec, e, fVertexModuleLabel);
+    std::vector< art::Ptr<recob::Hit> > hits = fmh.at(0);
+    util::CreateAssn(*this, e, *eventcol, hits, *ehassn);
+
     e.put(eventcol);
+    e.put(ehassn);
+    e.put(evassn);
+
     return;
   }
 
@@ -90,9 +107,19 @@ void event::EventMaker::produce(art::Event &e)
     }// end inner loop
     
     // make an event from these vertex objects and add them to the collection
-    recob::Event evt(vtxVec, ++evtctr);
+    recob::Event evt(++evtctr);
     eventcol->push_back(evt);
 
+    // associate the event with its vertices
+    util::CreateAssn(*this, e, *eventcol, vtxVec, *evassn);
+    
+    // get the hits associated with each vertex and associate those with the event
+    art::FindManyP<recob::Hit> fmhv(vtxVec, e, fVertexModuleLabel);
+    for(size_t p = 0; p < vtxVec.size(); ++p){
+      std::vector< art::Ptr<recob::Hit> > hits = fmhv.at(p);
+      util::CreateAssn(*this, e, *eventcol, hits, *ehassn);
+    }
+    
     // move the initial iterator forward
     itr++;
 
@@ -100,6 +127,8 @@ void event::EventMaker::produce(art::Event &e)
 
   // put the collection of events in the art::Event
   e.put(eventcol);
+  e.put(ehassn);
+  e.put(evassn);
 
   return;
 
