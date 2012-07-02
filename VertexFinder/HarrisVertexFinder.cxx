@@ -109,14 +109,14 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
   extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
-  evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
+  evt.getByLabel(fDBScanModuleLabel, clusterListHandle);
 
   //Point to a collection of vertices to output and the associations with the hits
   std::auto_ptr<std::vector<recob::EndPoint2D> > vtxcol(new std::vector<recob::EndPoint2D>);
   std::auto_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assn(new art::Assns<recob::EndPoint2D, recob::Hit>);
 
   filter::ChannelFilter chanFilt;  
-  art::PtrVector<recob::Hit> cHits;
+  std::vector< art::Ptr<recob::Hit> > cHits;
   art::PtrVector<recob::Hit> hit;
    
   art::PtrVector<recob::Cluster> clusIn;
@@ -124,6 +124,8 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
     art::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
     clusIn.push_back(cluster);
   }
+
+  art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fDBScanModuleLabel);
 
   int flag   = 0;
   int windex = 0; //the wire index to make sure the vertex finder does not fall off the edge of the hit map
@@ -160,16 +162,14 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
     for(size_t t = 0; t < geom->Cryostat(cs).NTPC(); ++t){
       for(unsigned int p = 0; p < geom->Cryostat(cs).TPC(t).Nplanes(); ++p) {
 	art::PtrVector<recob::Hit> vHits;
-	art::PtrVector<recob::Cluster>::const_iterator clusterIter = clusIn.begin();
 	geo::View_t view = geom->Plane(p,t,cs).View();
 	hit.clear();
 	cHits.clear();      
-	while(clusterIter != clusIn.end() ) {
-	  cHits = (*clusterIter)->Hits(p);
+	for(size_t ci = 0; ci < clusIn.size(); ++ci) {
+	  cHits = fmh.at(ci);
 	  if(cHits.size() > 0)
 	    for(unsigned int i = 0; i < cHits.size(); ++i) hit.push_back(cHits[i]);
 	  
-	  clusterIter++;  
 	} 
 	if(hit.size() == 0) continue;
 	
@@ -293,8 +293,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 					   Cornerness[wire][timebin],
 					   vtxcol->size(),
 					   view,
-					   totalQ,
-					   vHits);
+					   totalQ);
 		  vtxcol->push_back(vertex);
 
 		  util::CreateAssn(*this, evt, *(vtxcol.get()), vHits, *(assn.get()));
@@ -318,8 +317,6 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 	}// end loop over vertices
 	Cornerness2.clear();
 	hit.clear();
-	
-	if(clusterIter!=clusIn.end()) clusterIter++;
 	
 	if(p == (unsigned int)fSaveVertexMap){ 
 	  unsigned char *outPix = new unsigned char [fTimeBins*numberwires];

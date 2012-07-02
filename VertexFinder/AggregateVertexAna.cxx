@@ -28,16 +28,18 @@ extern "C" {
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
 #include "VertexFinder/AggregateVertexAna.h"
+#include "Utilities/AssociationUtil.h"
+
 #include "TH1.h"
 
 namespace vertex{
 
   //-----------------------------------------------
-  AggregateVertexAna::AggregateVertexAna(fhicl::ParameterSet const& pset) : 
-    fHitModuleLabel(pset.get< std::string >("FFFTHitModuleLabel")),
-    fTrack3DModuleLabel(pset.get< std::string >("Track3DModuleLabel")),
-    fEndPointModuleLabel(pset.get< std::string >("EndPointModuleLabel")),
-    fVertexModuleLabel(pset.get< std::string >("VertexModuleLabel"))
+  AggregateVertexAna::AggregateVertexAna(fhicl::ParameterSet const& pset)
+    : fHitModuleLabel     (pset.get< std::string >("FFFTHitModuleLabel"))
+    , fTrack3DModuleLabel (pset.get< std::string >("Track3DModuleLabel"))
+    , fEndPointModuleLabel(pset.get< std::string >("EndPointModuleLabel"))
+    , fVertexModuleLabel  (pset.get< std::string >("VertexModuleLabel"))
   {
 
 
@@ -94,65 +96,44 @@ namespace vertex{
 
     HnVtxes->Fill(feplist.size(),1);  
 
-    art::PtrVector<recob::Vertex>::const_iterator avIter = fVertexlist.begin();
-    art::PtrVector<recob::Vertex>::const_iterator avIter2 = fVertexlist.begin();
-    avIter2++;
-    while (avIter != fVertexlist.end())  {            
+    art::FindManyP<recob::Track> fmt(vertexListHandle, evt, fVertexModuleLabel);
+    art::FindManyP<recob::Hit>   fmh(vertexListHandle, evt, fVertexModuleLabel);
 
-      art::PtrVector<recob::Track> tvlist = (*avIter)->Tracks();
+    for(size_t v1 = 0; v1 < fVertexlist.size(); ++v1)  {            
+      
+      std::vector< art::Ptr<recob::Track> > tvlist = fmt.at(v1);
+      
       HnTrksVtx->Fill(tvlist.size(),1);
       
       if(tvlist.size() < 1) continue;
-
-      art::PtrVector<recob::Hit> bv;
-      art::PtrVector<recob::Hit> hitvlist;
+      
+      std::vector< art::Ptr<recob::Hit> > hitvlist = fmh.at(v1);
       
       // Hits no longer has XYZ() method. To get 3d hit position info I'm going to have to 
       // loop on all the SpacePoints and loop on all Hits from there till it matches
-      // one from this vertex. This affects the two Fill() efforts below. EC, 19-Nov-2010.
-      
-      art::ServiceHandle<geo::Geometry> geom;
-      for(unsigned int t = 0;t < geom->NTPC(); ++t){
-	for(unsigned int ii = 0; ii < geom->TPC(t).Nplanes(); ++ii){
-	  geo::View_t view = geom->Plane(ii).View();
-	  bv = tvlist[0]->Clusters(view)[0]->Hits();
-	  for (unsigned int jj = 0; jj<bv.size(); jj++) {hitvlist.push_back(bv[jj]);}
-	}
-      }
-      
+      // one from this vertex. This affects the two Fill() efforts below. EC, 19-Nov-2010.      
       art::PtrVector<recob::Hit>::const_iterator hitv = hitvlist.begin();
-      //      HVtxRZ->Fill(((TVector3 )(hitv->XYZ())).Perp(),hitv->XYZ()[3],1);
       
-      while (avIter2 != fVertexlist.end() && avIter2>avIter)  {            
-
-	art::PtrVector<recob::Hit> bv2;
-	art::PtrVector<recob::Hit> hitvlist2;
-	for(unsigned int t = 0; t < geom->NTPC(); ++t){
-	  for(unsigned int ii = 0; ii < geom->TPC(t).Nplanes(); ++ii){
-	    geo::View_t view = geom->Plane(ii).View();
-	    bv2 = tvlist[0]->Clusters(view)[0]->Hits();
-	    for (size_t jj = 0; jj<bv2.size(); jj++) {hitvlist2.push_back(bv2[jj]);}
-	  }
-	}
-	art::PtrVector<recob::Hit>::const_iterator hitv2 = hitvlist2.begin();
+      for(size_t v2 = v1+1; v2 < fVertexlist.size(); ++v2){            
+	
+	std::vector< art::Ptr<recob::Hit> > hitvlist2 = fmh.at(v2);
+	
+	std::vector< art::Ptr<recob::Hit> >::const_iterator hitv2 = hitvlist2.begin();
 	
 	// These two whiles should be each precisely one iteration long.
-	while(hitv != hitvlist.end()){
-	  while(hitv2 != hitvlist2.end()){
-	    //	  TVector3 dist = (TVector3 )(hitv2->XYZ()) - (TVector3 )(hitv->XYZ());
+	while( hitv != hitvlist.end() ){
+	  while( hitv2 != hitvlist2.end() ){
 	    TVector3 dist;
-	    std::cout << "AggregateVertexAna: dist is " << dist.Mag() << "." << std::endl;
+	    mf::LogInfo("AggregateVertexAna") << "AggregateVertexAna: dist is " << dist.Mag() << ".";
 	    HVtxSep->Fill(dist.Mag(),1);
 	    hitv2++;
 	  }
 	  hitv++;
-	}
-	avIter2++;
-      }
-      
-      avIter++;
-    }
-    
-  }
+	}// end loop over hitv entries
+	
+      }// end loop over v2
+    }// end loop over v1
 
+    return;
+  }// end analyze
 }// end namespace

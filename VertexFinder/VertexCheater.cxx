@@ -221,22 +221,29 @@ namespace vertex{
 			plist[eveID]->Vz() };
 
       // add a vector to the collection.  
-      vertexcol->push_back(recob::Vertex(ptrvtrk, ptrvshw, xyz, eveID));
+      vertexcol->push_back(recob::Vertex(xyz, eveID));
 
       // associate the vertex with its showers and tracks
-      util::CreateAssn(*this, evt, *(vertexcol.get()), ptrvshw, *(vsassn.get()));
-      util::CreateAssn(*this, evt, *(vertexcol.get()), ptrvtrk, *(vtassn.get()));
-      
-      // get the hits associated with each track and associate those with the vertex
-      for(size_t p = 0; p < ptrvtrk.size(); ++p){
-	art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(ptrvtrk, evt, fCheatedTrackLabel, p);
-	util::CreateAssn(*this, evt, *(vertexcol.get()), hits, *(vhassn.get()));
-      }
 
-      // get the hits associated with each shower and associate those with the vertex
-      for(size_t p = 0; p < ptrvshw.size(); ++p){
-	art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(ptrvshw, evt, fCheatedShowerLabel, p);
-	util::CreateAssn(*this, evt, *(vertexcol.get()), hits, *(vhassn.get()));
+      if( ptrvtrk.size() > 0 ){
+	util::CreateAssn(*this, evt, *vertexcol, ptrvtrk, *vtassn);
+
+	// get the hits associated with each track and associate those with the vertex
+	art::FindManyP<recob::Hit> fmh(ptrvtrk, evt, fCheatedTrackLabel);
+	for(size_t p = 0; p < ptrvtrk.size(); ++p){
+	  std::vector< art::Ptr<recob::Hit> > hits = fmh.at(p);
+	  util::CreateAssn(*this, evt, *vertexcol, hits, *vhassn);
+	}
+      }
+      
+      if( ptrvshw.size() > 0 ){
+	util::CreateAssn(*this, evt, *vertexcol, ptrvshw, *vsassn);
+	// get the hits associated with each shower and associate those with the vertex
+	art::FindManyP<recob::Hit> fmh(ptrvshw, evt, fCheatedShowerLabel);
+	for(size_t p = 0; p < ptrvshw.size(); ++p){
+	  std::vector< art::Ptr<recob::Hit> > hits = fmh.at(p);
+	  util::CreateAssn(*this, evt, *vertexcol, hits, *vhassn);
+	}
       }
 
       mf::LogInfo("VertexCheater") << "adding vertex: \n" 

@@ -12,6 +12,7 @@
 
 // LArSoft includes
 #include "RecoBase/recobase.h"
+#include "Utilities/AssociationUtil.h"
 
 #include <vector>
 #include <string>
@@ -30,7 +31,10 @@ namespace vertex {
     void produce(art::Event& evt); 
     void beginJob(); 
 
-    std::auto_ptr< std::vector<recob::Vertex> >  MatchV2T();
+    std::auto_ptr< std::vector<recob::Vertex> >  MatchV2T(art::Event& evt,
+							  art::Assns<recob::Vertex, recob::Track>& vtassn,
+							  art::Assns<recob::Vertex, recob::Shower>& vsassn,
+							  art::Assns<recob::Vertex, recob::Hit>& vhassn);
 
   private:
 

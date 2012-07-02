@@ -57,6 +57,7 @@ namespace vertex{
     produces< std::vector<recob::Vertex> >();
     produces< std::vector<recob::EndPoint2D> >();
     produces< art::Assns<recob::EndPoint2D, recob::Hit> >();
+    produces< art::Assns<recob::Vertex, recob::Hit> >();
     produces< art::Assns<recob::Vertex, recob::Shower> >();
     produces< art::Assns<recob::Vertex, recob::Track> >();
   }
@@ -118,12 +119,15 @@ namespace vertex{
       clusters.push_back(clusterHolder);
     }
 
+    art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fClusterModuleLabel);
+
     //Point to a collection of vertices to output.
     std::auto_ptr<std::vector<recob::Vertex> >                 vcol(new std::vector<recob::Vertex>);          //3D vertex
-    std::auto_ptr<std::vector<recob::EndPoint2D> >            epcol(new std::vector<recob::EndPoint2D>);  //2D vertex
+    std::auto_ptr<std::vector<recob::EndPoint2D> >             epcol(new std::vector<recob::EndPoint2D>);  //2D vertex
     std::auto_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assnep(new art::Assns<recob::EndPoint2D, recob::Hit>);
     std::auto_ptr< art::Assns<recob::Vertex, recob::Shower> >  assnsh(new art::Assns<recob::Vertex, recob::Shower>);
     std::auto_ptr< art::Assns<recob::Vertex, recob::Track> >   assntr(new art::Assns<recob::Vertex, recob::Track>);
+    std::auto_ptr< art::Assns<recob::Vertex, recob::Hit> >     assnh(new art::Assns<recob::Vertex, recob::Hit>);
 
     for(size_t cstat = 0; cstat < geom->Ncryostats(); ++cstat){
       for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
@@ -160,7 +164,7 @@ namespace vertex{
 	  std::vector<double> wires;
 	  std::vector<double> times;
 	  
-	  art::PtrVector<recob::Hit> hit = util::FindManyP<recob::Hit>(clusters, evt, fClusterModuleLabel, iclu);
+	  std::vector< art::Ptr<recob::Hit> > hit = fmh.at(iclu);
 
 	  int n = 0;
 	  for(size_t i = 0; i < hit.size(); ++i){
@@ -224,7 +228,7 @@ namespace vertex{
 		double we = clusters[Cls[i][j]]->EndPos()[0];
 		double tt = clusters[Cls[i][j]]->StartPos()[1];
 		double dtdw = dtdwstart[Cls[i][j]];
-		int nhits = clusters[Cls[i][j]]->Hits().size();
+		int nhits = fmh.at(Cls[i][j]).size();
 		ww0 = (tt-tt1+dtdw1*wb1-dtdw*wb)/(dtdw1-dtdw);
 		if (fabs(wb1-ww0) > fabs(we1-ww0)) rev = true;//reverse cluster dir
 		if ((!rev && ww0 > wb1+15)||(rev && ww0 < we1-15)) deltaraylike = true;
@@ -314,7 +318,7 @@ namespace vertex{
 	    // make an empty art::PtrVector of hits
 	    /// \todo should really get the actual vector of hits corresponding to end point
 	    /// \todo for now will get all hits from the current cluster
-	    art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(clusters, evt, fClusterModuleLabel, Cls[i][0]);
+	    std::vector< art::Ptr<recob::Hit> > hits = fmh.at(Cls[i][0]);
 	    double totalQ = 0.;
 	    for(size_t h = 0; h < hits.size(); ++h) totalQ += hits[h]->Charge();
 
@@ -323,11 +327,10 @@ namespace vertex{
 				     1,
 				     epcol->size(),
 				     clusters[Cls[i][0]]->View(),
-				     totalQ,
-				     hits);
+				     totalQ);
 	    epcol->push_back(vertex);
 
-	    util::CreateAssn(*this, evt, *(epcol.get()), hits, *(assnep.get()));
+	    util::CreateAssn(*this, evt, *epcol, hits, *assnep);
 
 	  }
 	  else{
@@ -379,14 +382,28 @@ namespace vertex{
 	art::PtrVector<recob::Track> vTracks_vec;
 	art::PtrVector<recob::Shower> vShowers_vec;
 	
-	recob::Vertex the3Dvertex(vTracks_vec, vShowers_vec, vtxcoord);
+	recob::Vertex the3Dvertex(vtxcoord, vcol->size());
 	vcol->push_back(the3Dvertex);
 
-	if(vShowers_vec.size() > 0)
-	  util::CreateAssn(*this, evt, *(vcol.get()), vShowers_vec, *(assnsh.get()));
-	if(vTracks_vec.size() > 0)
-	  util::CreateAssn(*this, evt, *(vcol.get()), vTracks_vec, *(assntr.get()));
-	
+	if(vShowers_vec.size() > 0){
+	  util::CreateAssn(*this, evt, *vcol, vShowers_vec, *assnsh);
+	  // get the hits associated with each track and associate those with the vertex
+	  ///\todo uncomment following lines when the shower vector actually contains showers from the art::Event
+// 	  for(size_t p = 0; p < vShowers_vec.size(); ++p){
+// 	    std::vector< art::Ptr<recob::Hit> > hits = fms.at(p);
+// 	    util::CreateAssn(*this, evt, *vcol, hits, *assnh);
+// 	  }
+	}
+
+	if(vTracks_vec.size() > 0){
+	  util::CreateAssn(*this, evt, *vcol, vTracks_vec, *assntr);
+	  // get the hits associated with each track and associate those with the vertex
+	  ///\todo uncomment following lines when the track vector actually contains tracks from the art::Event
+// 	  for(size_t p = 0; p < vTracks_vec.size(); ++p){
+// 	    std::vector< art::Ptr<recob::Hit> > hits = fmt.at(p);
+// 	    util::CreateAssn(*this, evt, *vcol, hits, *assnh);
+// 	  }
+	}
 
       }//end loop over tpc
     }// end loop over cryostats
@@ -401,6 +418,7 @@ namespace vertex{
     evt.put(assnep);
     evt.put(assntr);
     evt.put(assnsh);
+    evt.put(assnh);
 
   } // end of produce
 } // end of vertex namespace

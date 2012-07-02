@@ -87,13 +87,13 @@ void vertex::VertexMatch::produce(art::Event& evt)
   
   art::ServiceHandle<geo::Geometry> geom;
   //hits associated with a vertex
-  art::PtrVector<recob::Hit> vHits;
+  std::vector< art::Ptr<recob::Hit> > vHits;
   art::PtrVector<recob::Hit> vertexhit;
   
   std::vector<double> weakvertexstrength; //strength of weak vertices
   std::vector<double> strongvertexstrength; //strength of strong vertices
   //hits associated with a hough line
-  art::PtrVector<recob::Hit> hHits;
+  std::vector< art::Ptr<recob::Hit> > hHits;
   art::PtrVector<recob::Hit> houghhit;
 
   //art::PtrVector< std::pair<recob::Hit,double> > matchedvertex;//vertices associated with a hough line
@@ -105,17 +105,21 @@ void vertex::VertexMatch::produce(art::Event& evt)
   
   art::PtrVector<recob::EndPoint2D> vertIn;
 
-  for(unsigned int ii = 0; ii < vertexListHandle->size(); ++ii)
-    {
-      art::Ptr<recob::EndPoint2D> vertex(vertexListHandle, ii);
-      vertIn.push_back(vertex);
-    }
+  for(size_t ii = 0; ii < vertexListHandle->size(); ++ii){
+    art::Ptr<recob::EndPoint2D> vertex(vertexListHandle, ii);
+    vertIn.push_back(vertex);
+  }
+
+  art::FindManyP<recob::Hit> fmh(vertexListHandle, evt, fVertexModuleLabel);
+
   art::PtrVector<recob::Cluster> houghIn;
-  for(unsigned int ii = 0; ii < houghListHandle->size(); ++ii)
-    {
-      art::Ptr<recob::Cluster> cluster(houghListHandle, ii);
-      houghIn.push_back(cluster);
-    }
+  for(size_t ii = 0; ii < houghListHandle->size(); ++ii){
+    art::Ptr<recob::Cluster> cluster(houghListHandle, ii);
+    houghIn.push_back(cluster);
+  }
+
+  art::FindManyP<recob::Hit> fmhh(houghListHandle, evt, fHoughModuleLabel);
+
   unsigned int channel,plane,wire,tpc,cstat;
   double slope,intercept,distance;
   double starttime, endtime;
@@ -128,24 +132,23 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	//create the vector of vertex hits 
 	art::PtrVector<recob::EndPoint2D>::const_iterator vertexIter = vertIn.begin();
 	art::PtrVector<recob::Cluster>::const_iterator houghIter = houghIn.begin();
-	while(vertexIter!= vertIn.end() ){
+	for(size_t v = 0; v < vertIn.size(); ++v){
 	  // vHits = (*vertexIter)->Hits(p,-1);
 	  //      if(vHits.size() > 0){
 	  //  	 vertexhit.insert(vertexhit.end(),vHits.begin(),vHits.end());
 	  //  	 weakvertexstrength.push_back((*vertexIter)->Strength());
 	  //  	 }
-	  vHits = (*vertexIter)->Hits(p);
+	  vHits = fmh.at(v);
 	  if(vHits.size() > 0){
 	    art::PtrVector<recob::Hit>::const_iterator vertexhitIter = vHits.begin();
-	    while (vertexhitIter!=vHits.end()){
+	    while (vertexhitIter != vHits.end()){
 	      vertexhit.push_back((*vertexhitIter));
 	      weakvertexstrength.push_back((*vertexIter)->Strength());
 	      vertexhitIter++;
 	    }       
 	  }
-	  vertexIter++;
 	  
-	}// end while over vertexIter 
+	}// end loop over vertIn 
       
       
 	if(vHits.size() == 0)
@@ -154,13 +157,14 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	vHits.clear();
 	//loop over vector of hough lines and find the vertex hits that are associated with the hough line(s)
 	houghIter = houghIn.begin();  
+	size_t ctr = 0;
 	while(houghIter!= houghIn.end()){ 
 	  houghhit.clear();
 	  hHits.clear();
 	  plane=-1; 
 	  distance=-1.;
 	  //create vector of hits associated with hough line
-	  hHits = (*houghIter)->Hits(p);
+	  hHits = fmhh.at(ctr);
 	  
 	  if(hHits.size() > 0){
 	    
@@ -205,11 +209,15 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	
 	  if(vertexhit.size() == 0 || houghhit.size() == 0){
 	    houghIter++;
+	    ++ctr;
 	    continue;
 	  }
 	  
 	  if(vertexIter!=vertIn.end()) vertexIter++;
-	  if(houghIter!=houghIn.end()) houghIter++;    
+	  if(houghIter!=houghIn.end()){
+	    houghIter++;
+	    ++ctr;
+	  }
 	}
       
 	//sort matchedvertex vector to make it easy to find duplicate entries (strong vertices)
@@ -271,8 +279,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
 				   strongvertexstrength[i],   
 				   id,
 				   geom->Cryostat(cs).TPC(tpc).Plane(plane).View(),
-				   totalQ,
-				   strongvertex);      
+				   totalQ);      
 	  
 	  mvertexcol->push_back(vertex);
 
