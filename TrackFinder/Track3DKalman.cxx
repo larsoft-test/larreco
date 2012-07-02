@@ -350,7 +350,7 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 	  for (unsigned int point=0;point<spacepoints.size();++point)
 	    {
 	      
-	      TVector3 spt3 = (TVector3)(spacepoints[point]->XYZ());
+	      TVector3 spt3(spacepoints[point]->XYZ());
 	      if (point%20) // Jump out of loop except on every 20th pt.
 		{
 		  //continue;

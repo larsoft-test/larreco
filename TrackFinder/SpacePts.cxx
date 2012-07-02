@@ -538,14 +538,14 @@ void trkf::SpacePts::produce(art::Event& evt)
                */
                    
 	       double err[6] = {util::kBogusD};
-               recob::SpacePoint mysp(hitcoord, err, spacepoints.size());//3d point at end of track
+               recob::SpacePoint mysp(hitcoord, err, util::kBogusD, spcol->size() + spacepoints.size());//3d point at end of track
 	       // Don't add a spacepoint right on top of the last one.
 	       const double eps(0.1); // 1mm
 	       if (spacepoints.size()>=1){
 		 TVector3 magNew(mysp.XYZ()[0],mysp.XYZ()[1],mysp.XYZ()[2]);
-		 TVector3 magLast(spacepoints[spacepoints.size()-1].XYZ()[0],
-				  spacepoints[spacepoints.size()-1].XYZ()[1],
-				  spacepoints[spacepoints.size()-1].XYZ()[2]);
+		 TVector3 magLast(spacepoints.back().XYZ()[0],
+				  spacepoints.back().XYZ()[1],
+				  spacepoints.back().XYZ()[2]);
 		 if (!(magNew.Mag()>=magLast.Mag()+eps || 
 		       magNew.Mag()<=magLast.Mag()-eps) )
 		   continue;
@@ -572,8 +572,7 @@ void trkf::SpacePts::produce(art::Event& evt)
 
 	      std::vector< std::vector<double> > dQdx;
 	      std::vector<double> mom(2, util::kBogusD);
-	      recob::Track  the3DTrack(xyz, dircos, dQdx, mom, tcol->size());
-	      tcol->push_back(the3DTrack);
+	      tcol->push_back(recob::Track(xyz, dircos, dQdx, mom, tcol->size()));
 
 	      // make associations between the track and space points
 	      util::CreateAssn(*this, evt, *tcol, *spcol, *tspassn, spStart, spEnd);
