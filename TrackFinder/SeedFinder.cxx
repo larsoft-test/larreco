@@ -24,6 +24,7 @@
 
 namespace trkf {
 
+  //----------------------------------------------------------------------------
   SeedFinder::SeedFinder(const fhicl::ParameterSet& pset) :
     fSptalg(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
     fFilter(true),
@@ -40,10 +41,12 @@ namespace trkf {
       << "  Merge = " << fMerge;
   }
 
+  //----------------------------------------------------------------------------
   SeedFinder::~SeedFinder()
   {
   }
 
+  //----------------------------------------------------------------------------
   void SeedFinder::reconfigure(fhicl::ParameterSet const& pset)
   {
     fhicl::ParameterSet seedConfig = pset.get<fhicl::ParameterSet>("SeedConfig");
@@ -65,9 +68,11 @@ namespace trkf {
     fMaxViewRMS            = seedConfig.get<std::vector<double> >("MaxViewRMS"); 
   }
 
+  //----------------------------------------------------------------------------
   void SeedFinder::beginJob()
   {}
 
+  //----------------------------------------------------------------------------
   void SeedFinder::produce(art::Event& evt)
   {
     
@@ -110,6 +115,7 @@ namespace trkf {
 
   }
   
+  //----------------------------------------------------------------------------
   std::vector<recob::Seed*> SeedFinder::ProduceSeeds(std::vector<std::vector<recob::SpacePoint> > SpacePointVectors)
   {
     std::vector<recob::Seed*> ReturnVector;
@@ -146,7 +152,9 @@ namespace trkf {
   // Given a cluster label, produce spacepoints from the event
   //  very possible this spacepoint supply will be swapped out later.
 
-  std::vector<std::vector<recob::SpacePoint> > SeedFinder::GetSpacePointsFromClusters(std::string ClusterModuleLabel, art::Event& evt)
+  //----------------------------------------------------------------------------
+  std::vector<std::vector<recob::SpacePoint> > SeedFinder::GetSpacePointsFromClusters(std::string ClusterModuleLabel, 
+										      art::Event& evt)
   {
     // Get Services.
 
@@ -164,7 +172,8 @@ namespace trkf {
 
     if(clusterh.isValid()) {
 
-
+      // get the FindMany object 
+      art::FindManyP<recob::Hit> fm(clusterh, evt, fClusterModuleLabel);
 
       art::PtrVector<recob::Hit> hits;      
 
@@ -183,11 +192,11 @@ namespace trkf {
 
 	  // Store hits from first view into hit vector.
 
-	  art::PtrVector<recob::Hit> ihits = piclus->Hits();
+	  std::vector< art::Ptr<recob::Hit> > ihits = fm.at(iclus);
 	  unsigned int nihits = ihits.size();
 	  hits.clear();
 	  hits.reserve(nihits);
-	  for(art::PtrVector<recob::Hit>::const_iterator i = ihits.begin();
+	  for(std::vector< art::Ptr<recob::Hit> >::const_iterator i = ihits.begin();
 	      i != ihits.end(); ++i)
 	    hits.push_back(*i);
 	  
@@ -206,7 +215,7 @@ namespace trkf {
 
 	      // Store hits from second view into hit vector.
 
-	      art::PtrVector<recob::Hit> jhits = pjclus->Hits();
+	      std::vector< art::Ptr<recob::Hit> > jhits = fm.at(jclus);
 	      unsigned int njhits = jhits.size();
 	      assert(hits.size() >= nihits);
 	      //hits.resize(nihits);
@@ -214,7 +223,7 @@ namespace trkf {
 		hits.pop_back();
 	      assert(hits.size() == nihits);
 	      hits.reserve(nihits + njhits);
-	      for(art::PtrVector<recob::Hit>::const_iterator j = jhits.begin();
+	      for(std::vector< art::Ptr<recob::Hit> >::const_iterator j = jhits.begin();
 		  j != jhits.end(); ++j)
 		hits.push_back(*j);
 	  
@@ -234,7 +243,7 @@ namespace trkf {
 
 		  // Store hits from third view into hit vector.
 
-		  art::PtrVector<recob::Hit> khits = pkclus->Hits();
+		  std::vector< art::Ptr<recob::Hit> > khits = fm.at(kclus);
 		  unsigned int nkhits = khits.size();
 		  assert(hits.size() >= nihits + njhits);
 		  //hits.resize(nihits + njhits);
@@ -242,7 +251,7 @@ namespace trkf {
 		    hits.pop_back();
 		  assert(hits.size() == nihits + njhits);
 		  hits.reserve(nihits + njhits + nkhits);
-		  for(art::PtrVector<recob::Hit>::const_iterator k = khits.begin();
+		  for(std::vector< art::Ptr<recob::Hit> >::const_iterator k = khits.begin();
 		      k != khits.end(); ++k)
 		    hits.push_back(*k);
 
@@ -269,6 +278,7 @@ namespace trkf {
 
   // Extract vector of hits from event
 
+  //----------------------------------------------------------------------------
   art::PtrVector<recob::Hit> SeedFinder::GetHitsFromEvent(std::string HitModuleLabel, art::Event & evt)
   {
     art::PtrVector<recob::Hit> TheHits;
@@ -284,6 +294,7 @@ namespace trkf {
   }
 
 
+  //----------------------------------------------------------------------------
   // Generate spacepoints from hits in event to feed SeedFinder
   std::vector<std::vector<recob::SpacePoint> > SeedFinder::GetSpacePointsFromHits(std::string HitModuleLabel, art::Event& evt)
   {
@@ -299,6 +310,7 @@ namespace trkf {
   
 
 
+  //----------------------------------------------------------------------------
   //
   // Given a collection of hits, make space points.
   // The sp vector fills the first entry of a nested
@@ -320,6 +332,7 @@ namespace trkf {
 
 
 
+  //----------------------------------------------------------------------------
   //
   // Take a collection of spacepoints and return a
   // vector of as many straight line seeds as possible
@@ -378,11 +391,7 @@ namespace trkf {
     return ReturnVector;
   }
 
-
-
-
-
-
+  //----------------------------------------------------------------------------
   //
   // Take a collection of spacepoints sorted in Z and find
   // exactly one straight seed, as high in Z as possible.
@@ -434,7 +443,7 @@ namespace trkf {
     return ReturnVector;
   }
 
-
+  //----------------------------------------------------------------------------
   double SeedFinder::CountHits(std::vector<recob::SpacePoint>  SpacePoints)
   {
     std::map<unsigned short, bool>            HitsClaimed;
@@ -451,10 +460,16 @@ namespace trkf {
 	// get hits from each plane (ensuring each used once only)
 	for(size_t plane=0; plane!=Planes; plane++)
 	  {
-	    art::PtrVector<recob::Hit> HitsThisSP = itSP->Hits(plane);
+	    unsigned int p = 0;
+	    unsigned int w = 0;
+	    unsigned int t = 0;
+	    unsigned int c = 0;
+	    art::PtrVector<recob::Hit> HitsThisSP = fSptalg.getAssociatedHits((*itSP));
 	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
 		itHit!=HitsThisSP.end(); itHit++)
 	      {
+		geom->ChannelToWire((*itHit)->Channel(), c, t, p, w);
+		if(p != plane) continue;
 		HitsClaimed[(*itHit)->Channel()]=true;
 	      }
 	  }
@@ -464,6 +479,7 @@ namespace trkf {
   }
 
 
+  //----------------------------------------------------------------------------
   //
   // Start with a vector of hits ordered in Z.
   // Put together a seed using the last N hits, find its
@@ -637,11 +653,12 @@ namespace trkf {
     return true;
   }
 
+  //----------------------------------------------------------------------------
   std::vector<double> SeedFinder::GetHitRMS(recob::Seed * TheSeed, std::vector<recob::SpacePoint> SpacePoints)
   {
     std::vector<double> ReturnVec;
     art::ServiceHandle<geo::Geometry>            geom;
-    art::ServiceHandle<util::DetectorProperties>            det;
+    art::ServiceHandle<util::DetectorProperties> det;
 
 
     std::map<int,art::PtrVector<recob::Hit> > HitMap;
@@ -655,10 +672,19 @@ namespace trkf {
 	// get hits from each plane (ensuring each used once only)
 	for(size_t plane=0; plane!=Planes; plane++)
 	  {
-	    art::PtrVector<recob::Hit> HitsThisSP = itSP->Hits(plane);
+	    art::PtrVector<recob::Hit> HitsThisSP = fSptalg.getAssociatedHits(*itSP);
+	    
+	    unsigned int p = 0;
+	    unsigned int w = 0;
+	    unsigned int t = 0;
+	    unsigned int c = 0;
+
 	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
 		itHit!=HitsThisSP.end(); itHit++)
-	      {
+	      {		
+		geom->ChannelToWire((*itHit)->Channel(), c, t, p, w);
+		if(p != plane) continue;
+
 		if(!HitsClaimed[(*itHit)->Channel()])
 		  {
 		    HitMap[plane].push_back(*itHit);
@@ -737,6 +763,7 @@ namespace trkf {
 
   
 
+  //----------------------------------------------------------------------------
   void SeedFinder::RefitSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> SpacePoints)
   {
 
@@ -768,10 +795,18 @@ namespace trkf {
 	// get hits from each plane (ensuring each used once only)
 	for(size_t plane=0; plane!=Planes; plane++)
 	  {
-	    art::PtrVector<recob::Hit> HitsThisSP = itSP->Hits(plane);
+	    unsigned int p = 0;
+	    unsigned int w = 0;
+	    unsigned int t = 0;
+	    unsigned int c = 0;
+	    
+	    art::PtrVector<recob::Hit> HitsThisSP = fSptalg.getAssociatedHits(*itSP);
 	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
 		itHit!=HitsThisSP.end(); itHit++)
 	      {
+		geom->ChannelToWire((*itHit)->Channel(), c, t, p, w);
+		if(p != plane) continue;
+
 		if(!HitsClaimed[(*itHit)->Channel()])
 		  {
 		    HitMap[plane].push_back(*itHit);
@@ -931,7 +966,7 @@ namespace trkf {
 
 	    // parameters for t = ac + b
 	    double a = LeastSquaresResult[0];
-	    //   double b = LeastSquaresResult[1];
+	    //double b = LeastSquaresResult[1];
 
 
 	    // Project seed direction vector into parts parallel and perp to pitch
@@ -940,7 +975,7 @@ namespace trkf {
 	    double SeedTimeComp      = SeedDirection.Dot(XVec.Unit());
 	    double SeedOutOfPlaneComp= SeedDirection.Dot(WireVec.Unit());
 
-	    //  double SeedLengthInPlane = pow( pow(SeedPlaneComp,2)+pow(SeedTimeComp,2), 0.5);
+	    //double SeedLengthInPlane = pow( pow(SeedPlaneComp,2)+pow(SeedTimeComp,2), 0.5);
 	    
 	    //	    std::cout<<"Previous  a in plane : " << SeedTimeComp / SeedPlaneComp<<std::endl;
 	    //   std::cout<<"Suggested a in plane : " << a <<std::endl;
@@ -973,10 +1008,7 @@ namespace trkf {
 	
   }
 
-
-
-
-
+  //----------------------------------------------------------------------------
   void SeedFinder::endJob()
   {
 

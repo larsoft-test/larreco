@@ -12,9 +12,7 @@
 #include "Geometry/geo.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
-#include "RecoBase/Hit.h"
-#include "RecoBase/Cluster.h"
-#include "RecoBase/Prong.h"
+#include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
 
 namespace trkf {
@@ -38,11 +36,9 @@ namespace trkf {
     , fNumSpt3(0)
   {
     reconfigure(pset);
-    produces<std::vector<recob::Prong>                 >();
-    produces<art::Assns<recob::Prong, recob::Cluster>  >();
-    produces<art::Assns<recob::Prong, recob::Hit>      >();
-    produces<std::vector<recob::SpacePoint>            >();
-    produces<art::Assns<recob::SpacePoint, recob::Hit> >();
+    produces<std::vector<recob::SpacePointCollection> >();
+    produces<std::vector<recob::SpacePoint>                >();
+    produces<art::Assns<recob::SpacePoint, recob::Hit>     >();
     if(fClusterAssns)
       produces<art::Assns<recob::SpacePoint, recob::Cluster> >();
 
@@ -108,14 +104,9 @@ namespace trkf {
 
     if(clusterh.isValid()) {
 
-      // Make a collection of prongs that will eventually be inserted into the event.
-
-      std::auto_ptr<std::vector<recob::Prong> > prongs(new std::vector<recob::Prong>);
-      std::auto_ptr< art::Assns<recob::Prong, recob::Cluster> > assn(new art::Assns<recob::Prong, recob::Cluster>);
-      std::auto_ptr< art::Assns<recob::Prong, recob::Hit> > hassn(new art::Assns<recob::Prong, recob::Hit>);
-
       // Make a collection of space points that will be inserted into the event.
 
+      std::auto_ptr<std::vector<recob::SpacePointCollection> > sptvecs(new std::vector<recob::SpacePointCollection>);
       std::auto_ptr<std::vector<recob::SpacePoint> > spts(new std::vector<recob::SpacePoint>);
       std::auto_ptr< art::Assns<recob::SpacePoint, recob::Hit> > sphitassn(new art::Assns<recob::SpacePoint, recob::Hit>);
       std::auto_ptr< art::Assns<recob::SpacePoint, recob::Cluster> > spclassn(new art::Assns<recob::SpacePoint, recob::Cluster>);
@@ -124,6 +115,7 @@ namespace trkf {
       // to SpacePointAlg.
 
       art::PtrVector<recob::Hit> hits;      
+      art::FindManyP<recob::Hit> fm(clusterh, evt, fClusterModuleLabel);
 
       // Loop over first cluster.
 
@@ -132,20 +124,21 @@ namespace trkf {
 	art::Ptr<recob::Cluster> piclus(clusterh, iclus);
 	geo::View_t iview = piclus->View();
 
+	std::vector< art::Ptr<recob::Hit> > ihits = fm.at(iclus);
+
 	// Test first view.
 
-	if(piclus->Hits().size() >= fMinHits &&
+	if(ihits.size() >= fMinHits &&
 	   ((iview == geo::kU && fSptalg.enableU()) ||
 	    (iview == geo::kV && fSptalg.enableV()) ||
 	    (iview == geo::kW && fSptalg.enableW()))) {
 
 	  // Store hits from first view into hit vector.
 
-	  art::PtrVector<recob::Hit> ihits = piclus->Hits();
 	  unsigned int nihits = ihits.size();
 	  hits.clear();
 	  hits.reserve(nihits);
-	  for(art::PtrVector<recob::Hit>::const_iterator i = ihits.begin();
+	  for(std::vector< art::Ptr<recob::Hit> >::const_iterator i = ihits.begin();
 	      i != ihits.end(); ++i)
 	    hits.push_back(*i);
 	  
@@ -155,9 +148,11 @@ namespace trkf {
 	    art::Ptr<recob::Cluster> pjclus(clusterh, jclus);
 	    geo::View_t jview = pjclus->View();
 
+	    std::vector< art::Ptr<recob::Hit> > jhits = fm.at(jclus);
+
 	    // Test second view.
 
-	    if(pjclus->Hits().size() >= fMinHits &&
+	    if(jhits.size() >= fMinHits &&
 	       ((jview == geo::kU && fSptalg.enableU()) ||
 		(jview == geo::kV && fSptalg.enableV()) ||
 		(jview == geo::kW && fSptalg.enableW()))
@@ -165,7 +160,6 @@ namespace trkf {
 
 	      // Store hits from second view into hit vector.
 
-	      art::PtrVector<recob::Hit> jhits = pjclus->Hits();
 	      unsigned int njhits = jhits.size();
 	      assert(hits.size() >= nihits);
 	      //hits.resize(nihits);
@@ -173,7 +167,7 @@ namespace trkf {
 		hits.pop_back();
 	      assert(hits.size() == nihits);
 	      hits.reserve(nihits + njhits);
-	      for(art::PtrVector<recob::Hit>::const_iterator j = jhits.begin();
+	      for(std::vector< art::Ptr<recob::Hit> >::const_iterator j = jhits.begin();
 		  j != jhits.end(); ++j)
 		hits.push_back(*j);
 	  
@@ -192,32 +186,28 @@ namespace trkf {
 		  clusters.reserve(2);
 		  clusters.push_back(piclus);
 		  clusters.push_back(pjclus);
-
-		  prongs->push_back(recob::Prong(clusters, new_spts));
-		  util::CreateAssn(*this, evt, *(prongs.get()), clusters,*(assn.get()));
-
-		  // associate the cluster hits with this prong as well
-		  for(size_t c = 0; c < clusters.size(); ++c){
-		    art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(clusters, evt,
-										  fClusterModuleLabel, c);
-		    util::CreateAssn(*this, evt, *(prongs.get()), hits, *(hassn.get()));
-		  }
-
+		  	
 		  // Insert newly found space points into event collection.
-
 		  int nspt = spts->size();
 		  spts->insert(spts->end(), new_spts.begin(), new_spts.end());
 
 		  // Associate space points with hits and clusters.
-
+		  art::PtrVector<recob::SpacePoint> sptvec;
 		  for(unsigned int ispt = nspt; ispt < spts->size(); ++ispt) {
 		    const recob::SpacePoint& spt = (*spts)[ispt];
 		    const art::PtrVector<recob::Hit>& hits = fSptalg.getAssociatedHits(spt);
 		    util::CreateAssn(*this, evt, *spts, hits, *sphitassn, ispt);
 		    if(fClusterAssns)
 		      util::CreateAssn(*this, evt, *spts, clusters, *spclassn, ispt);
-		  }
 
+		    // make the PtrVector for this collection of space points
+		    // Do not reproduce the following lines
+		    // Contact brebel@fnal.gov if you think you need to reproduce these lines.
+		    art::ProductID spid = this->getProductID< std::vector<recob::SpacePoint> >(evt);
+		    art::Ptr<recob::SpacePoint> spptr(spid, ispt, evt.productGetter(spid));
+		    sptvec.push_back(spptr);
+		  }
+		  sptvecs->push_back(recob::SpacePointCollection(sptvec));
 		  ++fNumProng2;
 		}
 	      }
@@ -228,9 +218,10 @@ namespace trkf {
 		art::Ptr<recob::Cluster> pkclus(clusterh, kclus);
 		geo::View_t kview = pkclus->View();
 
+		std::vector< art::Ptr<recob::Hit> > khits = fm.at(kclus);
 		// Test third view.
 
-		if(pkclus->Hits().size() >= fMinHits &&
+		if(khits.size() >= fMinHits &&
 		   ((kview == geo::kU && fSptalg.enableU()) ||
 		    (kview == geo::kV && fSptalg.enableV()) ||
 		    (kview == geo::kW && fSptalg.enableW()))
@@ -238,7 +229,6 @@ namespace trkf {
 
 		  // Store hits from third view into hit vector.
 
-		  art::PtrVector<recob::Hit> khits = pkclus->Hits();
 		  unsigned int nkhits = khits.size();
 		  assert(hits.size() >= nihits + njhits);
 		  //hits.resize(nihits + njhits);
@@ -246,7 +236,7 @@ namespace trkf {
 		    hits.pop_back();
 		  assert(hits.size() == nihits + njhits);
 		  hits.reserve(nihits + njhits + nkhits);
-		  for(art::PtrVector<recob::Hit>::const_iterator k = khits.begin();
+		  for(std::vector< art::Ptr<recob::Hit> >::const_iterator k = khits.begin();
 		      k != khits.end(); ++k)
 		    hits.push_back(*k);
 
@@ -265,30 +255,29 @@ namespace trkf {
 		    clusters.push_back(piclus);
 		    clusters.push_back(pjclus);
 		    clusters.push_back(pkclus);
-		    prongs->push_back(recob::Prong(clusters, new_spts));
-		    util::CreateAssn(*this, evt, *(prongs.get()), clusters,*(assn.get()));
-		  
-		    // associate the cluster hits with this prong as well
-		    for(size_t c = 0; c < clusters.size(); ++c){
-		      art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(clusters, evt, 
-										    fClusterModuleLabel, c);
-		      util::CreateAssn(*this, evt, *(prongs.get()), hits, *(hassn.get()));
-		    }
-
+		
 		    // Insert newly found space points into event collection.
 
 		    int nspt = spts->size();
 		    spts->insert(spts->end(), new_spts.begin(), new_spts.end());
 
 		    // Associate space points with hits and clusters.
-
+		    art::PtrVector<recob::SpacePoint> sptvec;
 		    for(unsigned int ispt = nspt; ispt < spts->size(); ++ispt) {
 		      const recob::SpacePoint& spt = (*spts)[ispt];
 		      const art::PtrVector<recob::Hit>& hits = fSptalg.getAssociatedHits(spt);
 		      util::CreateAssn(*this, evt, *spts, hits, *sphitassn, ispt);
 		      if(fClusterAssns)
 			util::CreateAssn(*this, evt, *spts, clusters, *spclassn, ispt);
+
+		      // make the PtrVector for this collection of space points
+		      // Do not reproduce the following lines
+		      // Contact brebel@fnal.gov if you think you need to reproduce these lines.
+		      art::ProductID spid = this->getProductID< std::vector<recob::SpacePoint> >(evt);
+		      art::Ptr<recob::SpacePoint> spptr(spid, ispt, evt.productGetter(spid));
+		      sptvec.push_back(spptr);
 		    }
+		    sptvecs->push_back(recob::SpacePointCollection(sptvec));
 
 		    ++fNumProng3;
 		  }
@@ -300,11 +289,9 @@ namespace trkf {
       }
 
       // Add prongs and associations to event.
-
-      evt.put(prongs);
-      evt.put(assn);
-      evt.put(hassn);
+      
       evt.put(spts);
+      evt.put(sptvecs);
       evt.put(sphitassn);
       if(fClusterAssns)
 	evt.put(spclassn);

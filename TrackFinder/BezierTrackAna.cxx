@@ -21,7 +21,6 @@
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "RecoBase/Hit.h"
 #include "RecoBase/Cluster.h"
-#include "MCCheater/BackTracker.h"
 
 #include "TTree.h"
 
@@ -121,7 +120,7 @@ namespace trkf {
 	trackvec.push_back(trkptr);
       }
     
-    
+    art::FindManyP<recob::Hit> fmh(btbh, evt, fBezierTrackModuleLabel);
     
     
     std::vector<trkf::BezierTrack> BTracks;
@@ -138,7 +137,7 @@ namespace trkf {
 	fRMSCurvature = BTracks.at(i).GetRMSCurvature();
 	
 
-	art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(trackvec, evt, fBezierTrackModuleLabel,i); 
+	std::vector< art::Ptr<recob::Hit> > hits = fmh.at(i); 
 	
 	fNHitsU=fNHitsV=fNHitsW=fNHits=0;
 	fAverageS = fAverageDistance = 0;

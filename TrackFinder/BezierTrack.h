@@ -23,7 +23,8 @@ namespace trkf {
     BezierTrack(recob::Track btb);
     BezierTrack(std::vector<TVector3> Pos, 
 		std::vector<TVector3> Dir, 
-		std::vector<std::vector<double> > dQdx);
+		std::vector<std::vector<double> > dQdx,
+		int const& id);
     BezierTrack(std::vector<recob::Seed*> );
      
     ~BezierTrack();
@@ -54,11 +55,13 @@ namespace trkf {
 
     
     void   GetClosestApproaches( art::PtrVector<recob::Hit> hits,     std::vector<double>& s, std::vector<double>& Distances) const;
+    void   GetClosestApproaches( std::vector< art::Ptr<recob::Hit> > hits,     std::vector<double>& s, std::vector<double>& Distances) const;
 
     
     void   CalculatedQdx(art::PtrVector<recob::Hit>);   
     void   CalculatedQdx(art::PtrVector<recob::Hit>, std::vector<double> SValues);   
-    void   FillMySpacePoints(int N);
+
+    std::vector<recob::SpacePoint> FillMySpacePoints(int N);
  
     recob::Track GetBaseTrack();
     recob::Track GetReverseBaseTrack();

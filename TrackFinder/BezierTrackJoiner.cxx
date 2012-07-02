@@ -26,17 +26,23 @@
 
 namespace trkf {
 
+  //-------------------------------------------------------------------------
   BezierTrackJoiner::BezierTrackJoiner(const fhicl::ParameterSet& pset)
   {
     reconfigure(pset);
     produces< std::vector<recob::Track> >();
     produces< std::vector<recob::Vertex> >();
-    }
+    produces< art::Assns<recob::Track, recob::Hit> >();
+    produces< art::Assns<recob::Vertex, recob::Track> >();
+    produces< art::Assns<recob::Vertex, recob::Hit> >();
+  }
 
+  //-------------------------------------------------------------------------
   BezierTrackJoiner::~BezierTrackJoiner()
   {
   }
 
+  //-------------------------------------------------------------------------
   void BezierTrackJoiner::reconfigure(fhicl::ParameterSet const& pset)
   {
     fTrackModuleLabel   = pset.get<std::string>("TrackModuleLabel");
@@ -46,10 +52,12 @@ namespace trkf {
     fDistanceForAngle   = pset.get<double>("DistanceForAngle");   
   }
 
+  //-------------------------------------------------------------------------
   void BezierTrackJoiner::beginJob()
   {}
 
 
+  //-------------------------------------------------------------------------
   void BezierTrackJoiner::produce(art::Event& evt)
   {
 
@@ -60,43 +68,35 @@ namespace trkf {
     std::auto_ptr< std::vector<recob::Track > > tracksout ( new std::vector<recob::Track>);
     std::auto_ptr< std::vector<recob::Vertex > > verticesout ( new std::vector<recob::Vertex>);
     std::auto_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
+    std::auto_ptr< art::Assns<recob::Vertex, recob::Track > > tvassn( new art::Assns<recob::Vertex, recob::Track>);
+    std::auto_ptr< art::Assns<recob::Vertex, recob::Hit > > vhassn( new art::Assns<recob::Vertex, recob::Hit>);
     
-    
-    std::cout<<"Getting hits " <<std::endl;
-
- 
-    // Extract hits PtrVector from event
-
-    art::Handle< std::vector<recob::Hit> > hith;
-    evt.getByLabel(fHitModuleLabel, hith);
-
-
-    art::PtrVector<recob::Hit> HitVec;
-    HitVec.clear();
-    for(unsigned int i=0; i < hith->size(); ++i)
-      {
-	art::Ptr<recob::Hit> hit(hith,i);
-	HitVec.push_back(hit);
-      }
-
-    
-    std::cout<<"Getting tracks " <<std::endl;
+        
+    mf::LogVerbatim("BezierTrackJoiner") << "Getting tracks ";
 
     // Extract track objects from event
 
     art::Handle< std::vector<recob::Track> > trackh;
     evt.getByLabel(fTrackModuleLabel, trackh);
 
+    art::FindManyP<recob::Hit> fmh(trackh, evt, fTrackModuleLabel);
+
+    std::vector< std::vector<art::Ptr<recob::Hit> > > trackHits;
     art::PtrVector<recob::Track>   Tracks;
     Tracks.clear();
     for(unsigned int i=0; i < trackh->size(); ++i)
       {
 	art::Ptr<recob::Track> track(trackh,i);
 	Tracks.push_back(track);
+
+	// get the hits associated with this track
+	trackHits.push_back(fmh.at(i));
       }
 
+    
 
-    std::cout<<"Make bez tracks " <<std::endl;
+
+    mf::LogVerbatim("BezierTrackJoiner") << "Make bez tracks ";
     // Make bezier tracks
     std::vector<trkf::BezierTrack*> BTracks;
     BTracks.clear();
@@ -104,8 +104,8 @@ namespace trkf {
       BTracks.push_back(new BezierTrack(*Tracks.at(i)));
 
 
-     std::vector<trkf::BezierTrack*> JoinedTracks = BTracks;
-    
+    std::vector<trkf::BezierTrack*> JoinedTracks = BTracks;
+
     size_t PrevSize=BTracks.size()+1;
      
     // If we joined some tracks last time, try again
@@ -114,7 +114,7 @@ namespace trkf {
       {
 	PrevSize = JoinedTracks.size();
 	JoinedTracks = MakeTouchJoins( JoinedTracks, fJoinThreshold);
-	std::cout<<"Making touch joins  : " << PrevSize <<" " <<JoinedTracks.size()<<std::endl;
+	mf::LogVerbatim("BezierTrackJoiner") << "Making touch joins  : " << PrevSize << " " << JoinedTracks.size();
 
       }
 
@@ -125,7 +125,7 @@ namespace trkf {
       {
 	PrevSize = JoinedTracks.size();
 	JoinedTracks = MakeGlancingJoins( JoinedTracks, fJoinThreshold);
-	std::cout<<"Making glancing joins  : " << PrevSize <<" " <<JoinedTracks.size()<<std::endl;
+	mf::LogVerbatim("BezierTrackJoiner") << "Making glancing joins  : " << PrevSize << " " << JoinedTracks.size();
 	
       }
     
@@ -139,30 +139,40 @@ namespace trkf {
     for(size_t i=0; i!=JoinedTracks.size(); ++i)
       {
 	tracksout->push_back(JoinedTracks.at(i)->GetBaseTrack());
+
+	///\todo need to associate hits to the tracks
       }
 
     for(size_t i=0; i!=Vertices.size(); ++i)
       {
-	art::PtrVector<recob::Track> EmptyTrack;
-	art::PtrVector<recob::Shower> EmptyShower;
 	double xyz[3];
 	for(size_t j=0; j!=3; j++)
 	  xyz[j]=Vertices.at(i)[j];
 	
-	verticesout->push_back(recob::Vertex(EmptyTrack,EmptyShower,xyz, i)); 
-	
+	verticesout->push_back(recob::Vertex(xyz, i)); 
+
+	// associate tracks to this vertex
+	for(size_t t = 0; t < TracksToVertices[i].size(); ++t)
+	  util::CreateAssn(*this, evt, *verticesout, *tracksout, *tvassn, 
+			   (size_t)TracksToVertices[i][t], (size_t)TracksToVertices[i][t]+1);
+
+	///\todo need to associate hits to the vertices
+
       }
     
-    std::cout<<"storing products " <<std::endl;
+    mf::LogVerbatim("BezierTrackJoiner") << "storing products ";
 
     // Store the fruits of our labour in the event
-    std::cout<<"Storing in evt"<<std::endl;
+    mf::LogVerbatim("BezierTrackJoiner") << "Storing in evt";
     evt.put(tracksout);
     evt.put(verticesout);
+    evt.put(tvassn);
+    
 
   }
 
 
+  //-------------------------------------------------------------------------
   std::vector<BezierTrack*> BezierTrackJoiner::MakeTouchJoins(std::vector<BezierTrack*> BTracks, double fJoinThreshold)
   {
 
@@ -196,7 +206,7 @@ namespace trkf {
 		    {
 		      std::cout<<"Making a join"<<std::endl;
 		      UsedTracks[i]=UsedTracks[j]=true;
-		      recob::Track Combined = BTracks.at(i)->GetJoinedBaseTrack(BTracks.at(j));		      
+		      recob::Track Combined = BTracks.at(i)->GetJoinedBaseTrack(BTracks.at(j));		      		      
 		      ReturnVector.push_back(new BezierTrack(Combined));
 		    } // Angle small enough
 		} // within join distance threshold
@@ -206,9 +216,10 @@ namespace trkf {
     
     // Add into the return vector any that were not joined
     for(size_t i=0; i!=BTracks.size(); ++i)
-      if(!UsedTracks[i])
+      if(!UsedTracks[i]){
 	ReturnVector.push_back(BTracks.at(i));
-    
+      }
+
     return ReturnVector;
   }
 
@@ -245,6 +256,7 @@ namespace trkf {
   
   */
 
+  //-------------------------------------------------------------------------
   std::vector<BezierTrack*> BezierTrackJoiner::MakeGlancingJoins(std::vector<BezierTrack*> BTracks, double fJoinThreshold)
   {
 
@@ -311,6 +323,7 @@ namespace trkf {
   }
 
 
+  //-------------------------------------------------------------------------
   std::vector<TVector3> BezierTrackJoiner::MakeVertexCandidates(std::vector<BezierTrack*> BTracks,std::vector<std::vector<int> >& TracksToVertices)
   {
     std::cout<<"looping tracks " <<std::endl;
@@ -368,6 +381,7 @@ namespace trkf {
   }
 
    
+  //-------------------------------------------------------------------------
   void BezierTrackJoiner::endJob()
   {
 

@@ -162,10 +162,8 @@ namespace trkf {
       // T = H C H^T.
 
       ublas::matrix<double> temp(fH.size2(), fMeasDim);
-      ublas::matrix<double> temp2(fMeasDim, fMeasDim);
       temp = prod(tre.getError(), trans(fH));
-      temp2 = prod(fH, temp);
-      fPerr = ublas::symmetric_adaptor<ublas::matrix<double> >(temp2);
+      fPerr = prod(fH, temp);
 
       // Update residual
 
@@ -230,12 +228,10 @@ namespace trkf {
     TrackMatrix fact = ublas::identity_matrix<TrackVector::value_type>(size);
     fact -= prod(gain, fH);
     TrackMatrix errtemp1 = prod(terr, trans(fact));
-    TrackMatrix errtemp2 = prod(fact, errtemp1);
-    TrackError errtemp2s = ublas::symmetric_adaptor<TrackMatrix>(errtemp2);
+    TrackError errtemp2 = prod(fact, errtemp1);
     ublas::matrix<double> errtemp3 = prod(fMerr, trans(gain));
-    TrackMatrix errtemp4 = prod(gain, errtemp3);
-    TrackError errtemp4s = ublas::symmetric_adaptor<TrackMatrix>(errtemp4);
-    TrackError newerr = errtemp2s + errtemp4s;
+    TrackError errtemp4 = prod(gain, errtemp3);
+    TrackError newerr = errtemp2 + errtemp4;
 
     // Update track.
 

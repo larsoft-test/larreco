@@ -120,7 +120,8 @@ namespace trkf {
   ///
   /// track - Track to fill.
   ///
-  void KGTrack::fillTrack(recob::Track& track) const
+  void KGTrack::fillTrack(recob::Track& track, 
+			  int id) const
   {
     // Get geometry service.
 
@@ -217,7 +218,7 @@ namespace trkf {
 
     // Fill track.
 
-    track = recob::Track(xyz, dxdydz, cov, dqdx, momentum);
+    track = recob::Track(xyz, dxdydz, cov, dqdx, momentum, id);
   }
 
   /// Fill a PtrVector of Hits.
@@ -295,9 +296,7 @@ namespace trkf {
 	  // two.
 
 	  if(compatible_hits.size() >= 2) {
-	    spts.push_back(recob::SpacePoint());
-	    spts.back().SetID(sptalg.numHitMap());
-	    sptalg.fillSpacePoint(compatible_hits, spts.back());
+	    sptalg.fillSpacePoint(compatible_hits, spts, sptalg.numHitMap());
 	    compatible_hits.clear();
 	  }
 
@@ -316,9 +315,7 @@ namespace trkf {
     // Maybe make one final space point.
 
     if(compatible_hits.size() >= 2) {
-      spts.push_back(recob::SpacePoint());
-      spts.back().SetID(sptalg.numHitMap());
-      sptalg.fillSpacePoint(compatible_hits, spts.back());
+      sptalg.fillSpacePoint(compatible_hits, spts, sptalg.numHitMap());
     }
   }
 } // end namespace trkf

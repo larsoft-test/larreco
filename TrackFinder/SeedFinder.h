@@ -102,8 +102,10 @@ namespace trkf {
 
     std::vector<double> GetHitRMS(recob::Seed* TheSeed, std::vector<recob::SpacePoint>);
 
-    bool ExtendSeed(recob::Seed* TheSeed, std::vector<recob::SpacePoint> AllSpacePoints, std::vector<int> PointsUsed, std::map<int, int> PointStatus);
-
+    SpacePointAlg const& GetSpacePointAlg() const { return fSptalg; }
+    
+    bool ExtendSeed(recob::Seed* TheSeed, std::vector<recob::SpacePoint> AllSpacePoints, 
+		    std::vector<int> PointsUsed, std::map<int, int> PointStatus);
   private:
 
    

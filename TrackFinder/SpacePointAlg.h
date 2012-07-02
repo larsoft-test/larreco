@@ -53,8 +53,7 @@
 #include <string>
 #include "fhiclcpp/ParameterSet.h"
 #include "art/Persistency/Common/PtrVector.h"
-#include "RecoBase/SpacePoint.h"
-#include "Simulation/SimChannel.h"
+#include "RecoBase/recobase.h"
 
 class TH1F;
 namespace sim {
@@ -105,13 +104,15 @@ namespace trkf {
     // Fill a single simple space point using the specified hits.
     // Hits are assumed to be compatible.
     void fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
-			recob::SpacePoint& spt) const;
+			std::vector<recob::SpacePoint>& sptv,
+			int sptid) const;
 
     // Fill a single complex space point using the specified hits.
     // Complex space points allow multiple hits in one plane.
     // Hits are assumed to be compatible.
     void fillComplexSpacePoint(const art::PtrVector<recob::Hit>& hits,
-			       recob::SpacePoint& spt) const;
+			       std::vector<recob::SpacePoint> &sptv,
+			       int sptid) const;
 
     // Fill a vector of space points from an unsorted collection of hits.
     // Space points are generated for all compatible combinations of hits.
@@ -127,14 +128,11 @@ namespace trkf {
 			 double maxS) const;
 
     // Fill a vector of space points compatible with mc truth information 
-    // contained in SimChannels (with or without overriding configuration
-    // parameters).
+    // (with or without overriding configuration parameters).
+    void makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
+				std::vector<recob::SpacePoint>& spts) const;
     void makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
 				std::vector<recob::SpacePoint>& spts,
-				const std::vector<const sim::SimChannel*>& simchans) const;
-    void makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
-				std::vector<recob::SpacePoint>& spts,
-				const std::vector<const sim::SimChannel*>& simchans,
 				bool filter,
 				bool merge,
 				double maxDT,
@@ -156,7 +154,6 @@ namespace trkf {
     // the public make*SpacePoints methods comes here).
     void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 			 std::vector<recob::SpacePoint>& spts,
-			 const std::vector<const sim::SimChannel*>& simchans,
 			 bool useMC,
 			 bool filter,
 			 bool merge,

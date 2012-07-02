@@ -13,10 +13,7 @@
 #include "TrackFinder/PropYZPlane.h"
 #include "TrackFinder/KHit.h"
 #include "Geometry/geo.h"
-#include "RecoBase/Hit.h"
-#include "RecoBase/Cluster.h"
-#include "RecoBase/Seed.h"
-#include "RecoBase/Track.h"
+#include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h"
@@ -25,6 +22,7 @@
 
 namespace {
 
+  //----------------------------------------------------------------------------
   // Fill a collection of hits used by space points.
   //
   // Arguments:
@@ -33,7 +31,8 @@ namespace {
   // hits - Hit collection to fill.
   //
   void SpacePointsToHits(const std::vector<recob::SpacePoint>& spts,
-			 art::PtrVector<recob::Hit>& hits)
+			 art::PtrVector<recob::Hit>& hits, 
+			 trkf::SpacePointAlg const& spalg)
   {
     hits.clear();
     std::set<const recob::Hit*> used_hits;
@@ -46,7 +45,7 @@ namespace {
 
       // Loop over hits in space point.
 
-      art::PtrVector<recob::Hit> spthits = spt.AllHits();
+      const art::PtrVector<recob::Hit> spthits = spalg.getAssociatedHits(spt);
       for(art::PtrVector<recob::Hit>::const_iterator ihit = spthits.begin();
 	  ihit != spthits.end(); ++ihit) {
 	const art::Ptr<recob::Hit> phit = *ihit;
@@ -62,6 +61,7 @@ namespace {
     }
   }
 
+  //----------------------------------------------------------------------------
   // Filter a collection of hits.
   //
   // Arguments:
@@ -92,6 +92,7 @@ namespace {
     }
   }
 
+  //----------------------------------------------------------------------------
   // Get preferred plane (find plane that has the most hits).
   //
   // Arguments:
@@ -132,6 +133,7 @@ namespace {
 }
 
 
+//----------------------------------------------------------------------------
 /// Constructor.
 ///
 /// Arguments:
@@ -170,10 +172,12 @@ trkf::Track3DKalmanHit::Track3DKalmanHit(fhicl::ParameterSet const & pset) :
     << "  ClusterModuleLabel = " << fClusterModuleLabel;
 }
 
+//----------------------------------------------------------------------------
 /// Destructor.
 trkf::Track3DKalmanHit::~Track3DKalmanHit()
 {}
 
+//----------------------------------------------------------------------------
 /// Reconfigure method.
 ///
 /// Arguments:
@@ -198,6 +202,7 @@ void trkf::Track3DKalmanHit::reconfigure(fhicl::ParameterSet const & pset)
   fProp = new PropYZPlane(fMaxTcut);
 }
 
+//----------------------------------------------------------------------------
 /// Begin job method.
 void trkf::Track3DKalmanHit::beginJob()
 {
@@ -213,6 +218,7 @@ void trkf::Track3DKalmanHit::beginJob()
   }
 }
 
+//----------------------------------------------------------------------------
 /// Produce method.
 ///
 /// Arguments:
@@ -263,17 +269,18 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
     evt.getByLabel(fClusterModuleLabel, clusterh);
 
     // Get hits from all clusters.
+    art::FindManyP<recob::Hit> fm(clusterh, evt, fClusterModuleLabel);
 
     if(clusterh.isValid()) {
       int nclus = clusterh->size();
 
       for(int i = 0; i < nclus; ++i) {
 	art::Ptr<recob::Cluster> pclus(clusterh, i);
-	art::PtrVector<recob::Hit> clushits = pclus->Hits();
+	std::vector< art::Ptr<recob::Hit> > clushits = fm.at(i);
 	int nhits = clushits.size();
 	hits.reserve(hits.size() + nhits);
 
-	for(art::PtrVector<recob::Hit>::const_iterator ihit = clushits.begin();
+	for(std::vector< art::Ptr<recob::Hit> >::const_iterator ihit = clushits.begin();
 	    ihit != clushits.end(); ++ihit) {
 	  hits.push_back(*ihit);
 	}
@@ -340,7 +347,7 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
       // Extract hits used by this seed.
 
       art::PtrVector<recob::Hit> seedhits;
-      SpacePointsToHits(seedsptvec, seedhits);
+      SpacePointsToHits(seedsptvec, seedhits, fSpacePointAlg);
 
       // Filter hits used by seed from hits available to make future seeds.
       // No matter what, we will never use these hits for another seed.
@@ -567,8 +574,7 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
     // Add Track object to collection.
 
     tracks->push_back(recob::Track());
-    kalman_track.fillTrack(tracks->back());
-    tracks->back().SetID(tracks->size() - 1);
+    kalman_track.fillTrack(tracks->back(), tracks->size() - 1);
 
     // Make Track to Hit associations.  
 
@@ -615,6 +621,7 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
   evt.put(sph_assn);
 }
 
+//----------------------------------------------------------------------------
 /// End job method.
 void trkf::Track3DKalmanHit::endJob()
 {

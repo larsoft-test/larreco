@@ -15,40 +15,39 @@
 #include "TrackFinder/PropYZPlane.h"
 #include "TrackFinder/KHit.h"
 #include "Geometry/geo.h"
-#include "RecoBase/Hit.h"
-#include "RecoBase/Cluster.h"
-#include "RecoBase/Track.h"
+#include "RecoBase/recobase.h"
 #include "Simulation/SimListUtils.h"
 #include "MCCheater/BackTracker.h"
 #include "Utilities/AssociationUtil.h"
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-
+//------------------------------------------------------------------------------
 /// Constructor.
 ///
 /// Arguments:
 ///
 /// p - Fcl parameters.
 ///
-trkf::TrackKalmanCheater::TrackKalmanCheater(fhicl::ParameterSet const & pset) :
-  fHist(false),
-  fKFAlg(pset.get<fhicl::ParameterSet>("KalmanFilterAlg")),
-  fSpacePointAlg(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
-  fUseClusterHits(false),
-  fMaxTcut(0.),
-  fProp(0),
-  fHIncChisq(0),
-  fHPull(0),
-  fNumEvent(0),
-  fNumTrack(0)
+trkf::TrackKalmanCheater::TrackKalmanCheater(fhicl::ParameterSet const & pset) 
+  : fHist(false)
+  , fKFAlg(pset.get<fhicl::ParameterSet>("KalmanFilterAlg"))
+  , fSpacePointAlg(pset.get<fhicl::ParameterSet>("SpacePointAlg"))
+  , fUseClusterHits(false)
+  , fMaxIncChisq(0.)
+  , fMaxTcut(0.)
+  , fProp(0)
+  , fHIncChisq(0)
+  , fHPull(0)
+  , fNumEvent(0)
+  , fNumTrack(0)
 {
   reconfigure(pset);
-  produces<std::vector<recob::Track> >();
-  produces<std::vector<recob::SpacePoint>            >();
-  produces<art::Assns<recob::Track, recob::Hit> >();
+  produces<std::vector<recob::Track>                   >();
+  produces<std::vector<recob::SpacePoint>              >();
+  produces<art::Assns<recob::Track, recob::Hit>        >();
   produces<art::Assns<recob::Track, recob::SpacePoint> >();
-  produces<art::Assns<recob::SpacePoint, recob::Hit> >();
+  produces<art::Assns<recob::SpacePoint, recob::Hit>   >();
 
   // Report.
 
@@ -60,10 +59,12 @@ trkf::TrackKalmanCheater::TrackKalmanCheater(fhicl::ParameterSet const & pset) :
     << "  G4ModuleLabel = " << fG4ModuleLabel;
 }
 
+//------------------------------------------------------------------------------
 /// Destructor.
 trkf::TrackKalmanCheater::~TrackKalmanCheater()
 {}
 
+//------------------------------------------------------------------------------
 /// Reconfigure method.
 ///
 /// Arguments:
@@ -79,12 +80,14 @@ void trkf::TrackKalmanCheater::reconfigure(fhicl::ParameterSet const & pset)
   fHitModuleLabel = pset.get<std::string>("HitModuleLabel");
   fClusterModuleLabel = pset.get<std::string>("ClusterModuleLabel");
   fG4ModuleLabel = pset.get<std::string>("G4ModuleLabel");
+  fMaxIncChisq = pset.get<double>("MaxIncChisq");
   fMaxTcut = pset.get<double>("MaxTcut");
   if(fProp != 0)
     delete fProp;
   fProp = new PropYZPlane(fMaxTcut);
 }
 
+//------------------------------------------------------------------------------
 /// Begin job method.
 void trkf::TrackKalmanCheater::beginJob()
 {
@@ -100,6 +103,7 @@ void trkf::TrackKalmanCheater::beginJob()
   }
 }
 
+//------------------------------------------------------------------------------
 /// Produce method.
 ///
 /// Arguments:
@@ -133,18 +137,12 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
   // Get Services.
 
   art::ServiceHandle<geo::Geometry> geom;
+  art::ServiceHandle<cheat::BackTracker> bt;
 
   // Reset space point algorithm.
 
   fSpacePointAlg.clearHitMap();
 
-  // Get SimChannels.
-  // Make a vector where each channel in the detector is an entry
-  std::vector<const sim::SimChannel*> simchanh;
-  std::vector<const sim::SimChannel*> simchanv(geom->Nchannels(),0);
-  evt.getView(fG4ModuleLabel, simchanh);
-  for(size_t i = 0; i < simchanh.size(); ++i)
-    simchanv[simchanh[i]->Channel()] = simchanh[i];
 
   // Get Hits.
 
@@ -158,17 +156,18 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
     evt.getByLabel(fClusterModuleLabel, clusterh);
 
     // Get hits from all clusters.
+    art::FindManyP<recob::Hit> fm(clusterh, evt, fClusterModuleLabel);
 
     if(clusterh.isValid()) {
       int nclus = clusterh->size();
 
       for(int i = 0; i < nclus; ++i) {
 	art::Ptr<recob::Cluster> pclus(clusterh, i);
-	art::PtrVector<recob::Hit> clushits = pclus->Hits();
+	std::vector< art::Ptr<recob::Hit> > clushits = fm.at(i);
 	int nhits = clushits.size();
 	hits.reserve(hits.size() + nhits);
 
-	for(art::PtrVector<recob::Hit>::const_iterator ihit = clushits.begin();
+	for(std::vector< art::Ptr<recob::Hit> >::const_iterator ihit = clushits.begin();
 	    ihit != clushits.end(); ++ihit) {
 	  hits.push_back(*ihit);
 	}
@@ -198,14 +197,11 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 
   for(art::PtrVector<recob::Hit>::const_iterator ihit = hits.begin();
 	ihit != hits.end(); ++ihit) {
-    const recob::Hit& hit = **ihit;
+    //const recob::Hit& hit = **ihit;
 
     // Get track ids for this hit.
 
-    unsigned int channel = hit.Channel();
-    assert(channel < simchanv.size());
-    const sim::SimChannel* simchan = simchanv[channel];
-    std::vector<cheat::TrackIDE> tids = cheat::BackTracker::HitToTrackID(*simchan, *ihit);
+    std::vector<cheat::TrackIDE> tids = bt->HitToTrackID(*ihit);
 
     // Loop over track ids.
 
@@ -221,7 +217,7 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 
   // Extract geant mc particles.
 
-  sim::ParticleList plist = sim::SimListUtils::GetParticleList(evt, fG4ModuleLabel);
+  sim::ParticleList plist = bt->ParticleList();
 
   // Loop over geant particles.
 
@@ -287,7 +283,7 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	  KHitContainerWireX cont;
 	  cont.fill(trackhits, -1);
 
-	  // Count hits in each plane.  Set the preferred plane to be
+	  // Count hits in each plane.  Set the preffered plane to be
 	  // the one with the most hits.
 
 	  std::vector<unsigned int> planehits(3, 0);
@@ -313,7 +309,8 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	  fKFAlg.setPlane(prefplane);
 	  bool ok = fKFAlg.buildTrack(trk, trg, fProp, Propagator::FORWARD, cont);
 	  if(ok) {
-	    ok = fKFAlg.smoothTrackIter(5, trg, fProp);
+	    KGTrack trg1;
+	    ok = fKFAlg.smoothTrack(trg, &trg1, fProp);
 	    if(ok) {
 	      KETrack tremom;
 	      bool pok = fKFAlg.fitMomentum(trg, fProp, tremom);
@@ -370,8 +367,7 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
     // Add Track object to collection.
 
     tracks->push_back(recob::Track());
-    kalman_track.fillTrack(tracks->back());
-    tracks->back().SetID(tracks->size() - 1);
+    kalman_track.fillTrack(tracks->back(), tracks->size() - 1);
 
     // Make Track to Hit associations.  
 

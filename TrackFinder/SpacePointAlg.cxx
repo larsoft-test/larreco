@@ -463,7 +463,8 @@ namespace  trkf{
   // Assume points have already been tested for compatibility.
   //
   void SpacePointAlg::fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
-				     recob::SpacePoint& spt) const
+				     std::vector<recob::SpacePoint> &sptv,
+				     int sptid) const
   {
     // Get services.
 
@@ -474,16 +475,12 @@ namespace  trkf{
     double timePitch=detprop->GetXTicksCoefficient();
 
     // Store hits in SpacePoint.
-
-    int id = spt.ID();               // Remember space point id.
-    spt = recob::SpacePoint(hits);
-    spt.SetID(id);
     int nhits = hits.size();
 
     // Remember associated hits internally.
 
-    assert(fSptHitMap.count(spt.ID()) == 0);
-    fSptHitMap[spt.ID()] = hits;
+    assert(fSptHitMap.count(sptid) == 0);
+    fSptHitMap[sptid] = hits;
 
     // Calculate position and error matrix.
 
@@ -595,10 +592,8 @@ namespace  trkf{
       }
 
       // Set coordintates, error matrix, and chisquare in space point.
-
-      spt.SetXYZ(xyz);
-      spt.SetErrXYZ(errxyz);
-      spt.SetChisq(chisq);
+      recob::SpacePoint spt(xyz, errxyz, chisq, sptid);
+      sptv.push_back(spt);
     }
     return;
   }
@@ -611,7 +606,8 @@ namespace  trkf{
   //
   void SpacePointAlg::
   fillComplexSpacePoint(const art::PtrVector<recob::Hit>& hits,
-			recob::SpacePoint& spt) const
+			std::vector<recob::SpacePoint>& sptv, 
+			int                sptid) const
   {
     // Get services.
 
@@ -636,14 +632,10 @@ namespace  trkf{
 
     // Store hits in SpacePoint.
 
-    int id = spt.ID();               // Remember space point id.
-    spt = recob::SpacePoint(hits);
-    spt.SetID(id);
-
     // Remember associated hits internally.
 
-    assert(fSptHitMap.count(spt.ID()) == 0);
-    fSptHitMap[spt.ID()] = hits;
+    assert(fSptHitMap.count(sptid) == 0);
+    fSptHitMap[sptid] = hits;
 
     // Do a preliminary scan of hits.
     // Determine weight given to hits in each view.
@@ -779,10 +771,9 @@ namespace  trkf{
       }
 
       // Set coordintates, error matrix, and chisquare in space point.
+      recob::SpacePoint spt(xyz, errxyz, chisq, sptid);
+      sptv.push_back(spt);
 
-      spt.SetXYZ(xyz);
-      spt.SetErrXYZ(errxyz);
-      spt.SetChisq(chisq);
     }
     return;
   }
@@ -794,8 +785,7 @@ namespace  trkf{
   void SpacePointAlg::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 				      std::vector<recob::SpacePoint>& spts) const
   {
-    std::vector<const sim::SimChannel*> empty;
-    makeSpacePoints(hits, spts, empty, false, fFilter, fMerge, fMaxDT, fMaxS);
+    makeSpacePoints(hits, spts, false, fFilter, fMerge, fMaxDT, fMaxS);
   }
 
   //----------------------------------------------------------------------
@@ -807,8 +797,7 @@ namespace  trkf{
 				      bool filter, bool merge,
 				      double maxDT, double maxS) const
   {
-    std::vector<const sim::SimChannel*> empty;
-    makeSpacePoints(hits, spts, empty, false, filter, merge, maxDT, maxS);
+    makeSpacePoints(hits, spts, false, filter, merge, maxDT, maxS);
   }
 
   //----------------------------------------------------------------------
@@ -816,10 +805,9 @@ namespace  trkf{
   // from an input vector of hits (non-config-overriding, mc-truth version).
   //
   void SpacePointAlg::makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
-					     std::vector<recob::SpacePoint>& spts,
-					     const std::vector<const sim::SimChannel*>& simchans) const
+					     std::vector<recob::SpacePoint>& spts) const
   {
-    makeSpacePoints(hits, spts, simchans, true, fFilter, fMerge, fMaxDT, fMaxS);
+    makeSpacePoints(hits, spts, true, fFilter, fMerge, fMaxDT, fMaxS);
   }
 
   //----------------------------------------------------------------------
@@ -828,11 +816,10 @@ namespace  trkf{
   //
   void SpacePointAlg::makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
 					     std::vector<recob::SpacePoint>& spts,
-					     const std::vector<const sim::SimChannel*>& simchans,
 					     bool filter, bool merge,
 					     double maxDT, double maxS) const
   {
-    makeSpacePoints(hits, spts, simchans, true, filter, merge, maxDT, maxS);
+    makeSpacePoints(hits, spts, true, filter, merge, maxDT, maxS);
   }
 
   //----------------------------------------------------------------------
@@ -841,7 +828,6 @@ namespace  trkf{
   //
   void SpacePointAlg::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 				      std::vector<recob::SpacePoint>& spts,
-				      const std::vector<const sim::SimChannel*>& simchans,
 				      bool useMC,
 				      bool filter, bool merge,
 				      double maxDT, double maxS) const
@@ -854,7 +840,6 @@ namespace  trkf{
       maxS = fMaxS;  
 
     // Get services.
-
     art::ServiceHandle<geo::Geometry> geom;
     art::ServiceHandle<util::DetectorProperties> detprop;
 
@@ -877,18 +862,6 @@ namespace  trkf{
     int n3 = 0;  // Number of three-hit space points.
     int n2filt = 0;  // Number of two-hit space points after filtering/merging.
     int n3filt = 0;  // Number of three-hit space pointe after filtering/merging.
-
-    // If useMC is true, verify that channels are sorted by channel number.
-
-    if(useMC) {
-
-      unsigned int nsc = simchans.size();
-      for(unsigned int isc = 0; isc < nsc; ++isc) {
-	const sim::SimChannel* psc = simchans[isc];
-	if(psc != 0 && isc != psc->Channel())
-	  throw cet::exception("SpacePointAlg") << "MC channels not sorted.\n";
-      }
-    }
 
     // Sort hits into maps indexed by [cryostat][tpc][plane][wire].
     // If using mc information, also generate maps of sim::IDEs and mc 
@@ -928,6 +901,7 @@ namespace  trkf{
     ///\todo Why are we still checking on whether this is MC or not?  
     ///\todo Such checks should not be in reconstruction code.
     if(useMC) {
+      art::ServiceHandle<cheat::BackTracker> bt;
 
       // First loop over hits and fill track ids and mc position.
       for(unsigned int cstat = 0; cstat < ncstat; ++cstat){
@@ -948,7 +922,7 @@ namespace  trkf{
 	      // Get sim::IDEs for this hit.
 
 	      std::vector<sim::IDE> ides;
-	      cheat::BackTracker::HitToSimIDEs(*simchans[hit.Channel()], phit, ides);
+	      bt->HitToSimIDEs(phit, ides);
 	    
 	      // Get sorted track ids. for this hit.
 	    
@@ -960,7 +934,7 @@ namespace  trkf{
 	    
 	      // Get position of ionization for this hit.
 	    
-	      mcinfo.xyz = cheat::BackTracker::SimIDEsToXYZ(ides);
+	      mcinfo.xyz = bt->SimIDEsToXYZ(ides);
 	    } // end loop over ihit
 	  }// end loop oer planes
 	}// end loop over TPCs
@@ -1129,18 +1103,20 @@ namespace  trkf{
 		  
 		    ++n2;
 		    if(filter || merge) {
+		      // make a dummy vector of recob::SpacePoints
+		      // as we are filtering or merging and don't want to 
+		      // add the created SpacePoint to the final collection just yet
+		      // This dummy vector will hold just one recob::SpacePoint,
+		      // which will go into the multimap and then the vector
+		      // will go out of scope
+		      std::vector<recob::SpacePoint> sptv;
+		      fillSpacePoint(hitvec, sptv, sptmap.size()-1);
 		      sptkey_type key = &*phit2;
-		      std::multimap<sptkey_type, recob::SpacePoint>::iterator it = 
-			sptmap.insert(std::pair<sptkey_type, recob::SpacePoint>(key, recob::SpacePoint()));
+		      sptmap.insert(std::pair<sptkey_type, recob::SpacePoint>(key, sptv.back()));
 		      sptkeys.insert(key);
-		      recob::SpacePoint& spt = it->second;
-		      spt.SetID(sptmap.size()-1);
-		      fillSpacePoint(hitvec,  spt);
 		    }
 		    else {
-		      spts.push_back(recob::SpacePoint());
-		      spts.back().SetID(spts.size()-1);
-		      fillSpacePoint(hitvec, spts.back());
+		      fillSpacePoint(hitvec, spts, spts.size()-1);
 		    }
 		  }
 		}
@@ -1318,18 +1294,20 @@ namespace  trkf{
 			
 			  ++n3;
 			  if(filter || merge) {
+			    // make a dummy vector of recob::SpacePoints
+			    // as we are filtering or merging and don't want to 
+			    // add the created SpacePoint to the final collection just yet
+			    // This dummy vector will hold just one recob::SpacePoint,
+			    // which will go into the multimap and then the vector
+			    // will go out of scope
+			    std::vector<recob::SpacePoint> sptv;
+			    fillSpacePoint(hitvec, sptv, sptmap.size()-1);
 			    sptkey_type key = &*phit3;
-			    std::multimap<sptkey_type, recob::SpacePoint>::iterator it = 
-			      sptmap.insert(std::pair<sptkey_type, recob::SpacePoint>(key, recob::SpacePoint()));
+			    sptmap.insert(std::pair<sptkey_type, recob::SpacePoint>(key, sptv.back()));
 			    sptkeys.insert(key);
-			    recob::SpacePoint& spt = it->second;
-			    spt.SetID(sptmap.size()-1);
-			    fillSpacePoint(hitvec, spt);
 			  }
 			  else {
-			    spts.push_back(recob::SpacePoint());
-			    spts.back().SetID(spts.size()-1);
-			    fillSpacePoint(hitvec,  spts.back());
+			    fillSpacePoint(hitvec,  spts, spts.size()-1);
 			  }
 			}
 		      }
@@ -1427,10 +1405,7 @@ namespace  trkf{
 	    merged_hits.erase(it, merged_hits.end());
 	  
 	    // Construct a complex space points using merged hits.
-	  
-	    spts.push_back(recob::SpacePoint());
-	    spts.back().SetID(sptmap.size() + spts.size()-1);
-	    fillComplexSpacePoint(merged_hits, spts.back());
+	    fillComplexSpacePoint(merged_hits, spts, sptmap.size() + spts.size()-1);
 	  
 	    if(fMinViews <= 2)
 	      ++n2filt;
@@ -1463,7 +1438,9 @@ namespace  trkf{
       fSptHitMap.find(spt.ID());
     if(it == fSptHitMap.end())
       throw cet::exception("SpacePointAlg") << "No Hits associated with space point.\n";
+    
     return (*it).second;
+
   }
 
 

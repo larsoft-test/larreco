@@ -62,10 +62,10 @@
 #include "Genfit/GFDaf.h"
 #include "Utilities/AssociationUtil.h"
 
-static bool sp_sort_3dz(const recob::SpacePoint& h1, const recob::SpacePoint& h2)
+static bool sp_sort_3dz(const art::Ptr<recob::SpacePoint>& h1, const art::Ptr<recob::SpacePoint>& h2)
 {
-  const double* xyz1 = h1.XYZ();
-  const double* xyz2 = h2.XYZ();
+  const double* xyz1 = h1->XYZ();
+  const double* xyz2 = h2->XYZ();
   return xyz1[2] < xyz2[2];
 }
 
@@ -86,9 +86,10 @@ trkf::Track3DKalmanSPS::Track3DKalmanSPS(fhicl::ParameterSet const& pset)
 
     this->reconfigure(pset);
 
-    produces< std::vector<recob::Track>               >();
-    produces<art::Assns<recob::Track, recob::Cluster> >();
-    produces<art::Assns<recob::Track, recob::Hit>     >();
+    produces< std::vector<recob::Track>                  >();
+    produces<art::Assns<recob::Track, recob::Cluster>    >();
+    produces<art::Assns<recob::Track, recob::SpacePoint> >();
+    produces<art::Assns<recob::Track, recob::Hit>        >();
 
     // get the random number seed, use a random default if not specified    
     // in the configuration file.  
@@ -130,6 +131,7 @@ trkf::Track3DKalmanSPS::~Track3DKalmanSPS()
 {
 }
 
+//-------------------------------------------------
 // stolen, mostly, from GFMaterialEffects.
 double trkf::Track3DKalmanSPS::energyLossBetheBloch(const double& mass,
 						    const double p=1.5
@@ -327,6 +329,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   // because that handles the memory management for you
   //////////////////////////////////////////////////////
   std::auto_ptr<std::vector<recob::Track> > tcol(new std::vector<recob::Track>);
+  std::auto_ptr< art::Assns<recob::Track, recob::SpacePoint> > tspassn(new art::Assns<recob::Track, recob::SpacePoint>); 
   std::auto_ptr< art::Assns<recob::Track, recob::Cluster> > assn(new art::Assns<recob::Track, recob::Cluster>); 
   std::auto_ptr< art::Assns<recob::Track, recob::Hit> > hassn(new art::Assns<recob::Track, recob::Hit>); 
   unsigned int tcnt = 0;
@@ -338,6 +341,8 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   // get input Hit object(s).
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fClusterModuleLabel,clusterListHandle);
+
+  art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fClusterModuleLabel);
 
   //art::Handle< std::vector<recob::Prong> > prongListHandle;
   //evt.getByLabel(fProngModuleLabel,prongListHandle);
@@ -351,9 +356,10 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   art::View < recob::Prong > prongListHandle;
   evt.getView(fProngModuleLabel,prongListHandle);
 
-  art::PtrVector<simb::MCTruth> mclist;
-  std::vector<const sim::SimChannel*> simChannelHandle;
+  art::FindManyP<recob::SpacePoint> fmsp(prongListHandle, evt, fProngModuleLabel);
+  art::FindManyP<recob::Cluster>    fmc (prongListHandle, evt, fProngModuleLabel);
 
+  art::PtrVector<simb::MCTruth> mclist;
 
   /// \todo Should never test whether the event is real data in reconstruction algorithms
   /// \todo as that introduces potential data/MC differences that are very hard to track down
@@ -373,7 +379,6 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 	  mclist.push_back(mctparticle);
 	}
 
-      evt.getView(fG4ModuleLabel, simChannelHandle);      
     }
 
   //create collection of spacepoints that will be used when creating the Track object
@@ -467,7 +472,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
       size_t cntp(0);
       while (pprong!=prongIn.end()) 
 	{
-	  const std::vector<recob::SpacePoint>& spacepoints = (*pprong)->SpacePoints();
+	  const std::vector< art::Ptr<recob::SpacePoint> >& spacepoints = fmsp.at(nTrks);
 	  double fMaxUpdateHere(fMaxUpdateU);
 	  int fDecimateHere(fDecimateU);
 	  double fErrScaleSHere(fErrScaleS);
@@ -477,7 +482,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  
 	  mf::LogInfo("Track3DKalmanSPS: ")<<"\n\t found "<<spacepoints.size()<<" 3D spacepoint(s) for this prong \n";
 	  
-	  const double resolution = posErr.Mag(); 
+	  //const double resolution = posErr.Mag(); 
 	  
 	  // Let's find track's principle components.
 	  // We will sort along that direction, rather than z.
@@ -495,15 +500,15 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 	  sigmas= new TVectorD(3);
 	  // I need to shuffle these around, so use copy constructor
 	  // to make non-const version spacepointss.
-	  std::vector<recob::SpacePoint> spacepointss(spacepoints);
+	  std::vector< art::Ptr<recob::SpacePoint> > spacepointss(spacepoints);
 	  std::sort(spacepointss.begin(), spacepointss.end(), sp_sort_3dz);
 	  int nTailPoints = 0; // 100;
 	  for (unsigned int point=0;point<(spacepointss.size()-nTailPoints);++point)
 	    {
-	      data[0] = spacepointss[point].XYZ()[0];
-	      data[1] = spacepointss[point].XYZ()[1];
-	      data[2] = spacepointss[point].XYZ()[2];
-	      //		      std::cout << "Spacepoint " << point << " added:" << spacepointss[point].XYZ()[0]<< ", " << spacepointss[point].XYZ()[1]<< ", " << spacepointss[point].XYZ()[2]<< ". " << std::endl;
+	      data[0] = spacepointss[point]->XYZ()[0];
+	      data[1] = spacepointss[point]->XYZ()[1];
+	      data[2] = spacepointss[point]->XYZ()[2];
+	      //		      std::cout << "Spacepoint " << point << " added:" << spacepointss[point]->XYZ()[0]<< ", " << spacepointss[point]->XYZ()[1]<< ", " << spacepointss[point]->XYZ()[2]<< ". " << std::endl;
 	      principal->AddRow(data);
 	    }
 	  delete [] data;
@@ -522,7 +527,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 	  Double_t* pc = new Double_t[3];
 	  for (unsigned int point=0;point<spacepointss.size();++point)
 	    {
-	      principal->X2P((Double_t *)(spacepointss[point].XYZ()),pc);
+	      principal->X2P((Double_t *)(spacepointss[point]->XYZ()),pc);
 	      pcs.push_back((TVector3 *)pc);
 	    }
 	  delete [] pc;
@@ -551,9 +556,9 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 
 	  // Use a mip approximation assuming straight lines
 	  // and a small angle wrt beam. 
-	  fMomStart[0] = spacepointss[spacepointss.size()-1].XYZ()[0] - spacepointss[0].XYZ()[0];
-	  fMomStart[1] = spacepointss[spacepointss.size()-1].XYZ()[1] - spacepointss[0].XYZ()[1];
-	  fMomStart[2] = spacepointss[spacepointss.size()-1].XYZ()[2] - spacepointss[0].XYZ()[2];
+	  fMomStart[0] = spacepointss[spacepointss.size()-1]->XYZ()[0] - spacepointss[0]->XYZ()[0];
+	  fMomStart[1] = spacepointss[spacepointss.size()-1]->XYZ()[1] - spacepointss[0]->XYZ()[1];
+	  fMomStart[2] = spacepointss[spacepointss.size()-1]->XYZ()[2] - spacepointss[0]->XYZ()[2];
 	  // This presumes a 0.8 GeV/c particle
 	  double dEdx = 1.02*energyLossBetheBloch(mass, 1.0);
 	  // mom is really KE. 
@@ -572,12 +577,12 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 	  bool uncontained(false);
 	  double close(20.); // cm. 
 	  if (
-	      spacepointss[spacepointss.size()-1].XYZ()[0] > (2.*geom->DetHalfWidth(0,0)-close) || spacepointss[spacepointss.size()-1].XYZ()[0] < close ||
-	      spacepointss[0].XYZ()[0] > (2.*geom->DetHalfWidth(0,0)-close) || spacepointss[0].XYZ()[0] < close ||
-	      spacepointss[spacepointss.size()-1].XYZ()[1] > (2.*geom->DetHalfHeight(0,0)-close) || (spacepointss[spacepointss.size()-1].XYZ()[1] < -2.*geom->DetHalfHeight(0,0)+close) ||
-	      spacepointss[0].XYZ()[1] > (2.*geom->DetHalfHeight(0,0)-close) || spacepointss[0].XYZ()[1] < (-2.*geom->DetHalfHeight(0,0)+close) ||
-	      spacepointss[spacepointss.size()-1].XYZ()[2] > (geom->DetLength(0,0)-close) || spacepointss[spacepointss.size()-1].XYZ()[2] < close ||
-	      spacepointss[0].XYZ()[2] > (geom->DetLength(0,0)-close) || spacepointss[0].XYZ()[2] < close
+	      spacepointss[spacepointss.size()-1]->XYZ()[0] > (2.*geom->DetHalfWidth(0,0)-close) || spacepointss[spacepointss.size()-1]->XYZ()[0] < close ||
+	      spacepointss[0]->XYZ()[0] > (2.*geom->DetHalfWidth(0,0)-close) || spacepointss[0]->XYZ()[0] < close ||
+	      spacepointss[spacepointss.size()-1]->XYZ()[1] > (2.*geom->DetHalfHeight(0,0)-close) || (spacepointss[spacepointss.size()-1]->XYZ()[1] < -2.*geom->DetHalfHeight(0,0)+close) ||
+	      spacepointss[0]->XYZ()[1] > (2.*geom->DetHalfHeight(0,0)-close) || spacepointss[0]->XYZ()[1] < (-2.*geom->DetHalfHeight(0,0)+close) ||
+	      spacepointss[spacepointss.size()-1]->XYZ()[2] > (geom->DetLength(0,0)-close) || spacepointss[spacepointss.size()-1]->XYZ()[2] < close ||
+	      spacepointss[0]->XYZ()[2] > (geom->DetLength(0,0)-close) || spacepointss[0]->XYZ()[2] < close
 	      )
 	    uncontained = true; 
 	  
@@ -611,13 +616,13 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 			     momM[2]/100.0);   // GeV
 	  
 	  genf::GFFieldManager::getInstance()->init(new genf::GFConstField(0.,0.,0.0));
-	  genf::GFDetPlane planeG((TVector3)(spacepointss[0].XYZ()),momM);
+	  genf::GFDetPlane planeG((TVector3)(spacepointss[0]->XYZ()),momM);
 	  
 
 	  //      std::cout<<"Track3DKalmanSPS about to do GAbsTrackRep."<<std::endl;
 	  // Initialize with 1st spacepoint location and ...
 	  rep = new genf::RKTrackRep(//posM-.5/momM.Mag()*momM,
-				     (TVector3)(spacepointss[0].XYZ()),
+				     (TVector3)(spacepointss[0]->XYZ()),
 				     momM,
 				     posErr,
 				     momErrFit,
@@ -639,23 +644,23 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 	      // reject spt if it's too far out. Remember, the 
 	      // sigmas are sqrt(eigenvals).
 	      double tmp[3];
-	      principal->X2P((Double_t *)(spacepointss[point].XYZ()),tmp);
+	      principal->X2P((Double_t *)(spacepointss[point]->XYZ()),tmp);
 	      sep = sqrt(tmp[1]*tmp[1]/fPCevals[1]+tmp[2]*tmp[2]/fPCevals[2]);
 	      if ((fabs(sep) > fPerpLim) && (point<(spacepointss.size()-nTailPoints)))
 		{
-		  //			std::cout << "Spacepoint " << point << " DROPPED!!!:" << spacepointss[point].XYZ()[0]<< ", " << spacepointss[point].XYZ()[1]<< ", " << spacepointss[point].XYZ()[2]<< ". " << std::endl;
+		  //			std::cout << "Spacepoint " << point << " DROPPED!!!:" << spacepointss[point]->XYZ()[0]<< ", " << spacepointss[point]->XYZ()[1]<< ", " << spacepointss[point]->XYZ()[2]<< ". " << std::endl;
 		  continue;
 		}
 	      if (point%fDecimateHere) // Jump out of loop except on every fDecimate^th pt. fDecimate==1 never sees continue.
 		{
 		  continue;
 		}
-	      TVector3 spt3 = (TVector3)(spacepointss[point].XYZ());
+	      TVector3 spt3 = (TVector3)(spacepointss[point]->XYZ());
 	      std::vector <double> err3;
-	      err3.push_back(spacepointss[point].ErrXYZ()[0]);
-	      err3.push_back(spacepointss[point].ErrXYZ()[2]);
-	      err3.push_back(spacepointss[point].ErrXYZ()[4]);
-	      err3.push_back(spacepointss[point].ErrXYZ()[5]); // lower triangle diags.
+	      err3.push_back(spacepointss[point]->ErrXYZ()[0]);
+	      err3.push_back(spacepointss[point]->ErrXYZ()[2]);
+	      err3.push_back(spacepointss[point]->ErrXYZ()[4]);
+	      err3.push_back(spacepointss[point]->ErrXYZ()[5]); // lower triangle diags.
 	      if (fptsNo<fDimSize)
 		{
 		  fshx[fptsNo] = spt3[0];
@@ -816,9 +821,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  evtt = (unsigned int) evt.id().event();
 
 	      
-		  art::PtrVector<recob::Cluster> clusters;
-		  // Use Assns to get the clusters for the spacepoints.
-		  clusters = util::FindManyP<recob::Cluster>(prongIn, evt, fProngModuleLabel, cntp);
+		  std::vector< art::Ptr<recob::Cluster> > clusters = fmc.at(cntp);
 		  cntp++;
 		  std::vector <std::vector <double> > dQdxDummy(0);
 		  // Calculate FirstLast momentum and cov7x7.
@@ -835,23 +838,22 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
 		  tree->Fill();
 		  
 		  recob::Track  the3DTrack(hitPlaneXYZ,hitPlaneUxUyUz,
-					   c7x7FL,dQdxDummy,pFL
+					   c7x7FL,dQdxDummy,pFL, tcnt++
 					   );
 	      
-		  // SetDirection knows how to use just the first 3 of each of
-		  // the 4-element vectors pointed to here by their pointers.
-		  the3DTrack.SetDirection((double*)fpREC, (double*)fpRECL);
-		  the3DTrack.SetID(tcnt++);
 		  
 		  tcol->push_back(the3DTrack);
-		  util::CreateAssn(*this, evt, *(tcol.get()), clusters,*(assn.get()));
+		  util::CreateAssn(*this, evt, *tcol, clusters, *assn);
 		  
 		  // associate the cluster hits with the track as well
 		  for(size_t c = 0; c < clusters.size(); ++c)
 		    {
-		      art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(clusters, evt, fClusterModuleLabel, c);
-		      util::CreateAssn(*this, evt, *(tcol.get()), hits, *(hassn.get()));
+		      util::CreateAssn(*this, evt, *tcol, fmh.at(c), *hassn);
 		    }
+		  
+		  // and now the spacepoints
+		  util::CreateAssn(*this, evt, *tcol, spacepoints, *tspassn);
+
 		} // end !skipFill
 	    } // getStatusFlag
 	  
@@ -867,4 +869,5 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
       evt.put(tcol); 
       evt.put(assn);
       evt.put(hassn);
+      evt.put(tspassn);
 }

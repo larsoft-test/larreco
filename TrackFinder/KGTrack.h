@@ -50,6 +50,7 @@ namespace trkf {
     /// Number of measurements in track.
     size_t numHits() const {return fTrackMap.size();}
 
+
     /// Track at start point.
     const KHitTrack& startTrack() const;
 
@@ -82,7 +83,8 @@ namespace trkf {
     // Methods.
 
     /// Fill a recob::Track.
-    void fillTrack(recob::Track& track) const;
+    void fillTrack(recob::Track& track,
+		   int id) const;
 
     /// Fill a PtrVector of Hits.
     void fillHits(art::PtrVector<recob::Hit>& hits) const;

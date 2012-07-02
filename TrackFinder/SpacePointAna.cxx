@@ -10,17 +10,19 @@
 #include <map>
 #include <vector>
 #include <algorithm>
-#include "messagefacility/MessageLogger/MessageLogger.h"
-#include "Utilities/DetectorProperties.h"
+
 #include "TrackFinder/SpacePointAna.h"
 #include "Geometry/geo.h"
+#include "Utilities/DetectorProperties.h"
 #include "Utilities/LArProperties.h"
+#include "Utilities/AssociationUtil.h"
+#include "RecoBase/recobase.h"
+#include "MCCheater/BackTracker.h"
+
+#include "messagefacility/MessageLogger/MessageLogger.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "art/Framework/Services/Optional/TFileService.h" 
-#include "RecoBase/Hit.h"
-#include "RecoBase/Cluster.h"
-#include "MCCheater/BackTracker.h"
 
 namespace trkf {
 
@@ -133,6 +135,8 @@ namespace trkf {
   // Arguments: event - Art event.
   //
   {
+    art::ServiceHandle<cheat::BackTracker> bt;
+
     ++fNumEvent;
 
     // Make sure histograms are booked.
@@ -146,17 +150,6 @@ namespace trkf {
     art::ServiceHandle<util::DetectorProperties> detprop;
     art::ServiceHandle<util::LArProperties> larprop;
 
-    // Get SimChannels.
-    // now make a vector where each channel in the detector is an 
-    // entry
-    std::vector<const sim::SimChannel*> simchanh;
-    std::vector<const sim::SimChannel*> simchanv(geom->Nchannels(),0);
-    if(mc) {
-      evt.getView(fG4ModuleLabel, simchanh);
-      for(size_t i = 0; i < simchanh.size(); ++i)
-	simchanv[simchanh[i]->Channel()] = simchanh[i];
-    }
-
     // Get Hits.
 
     art::PtrVector<recob::Hit> hits;
@@ -169,17 +162,18 @@ namespace trkf {
       evt.getByLabel(fClusterModuleLabel, clusterh);
 
       // Get hits from all clusters.
-
+      art::FindManyP<recob::Hit> fm(clusterh, evt, fClusterModuleLabel);
+      
       if(clusterh.isValid()) {
 	int nclus = clusterh->size();
 
 	for(int i = 0; i < nclus; ++i) {
 	  art::Ptr<recob::Cluster> pclus(clusterh, i);
-	  art::PtrVector<recob::Hit> clushits = pclus->Hits();
+	  std::vector< art::Ptr<recob::Hit> > clushits = fm.at(i);
 	  int nhits = clushits.size();
 	  hits.reserve(hits.size() + nhits);
 
-	  for(art::PtrVector<recob::Hit>::const_iterator ihit = clushits.begin();
+	  for(std::vector< art::Ptr<recob::Hit> >::const_iterator ihit = clushits.begin();
 	      ihit != clushits.end(); ++ihit) {
 	    hits.push_back(*ihit);
 	  }
@@ -221,14 +215,7 @@ namespace trkf {
 	//double tend = hit.EndTime();
 	double terr = hit.SigmaPeakTime();
 
-	// Get SimChan associated with this hit.
-
 	assert(channel == hit.Channel());
-	if(channel >= simchanv.size() || channel != simchanv[channel]->Channel()) {
-	  mf::LogError("BackTracker") << "Channel " << channel << " overflow or channels not sorted.";
-	  return;
-	}
-	const sim::SimChannel& simchan = *simchanv[channel];
 
 	// Loop over electrons associated with this hit/channel and fill
 	// hit-electron time difference histograms.
@@ -258,7 +245,7 @@ namespace trkf {
 	//if(sumw != 0.)
 	//  tav = sumt / sumw;
 
-	std::vector<double> hitxyz = cheat::BackTracker::HitToXYZ(simchan, *ihit);
+	std::vector<double> hitxyz = bt->HitToXYZ(*ihit);
 	double tav = detprop->ConvertXToTicks(hitxyz[0], plane, tpc, cstat);
 
 	if(view == geo::kU) {
@@ -287,7 +274,7 @@ namespace trkf {
 
     if(fMaxDT != 0 && !fSptalg.merge()) {
       if(mc && fUseMC)
-	fSptalg.makeMCTruthSpacePoints(hits, spts1, simchanv,
+	fSptalg.makeMCTruthSpacePoints(hits, spts1, 
 				       fSptalg.filter(), fSptalg.merge(),
 				       fMaxDT, 0.);
       else
@@ -306,7 +293,7 @@ namespace trkf {
 
     if(fMaxS != 0. && !fSptalg.merge()) {
       if(mc && fUseMC)
-	fSptalg.makeMCTruthSpacePoints(hits, spts2, simchanv,
+	fSptalg.makeMCTruthSpacePoints(hits, spts2, 
 				       fSptalg.filter(), fSptalg.merge(),
 				       0., fMaxS);
       else
@@ -323,7 +310,7 @@ namespace trkf {
     // Make space points using default cuts.
 
     if(mc && fUseMC)
-      fSptalg.makeMCTruthSpacePoints(hits, spts3, simchanv);
+      fSptalg.makeMCTruthSpacePoints(hits, spts3);
     else
       fSptalg.makeSpacePoints(hits, spts3);
 
@@ -348,7 +335,7 @@ namespace trkf {
 
 	// Get hits associated with this SpacePoint.
 
-	const art::PtrVector<recob::Hit>& spthits = spt.Hits(geo::kU, true);
+	const art::PtrVector<recob::Hit>& spthits = fSptalg.getAssociatedHits(spt);
 
 	// Make a double loop over hits and fill hit time difference histograms.
 
@@ -411,7 +398,7 @@ namespace trkf {
 
 	// Get hits associated with this SpacePoint.
 
-	const art::PtrVector<recob::Hit>& spthits = spt.Hits(geo::kU, true);
+	const art::PtrVector<recob::Hit>& spthits = fSptalg.getAssociatedHits(spt);
 
 	// Fill separation histogram.
 
@@ -434,7 +421,7 @@ namespace trkf {
       fHy->Fill(spt.XYZ()[1]);
       fHz->Fill(spt.XYZ()[2]);
       if(mc) {
-	std::vector<double> mcxyz = cheat::BackTracker::SpacePointToXYZ(simchanv, spt);
+	std::vector<double> mcxyz = bt->SpacePointHitsToXYZ(fSptalg.getAssociatedHits(spt));
 	fHMCdx->Fill(spt.XYZ()[0] - mcxyz[0]);
 	fHMCdy->Fill(spt.XYZ()[1] - mcxyz[1]);
 	fHMCdz->Fill(spt.XYZ()[2] - mcxyz[2]);

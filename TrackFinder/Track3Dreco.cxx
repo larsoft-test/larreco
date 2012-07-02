@@ -134,7 +134,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
    std::vector<double> Itimelasts;        // in cm
    std::vector<double> Itimefirsts_line;  // in cm
    std::vector<double> Itimelasts_line;   // in cm
-   std::vector < art::PtrVector<recob::Hit> > IclusHitlists;
+   std::vector < std::vector<art::Ptr<recob::Hit> > > IclusHitlists;
    std::vector<unsigned int> Icluster_count; 
 
    // Collection
@@ -144,7 +144,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
    std::vector<double> Ctimelasts;        // in cm
    std::vector<double> Ctimefirsts_line;  // in cm
    std::vector<double> Ctimelasts_line;   // in cm
-   std::vector< art::PtrVector < recob::Hit> > CclusHitlists;
+   std::vector< std::vector< art::Ptr<recob::Hit> > > CclusHitlists;
    std::vector<unsigned int> Ccluster_count; 
 
    // Some variables for the hit
@@ -157,6 +157,8 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 
    size_t startSPIndex = spacepoints->size(); //index for knowing which spacepoints are with which cluster
    size_t endSPIndex = spacepoints->size(); //index for knowing which spacepoints are with which cluster
+
+   art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fClusterModuleLabel);
 
    for(size_t ii = 0; ii < clusterListHandle->size(); ++ii){
 
@@ -171,15 +173,13 @@ void trkf::Track3Dreco::produce(art::Event& evt)
      ///\todo: This is very bad practice and should be changed ASAP
      if (cl->View() == geo::kW) continue;      
      
-     art::PtrVector<recob::Hit> hitlist;
-     //hitlist = cl->Hits();
-     hitlist = util::FindManyP<recob::Hit>(clusterListHandle, evt, fClusterModuleLabel, ii);
+     std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(ii);
 
      if(hitlist.size() == 1) continue;//only one Hit in this Cluster...will cause TGraph fit to fail.
 
      // sort the hit list to be sure it is in the correct order 
      // using the Hit < operator
-     hitlist.sort();
+     std::sort(hitlist.begin(), hitlist.end());
      
      TGraph *the2Dtrack = new TGraph(hitlist.size());
      
@@ -281,7 +281,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
      //double Ct1 = Ctimelasts[collectionIter];
      double Ct0_line = Ctimefirsts_line[collectionIter];
      double Ct1_line = Ctimelasts_line[collectionIter];
-     art::PtrVector<recob::Hit> hitsCtrk = CclusHitlists[collectionIter];
+     std::vector< art::Ptr<recob::Hit> > hitsCtrk = CclusHitlists[collectionIter];
      
      double collLength = TMath::Sqrt( TMath::Power(Ct1_line - Ct0_line,2) + TMath::Power(Cw1 - Cw0,2));
      
@@ -294,7 +294,7 @@ void trkf::Track3Dreco::produce(art::Event& evt)
        //double It1 = Itimelasts[inductionIter];
        double It0_line = Itimefirsts_line[inductionIter];
        double It1_line = Itimelasts_line[inductionIter];
-       art::PtrVector<recob::Hit> hitsItrk = IclusHitlists[inductionIter];
+       std::vector< art::Ptr<recob::Hit> > hitsItrk = IclusHitlists[inductionIter];
        
        double indLength = TMath::Sqrt( TMath::Power(It1_line - It0_line,2) + TMath::Power(Iw1 - Iw0,2)); 
        
@@ -376,8 +376,8 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	 // Match hits
 	 ////////////////////////////
 	        
-	 art::PtrVector<recob::Hit> minhits = hitsCtrk.size() <= hitsItrk.size() ? hitsCtrk : hitsItrk;
-	 art::PtrVector<recob::Hit> maxhits = hitsItrk.size() <= hitsCtrk.size() ? hitsCtrk : hitsItrk;
+	 std::vector< art::Ptr<recob::Hit> > minhits = hitsCtrk.size() <= hitsItrk.size() ? hitsCtrk : hitsItrk;
+	 std::vector< art::Ptr<recob::Hit> > maxhits = hitsItrk.size() <= hitsCtrk.size() ? hitsCtrk : hitsItrk;
 	 
 	 
 	 bool maxhitsMatch[maxhits.size()];
@@ -499,20 +499,16 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	     continue;
 	   */
            
-	   /// \todo remove next three lines after SpacePoint is changed to not own hits
-	   recob::SpacePoint mysp(sp_hits);
-	   mysp.SetXYZ(hitcoord);
-	   mysp.SetID(spacepoints->size());
+	   Double_t hitcoord_errs[3];
+	   for (int i=0; i<3; i++) hitcoord_errs[i]=-1.000;
 
-	   /// \todo uncomment following 3 lines once SpacePoint no longer holds a PtrVector of hits
-	   //Double_t hitcoord_errs[3];
-	   //for (int i=0; i<3; i++) hitcoord_errs[i]=util::kBogusD;
-	   //recob::SpacePoint mysp(hitcoord, hitcoord_errs, -1., spacepoints->size());//3d point at end of track
+	   //3d point at end of track
+	   recob::SpacePoint mysp(hitcoord, hitcoord_errs, -1., spacepoints->size());
 
 	   spacepoints->push_back(mysp);
 
 	   // associate the hits to the space point
-	   util::CreateAssn(*this, evt, *(spacepoints.get()), sp_hits, *(shassn.get()));
+	   util::CreateAssn(*this, evt, *spacepoints, sp_hits, *shassn);
 	   
 	 }//loop over min-hits
       
@@ -521,41 +517,30 @@ void trkf::Track3Dreco::produce(art::Event& evt)
 	 // Add the 3D track to the vector of the reconstructed tracks
 	 if(spacepoints->size() > startSPIndex || clustersPerTrack.size()>0){
 	   
-	   //
-	   double dircos[3];
-	   DirCos.GetXYZ(dircos);
+	   std::vector<TVector3>               xyz;
+	   xyz.push_back(startpointVec);
+	   xyz.push_back(endpointVec);
+	   std::vector<TVector3>               dir_xyz;
+	   dir_xyz.push_back(DirCos);
+	   dir_xyz.push_back(DirCos);
+	   std::vector< std::vector <double> > dQdx = std::vector< std::vector<double> >(0);
+	   std::vector<double>                 fitMomentum = std::vector<double>(2, util::kBogusD);
 	  
-	   /// \todo remove the next 5 lines onces the Track ctor changes
-	   std::vector<recob::SpacePoint> spts;
-	   for(size_t s = startSPIndex; s < endSPIndex; ++s) spts.push_back(spacepoints->at(s));
-	   recob::Track  the3DTrack(clustersPerTrack, spts);
-	   the3DTrack.SetDirection(dircos,dircos);
-	   the3DTrack.SetID(tcol->size());
-	   
-	   /// \todo uncomment following 9 lines after removing clusters/space points ctor from Track
-	   //std::vector<TVector3>               xyz;
-	   //xyz.push_back(startpointVec);
-	   //xyz.push_back(endpointVec);
-	   //std::vector<TVector3>               dir_xyz;
-	   //dir_xyz.push_back(dircos);
-	   //dir_xyz.push_back(dircos);
-	   //std::vector< std::vector <double> > dQdx = std::vector< std::vector<double> >(0);
-	   //std::vector<double>                 fitMomentum = std::vector<double>(2, util::kBogusD);
-	   //recob::Track  the3DTrack(xyz,dir_xyz,dQdx, fitMomentum,tcol->size());
-
+	   recob::Track  the3DTrack(xyz,dir_xyz,dQdx, fitMomentum,tcol->size());
 	   tcol->push_back(the3DTrack);
 
 	   // associate the track with its spacepoints
-	   util::CreateAssn(*this, evt, *(tcol.get()), *(spacepoints.get()), *(sassn.get()),startSPIndex,endSPIndex);
+	   util::CreateAssn(*this, evt, *tcol, *spacepoints, *sassn, startSPIndex, endSPIndex);
 
 	   // associate the track with its clusters
-	   util::CreateAssn(*this, evt, *(tcol.get()), clustersPerTrack, *(cassn.get()));
+	   util::CreateAssn(*this, evt, *tcol, clustersPerTrack, *cassn);
 	   
+	   art::FindManyP<recob::Hit> fmhc(clustersPerTrack, evt, fClusterModuleLabel);
+
 	   // get the hits associated with each cluster and associate those with the track
 	   for(size_t p = 0; p < clustersPerTrack.size(); ++p){
-	     art::PtrVector<recob::Hit> hits = util::FindManyP<recob::Hit>(clustersPerTrack, evt, 
-									   fClusterModuleLabel, p);
-	     util::CreateAssn(*this, evt, *(tcol.get()), hits, *(hassn.get()));
+	     std::vector< art::Ptr<recob::Hit> > hits = fmhc.at(p);
+	     util::CreateAssn(*this, evt, *tcol, hits, *hassn);
 	   }
 	   
 	 }
@@ -571,10 +556,6 @@ void trkf::Track3Dreco::produce(art::Event& evt)
    mf::LogVerbatim("Summary") << "Track3Dreco Summary:";
    for(unsigned int i = 0; i<tcol->size(); ++i){
       mf::LogVerbatim("Summary") << tcol->at(i) ;
-
-      //for(unsigned int j = 0; j<tcol->at(i).SpacePoints().size();++j){
-      //mf::LogVerbatim("Summary") << tcol->at(i).SpacePoints().at(j);
-      //}
    } 
  
    evt.put(tcol);

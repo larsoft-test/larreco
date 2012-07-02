@@ -1,6 +1,7 @@
 #include "TrackFinder/BezierTrack.h"
 #include "TrackFinder/BezierCurveHelper.h"
 #include "Utilities/DetectorProperties.h"
+#include "Utilities/PhysicalConstants.h"
 #include "Geometry/geo.h"
 #include "TVector3.h"
 #include "cetlib/exception.h"
@@ -10,11 +11,11 @@ namespace trkf {
   //----------------------------------------------------------------------
   // Constructor from Base object (for analysis)
   //
-  BezierTrack::BezierTrack(recob::Track btb):
-    recob::Track(btb)
+  BezierTrack::BezierTrack(recob::Track btb)
+    : recob::Track(btb)
   {
+    fID = btb.ID();
     fBezierResolution=1000;
-    SetID(btb.ID());
     CalculateSegments();
   }
 
@@ -22,8 +23,8 @@ namespace trkf {
   //----------------------------------------------------------------------
   // Constructor from seed vector (for production)
   //
-  BezierTrack::BezierTrack(std::vector<recob::Seed*> SeedCol):
-    recob::Track()
+  BezierTrack::BezierTrack(std::vector<recob::Seed*> SeedCol)
+    : recob::Track()
   {
     fSeedCollection = SeedCol;
     CalculateSegments();
@@ -36,11 +37,10 @@ namespace trkf {
   //
   BezierTrack::BezierTrack(std::vector<TVector3> Pos,
 			   std::vector<TVector3> Dir,
-			   std::vector<std::vector<double> > dQdx)
+			   std::vector<std::vector<double> > dQdx,
+			   int const& id)
+    : recob::Track(Pos, Dir, dQdx, std::vector<double>(2, util::kBogusD), id)
   {
-    fXYZ=Pos;
-    fDir=Dir;
-    fdQdx=dQdx;
     fBezierResolution=1000;
     CalculateSegments();
   }
@@ -86,6 +86,7 @@ namespace trkf {
 
 
 
+  //----------------------------------------------------------------------
   void BezierTrack::FillTrajectoryVectors()
   {
     double Pt[3], Dir[3], ErrPt[3], ErrDir[3];
@@ -270,8 +271,14 @@ namespace trkf {
   //     collection are within d, how far each is and where the closest
   //     approach occurs.  This version is optimized for speed for this
   //     application
-
   void BezierTrack::GetClosestApproaches( art::PtrVector<recob::Hit> hits,     std::vector<double>& s,  std::vector<double>& Distances) const 
+  {
+    std::vector< art::Ptr<recob::Hit> > hitv;
+    for(size_t h = 0; h < hits.size(); ++h) hitv.push_back(hits[h]);
+    this->GetClosestApproaches(hitv, s, Distances);
+  }
+
+  void BezierTrack::GetClosestApproaches( std::vector< art::Ptr<recob::Hit> > hits,     std::vector<double>& s,  std::vector<double>& Distances) const 
   {
     art::ServiceHandle<util::DetectorProperties> det;
     art::ServiceHandle<geo::Geometry>            geo;
@@ -518,6 +525,7 @@ namespace trkf {
   // 
   
      
+  //----------------------------------------------------------------------
   TVector3 BezierTrack::GetTrackPointV(double s) const
   {
     double xyz[3];
@@ -526,6 +534,7 @@ namespace trkf {
     return ReturnVec;
   }
 
+  //----------------------------------------------------------------------
   TVector3 BezierTrack::GetTrackDirectionV(double s) const
   {
     double xyz[3];
@@ -793,28 +802,27 @@ namespace trkf {
 
   recob::Track BezierTrack::GetBaseTrack()
   { 
-    recob::Track TheTrack(fXYZ, fDir, fdQdx);
-    TheTrack.SetID(ID());
+    std::vector<double> mom(2, util::kBogusD);
+    recob::Track TheTrack(fXYZ, fDir, fdQdx, mom, ID());
     return TheTrack;
   }
 
 
-  void BezierTrack::FillMySpacePoints(int N)
+  std::vector<recob::SpacePoint> BezierTrack::FillMySpacePoints(int N)
   {
+    std::vector<recob::SpacePoint> spts(N);
     for(int i=0; i!=N; ++i)
       {
-	recob::SpacePoint TheSP;
 	double xyz[3];
 	double ErrXYZ[3]={0.1,0.1,0.1};
 	GetTrackPoint(float(i)/N,xyz);
-	TheSP.SetID(i);
-	TheSP.SetXYZ(xyz);
-	TheSP.SetErrXYZ(ErrXYZ);
+	recob::SpacePoint TheSP(xyz, ErrXYZ, util::kBogusD, i);
 	
-	fSpacePoints.push_back(TheSP);
+	spts[i] = TheSP;
 
       }
 
+    return spts;
   }
 
 
@@ -888,9 +896,9 @@ namespace trkf {
 
     // flip trajectory points
     for(size_t i=0; i!=Dir.size(); i++) Dir[i]=-Dir[i];
-
-    recob::Track TheTrack(XYZ, Dir, dQdx);
-    TheTrack.SetID(ID());
+    
+    std::vector<double> mom(2, util::kBogusD);
+    recob::Track TheTrack(XYZ, Dir, dQdx, mom, ID());
     return TheTrack;
   }
 }

@@ -161,9 +161,8 @@ namespace trkf {
       // err1 = err1 - err1 * derr * err1
 
       TrackMatrix terr1 = prod(derr, *err1);
-      TrackMatrix terr2 = prod(*err1, terr1);
-      TrackError terr2s = ublas::symmetric_adaptor<TrackMatrix>(terr2);
-      TrackError terr3 = *err1 - terr2s;
+      TrackError terr2 = prod(*err1, terr1);
+      TrackError terr3 = *err1 - terr2;
       setError(terr3);
 
       // Calculate chisquare.
