@@ -214,94 +214,89 @@ namespace hit{
   // #########################
   // ### Looping over Hits ###
   // #########################
-  for(int nHits = 0; nHits< hitHandle->size(); nHits++)
-  	{
-	//std::cout<<"Hit = "<<nHits<<std::endl;
-	
-	// === Finding Channel associated with the hit ===
-	art::Ptr<recob::Hit> hit(hitHandle, nHits);
-	channel= hit->Wire()->RawDigit()->Channel();
-	//std::cout<<"channel = "<<channel<<std::endl;
-	// === Going from the Channel to the wire location ===
-	// (Note:3/16/12 Channel to wire function now reads
-	// (Channedl,cryostat,tpc,plane,wire)
-	geom->ChannelToWire(channel,c,t,p,w);
-	
-	
-	// ##################################################
-	// ### Looking at "Hits" with a multiplicity == 1 ###
-	// ##################################################
-	if(hit->Multiplicity() == 1)
-		{
-		NSinglePulseEvents++;
-		SinglePulse = 1;
-		
-		fSingleHit         = SinglePulse;
-		fWiren1            = w;
-		fgoodoffitn1       = hit->GoodnessOfFit();
-		fChargen1          = hit->Charge();
-		fSigmaChargen1     = hit->SigmaCharge();
-		fWidthn1           = (hit->EndTime() - hit->PeakTime());
-		
-		fPeakn1            = hit->PeakTime();	
-		fPeakUncertn1      = hit->SigmaPeakTime();
-		fStartTimen1       = hit->StartTime();
-		fStartTimeUncertn1 = hit->SigmaStartTime();
-		fEndTimen1         = hit->EndTime();
-		fEndTimeUncertn1   = hit->SigmaEndTime();
-		
-		}//<---End Hit Multiplicity == 1
-	
-	// ##################################################
-	// ### Looking at "Hits" with a multiplicity == 1 ###
-	// ##################################################
-	if(hit->Multiplicity() > 1)
-		{
-		Multipulse = 1;
-		NMultiPulseEvents++;
-		
-		fMultiHit            = Multipulse;
-		fWirenGT1            = w;
-		fgoodoffitnGT1       = hit->GoodnessOfFit();
-		fChargenGT1          = hit->Charge();
-		fSigmaChargenGT1     = hit->SigmaCharge();
-		fWidthnGT1           = (hit->EndTime() - hit->PeakTime());
-		
-		fPeaknGT1            = hit->PeakTime();
-		fPeakUncertnGT1      = hit->SigmaPeakTime();
-		fStartTimenGT1       = hit->StartTime();
-		fStartTimeUncertnGT1 = hit->SigmaStartTime();
-		fEndTimenGT1         = hit->EndTime();
-		fEndTimeUncertnGT1   = hit->SigmaEndTime();
-		
-		
-		}//<---End Hit Multiplicity > 1
-		
-	
-	/*std::cout<<"c = "<<c<<" t = "<<t<<" p = "<<p<<" w = "<<w<<std::endl;
-	std::cout<<"Start Time        = "<<	hit->StartTime()	<<	std::endl;
-	std::cout<<"Sigma Start Time  = "<<	hit->SigmaStartTime()	<<	std::endl;
-	std::cout<<"End Time          = "<<	hit->EndTime()		<<	std::endl;
-	std::cout<<"Sigma End Time    = "<<	hit->SigmaEndTime()	<<	std::endl;
-	std::cout<<"Peak Time         = "<<	hit->PeakTime()		<<	std::endl;
-	std::cout<<"Sigma Peak Time   = "<<	hit->SigmaPeakTime()	<<	std::endl;
-	std::cout<<"Multiplicity      = "<<	hit->Multiplicity()	<<	std::endl;
-	std::cout<<"Charge            = "<<	hit->Charge()		<<	std::endl;
-	std::cout<<"Sigma Charge      = "<<	hit->SigmaCharge()	<<	std::endl;
-	std::cout<<"Goodness Fit      = "<<	hit->GoodnessOfFit()	<<	std::endl;
-	std::cout<<std::endl;*/
-	
-	
-	
-	fHTree->Fill();
-	Multipulse = 0;
-	SinglePulse = 0;
-  	}//<---End Loop over hits
-    fnOnePulseHits = NSinglePulseEvents;
-    fmulitPulseHits = NMultiPulseEvents;
-    fHTree->Fill();
-    return;
+  for(size_t nHits = 0; nHits< hitHandle->size(); ++nHits){
+    //std::cout<<"Hit = "<<nHits<<std::endl;
     
+    // === Finding Channel associated with the hit ===
+    art::Ptr<recob::Hit> hit(hitHandle, nHits);
+    channel= hit->Wire()->RawDigit()->Channel();
+    //std::cout<<"channel = "<<channel<<std::endl;
+    // === Going from the Channel to the wire location ===
+    // (Note:3/16/12 Channel to wire function now reads
+    // (Channedl,cryostat,tpc,plane,wire)
+    geom->ChannelToWire(channel,c,t,p,w);
+    
+    
+    // ##################################################
+    // ### Looking at "Hits" with a multiplicity == 1 ###
+    // ##################################################
+    if(hit->Multiplicity() == 1){
+      NSinglePulseEvents++;
+      SinglePulse = 1;
+      
+      fSingleHit         = SinglePulse;
+      fWiren1            = w;
+      fgoodoffitn1       = hit->GoodnessOfFit();
+      fChargen1          = hit->Charge();
+      fSigmaChargen1     = hit->SigmaCharge();
+      fWidthn1           = (hit->EndTime() - hit->PeakTime());
+      
+      fPeakn1            = hit->PeakTime();	
+      fPeakUncertn1      = hit->SigmaPeakTime();
+      fStartTimen1       = hit->StartTime();
+      fStartTimeUncertn1 = hit->SigmaStartTime();
+      fEndTimen1         = hit->EndTime();
+      fEndTimeUncertn1   = hit->SigmaEndTime();
+      
+    }//<---End Hit Multiplicity == 1
+    
+    // ##################################################
+    // ### Looking at "Hits" with a multiplicity == 1 ###
+    // ##################################################
+    if(hit->Multiplicity() > 1){
+      Multipulse = 1;
+      NMultiPulseEvents++;
+      
+      fMultiHit            = Multipulse;
+      fWirenGT1            = w;
+      fgoodoffitnGT1       = hit->GoodnessOfFit();
+      fChargenGT1          = hit->Charge();
+      fSigmaChargenGT1     = hit->SigmaCharge();
+      fWidthnGT1           = (hit->EndTime() - hit->PeakTime());
+      
+      fPeaknGT1            = hit->PeakTime();
+      fPeakUncertnGT1      = hit->SigmaPeakTime();
+      fStartTimenGT1       = hit->StartTime();
+      fStartTimeUncertnGT1 = hit->SigmaStartTime();
+      fEndTimenGT1         = hit->EndTime();
+      fEndTimeUncertnGT1   = hit->SigmaEndTime();
+      
+      
+    }//<---End Hit Multiplicity > 1
+    
+    
+    /*std::cout<<"c = "<<c<<" t = "<<t<<" p = "<<p<<" w = "<<w<<std::endl;
+      std::cout<<"Start Time        = "<<	hit->StartTime()	<<	std::endl;
+      std::cout<<"Sigma Start Time  = "<<	hit->SigmaStartTime()	<<	std::endl;
+      std::cout<<"End Time          = "<<	hit->EndTime()		<<	std::endl;
+      std::cout<<"Sigma End Time    = "<<	hit->SigmaEndTime()	<<	std::endl;
+      std::cout<<"Peak Time         = "<<	hit->PeakTime()		<<	std::endl;
+      std::cout<<"Sigma Peak Time   = "<<	hit->SigmaPeakTime()	<<	std::endl;
+      std::cout<<"Multiplicity      = "<<	hit->Multiplicity()	<<	std::endl;
+      std::cout<<"Charge            = "<<	hit->Charge()		<<	std::endl;
+      std::cout<<"Sigma Charge      = "<<	hit->SigmaCharge()	<<	std::endl;
+      std::cout<<"Goodness Fit      = "<<	hit->GoodnessOfFit()	<<	std::endl;
+      std::cout<<std::endl;*/
+    
+    fHTree->Fill();
+    Multipulse = 0;
+    SinglePulse = 0;
+  }//<---End Loop over hits
+  fnOnePulseHits = NSinglePulseEvents;
+  fmulitPulseHits = NMultiPulseEvents;
+  fHTree->Fill();
+  return;
+  
   }//end analyze method
   
 }//end namespace

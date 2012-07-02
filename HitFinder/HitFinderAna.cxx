@@ -141,9 +141,9 @@ namespace hit{
     art::Handle< std::vector<recob::Hit> > hitHandle;
     evt.getByLabel(fFFTHitFinderModuleLabel,hitHandle);
 
-    sim::ParticleList _particleList = sim::SimListUtils::GetParticleList(evt, fLArG4ModuleLabel);
-    std::vector<const sim::SimChannel*> sccol;
-    evt.getView(fLArG4ModuleLabel, sccol);
+    art::ServiceHandle<cheat::BackTracker> bt;
+
+    sim::ParticleList _particleList = bt->ParticleList();
 
     std::cout << _particleList << std::endl;
 
@@ -156,39 +156,28 @@ namespace hit{
     unsigned int p(0),w(0), t(0), cs(0), channel(0);
     for(unsigned int cstat = 0; cstat < geom->Ncryostats(); ++cstat){
       for(unsigned int tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
-	//      for(unsigned int plane=0; plane<geom->Nplanes(tpc); plane++){
-	//	for(unsigned int i = 0; i< hitcol->size(); ++i){
 	fNp0=0;       fN3p0=0;
 	fNp1=0;       fN3p1=0;
 	fNp2=0;       fN3p2=0;
-	
-	//now make a vector where each channel in the detector is an entry
-	std::vector<const sim::SimChannel*> scs(geom->Nchannels(),0);
-	for(size_t i = 0; i < sccol.size(); ++i) scs[sccol[i]->Channel()] = sccol[i];
 	
 	std::vector< art::Ptr<recob::Hit> >::iterator itr = hits.begin();
 	while(itr != hits.end()) {
 	  
 	  //art::Ptr<recob::Hit> hit(hitHandle, i);
-	  channel=(*itr)->Wire()->RawDigit()->Channel();
-	  cs=0;t=0;p=0;w=0;
+	  channel = (*itr)->Wire()->RawDigit()->Channel();
+	  cs = 0; 
+	  t  = 0; 
+	  p  = 0; 
+	  w  = 0;
 	  geom->ChannelToWire(channel, cs, t, p, w);
 	  
 	  fRun = evt.run();
 	  fEvt = evt.id().event();
 	  
-	  /*
-	    std::cout << "HitFinderAna: channel # is " << channel << std::endl;
-	    std::cout << "HitFinderAna: Hit itself is " << (*itr) << std::endl;
-	    std::cout << "HitFinderAna: SimIDE itself is " << scs[channel] << std::endl;
-	  */
-	  if (!scs[channel]) {itr++;continue;}
-	  
-	  std::vector<cheat::TrackIDE> trackides = cheat::BackTracker::HitToTrackID(*(scs[(*itr)->Channel()]), *itr);
+	  std::vector<cheat::TrackIDE> trackides = bt->HitToTrackID(*itr);
 	  std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
-	  std::vector<double> xyz = cheat::BackTracker::HitToXYZ(*(scs[(*itr)->Channel()]),*itr);
-	  
-	  
+	  std::vector<double> xyz = bt->HitToXYZ(*itr);
+	  	  
 	  if (p==0 && fNp0<9000){
 	    fTimep0[fNp0] = (*itr)->PeakTime();
 	    fWirep0[fNp0] = w;
