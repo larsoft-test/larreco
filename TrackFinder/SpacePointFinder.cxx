@@ -36,9 +36,9 @@ namespace trkf {
     , fNumSpt3(0)
   {
     reconfigure(pset);
-    produces<std::vector<recob::SpacePointCollection> >();
-    produces<std::vector<recob::SpacePoint>                >();
-    produces<art::Assns<recob::SpacePoint, recob::Hit>     >();
+    produces<std::vector<art::PtrVector<recob::SpacePoint> > >();
+    produces<std::vector<recob::SpacePoint>                  >();
+    produces<art::Assns<recob::SpacePoint, recob::Hit>       >();
     if(fClusterAssns)
       produces<art::Assns<recob::SpacePoint, recob::Cluster> >();
 
@@ -106,10 +106,10 @@ namespace trkf {
 
       // Make a collection of space points that will be inserted into the event.
 
-      std::auto_ptr<std::vector<recob::SpacePointCollection> > sptvecs(new std::vector<recob::SpacePointCollection>);
-      std::auto_ptr<std::vector<recob::SpacePoint> > spts(new std::vector<recob::SpacePoint>);
-      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Hit> > sphitassn(new art::Assns<recob::SpacePoint, recob::Hit>);
-      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Cluster> > spclassn(new art::Assns<recob::SpacePoint, recob::Cluster>);
+      std::auto_ptr<std::vector< art::PtrVector<recob::SpacePoint> > > sptvecs(new std::vector< art::PtrVector<recob::SpacePoint> >);
+      std::auto_ptr<std::vector<recob::SpacePoint> >                   spts(new std::vector<recob::SpacePoint>);
+      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Hit> >       sphitassn(new art::Assns<recob::SpacePoint, recob::Hit>);
+      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Cluster> >    spclassn(new art::Assns<recob::SpacePoint, recob::Cluster>);
     
       // Make a hit vector which will be used to store hits to be passed
       // to SpacePointAlg.
@@ -207,7 +207,7 @@ namespace trkf {
 		    art::Ptr<recob::SpacePoint> spptr(spid, ispt, evt.productGetter(spid));
 		    sptvec.push_back(spptr);
 		  }
-		  sptvecs->push_back(recob::SpacePointCollection(sptvec));
+		  sptvecs->push_back(sptvec);
 		  ++fNumProng2;
 		}
 	      }
@@ -277,7 +277,7 @@ namespace trkf {
 		      art::Ptr<recob::SpacePoint> spptr(spid, ispt, evt.productGetter(spid));
 		      sptvec.push_back(spptr);
 		    }
-		    sptvecs->push_back(recob::SpacePointCollection(sptvec));
+		    sptvecs->push_back(sptvec);
 
 		    ++fNumProng3;
 		  }
