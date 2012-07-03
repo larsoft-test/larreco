@@ -55,34 +55,8 @@ namespace trkf {
 
 
   
-  //----------------------------------------------------------------------------
-  std::vector<recob::Seed*> SeedFinderAlgorithm::ProduceSeeds(std::vector<std::vector<recob::SpacePoint> > SpacePointVectors)
-  {
-    std::vector<recob::Seed*> ReturnVector;
 
-    for(std::vector<std::vector<recob::SpacePoint> >::const_iterator it=SpacePointVectors.begin(); 
-	it!=SpacePointVectors.end();
-	it++)
-      {
-	std::vector<std::vector<recob::SpacePoint> > PointsUsed;
-	std::vector<recob::Seed*>                    SeedFinderAlgorithmOutput;
-	SeedFinderAlgorithmOutput = FindSeeds(*it, PointsUsed);
-
-	if(SeedFinderAlgorithmOutput.size()>0)
-	  {
-	    PointsUsed.resize(SeedFinderAlgorithmOutput.size());
-	    for(unsigned int i=0; i!=SeedFinderAlgorithmOutput.size(); i++)
-	      if(SeedFinderAlgorithmOutput.at(i)->IsValid())
-		{
-		  ReturnVector.push_back(SeedFinderAlgorithmOutput.at(i));
-		}
-	  }
-      }			  
-    return ReturnVector;
-  }
-
-
-  
+  //------------------------------------------------------------
 
 
   
@@ -99,7 +73,7 @@ namespace trkf {
   }
 
 
-
+  //------------------------------------------------------------
 
   std::vector<recob::Seed *> SeedFinderAlgorithm::FindSeeds(std::vector<recob::SpacePoint> AllSpacePoints, std::vector<std::vector<recob::SpacePoint> > & PointsInSeeds)
   {

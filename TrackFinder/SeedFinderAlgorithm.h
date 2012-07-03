@@ -40,7 +40,6 @@ namespace trkf {
 
 
 
-    std::vector<recob::Seed*>   ProduceSeeds(std::vector<std::vector<recob::SpacePoint> > );
 
     recob::Seed *               FindSeedAtEnd(std::vector<recob::SpacePoint>,std::map<int, int>, std::vector<int>&);
 
