@@ -61,7 +61,12 @@ namespace trkf {
     recob::Seed *               FindSeedAtEnd(std::vector<recob::SpacePoint> const&, std::map<int, int>&, std::vector<int>&);
 
     bool                        ExtendSeed(recob::Seed* TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, 
-					   std::vector<int> PointsUsed, std::map<int, int>& PointStatus);
+					   std::map<int, int>& PointStatus, std::vector<int>& PointsUsed);
+
+    std::vector<recob::SpacePoint> ExtractSpacePoints(std::vector<recob::SpacePoint> AllPoints, std::vector<int> IDsToExtract);
+
+    std::vector<int>            DetermineNearbySPs(recob::Seed* TheSeed, std::vector<recob::SpacePoint> AllSpacePoints, 
+						   std::map<int, int> PointStatus, double ExtendResolution);
 
 
                        
@@ -80,7 +85,8 @@ namespace trkf {
     std::vector<double>   fMaxViewRMS;
 
     float                 fExtendThresh;
-
+    float                 fExtendStep;
+    float                 fExtendResolution;
   };
   
 }

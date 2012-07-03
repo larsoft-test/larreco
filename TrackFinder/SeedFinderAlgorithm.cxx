@@ -42,11 +42,17 @@ namespace trkf {
     fhicl::ParameterSet seedConfig = pset.get<fhicl::ParameterSet>("SeedConfig");
 
     fSptalg                = seedConfig.get<fhicl::ParameterSet>("SpacePointAlg");
+
     fInitSeedLength        = seedConfig.get<double>("InitSeedLength");
     fMinPointsInSeed       = seedConfig.get<unsigned int>("MinPointsInSeed");
     fAngularDev            = seedConfig.get<double>("AngularDev");
+
     fRefits                = seedConfig.get<double>("Refits");
+
     fExtendThresh          = seedConfig.get<double>("ExtendThresh");
+    fExtendStep            = seedConfig.get<double>("ExtendStep");
+    fExtendResolution      = seedConfig.get<double>("ExtendResolution");
+
     fMaxViewRMS.resize(3);
     fMaxViewRMS            = seedConfig.get<std::vector<double> >("MaxViewRMS"); 
   }
@@ -75,7 +81,9 @@ namespace trkf {
 
 
   //------------------------------------------------------------
-
+  // Given a set of spacepoints, find seeds, and catalogue
+  //  spacepoints by the seeds they formed
+  //
   std::vector<recob::Seed *> SeedFinderAlgorithm::FindSeeds(std::vector<recob::SpacePoint> const& AllSpacePoints, std::vector<std::vector<recob::SpacePoint> > & PointsInSeeds)
   {
     // Vector of seeds found to return
@@ -136,57 +144,22 @@ namespace trkf {
 
 
   //------------------------------------------------------------
-
-
-  double SeedFinderAlgorithm::CountHits(std::vector<recob::SpacePoint>  SpacePoints)
-  {
-    std::map<unsigned short, bool>            HitsClaimed;
-    HitsClaimed.clear();
-    
-    art::ServiceHandle<geo::Geometry>            geom;
-    size_t Planes = geom->TPC(0).Nplanes();
-
-
-    // for each spacepoint
-    for(std::vector<recob::SpacePoint>::const_iterator itSP=SpacePoints.begin();
-	itSP!=SpacePoints.end(); itSP++)
-      {
-	// get hits from each plane (ensuring each used once only)
-	for(size_t plane=0; plane!=Planes; plane++)
-	  {
-	    unsigned int p = 0;
-	    unsigned int w = 0;
-	    unsigned int t = 0;
-	    unsigned int c = 0;
-	    art::PtrVector<recob::Hit> HitsThisSP = fSptalg.getAssociatedHits((*itSP));
-	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
-		itHit!=HitsThisSP.end(); itHit++)
-	      {
-		geom->ChannelToWire((*itHit)->Channel(), c, t, p, w);
-		if(p != plane) continue;
-		HitsClaimed[(*itHit)->Channel()]=true;
-	      }
-	  }
-      }
-    return HitsClaimed.size();
-
-  }
-
-
+  // Try to find one seed at the high Z end of a set of spacepoints 
+  //
 
   recob::Seed * SeedFinderAlgorithm::FindSeedAtEnd(std::vector<recob::SpacePoint> const& Points, std::map<int,int>& PointStatus, std::vector<int>& PointsInRange)
   {
-    
+    // This pointer will be returned later
     recob::Seed * ReturnSeed;
     
+    // Keep track of spacepoints we used, not just their IDs
     std::vector<recob::SpacePoint> PointsUsed;
    
+    // Clear output vector
     PointsInRange.clear();
    
-    
+    // Loop through hits looking for highest Z seedable point
     TVector3 HighestZPoint;
-
-    
     bool NoPointFound=true;
     int counter = Points.size()-1; 
     while(NoPointFound==true)
@@ -202,20 +175,24 @@ namespace trkf {
 	  counter--;
       }
   
+    // Now we have the high Z point, loop through collecting
+    // near enough hits.  We look 2 seed lengths away, since 
+    // the seed is bidirectional from the central point 
     TVector3 CentreOfPoints(0.,0.,0.);
+    double TwiceLength = 2.0*fInitSeedLength;
     
     for(int index=Points.size()-1; index!=-1; --index)
       {
-	// first check z, then check total distance
-	//  (much faster, since most will be out of range in z anyway)
 	if(PointStatus[index]==0)
 	  {
-	    if( ( HighestZPoint[2] - Points.at(index).XYZ()[2] ) < fInitSeedLength)
+	    // first check z, then check total distance
+	    //  (much faster, since most will be out of range in z anyway)
+	    if( ( HighestZPoint[2] - Points.at(index).XYZ()[2] ) < TwiceLength)
 	      {
 		double DistanceToHighZ =pow( pow(HighestZPoint[0]-Points.at(index).XYZ()[0],2) +
 					     pow(HighestZPoint[1]-Points.at(index).XYZ()[1],2) +
 					     pow(HighestZPoint[2]-Points.at(index).XYZ()[2],2),0.5 ); 
-		if( DistanceToHighZ < fInitSeedLength)
+		if( DistanceToHighZ < TwiceLength)
 		  {
 		    PointsInRange.push_back(index);
 		    CentreOfPoints[0]+=Points.at(index).XYZ()[0];
@@ -229,6 +206,8 @@ namespace trkf {
 	  }
       }
     
+    // Check we have enough points in here to form a seed,
+    // otherwise return a dud
     unsigned int NPoints = PointsInRange.size();
     if(NPoints<fMinPointsInSeed) return new recob::Seed();
     CentreOfPoints = (1./float(NPoints)) * CentreOfPoints;
@@ -236,223 +215,420 @@ namespace trkf {
     std::cout<<"Trying seed at " << CentreOfPoints[0]<<" " <<
       CentreOfPoints[1]<<" " << CentreOfPoints[2]<<" " <<NPoints<<std::endl;
     
-    if(NPoints>fMinPointsInSeed)
+    // See if seed points have some linearity
+    float costheta=0, phi=0, costheta2=0, phi2=0;    
+    for(unsigned int i=0; i!=PointsInRange.size(); i++)
       {
-	float costheta=0, phi=0, costheta2=0, phi2=0;
+	TVector3 ThisPoint(Points.at(PointsInRange.at(i)).XYZ()[0],
+			   Points.at(PointsInRange.at(i)).XYZ()[1],
+			   Points.at(PointsInRange.at(i)).XYZ()[2]);
+	TVector3 Step = CentreOfPoints-ThisPoint;
 	
-	for(unsigned int i=0; i!=PointsInRange.size(); i++)
+	if(Step.Z()<0) Step=-Step;
+	
+	
+	phi       += Step.Phi();
+	phi2      += pow(Step.Phi(),2);
+	
+	// Need to check range of costheta to avoid getting a nan.
+	//  (if CosTheta=1, floating point errors mess us up)
+	if(Step.CosTheta()<0.9999)
 	  {
-	    TVector3 ThisPoint(Points.at(PointsInRange.at(i)).XYZ()[0],
-			       Points.at(PointsInRange.at(i)).XYZ()[1],
-			       Points.at(PointsInRange.at(i)).XYZ()[2]);
-	    TVector3 Step = CentreOfPoints-ThisPoint;
-	    
-	    if(Step.Z()<0) Step=-Step;
-		
-	    
-	    phi       += Step.Phi();
-	    phi2      += pow(Step.Phi(),2);
-	    
-	    // Need to check range of costheta to avoid getting a nan.
-	    //  (if CosTheta=1, floating point errors mess us up)
-	    if(Step.CosTheta()<0.9999)
-	      {
-		costheta     += Step.CosTheta();
-		costheta2    += pow(Step.CosTheta(),2);
-	      }
-	    else
-	      {
-		costheta+=1;
-		costheta2+=1;
-	      }
-	    
+	    costheta     += Step.CosTheta();
+	    costheta2    += pow(Step.CosTheta(),2);
+	  }
+	else
+	  {
+	    costheta+=1;
+	    costheta2+=1;
 	  }
 	
+      }
 	
-	float sigtheta    = pow((costheta2 / NPoints - pow( costheta/NPoints, 2 )), 0.5);
-	float sigphi      = pow((phi2      / NPoints - pow( phi/NPoints,   2 )),    0.5);
-	float meantheta   = acos(costheta      / NPoints);
-	float meanphi     = phi                / NPoints;
+    
+    float sigtheta    = pow((costheta2 / NPoints - pow( costheta/NPoints, 2 )), 0.5);
+    float sigphi      = pow((phi2      / NPoints - pow( phi/NPoints,   2 )),    0.5);
+    float meantheta   = acos(costheta      / NPoints);
+    float meanphi     = phi                / NPoints;
+    
+    // Total angular deviation (spherical polars)
+    float AngularDev =  pow(pow(sigtheta,2) + pow(sin(sigtheta) * sigphi, 2), 0.5);
+    
+    // If seed is tight enough angularly    
+    if(AngularDev<fAngularDev)
+      {
 	
-	// Total angular deviation (spherical polars)
-	float AngularDev =  pow(pow(sigtheta,2) + pow(sin(sigtheta) * sigphi, 2), 0.5);
+	double PtArray[3], DirArray[3];
 	
+	PtArray[0]=CentreOfPoints.X();
+	PtArray[1]=CentreOfPoints.Y();
+	PtArray[2]=CentreOfPoints.Z();
 	
-	if(AngularDev<fAngularDev)
-	  {
-	    
-	    double PtArray[3], DirArray[3];
-	    
-	    PtArray[0]=CentreOfPoints.X();
-	    PtArray[1]=CentreOfPoints.Y();
-	    PtArray[2]=CentreOfPoints.Z();
-	    
-	    // calculate direction from average over hits
-	    
-	    TVector3 SeedDirection;
-	    
-	    SeedDirection.SetMagThetaPhi(fInitSeedLength, meantheta, meanphi);
-	    
-	    DirArray[0]=SeedDirection.X();
-	    DirArray[1]=SeedDirection.Y();
-	    DirArray[2]=SeedDirection.Z();
-	    
-	    ReturnSeed = new recob::Seed(PtArray,DirArray);
-	  }
-        else return new recob::Seed();
+	// calculate direction from average over hits
+	
+	TVector3 SeedDirection;
+	
+	SeedDirection.SetMagThetaPhi(fInitSeedLength, meantheta, meanphi);
+	
+	DirArray[0]=SeedDirection.X();
+	DirArray[1]=SeedDirection.Y();
+	DirArray[2]=SeedDirection.Z();
+	
+	ReturnSeed = new recob::Seed(PtArray,DirArray);
       }
     else return new recob::Seed();
-	bool ThrowOutSeed = false;
-   
+    bool ThrowOutSeed = false;
+    
+
+    // If we use extendable seeds, go through extend and refit procedure
     if(fExtendThresh>0)
       {
-	ThrowOutSeed = ExtendSeed(ReturnSeed, Points, PointsInRange, PointStatus);
+	ThrowOutSeed = ExtendSeed(ReturnSeed, Points, PointStatus, PointsInRange);
       }
+
+    // Otherwise, make optional refit of fixed length seed
     else
-      {
-	
+      {	
 	if(fRefits>0)
 	  RefitSeed(ReturnSeed, PointsUsed);
-	
-	
-	
-	if(fMaxViewRMS.at(0)>0)
-	  {
-	    std::vector<double> RMS = GetHitRMS(ReturnSeed, PointsUsed);
-	    std::cout<<"RMS vector size : " << RMS.size() <<", contents ";
-	    for(size_t j=0; j!=fMaxViewRMS.size(); j++)
-	      {
-		std::cout<<RMS.at(j)<<" ";
-		if(fMaxViewRMS.at(j)<RMS.at(j)) ThrowOutSeed=true;
-	      }
-	    std::cout<<std::endl;
-	  }
       }
+	
+	
+    if(fMaxViewRMS.at(0)>0)
+      {
+	std::vector<double> RMS = GetHitRMS(ReturnSeed, PointsUsed);
+	std::cout<<"RMS vector size : " << RMS.size() <<", contents ";
+	for(size_t j=0; j!=fMaxViewRMS.size(); j++)
+	  {
+	    std::cout<<RMS.at(j)<<" ";
+	    if(fMaxViewRMS.at(j)<RMS.at(j)) ThrowOutSeed=true;
+	  }
+	std::cout<<std::endl; 
+      }
+
+    // If the seed is marked as bad, return a dud, otherwise
+    //  return the ReturnSeed pointer
     if(!ThrowOutSeed)
       return ReturnSeed;
     else
       return new recob::Seed;
-    
   }
 
-  bool SeedFinderAlgorithm::ExtendSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, std::vector<int> PointsUsed, std::map<int,int>& PointStatus)
+
+
+
+
+
+
+
+
+  bool SeedFinderAlgorithm::ExtendSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, std::map<int,int>& PointStatus, std::vector<int>& PointsUsed)
   {
-    std::cout<<"Placeholder for ExtendSeed method"<<std::endl;
-    return true;
+    std::cout<<"Begin ExtendSeed method"<<std::endl;
+    std::vector<int>                 PointsIncluded = PointsUsed;
+    std::vector<recob::SpacePoint>   SPsUsed        = ExtractSpacePoints(AllSpacePoints, PointsUsed);
+
+    recob::Seed * BestSeed = new recob::Seed(*TheSeed);
+
+    double ThisDir[3], ThisPt[3], ThisErr[3];
+    BestSeed->GetDirection( ThisDir, ThisErr );
+    BestSeed->GetPoint(     ThisPt,  ThisErr );
+
+    TVector3 VecDir( ThisDir[0], ThisDir[1], ThisDir[2] );
+    TVector3 VecPt(  ThisPt[0],  ThisPt[1],  ThisPt[2]  );
+
+    std::vector<double>              BestRMS        = GetHitRMS(TheSeed, SPsUsed);
+    std::vector<double>              ThisRMS        = BestRMS;
+
+    double BestAveRMS =  pow(pow(ThisRMS.at(0),2)+pow(ThisRMS.at(1),2)+pow(ThisRMS.at(2),2),0.5);
+    double ThisAveRMS =  BestAveRMS;
+
+    double BestdNdx   = double(SPsUsed.size()) / VecDir.Mag();
+    double ThisdNdx   = BestdNdx;
+    int BestN=SPsUsed.size();
+    int ThisN=BestN;
+
+    bool KeepExtending=true;
+    // First extend backward
+
+
+    while(KeepExtending!=false)
+      {
+        // Get data from existing seed
+        BestSeed->GetDirection( ThisDir, ThisErr );
+	BestSeed->GetPoint(     ThisPt,  ThisErr );
+
+        VecDir = TVector3( ThisDir[0], ThisDir[1], ThisDir[2] );
+	VecPt  = TVector3(  ThisPt[0],  ThisPt[1],  ThisPt[2]  );
+
+        // Make seed extension
+        VecDir.SetMag(VecDir.Mag() + fExtendStep);
+	VecPt = VecPt + fExtendStep * VecDir.Unit();
+        for(int i=0; i!=3; ++i)
+          {
+            ThisDir[i] = VecDir[i];
+            ThisPt[i]  = VecPt[i];
+          }
+
+	recob::Seed* TheNewSeed = new recob::Seed(ThisPt, ThisDir, ThisErr, ThisErr);
+
+
+        // Find nearby spacepoints and for refit
+	std::vector<int> NearbySPs =  DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
+	std::vector<recob::SpacePoint> ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
+
+	RefitSeed(TheNewSeed,ThePoints);
+
+        // With refitted seed, count number of hits and work out dNdx and RMS
+        NearbySPs =  DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
+        ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
+
+        int NoOfHits = CountHits(ThePoints);
+        ThisN      = NoOfHits;
+        ThisdNdx   = double(NoOfHits) / VecDir.Mag();
+        ThisRMS    = GetHitRMS(TheNewSeed,ThePoints);
+        ThisAveRMS = pow(pow(ThisRMS.at(0),2)+pow(ThisRMS.at(1),2)+pow(ThisRMS.at(2),2),0.5);
+
+	std::cout<<" Deciding whether to increase: " << ThisdNdx<<" " <<BestdNdx<<", " << ThisAveRMS<<" " <<BestAveRMS<<std::endl;
+
+        // Decide whether to keep the extended seed
+        if((ThisdNdx > BestdNdx*fExtendThresh)&&(ThisAveRMS < BestAveRMS/fExtendThresh)&&(ThisN>BestN))
+          {
+            // if both then we keep the extended seed
+            double SeedPos[3], Err[3];
+            BestSeed->GetPoint(SeedPos,Err);
+
+            BestAveRMS = ThisAveRMS;
+	    BestdNdx   = ThisdNdx;
+            BestN      = ThisN;
+
+            delete BestSeed;
+	    std::cout<<"Moving seed from " <<SeedPos[0]<<" " <<SeedPos[1]<< " " <<SeedPos[2]<<std::endl;
+            BestSeed   = TheNewSeed;
+            BestSeed->GetPoint(SeedPos,Err);
+	    std::cout<<"to " <<SeedPos[0]<<" " <<SeedPos[1]<< " " <<SeedPos[2]<<std::endl;
+          }
+	else
+          KeepExtending=false;
+
+      }
+
+    std::vector<int> FinalSPs;
+
+    // Then extend forward
+    KeepExtending=true;
+    while(KeepExtending!=false)
+      {
+	// Get data from existing seed
+        BestSeed->GetDirection( ThisDir, ThisErr );
+        BestSeed->GetPoint(     ThisPt,  ThisErr );
+
+        VecDir = TVector3( ThisDir[0], ThisDir[1], ThisDir[2] );
+        VecPt  = TVector3(  ThisPt[0],  ThisPt[1],  ThisPt[2]  );
+
+
+        // Make seed extension
+	VecDir.SetMag(VecDir.Mag() + fExtendStep);
+        VecPt = VecPt - fExtendStep * VecDir.Unit();
+	for(int i=0; i!=3; ++i)
+          {
+            ThisDir[i] = VecDir[i];
+            ThisPt[i]  = VecPt[i];
+          }
+	recob::Seed* TheNewSeed = new recob::Seed(ThisPt, ThisDir, ThisErr, ThisErr);
+
+	// Find nearby spacepoints and for refit
+	std::vector<int> NearbySPs =  DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
+	std::vector<recob::SpacePoint> ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
+	std::cout<<"   Before Refit: " << std::endl;
+        TheNewSeed->Print();
+        RefitSeed(TheNewSeed,ThePoints);
+	std::cout<<"   After Refit: " << std::endl;
+	TheNewSeed->Print();
+        // With refitted seed, count number of hits and work out dNdx and RMS
+	NearbySPs =  DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
+        ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
+
+        int NoOfHits = CountHits(ThePoints);
+        ThisN      = NoOfHits;
+        ThisdNdx   = double(NoOfHits) / VecDir.Mag();
+        ThisRMS    = GetHitRMS(TheNewSeed,ThePoints);
+        ThisAveRMS = pow(pow(ThisRMS.at(0),2)+pow(ThisRMS.at(1),2)+pow(ThisRMS.at(2),2),0.5);
+
+	std::cout<<" Deciding whether to increase: " << ThisdNdx<<" " <<BestdNdx<<std::endl;
+
+        // Decide whether to keep the extended seed
+        if((ThisdNdx > BestdNdx*fExtendThresh)&&(ThisAveRMS < BestAveRMS/fExtendThresh)&&(ThisN>BestN))
+          {
+            // if both then we keep the extended seed
+            BestRMS=ThisRMS;
+            BestN = ThisN;
+            BestAveRMS = ThisAveRMS;
+            BestdNdx   = ThisdNdx;
+
+            delete BestSeed;
+            BestSeed   = TheNewSeed;
+          }
+        else
+          {
+	    PointsUsed =  DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
+            for(size_t i=0; i!=NearbySPs.size(); ++i) PointStatus[NearbySPs.at(i)]=1;
+
+            KeepExtending=false;
+          }
+      }
+
+
+    BestSeed->GetDirection(ThisDir, ThisErr);
+    BestSeed->GetPoint(ThisPt,ThisErr);
+
+    TheSeed->SetDirection(ThisDir,ThisErr);
+    TheSeed->SetPoint(ThisPt,ThisErr);
+
+    std::cout<<"Best seed at end of extend:" <<std::endl;
+    TheSeed->Print();
+
+    bool ReturnVal=false;
+
+    std::cout<<"RMS Vals : ";
+    for(size_t i=0; i!=BestRMS.size(); ++i)
+      {
+	std::cout << BestRMS.at(i) << " " << fMaxViewRMS.at(i)<<", " ;
+        //      if(BestRMS.at(i)>fMaxViewRMS.at(i)) ReturnVal=true;
+      }
+    std::cout<<std::endl;
+    return ReturnVal;
+  }
+
+
+
+  std::vector<int> SeedFinderAlgorithm::DetermineNearbySPs(recob::Seed* TheSeed, std::vector<recob::SpacePoint> AllSpacePoints, std::map<int, int> PointStatus, double ExtendResolution)
+  {
+    std::vector<int> ReturnVector;
+
+    double SeedPt[3], SeedDir[3], Err[3];
+    TheSeed->GetPoint( SeedPt,  Err );
+    TheSeed->GetPoint( SeedDir, Err );
+
+    double SeedLength = TheSeed->GetLength();
+
+    for(int i=AllSpacePoints.size()-1; i!=-1; --i)
+      {
+	if(PointStatus[i]!=1)
+	  {
+	    // std::cout<<"NearbySPs Routine " << TheSeed->GetDistanceFrom(AllSpacePoints.at(i))<<std::endl;
+	    if(( SeedPt[2]-AllSpacePoints.at(i).XYZ()[2] ) > SeedLength) break;
+	    if( TheSeed->GetDistanceFrom(AllSpacePoints.at(i))
+		< ExtendResolution )
+	      ReturnVector.push_back(i);
+
+	  }
+      }
+
+    return ReturnVector;
   }
 
 
 
 
 
-
-  //----------------------------------------------------------------------------
   std::vector<double> SeedFinderAlgorithm::GetHitRMS(recob::Seed * TheSeed, std::vector<recob::SpacePoint> SpacePoints)
   {
     std::vector<double> ReturnVec;
     art::ServiceHandle<geo::Geometry>            geom;
-    art::ServiceHandle<util::DetectorProperties> det;
+    art::ServiceHandle<util::DetectorProperties>            det;
 
 
     std::map<int,art::PtrVector<recob::Hit> > HitMap;
     std::map<unsigned short, bool>            HitsClaimed;
     size_t Planes = geom->TPC(0).Nplanes();
-    
+
     // for each spacepoint
     for(std::vector<recob::SpacePoint>::const_iterator itSP=SpacePoints.begin();
-	itSP!=SpacePoints.end(); itSP++)
+        itSP!=SpacePoints.end(); itSP++)
       {
-	// get hits from each plane (ensuring each used once only)
+        // get hits from each plane (ensuring each used once only)
 	for(size_t plane=0; plane!=Planes; plane++)
 	  {
 	    art::PtrVector<recob::Hit> HitsThisSP = fSptalg.getAssociatedHits(*itSP);
-	    
-	    unsigned int p = 0;
-	    unsigned int w = 0;
-	    unsigned int t = 0;
-	    unsigned int c = 0;
-
 	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
 		itHit!=HitsThisSP.end(); itHit++)
-	      {		
-		geom->ChannelToWire((*itHit)->Channel(), c, t, p, w);
-		if(p != plane) continue;
-
+              {
 		if(!HitsClaimed[(*itHit)->Channel()])
-		  {
-		    HitMap[plane].push_back(*itHit);
+                  {
+                    HitMap[plane].push_back(*itHit);
 		    HitsClaimed[(*itHit)->Channel()]=true;
-		  }
-		
+                  }
+
 	      }
-	  }
+          }
       }
     for(size_t plane=0; plane!=Planes; plane++)
       {
 	art::PtrVector<recob::Hit> HitsThisPlane = HitMap[plane];
 	double SeedCentralWire=0, SeedCentralTime=0;
-	
+
 	double SeedPt[3], Err[3], SeedDir[3];
 	TheSeed->GetPoint(    SeedPt,   Err);
 	TheSeed->GetDirection(SeedDir,  Err);
-	
+
 	TVector3 SeedPoint(SeedPt[0],      SeedPt[1],  SeedPt[2]);
-	TVector3 SeedDirection(SeedDir[0], SeedDir[1], SeedDir[2]);
+        TVector3 SeedDirection(SeedDir[0], SeedDir[1], SeedDir[2]);
 
 	double Wire1End1[3],Wire1End2[3];
-	geom->WireEndPoints(0,0,plane,1, Wire1End1, Wire1End2);
+        geom->WireEndPoints(0,0,plane,1, Wire1End1, Wire1End2);
 	TVector3 WireVec(Wire1End2[0]-Wire1End1[0],
 			 Wire1End2[1]-Wire1End1[1],
-			 Wire1End2[2]-Wire1End1[2]);
+                         Wire1End2[2]-Wire1End1[2]);
 
-	WireVec=WireVec.Unit();
+        WireVec=WireVec.Unit();
 
-	TVector3 XVec(1,0,0);
+        TVector3 XVec(1,0,0);
 
-	TVector3 PlaneNormDirection=(WireVec.Cross(XVec)).Unit();
+        TVector3 PlaneNormDirection=(WireVec.Cross(XVec)).Unit();
 
-	double SeedDirInPlane = SeedDirection.Dot(PlaneNormDirection);
-	double SeedDirInTime  = SeedDirection.Dot(XVec);
+        double SeedDirInPlane = SeedDirection.Dot(PlaneNormDirection);
+        double SeedDirInTime  = SeedDirection.Dot(XVec);
 
-	
-	int centralchannel = geom->NearestChannel(SeedPt, plane, 0, 0);
-	
-	unsigned int c,t,p,w ;
-	geom->ChannelToWire(centralchannel, c,t,p,w);
-	SeedCentralWire = w;
-	SeedCentralTime = det->ConvertXToTicks(SeedPt[0],plane,t,c);
-	
-	double WirePitch = geom->WirePitch();
-	
-	double OneTickInX = det->GetXTicksCoefficient();
-	
-	double LSTot=0;
+
+        int centralchannel = geom->NearestChannel(SeedPt, plane, 0, 0);
+
+        unsigned int c,t,p,w ;
+        geom->ChannelToWire(centralchannel, c,t,p,w);
+        SeedCentralWire = w;
+        SeedCentralTime = det->ConvertXToTicks(SeedPt[0],plane,t,c);
+
+        double WirePitch = geom->WirePitch();
+        double OneTickInX = det->GetXTicksCoefficient();
+
+        double LSTot=0;
 	int    Count=0;
 
 	double a = SeedDirInTime / SeedDirInPlane;
-	
+
 
 
 	for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisPlane.begin(); itHit!=HitsThisPlane.end(); itHit++)
-	  {
-	    unsigned int Wire;
-	    double Time;
-	    double XDisp;
-	    double DDisp;
-	    
-	    geom->ChannelToWire((*itHit)->Channel(), c, t, p, Wire);
-	    DDisp = (double(Wire)-SeedCentralWire)*WirePitch;
-	    
-	    Time=(*itHit)->PeakTime();
-	    XDisp = (Time-SeedCentralTime)*OneTickInX;
-	    
-	    LSTot += pow(XDisp - a * DDisp, 2);
-	    Count++;
-	  }
+          {
+            unsigned int Wire;
+            double Time;
+            double XDisp;
+            double DDisp;
+
+            geom->ChannelToWire((*itHit)->Channel(), c, t, p, Wire);
+            DDisp = (double(Wire)-SeedCentralWire)*WirePitch;
+
+            Time=(*itHit)->PeakTime();
+            XDisp = (Time-SeedCentralTime)*OneTickInX;
+
+            LSTot += pow(XDisp - a * DDisp, 2);
+            Count++;
+          }
 	ReturnVec.push_back(pow(LSTot/Count,0.5));
       }
     return ReturnVec;
   }
+
 
   
 
@@ -702,5 +878,50 @@ namespace trkf {
     
 	
   }
+
+
+
+
+
+  //------------------------------------------------------------
+  // Given a set of spacepoints, count how many unique hits
+  //  are present
+
+  double SeedFinderAlgorithm::CountHits(std::vector<recob::SpacePoint>  SpacePoints)
+  {
+    art::ServiceHandle<geo::Geometry>            geom;
+
+    // A map of HitID to true/false whether it has been counted already
+    std::map<unsigned short, bool>            HitsClaimed;
+    HitsClaimed.clear();
+    
+    // For each spacepoint, check hit contents
+    for(std::vector<recob::SpacePoint>::const_iterator itSP=SpacePoints.begin();
+	itSP!=SpacePoints.end(); itSP++)
+      {
+	unsigned int p = 0, w=0, t=0, c=0;
+	
+	art::PtrVector<recob::Hit> HitsThisSP = fSptalg.getAssociatedHits((*itSP));
+	for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
+	    itHit!=HitsThisSP.end(); itHit++)
+	  {
+	    geom->ChannelToWire((*itHit)->Channel(), c, t, p, w);
+	    HitsClaimed[(*itHit)->Channel()]=true;
+	  }
+      }
+    return HitsClaimed.size();
+  }
+
+  std::vector<recob::SpacePoint> SeedFinderAlgorithm::ExtractSpacePoints(std::vector<recob::SpacePoint> AllPoints, std::vector<int> IDsToExtract)
+  {
+    std::vector<recob::SpacePoint> ReturnVec;
+    for(size_t i=0; i!=IDsToExtract.size(); ++i)
+      ReturnVec.push_back(AllPoints.at(IDsToExtract.at(i)));
+
+    return ReturnVec;
+  }
+
+
+
 
 }
