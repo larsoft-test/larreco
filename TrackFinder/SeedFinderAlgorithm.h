@@ -41,25 +41,28 @@ namespace trkf {
 
 
 
-    recob::Seed *               FindSeedAtEnd(std::vector<recob::SpacePoint>,std::map<int, int>, std::vector<int>&);
 
-    std::vector<recob::Seed *>  FindSeeds(std::vector<recob::SpacePoint>, std::vector<std::vector<recob::SpacePoint> >&);
+    std::vector<recob::Seed *>  FindSeeds(std::vector<recob::SpacePoint> const&, std::vector<std::vector<recob::SpacePoint> >&);
 
     void                        RefitSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> SpacePoints);
+
+    std::vector<recob::SpacePoint> GetSpacePointsFromHitVector(art::PtrVector<recob::Hit> );
+
+    std::vector<double>         GetHitRMS(recob::Seed* TheSeed, std::vector<recob::SpacePoint>);
+
+    double                      CountHits(std::vector<recob::SpacePoint> Points);
     
-    bool                        ExtendSeed(recob::Seed* TheSeed, std::vector<recob::SpacePoint> AllSpacePoints, 
-					   std::vector<int> PointsUsed, std::map<int, int> PointStatus);
+    SpacePointAlg const&        GetSpacePointAlg() const { return fSptalg; }
 
-    std::vector<recob::SpacePoint> GetSpacePointsFromHitVector(art::PtrVector< recob::Hit> );
 
-    SpacePointAlg const& GetSpacePointAlg() const { return fSptalg; }
 
-    
   private:
 
-    double CountHits(std::vector<recob::SpacePoint> Points);
+    recob::Seed *               FindSeedAtEnd(std::vector<recob::SpacePoint> const&, std::map<int, int>&, std::vector<int>&);
 
-    std::vector<double> GetHitRMS(recob::Seed* TheSeed, std::vector<recob::SpacePoint>);
+    bool                        ExtendSeed(recob::Seed* TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, 
+					   std::vector<int> PointsUsed, std::map<int, int>& PointStatus);
+
 
                        
     // Fcl Attributes.

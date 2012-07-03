@@ -57,10 +57,11 @@ namespace trkf {
   
 
   //------------------------------------------------------------
-
-
+  // Use the spacepoint service to turn a vector of hits 
+  //  into a vector of spacepoints
+  //
   
-  std::vector<recob::SpacePoint>  SeedFinderAlgorithm::GetSpacePointsFromHitVector(art::PtrVector<recob::Hit> Hits)
+  std::vector<recob::SpacePoint>  SeedFinderAlgorithm::GetSpacePointsFromHitVector(art::PtrVector<recob::Hit>  Hits)
   {
     std::vector<recob::SpacePoint> ReturnVec;
     
@@ -75,28 +76,39 @@ namespace trkf {
 
   //------------------------------------------------------------
 
-  std::vector<recob::Seed *> SeedFinderAlgorithm::FindSeeds(std::vector<recob::SpacePoint> AllSpacePoints, std::vector<std::vector<recob::SpacePoint> > & PointsInSeeds)
+  std::vector<recob::Seed *> SeedFinderAlgorithm::FindSeeds(std::vector<recob::SpacePoint> const& AllSpacePoints, std::vector<std::vector<recob::SpacePoint> > & PointsInSeeds)
   {
+    // Vector of seeds found to return
     std::vector<recob::Seed*>       ReturnVector;
-    std::map<int,int>               PointStatus;
-    
-    ReturnVector.clear();
 
+    // This vector keeps track of the status of each point.  
+    // The key is the position in the AllSpacePoints vector.
+    // The value is 0: point unused, 1: point used in seed, 2: point thrown but unused 
+    std::map<int,int>               PointStatus;
+
+    // Keep track of how many SPs we used already 
+    int TotalSPsUsed=0;
+    
+    // Empty the relevant vectors
+    ReturnVector.clear();
     PointStatus.clear();
     PointsInSeeds.clear();
 
-    recob::Seed* TrackSeedThisCombo;
+    // Follow this loop until all SPs used up
     bool KeepChopping=true;
     while(KeepChopping)
       {
-	// Entries in this vector:
-	//  first vector, spacepoint IDs in seed
-	//  second vector, spacepoint IDs to chop
+	// This vector keeps a list of the points used in this seed
 	std::vector<int> PointsUsed;
-	TrackSeedThisCombo = FindSeedAtEnd(AllSpacePoints, PointStatus, PointsUsed);
-	if(TrackSeedThisCombo->IsValid())
+
+	// Find exactly one seed, starting at high Z
+	recob::Seed* TheSeed = FindSeedAtEnd(AllSpacePoints, PointStatus, PointsUsed);
+
+	// If it was a good seed, collect up the relevant spacepoints
+	// and add the seed to the return vector 
+	if(TheSeed->IsValid())
 	  {
-	    ReturnVector.push_back(TrackSeedThisCombo);
+	    ReturnVector.push_back(TheSeed);
 	    
 	    std::vector<recob::SpacePoint> SPs;
 	    for(size_t i=0; i!=PointsUsed.size(); ++i) 
@@ -104,25 +116,18 @@ namespace trkf {
 	    PointsInSeeds.push_back(SPs);
 	  }
 	
-	// if enough left, chop off some points and try again
-	for(size_t i=0; i!=PointsUsed.size(); i++)
-	  {
-	    if(TrackSeedThisCombo->IsValid())
-	      PointStatus[PointsUsed.at(i)] = 1;
-	    else
-	      PointStatus[PointsUsed.at(i)]=2;
-	  }
+	// Update the status of the spacepoints we used in this attempt
+	if(TheSeed->IsValid())
+	  for(size_t i=0; i!=PointsUsed.size(); PointsUsed.at(i++)=1);
+	else
+	  for(size_t i=0; i!=PointsUsed.size(); PointsUsed.at(i++)=2);
 
-	int TotalUsed=0;
-	for(std::map<int,int>::const_iterator it=PointStatus.begin();
-	    it!=PointStatus.end();
-	    ++it)
-	  {
-	    if(it->second>0) TotalUsed++; 
-	  }
+	// Keep track of how many we used
+	TotalSPsUsed+=PointsUsed.size();
 
-
-	if( (AllSpacePoints.size() - TotalUsed) < fMinPointsInSeed)
+	// We run out of points when there are less than the minimum seed
+	//  count unused. Then we break the loop.
+	if( (AllSpacePoints.size() - TotalSPsUsed) < fMinPointsInSeed)
 	  KeepChopping=false;
 
       }
@@ -130,7 +135,7 @@ namespace trkf {
   }
 
 
-
+  //------------------------------------------------------------
 
 
   double SeedFinderAlgorithm::CountHits(std::vector<recob::SpacePoint>  SpacePoints)
@@ -169,7 +174,7 @@ namespace trkf {
 
 
 
-  recob::Seed * SeedFinderAlgorithm::FindSeedAtEnd(std::vector<recob::SpacePoint> Points,std::map<int,int> PointStatus, std::vector<int>& PointsInRange)
+  recob::Seed * SeedFinderAlgorithm::FindSeedAtEnd(std::vector<recob::SpacePoint> const& Points, std::map<int,int>& PointStatus, std::vector<int>& PointsInRange)
   {
     
     recob::Seed * ReturnSeed;
@@ -330,7 +335,7 @@ namespace trkf {
     
   }
 
-  bool SeedFinderAlgorithm::ExtendSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> AllSpacePoints, std::vector<int> PointsUsed, std::map<int,int> PointStatus)
+  bool SeedFinderAlgorithm::ExtendSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, std::vector<int> PointsUsed, std::map<int,int>& PointStatus)
   {
     std::cout<<"Placeholder for ExtendSeed method"<<std::endl;
     return true;
