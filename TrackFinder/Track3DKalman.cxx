@@ -351,6 +351,20 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 	    {
 	      
 	      TVector3 spt3(spacepoints[point]->XYZ());
+		if (point > 0 )
+		  {
+		    double eps (0.1);
+		    TVector3 magNew(spt3[0],spt3[1],spt3[2]);
+		    TVector3 magLast(spacepoints.back()->XYZ()[0],
+				     spacepoints.back()->XYZ()[1],
+				     spacepoints.back()->XYZ()[2]
+				     );
+		    if (!(magNew.Mag()>=magLast.Mag()+eps || 
+			  magNew.Mag()<=magLast.Mag()-eps)
+			)
+		      continue;
+		  }
+
 	      if (point%20) // Jump out of loop except on every 20th pt.
 		{
 		  //continue;
