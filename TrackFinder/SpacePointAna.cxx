@@ -32,7 +32,9 @@ namespace trkf {
     //
     // Arguments: pset - Module parameters.
     //
-    fSptalg(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
+    fSptalg1(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
+    fSptalg2(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
+    fSptalg3(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
     fHitModuleLabel(pset.get<std::string>("HitModuleLabel")),
     fUseClusterHits(pset.get<bool>("UseClusterHits")),
     fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel")),
@@ -103,7 +105,7 @@ namespace trkf {
 	fHDTVPull = dir.make<TH1F>("MCDTVPull", "V-Drift Electrons Time Pull", 100, -50., 50.);
 	fHDTWPull = dir.make<TH1F>("MCDTWPull", "W-Drift Electrons Time Pull", 100, -50., 50.);
       }
-      if(!fSptalg.merge()) {
+      if(!fSptalg1.merge()) {
 	fHDTUV = dir.make<TH1F>("DTUV", "U-V time difference", 100, -20., 20.);
 	fHDTVW = dir.make<TH1F>("DTVW", "V-W time difference", 100, -20., 20.);
 	fHDTWU = dir.make<TH1F>("DTWU", "W-U time difference", 100, -20., 20.);
@@ -163,7 +165,7 @@ namespace trkf {
 
       // Get hits from all clusters.
       art::FindManyP<recob::Hit> fm(clusterh, evt, fClusterModuleLabel);
-      
+
       if(clusterh.isValid()) {
 	int nclus = clusterh->size();
 
@@ -272,15 +274,15 @@ namespace trkf {
     // If nonzero time cut is specified, make space points using that
     // time cut (for time histograms).
 
-    if(fMaxDT != 0 && !fSptalg.merge()) {
+    if(fMaxDT != 0 && !fSptalg1.merge()) {
       if(mc && fUseMC)
-	fSptalg.makeMCTruthSpacePoints(hits, spts1, 
-				       fSptalg.filter(), fSptalg.merge(),
-				       fMaxDT, 0.);
+	fSptalg1.makeMCTruthSpacePoints(hits, spts1, 
+					fSptalg1.filter(), fSptalg1.merge(),
+					fMaxDT, 0.);
       else
-	fSptalg.makeSpacePoints(hits, spts1,
-				fSptalg.filter(), fSptalg.merge(),
-				fMaxDT, 0.);
+	fSptalg1.makeSpacePoints(hits, spts1,
+				 fSptalg1.filter(), fSptalg1.merge(),
+				 fMaxDT, 0.);
 
       // Report number of space points.
 
@@ -291,15 +293,15 @@ namespace trkf {
     // If nonzero separation cut is specified, make space points using that 
     // separation cut (for separation histogram).
 
-    if(fMaxS != 0. && !fSptalg.merge()) {
+    if(fMaxS != 0. && !fSptalg2.merge()) {
       if(mc && fUseMC)
-	fSptalg.makeMCTruthSpacePoints(hits, spts2, 
-				       fSptalg.filter(), fSptalg.merge(),
-				       0., fMaxS);
+	fSptalg2.makeMCTruthSpacePoints(hits, spts2, 
+					fSptalg2.filter(), fSptalg2.merge(),
+					0., fMaxS);
       else
-	fSptalg.makeSpacePoints(hits, spts2,
-				fSptalg.filter(), fSptalg.merge(),
-				0., fMaxS);
+	fSptalg2.makeSpacePoints(hits, spts2,
+				 fSptalg2.filter(), fSptalg2.merge(),
+				 0., fMaxS);
 
       // Report number of space points.
 
@@ -310,9 +312,9 @@ namespace trkf {
     // Make space points using default cuts.
 
     if(mc && fUseMC)
-      fSptalg.makeMCTruthSpacePoints(hits, spts3);
+      fSptalg3.makeMCTruthSpacePoints(hits, spts3);
     else
-      fSptalg.makeSpacePoints(hits, spts3);
+      fSptalg3.makeSpacePoints(hits, spts3);
 
     // Report number of space points.
 
@@ -322,12 +324,13 @@ namespace trkf {
     std::vector<recob::SpacePoint>::const_iterator ibegin;
     std::vector<recob::SpacePoint>::const_iterator iend;
 
-    if(!fSptalg.merge()) {
+    if(!fSptalg1.merge()) {
 
       // Loop over space points and fill time histograms.
 
       ibegin = (fMaxDT != 0. ? spts1.begin() : spts3.begin());
       iend = (fMaxDT != 0. ? spts1.end() : spts3.end());
+      const SpacePointAlg* palg = (fMaxDT != 0. ? &fSptalg1 : &fSptalg3);
 
       for(std::vector<recob::SpacePoint>::const_iterator i = ibegin; 
 	  i != iend; ++i) {
@@ -335,7 +338,7 @@ namespace trkf {
 
 	// Get hits associated with this SpacePoint.
 
-	const art::PtrVector<recob::Hit>& spthits = fSptalg.getAssociatedHits(spt);
+	const art::PtrVector<recob::Hit>& spthits = palg->getAssociatedHits(spt);
 
 	// Make a double loop over hits and fill hit time difference histograms.
 
@@ -347,7 +350,7 @@ namespace trkf {
 	  unsigned int tpc1, plane1, wire1, cs1;
 	  geom->ChannelToWire(channel1, cs1, tpc1, plane1, wire1);
 	  geo::View_t view1 = hit1.View();
-	  double t1 = fSptalg.correctedTime(hit1);
+	  double t1 = palg->correctedTime(hit1);
 
 	  for(art::PtrVector<recob::Hit>::const_iterator jhit = spthits.begin();
 	      jhit != spthits.end(); ++jhit) {
@@ -362,7 +365,7 @@ namespace trkf {
 	    if(tpc1 == tpc2 && plane1 != plane2) {
 
 	      geo::View_t view2 = hit2.View();
-	      double t2 = fSptalg.correctedTime(hit2);
+	      double t2 = palg->correctedTime(hit2);
 
 	      if(view1 == geo::kU) {
 		if(view2 == geo::kV)
@@ -391,6 +394,7 @@ namespace trkf {
 
       ibegin = (fMaxS != 0. ? spts2.begin() : spts3.begin());
       iend = (fMaxS != 0. ? spts2.end() : spts3.end());
+      palg = (fMaxDT != 0. ? &fSptalg2 : &fSptalg3);
 
       for(std::vector<recob::SpacePoint>::const_iterator i = ibegin; 
 	  i != iend; ++i) {
@@ -398,11 +402,11 @@ namespace trkf {
 
 	// Get hits associated with this SpacePoint.
 
-	const art::PtrVector<recob::Hit>& spthits = fSptalg.getAssociatedHits(spt);
+	const art::PtrVector<recob::Hit>& spthits = palg->getAssociatedHits(spt);
 
 	// Fill separation histogram.
 
-	double sep = fSptalg.separation(spthits);
+	double sep = palg->separation(spthits);
 	fHS->Fill(sep);
       }
     }
@@ -421,7 +425,7 @@ namespace trkf {
       fHy->Fill(spt.XYZ()[1]);
       fHz->Fill(spt.XYZ()[2]);
       if(mc) {
-	std::vector<double> mcxyz = bt->SpacePointHitsToXYZ(fSptalg.getAssociatedHits(spt));
+	std::vector<double> mcxyz = bt->SpacePointHitsToXYZ(fSptalg3.getAssociatedHits(spt));
 	fHMCdx->Fill(spt.XYZ()[0] - mcxyz[0]);
 	fHMCdy->Fill(spt.XYZ()[1] - mcxyz[1]);
 	fHMCdz->Fill(spt.XYZ()[2] - mcxyz[2]);

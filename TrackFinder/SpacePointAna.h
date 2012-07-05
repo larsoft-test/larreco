@@ -36,7 +36,9 @@ namespace trkf {
 
     // Fcl Attributes.
 
-    const SpacePointAlg fSptalg;   // Algorithm object.
+    const SpacePointAlg fSptalg1;   // Algorithm object.
+    const SpacePointAlg fSptalg2;   // Algorithm object.
+    const SpacePointAlg fSptalg3;   // Algorithm object.
     std::string fHitModuleLabel;
     bool fUseClusterHits;
     std::string fClusterModuleLabel;
