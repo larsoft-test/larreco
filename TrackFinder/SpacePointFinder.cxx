@@ -109,7 +109,7 @@ namespace trkf {
       std::auto_ptr<std::vector< art::PtrVector<recob::SpacePoint> > > sptvecs(new std::vector< art::PtrVector<recob::SpacePoint> >);
       std::auto_ptr<std::vector<recob::SpacePoint> >                   spts(new std::vector<recob::SpacePoint>);
       std::auto_ptr< art::Assns<recob::SpacePoint, recob::Hit> >       sphitassn(new art::Assns<recob::SpacePoint, recob::Hit>);
-      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Cluster> >    spclassn(new art::Assns<recob::SpacePoint, recob::Cluster>);
+      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Cluster> >   spclassn(new art::Assns<recob::SpacePoint, recob::Cluster>);
     
       // Make a hit vector which will be used to store hits to be passed
       // to SpacePointAlg.
@@ -186,7 +186,7 @@ namespace trkf {
 		  clusters.reserve(2);
 		  clusters.push_back(piclus);
 		  clusters.push_back(pjclus);
-		  	
+
 		  // Insert newly found space points into event collection.
 		  int nspt = spts->size();
 		  spts->insert(spts->end(), new_spts.begin(), new_spts.end());
@@ -219,6 +219,7 @@ namespace trkf {
 		geo::View_t kview = pkclus->View();
 
 		std::vector< art::Ptr<recob::Hit> > khits = fm.at(kclus);
+
 		// Test third view.
 
 		if(khits.size() >= fMinHits &&
@@ -255,7 +256,7 @@ namespace trkf {
 		    clusters.push_back(piclus);
 		    clusters.push_back(pjclus);
 		    clusters.push_back(pkclus);
-		
+
 		    // Insert newly found space points into event collection.
 
 		    int nspt = spts->size();
@@ -289,7 +290,7 @@ namespace trkf {
       }
 
       // Add prongs and associations to event.
-      
+
       evt.put(spts);
       evt.put(sptvecs);
       evt.put(sphitassn);

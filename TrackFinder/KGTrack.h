@@ -50,7 +50,6 @@ namespace trkf {
     /// Number of measurements in track.
     size_t numHits() const {return fTrackMap.size();}
 
-
     /// Track at start point.
     const KHitTrack& startTrack() const;
 

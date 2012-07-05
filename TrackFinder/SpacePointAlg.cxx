@@ -474,7 +474,6 @@ namespace  trkf{
 
     double timePitch=detprop->GetXTicksCoefficient();
 
-    // Store hits in SpacePoint.
     int nhits = hits.size();
 
     // Remember associated hits internally.
@@ -591,7 +590,8 @@ namespace  trkf{
 	errxyz[5] = sc2 / denom;
       }
 
-      // Set coordintates, error matrix, and chisquare in space point.
+      // Make space point.
+
       recob::SpacePoint spt(xyz, errxyz, chisq, sptid);
       sptv.push_back(spt);
     }
@@ -629,8 +629,6 @@ namespace  trkf{
       unsigned int plane, wire;
       geom->ChannelToWire(channel, cstat0, tpc0, plane, wire);
     }
-
-    // Store hits in SpacePoint.
 
     // Remember associated hits internally.
 
@@ -770,10 +768,10 @@ namespace  trkf{
 	errxyz[5] = sc2 / denom;
       }
 
-      // Set coordintates, error matrix, and chisquare in space point.
+      // Make space point.
+
       recob::SpacePoint spt(xyz, errxyz, chisq, sptid);
       sptv.push_back(spt);
-
     }
     return;
   }
@@ -840,6 +838,7 @@ namespace  trkf{
       maxS = fMaxS;  
 
     // Get services.
+
     art::ServiceHandle<geo::Geometry> geom;
     art::ServiceHandle<util::DetectorProperties> detprop;
 
@@ -923,7 +922,7 @@ namespace  trkf{
 
 	      std::vector<sim::IDE> ides;
 	      bt->HitToSimIDEs(phit, ides);
-	    
+
 	      // Get sorted track ids. for this hit.
 	    
 	      mcinfo.trackIDs.reserve(ides.size());
@@ -1405,6 +1404,7 @@ namespace  trkf{
 	    merged_hits.erase(it, merged_hits.end());
 	  
 	    // Construct a complex space points using merged hits.
+
 	    fillComplexSpacePoint(merged_hits, spts, sptmap.size() + spts.size()-1);
 	  
 	    if(fMinViews <= 2)
@@ -1438,7 +1438,7 @@ namespace  trkf{
       fSptHitMap.find(spt.ID());
     if(it == fSptHitMap.end())
       throw cet::exception("SpacePointAlg") << "No Hits associated with space point.\n";
-    
+
     return (*it).second;
 
   }

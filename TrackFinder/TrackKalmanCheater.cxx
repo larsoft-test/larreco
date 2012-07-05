@@ -29,12 +29,11 @@
 ///
 /// p - Fcl parameters.
 ///
-trkf::TrackKalmanCheater::TrackKalmanCheater(fhicl::ParameterSet const & pset) 
+trkf::TrackKalmanCheater::TrackKalmanCheater(fhicl::ParameterSet const & pset)
   : fHist(false)
   , fKFAlg(pset.get<fhicl::ParameterSet>("KalmanFilterAlg"))
   , fSpacePointAlg(pset.get<fhicl::ParameterSet>("SpacePointAlg"))
   , fUseClusterHits(false)
-  , fMaxIncChisq(0.)
   , fMaxTcut(0.)
   , fProp(0)
   , fHIncChisq(0)
@@ -80,7 +79,6 @@ void trkf::TrackKalmanCheater::reconfigure(fhicl::ParameterSet const & pset)
   fHitModuleLabel = pset.get<std::string>("HitModuleLabel");
   fClusterModuleLabel = pset.get<std::string>("ClusterModuleLabel");
   fG4ModuleLabel = pset.get<std::string>("G4ModuleLabel");
-  fMaxIncChisq = pset.get<double>("MaxIncChisq");
   fMaxTcut = pset.get<double>("MaxTcut");
   if(fProp != 0)
     delete fProp;
@@ -283,7 +281,7 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	  KHitContainerWireX cont;
 	  cont.fill(trackhits, -1);
 
-	  // Count hits in each plane.  Set the preffered plane to be
+	  // Count hits in each plane.  Set the preferred plane to be
 	  // the one with the most hits.
 
 	  std::vector<unsigned int> planehits(3, 0);
@@ -309,8 +307,7 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	  fKFAlg.setPlane(prefplane);
 	  bool ok = fKFAlg.buildTrack(trk, trg, fProp, Propagator::FORWARD, cont);
 	  if(ok) {
-	    KGTrack trg1;
-	    ok = fKFAlg.smoothTrack(trg, &trg1, fProp);
+	    ok = fKFAlg.smoothTrackIter(5, trg, fProp);
 	    if(ok) {
 	      KETrack tremom;
 	      bool pok = fKFAlg.fitMomentum(trg, fProp, tremom);
@@ -414,6 +411,7 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
   evt.put(sph_assn);
 }
 
+//------------------------------------------------------------------------------
 /// End job method.
 void trkf::TrackKalmanCheater::endJob()
 {

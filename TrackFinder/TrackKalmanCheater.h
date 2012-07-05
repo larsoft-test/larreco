@@ -16,7 +16,6 @@
 // HitModuleLabel     - Module label for unclustered Hits.
 // ClusterModuleLabel - Module label for Clusters.
 // G4ModuleLabel      - Module label for MC truth particles.
-// MaxIncChisq        - Maximum incremental chisquare cut.
 // MaxTcut            - Maximum delta ray energy in Mev for dE/dx.
 // KalmanFilterAlg    - Parameter set for KalmanFilterAlg.
 // SpacePointAlg      - Parmaeter set for space points.
@@ -57,7 +56,6 @@ namespace trkf {
     std::string fHitModuleLabel;       ///< Unclustered Hits.
     std::string fClusterModuleLabel;   ///< Clustered Hits.
     std::string fG4ModuleLabel;        ///< For SimChannel.
-    double fMaxIncChisq;               ///< Maximum incremental chisquare.
     double fMaxTcut;                   ///< Maximum delta ray energy in MeV for restricted dE/dx.
 
     /// Propagator.

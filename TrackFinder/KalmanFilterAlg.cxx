@@ -1415,7 +1415,7 @@ bool trkf::KalmanFilterAlg::fitMomentum(const KGTrack& trg,
     result = ok_range;
   }
   else if(ok_ms) {
-    tremom= tremom_ms;
+    tremom = tremom_ms;
     result = ok_ms;
   }
   return result;

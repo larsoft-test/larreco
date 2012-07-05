@@ -94,6 +94,7 @@ namespace trkf {
     // Get Services.
 
     art::ServiceHandle<geo::Geometry> geom;
+
     // Get clusters.
 
     art::Handle< std::vector<recob::Cluster> > clusterh;
@@ -209,7 +210,7 @@ namespace trkf {
 
 		// Test third view.
 		std::vector< art::Ptr<recob::Hit> > khits = fm.at(kclus);
-		
+
 		if(khits.size() >= fMinHits &&
 		   ((kview == geo::kU && fSptalg.enableU()) ||
 		    (kview == geo::kV && fSptalg.enableV()) ||
