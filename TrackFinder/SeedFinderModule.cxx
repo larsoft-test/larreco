@@ -227,8 +227,7 @@ namespace trkf {
 		  // Make three-view space points.
 
 		  std::vector<recob::SpacePoint> spts;
-		  fSptalg.makeSpacePoints(hits, spts,
-					  fSptalg.filter(), fSptalg.merge(), 0., 0.);
+		  fSptalg.makeSpacePoints(hits, spts);
 
 		  if(spts.size() > 0) {
 		    SpacePointVectors.push_back(spts);

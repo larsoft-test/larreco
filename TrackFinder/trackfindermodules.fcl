@@ -72,15 +72,15 @@ standard_spacepts:
 
 standard_spacepointana:
 {
-  module_type:        "SpacePointAna"
-  HitModuleLabel:     "ffthit"
-  UseClusterHits:     true
-  ClusterModuleLabel: "dbcluster"
-  UseMC:              false
-  G4ModuleLabel:      "largeant"
-  MaxDT:              50.
-  MaxS:               10.
-  SpacePointAlg:       @local::standard_spacepointalg
+  module_type:             "SpacePointAna"
+  HitModuleLabel:          "ffthit"
+  UseClusterHits:          true
+  ClusterModuleLabel:      "dbcluster"
+  UseMC:                   false
+  G4ModuleLabel:           "largeant"
+  SpacePointAlgTime:       @local::standard_spacepointalg
+  SpacePointAlgSep:        @local::standard_spacepointalg
+  SpacePointAlgDefault:    @local::standard_spacepointalg
 }
 
 standard_spacepointfinder:
@@ -89,8 +89,6 @@ standard_spacepointfinder:
   ClusterModuleLabel: "dbcluster"
   MinHits:            10
   ClusterAssns:       true
-  Filter:             true
-  Merge:              false
   SpacePointAlg:      @local::standard_spacepointalg
 }
 
@@ -101,8 +99,6 @@ standard_spacepointcheater:
   G4ModuleLabel:      "largeant"
   MinHits:            10
   ClusterAssns:       true
-  Filter:             false
-  Merge:              false
   SpacePointAlg:      @local::standard_spacepointalg
 }
 
@@ -111,8 +107,6 @@ development_seeding:
   SeedMode:            1
   ClusterModuleLabel:  "dbcluster"
   HitModuleLabel:      "ffthit"
-  Filter:              true
-  Merge:               false
   Source:              2
   SeedLength:          8
   MinPointsInCluster:  50
@@ -188,8 +182,12 @@ argoneut_kalman:                          @local::standard_track3Dkalman
 
 argoneut_spacepts:                        @local::standard_spacepts     
 
-argoneut_spacepoint:                      @local::standard_spacepointana
-argoneut_spacepoint.SpacePointAlg:        @local::argoneut_spacepointalg
+argoneut_spacepoint:                          @local::standard_spacepointana
+argoneut_spacepoint.SpacePointAlgTime:        @local::argoneut_spacepointalg
+argoneut_spacepoint.SpacePointAlgTime.MaxDT:  50.
+argoneut_spacepoint.SpacePointAlgSep:         @local::argoneut_spacepointalg
+argoneut_spacepoint.SpacePointAlgSep.MaxS:    10.
+argoneut_spacepoint.SpacePointAlgDefault:     @local::argoneut_spacepointalg
 
 argoneut_spacepoint_finder:               @local::standard_spacepointalg
 argoneut_spacepoint_finder.SpacePointAlg: @local::argoneut_spacepointalg
@@ -211,7 +209,11 @@ microboone_kalman:                                              @local::standard
 microboone_kalman.SpacePointAlg:                                @local::microboone_spacepointalg     
 
 microboone_spacepoint:                                          @local::standard_spacepointana       
-microboone_spacepoint.SpacePointAlg:                            @local::microboone_spacepointalg     
+microboone_spacepoint.SpacePointAlgTime:                        @local::microboone_spacepointalg     
+microboone_spacepoint.SpacePointAlgTime.MaxDT:                  50.
+microboone_spacepoint.SpacePointAlgSep:                         @local::microboone_spacepointalg     
+microboone_spacepoint.SpacePointAlgSep.MaxS:                    10.
+microboone_spacepoint.SpacePointAlgDefault:                     @local::microboone_spacepointalg     
 
 microboone_spacepoint_finder:                                   @local::standard_spacepointfinder    
 microboone_spacepoint_finder.SpacePointAlg:                     @local::microboone_spacepointalg     

@@ -26,9 +26,7 @@ namespace trkf {
 
   //----------------------------------------------------------------------------
   SeedFinder::SeedFinder(const fhicl::ParameterSet& pset) :
-    fSptalg(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
-    fFilter(true),
-    fMerge(false)
+    fSptalg(pset.get<fhicl::ParameterSet>("SpacePointAlg"))
   {
     reconfigure(pset);
     produces<std::vector<recob::Seed> >();
@@ -36,9 +34,7 @@ namespace trkf {
   
     mf::LogInfo("SeedFinder") 
       << "SeedFinder configured with the following parameters:\n"
-      << "  ClusterModuleLabel = " << fClusterModuleLabel << "\n"
-      << "  Filter = " << fFilter << "\n"
-      << "  Merge = " << fMerge;
+      << "  ClusterModuleLabel = " << fClusterModuleLabel;
   }
 
   //----------------------------------------------------------------------------
@@ -54,8 +50,6 @@ namespace trkf {
     fSptalg                = seedConfig.get<fhicl::ParameterSet>("SpacePointAlg");
     fClusterModuleLabel    = seedConfig.get<std::string>("ClusterModuleLabel");
     fHitModuleLabel        = seedConfig.get<std::string>("HitModuleLabel");
-    fFilter                = seedConfig.get<bool>("Filter");
-    fMerge                 = seedConfig.get<bool>("Merge");
     fSeedMode              = seedConfig.get<int>("SeedMode");
     fSource                = seedConfig.get<int>("Source");
     fSeedLength            = seedConfig.get<double>("SeedLength");
@@ -258,8 +252,7 @@ namespace trkf {
 		  // Make three-view space points.
 
 		  std::vector<recob::SpacePoint> spts;
-		  fSptalg.makeSpacePoints(hits, spts,
-					  fFilter, fMerge, 0., 0.);
+		  fSptalg.makeSpacePoints(hits, spts);
 
 		  if(spts.size() > 0) {
 		    SpacePointVectors.push_back(spts);
@@ -322,8 +315,7 @@ namespace trkf {
   {
     std::vector<recob::SpacePoint> ReturnVec;
     
-    fSptalg.makeSpacePoints(Hits, ReturnVec,
-    			    fFilter, fMerge, 0., 0.);
+    fSptalg.makeSpacePoints(Hits, ReturnVec);
 
  
     return ReturnVec;

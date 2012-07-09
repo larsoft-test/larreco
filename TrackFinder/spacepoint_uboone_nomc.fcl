@@ -61,5 +61,3 @@ physics:
 
 physics.analyzers.spacepoint: @local::microboone_spacepoint
 physics.analyzers.spacepoint.UseMC: false
-#physics.analyzers.spacepoint.MaxDT: 0.
-#physics.analyzers.spacepoint.MaxS: 0.

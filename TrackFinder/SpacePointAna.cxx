@@ -32,16 +32,14 @@ namespace trkf {
     //
     // Arguments: pset - Module parameters.
     //
-    fSptalg1(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
-    fSptalg2(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
-    fSptalg3(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
+    fSptalgTime(pset.get<fhicl::ParameterSet>("SpacePointAlgTime")),
+    fSptalgSep(pset.get<fhicl::ParameterSet>("SpacePointAlgSep")),
+    fSptalgDefault(pset.get<fhicl::ParameterSet>("SpacePointAlgDefault")),
     fHitModuleLabel(pset.get<std::string>("HitModuleLabel")),
     fUseClusterHits(pset.get<bool>("UseClusterHits")),
     fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel")),
     fUseMC(pset.get<bool>("UseMC")),
     fG4ModuleLabel(pset.get<std::string>("G4ModuleLabel")),
-    fMaxDT(pset.get<double>("MaxDT")),
-    fMaxS(pset.get<double>("MaxS")),
     fBooked(false),
     fHDTUE(0),
     fHDTVE(0),
@@ -74,9 +72,7 @@ namespace trkf {
       << "  UseClusterHits = " << fUseClusterHits << "\n"
       << "  ClusterModuleLabel = " << fClusterModuleLabel << "\n"
       << "  UseMC = " << fUseMC << "\n"
-      << "  G4ModuleLabel = " << fG4ModuleLabel << "\n"
-      << "  MaxDT = " << fMaxDT << "\n"
-      << "  MaxS = " << fMaxS;
+      << "  G4ModuleLabel = " << fG4ModuleLabel;
   }
 
   SpacePointAna::~SpacePointAna()
@@ -105,7 +101,7 @@ namespace trkf {
 	fHDTVPull = dir.make<TH1F>("MCDTVPull", "V-Drift Electrons Time Pull", 100, -50., 50.);
 	fHDTWPull = dir.make<TH1F>("MCDTWPull", "W-Drift Electrons Time Pull", 100, -50., 50.);
       }
-      if(!fSptalg1.merge()) {
+      if(!fSptalgTime.merge()) {
 	fHDTUV = dir.make<TH1F>("DTUV", "U-V time difference", 100, -20., 20.);
 	fHDTVW = dir.make<TH1F>("DTVW", "V-W time difference", 100, -20., 20.);
 	fHDTWU = dir.make<TH1F>("DTWU", "W-U time difference", 100, -20., 20.);
@@ -274,15 +270,11 @@ namespace trkf {
     // If nonzero time cut is specified, make space points using that
     // time cut (for time histograms).
 
-    if(fMaxDT != 0 && !fSptalg1.merge()) {
+    if(!fSptalgTime.merge()) {
       if(mc && fUseMC)
-	fSptalg1.makeMCTruthSpacePoints(hits, spts1, 
-					fSptalg1.filter(), fSptalg1.merge(),
-					fMaxDT, 0.);
+	fSptalgTime.makeMCTruthSpacePoints(hits, spts1);
       else
-	fSptalg1.makeSpacePoints(hits, spts1,
-				 fSptalg1.filter(), fSptalg1.merge(),
-				 fMaxDT, 0.);
+	fSptalgTime.makeSpacePoints(hits, spts1);
 
       // Report number of space points.
 
@@ -293,15 +285,11 @@ namespace trkf {
     // If nonzero separation cut is specified, make space points using that 
     // separation cut (for separation histogram).
 
-    if(fMaxS != 0. && !fSptalg2.merge()) {
+    if(!fSptalgSep.merge()) {
       if(mc && fUseMC)
-	fSptalg2.makeMCTruthSpacePoints(hits, spts2, 
-					fSptalg2.filter(), fSptalg2.merge(),
-					0., fMaxS);
+	fSptalgSep.makeMCTruthSpacePoints(hits, spts2);
       else
-	fSptalg2.makeSpacePoints(hits, spts2,
-				 fSptalg2.filter(), fSptalg2.merge(),
-				 0., fMaxS);
+	fSptalgSep.makeSpacePoints(hits, spts2);
 
       // Report number of space points.
 
@@ -312,33 +300,26 @@ namespace trkf {
     // Make space points using default cuts.
 
     if(mc && fUseMC)
-      fSptalg3.makeMCTruthSpacePoints(hits, spts3);
+      fSptalgDefault.makeMCTruthSpacePoints(hits, spts3);
     else
-      fSptalg3.makeSpacePoints(hits, spts3);
+      fSptalgDefault.makeSpacePoints(hits, spts3);
 
     // Report number of space points.
 
     mf::LogDebug("SpacePointAna") << "Found " << spts3.size() 
 				  << " space points using default cuts.";
 
-    std::vector<recob::SpacePoint>::const_iterator ibegin;
-    std::vector<recob::SpacePoint>::const_iterator iend;
-
-    if(!fSptalg1.merge()) {
+    if(!fSptalgTime.merge()) {
 
       // Loop over space points and fill time histograms.
 
-      ibegin = (fMaxDT != 0. ? spts1.begin() : spts3.begin());
-      iend = (fMaxDT != 0. ? spts1.end() : spts3.end());
-      const SpacePointAlg* palg = (fMaxDT != 0. ? &fSptalg1 : &fSptalg3);
-
-      for(std::vector<recob::SpacePoint>::const_iterator i = ibegin; 
-	  i != iend; ++i) {
+      for(std::vector<recob::SpacePoint>::const_iterator i = spts1.begin(); 
+	  i != spts1.end(); ++i) {
 	const recob::SpacePoint& spt = *i;
 
 	// Get hits associated with this SpacePoint.
 
-	const art::PtrVector<recob::Hit>& spthits = palg->getAssociatedHits(spt);
+	const art::PtrVector<recob::Hit>& spthits = fSptalgTime.getAssociatedHits(spt);
 
 	// Make a double loop over hits and fill hit time difference histograms.
 
@@ -350,7 +331,7 @@ namespace trkf {
 	  unsigned int tpc1, plane1, wire1, cs1;
 	  geom->ChannelToWire(channel1, cs1, tpc1, plane1, wire1);
 	  geo::View_t view1 = hit1.View();
-	  double t1 = palg->correctedTime(hit1);
+	  double t1 = fSptalgTime.correctedTime(hit1);
 
 	  for(art::PtrVector<recob::Hit>::const_iterator jhit = spthits.begin();
 	      jhit != spthits.end(); ++jhit) {
@@ -365,7 +346,7 @@ namespace trkf {
 	    if(tpc1 == tpc2 && plane1 != plane2) {
 
 	      geo::View_t view2 = hit2.View();
-	      double t2 = palg->correctedTime(hit2);
+	      double t2 = fSptalgTime.correctedTime(hit2);
 
 	      if(view1 == geo::kU) {
 		if(view2 == geo::kV)
@@ -392,32 +373,25 @@ namespace trkf {
 
       // Loop over space points and fill seperation histograms.
 
-      ibegin = (fMaxS != 0. ? spts2.begin() : spts3.begin());
-      iend = (fMaxS != 0. ? spts2.end() : spts3.end());
-      palg = (fMaxDT != 0. ? &fSptalg2 : &fSptalg3);
-
-      for(std::vector<recob::SpacePoint>::const_iterator i = ibegin; 
-	  i != iend; ++i) {
+      for(std::vector<recob::SpacePoint>::const_iterator i = spts2.begin(); 
+	  i != spts2.end(); ++i) {
 	const recob::SpacePoint& spt = *i;
 
 	// Get hits associated with this SpacePoint.
 
-	const art::PtrVector<recob::Hit>& spthits = palg->getAssociatedHits(spt);
+	const art::PtrVector<recob::Hit>& spthits = fSptalgSep.getAssociatedHits(spt);
 
 	// Fill separation histogram.
 
-	double sep = palg->separation(spthits);
+	double sep = fSptalgSep.separation(spthits);
 	fHS->Fill(sep);
       }
     }
 
     // Loop over default space points and fill histograms.
 
-    ibegin = spts3.begin();
-    iend = spts3.end();
-
-    for(std::vector<recob::SpacePoint>::const_iterator i = ibegin;
-	i != iend; ++i) {
+    for(std::vector<recob::SpacePoint>::const_iterator i = spts3.begin();
+	i != spts3.end(); ++i) {
       const recob::SpacePoint& spt = *i;
 
       fHchisq->Fill(spt.Chisq());
@@ -425,7 +399,7 @@ namespace trkf {
       fHy->Fill(spt.XYZ()[1]);
       fHz->Fill(spt.XYZ()[2]);
       if(mc) {
-	std::vector<double> mcxyz = bt->SpacePointHitsToXYZ(fSptalg3.getAssociatedHits(spt));
+	std::vector<double> mcxyz = bt->SpacePointHitsToXYZ(fSptalgDefault.getAssociatedHits(spt));
 	fHMCdx->Fill(spt.XYZ()[0] - mcxyz[0]);
 	fHMCdy->Fill(spt.XYZ()[1] - mcxyz[1]);
 	fHMCdz->Fill(spt.XYZ()[2] - mcxyz[2]);

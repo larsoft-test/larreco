@@ -71,9 +71,7 @@ namespace trkf {
   {
     std::vector<recob::SpacePoint> ReturnVec;
     
-    fSptalg.makeSpacePoints(Hits, ReturnVec,
-    			    fSptalg.filter(), fSptalg.merge(), 0., 0.);
-
+    fSptalg.makeSpacePoints(Hits, ReturnVec);
  
     return ReturnVec;
       

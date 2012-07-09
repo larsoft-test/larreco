@@ -16,8 +16,6 @@
 //
 // SpacePointAlg;       // Embedded space point algorithm.
 // ClusterModuleLabel;  // Cluster module label (e.g. "dbcluster").
-// Filter;              // Filter space points?
-// Merge;               // Merge space points?
 // fSeedMode;           // 1: Find 1 seed per track at high Z
 //                      // 2: Find as many seeds as possible
 // fSeedLength;         // Distance from highest Z point to search
@@ -121,8 +119,6 @@ namespace trkf {
 
     std::string fHitModuleLabel;           // Where to find hits, if we need them
  
-    bool            fFilter, fMerge;           // Space point service settings
-                                               //  See that service for info.
     int             fSeedMode;                 // 1: Find 1 seed per track at high Z
                                                // 2: Find as many seeds as possible 
     int             fSource;                   // 1: Use Clusters

@@ -27,8 +27,6 @@ namespace trkf {
     : fSptalg(pset.get<fhicl::ParameterSet>("SpacePointAlg"))
     , fMinHits(0)
     , fClusterAssns(false)
-    , fFilter(true)
-    , fMerge(false)
     , fNumEvent(0)
     , fNumProng2(0)
     , fNumProng3(0)
@@ -48,9 +46,7 @@ namespace trkf {
       << "SpacePointFinder configured with the following parameters:\n"
       << "  ClusterModuleLabel = " << fClusterModuleLabel << "\n"
       << "  Minimum Hits per Cluster = " << fMinHits << "\n"
-      << "  Cluster associations = " << fClusterAssns << "\n"
-      << "  Filter = " << fFilter << "\n"
-      << "  Merge = " << fMerge;
+      << "  Cluster associations = " << fClusterAssns;
   }
 
   //----------------------------------------------------------------------------
@@ -72,8 +68,6 @@ namespace trkf {
     fClusterModuleLabel = pset.get<std::string>("ClusterModuleLabel");
     fMinHits = pset.get<unsigned int>("MinHits");
     fClusterAssns = pset.get<bool>("ClusterAssns");
-    fFilter = pset.get<bool>("Filter");
-    fMerge = pset.get<bool>("Merge");
   }
 
   //----------------------------------------------------------------------------
@@ -175,8 +169,7 @@ namespace trkf {
 
 	      if(fSptalg.minViews() <= 2) {
 		std::vector<recob::SpacePoint> new_spts;
-		fSptalg.makeSpacePoints(hits, new_spts,
-					fFilter, fMerge, 0., 0.);
+		fSptalg.makeSpacePoints(hits, new_spts);
 
 		// If we found some space points, make a prong.
 
@@ -244,8 +237,7 @@ namespace trkf {
 		  // Make three-view space points.
 
 		  std::vector<recob::SpacePoint> new_spts;
-		  fSptalg.makeSpacePoints(hits, new_spts,
-					  fFilter, fMerge, 0., 0.);
+		  fSptalg.makeSpacePoints(hits, new_spts);
 
 		  // If we found some space points, make a prong.
 

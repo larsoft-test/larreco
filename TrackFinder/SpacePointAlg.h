@@ -20,6 +20,8 @@
 /// EnableW - Use W view hits.
 /// Filter - Filter space points flag.
 /// Merge - Merge space points flag.
+/// PreferColl - Collection view will be used for filtering and merging, and
+///              space points will be sorted by collection wire.
 ///
 /// The parameters fMaxDT and fMaxS are used to implement a notion of whether
 /// the input hits are compatible with being a space point.  Parameter
@@ -97,9 +99,7 @@ namespace trkf {
     // Test whether the specified hits are compatible with a space point.
     // The last two arguments can be used to override the default cuts.
     bool compatible(const art::PtrVector<recob::Hit>& hits,
-		    bool useMC = false,
-		    double maxDT = 0.,
-		    double maxS = 0.) const;
+		    bool useMC = false) const;
 
     // Fill a single simple space point using the specified hits.
     // Hits are assumed to be compatible.
@@ -116,27 +116,12 @@ namespace trkf {
 
     // Fill a vector of space points from an unsorted collection of hits.
     // Space points are generated for all compatible combinations of hits.
-    // Second version of this method allows to override various
-    // configuration parameters.
     void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 			 std::vector<recob::SpacePoint>& spts) const;
-    void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
-			 std::vector<recob::SpacePoint>& spts,
-			 bool filter,
-			 bool merge,
-			 double maxDT,
-			 double maxS) const;
 
     // Fill a vector of space points compatible with mc truth information 
-    // (with or without overriding configuration parameters).
     void makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
 				std::vector<recob::SpacePoint>& spts) const;
-    void makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
-				std::vector<recob::SpacePoint>& spts,
-				bool filter,
-				bool merge,
-				double maxDT,
-				double maxS) const;
 
     // Get hits associated with a particular space point, based on most recent 
     // invocation of any make*SpacePoints method.
@@ -154,11 +139,7 @@ namespace trkf {
     // the public make*SpacePoints methods comes here).
     void makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 			 std::vector<recob::SpacePoint>& spts,
-			 bool useMC,
-			 bool filter,
-			 bool merge,
-			 double maxDT,
-			 double maxS) const;
+			 bool useMC) const;
 
     // Configuration paremeters.
 
@@ -170,6 +151,7 @@ namespace trkf {
     bool fEnableW;          ///< Enable flag (W).
     bool fFilter;           ///< Filter flag.
     bool fMerge;            ///< Merge flag.
+    bool fPreferColl;       ///< Sort by collection wire.
 
     // Temporary variables.
 

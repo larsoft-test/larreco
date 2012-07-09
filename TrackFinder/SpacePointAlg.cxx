@@ -39,7 +39,8 @@ namespace  trkf{
     fEnableV(false),
     fEnableW(false),
     fFilter(false),
-    fMerge(false)
+    fMerge(false),
+    fPreferColl(false)
   {
     reconfigure(pset);
   }
@@ -58,16 +59,17 @@ namespace  trkf{
   {
     // Get configuration parameters.
 
-    fMaxDT = pset.get<double>("MaxDT", 0.);
-    fMaxS = pset.get<double>("MaxS", 0.);
+    fMaxDT = pset.get<double>("MaxDT");
+    fMaxS = pset.get<double>("MaxS");
 
-    fMinViews = pset.get<int>("MinViews", 1000);
+    fMinViews = pset.get<int>("MinViews");
 
-    fEnableU = pset.get<bool>("EnableU", false);
-    fEnableV = pset.get<bool>("EnableV", false);
-    fEnableW = pset.get<bool>("EnableW", false);
-    fFilter = pset.get<bool>("Filter", false);
-    fMerge = pset.get<bool>("Merge", false);
+    fEnableU = pset.get<bool>("EnableU");
+    fEnableV = pset.get<bool>("EnableV");
+    fEnableW = pset.get<bool>("EnableW");
+    fFilter = pset.get<bool>("Filter");
+    fMerge = pset.get<bool>("Merge");
+    fPreferColl = pset.get<bool>("PreferColl");
 
     // Only allow one of fFilter and fMerge to be true.
 
@@ -301,20 +303,12 @@ namespace  trkf{
   // Check hits pairwise for different views and maximum time difference.
   // Check three hits for spatial compatibility.
   bool SpacePointAlg::compatible(const art::PtrVector<recob::Hit>& hits,
-				 bool useMC,
-				 double maxDT, double maxS) const
+				 bool useMC) const
   {
-    // Get geometry service.
+    // Get services.
 
     art::ServiceHandle<geo::Geometry> geom;
     art::ServiceHandle<util::DetectorProperties> detprop;
-
-    // Get cuts.
-
-    if(maxDT == 0.)
-      maxDT = fMaxDT;
-    if(maxS == 0.)
-      maxS = fMaxS;  
 
     int nhits = hits.size();
 
@@ -369,7 +363,7 @@ namespace  trkf{
     
 	    // Test maximum time difference.
 
-	    result = result && std::abs(t1-t2) <= maxDT;
+	    result = result && std::abs(t1-t2) <= fMaxDT;
 
 	    // Test mc truth.
 
@@ -449,7 +443,7 @@ namespace  trkf{
 		    +(sinth[2] * costh[0] - costh[2] * sinth[0]) * dist[1] 
 		    +(sinth[0] * costh[1] - costh[0] * sinth[1]) * dist[2]);
 
-	result = result && std::abs(S) < maxS;
+	result = result && std::abs(S) < fMaxS;
       }
     }
 
@@ -778,46 +772,22 @@ namespace  trkf{
 
   //----------------------------------------------------------------------
   // Fill a vector of space points for all compatible combinations of hits
-  // from an input vector of hits (non-config-overriding, non-mc-truth version).
+  // from an input vector of hits (non-mc-truth version).
   //
   void SpacePointAlg::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 				      std::vector<recob::SpacePoint>& spts) const
   {
-    makeSpacePoints(hits, spts, false, fFilter, fMerge, fMaxDT, fMaxS);
+    makeSpacePoints(hits, spts, false);
   }
 
   //----------------------------------------------------------------------
   // Fill a vector of space points for all compatible combinations of hits
-  // from an input vector of hits (config-overriding, non-mc-truth version).
-  //
-  void SpacePointAlg::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
-				      std::vector<recob::SpacePoint>& spts,
-				      bool filter, bool merge,
-				      double maxDT, double maxS) const
-  {
-    makeSpacePoints(hits, spts, false, filter, merge, maxDT, maxS);
-  }
-
-  //----------------------------------------------------------------------
-  // Fill a vector of space points for all compatible combinations of hits
-  // from an input vector of hits (non-config-overriding, mc-truth version).
+  // from an input vector of hits (mc-truth version).
   //
   void SpacePointAlg::makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
 					     std::vector<recob::SpacePoint>& spts) const
   {
-    makeSpacePoints(hits, spts, true, fFilter, fMerge, fMaxDT, fMaxS);
-  }
-
-  //----------------------------------------------------------------------
-  // Fill a vector of space points for all compatible combinations of hits
-  // from an input vector of hits (config-overriding, mc-truth version).
-  //
-  void SpacePointAlg::makeMCTruthSpacePoints(const art::PtrVector<recob::Hit>& hits,
-					     std::vector<recob::SpacePoint>& spts,
-					     bool filter, bool merge,
-					     double maxDT, double maxS) const
-  {
-    makeSpacePoints(hits, spts, true, filter, merge, maxDT, maxS);
+    makeSpacePoints(hits, spts, true);
   }
 
   //----------------------------------------------------------------------
@@ -826,17 +796,8 @@ namespace  trkf{
   //
   void SpacePointAlg::makeSpacePoints(const art::PtrVector<recob::Hit>& hits,
 				      std::vector<recob::SpacePoint>& spts,
-				      bool useMC,
-				      bool filter, bool merge,
-				      double maxDT, double maxS) const
+				      bool useMC) const
   {
-    // Get cuts.
-
-    if(maxDT == 0.)
-      maxDT = fMaxDT;
-    if(maxS == 0.)
-      maxS = fMaxS;  
-
     // Get services.
 
     art::ServiceHandle<geo::Geometry> geom;
@@ -850,8 +811,7 @@ namespace  trkf{
 
     update();
 
-
-    // First make result vector is empty.
+    // First make sure result vector is empty.
 
     spts.erase(spts.begin(), spts.end());
 
@@ -994,8 +954,10 @@ namespace  trkf{
     for(unsigned int cstat = 0; cstat < ncstat; ++cstat){
       for(unsigned int tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc) {
 
-	// Make empty multimap from hit pointer on most-populated plane to space points 
-	// that include that hit (used for filtering and merging).
+	// Make empty multimap from hit pointer on preferred
+	// (most-populated or collection) plane to space points that
+	// include that hit (used for sorting, filtering, and
+	// merging).
 
 	typedef const recob::Hit* sptkey_type;
 	std::multimap<sptkey_type, recob::SpacePoint> sptmap;
@@ -1004,6 +966,13 @@ namespace  trkf{
 	// Sort maps in increasing order of number of hits.
 	// This is so that we can do the outer loops over hits 
 	// over the views with fewer hits.
+	//
+	// If config parameter PreferColl is true, treat the colleciton
+	// plane as if it had the most hits, regardless of how many
+	// hits it actually has.  This will force space points to be
+	// filtered and merged with respect to the collection plane
+	// wires.  It will also force space points to be sorted by
+	// collection plane wire.
       
 	int nplane = hitmap[cstat][tpc].size();
 	std::vector<int> index(nplane);
@@ -1012,8 +981,14 @@ namespace  trkf{
 	  index[i] = i;
 
 	for(int i=0; i<nplane-1; ++i) {
+
 	  for(int j=i+1; j<nplane; ++j) {
-	    if(hitmap[cstat][tpc][index[i]].size() > hitmap[cstat][tpc][index[j]].size()) {
+	    bool icoll = fPreferColl &&
+	      geom->Plane(index[i], tpc, cstat).SignalType() == geo::kCollection;
+	    bool jcoll = fPreferColl &&
+	      geom->Plane(index[j], tpc, cstat).SignalType() == geo::kCollection;
+	    if((hitmap[cstat][tpc][index[i]].size() > hitmap[cstat][tpc][index[j]].size() && 
+		!jcoll) || icoll) {
 	      int temp = index[i];
 	      index[i] = index[j];
 	      index[j] = temp;
@@ -1095,28 +1070,25 @@ namespace  trkf{
 		  hitvec.clear();
 		  hitvec.push_back(phit1);
 		  hitvec.push_back(phit2);
-		  bool ok = compatible(hitvec,  useMC, maxDT, maxS);
+		  bool ok = compatible(hitvec,  useMC);
 		  if(ok) {
 		  
 		    // Add a space point.
 		  
 		    ++n2;
-		    if(filter || merge) {
-		      // make a dummy vector of recob::SpacePoints
-		      // as we are filtering or merging and don't want to 
-		      // add the created SpacePoint to the final collection just yet
-		      // This dummy vector will hold just one recob::SpacePoint,
-		      // which will go into the multimap and then the vector
-		      // will go out of scope
-		      std::vector<recob::SpacePoint> sptv;
-		      fillSpacePoint(hitvec, sptv, sptmap.size()-1);
-		      sptkey_type key = &*phit2;
-		      sptmap.insert(std::pair<sptkey_type, recob::SpacePoint>(key, sptv.back()));
-		      sptkeys.insert(key);
-		    }
-		    else {
-		      fillSpacePoint(hitvec, spts, spts.size()-1);
-		    }
+
+		    // make a dummy vector of recob::SpacePoints
+		    // as we are filtering or merging and don't want to 
+		    // add the created SpacePoint to the final collection just yet
+		    // This dummy vector will hold just one recob::SpacePoint,
+		    // which will go into the multimap and then the vector
+		    // will go out of scope.
+
+		    std::vector<recob::SpacePoint> sptv;
+		    fillSpacePoint(hitvec, sptv, sptmap.size()-1);
+		    sptkey_type key = &*phit2;
+		    sptmap.insert(std::pair<sptkey_type, recob::SpacePoint>(key, sptv.back()));
+		    sptkeys.insert(key);
 		  }
 		}
 	      }
@@ -1233,7 +1205,7 @@ namespace  trkf{
 	    
 	      // Check maximum time difference with first hit.
 	    
-	      bool dt12ok = std::abs(t1-t2) <= maxDT;
+	      bool dt12ok = std::abs(t1-t2) <= fMaxDT;
 	      if(dt12ok) {
 	      
 		// Test first two hits for compatibility before looping 
@@ -1242,7 +1214,7 @@ namespace  trkf{
 		hitvec.clear();
 		hitvec.push_back(phit1);
 		hitvec.push_back(phit2);
-		bool h12ok = compatible(hitvec, useMC, maxDT, maxS);
+		bool h12ok = compatible(hitvec, useMC);
 		if(h12ok) {
 		
 		  // Get oblique coordinate of second hit.
@@ -1253,7 +1225,7 @@ namespace  trkf{
 		
 		  double u3pred = (-u1*s23 - u2*s31) / s12;
 		  double w3pred = (u3pred - dist3) / pitch3;
-		  double w3delta = std::abs(maxS / (s12 * pitch3));
+		  double w3delta = std::abs(fMaxS / (s12 * pitch3));
 		  int w3min = std::max(0., std::ceil(w3pred - w3delta));
 		  int w3max = std::max(0., std::floor(w3pred + w3delta));
 		
@@ -1270,14 +1242,14 @@ namespace  trkf{
 		  
 		    // Check time difference of third hit compared to first two hits.
 		  
-		    bool dt123ok = std::abs(t1-t3) <= maxDT && std::abs(t2-t3) <= maxDT;
+		    bool dt123ok = std::abs(t1-t3) <= fMaxDT && std::abs(t2-t3) <= fMaxDT;
 		    if(dt123ok) {
 		    
 		      // Get oblique coordinate of third hit and check spatial separation.
 		    
 		      double u3 = wire3 * pitch3 + dist3;
 		      double S = s23 * u1 + s31 * u2 + s12 * u3;
-		      bool sok = std::abs(S) <= maxS;
+		      bool sok = std::abs(S) <= fMaxS;
 		      if(sok) {
 		      
 			// Test triplet for compatibility.
@@ -1286,28 +1258,25 @@ namespace  trkf{
 			hitvec.push_back(phit1);
 			hitvec.push_back(phit2);
 			hitvec.push_back(phit3);
-			bool h123ok = compatible(hitvec,  useMC, maxDT, maxS);
+			bool h123ok = compatible(hitvec,  useMC);
 			if(h123ok) {
 			
 			  // Add a space point.
 			
 			  ++n3;
-			  if(filter || merge) {
-			    // make a dummy vector of recob::SpacePoints
-			    // as we are filtering or merging and don't want to 
-			    // add the created SpacePoint to the final collection just yet
-			    // This dummy vector will hold just one recob::SpacePoint,
-			    // which will go into the multimap and then the vector
-			    // will go out of scope
-			    std::vector<recob::SpacePoint> sptv;
-			    fillSpacePoint(hitvec, sptv, sptmap.size()-1);
-			    sptkey_type key = &*phit3;
-			    sptmap.insert(std::pair<sptkey_type, recob::SpacePoint>(key, sptv.back()));
-			    sptkeys.insert(key);
-			  }
-			  else {
-			    fillSpacePoint(hitvec,  spts, spts.size()-1);
-			  }
+
+			  // make a dummy vector of recob::SpacePoints
+			  // as we are filtering or merging and don't want to 
+			  // add the created SpacePoint to the final collection just yet
+			  // This dummy vector will hold just one recob::SpacePoint,
+			  // which will go into the multimap and then the vector
+			  // will go out of scope.
+
+			  std::vector<recob::SpacePoint> sptv;
+			  fillSpacePoint(hitvec, sptv, sptmap.size()-1);
+			  sptkey_type key = &*phit3;
+			  sptmap.insert(std::pair<sptkey_type, recob::SpacePoint>(key, sptv.back()));
+			  sptkeys.insert(key);
 			}
 		      }
 		    }
@@ -1320,7 +1289,7 @@ namespace  trkf{
           
 	// Do Filtering.
       
-	if(filter) {
+	if(fFilter) {
 	
 	  // Transfer (some) space points from sptmap to spts.
 	
@@ -1363,7 +1332,7 @@ namespace  trkf{
       
 	// Do merging.
       
-	else if(merge) {
+	else if(fMerge) {
 	
 	  // Transfer merged space points from sptmap to spts.
 	
@@ -1413,7 +1382,25 @@ namespace  trkf{
 	      ++n3filt;
 	  }
 	}// end if merging
+
+	// No filter, no merge.
+
 	else {
+	
+	  // Transfer all space points from sptmap to spts.
+	
+	  spts.reserve(spts.size() + sptkeys.size());
+	
+	  // Loop over space points.
+	  
+	  for(std::multimap<sptkey_type, recob::SpacePoint>::const_iterator j = sptmap.begin();
+	      j != sptmap.end(); ++j) {
+	    const recob::SpacePoint& spt = j->second;
+	    spts.push_back(spt);
+	  }
+
+	  // Update statistics.
+
 	  n2filt = n2;
 	  n3filt = n3;
 	}

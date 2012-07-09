@@ -36,16 +36,14 @@ namespace trkf {
 
     // Fcl Attributes.
 
-    const SpacePointAlg fSptalg1;   // Algorithm object.
-    const SpacePointAlg fSptalg2;   // Algorithm object.
-    const SpacePointAlg fSptalg3;   // Algorithm object.
+    const SpacePointAlg fSptalgTime;    // Algorithm object (increased time cut).
+    const SpacePointAlg fSptalgSep;     // Algorithm object (increased sepataion cut).
+    const SpacePointAlg fSptalgDefault; // Algorithm object (default cuts).
     std::string fHitModuleLabel;
     bool fUseClusterHits;
     std::string fClusterModuleLabel;
     bool fUseMC;
     std::string fG4ModuleLabel;    // For SimChannel.
-    double fMaxDT;
-    double fMaxS;
 
     // Histograms.
 
