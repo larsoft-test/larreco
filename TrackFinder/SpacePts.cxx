@@ -593,10 +593,6 @@ void trkf::SpacePts::produce(art::Event& evt)
     
    }//close loop over Collection xxview 2D tracks
 
-
-   ///\todo the tracks made in this module should really be associated to Hits, Clusters and SpacePoints
-   // but don't do it now as it isn't clear anyone is actually using the module
-
    mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
    mf::LogVerbatim("Summary") << "SpacePts Summary:";
    for(unsigned int i = 0; i<tcol->size(); ++i) mf::LogVerbatim("Summary") << tcol->at(i) ;
