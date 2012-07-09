@@ -55,7 +55,7 @@ trkf::SpacePts::SpacePts(fhicl::ParameterSet const& pset)
   produces< art::Assns<recob::Track, recob::SpacePoint> >();
   produces< art::Assns<recob::Track, recob::Cluster>    >();
   produces< art::Assns<recob::Track, recob::Hit>        >();
-  
+  produces< art::Assns<recob::SpacePoint, recob::Hit>   >();
 }
 
 //-------------------------------------------------
@@ -99,7 +99,7 @@ void trkf::SpacePts::produce(art::Event& evt)
   std::auto_ptr<art::Assns<recob::Track, recob::SpacePoint> > tspassn(new art::Assns<recob::Track, recob::SpacePoint>);
   std::auto_ptr<art::Assns<recob::Track, recob::Cluster> >    tcassn(new art::Assns<recob::Track, recob::Cluster>);
   std::auto_ptr<art::Assns<recob::Track, recob::Hit> >        thassn(new art::Assns<recob::Track, recob::Hit>);
-  
+  std::auto_ptr<art::Assns<recob::SpacePoint, recob::Hit> >   shassn(new art::Assns<recob::SpacePoint, recob::Hit>);
   // define TPC parameters
   TString tpcName = geom->GetLArTPCVolumeName();
   
@@ -420,6 +420,7 @@ void trkf::SpacePts::produce(art::Event& evt)
             std::vector<recob::Hit*> hits3Dmatched;
             // For the matching start from the view where the track projection presents less hits
             unsigned int imaximum = 0;
+	    size_t spStart = spcol->size();
             for(unsigned int imin=0;imin<minhits.size();imin++){ //loop over hits
                //get wire - time coordinate of the hit
 	      unsigned int channel,wire,plane1,plane2,tpc,cstat;
@@ -538,7 +539,7 @@ void trkf::SpacePts::produce(art::Event& evt)
                */
                    
 	       double err[6] = {util::kBogusD};
-               recob::SpacePoint mysp(hitcoord, err, util::kBogusD, spcol->size() + spacepoints.size());//3d point at end of track
+               recob::SpacePoint mysp(hitcoord, err, util::kBogusD, spStart + spacepoints.size());//3d point at end of track
 	       // Don't add a spacepoint right on top of the last one.
 	       const double eps(0.1); // 1mm
 	       if (spacepoints.size()>=1){
@@ -550,22 +551,22 @@ void trkf::SpacePts::produce(art::Event& evt)
 		       magNew.Mag()<=magLast.Mag()-eps) )
 		   continue;
 	       }
-	       spacepoints.push_back(mysp);	  
+	       spacepoints.push_back(mysp);
+	       spcol->push_back(mysp);	
+	       util::CreateAssn(*this, evt, *spcol, sp_hits, *shassn);
 
-            }//loop over min-hits
+	    }//loop over min-hits
+
+	    size_t spEnd = spcol->size();
       
-
             // Add the 3D track to the vector of the reconstructed tracks
             if(spacepoints.size()>0){
 
 	      // make a vector of the trajectory points along the track
 	      std::vector<TVector3> xyz(spacepoints.size());
-	      size_t spStart = spcol->size();
 	      for(size_t s = 0; s < spacepoints.size(); ++s){
 		xyz[s] = TVector3(spacepoints[s].XYZ());
-		spcol->push_back(spacepoints[s]);		
 	      }
-	      size_t spEnd = spcol->size();
 		
 	      ///\todo really should fill the direction cosines with unique values 
 	      std::vector<TVector3> dircos(spacepoints.size(), DirCos);
@@ -605,5 +606,6 @@ void trkf::SpacePts::produce(art::Event& evt)
    evt.put(tspassn);
    evt.put(tcassn);
    evt.put(thassn);
+   evt.put(shassn);
 
 }
