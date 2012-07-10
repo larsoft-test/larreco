@@ -28,8 +28,6 @@ namespace trkf {
     , fMinHits(0)
     , fClusterAssns(false)
     , fNumEvent(0)
-    , fNumProng2(0)
-    , fNumProng3(0)
     , fNumSpt2(0)
     , fNumSpt3(0)
   {
@@ -171,7 +169,7 @@ namespace trkf {
 		std::vector<recob::SpacePoint> new_spts;
 		fSptalg.makeSpacePoints(hits, new_spts);
 
-		// If we found some space points, make a prong.
+		// If we found some space points, insert them in the event.
 
 		if(new_spts.size() > 0) {
 		  fNumSpt2 += new_spts.size();
@@ -201,7 +199,6 @@ namespace trkf {
 		    sptvec.push_back(spptr);
 		  }
 		  sptvecs->push_back(sptvec);
-		  ++fNumProng2;
 		}
 	      }
 
@@ -239,7 +236,7 @@ namespace trkf {
 		  std::vector<recob::SpacePoint> new_spts;
 		  fSptalg.makeSpacePoints(hits, new_spts);
 
-		  // If we found some space points, make a prong.
+		  // If we found some space points, insert them in the event.
 
 		  if(new_spts.size() > 0) {
 		    fNumSpt3 += new_spts.size();
@@ -271,8 +268,6 @@ namespace trkf {
 		      sptvec.push_back(spptr);
 		    }
 		    sptvecs->push_back(sptvec);
-
-		    ++fNumProng3;
 		  }
 		}
 	      }
@@ -281,7 +276,7 @@ namespace trkf {
 	}
       }
 
-      // Add prongs and associations to event.
+      // Add space points and associations to event.
 
       evt.put(spts);
       evt.put(sptvecs);
@@ -300,8 +295,6 @@ namespace trkf {
     mf::LogInfo("SpacePointFinder") 
       << "SpacePointFinder statistics:\n"
       << "  Number of events = " << fNumEvent << "\n"
-      << "  Number of 2-view prongs created = " << fNumProng2 << "\n"
-      << "  Number of 3-view prongs created = " << fNumProng3 << "\n"
       << "  Number of 2-view space points created = " << fNumSpt2 << "\n"
       << "  Number of 3-view space points created = " << fNumSpt3;
   }

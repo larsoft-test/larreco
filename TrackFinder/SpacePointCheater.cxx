@@ -14,7 +14,6 @@
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "RecoBase/Hit.h"
 #include "RecoBase/Cluster.h"
-#include "RecoBase/Prong.h"
 #include "Utilities/AssociationUtil.h"
 
 namespace trkf {
@@ -170,7 +169,7 @@ namespace trkf {
 		std::vector<recob::SpacePoint> new_spts;
 		fSptalg.makeMCTruthSpacePoints(hits, new_spts);
 
-		// If we found some space points, make a prong.
+		// If we found some space points, insert them into the event.
 
 		if(new_spts.size() > 0) {
 		  fNumSpt2 += new_spts.size();
@@ -229,7 +228,7 @@ namespace trkf {
 		  std::vector<recob::SpacePoint> new_spts;
 		  fSptalg.makeMCTruthSpacePoints(hits, new_spts);
 
-		  // If we found some space points, make a prong.
+		  // If we found some space points, insert them into the event.
 
 		  if(new_spts.size() > 0) {
 		    fNumSpt3 += new_spts.size();
@@ -279,8 +278,6 @@ namespace trkf {
     mf::LogInfo("SpacePointCheater") 
       << "SpacePointCheater statistics:\n"
       << "  Number of events = " << fNumEvent << "\n"
-      << "  Number of 2-view prongs created = " << fNumProng2 << "\n"
-      << "  Number of 3-view prongs created = " << fNumProng3 << "\n"
       << "  Number of 2-view space points created = " << fNumSpt2 << "\n"
       << "  Number of 3-view space points created = " << fNumSpt3;
   }

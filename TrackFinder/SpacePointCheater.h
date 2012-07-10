@@ -4,8 +4,7 @@
 //
 // Name: SpacePointCheater.h
 //
-// Purpose: Header file for module SpacePointCheater.  This modules makes
-//          generic prongs containing space points using mc truth information.
+// Purpose: Header file for module SpacePointCheater.
 //
 // Configuration parameters.
 //
@@ -49,8 +48,6 @@ namespace trkf {
     // Statistics.
 
     int fNumEvent;      // Number of events.
-    int fNumProng2;     // Number of 2-view prongs.
-    int fNumProng3;     // Number of 3-view prongs.
     int fNumSpt2;       // Number of 2-view space points.
     int fNumSpt3;       // Number of 3-view space points.
   };
