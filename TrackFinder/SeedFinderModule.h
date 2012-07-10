@@ -57,8 +57,7 @@ namespace trkf {
     std::string            fInputModuleLabel;         // Where to find hits, if we need them
     int                    fInputSource;              // 1: Use Clusters
                                                       // 2: Use Hits
-    unsigned int           fMinPointsInCluster;       // How many SP's required in a cluster before
-                                                      //  trying to seed
+
   };
   
 }

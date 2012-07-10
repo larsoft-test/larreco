@@ -1,5 +1,7 @@
 BEGIN_PROLOG
 
+
+
 standard_spacepointalg:
 {
   MaxDT:      2.0
@@ -12,6 +14,24 @@ standard_spacepointalg:
   Merge:      false
   PreferColl: false
 }
+
+
+
+standard_seedfinderalgorithm:
+{
+  SpacePointAlg:          @local::standard_spacepointalg
+  InitSeedLength:         4
+  MinPointsInSeed:        10
+  AngularDev:             0.3
+  Refits:                 20
+  ExtendThresh:           0.90
+  ExtendStep:             1.
+  ExtendResolution:       2.
+  MaxViewRMS:             [0.4,0.4,0.4]
+  
+
+}
+
 
 argoneut_spacepointalg: @local::standard_spacepointalg
 
@@ -47,5 +67,13 @@ standard_kalmanfilteralg:
 argoneut_kalmanfilteralg:    @local::standard_kalmanfilteralg
 microboone_kalmanfilteralg:  @local::standard_kalmanfilteralg
 lbne_kalmanfilteralg:        @local::standard_kalmanfilteralg
+
+
+
+microboone_seedfinderalgorithm:  @local::standard_seedfinderalgorithm
+microboone_seedfinderalgorithm.SpacePointAlg : @local::microboone_spacepointalg
+microboone_seedfinderalgorithm.SpacePointAlg.PreferColl: true
+
+
 
 END_PROLOG

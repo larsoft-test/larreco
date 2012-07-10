@@ -47,7 +47,7 @@ namespace trkf {
     fSptalg                = SpacePointAlg       ( pset.get<fhicl::ParameterSet>("SpacePointAlg") );
     fInputModuleLabel      = pset.get<std::string>("InputModuleLabel");
     fInputSource           = pset.get<int>("InputSource");
-    fMinPointsInCluster    = pset.get<unsigned int>("MinPointsInCluster");
+  
   }
 
   //----------------------------------------------------------------------------
@@ -88,8 +88,10 @@ namespace trkf {
 	
 	std::cout<<"SeedFinder: Getting space points from hits"<<std::endl;
 	art::PtrVector<recob::Hit> Hits = GetHitsFromEvent(fInputModuleLabel, evt);
-	std::vector<recob::SpacePoint> SPsFromHits = fSeedAlg.GetSpacePointsFromHitVector(Hits);
-	SeedVector = fSeedAlg.FindSeeds(SPsFromHits, SpacePointsWithSeeds);
+	std::cout<<"Hits extracted from event : " << Hits.size()<<std::endl;
+       	std::vector<recob::SpacePoint> SPsFromHits = fSeedAlg.GetSpacePointsFromHitVector(Hits);
+	std::cout<<"SPs extracted from hits : " << SPsFromHits.size()<<std::endl;
+ 	SeedVector = fSeedAlg.FindSeeds(SPsFromHits, SpacePointsWithSeeds);
       }
     else	  
       {

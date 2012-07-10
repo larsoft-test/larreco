@@ -2,6 +2,16 @@
 
 BEGIN_PROLOG
 
+standard_seedfindermodule:
+{
+ module_type:         "SeedFinderModule"
+ InputSource:          0
+ InputModuleLabel:     "ffthit"
+ SpacePointAlg:        @local::standard_spacepointalg
+ SeedAlg:              @local::standard_seedfinderalgorithm
+}
+
+
 standard_trackcheater:
 {
  module_type:         "TrackCheater"
@@ -231,6 +241,12 @@ microboone_track3Dkalmanhit.KalmanFilterAlg:                    @local::microboo
 microboone_track3Dkalmanhit.SeedFinder.SpacePointAlg:           @local::microboone_spacepointalg
 microboone_track3Dkalmanhit.SpacePointAlg:                      @local::microboone_spacepointalg
 microboone_track3Dkalmanhit.SpacePointAlg.MinViews:             2
+
+
+microboone_seedfindermodule:                     @local::standard_seedfindermodule
+microboone_seedfindermodule.SpacePointAlg:       @local::microboone_spacepointalg
+microboone_seedfindermodule.SeedAlg:             @local::microboone_seedfinderalgorithm
+
 
 microboone_2stg_kalman:
 {
