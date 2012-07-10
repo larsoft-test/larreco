@@ -665,8 +665,8 @@ namespace trkf {
   {
 
     std::cout<<"Refit module called on vector of " << SpacePoints.size() << " space points " << std::endl;
-    std::cout<<"Beginning of refit: "<<std::endl;
-    TheSeed->Print();
+    //  std::cout<<"Beginning of refit: "<<std::endl;
+    //  TheSeed->Print();
     // Get the services we need
     art::ServiceHandle<geo::Geometry>            geom;
     art::ServiceHandle<util::DetectorProperties> det;
@@ -818,8 +818,6 @@ namespace trkf {
             // Adjust direction
             //-----------------------
 
-            double OneTickInX = det->GetXTicksCoefficient();
-
             double d2=0, d=0, N=0, dx=0, x=0;
 
 	    art::PtrVector<recob::Hit> HitsThisPlane = HitMap[view]; 
@@ -837,7 +835,7 @@ namespace trkf {
 	       DDisp = (double(Wire)-SeedCentralWire)*WirePitch;
 
 	       Time=(*itHit)->PeakTime();
-	       XDisp = Time*OneTickInX;
+	       XDisp = det->ConvertTicksToX(Time,p,t,c) - AverageXDemocratic;
 
 	       x  += XDisp;
 	       d  += DDisp;
@@ -855,9 +853,13 @@ namespace trkf {
 	    TVectorD LeastSquaresRHS(2);
 	    LeastSquaresRHS[0]=dx;
             LeastSquaresRHS[1]=x;
-
-            LeastSquaresLHS.Invert();
-
+	    try{
+	      LeastSquaresLHS.Invert();
+	    }
+	    catch(...)
+	      {
+		return;
+	      }
             TVectorD LeastSquaresResult(2);
 	    LeastSquaresResult = LeastSquaresLHS*LeastSquaresRHS;
 	    // parameters for t = ac + b
@@ -871,18 +873,13 @@ namespace trkf {
             double SeedTimeComp      = SeedDirection.Dot(XVec.Unit());
 	    double SeedOutOfPlaneComp= SeedDirection.Dot(WireVecs[view].Unit());
 
-            //  double SeedLengthInPlane = pow( pow(SeedPlaneComp,2)+pow(SeedTimeComp,2), 0.5);
-
-            //      std::cout<<"Previous  a in plane : " << SeedTimeComp / SeedPlaneComp<<std::endl;
-            //   std::cout<<"Suggested a in plane : " << a <<std::endl;
-
 
             double Newa=0.5*(a+SeedTimeComp/SeedPlaneComp);
 
             double OriginalSeedLength = SeedDirection.Mag();
 
             // Set seed direction to this theta without changing length
-            SeedTimeComp  = Newa*SeedPlaneComp;
+            SeedPlaneComp  = SeedTimeComp / Newa;
 
             // build the new direction from these 3 orthogonal components
             SeedDirection =
@@ -901,8 +898,8 @@ namespace trkf {
           } // next plane
       } // next iteration
 
-    std::cout<<"End of refit: "<<std::endl;
-    TheSeed->Print();
+    //    std::cout<<"End of refit: "<<std::endl;
+    //  TheSeed->Print();
   
   }
 
