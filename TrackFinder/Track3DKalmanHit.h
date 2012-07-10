@@ -17,13 +17,13 @@
 // MaxTcut            - Maximum delta ray energy in Mev for dE/dx.
 // KalmanFilterAlg    - Parameter set for KalmanFilterAlg.
 // SpacePointAlg      - Parmaeter set for space points.
-// SeedFinder         - Parameter set for seed finder.
+// SeedFinderAlg      - Parameter set for seed finder algorithm object.
 //
 ////////////////////////////////////////////////////////////////////////
 
 #include "art/Framework/Core/EDProducer.h"
 #include "TrackFinder/KalmanFilterAlg.h"
-#include "TrackFinder/SeedFinder.h"
+#include "TrackFinder/SeedFinderAlgorithm.h"
 #include "TH1F.h"
 
 namespace trkf {
@@ -49,20 +49,20 @@ namespace trkf {
 
     // Fcl parameters.
 
-    bool fHist;                        ///< Make histograms.
-    bool fUseClusterHits;              ///< Use cluster hits or all hits?
-    std::string fHitModuleLabel;       ///< Unclustered Hits.
-    std::string fClusterModuleLabel;   ///< Clustered Hits.
-    double fMaxTcut;                   ///< Maximum delta ray energy in MeV for restricted dE/dx.
-    double fMinSeedHits;               ///< Minimum number of hits per track seed.
-    double fMaxSeedChiDF;              ///< Maximum seed track chisquare/dof.
-    double fMinSeedSlope;              ///< Minimum seed slope (dx/dz).
+    bool fHist;                         ///< Make histograms.
+    bool fUseClusterHits;               ///< Use cluster hits or all hits?
+    std::string fHitModuleLabel;        ///< Unclustered Hits.
+    std::string fClusterModuleLabel;    ///< Clustered Hits.
+    double fMaxTcut;                    ///< Maximum delta ray energy in MeV for restricted dE/dx.
+    double fMinSeedHits;                ///< Minimum number of hits per track seed.
+    double fMaxSeedChiDF;               ///< Maximum seed track chisquare/dof.
+    double fMinSeedSlope;               ///< Minimum seed slope (dx/dz).
 
     // Algorithm objects.
 
-    KalmanFilterAlg fKFAlg;            ///< Kalman filter algorithm.
-    SeedFinder fSeedFinder;            ///< Seed finder.
-    SpacePointAlg fSpacePointAlg;      ///< Space point algorithm.
+    KalmanFilterAlg fKFAlg;             ///< Kalman filter algorithm.
+    SeedFinderAlgorithm fSeedFinderAlg; ///< Seed finder.
+    SpacePointAlg fSpacePointAlg;       ///< Space point algorithm.
 
     /// Propagator.
     const Propagator* fProp;

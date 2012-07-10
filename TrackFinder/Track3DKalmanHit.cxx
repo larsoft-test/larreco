@@ -148,7 +148,7 @@ trkf::Track3DKalmanHit::Track3DKalmanHit(fhicl::ParameterSet const & pset) :
   fMaxSeedChiDF(0.),
   fMinSeedSlope(0.),
   fKFAlg(pset.get<fhicl::ParameterSet>("KalmanFilterAlg")),
-  fSeedFinder(pset.get<fhicl::ParameterSet>("SeedFinder")),
+  fSeedFinderAlg(pset.get<fhicl::ParameterSet>("SeedFinderAlg")),
   fSpacePointAlg(pset.get<fhicl::ParameterSet>("SpacePointAlg")),
   fProp(0),
   fHIncChisq(0),
@@ -188,7 +188,7 @@ void trkf::Track3DKalmanHit::reconfigure(fhicl::ParameterSet const & pset)
 {
   fHist = pset.get<bool>("Hist");
   fKFAlg.reconfigure(pset.get<fhicl::ParameterSet>("KalmanFilterAlg"));
-  fSeedFinder.reconfigure(pset.get<fhicl::ParameterSet>("SeedFinder"));
+  fSeedFinderAlg.reconfigure(pset.get<fhicl::ParameterSet>("SeedFinderAlg"));
   fSpacePointAlg.reconfigure(pset.get<fhicl::ParameterSet>("SpacePointAlg"));
   fUseClusterHits = pset.get<bool>("UseClusterHits");
   fHitModuleLabel = pset.get<std::string>("HitModuleLabel");
@@ -319,9 +319,12 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
 
     // Use remaining hits to make space points using the seed finder.
 
-    std::vector<recob::SpacePoint> seedspts = fSeedFinder.GetSpacePointsFromHitVector(seederhits);
+    std::vector<recob::SpacePoint> seedspts =
+      fSeedFinderAlg.GetSpacePointsFromHitVector(seederhits);
     std::vector<std::vector<recob::SpacePoint> > seedsptvecs;
-    std::vector<recob::Seed*> seeds = fSeedFinder.FindSeedExhaustively(seedspts, seedsptvecs);
+    std::vector<recob::Seed*> seeds;
+    if(seedspts.size() > 0)
+      seeds = fSeedFinderAlg.FindSeeds(seedspts, seedsptvecs);
     if(seeds.size() == 0 || !seeds.front()->IsValid()) {
 
       // Quit loop if we didn't find any new seeds.
@@ -347,7 +350,7 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
       // Extract hits used by this seed.
 
       art::PtrVector<recob::Hit> seedhits;
-      SpacePointsToHits(seedsptvec, seedhits, fSpacePointAlg);
+      SpacePointsToHits(seedsptvec, seedhits, fSeedFinderAlg.GetSpacePointAlg());
 
       // Filter hits used by seed from hits available to make future seeds.
       // No matter what, we will never use these hits for another seed.

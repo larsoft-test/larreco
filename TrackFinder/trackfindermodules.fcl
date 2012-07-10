@@ -182,7 +182,7 @@ standard_track3Dkalmanhit:
   MaxSeedChiDF:       20.           # Maximum seed track chisquare/dof.
   MinSeedSlope:       0.02          # Minimum seed slope (dx/dz).
   KalmanFilterAlg:    @local::standard_kalmanfilteralg
-  SeedFinder:         @local::development_seedfinder
+  SeedFinderAlg:      @local::standard_seedfinderalgorithm
   SpacePointAlg:      @local::standard_spacepointalg
 }
 
@@ -238,7 +238,8 @@ microboone_trackkalmancheater.SpacePointAlg.MinViews:           2
 
 microboone_track3Dkalmanhit:                                    @local::standard_track3Dkalmanhit
 microboone_track3Dkalmanhit.KalmanFilterAlg:                    @local::microboone_kalmanfilteralg
-microboone_track3Dkalmanhit.SeedFinder.SpacePointAlg:           @local::microboone_spacepointalg
+microboone_track3Dkalmanhit.SeedFinderAlg:                      @local::microboone_seedfinderalgorithm
+microboone_track3Dkalmanhit.SeedFinderAlg.ExtendThresh:         0.
 microboone_track3Dkalmanhit.SpacePointAlg:                      @local::microboone_spacepointalg
 microboone_track3Dkalmanhit.SpacePointAlg.MinViews:             2
 
