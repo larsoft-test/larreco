@@ -107,6 +107,8 @@ namespace hit{
     double halfHeight = geom->TPC(0).HalfHeight(); 
     double length = geom->TPC(0).Length(); 
 
+    double zScale = std::max(fDirCosZ,2e-4);
+
     // Assumes microboone dimensions. Ideally we'd fix this later...
     fChargeXpos  = tfs->make<TH1D>("hChargeXpos",
 				   "MC X charge depositions; X (cm); Events",
@@ -123,24 +125,24 @@ namespace hit{
 
     fDriftDeltaZ = tfs->make<TH1D>("hDriftDeltaZ",
 				   "Z drift of charge; delta Z (cm); Events",
-				   101, -5*fDirCosZ*width, 5*fDirCosZ*width);
+				   101, -5*zScale*width, 5*zScale*width);
     fDeltaZoverX = tfs->make<TH1D>("hDeltaZoverX",
 				   "Z drift of charge; delta Z/X; Events",
-				   101, -7*fDirCosZ, 7*fDirCosZ);
+				   101, -20*zScale, 20*zScale);
     fDeltaZvsX = tfs->make<TH2D>("hDeltaZvsX",
 				 "delta Z vs X; X (cm); delta Z (cm), Events",
 				 51, 0.0, width,
-				 51, -20*fDirCosZ, 20*fDirCosZ);
+				 51, -20*zScale, 20*zScale);
 
     // Some stats only when the Xdrift is large (more than 3/4)
     fDriftDeltaZAway = 
       tfs->make<TH1D>("hDriftDeltaZAway",
 		      "Z drift of charge (long drift); delta Z (cm); Events",
-		      101, -5*fDirCosZ*width, 5*fDirCosZ*width);
+		      101, -5*zScale*width, 5*zScale*width);
     fDeltaZoverXAway = 
       tfs->make<TH1D>("hDeltaZoverXAway",
 		      "Z drift of charge (long drift); delta Z/X; Events",
-		      101, -7*fDirCosZ, 7*fDirCosZ);
+		      101, -20*zScale, 20*zScale);
 
     return;
 
