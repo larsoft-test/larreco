@@ -465,7 +465,7 @@ TH1::AddDirectory(kFALSE);
 				hitSig.resize(size);
 				for(int sigPos = 0; sigPos<size; sigPos++) //<---Loop over the size (endT - startT)
 					{
-	      				hitSig[sigPos] = Gaus.GetParameter(0)*TMath::Gaus(sigPos+startT,Gaus.GetParameter(1), Gaus.GetParameter(2));
+	      				hitSig[sigPos] = Gaus.GetParameter(3*hitNumber)*TMath::Gaus(sigPos+startT,Gaus.GetParameter(1), Gaus.GetParameter(3*hitNumber+2));
 	      				totSig+=hitSig[(int)sigPos];
 					
 					}//<---End Signal postion loop
@@ -473,7 +473,7 @@ TH1::AddDirectory(kFALSE);
 				// --- Getting the total charge using the area method ---
 				if(fAreaMethod) 
 					{
-					totSig = sqrt(2*TMath::Pi())*Gaus.GetParameter(0)*Gaus.GetParameter(2)/fAreaNorms[(size_t)sigType];
+					totSig = sqrt(2*TMath::Pi())*Gaus.GetParameter(3*hitNumber)*Gaus.GetParameter(3*hitNumber+2)/fAreaNorms[(size_t)sigType];
 						
 					}//<---End Area Method
 				Charge				= totSig;
