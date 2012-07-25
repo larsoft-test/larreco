@@ -9,6 +9,7 @@
 // V 1.0 (JAsaadi Syracuse University)
 // 05/02/12: Fully functional, still need to work on speed of the algorithm
 // 06/14/12: Fixed speed issues by changing ROOT fitting options
+// 07/25/12: Fixed bug in retrieving Amplitude for the Reco Hit
 // -----------------------------------
 // This algorithm is based on the FFTHitFinder and keeps many of the 
 // same variable definitions but attempts to clean up many of the 
@@ -407,26 +408,7 @@ TH1::AddDirectory(kFALSE);
       			// --- Loop over numHits ---
 	  		for(int i = 0; i < numHits; ++i) 
 				{
-				// --- Set the seed of the hit ---
-	    			/*double seedNorm = signal[maxTimes[hitIndex+i]];
-				double seedMean = maxTimes[hitIndex+i];
-				double seedRMS  = fitWidth;
-				
-				seedGaus.SetParameter(3*i,seedNorm);
-	   			seedGaus.SetParameter(1+3*i, seedMean);
-	   			seedGaus.SetParameter(2+3*i, seedRMS);
-				
-				// ----------------------------------------------------------
-				// --- Allow the fit peak position to be +/- 3 time ticks ---
-				// ---------------------------------------------------------- 
-				seedGaus.SetParLimits(1+3*i, seedMean - 3 , seedMean + 3);
-				
-				// =================================
-				// === Perform seedHit on Signal ===
-				// =================================
-				hitSignal.Fit(&seedGaus,"QNR0LLi","", startT, endT);*/
-				
-				
+
 				 // ###################################################################
 				 // ### Set the parameters of the Gaus hit based on the seedHit fit ###
 				 // ###################################################################
@@ -436,9 +418,6 @@ TH1::AddDirectory(kFALSE);
 	   			 Gaus.SetParameter(1+3*i, maxTimes[hitIndex+i]);
 	   			 Gaus.SetParameter(2+3*i, fitWidth);
 	   			 Gaus.SetParLimits(3*i, 0.0, 3.0*amplitude);
-				 // == Fixing the mean peak position ===
-				 //Gaus.FixParameter(1+3*i, seedGaus.GetParameter(3*i+1));
-				 //Gaus.SetParLimits(1+3*i,  seedGaus.GetParameter(1+3*i) - 1, seedGaus.GetParameter(1+3*i) + 1);
 	  		  	 Gaus.SetParLimits(1+3*i, startT , endT);
 	    			 Gaus.SetParLimits(2+3*i, 0.0, 10.0*fitWidth);
 	  			 }//end loop over hits
@@ -449,32 +428,10 @@ TH1::AddDirectory(kFALSE);
 		// ######################################################################
 		else 
 			{
-			// --- Set the seed of the hit ---
-	    		/*double seedNorm = signal[maxTimes[hitIndex]];
-			double seedMean = maxTimes[hitIndex];
-			double seedRMS  = fitWidth;
-				
-			seedGaus.SetParameter(3,seedNorm);
-	   		seedGaus.SetParameter(1, seedMean);
-	   		seedGaus.SetParameter(2, seedRMS);
-				
-			// ----------------------------------------------------------
-			// --- Allow the fit peak position to be +/- 3 time ticks ---
-			// ---------------------------------------------------------- 
-			seedGaus.SetParLimits(1, seedMean - 3 , seedMean + 3);
-				
-			// =================================
-			// === Perform seedHit on Signal ===
-			// =================================
-			hitSignal.Fit(&seedGaus,"QNR0LLi","", startT, endT);*/
-			
 			
 	  		Gaus.SetParameters(signal[maxTimes[hitIndex]],maxTimes[hitIndex],fitWidth);
 	  		Gaus.SetParLimits(0,0.0,1.5*signal[maxTimes[hitIndex]]);
 	  		Gaus.SetParLimits(1, startT , endT);
-			// == Fixing the mean peak position ===
-			//Gaus.SetParLimits(1,  seedGaus.GetParameter(1) - 1, seedGaus.GetParameter(1) + 1);
-			//Gaus.FixParameter(1, seedGaus.GetParameter(1));
 	  		Gaus.SetParLimits(2,0.0,10.0*fitWidth);
 			}
 			
@@ -525,8 +482,8 @@ TH1::AddDirectory(kFALSE);
 				// -----------------------------------------------------------------------------------
 				ChargeError			= TMath::Sqrt(TMath::Pi())*(Gaus.GetParError(3*hitNumber+0)*Gaus.GetParameter(3*hitNumber+2)+
 							                      Gaus.GetParError(3*hitNumber+2)*Gaus.GetParameter(3*hitNumber+0));   //estimate from area of Gaussian
-				Amp				= Gaus.GetParameter(0);
-				AmpError			= Gaus.GetParError(0);
+				Amp				= Gaus.GetParameter(3*hitNumber);
+				AmpError			= Gaus.GetParError(3*hitNumber);
 				NumOfHits			= numHits;
 				
 				// -----------------------------------------
@@ -539,7 +496,7 @@ TH1::AddDirectory(kFALSE);
 				// #############################
 				// ### Perform Hit on Signal ###
 				// #############################
-				hitSignal.Fit(hit,"QNRW","", StartIime, EndTime);
+				hitSignal.Fit(hit,"QR0LLi","", StartIime, EndTime);
 				
 				
 				FitGoodnes			= hit->GetChisquare() / hit->GetNDF();
@@ -571,12 +528,8 @@ TH1::AddDirectory(kFALSE);
 			
 		
 		hitIndex+=numHits;
-		//MergedPulses = false;
 		}//<---End while hitIndex < startTimes.size()
 		
-      //hitSig.clear();
-      
-      //
      
      
       }//<---End looping over wireIter
@@ -587,7 +540,6 @@ TH1::AddDirectory(kFALSE);
   
 
 
- // hit->Delete();  
 
 } // End of produce()  
 
