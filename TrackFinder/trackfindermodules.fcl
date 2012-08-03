@@ -70,6 +70,16 @@ standard_track3DkalmanSPS:
  SpacePointAlg:       @local::standard_spacepointalg
 }
 
+standard_trackana:
+{
+  module_type:        "TrackAna"
+  TrackModuleLabel:   "trackkalmanhit"
+  G4ModuleLabel:      "largeant"
+  MinMCKE:            0.05
+  MatchColinearity:   0.99
+  MatchDisp:          2.0
+}
+
 standard_spacepts:
 {
  module_type:           "SpacePts"
