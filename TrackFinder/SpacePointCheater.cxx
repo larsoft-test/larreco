@@ -12,8 +12,7 @@
 #include "Geometry/geo.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
-#include "RecoBase/Hit.h"
-#include "RecoBase/Cluster.h"
+#include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
 
 namespace trkf {
@@ -33,8 +32,9 @@ namespace trkf {
     , fNumSpt3(0)
   {
     reconfigure(pset);
-    produces<std::vector<recob::SpacePoint>            >();
-    produces<art::Assns<recob::SpacePoint, recob::Hit> >();
+    produces<std::vector<art::PtrVector<recob::SpacePoint> > >();
+    produces<std::vector<recob::SpacePoint>                  >();
+    produces<art::Assns<recob::SpacePoint, recob::Hit>       >();
     if(fClusterAssns)
       produces<art::Assns<recob::SpacePoint, recob::Cluster> >();
 
@@ -43,7 +43,6 @@ namespace trkf {
     mf::LogInfo("SpacePointCheater") 
       << "SpacePointCheater configured with the following parameters:\n"
       << "  ClusterModuleLabel = " << fClusterModuleLabel << "\n"
-      << "  G4ModuleLabel = " << fG4ModuleLabel << "\n"
       << "  Minimum Hits per Cluster = " << fMinHits << "\n"
       << "  Cluster associations = " << fClusterAssns;
   }
@@ -65,7 +64,6 @@ namespace trkf {
   {
     fSptalg.reconfigure(pset.get<fhicl::ParameterSet>("SpacePointAlg"));
     fClusterModuleLabel = pset.get<std::string>("ClusterModuleLabel");
-    fG4ModuleLabel = pset.get<std::string>("G4ModuleLabel");
     fMinHits = pset.get<unsigned int>("MinHits");
     fClusterAssns = pset.get<bool>("ClusterAssns");
   }
@@ -99,27 +97,28 @@ namespace trkf {
     if(clusterh.isValid()) {
 
       // Make a collection of space points that will be inserted into the event.
-      std::auto_ptr<std::vector<recob::SpacePoint> > spts(new std::vector<recob::SpacePoint>);
-      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Hit> > sphitassn(new art::Assns<recob::SpacePoint, recob::Hit>);
-      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Cluster> > spclassn(new art::Assns<recob::SpacePoint, recob::Cluster>);
+
+      std::auto_ptr<std::vector< art::PtrVector<recob::SpacePoint> > > sptvecs(new std::vector< art::PtrVector<recob::SpacePoint> >);
+      std::auto_ptr<std::vector<recob::SpacePoint> >                   spts(new std::vector<recob::SpacePoint>);
+      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Hit> >       sphitassn(new art::Assns<recob::SpacePoint, recob::Hit>);
+      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Cluster> >   spclassn(new art::Assns<recob::SpacePoint, recob::Cluster>);
 
       // Make a hit vector which will be used to store hits to be passed
       // to SpacePointAlg.
 
       art::PtrVector<recob::Hit> hits;      
+      art::FindManyP<recob::Hit> fm(clusterh, evt, fClusterModuleLabel);
 
       // Loop over first cluster.
 
       int nclus = clusterh->size();
-
-      art::FindManyP<recob::Hit> fm(clusterh, evt, fClusterModuleLabel);
-
       for(int iclus = 0; iclus < nclus; ++iclus) {
 	art::Ptr<recob::Cluster> piclus(clusterh, iclus);
 	geo::View_t iview = piclus->View();
 
-	// Test first view.
 	std::vector< art::Ptr<recob::Hit> > ihits = fm.at(iclus);
+
+	// Test first view.
 
 	if(ihits.size() >= fMinHits &&
 	   ((iview == geo::kU && fSptalg.enableU()) ||
@@ -141,8 +140,9 @@ namespace trkf {
 	    art::Ptr<recob::Cluster> pjclus(clusterh, jclus);
 	    geo::View_t jview = pjclus->View();
 
-	    // Test second view.
 	    std::vector< art::Ptr<recob::Hit> > jhits = fm.at(jclus);
+
+	    // Test second view.
 
 	    if(jhits.size() >= fMinHits &&
 	       ((jview == geo::kU && fSptalg.enableU()) ||
@@ -185,13 +185,22 @@ namespace trkf {
 
 		  // Associate space points with hits and clusters.
 
+		  art::PtrVector<recob::SpacePoint> sptvec;
 		  for(unsigned int ispt = nspt; ispt < spts->size(); ++ispt) {
 		    const recob::SpacePoint& spt = (*spts)[ispt];
 		    const art::PtrVector<recob::Hit>& hits = fSptalg.getAssociatedHits(spt);
 		    util::CreateAssn(*this, evt, *spts, hits, *sphitassn, ispt);
 		    if(fClusterAssns)
 		      util::CreateAssn(*this, evt, *spts, clusters, *spclassn, ispt);
+
+		    // make the PtrVector for this collection of space points
+		    // Do not reproduce the following lines
+		    // Contact brebel@fnal.gov if you think you need to reproduce these lines.
+		    art::ProductID spid = this->getProductID< std::vector<recob::SpacePoint> >(evt);
+		    art::Ptr<recob::SpacePoint> spptr(spid, ispt, evt.productGetter(spid));
+		    sptvec.push_back(spptr);
 		  }
+		  sptvecs->push_back(sptvec);
 		}
 	      }
 
@@ -201,8 +210,9 @@ namespace trkf {
 		art::Ptr<recob::Cluster> pkclus(clusterh, kclus);
 		geo::View_t kview = pkclus->View();
 
-		// Test third view.
 		std::vector< art::Ptr<recob::Hit> > khits = fm.at(kclus);
+
+		// Test third view.
 
 		if(khits.size() >= fMinHits &&
 		   ((kview == geo::kU && fSptalg.enableU()) ||
@@ -245,13 +255,22 @@ namespace trkf {
 
 		    // Associate space points with hits and clusters.
 
+		    art::PtrVector<recob::SpacePoint> sptvec;
 		    for(unsigned int ispt = nspt; ispt < spts->size(); ++ispt) {
 		      const recob::SpacePoint& spt = (*spts)[ispt];
 		      const art::PtrVector<recob::Hit>& hits = fSptalg.getAssociatedHits(spt);
 		      util::CreateAssn(*this, evt, *spts, hits, *sphitassn, ispt);
 		      if(fClusterAssns)
 			util::CreateAssn(*this, evt, *spts, clusters, *spclassn, ispt);
+
+		      // make the PtrVector for this collection of space points
+		      // Do not reproduce the following lines
+		      // Contact brebel@fnal.gov if you think you need to reproduce these lines.
+		      art::ProductID spid = this->getProductID< std::vector<recob::SpacePoint> >(evt);
+		      art::Ptr<recob::SpacePoint> spptr(spid, ispt, evt.productGetter(spid));
+		      sptvec.push_back(spptr);
 		    }
+		    sptvecs->push_back(sptvec);
 		  }
 		}
 	      }
@@ -260,9 +279,10 @@ namespace trkf {
 	}
       }
 
-      // Add spacepoints and associations to event.
+      // Add space points and associations to event.
 
       evt.put(spts);
+      evt.put(sptvecs);
       evt.put(sphitassn);
       if(fClusterAssns)
 	evt.put(spclassn);
@@ -281,4 +301,4 @@ namespace trkf {
       << "  Number of 2-view space points created = " << fNumSpt2 << "\n"
       << "  Number of 3-view space points created = " << fNumSpt3;
   }
-}
+}// end namespace

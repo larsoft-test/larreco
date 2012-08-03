@@ -9,7 +9,6 @@
 // Configuration parameters.
 //
 // ClusterModuleLabel;  // Cluster module label (e.g. "dbcluster").
-// G4ModuleLabel;       // For SimChannel (e.g. "largeant").
 //
 // Created: 15-Dec-2011  H. Greenlee
 //
@@ -41,7 +40,6 @@ namespace trkf {
 
     SpacePointAlg fSptalg;         // Algorithm object.
     std::string fClusterModuleLabel;
-    std::string fG4ModuleLabel;    // For SimChannel.
     unsigned int fMinHits;         // Minimum number of hits per cluster.
     bool fClusterAssns;            // Make Cluster-SpacePoint associations.
 

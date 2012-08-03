@@ -102,7 +102,7 @@ namespace trkf {
       std::auto_ptr<std::vector<recob::SpacePoint> >                   spts(new std::vector<recob::SpacePoint>);
       std::auto_ptr< art::Assns<recob::SpacePoint, recob::Hit> >       sphitassn(new art::Assns<recob::SpacePoint, recob::Hit>);
       std::auto_ptr< art::Assns<recob::SpacePoint, recob::Cluster> >   spclassn(new art::Assns<recob::SpacePoint, recob::Cluster>);
-    
+
       // Make a hit vector which will be used to store hits to be passed
       // to SpacePointAlg.
 
@@ -169,7 +169,7 @@ namespace trkf {
 		std::vector<recob::SpacePoint> new_spts;
 		fSptalg.makeSpacePoints(hits, new_spts);
 
-		// If we found some space points, insert them in the event.
+		// If we found some space points, insert them into the event.
 
 		if(new_spts.size() > 0) {
 		  fNumSpt2 += new_spts.size();
@@ -179,10 +179,12 @@ namespace trkf {
 		  clusters.push_back(pjclus);
 
 		  // Insert newly found space points into event collection.
+
 		  int nspt = spts->size();
 		  spts->insert(spts->end(), new_spts.begin(), new_spts.end());
 
 		  // Associate space points with hits and clusters.
+
 		  art::PtrVector<recob::SpacePoint> sptvec;
 		  for(unsigned int ispt = nspt; ispt < spts->size(); ++ispt) {
 		    const recob::SpacePoint& spt = (*spts)[ispt];
@@ -236,7 +238,7 @@ namespace trkf {
 		  std::vector<recob::SpacePoint> new_spts;
 		  fSptalg.makeSpacePoints(hits, new_spts);
 
-		  // If we found some space points, insert them in the event.
+		  // If we found some space points, insert them into the event.
 
 		  if(new_spts.size() > 0) {
 		    fNumSpt3 += new_spts.size();
@@ -252,6 +254,7 @@ namespace trkf {
 		    spts->insert(spts->end(), new_spts.begin(), new_spts.end());
 
 		    // Associate space points with hits and clusters.
+
 		    art::PtrVector<recob::SpacePoint> sptvec;
 		    for(unsigned int ispt = nspt; ispt < spts->size(); ++ispt) {
 		      const recob::SpacePoint& spt = (*spts)[ispt];
