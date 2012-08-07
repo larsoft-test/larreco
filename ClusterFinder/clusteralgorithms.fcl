@@ -21,12 +21,79 @@ BEGIN_PROLOG
                      #                           channel aware (not working)
  }
 
+ standard_fuzzyclusteralg:
+ {
+  eps:             1.0
+  epstwo:          1.5
+  minPts:          2
+
+  Method:          2 # 0 -- naive findNeighbor implemention
+                     # 1 -- findNeigbors with R*-tree
+                     # 2 -- Use fuzzy clustering
+
+  Metric:          3 # Which RegionQuery distance metric to use. 
+                     # **ONLY APPLIES** if Method is 1 or 2.
+                     #
+	             # 0 -- rectangle (no bad channels) **not implemented**
+	             # 1 -- Manhattan distance (only uses eps, no bad channels)
+                     #                                  **not implemented**
+	             # 2 -- Eliptical (no bad channels) **not implemented**
+	             # 3 -- findNeighbors-alike: Elliptical and bad
+                     #                           channel aware (not working)
+  Fuzzifier:      2  # The fuzzifier (m) needed for fuzzy clustering
+  MaxClusters:   10   # The maximum number of clusters to try, needed for fuzzy clustering, was 5
+  Iterations:    100  # The maximum number of iterations to try, needed for fuzzy clustering, was 10
+  MergeCutoff:   10   # The maximum distance between clusters prior to merging, needed for fuzzy clustering, 10 was what was used before
+  HoughClusAlg:
+  {
+   MaxLines:            20  # The maximum number of Hough lines to look for, 20 had been working!
+   MinHits:             10  # 10 was working
+   SaveAccumulator:      0
+   NumAngleCells:        5000 # The number of angle cells to create for the Hough transform, was set to 5000
+   RhoResolutionFactor:  5
+   MaxDistance:          1.0 # 0.1 was working (okay, not really, larger is probably better, e.g. 5, or 1, 1 is probably best)
+   MaxSlope:             80.0 # 80 was working fine previously
+   RhoZeroOutRange:      0
+   ThetaZeroOutRange:    0
+   HitsPerCluster:       1
+   MissedHits:           0
+   EndPointCutoff:      20  # The maximum distance between Hough lines and EndPoint, 20 had been working!
+   HoughLineMergeAngle: 30  # The maximum angle between slopes of Hough lines to be merged, 30 was working
+   HoughLineMergeCutoff:  2  # The maximum distance between Hough line endpoints before they can be merged, 2 was working
+   LineIsolationCut:    1.5# The cut on the Hough lines isolation
+   }
+  EndPointClusAlg:
+  {
+   TimeBins:            256
+   MaxCorners:          100
+   Gsigma:              1.
+   Window:              5
+   Threshold:           0.01
+   SaveVertexMap:       -1
+  }
+ }
+
 standard_dbscanalg_fast:        @local::standard_dbscanalg
 standard_dbscanalg_fast.eps:    1.25
 standard_dbscanalg_fast.epstwo: 1.75
 standard_dbscanalg_fast.Method: 2
 
  standard_houghlinealg:
+ {
+  MaxLines:             15
+  MinHits:              3
+  SaveAccumulator:      0
+  NumAngleCells:        5000
+  RhoResolutionFactor:  5
+  MaxDistance:          5.0
+  MaxSlope:             80.0
+  RhoZeroOutRange:      0
+  ThetaZeroOutRange:    0
+  HitsPerCluster:       1
+  MissedHits:           1
+ }
+ 
+ standard_houghclusalg:
  {
   MaxLines:             15
   MinHits:              3
@@ -51,7 +118,8 @@ standard_dbscanalg_fast.Method: 2
   SaveVertexMap:       -1
  }
 
- argoneut_dbscanalg:    @local::standard_dbscanalg
+ argoneut_dbscanalg:       @local::standard_dbscanalg
+ argoneut_fuzzyclusteralg: @local::standard_fuzzyclusteralg
  argoneut_houghlinealg: @local::standard_houghlinealg
  argoneut_endpointalg:  @local::standard_endpointalg
 
