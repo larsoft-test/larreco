@@ -9,6 +9,14 @@ standard_dbcluster:
  DBScanAlg:       @local::standard_dbscanalg
 }
 
+standard_fuzzycluster:
+{
+ module_type:     "fuzzyCluster"
+ HitsModuleLabel: "ffthit"
+ fuzzyClusterAlg: @local::standard_fuzzyclusteralg
+ HoughClusAlg:    @local::standard_houghclusalg
+}
+
 standard_dbclusterana:
 { 
  module_type:              "DBclusterAna"
@@ -17,13 +25,13 @@ standard_dbclusterana:
  LArGeantModuleLabel:      "largeant"
  CalDataModuleLabel:       "caldata"
  GenieGenModuleLabel:      "generator"
- ClusterFinderModuleLabel: "dbcluster"
+ ClusterFinderModuleLabel: "fuzzycluster"
 }
 
 standard_houghlinefinder:
 {
  module_type:          "HoughLineFinder"
- DBScanModuleLabel:    "dbcluster"
+ DBScanModuleLabel:    "fuzzycluster"
  MaxLines:             5
  MinHits:              3
  SaveAccumulator:      0
@@ -42,7 +50,7 @@ standard_houghlinefinderana:
  module_type:         "HoughLineFinderAna"
  DigitModuleLabel:    "wiresim"
  HitsModuleLabel:     "ffthit"
- DBScanModuleLabel:   "dbcluster"
+ DBScanModuleLabel:   "fuzzycluster"
  HoughModuleLabel:    "hough"
 }
 
@@ -57,7 +65,7 @@ standard_linemerger:
 standard_endpointmod:
 {
  module_type:       "EndPointModule"
- DBScanModuleLabel: "dbcluster"
+ DBScanModuleLabel: "fuzzycluster"
  EndPointAlg:       @local::standard_endpointalg
 }
 
@@ -93,12 +101,14 @@ standard_showeranglecluster:
 standard_clustercheater:
 {
  module_type:       "ClusterCheater"
- HitModuleLabel:    "hit"
+ HitModuleLabel: "ffthit"
  G4ModuleLabel:     "largeant"
  HoughLineAlg:      @local::standard_houghlinealg
 }
 
 argoneut_dbcluster:                    @local::standard_dbcluster      
+argoneut_fuzzycluster:                 @local::standard_fuzzycluster      
+argoneut_fuzzycluster.HoughClusAlg:    @local::standard_houghclusalg      
 argoneut_dbcluster.DBScanAlg:          @local::argoneut_dbscanalg   
 argoneut_dbclusterana:                 @local::standard_dbclusterana   
 argoneut_kingacluster:                 @local::standard_kingacluster   
@@ -114,6 +124,8 @@ argoneut_showeranglecluster:           @local::standard_showeranglecluster
 microboone_dbcluster:                    @local::standard_dbcluster      
 microboone_dbcluster.DBScanAlg:          @local::microboone_dbscanalg    
 microboone_dbclusterana:                 @local::standard_dbclusterana   
+microboone_fuzzycluster:                 @local::standard_fuzzycluster      
+microboone_fuzzycluster.HoughClusAlg:    @local::standard_houghclusalg      
 microboone_kingacluster:                 @local::standard_kingacluster   
 microboone_kingaclusterana:              @local::standard_kingaclusterana
 microboone_houghlinefinder:              @local::standard_houghlinefinder
