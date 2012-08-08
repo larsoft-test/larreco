@@ -20,14 +20,14 @@ standard_spacepointalg:
 standard_seedfinderalgorithm:
 {
   SpacePointAlg:          @local::standard_spacepointalg
-  InitSeedLength:         2
-  MinPointsInSeed:        10
-  AngularDev:             3.14
-  Refits:                 100
+  InitSeedLength:         4
+  MinPointsInSeed:        5
+  AngularDev:             0.3
+  Refits:                 30
   ExtendThresh:           0.90
   ExtendStep:             1.
   ExtendResolution:       2.
-  MaxViewRMS:             [0.4,0.4,0.4]
+  MaxViewRMS:             [0.0,0.0,0.0]
   
 
 }

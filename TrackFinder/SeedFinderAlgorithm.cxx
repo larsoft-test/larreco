@@ -391,6 +391,7 @@ namespace trkf {
 
         // Find nearby spacepoints and refit
 	std::vector<int> NearbySPs               = DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
+	if(NearbySPs.size()<3) return true;
 	std::cout<<"Size of SP vec in ext "<< NearbySPs.size()<<std::endl;
 	std::vector<recob::SpacePoint> ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
 
@@ -398,6 +399,7 @@ namespace trkf {
 
         // With refitted seed, count number of hits and work out dNdx and RMS
         NearbySPs =  DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
+	if(NearbySPs.size()<2) return true;
         ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
 
         NoOfHits = CountHits(ThePoints);
