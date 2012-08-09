@@ -9,7 +9,7 @@
 #include <vector>
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "TrackFinder/BezierTracker.h"
-#include "TrackFinder/SeedFinder.h"
+#include "TrackFinder/SeedFinderAlgorithm.h"
 #include "Geometry/geo.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
@@ -18,7 +18,6 @@
 #include "RecoBase/Track.h"
 #include "RecoBase/Prong.h"
 #include "TrackFinder/BezierTrack.h"
-#include "TrackFinder/SeedFinder.h"
 #include "Utilities/AssociationUtil.h"
 
 
@@ -52,7 +51,7 @@ namespace trkf {
     
     if((fTrackMode==2)||(fTrackMode==3)); 
       {
-	fTheSeedFinder = new SeedFinder(pset.get<fhicl::ParameterSet>("SeedFinder"));
+	fTheSeedFinder = new SeedFinderAlgorithm(pset.get<fhicl::ParameterSet>("SeedFinder"));
 	
       }  
 }
@@ -181,13 +180,8 @@ namespace trkf {
 	    // Find seeds in these SPs
 	    std::vector<std::vector<recob::SpacePoint> > SPUsed;
 	    std::cout<<"Getting seeds " <<std::endl;
-	    std::vector<recob::Seed*> TrackSeeds = fTheSeedFinder->FindAsManySeedsAsPossible(SPVec, SPUsed);
-	    std::cout<<"Beginning iterative refitting " <<std::endl;
-	    for(size_t i=0; i!=TrackSeeds.size(); i++)
-	      {
-		//		fTheSeedFinder->RefitSeed(TrackSeeds.at(i),SPUsed.at(i));
-	      }
-	    
+	    std::vector<recob::Seed*> TrackSeeds = fTheSeedFinder->FindSeeds(SPVec, SPUsed);
+	   	    
 	    std::cout<<"Organizing seed collections " <<std::endl;
 	    // Organize these seeds into tracklike collections
 	    std::vector<std::vector<recob::Seed* > > OrgSeeds = OrganizeSeedsIntoTracks(TrackSeeds);

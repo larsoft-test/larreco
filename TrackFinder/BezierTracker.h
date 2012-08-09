@@ -30,7 +30,7 @@ namespace recob
 namespace trkf {
 
   class BezierTrack;
-  class SeedFinder;
+  class SeedFinderAlgorithm;
 
   class BezierTracker : public art::EDProducer
   {
@@ -75,7 +75,7 @@ namespace trkf {
 
     int fTopTrackID;
 
-    SeedFinder * fTheSeedFinder;
+    SeedFinderAlgorithm * fTheSeedFinder;
 
   };
 }

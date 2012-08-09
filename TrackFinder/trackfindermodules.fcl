@@ -1,5 +1,6 @@
 #include "job/trackfinderalgorithms.fcl"
 
+
 BEGIN_PROLOG
 
 standard_seedfindermodule:
@@ -138,13 +139,6 @@ development_seeding:
   SpacePointAlg:       @local::microboone_spacepointalg
 }
 
-development_seedfinder:
-{
-  module_type:   "SeedFinder"
-  SeedConfig:    @local::development_seeding
-  SpacePointAlg: @local::microboone_spacepointalg
-
-}
 
 development_beziertrack:
 {  
@@ -158,7 +152,7 @@ development_beziertrack:
   HitDistance:         0.5
   TrackMode:           2
   ProcessHits:         true
-  SeedFinder:          @local::development_seedfinder
+  SeedFinder:          @local::standard_seedfinderalgorithm
   SpacePointAlg:       @local::microboone_spacepointalg
 }
 
