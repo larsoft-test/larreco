@@ -140,7 +140,7 @@ development_seeding:
 }
 
 
-development_beziertrack:
+standard_beziertracker:
 {  
   module_type:         "BezierTracker"
   SeedModuleLabel:     "seedfinder"
@@ -150,10 +150,10 @@ development_beziertrack:
   MaxTrackMissDist:    2.0 
   MaxJumpDistance:     30.0
   HitDistance:         0.5
-  TrackMode:           2
-  ProcessHits:         true
+  TrackMode:           1
+  ProcessHits:         false
   SeedFinder:          @local::standard_seedfinderalgorithm
-  SpacePointAlg:       @local::microboone_spacepointalg
+  SpacePointAlg:       @local::standard_spacepointalg
 }
 
 development_beziertrackjoiner:
@@ -251,6 +251,12 @@ microboone_track3Dkalmanhit.SpacePointAlg.MinViews:             2
 microboone_seedfindermodule:                     @local::standard_seedfindermodule
 microboone_seedfindermodule.SpacePointAlg:       @local::microboone_spacepointalg
 microboone_seedfindermodule.SeedAlg:             @local::microboone_seedfinderalgorithm
+
+
+microboone_beziertracker:                        @local::standard_beziertracker
+
+microboone_beziertracker.SeedFinder:             @local::microboone_seedfinderalgorithm
+microboone_beziertracker.SpacePointAlg:          @local::microboone_spacepointalg
 
 
 microboone_2stg_kalman:

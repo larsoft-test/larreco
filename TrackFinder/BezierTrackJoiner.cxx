@@ -9,7 +9,6 @@
 #include <vector>
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "TrackFinder/BezierTrackJoiner.h"
-#include "TrackFinder/SeedFinder.h"
 #include "Geometry/geo.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
@@ -19,7 +18,6 @@
 #include "RecoBase/Prong.h"
 #include "RecoBase/Vertex.h"
 #include "TrackFinder/BezierTrack.h"
-#include "TrackFinder/SeedFinder.h"
 #include "Utilities/AssociationUtil.h"
 #include "TrackFinder/BezierTracker.h"
 
