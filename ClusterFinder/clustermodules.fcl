@@ -25,13 +25,13 @@ standard_dbclusterana:
  LArGeantModuleLabel:      "largeant"
  CalDataModuleLabel:       "caldata"
  GenieGenModuleLabel:      "generator"
- ClusterFinderModuleLabel: "fuzzycluster"
+ ClusterFinderModuleLabel: "dbcluster"
 }
 
 standard_houghlinefinder:
 {
  module_type:          "HoughLineFinder"
- DBScanModuleLabel:    "fuzzycluster"
+ DBScanModuleLabel:    "dbcluster"
  MaxLines:             5
  MinHits:              3
  SaveAccumulator:      0
