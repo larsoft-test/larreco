@@ -1778,7 +1778,7 @@ void cluster::KingaCluster::FindClusters(unsigned int cstat,
       if(pk != (int)pk2 && abs(FinalPeaks[pk]-FinalPeaks[pk2]) < 3){
   
 	for(size_t i = 0; i < FinalPeaks.size(); ++i){
-	  if(i != pk){ 
+	  if(int(i) != pk){ 
 	    TempFinalPeaks.push_back(FinalPeaks[i]);
 	    TempMaxStartPoint.push_back(MaxStartPoint[i]);
 	    TempMaxEndPoint.push_back(MaxEndPoint[i]);

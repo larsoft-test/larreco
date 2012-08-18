@@ -31,7 +31,7 @@ namespace cluster {
     double          fEndpointWindow; // tolerance for matching endpoints (in units of time samples) 
    
     bool SlopeCompatibility(double slope1,double slope2);
-    bool EndpointCompatibility(std::vector<double> sclstart, std::vector<double> sclend,std::vector<double> cl2start, std::vector<double> cl2end);
+    int  EndpointCompatibility(std::vector<double> sclstart, std::vector<double> sclend,std::vector<double> cl2start, std::vector<double> cl2end);
     
   protected: 
     

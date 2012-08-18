@@ -147,8 +147,8 @@ namespace cluster{
 	  
 	  // check that the endpoints fall within a circular window of each other 
 	  // done in place of intercept matching
-	  bool sameEndpoint = EndpointCompatibility(cl1.StartPos(), cl1.EndPos(),
-						    cl2.StartPos(), cl2.EndPos());
+	  int sameEndpoint = EndpointCompatibility(cl1.StartPos(), cl1.EndPos(),
+						   cl2.StartPos(), cl2.EndPos());
 	  
 	  // if the slopes and end points are the same, combine the clusters
 	  // note that after 1 combination cl1 is no longer what we started 
@@ -158,7 +158,12 @@ namespace cluster{
 	    Cls_matches[i][clsnum2] = 1;       
 
 	    // combine the hit collections
-	    for(size_t h = 0; h < ptrvs2.size(); ++h) ptrvs.push_back(ptrvs2[h]);
+	    // take into account order when merging hits from two clusters: doc-1776
+	    if (sameEndpoint == 1) for(size_t h = 0; h < ptrvs2.size(); ++h) ptrvs.push_back(ptrvs2[h]);
+	    else if (sameEndpoint == -1){
+	      for(size_t h = 0; h < ptrvs.size(); ++h) ptrvs2.push_back(ptrvs[h]);
+	      ptrvs = ptrvs2;
+	    }
 	  }
 	  
 	  ++clsnum2;
@@ -168,7 +173,6 @@ namespace cluster{
 	// and create the association between the super cluster and the hits
 	SuperClusters->push_back(cl1);
 	util::CreateAssn(*this, evt, *(SuperClusters.get()), ptrvs, *(assn.get()));	
-
 	++clsnum1;
 
       }// end loop over first cluster iterator
@@ -199,7 +203,7 @@ namespace cluster{
     return comp;
   }
   //------------------------------------------------------------------------------------//
-  bool LineMerger::EndpointCompatibility(std::vector<double> sclstart, 
+  int LineMerger::EndpointCompatibility(std::vector<double> sclstart, 
 					 std::vector<double> sclend,
 					 std::vector<double> cl2start, 
 					 std::vector<double> cl2end)
@@ -220,9 +224,15 @@ namespace cluster{
     //not sure if this line is necessary--spitz
     double distance2 = sqrt((pow(sclstartwire-cl2endwire,2)*13.5) + pow(sclstarttime-cl2endtime,2));
     
-    bool comp = (distance  < fEndpointWindow ||
-		 distance2 < fEndpointWindow) ? true : false;
+//    bool comp = (distance  < fEndpointWindow ||
+//		 distance2 < fEndpointWindow) ? true : false;
 
+    //determine which way the two clusters should be merged. TY
+    int comp = 0;
+    if (distance < fEndpointWindow) 
+      comp = 1;
+    else if (distance2 < fEndpointWindow)
+      comp = -1;
     return comp;
   }
 
