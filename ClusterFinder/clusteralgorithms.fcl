@@ -47,19 +47,23 @@ BEGIN_PROLOG
   HoughClusAlg:
   {
    MaxLines:            20  # The maximum number of Hough lines to look for, 20 had been working!
-   MinHits:             10  # 10 was working
+   MinHits:             10  # 10 was working, 5 may be a little bit better
    SaveAccumulator:      0
-   NumAngleCells:        5000 # The number of angle cells to create for the Hough transform, was set to 5000
-   RhoResolutionFactor:  5
-   MaxDistance:          1.0 # 0.1 was working (okay, not really, larger is probably better, e.g. 5, or 1, 1 is probably best)
-   MaxSlope:             80.0 # 80 was working fine previously
+   NumAngleCells:     10000 # The number of angle cells to create for the Hough transform, was set to 5000
+   RhoResolutionFactor:    5   # Was set to 5
+   MaxDistance:          0.1 # 0.1 was working (okay, not really, larger is probably better, e.g. 5, or 1, 1 is probably best)
+   MaxSlope:            80.0 # 80 was working fine previously
    RhoZeroOutRange:      0
    ThetaZeroOutRange:    0
    HitsPerCluster:       1
    MissedHits:           0
    EndPointCutoff:      20  # The maximum distance between Hough lines and EndPoint, 20 had been working!
-   HoughLineMergeAngle: 30  # The maximum angle between slopes of Hough lines to be merged, 30 was working
-   HoughLineMergeCutoff:  2  # The maximum distance between Hough line endpoints before they can be merged, 2 was working
+   HoughLineMergeAngle: 20  # The maximum angle between slopes of Hough lines to be merged, 30 was working, 20 might be better
+   HoughLineMergeCutoff:   10 # The maximum distance between Hough line endpoints before they can be merged, 
+                              # 2 was working, a larger value is likely necessary though, like 5
+   ParaHoughLineMergeAngle:  5   # The maximum angle between slopes of Hough lines to be merged, 30 was working, 20 might be better
+   ParaHoughLineMergeCutoff: 20  # The maximum distance between Hough line endpoints before they can be merged, 
+                                 # 2 was working, a larger value is likely necessary though, like 5 or 10
    LineIsolationCut:    1.5# The cut on the Hough lines isolation
    }
   EndPointClusAlg:
