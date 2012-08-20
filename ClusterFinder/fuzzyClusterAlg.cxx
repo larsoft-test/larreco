@@ -425,7 +425,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(art::PtrVector<recob::Hit>& all
   double fXieBeniIndexMin=999999999;
   for( unsigned int j = 1; j < fXieBeniIndices.size(); j++){ 
     //mf::LogInfo("fuzzyCluster") << fXieBeniIndices[j]  << fXieBeniIndexMin ;
-    if (j+1 > fpsMat.GetNrows())
+    if (j+1 > (unsigned int)fpsMat.GetNrows())
       break;
     if(fXieBeniIndices[j] < fXieBeniIndexMin){
       fXieBeniIndexMin = fXieBeniIndices[j];
@@ -499,7 +499,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(art::PtrVector<recob::Hit>& all
   
   // Loop over clusters with the Hough line finder to break the clusters up further
   if(nClustersTemp > 0)
-    for (unsigned int i = 0; i <= nClustersTemp-1; i++){
+    for (unsigned int i = 0; i <= (unsigned int)nClustersTemp-1; i++){
       fHCAlg.Transform(allhits, &fpointId_to_clusterId, i, &nClusters, corners);
     }
   cid = nClusters;
