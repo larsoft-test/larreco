@@ -9,8 +9,8 @@
 #include <deque>
 #include "TrackFinder/Track3DKalmanHit.h"
 #include "TrackFinder/KHitContainerWireX.h"
-#include "TrackFinder/SurfYZPlane.h"
-#include "TrackFinder/PropYZPlane.h"
+#include "TrackFinder/SurfXYZPlane.h"
+#include "TrackFinder/PropXYZPlane.h"
 #include "TrackFinder/KHit.h"
 #include "Geometry/geo.h"
 #include "RecoBase/recobase.h"
@@ -199,7 +199,7 @@ void trkf::Track3DKalmanHit::reconfigure(fhicl::ParameterSet const & pset)
   fMinSeedSlope = pset.get<double>("MinSeedSlope");
   if(fProp != 0)
     delete fProp;
-  fProp = new PropYZPlane(fMaxTcut);
+  fProp = new PropXYZPlane(fMaxTcut);
 }
 
 //----------------------------------------------------------------------------
@@ -225,7 +225,7 @@ void trkf::Track3DKalmanHit::beginJob()
 ///
 /// e - Art event.
 ///
-/// This method extracts Hit from the event and produces and adds
+/// This method extracts Hits from the event and produces and adds
 /// Track objects.
 ///
 void trkf::Track3DKalmanHit::produce(art::Event & evt)
@@ -338,16 +338,13 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
 
       mf::LogDebug log("Track3DKalmanHit");
 
-      // This method should find just one seed.  In any case, we only
-      // look at the first seed found.
+      // Extract the first seed found.  Also extract the space points
+      // used by this seed.
 
-      // We don't actually look at the seed object, but only the space
-      // points.
-
-      //const recob::Seed& seed = *(seeds.front());
+      const recob::Seed& seed = *(seeds.front());
       const std::vector<recob::SpacePoint>& seedsptvec = seedsptvecs.front();
 
-      // Extract hits used by this seed.
+      // Extract hits used by space points in this seed.
 
       art::PtrVector<recob::Hit> seedhits;
       SpacePointsToHits(seedsptvec, seedhits, fSeedFinderAlg.GetSpacePointAlg());
@@ -357,42 +354,27 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
 
       FilterHits(seederhits, seedhits);
 
-      // Convert seed into initial KTrack on a z-plane surface.
+      // Convert seed into initial KTrack on surface located at seed point, 
+      // and normal to seed direction.
 
-      //double xyz[3];
-      //double dir[3];
-      //double err[3];   // Dummy.
-      //seed.GetPoint(xyz, err);
-      //seed.GetDirection(dir, err);
+      double xyz[3];
+      double dir[3];
+      double err[3];   // Dummy.
+      seed.GetPoint(xyz, err);
+      seed.GetDirection(dir, err);
 
-
-      double x0 = seedsptvec.front().XYZ()[0];
-      double y0 = seedsptvec.front().XYZ()[1];
-      double z0 = seedsptvec.front().XYZ()[2];
-
-      double x1 = seedsptvec.back().XYZ()[0];
-      double y1 = seedsptvec.back().XYZ()[1];
-      double z1 = seedsptvec.back().XYZ()[2];
-
-      double dx = x1 - x0;
-      double dy = y1 - y0;
-      double dz = z1 - z0;
-
-      double x = (z0 < z1 ? x0 : x1);
-      double y = (z0 < z1 ? y0 : y1);
-      double z = (z0 < z1 ? z0 : z1);
-
-      boost::shared_ptr<const Surface> psurf(new SurfYZPlane(y, z, 0.));
+      boost::shared_ptr<const Surface> psurf(new SurfXYZPlane(xyz[0], xyz[1], xyz[2],
+							      dir[0], dir[1], dir[2]));
       TrackVector vec(5);
-      vec(0) = x;
+      vec(0) = 0.;
       vec(1) = 0.;
-      vec(2) = dx / dz;
-      vec(3) = dy / dz;
+      vec(2) = 0.;
+      vec(3) = 0.;
       vec(4) = 2.0;
 
       // Since we have no information, assume pz>0.
 
-      Surface::TrackDirection trkdir = Surface::FORWARD;
+      Surface::TrackDirection trkdir = (dir[2] > 0 ? Surface::FORWARD : Surface::BACKWARD);
 
       // Also assume muon.
 
@@ -404,8 +386,8 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
 
       log << "Seed found with " << seedsptvec.size() 
 	  << " space points and " << seedhits.size() << " hits.\n"
-	  << "(x,y,z) = " << x << ", " << y << ", " << z << "\n"
-	  << "(dx,dy,dz) = " << dx << ", " << dy << ", " << dz << "\n"
+	  << "(x,y,z) = " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << "\n"
+	  << "(dx,dy,dz) = " << dir[0] << ", " << dir[1] << ", " << dir[2] << "\n"
 	  << "(x1, y1, z1)) = "
 	  << seedsptvec.front().XYZ()[0] << ", "
 	  << seedsptvec.front().XYZ()[1] << ", "
@@ -415,9 +397,9 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
 	  << seedsptvec.back().XYZ()[1] << ", "
 	  << seedsptvec.back().XYZ()[2] << "\n";
 
-      // Cut on the seed slope.
+      // Cut on the seed slope dx/dz.
 
-      if(std::abs(dx) >= fMinSeedSlope * std::abs(dz)) {
+      if(std::abs(dir[0]) >= fMinSeedSlope * std::abs(dir[2])) {
 
 	// Fill hit container with current seed hits.
 
