@@ -111,9 +111,9 @@ namespace trkf {
 
 	// x02=0 and theta2=0 for YZ plane.
 
-	y02 = from->y0();
-	z02 = from->z0();
-	phi2 = from->phi();
+	y02 = to->y0();
+	z02 = to->z0();
+	phi2 = to->phi();
       }
       else
 	return result;
