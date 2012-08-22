@@ -31,10 +31,6 @@ namespace trkf {
 
       void bookHistograms(bool mc);
 
-      // Static data members.
-
-      static TDirectory* fTopdir;  // Top level root directory (same for all Hists objects).
-
       // Data members.
 
       bool fBooked;        // Have histograms been booked yet?

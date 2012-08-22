@@ -139,10 +139,6 @@ namespace {
 
 namespace trkf {
 
-  // Hists static data members.
-
-  TDirectory* TrackAna::Hists::fTopdir = 0;
-
   // Hists methods.
 
   TrackAna::Hists::Hists() :
@@ -239,125 +235,121 @@ namespace trkf {
       art::ServiceHandle<geo::Geometry> geom;
       art::ServiceHandle<art::TFileService> tfs;
 
-      // Make top level histogram directory, or cd to it.
+      // Make histogram directory.
 
-      if(fTopdir == 0) {
-	TFile& file = tfs->file();
-	fTopdir = file.mkdir("trkana", "TrackAna histograms");
-      }
-      fTopdir->cd();
+      art::TFileDirectory dir = tfs->mkdir("trkana", "TrackAna histograms");
 
       // Book histograms.
 
-      fHstartx = new TH1F("xstart", "X Start Position",
+      fHstartx = dir.make<TH1F>("xstart", "X Start Position",
 			  100, 0., 2.*geom->DetHalfWidth());
-      fHstarty = new TH1F("ystart", "Y Start Position",
+      fHstarty = dir.make<TH1F>("ystart", "Y Start Position",
 			  100, -geom->DetHalfHeight(), geom->DetHalfHeight());
-      fHstartz = new TH1F("zstart", "Z Start Position",
+      fHstartz = dir.make<TH1F>("zstart", "Z Start Position",
 			  100, 0., geom->DetLength());
-      fHstartd = new TH1F("dstart", "Start Position Distance to Boundary",
+      fHstartd = dir.make<TH1F>("dstart", "Start Position Distance to Boundary",
 			  100, -10., geom->DetHalfWidth());
-      fHendx = new TH1F("xend", "X End Position",
+      fHendx = dir.make<TH1F>("xend", "X End Position",
 			100, 0., 2.*geom->DetHalfWidth());
-      fHendy = new TH1F("yend", "Y End Position",
+      fHendy = dir.make<TH1F>("yend", "Y End Position",
 			100, -geom->DetHalfHeight(), geom->DetHalfHeight());
-      fHendz = new TH1F("zend", "Z End Position",
+      fHendz = dir.make<TH1F>("zend", "Z End Position",
 			100, 0., geom->DetLength());
-      fHendd = new TH1F("dend", "End Position Distance to Boundary",
+      fHendd = dir.make<TH1F>("dend", "End Position Distance to Boundary",
 			100, -10., geom->DetHalfWidth());
-      fHtheta = new TH1F("theta", "Theta", 100, 0., 3.142);
-      fHphi = new TH1F("phi", "Phi", 100, -3.142, 3.142);
-      fHtheta_xz = new TH1F("theta_xz", "Theta_xz", 100, -3.142, 3.142);
-      fHtheta_yz = new TH1F("theta_yz", "Theta_yz", 100, -3.142, 3.142);
-      fHmom = new TH1F("mom", "Momentum", 100, 0., 10.);
-      fHlen = new TH1F("len", "Track Length", 100, 0., 1.1 * geom->DetLength());
-      fHduvcosth = new TH2F("duvcosth", "Delta(uv) vs. Colinearity", 
+      fHtheta = dir.make<TH1F>("theta", "Theta", 100, 0., 3.142);
+      fHphi = dir.make<TH1F>("phi", "Phi", 100, -3.142, 3.142);
+      fHtheta_xz = dir.make<TH1F>("theta_xz", "Theta_xz", 100, -3.142, 3.142);
+      fHtheta_yz = dir.make<TH1F>("theta_yz", "Theta_yz", 100, -3.142, 3.142);
+      fHmom = dir.make<TH1F>("mom", "Momentum", 100, 0., 10.);
+      fHlen = dir.make<TH1F>("len", "Track Length", 100, 0., 1.1 * geom->DetLength());
+      fHduvcosth = dir.make<TH2F>("duvcosth", "Delta(uv) vs. Colinearity", 
 			    100, 0.95, 1., 100, 0., 1.);
-      fHcosth = new TH1F("colin", "Colinearity", 100, 0.95, 1.);
-      fHmcu = new TH1F("mcu", "MC Truth U", 100, -1., 1.);
-      fHmcv = new TH1F("mcv", "MC Truth V", 100, -1., 1.);
-      fHmcw = new TH1F("mcw", "MC Truth W", 100, -1., 1.);
-      fHupull = new TH1F("dupull", "U Pull", 100, -10., 10.);
-      fHvpull = new TH1F("dvpull", "V Pull", 100, -10., 10.);
-      fHmcdudw = new TH1F("mcdudw", "MC Truth U Slope", 100, -0.2, 0.2);
-      fHmcdvdw = new TH1F("mcdvdw", "MV Truth V Slope", 100, -0.2, 0.2);
-      fHdudwpull = new TH1F("dudwpull", "U Slope Pull", 100, -10., 10.);
-      fHdvdwpull = new TH1F("dvdwpull", "V Slope Pull", 100, -10., 10.);
-      fHstartdx = new TH1F("startdx", "Start Delta x", 100, -1., 1.);
-      fHstartdy = new TH1F("startdy", "Start Delta y", 100, -1., 1.);
-      fHstartdz = new TH1F("startdz", "Start Delta z", 100, -1., 1.);
-      fHenddx = new TH1F("enddx", "End Delta x", 100, -10., 10.);
-      fHenddy = new TH1F("enddy", "End Delta y", 100, -10., 10.);
-      fHenddz = new TH1F("enddz", "End Delta z", 100, -20., 20.);
-      fHlvsl = new TH2F("lvsl", "Reco Length vs. MC Truth Length",
+      fHcosth = dir.make<TH1F>("colin", "Colinearity", 100, 0.95, 1.);
+      fHmcu = dir.make<TH1F>("mcu", "MC Truth U", 100, -1., 1.);
+      fHmcv = dir.make<TH1F>("mcv", "MC Truth V", 100, -1., 1.);
+      fHmcw = dir.make<TH1F>("mcw", "MC Truth W", 100, -1., 1.);
+      fHupull = dir.make<TH1F>("dupull", "U Pull", 100, -10., 10.);
+      fHvpull = dir.make<TH1F>("dvpull", "V Pull", 100, -10., 10.);
+      fHmcdudw = dir.make<TH1F>("mcdudw", "MC Truth U Slope", 100, -0.2, 0.2);
+      fHmcdvdw = dir.make<TH1F>("mcdvdw", "MV Truth V Slope", 100, -0.2, 0.2);
+      fHdudwpull = dir.make<TH1F>("dudwpull", "U Slope Pull", 100, -10., 10.);
+      fHdvdwpull = dir.make<TH1F>("dvdwpull", "V Slope Pull", 100, -10., 10.);
+      fHstartdx = dir.make<TH1F>("startdx", "Start Delta x", 100, -1., 1.);
+      fHstartdy = dir.make<TH1F>("startdy", "Start Delta y", 100, -1., 1.);
+      fHstartdz = dir.make<TH1F>("startdz", "Start Delta z", 100, -1., 1.);
+      fHenddx = dir.make<TH1F>("enddx", "End Delta x", 100, -10., 10.);
+      fHenddy = dir.make<TH1F>("enddy", "End Delta y", 100, -10., 10.);
+      fHenddz = dir.make<TH1F>("enddz", "End Delta z", 100, -20., 20.);
+      fHlvsl = dir.make<TH2F>("lvsl", "Reco Length vs. MC Truth Length",
 			100, 0., 1.1 * geom->DetLength(), 100, 0., 1.1 * geom->DetLength());
-      fHdl = new TH1F("dl", "Track Length Minus MC Particle Length", 100, -50., 50.);
-      fHpvsp = new TH2F("pvsp", "Reco Momentum vs. MC Truth Momentum",
+      fHdl = dir.make<TH1F>("dl", "Track Length Minus MC Particle Length", 100, -50., 50.);
+      fHpvsp = dir.make<TH2F>("pvsp", "Reco Momentum vs. MC Truth Momentum",
 			100, 0., 5., 100, 0., 5.);
-      fHpvspc = new TH2F("pvspc", "Reco Momentum vs. MC Truth Momentum (Contained Tracks)",
+      fHpvspc = dir.make<TH2F>("pvspc", "Reco Momentum vs. MC Truth Momentum (Contained Tracks)",
 			 100, 0., 5., 100, 0., 5.);
-      fHdp = new TH1F("dp", "Reco-MC Momentum Difference", 100, -5., 5.);
-      fHdpc = new TH1F("dpc", "Reco-MC Momentum Difference (Contained Tracks)",
+      fHdp = dir.make<TH1F>("dp", "Reco-MC Momentum Difference", 100, -5., 5.);
+      fHdpc = dir.make<TH1F>("dpc", "Reco-MC Momentum Difference (Contained Tracks)",
 		       100, -5., 5.);
-      fHppull = new TH1F("ppull", "Momentum Pull", 100, -10., 10.);
-      fHppullc = new TH1F("ppullc", "Momentum Pull (Contained Tracks)", 100, -10., 10.);
+      fHppull = dir.make<TH1F>("ppull", "Momentum Pull", 100, -10., 10.);
+      fHppullc = dir.make<TH1F>("ppullc", "Momentum Pull (Contained Tracks)", 100, -10., 10.);
 
-      fHmcstartx = new TH1F("mcxstart", "MC X Start Position",
+      fHmcstartx = dir.make<TH1F>("mcxstart", "MC X Start Position",
 			    10, 0., 2.*geom->DetHalfWidth());
-      fHmcstarty = new TH1F("mcystart", "MC Y Start Position",
+      fHmcstarty = dir.make<TH1F>("mcystart", "MC Y Start Position",
 			    10, -geom->DetHalfHeight(), geom->DetHalfHeight());
-      fHmcstartz = new TH1F("mczstart", "MC Z Start Position",
+      fHmcstartz = dir.make<TH1F>("mczstart", "MC Z Start Position",
 			    10, 0., geom->DetLength());
-      fHmcendx = new TH1F("mcxend", "MC X End Position",
+      fHmcendx = dir.make<TH1F>("mcxend", "MC X End Position",
 			  10, 0., 2.*geom->DetHalfWidth());
-      fHmcendy = new TH1F("mcyend", "MC Y End Position",
+      fHmcendy = dir.make<TH1F>("mcyend", "MC Y End Position",
 			  10, -geom->DetHalfHeight(), geom->DetHalfHeight());
-      fHmcendz = new TH1F("mczend", "MC Z End Position",
+      fHmcendz = dir.make<TH1F>("mczend", "MC Z End Position",
 			  10, 0., geom->DetLength());
-      fHmctheta = new TH1F("mctheta", "MC Theta", 20, 0., 3.142);
-      fHmcphi = new TH1F("mcphi", "MC Phi", 10, -3.142, 3.142);
-      fHmctheta_xz = new TH1F("mctheta_xz", "MC Theta_xz", 40, -3.142, 3.142);
-      fHmctheta_yz = new TH1F("mctheta_yz", "MC Theta_yz", 40, -3.142, 3.142);
-      fHmcmom = new TH1F("mcmom", "MC Momentum", 10, 0., 10.);
-      fHmclen = new TH1F("mclen", "MC Particle Length", 10, 0., 1.1 * geom->DetLength());
+      fHmctheta = dir.make<TH1F>("mctheta", "MC Theta", 20, 0., 3.142);
+      fHmcphi = dir.make<TH1F>("mcphi", "MC Phi", 10, -3.142, 3.142);
+      fHmctheta_xz = dir.make<TH1F>("mctheta_xz", "MC Theta_xz", 40, -3.142, 3.142);
+      fHmctheta_yz = dir.make<TH1F>("mctheta_yz", "MC Theta_yz", 40, -3.142, 3.142);
+      fHmcmom = dir.make<TH1F>("mcmom", "MC Momentum", 10, 0., 10.);
+      fHmclen = dir.make<TH1F>("mclen", "MC Particle Length", 10, 0., 1.1 * geom->DetLength());
 
-      fHgstartx = new TH1F("gxstart", "Good X Start Position",
+      fHgstartx = dir.make<TH1F>("gxstart", "Good X Start Position",
 			   10, 0., 2.*geom->DetHalfWidth());
-      fHgstarty = new TH1F("gystart", "Good Y Start Position",
+      fHgstarty = dir.make<TH1F>("gystart", "Good Y Start Position",
 			   10, -geom->DetHalfHeight(), geom->DetHalfHeight());
-      fHgstartz = new TH1F("gzstart", "Good Z Start Position",
+      fHgstartz = dir.make<TH1F>("gzstart", "Good Z Start Position",
 			   10, 0., geom->DetLength());
-      fHgendx = new TH1F("gxend", "Good X End Position",
+      fHgendx = dir.make<TH1F>("gxend", "Good X End Position",
 			 10, 0., 2.*geom->DetHalfWidth());
-      fHgendy = new TH1F("gyend", "Good Y End Position",
+      fHgendy = dir.make<TH1F>("gyend", "Good Y End Position",
 			 10, -geom->DetHalfHeight(), geom->DetHalfHeight());
-      fHgendz = new TH1F("gzend", "Good Z End Position",
+      fHgendz = dir.make<TH1F>("gzend", "Good Z End Position",
 			 10, 0., geom->DetLength());
-      fHgtheta = new TH1F("gtheta", "Good Theta", 20, 0., 3.142);
-      fHgphi = new TH1F("gphi", "Good Phi", 10, -3.142, 3.142);
-      fHgtheta_xz = new TH1F("gtheta_xz", "Good Theta_xz", 40, -3.142, 3.142);
-      fHgtheta_yz = new TH1F("gtheta_yz", "Good Theta_yz", 40, -3.142, 3.142);
-      fHgmom = new TH1F("gmom", "Good Momentum", 10, 0., 10.);
-      fHglen = new TH1F("glen", "Good Particle Length", 10, 0., 1.1 * geom->DetLength());
+      fHgtheta = dir.make<TH1F>("gtheta", "Good Theta", 20, 0., 3.142);
+      fHgphi = dir.make<TH1F>("gphi", "Good Phi", 10, -3.142, 3.142);
+      fHgtheta_xz = dir.make<TH1F>("gtheta_xz", "Good Theta_xz", 40, -3.142, 3.142);
+      fHgtheta_yz = dir.make<TH1F>("gtheta_yz", "Good Theta_yz", 40, -3.142, 3.142);
+      fHgmom = dir.make<TH1F>("gmom", "Good Momentum", 10, 0., 10.);
+      fHglen = dir.make<TH1F>("glen", "Good Particle Length", 10, 0., 1.1 * geom->DetLength());
 
-      fHestartx = new TH1F("exstart", "Efficiency vs. X Start Position",
+      fHestartx = dir.make<TH1F>("exstart", "Efficiency vs. X Start Position",
 			   10, 0., 2.*geom->DetHalfWidth());
-      fHestarty = new TH1F("eystart", "Efficiency vs. Y Start Position",
+      fHestarty = dir.make<TH1F>("eystart", "Efficiency vs. Y Start Position",
 			   10, -geom->DetHalfHeight(), geom->DetHalfHeight());
-      fHestartz = new TH1F("ezstart", "Efficiency vs. Z Start Position",
+      fHestartz = dir.make<TH1F>("ezstart", "Efficiency vs. Z Start Position",
 			   10, 0., geom->DetLength());
-      fHeendx = new TH1F("exend", "Efficiency vs. X End Position",
+      fHeendx = dir.make<TH1F>("exend", "Efficiency vs. X End Position",
 			 10, 0., 2.*geom->DetHalfWidth());
-      fHeendy = new TH1F("eyend", "Efficiency vs. Y End Position",
+      fHeendy = dir.make<TH1F>("eyend", "Efficiency vs. Y End Position",
 			 10, -geom->DetHalfHeight(), geom->DetHalfHeight());
-      fHeendz = new TH1F("ezend", "Efficiency vs. Z End Position",
+      fHeendz = dir.make<TH1F>("ezend", "Efficiency vs. Z End Position",
 			 10, 0., geom->DetLength());
-      fHetheta = new TH1F("etheta", "Efficiency vs. Theta", 20, 0., 3.142);
-      fHephi = new TH1F("ephi", "Efficiency vs. Phi", 10, -3.142, 3.142);
-      fHetheta_xz = new TH1F("etheta_xz", "Efficiency vs. Theta_xz", 40, -3.142, 3.142);
-      fHetheta_yz = new TH1F("etheta_yz", "Efficiency vs. Theta_yz", 40, -3.142, 3.142);
-      fHemom = new TH1F("emom", "Efficiency vs. Momentum", 10, 0., 10.);
-      fHelen = new TH1F("elen", "Efficiency vs. Particle Length", 10, 0., 1.1 * geom->DetLength());
+      fHetheta = dir.make<TH1F>("etheta", "Efficiency vs. Theta", 20, 0., 3.142);
+      fHephi = dir.make<TH1F>("ephi", "Efficiency vs. Phi", 10, -3.142, 3.142);
+      fHetheta_xz = dir.make<TH1F>("etheta_xz", "Efficiency vs. Theta_xz", 40, -3.142, 3.142);
+      fHetheta_yz = dir.make<TH1F>("etheta_yz", "Efficiency vs. Theta_yz", 40, -3.142, 3.142);
+      fHemom = dir.make<TH1F>("emom", "Efficiency vs. Momentum", 10, 0., 10.);
+      fHelen = dir.make<TH1F>("elen", "Efficiency vs. Particle Length", 10, 0., 1.1 * geom->DetLength());
     }
   }
 
@@ -659,11 +651,5 @@ namespace trkf {
     effcalc(fHists.fHgtheta_yz, fHists.fHmctheta_yz, fHists.fHetheta_yz);
     effcalc(fHists.fHgmom, fHists.fHmcmom, fHists.fHemom);
     effcalc(fHists.fHglen, fHists.fHmclen, fHists.fHelen);
-
-    // Save histograms.
-
-    art::ServiceHandle<art::TFileService> tfs;
-    tfs->file().Write();
-    tfs->file().Close();
   }
 }
