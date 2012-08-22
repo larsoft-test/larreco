@@ -14,7 +14,8 @@
 #include "TrackFinder/TrackAna.h"
 #include "art/Framework/Principal/Event.h"
 #include "RecoBase/Track.h"
-#include "Simulation/SimListUtils.h"
+#include "MCCheater/BackTracker.h"
+#include "TFile.h"
 
 namespace {
 
@@ -38,9 +39,327 @@ namespace {
     double result = std::min(std::min(std::min(std::min(std::min(d1, d2), d3), d4), d5), d6);
     return result;
   }
+
+  // Length of reconstructed track.
+
+  double length(const recob::Track& track)
+  {
+    double result = 0.;
+    TVector3 disp = track.LocationAtPoint(0);
+    int n = track.NumberTrajectoryPoints();
+
+    for(int i = 1; i < n; ++i) {
+      const TVector3& pos = track.LocationAtPoint(i);
+      disp -= pos;
+      result += disp.Mag();
+      disp = pos;
+    }
+
+    return result;
+  }
+
+  // Length of MC particle.
+
+  double length(const sim::Particle& part, 
+		TVector3& start, TVector3& end,
+		unsigned int tpc = 0, unsigned int cstat = 0)
+  {
+    // Get geometry.
+
+    art::ServiceHandle<geo::Geometry> geom;
+
+    // Get fiducial volume boundary.
+
+    double xmin = 0.;
+    double xmax = 2.*geom->DetHalfWidth();
+    double ymin = -geom->DetHalfHeight();
+    double ymax = geom->DetHalfHeight();
+    double zmin = 0.;
+    double zmax = geom->DetLength();
+
+    double result = 0.;
+    TVector3 disp;
+    int n = part.NumberTrajectoryPoints();
+    bool first = true;
+
+    for(int i = 0; i < n; ++i) {
+      const TVector3& pos = part.Position(i).Vect();
+      if(pos.X() >= xmin &&
+	 pos.X() <= xmax &&
+	 pos.Y() >= ymin &&
+	 pos.Y() <= ymax &&
+	 pos.Z() >= zmin &&
+	 pos.Z() <= zmax) {
+	if(first)
+	  start = pos;
+	else {
+	  disp -= pos;
+	  result += disp.Mag();
+	}
+	first = false;
+	disp = pos;
+	end = pos;
+      }
+    }
+
+    return result;
+  }
+
+  // Fill efficiency histogram assuming binomial errors.
+
+  void effcalc(const TH1* hnum, const TH1* hden, TH1* heff)
+  {
+    int nbins = hnum->GetNbinsX();
+    assert(nbins == hden->GetNbinsX());
+    assert(nbins == heff->GetNbinsX());
+
+    // Loop over bins, including underflow and overflow.
+
+    for(int ibin = 0; ibin <= nbins+1; ++ibin) {
+      double num = hnum->GetBinContent(ibin);
+      double den = hden->GetBinContent(ibin);
+      if(den == 0.) {
+	heff->SetBinContent(ibin, 0.);
+	heff->SetBinError(ibin, 0.);
+      }
+      else {
+	double eff = num / den;
+	double err = std::sqrt(eff * (1.-eff) / den);
+	heff->SetBinContent(ibin, eff);
+	heff->SetBinError(ibin, err);
+	assert(eff >= 0. && eff <= 1.);
+      }
+    }
+
+    heff->SetMinimum(0.);
+    heff->SetMaximum(1.05);
+    heff->SetMarkerStyle(20);
+  }
 }
 
 namespace trkf {
+
+  // Hists static data members.
+
+  TDirectory* TrackAna::Hists::fTopdir = 0;
+
+  // Hists methods.
+
+  TrackAna::Hists::Hists() :
+    //
+    // Purpose: Hists struct constructor -- Sets all attributes to zero.
+    //
+    fBooked(false),
+    fHstartx(0),
+    fHstarty(0),
+    fHstartz(0),
+    fHstartd(0),
+    fHendx(0),
+    fHendy(0),
+    fHendz(0),
+    fHendd(0),
+    fHtheta(0),
+    fHphi(0),
+    fHtheta_xz(0),
+    fHtheta_yz(0),
+    fHmom(0),
+    fHlen(0),
+    fHduvcosth(0),
+    fHcosth(0),
+    fHmcu(0),
+    fHmcv(0),
+    fHmcw(0),
+    fHupull(0),
+    fHvpull(0),
+    fHmcdudw(0),
+    fHmcdvdw(0),
+    fHdudwpull(0),
+    fHdvdwpull(0),
+    fHstartdx(0),
+    fHstartdy(0),
+    fHstartdz(0),
+    fHenddx(0),
+    fHenddy(0),
+    fHenddz(0),
+    fHlvsl(0),
+    fHdl(0),
+    fHpvsp(0),
+    fHpvspc(0),
+    fHdp(0),
+    fHppull(0),
+    fHppullc(0),
+    fHmcstartx(0),
+    fHmcstarty(0),
+    fHmcstartz(0),
+    fHmcendx(0),
+    fHmcendy(0),
+    fHmcendz(0),
+    fHmctheta(0),
+    fHmcphi(0),
+    fHmctheta_xz(0),
+    fHmctheta_yz(0),
+    fHmcmom(0),
+    fHmclen(0),
+    fHgstartx(0),
+    fHgstarty(0),
+    fHgstartz(0),
+    fHgendx(0),
+    fHgendy(0),
+    fHgendz(0),
+    fHgtheta(0),
+    fHgphi(0),
+    fHgtheta_xz(0),
+    fHgtheta_yz(0),
+    fHgmom(0),
+    fHglen(0),
+    fHestartx(0),
+    fHestarty(0),
+    fHestartz(0),
+    fHeendx(0),
+    fHeendy(0),
+    fHeendz(0),
+    fHetheta(0),
+    fHephi(0),
+    fHetheta_xz(0),
+    fHetheta_yz(0),
+    fHemom(0),
+    fHelen(0)
+  {}
+
+  void TrackAna::Hists::bookHistograms(bool mc)
+  //
+  // Purpose: Book histograms.
+  //
+  {
+    if(!fBooked) {
+      fBooked = true;
+
+      // Get services.
+
+      art::ServiceHandle<geo::Geometry> geom;
+      art::ServiceHandle<art::TFileService> tfs;
+
+      // Make top level histogram directory, or cd to it.
+
+      if(fTopdir == 0) {
+	TFile& file = tfs->file();
+	fTopdir = file.mkdir("trkana", "TrackAna histograms");
+      }
+      fTopdir->cd();
+
+      // Book histograms.
+
+      fHstartx = new TH1F("xstart", "X Start Position",
+			  100, 0., 2.*geom->DetHalfWidth());
+      fHstarty = new TH1F("ystart", "Y Start Position",
+			  100, -geom->DetHalfHeight(), geom->DetHalfHeight());
+      fHstartz = new TH1F("zstart", "Z Start Position",
+			  100, 0., geom->DetLength());
+      fHstartd = new TH1F("dstart", "Start Position Distance to Boundary",
+			  100, -10., geom->DetHalfWidth());
+      fHendx = new TH1F("xend", "X End Position",
+			100, 0., 2.*geom->DetHalfWidth());
+      fHendy = new TH1F("yend", "Y End Position",
+			100, -geom->DetHalfHeight(), geom->DetHalfHeight());
+      fHendz = new TH1F("zend", "Z End Position",
+			100, 0., geom->DetLength());
+      fHendd = new TH1F("dend", "End Position Distance to Boundary",
+			100, -10., geom->DetHalfWidth());
+      fHtheta = new TH1F("theta", "Theta", 100, 0., 3.142);
+      fHphi = new TH1F("phi", "Phi", 100, -3.142, 3.142);
+      fHtheta_xz = new TH1F("theta_xz", "Theta_xz", 100, -3.142, 3.142);
+      fHtheta_yz = new TH1F("theta_yz", "Theta_yz", 100, -3.142, 3.142);
+      fHmom = new TH1F("mom", "Momentum", 100, 0., 10.);
+      fHlen = new TH1F("len", "Track Length", 100, 0., 1.1 * geom->DetLength());
+      fHduvcosth = new TH2F("duvcosth", "Delta(uv) vs. Colinearity", 
+			    100, 0.95, 1., 100, 0., 1.);
+      fHcosth = new TH1F("colin", "Colinearity", 100, 0.95, 1.);
+      fHmcu = new TH1F("mcu", "MC Truth U", 100, -1., 1.);
+      fHmcv = new TH1F("mcv", "MC Truth V", 100, -1., 1.);
+      fHmcw = new TH1F("mcw", "MC Truth W", 100, -1., 1.);
+      fHupull = new TH1F("dupull", "U Pull", 100, -10., 10.);
+      fHvpull = new TH1F("dvpull", "V Pull", 100, -10., 10.);
+      fHmcdudw = new TH1F("mcdudw", "MC Truth U Slope", 100, -0.2, 0.2);
+      fHmcdvdw = new TH1F("mcdvdw", "MV Truth V Slope", 100, -0.2, 0.2);
+      fHdudwpull = new TH1F("dudwpull", "U Slope Pull", 100, -10., 10.);
+      fHdvdwpull = new TH1F("dvdwpull", "V Slope Pull", 100, -10., 10.);
+      fHstartdx = new TH1F("startdx", "Start Delta x", 100, -1., 1.);
+      fHstartdy = new TH1F("startdy", "Start Delta y", 100, -1., 1.);
+      fHstartdz = new TH1F("startdz", "Start Delta z", 100, -1., 1.);
+      fHenddx = new TH1F("enddx", "End Delta x", 100, -10., 10.);
+      fHenddy = new TH1F("enddy", "End Delta y", 100, -10., 10.);
+      fHenddz = new TH1F("enddz", "End Delta z", 100, -20., 20.);
+      fHlvsl = new TH2F("lvsl", "Reco Length vs. MC Truth Length",
+			100, 0., 1.1 * geom->DetLength(), 100, 0., 1.1 * geom->DetLength());
+      fHdl = new TH1F("dl", "Track Length Minus MC Particle Length", 100, -50., 50.);
+      fHpvsp = new TH2F("pvsp", "Reco Momentum vs. MC Truth Momentum",
+			100, 0., 5., 100, 0., 5.);
+      fHpvspc = new TH2F("pvspc", "Reco Momentum vs. MC Truth Momentum (Contained Tracks)",
+			 100, 0., 5., 100, 0., 5.);
+      fHdp = new TH1F("dp", "Reco-MC Momentum Difference", 100, -5., 5.);
+      fHdpc = new TH1F("dpc", "Reco-MC Momentum Difference (Contained Tracks)",
+		       100, -5., 5.);
+      fHppull = new TH1F("ppull", "Momentum Pull", 100, -10., 10.);
+      fHppullc = new TH1F("ppullc", "Momentum Pull (Contained Tracks)", 100, -10., 10.);
+
+      fHmcstartx = new TH1F("mcxstart", "MC X Start Position",
+			    10, 0., 2.*geom->DetHalfWidth());
+      fHmcstarty = new TH1F("mcystart", "MC Y Start Position",
+			    10, -geom->DetHalfHeight(), geom->DetHalfHeight());
+      fHmcstartz = new TH1F("mczstart", "MC Z Start Position",
+			    10, 0., geom->DetLength());
+      fHmcendx = new TH1F("mcxend", "MC X End Position",
+			  10, 0., 2.*geom->DetHalfWidth());
+      fHmcendy = new TH1F("mcyend", "MC Y End Position",
+			  10, -geom->DetHalfHeight(), geom->DetHalfHeight());
+      fHmcendz = new TH1F("mczend", "MC Z End Position",
+			  10, 0., geom->DetLength());
+      fHmctheta = new TH1F("mctheta", "MC Theta", 20, 0., 3.142);
+      fHmcphi = new TH1F("mcphi", "MC Phi", 10, -3.142, 3.142);
+      fHmctheta_xz = new TH1F("mctheta_xz", "MC Theta_xz", 40, -3.142, 3.142);
+      fHmctheta_yz = new TH1F("mctheta_yz", "MC Theta_yz", 40, -3.142, 3.142);
+      fHmcmom = new TH1F("mcmom", "MC Momentum", 10, 0., 10.);
+      fHmclen = new TH1F("mclen", "MC Particle Length", 10, 0., 1.1 * geom->DetLength());
+
+      fHgstartx = new TH1F("gxstart", "Good X Start Position",
+			   10, 0., 2.*geom->DetHalfWidth());
+      fHgstarty = new TH1F("gystart", "Good Y Start Position",
+			   10, -geom->DetHalfHeight(), geom->DetHalfHeight());
+      fHgstartz = new TH1F("gzstart", "Good Z Start Position",
+			   10, 0., geom->DetLength());
+      fHgendx = new TH1F("gxend", "Good X End Position",
+			 10, 0., 2.*geom->DetHalfWidth());
+      fHgendy = new TH1F("gyend", "Good Y End Position",
+			 10, -geom->DetHalfHeight(), geom->DetHalfHeight());
+      fHgendz = new TH1F("gzend", "Good Z End Position",
+			 10, 0., geom->DetLength());
+      fHgtheta = new TH1F("gtheta", "Good Theta", 20, 0., 3.142);
+      fHgphi = new TH1F("gphi", "Good Phi", 10, -3.142, 3.142);
+      fHgtheta_xz = new TH1F("gtheta_xz", "Good Theta_xz", 40, -3.142, 3.142);
+      fHgtheta_yz = new TH1F("gtheta_yz", "Good Theta_yz", 40, -3.142, 3.142);
+      fHgmom = new TH1F("gmom", "Good Momentum", 10, 0., 10.);
+      fHglen = new TH1F("glen", "Good Particle Length", 10, 0., 1.1 * geom->DetLength());
+
+      fHestartx = new TH1F("exstart", "Efficiency vs. X Start Position",
+			   10, 0., 2.*geom->DetHalfWidth());
+      fHestarty = new TH1F("eystart", "Efficiency vs. Y Start Position",
+			   10, -geom->DetHalfHeight(), geom->DetHalfHeight());
+      fHestartz = new TH1F("ezstart", "Efficiency vs. Z Start Position",
+			   10, 0., geom->DetLength());
+      fHeendx = new TH1F("exend", "Efficiency vs. X End Position",
+			 10, 0., 2.*geom->DetHalfWidth());
+      fHeendy = new TH1F("eyend", "Efficiency vs. Y End Position",
+			 10, -geom->DetHalfHeight(), geom->DetHalfHeight());
+      fHeendz = new TH1F("ezend", "Efficiency vs. Z End Position",
+			 10, 0., geom->DetLength());
+      fHetheta = new TH1F("etheta", "Efficiency vs. Theta", 20, 0., 3.142);
+      fHephi = new TH1F("ephi", "Efficiency vs. Phi", 10, -3.142, 3.142);
+      fHetheta_xz = new TH1F("etheta_xz", "Efficiency vs. Theta_xz", 40, -3.142, 3.142);
+      fHetheta_yz = new TH1F("etheta_yz", "Efficiency vs. Theta_yz", 40, -3.142, 3.142);
+      fHemom = new TH1F("emom", "Efficiency vs. Momentum", 10, 0., 10.);
+      fHelen = new TH1F("elen", "Efficiency vs. Particle Length", 10, 0., 1.1 * geom->DetLength());
+    }
+  }
 
   TrackAna::TrackAna(const fhicl::ParameterSet& pset) :
     //
@@ -53,33 +372,6 @@ namespace trkf {
     fMinMCKE(pset.get<double>("MinMCKE")),
     fMatchColinearity(pset.get<double>("MatchColinearity")),
     fMatchDisp(pset.get<double>("MatchDisp")),
-    fBooked(false),
-    fHstartx(0),
-    fHstarty(0),
-    fHstartz(0),
-    fHstartd(0),
-    fHendx(0),
-    fHendy(0),
-    fHendz(0),
-    fHendd(0),
-    fHtheta(0),
-    fHphi(0),
-    fHmom(0),
-    fHduvcosth(0),
-    fHcosth(0),
-    fHmcu(0),
-    fHmcv(0),
-    fHmcw(0),
-    fHupull(0),
-    fHvpull(0),
-    fHmcdudw(0),
-    fHmcdvdw(0),
-    fHdudwpull(0),
-    fHdvdwpull(0),
-    fHpvsp(0),
-    fHpvspc(0),
-    fHdp(0),
-    fHppull(0),
     fNumEvent(0)
   {
 
@@ -98,68 +390,6 @@ namespace trkf {
   //
   {}
 
-  void TrackAna::bookHistograms(bool mc)
-  //
-  // Purpose: Book histograms.
-  //
-  {
-    if(!fBooked) {
-      fBooked = true;
-
-      // Get services.
-
-      art::ServiceHandle<geo::Geometry> geom;
-      art::ServiceHandle<art::TFileService> tfs;
-
-      // Make histogram directory.
-
-      art::TFileDirectory dir = tfs->mkdir("trkana", "TrackAna histograms");
-
-      // Book histograms.
-
-      fHstartx = dir.make<TH1F>("xstart", "X Start Position",
-				100, 0., 2.*geom->DetHalfWidth());
-      fHstarty = dir.make<TH1F>("ystart", "Y Start Position",
-				100, -geom->DetHalfHeight(), geom->DetHalfHeight());
-      fHstartz = dir.make<TH1F>("zstart", "Z Start Position",
-				100, 0., geom->DetLength());
-      fHstartd = dir.make<TH1F>("dstart", "Start Position Distance to Boundary",
-				100, -10., geom->DetHalfWidth());
-      fHendx = dir.make<TH1F>("xend", "X End Position",
-			      100, 0., 2.*geom->DetHalfWidth());
-      fHendy = dir.make<TH1F>("yend", "Y End Position",
-			      100, -geom->DetHalfHeight(), geom->DetHalfHeight());
-      fHendz = dir.make<TH1F>("zend", "Z End Position",
-			      100, 0., geom->DetLength());
-      fHendd = dir.make<TH1F>("dend", "End Position Distance to Boundary",
-				100, -10., geom->DetHalfWidth());
-      fHtheta = dir.make<TH1F>("theta", "Theta", 100, 0., 3.142);
-      fHphi = dir.make<TH1F>("phi", "Phi", 100, -3.142, 3.142);
-      fHmom = dir.make<TH1F>("mom", "Momentum", 100, 0., 10.);
-      fHduvcosth = dir.make<TH2F>("duvcosth", "Delta(uv) vs. Colinearity", 
-				  100, 0.95, 1., 100, 0., 1.);
-      fHcosth = dir.make<TH1F>("colin", "Colinearity", 100, 0.95, 1.);
-      fHmcu = dir.make<TH1F>("mcu", "MC Truth U", 100, -1., 1.);
-      fHmcv = dir.make<TH1F>("mcv", "MC Truth V", 100, -1., 1.);
-      fHmcw = dir.make<TH1F>("mcw", "MC Truth W", 100, -1., 1.);
-      fHupull = dir.make<TH1F>("dupull", "U Pull", 100, -10., 10.);
-      fHvpull = dir.make<TH1F>("dvpull", "V Pull", 100, -10., 10.);
-      fHmcdudw = dir.make<TH1F>("mcdudw", "MC Truth U Slope", 100, -0.2, 0.2);
-      fHmcdvdw = dir.make<TH1F>("mcdvdw", "MV Truth V Slope", 100, -0.2, 0.2);
-      fHdudwpull = dir.make<TH1F>("dudwpull", "U Slope Pull", 100, -10., 10.);
-      fHdvdwpull = dir.make<TH1F>("dvdwpull", "V Slope Pull", 100, -10., 10.);
-      fHpvsp = dir.make<TH2F>("pvsp", "Reco Momentum vs. MC Truth Momentum",
-			      100, 0., 5., 100, 0., 5.);
-      fHpvspc = dir.make<TH2F>("pvspc", "Reco Momentum vs. MC Truth Momentum (Contained Tracks)",
-			       100, 0., 5., 100, 0., 5.);
-      fHdp = dir.make<TH1F>("dp", "Reco-MC Momentum Difference", 100, -5., 5.);
-      fHdpc = dir.make<TH1F>("dpc", "Reco-MC Momentum Difference (Contained Tracks)",
-			     100, -5., 5.);
-      fHppull = dir.make<TH1F>("ppull", "Momentum Pull", 100, -10., 10.);
-      fHppullc = dir.make<TH1F>("ppullc", "Momentum Pull (Contained Tracks)", 100, -10., 10.);
-    }
-  }
-
   void TrackAna::analyze(const art::Event& evt)
   //
   // Purpose: Analyze method.
@@ -172,13 +402,68 @@ namespace trkf {
     // Make sure histograms are booked.
 
     bool mc = !evt.isRealData();
-    bookHistograms(mc);
+    fHists.bookHistograms(mc);
 
     // Get mc particles.
 
     sim::ParticleList plist;
-    if(mc)
-      plist = sim::SimListUtils::GetParticleList(evt, fG4ModuleLabel);
+    std::vector<const sim::Particle*> plist2;
+    plist2.reserve(plist.size());
+
+    if(mc) {
+      art::ServiceHandle<cheat::BackTracker> bt;
+      plist = bt->ParticleList();
+
+      // Loop over mc particles, and fill histograms that depend only
+      // on mc particles.  Also, fill a secondary list of mc particles
+      // that pass various selection criteria.
+
+      for(sim::ParticleList::const_iterator ipart = plist.begin();
+	  ipart != plist.end(); ++ipart) {
+	const sim::Particle* part = (*ipart).second;
+	assert(part != 0);
+	int pdg = part->PdgCode();
+
+	// Ignore everything except stable charged nonshowering particles.
+
+	int apdg = std::abs(pdg);
+	if(apdg == 13 ||     // Muon
+	   apdg == 211 ||    // Charged pion
+	   apdg == 321 ||    // Charged kaon
+	   apdg == 2212) {   // (Anti)proton
+
+	  // Apply minimum energy cut.
+
+	  if(part->E() >= 0.001*part->Mass() + fMinMCKE) {
+
+	    // This is a good mc particle (capable of making a track).
+
+	    plist2.push_back(part);
+
+	    // Fill histograms.
+
+	    TVector3 mcstart;
+	    TVector3 mcend;
+	    double plen = length(*part, mcstart, mcend);
+	    double mctheta_xz = std::atan2(part->Px(), part->Pz());
+	    double mctheta_yz = std::atan2(part->Py(), part->Pz());
+
+	    fHists.fHmcstartx->Fill(mcstart.X());
+	    fHists.fHmcstarty->Fill(mcstart.Y());
+	    fHists.fHmcstartz->Fill(mcstart.Z());
+	    fHists.fHmcendx->Fill(mcend.X());
+	    fHists.fHmcendy->Fill(mcend.Y());
+	    fHists.fHmcendz->Fill(mcend.Z());
+	    fHists.fHmctheta->Fill(part->Momentum().Theta());
+	    fHists.fHmcphi->Fill(part->Momentum().Phi());
+	    fHists.fHmctheta_xz->Fill(mctheta_xz);
+	    fHists.fHmctheta_yz->Fill(mctheta_yz);
+	    fHists.fHmcmom->Fill(part->Momentum().Vect().Mag());
+	    fHists.fHmclen->Fill(plen);
+	  }
+	}
+      }
+    }
 
     // Get tracks.
 
@@ -203,22 +488,28 @@ namespace trkf {
 
 	  double dpos = bdist(pos);
 	  double dend = bdist(end);
+	  double tlen = length(track);
+	  double theta_xz = std::atan2(dir.X(), dir.Z());
+	  double theta_yz = std::atan2(dir.Y(), dir.Z());
 
-	  fHstartx->Fill(pos.X());
-	  fHstarty->Fill(pos.Y());
-	  fHstartz->Fill(pos.Z());
-	  fHstartd->Fill(dpos);
-	  fHendx->Fill(end.X());
-	  fHendy->Fill(end.Y());
-	  fHendz->Fill(end.Z());
-	  fHendd->Fill(dend);
-	  fHtheta->Fill(dir.Theta());
-	  fHphi->Fill(dir.Phi());
+	  fHists.fHstartx->Fill(pos.X());
+	  fHists.fHstarty->Fill(pos.Y());
+	  fHists.fHstartz->Fill(pos.Z());
+	  fHists.fHstartd->Fill(dpos);
+	  fHists.fHendx->Fill(end.X());
+	  fHists.fHendy->Fill(end.Y());
+	  fHists.fHendz->Fill(end.Z());
+	  fHists.fHendd->Fill(dend);
+	  fHists.fHtheta->Fill(dir.Theta());
+	  fHists.fHphi->Fill(dir.Phi());
+	  fHists.fHtheta_xz->Fill(theta_xz);
+	  fHists.fHtheta_yz->Fill(theta_yz);
 
 	  double mom = 0.;
 	  if(track.NumberFitMomentum() > 0)
 	    mom = track.VertexMomentum();
-	  fHmom->Fill(mom);
+	  fHists.fHmom->Fill(mom);
+	  fHists.fHlen->Fill(tlen);
 
 	  // Calculate the global-to-local rotation matrix.
 
@@ -229,90 +520,111 @@ namespace trkf {
 
 	  const TMatrixD& cov = track.VertexCovariance();
 
-	  // Loop over mc particls.
+	  // Loop over track-like mc particles.
 
-	  for(sim::ParticleList::const_iterator ipart = plist.begin();
-	      ipart != plist.end(); ++ipart) {
-	    const sim::Particle* part = (*ipart).second;
+	  for(std::vector<const sim::Particle*>::const_iterator ipart = plist2.begin();
+	      ipart != plist2.end(); ++ipart) {
+	    const sim::Particle* part = *ipart;
 	    assert(part != 0);
-	    int pdg = part->PdgCode();
 
-	    // Ignore everything except stable charged nonshowering particles.
+	    // Get the momentum and displacement of this mc
+	    // particle in the global coordinate system.
 
-	    int apdg = std::abs(pdg);
-	    if(apdg == 13 ||     // Muon
-	       apdg == 211 ||    // Charged pion
-	       apdg == 321 ||    // Charged kaon
-	       apdg == 2212) {   // (Anti)proton
+	    TVector3 mcmom = part->Momentum().Vect();
+	    TVector3 mcpos = part->Position().Vect() - pos;
 
-	      // Apply minimum energy cut.
+	    // Rotate the momentum and position to the
+	    // track-local coordinate system.
 
-	      if(part->E() >= 0.001*part->Mass() + fMinMCKE) {
+	    TVector3 mcmoml = rot * mcmom;
+	    TVector3 mcposl = rot * mcpos;
 
-		// Get the momentum and displacement of this mc
-		// particle in the global coordinate system.
+	    double colinearity = mcmoml.Z() / mcmoml.Mag();
 
-		TVector3 mcmom = part->Momentum().Vect();
-		TVector3 mcpos = part->Position().Vect() - pos;
+	    double u = mcposl.X();
+	    double v = mcposl.Y();
+	    double w = mcposl.Z();
 
-		// Rotate the momentum and position to the
-		// track-local coordinate system.
+	    double pu = mcmoml.X();
+	    double pv = mcmoml.Y();
+	    double pw = mcmoml.Z();
 
-		TVector3 mcmoml = rot * mcmom;
-		TVector3 mcposl = rot * mcpos;
+	    double dudw = pu / pw;
+	    double dvdw = pv / pw;
 
-		double colinearity = mcmoml.Z() / mcmoml.Mag();
+	    double u0 = u - w * dudw;
+	    double v0 = v - w * dvdw;
+	    double uv0 = std::sqrt(u0*u0 + v0*v0);
 
-		double u = mcposl.X();
-		double v = mcposl.Y();
-		double w = mcposl.Z();
+	    fHists.fHduvcosth->Fill(colinearity, uv0);
+	    if(std::abs(uv0) < fMatchDisp) {
 
-		double pu = mcmoml.X();
-		double pv = mcmoml.Y();
-		double pw = mcmoml.Z();
+	      // Fill slope matching histograms.
 
-		double dudw = pu / pw;
-		double dvdw = pv / pw;
+	      fHists.fHmcdudw->Fill(dudw);
+	      fHists.fHmcdvdw->Fill(dvdw);
+	      fHists.fHdudwpull->Fill(dudw / std::sqrt(cov(2,2)));
+	      fHists.fHdvdwpull->Fill(dvdw / std::sqrt(cov(3,3)));
+	    }
+	    fHists.fHcosth->Fill(colinearity);
+	    if(colinearity > fMatchColinearity) {
 
-		double u0 = u - w * dudw;
-		double v0 = v - w * dvdw;
-		double uv0 = std::sqrt(u0*u0 + v0*v0);
+	      // Fill displacement matching histograms.
 
-		fHduvcosth->Fill(colinearity, uv0);
-		if(std::abs(uv0) < fMatchDisp) {
+	      fHists.fHmcu->Fill(u0);
+	      fHists.fHmcv->Fill(v0);
+	      fHists.fHmcw->Fill(w);
+	      fHists.fHupull->Fill(u0 / std::sqrt(cov(0,0)));
+	      fHists.fHvpull->Fill(v0 / std::sqrt(cov(1,1)));
 
-		  // Fill slope matching histograms.
+	      if(std::abs(uv0) < fMatchDisp) {
 
-		  fHmcdudw->Fill(dudw);
-		  fHmcdvdw->Fill(dvdw);
-		  fHdudwpull->Fill(dudw / std::sqrt(cov(2,2)));
-		  fHdvdwpull->Fill(dvdw / std::sqrt(cov(3,3)));
+		// Fill matching histograms.
+
+		TVector3 mcstart;
+		TVector3 mcend;
+		double plen = length(*part, mcstart, mcend);
+		double mctheta_xz = std::atan2(part->Px(), part->Pz());
+		double mctheta_yz = std::atan2(part->Py(), part->Pz());
+
+		fHists.fHstartdx->Fill(pos.X() - mcstart.X());
+		fHists.fHstartdy->Fill(pos.Y() - mcstart.Y());
+		fHists.fHstartdz->Fill(pos.Z() - mcstart.Z());
+		fHists.fHenddx->Fill(end.X() - mcend.X());
+		fHists.fHenddy->Fill(end.Y() - mcend.Y());
+		fHists.fHenddz->Fill(end.Z() - mcend.Z());
+		fHists.fHlvsl->Fill(plen, tlen);
+		fHists.fHdl->Fill(tlen - plen);
+		fHists.fHpvsp->Fill(mcmom.Mag(), mom);
+		double dp = mom - mcmom.Mag();
+		fHists.fHdp->Fill(dp);
+		fHists.fHppull->Fill(dp / std::sqrt(cov(4,4)));
+		if(std::abs(dpos) >= 5. && std::abs(dend) >= 5.) {
+		  fHists.fHpvspc->Fill(mcmom.Mag(), mom);
+		  fHists.fHdpc->Fill(dp);
+		  fHists.fHppullc->Fill(dp / std::sqrt(cov(4,4)));
 		}
-		fHcosth->Fill(colinearity);
-		if(colinearity > fMatchColinearity) {
 
-		  // Fill displacement matching histograms.
+		// Count this track as well-reconstructed if it is matched to an
+		// mc particle (which it is if get here), and if in addition the
+		// starting position (w) matches and the reconstructed track length
+		// is more than 0.5 of the mc particle trajectory length.
 
-		  fHmcu->Fill(u0);
-		  fHmcv->Fill(v0);
-		  fHmcw->Fill(w);
-		  fHupull->Fill(u0 / std::sqrt(cov(0,0)));
-		  fHvpull->Fill(v0 / std::sqrt(cov(1,1)));
-
-		  if(std::abs(uv0) < fMatchDisp) {
-
-		    // Fill matching histograms.
-
-		    fHpvsp->Fill(mcmom.Mag(), mom);
-		    double dp = mom - mcmom.Mag();
-		    fHdp->Fill(dp);
-		    fHppull->Fill(dp / std::sqrt(cov(4,4)));
-		    if(std::abs(dpos) >= 5. && std::abs(dend) >= 5.) {
-		      fHpvspc->Fill(mcmom.Mag(), mom);
-		      fHdpc->Fill(dp);
-		      fHppullc->Fill(dp / std::sqrt(cov(4,4)));
-		    }
-		  }
+		bool good = std::abs(w) <= fMatchDisp &&
+		  tlen > 0.5 * plen;
+		if(good) {
+		  fHists.fHgstartx->Fill(mcstart.X());
+		  fHists.fHgstarty->Fill(mcstart.Y());
+		  fHists.fHgstartz->Fill(mcstart.Z());
+		  fHists.fHgendx->Fill(mcend.X());
+		  fHists.fHgendy->Fill(mcend.Y());
+		  fHists.fHgendz->Fill(mcend.Z());
+		  fHists.fHgtheta->Fill(part->Momentum().Theta());
+		  fHists.fHgphi->Fill(part->Momentum().Phi());
+		  fHists.fHgtheta_xz->Fill(mctheta_xz);
+		  fHists.fHgtheta_yz->Fill(mctheta_yz);
+		  fHists.fHgmom->Fill(part->Momentum().Vect().Mag());
+		  fHists.fHglen->Fill(plen);
 		}
 	      }
 	    }
@@ -320,5 +632,38 @@ namespace trkf {
 	}
       }
     }
+  }
+
+  void TrackAna::endJob()
+  //
+  // Purpose: End of job.
+  //
+  {
+    // Print summary.
+
+    mf::LogInfo("TrackAna") 
+      << "TrackAna statistics:\n"
+      << "  Number of events = " << fNumEvent;
+
+    // Fill efficiency histograms.
+
+    effcalc(fHists.fHgstartx, fHists.fHmcstartx, fHists.fHestartx);
+    effcalc(fHists.fHgstarty, fHists.fHmcstarty, fHists.fHestarty);
+    effcalc(fHists.fHgstartz, fHists.fHmcstartz, fHists.fHestartz);
+    effcalc(fHists.fHgendx, fHists.fHmcendx, fHists.fHeendx);
+    effcalc(fHists.fHgendy, fHists.fHmcendy, fHists.fHeendy);
+    effcalc(fHists.fHgendz, fHists.fHmcendz, fHists.fHeendz);
+    effcalc(fHists.fHgtheta, fHists.fHmctheta, fHists.fHetheta);
+    effcalc(fHists.fHgphi, fHists.fHmcphi, fHists.fHephi);
+    effcalc(fHists.fHgtheta_xz, fHists.fHmctheta_xz, fHists.fHetheta_xz);
+    effcalc(fHists.fHgtheta_yz, fHists.fHmctheta_yz, fHists.fHetheta_yz);
+    effcalc(fHists.fHgmom, fHists.fHmcmom, fHists.fHemom);
+    effcalc(fHists.fHglen, fHists.fHmclen, fHists.fHelen);
+
+    // Save histograms.
+
+    art::ServiceHandle<art::TFileService> tfs;
+    tfs->file().Write();
+    tfs->file().Close();
   }
 }
