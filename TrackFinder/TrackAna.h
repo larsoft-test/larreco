@@ -9,6 +9,7 @@
 // Created: 2-Aug-2011  H. Greenlee
 //
 
+#include <map>
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "TH2F.h"
 
@@ -19,21 +20,15 @@ namespace trkf {
   public:
 
     // Embedded structs.
-    // Hists struct contains all histograms.
 
-    struct Hists
+    // Struct for histograms that depend on reco track only.
+
+    struct RecoHists
     {
-      // Default constructor.
+      // Constructors.
 
-      Hists();
-
-      // Book all histograms.
-
-      void bookHistograms(bool mc);
-
-      // Data members.
-
-      bool fBooked;        // Have histograms been booked yet?
+      RecoHists();
+      RecoHists(const std::string& subdir);
 
       // Pure reco track histograms.
 
@@ -51,6 +46,16 @@ namespace trkf {
       TH1F* fHtheta_yz;    // Theta_yz.
       TH1F* fHmom;         // Momentum.
       TH1F* fHlen;         // Length.
+    };
+
+    // Struct for mc particles and mc-matched tracks.
+
+    struct MCHists
+    {
+      // Constructors.
+
+      MCHists();
+      MCHists(const std::string& subdir);
 
       // Reco-MC matching.
 
@@ -151,7 +156,8 @@ namespace trkf {
 
     // Histograms.
 
-    Hists fHists;
+    std::map<int, MCHists> fMCHistMap;       // Indexed by pdg id.
+    std::map<int, RecoHists> fRecoHistMap;   // Indexed by pdg id.
 
     // Statistics.
 
