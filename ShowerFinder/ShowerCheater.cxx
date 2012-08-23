@@ -195,7 +195,7 @@ namespace shwf{
 	}
 
 	// associate the shower with the space points
-	util::CreateAssn(*this, evt, *(showercol.get()), *(spcol.get()), *(sspassn.get()), startSPIndx, endSPIndx);
+	util::CreateAssn(*this, evt, *showercol, *spcol, *sspassn, startSPIndx, endSPIndx);
 
 	mf::LogInfo("ShowerCheater") << "adding shower: \n" 
 				     << showercol->back()
