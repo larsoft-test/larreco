@@ -18,6 +18,7 @@
 //
 
 #include "art/Framework/Core/EDProducer.h"
+#include "TrackFinder/SeedFinderAlgorithm.h"
 
 namespace recob
 {
@@ -30,8 +31,7 @@ namespace recob
 namespace trkf {
 
   class BezierTrack;
-  class SeedFinderAlgorithm;
-
+ 
   class BezierTracker : public art::EDProducer
   {
   public:
@@ -49,6 +49,8 @@ namespace trkf {
     BezierTrack* ProduceTrackFromSeeds(std::vector<recob::Seed* > Seeds);
 
     std::vector<int> DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, BezierTrack * BTrack, double HitCollectionDistance, std::vector<double>& SValues);
+    
+    trkf::SeedFinderAlgorithm * GetSeedFinderAlgorithm() { return fTheSeedFinder;}
     
     // Overrides.
 
