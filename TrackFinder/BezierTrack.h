@@ -1,4 +1,5 @@
 #include "Utilities/AssociationUtil.h"
+#include "AnalysisBase/Calorimetry.h"
 #include "RecoBase/Track.h"
 
 #ifndef BEZIERTRACK_h
@@ -53,13 +54,17 @@ namespace trkf {
     void   GetClosestApproach( recob::SpacePoint* sp,      double &s,  double& Distance) const;
     void   GetClosestApproach( TVector3 vec,               double &s,  double& Distance) const;
 
-    
+    double GetTrackPitch( geo::View_t view, double s, double WirePitch, unsigned int c=0, unsigned int t=0);
+
     void   GetClosestApproaches( art::PtrVector<recob::Hit> hits,     std::vector<double>& s, std::vector<double>& Distances) const;
     void   GetClosestApproaches( std::vector< art::Ptr<recob::Hit> > hits,     std::vector<double>& s, std::vector<double>& Distances) const;
 
     
     void   CalculatedQdx(art::PtrVector<recob::Hit>);   
     void   CalculatedQdx(art::PtrVector<recob::Hit>, std::vector<double> SValues);   
+    
+    anab::Calorimetry GetCalorimetryObject(std::vector<art::Ptr<recob::Hit> > Hits, geo::View_t view);
+
 
     std::vector<recob::SpacePoint> FillMySpacePoints(int N);
  

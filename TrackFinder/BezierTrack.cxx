@@ -54,6 +54,94 @@ namespace trkf {
   }
 
 
+
+  //----------------------------------------------------------------------
+  // Get the track pitch at some s for a particular view
+  //
+
+  double BezierTrack::GetTrackPitch(geo::View_t view, double s, double WirePitch, unsigned int c, unsigned int t)
+  {
+    static std::map<geo::View_t, bool>          DoneCalc;
+    static std::map<geo::View_t, TVector3>      PitchVecs;
+    
+    if(!(DoneCalc[view]))
+      {
+	unsigned int p;
+	unsigned int pTop;
+
+	art::ServiceHandle<geo::Geometry> geom;
+	
+	pTop=geom->Cryostat(c).TPC(t).Nplanes();
+	for(p=0; p!=pTop; ++p)
+	  if(geom->Cryostat(c).TPC(t).Plane(p).View() == view) break;
+	
+	double WireEnd1[3], WireEnd2[3];
+	
+	geom->WireEndPoints(c, t, p, 0, WireEnd1, WireEnd2);
+	
+	double WirePitch = geom->WirePitch(view);
+
+	TVector3 WireVec(WireEnd2-WireEnd1);
+	PitchVecs[view] = (1.0 / WirePitch) * WireVec.Cross(TVector3(1,0,0)).Unit(); 
+	
+	DoneCalc[view]=true;
+      }
+
+    TVector3 TrackDir = GetTrackDirectionV(s).Unit();
+    
+    return 1. / (PitchVecs[view].Dot(TrackDir));
+  }
+
+
+
+  //------------------------------------------------------
+  // Build an anab::Calorimetry object for this track
+
+  anab::Calorimetry BezierTrack::GetCalorimetryObject(std::vector<art::Ptr<recob::Hit> > Hits, geo::View_t view)
+  {
+    
+    art::ServiceHandle<geo::Geometry> geom;
+
+    std::vector<double>  dEdx;
+    std::vector<double>  dQdx;
+    std::vector<double>  resRange;
+    std::vector<double>  deadwire;
+    double Range = GetLength();
+    std::vector<double>  TrkPitch;
+    
+    double WirePitch = geom->WirePitch(view);
+    
+    double s, d;
+    TVector3 PlanePitchDirection;
+
+    for(size_t i=0; i!=Hits.size(); ++i)
+      {
+	if(Hits.at(i)->View()==view)
+	  {
+	    GetClosestApproach(Hits.at(i),s,d);
+	    double ThisPitch = GetTrackPitch( view, s, WirePitch );
+	    TrkPitch.push_back(ThisPitch);
+	    resRange.push_back(s*Range);
+	    dQdx.push_back(Hits.at(i)->Charge()/ThisPitch);
+
+	    //dEdx.push_back( Some_Method_From_A_Polish_Guy );
+	  }
+
+
+      }
+
+   
+    double KineticEnergy;
+
+    for(size_t i=0; i!=dEdx.size(); ++i)
+      KineticEnergy+=dEdx.at(i);
+    
+    return anab::Calorimetry(KineticEnergy, dEdx, dQdx, resRange, deadwire, Range, TrkPitch);
+
+
+  }
+
+
   //----------------------------------------------------------------------
   // Given track points, fill the seed vector.  The seeds are then used 
   // for geomtry calculations / bezier fitting
@@ -388,6 +476,7 @@ namespace trkf {
     Distance = MinDistanceToPoint;
         
   }
+
 
 
 
