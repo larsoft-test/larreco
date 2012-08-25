@@ -1,9 +1,9 @@
 ////////////////////////////////////////////////////////////////////////
-// $Id: HoughClusAlg.h,v 1.36 2010/09/15  bpage Exp $
+// HoughClusAlg.h
 //
 // HoughClusAlg class
 //
-// josh
+// Ben Carls (bcarls@fnal.gov)
 //
 ////////////////////////////////////////////////////////////////////////
 #ifndef HOUGHLINEALG_H
@@ -56,6 +56,8 @@ namespace cluster {
      
     void Init(int dx, int dy, int rhoresfact, int numACells);
     bool AddPoint(int x, int y);
+    bool AddPointReturnMax(int x, int y);
+    int  AddPointReturnMax(int x, int y, int *yMax, int *xMax, int minHits);
     bool SubtractPoint(int x, int y);
     int  GetCell(int row, int col)            { return m_accum[row][col]; }
     void SetCell(int row, int col, int value) { m_accum[row][col] = value; }
@@ -72,7 +74,10 @@ namespace cluster {
       rho   = (col - (m_rowLength/2.))/m_rhoResolutionFactor;
     }
     int GetMax(int & xmax, int & ymax);
-      
+
+
+
+
     private:
          
     int m_dx;
@@ -91,6 +96,7 @@ namespace cluster {
     std::vector<double> m_cosTable;
     std::vector<double> m_sinTable;
     bool DoAddPoint(int x, int y);
+    int  DoAddPointReturnMax(int x, int y, int *yMax, int *xMax, int minHits);
     bool DoSubtractPoint(int x, int y);
 
 
