@@ -33,6 +33,16 @@ standard_seedfinderalgorithm:
 }
 
 
+standard_beziertrackeralgorithm:
+{	
+  MaxKinkAngle:        0.15
+  MaxTrackMissAngle:   100.0
+  MaxJumpDistance:     30.0
+  HitDistance:         0.5
+
+  SeedFinder:          @local::standard_seedfinderalgorithm
+}
+
 argoneut_spacepointalg: @local::standard_spacepointalg
 
 microboone_spacepointalg:          @local::standard_spacepointalg
@@ -74,6 +84,7 @@ microboone_seedfinderalgorithm:  @local::standard_seedfinderalgorithm
 microboone_seedfinderalgorithm.SpacePointAlg : @local::microboone_spacepointalg
 microboone_seedfinderalgorithm.SpacePointAlg.PreferColl: true
 
-
+microboone_beziertrackeralgorithm: @local::standard_beziertrackeralgorithm
+microboone_beziertrackeralgorithm.SeedFinderAlgorithm: @local::microboone_seedfinderalgorithm
 
 END_PROLOG
