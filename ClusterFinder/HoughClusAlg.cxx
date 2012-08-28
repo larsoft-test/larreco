@@ -327,7 +327,7 @@ void cluster::HoughClusAlg::HLSSaveBMPFile(const char *fileName, unsigned char *
 
 
 //------------------------------------------------------------------------------
-size_t cluster::HoughClusAlg::Transform(art::PtrVector<recob::Hit>& hits,
+size_t cluster::HoughClusAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits,
     std::vector<unsigned int>     *fpointId_to_clusterId,
     unsigned int clusterId, // The id of the cluster we are examining
     int *nClusters,
@@ -393,7 +393,7 @@ size_t cluster::HoughClusAlg::Transform(art::PtrVector<recob::Hit>& hits,
   std::vector<int> sequenceHolder; //channels of hits in list
   std::vector<int> currentHits;    //working vector of hits 
   std::vector<int> lastHits;       //best list of hits
-  art::PtrVector<recob::Hit> clusterHits;
+  std::vector<art::Ptr<recob::Hit> > clusterHits;
   double indcolscaling = 0.;       //a parameter to account for the different 
         			   ////characteristic hit width of induction and collection plane
   double centerofmassx = 0;
@@ -1760,8 +1760,7 @@ int cluster::HoughClusAlg::mergeParaHoughLines(unsigned int clusIndexStart,std::
 
 
 //------------------------------------------------------------------------------
-//size_t cluster::HoughClusAlg::Transform(std::vector< art::Ptr<recob::Hit> >& hits)
-size_t cluster::HoughClusAlg::Transform(art::PtrVector<recob::Hit>& hits)
+size_t cluster::HoughClusAlg::Transform(std::vector< art::Ptr<recob::Hit> >& hits)
 {
   HoughTransformClus c;
 
@@ -1842,11 +1841,11 @@ size_t cluster::HoughClusAlg::Transform(art::PtrVector<recob::Hit>& hits)
 
 
 //------------------------------------------------------------------------------
-size_t cluster::HoughClusAlg::Transform(art::PtrVector<recob::Cluster>                 & clusIn,
-					std::vector<recob::Cluster>                    & ccol,  
-					std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
-					art::Event                                const& evt,
-					std::string                               const& label)
+size_t cluster::HoughClusAlg::Transform(std::vector<art::Ptr<recob::Cluster> >                  & clusIn,
+					std::vector<recob::Cluster>                             & ccol,  
+					std::vector< std::vector<art::Ptr<recob::Hit> > >       & clusHitsOut,
+					art::Event                                              const& evt,
+					std::string                                             const& label)
 {
 
   std::vector<int> skip;
@@ -1865,7 +1864,7 @@ size_t cluster::HoughClusAlg::Transform(art::PtrVector<recob::Cluster>          
   for(size_t cs = 0; cs < geom->Ncryostats(); ++cs){
     for(size_t t = 0; t < geom->Cryostat(cs).NTPC(); ++t){
       for(unsigned int p = 0; p < geom->Cryostat(cs).TPC(t).Nplanes(); ++p) {
-	art::PtrVector<recob::Cluster>::const_iterator clusterIter = clusIn.begin();
+        std::vector<art::Ptr<recob::Cluster> >::const_iterator clusterIter = clusIn.begin();
 	int clusterID = 0;//the unique ID of the cluster
 
 	// This is the loop over clusters. The algorithm searches for lines on a 
@@ -1914,7 +1913,7 @@ size_t cluster::HoughClusAlg::Transform(art::PtrVector<recob::Cluster>          
 	  std::vector<int> sequenceHolder; //channels of hits in list
 	  std::vector<int> currentHits;    //working vector of hits 
 	  std::vector<int> lastHits;       //best list of hits
-	  art::PtrVector<recob::Hit> clusterHits;
+          std::vector<art::Ptr<recob::Hit> > clusterHits;
 	  double indcolscaling = 0.;       //a parameter to account for the different 
 	                                   //characteristic hit width of induction and collection plane
 	  double centerofmassx = 0;
