@@ -89,7 +89,7 @@ void cluster::fuzzyCluster::produce(art::Event& evt)
   evt.getByLabel(fhitsModuleLabel,hitcol);
   
   // loop over all hits in the event and look for clusters (for each plane)
-  art::PtrVector<recob::Hit> allhits;
+  std::vector<art::Ptr<recob::Hit> > allhits;
 
   // get the ChannelFilter
   filter::ChannelFilter chanFilt;
@@ -135,7 +135,7 @@ void cluster::fuzzyCluster::produce(art::Event& evt)
 
 
 	for(size_t i = 0; i < ffuzzyCluster.fclusters.size(); ++i){
-	  art::PtrVector<recob::Hit> clusterHits;
+          std::vector<art::Ptr<recob::Hit> > clusterHits;
 	  double totalQ = 0.;
 	  
 	  for(size_t j = 0; j < ffuzzyCluster.fpointId_to_clusterId.size(); ++j){
