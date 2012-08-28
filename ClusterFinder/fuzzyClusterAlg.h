@@ -42,9 +42,9 @@ namespace cluster{
     virtual ~fuzzyClusterAlg();
     
     void reconfigure(fhicl::ParameterSet const& p);
-    void InitFuzzy(art::PtrVector<recob::Hit>& allhits, std::set<unsigned int> badChannels);
+    void InitFuzzy(std::vector<art::Ptr<recob::Hit> >& allhits, std::set<unsigned int> badChannels);
     // Three differnt version of the clustering code
-    void run_fuzzy_cluster(art::PtrVector<recob::Hit>& allhits);     
+    void run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit> >& allhits);     
     double getSimilarity(const std::vector<double> v1, const std::vector<double> v2); 
     std::vector<unsigned int> findNeighbors( unsigned int pid, double threshold, double threshold2);
     void computeSimilarity();
