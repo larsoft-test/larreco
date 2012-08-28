@@ -39,10 +39,10 @@ namespace trkf {
     // Seedfinding methods
 
     
-    std::vector<recob::Seed* >  FindSeeds(std::vector<std::vector<recob::SpacePoint> > const&, std::vector<std::vector<recob::SpacePoint> > & );
+    std::vector<recob::Seed >  FindSeeds(std::vector<std::vector<recob::SpacePoint> > const&, std::vector<std::vector<recob::SpacePoint> > & );
     
 
-    std::vector<recob::Seed *>  FindSeeds(std::vector<recob::SpacePoint> const&, std::vector<std::vector<recob::SpacePoint> >&);
+    std::vector<recob::Seed >  FindSeeds(std::vector<recob::SpacePoint> const&, std::vector<std::vector<recob::SpacePoint> >&);
 
     void                        RefitSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> SpacePoints);
 

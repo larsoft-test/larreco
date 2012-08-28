@@ -322,10 +322,10 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
     std::vector<recob::SpacePoint> seedspts =
       fSeedFinderAlg.GetSpacePointsFromHitVector(seederhits);
     std::vector<std::vector<recob::SpacePoint> > seedsptvecs;
-    std::vector<recob::Seed*> seeds;
+    std::vector<recob::Seed> seeds;
     if(seedspts.size() > 0)
       seeds = fSeedFinderAlg.FindSeeds(seedspts, seedsptvecs);
-    if(seeds.size() == 0 || !seeds.front()->IsValid()) {
+    if(seeds.size() == 0 || !seeds.front().IsValid()) {
 
       // Quit loop if we didn't find any new seeds.
 
@@ -341,7 +341,7 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
       // Extract the first seed found.  Also extract the space points
       // used by this seed.
 
-      const recob::Seed& seed = *(seeds.front());
+      const recob::Seed& seed = (seeds.front());
       const std::vector<recob::SpacePoint>& seedsptvec = seedsptvecs.front();
 
       // Extract hits used by space points in this seed.

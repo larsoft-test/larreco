@@ -59,12 +59,15 @@ namespace trkf {
 
     std::string fSeedModuleLabel;
     std::string fHitModuleLabel;
+    std::string fClusterModuleLabel;
 
     int fTrackMode;
     bool fMakeHitAssns;
 
     trkf::BezierTrackerAlgorithm * fBTrackAlg;
 
+
+    std::vector<std::vector<recob::SpacePoint> > GetSpacePointsFromClusters(std::string ClusterModuleLabel, art::Event& evt);
 
 
   };

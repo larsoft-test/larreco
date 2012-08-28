@@ -61,7 +61,7 @@ namespace trkf {
     std::auto_ptr<std::vector<recob::Seed> > seeds(new std::vector<recob::Seed>);
 
     std::vector<std::vector<recob::SpacePoint> > SpacePointsWithSeeds;
-    std::vector<recob::Seed*> SeedVector;
+    std::vector<recob::Seed> SeedVector;
     
     if(fInputSource==1)
       {
@@ -70,7 +70,7 @@ namespace trkf {
 	std::vector<std::vector<recob::SpacePoint> > SpacePointVectors;
 	SpacePointVectors = GetSpacePointsFromClusters(fInputModuleLabel, evt);
 	
-	std::vector<recob::Seed*> SeedsToAdd;
+	std::vector<recob::Seed> SeedsToAdd;
 	std::vector<std::vector<recob::SpacePoint> > ReturnedSPs;
 
 	for(size_t i=0; i!=SpacePointVectors.size(); ++i)
@@ -103,7 +103,7 @@ namespace trkf {
       {
 	for(size_t i=0; i!=SeedVector.size(); ++i)
 	  {
-	    seeds->push_back(*SeedVector.at(i));
+	    seeds->push_back(SeedVector.at(i));
 	  }
 	
       }

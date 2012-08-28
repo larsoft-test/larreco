@@ -63,14 +63,14 @@ namespace trkf {
   // Find seeds in a collection of collections of SPs
   //   (for cluster method)
 
-  std::vector<recob::Seed*> SeedFinderAlgorithm::FindSeeds(std::vector<std::vector<recob::SpacePoint> > const& InputPoints, std::vector<std::vector<recob::SpacePoint> >& CataloguedSPs)
+  std::vector<recob::Seed> SeedFinderAlgorithm::FindSeeds(std::vector<std::vector<recob::SpacePoint> > const& InputPoints, std::vector<std::vector<recob::SpacePoint> >& CataloguedSPs)
   {
     CataloguedSPs.clear();
-    std::vector<recob::Seed*> ReturnVector;
+    std::vector<recob::Seed> ReturnVector;
     for(size_t i=0; i!=InputPoints.size(); ++i)
       {
 	std::vector<std::vector<recob::SpacePoint> > SPsThisCombo;
-	std::vector<recob::Seed*> SeedsThisCombo = FindSeeds(InputPoints.at(i), SPsThisCombo);
+	std::vector<recob::Seed> SeedsThisCombo = FindSeeds(InputPoints.at(i), SPsThisCombo);
 	for(size_t j=0; j!=SeedsThisCombo.size(); ++j)
 	  {
 	    ReturnVector.push_back(  SeedsThisCombo[j] ) ;
@@ -106,10 +106,10 @@ namespace trkf {
   // Given a set of spacepoints, find seeds, and catalogue
   //  spacepoints by the seeds they formed
   //
-  std::vector<recob::Seed *> SeedFinderAlgorithm::FindSeeds(std::vector<recob::SpacePoint> const& AllSpacePoints, std::vector<std::vector<recob::SpacePoint> > & PointsInSeeds)
+  std::vector<recob::Seed> SeedFinderAlgorithm::FindSeeds(std::vector<recob::SpacePoint> const& AllSpacePoints, std::vector<std::vector<recob::SpacePoint> > & PointsInSeeds)
   {
     // Vector of seeds found to return
-    std::vector<recob::Seed*>       ReturnVector;
+    std::vector<recob::Seed>       ReturnVector;
 
     // This vector keeps track of the status of each point.  
     // The key is the position in the AllSpacePoints vector.
@@ -141,7 +141,7 @@ namespace trkf {
 	// and add the seed to the return vector 
 	if(TheSeed->IsValid())
 	  {
-	    ReturnVector.push_back(TheSeed);
+	    ReturnVector.push_back(*TheSeed);
 	    
 	    std::vector<recob::SpacePoint> SPs;
 	    for(size_t i=0; i!=PointsUsed.size(); ++i) 

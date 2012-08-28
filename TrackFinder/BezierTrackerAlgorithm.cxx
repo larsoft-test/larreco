@@ -49,13 +49,13 @@ namespace trkf {
 
 
 
-  std::vector<trkf::BezierTrack* > BezierTrackerAlgorithm::MakeBezierTracksFromSeeds(std::vector<art::Ptr<recob::Seed> > TrackSeeds )
+  std::vector<trkf::BezierTrack* > BezierTrackerAlgorithm::MakeBezierTracksFromSeeds(std::vector<recob::Seed> const& TrackSeeds )
   {
     
     mf::LogInfo("BezierTrackerAlgorithm")<<"Making bezier tracks from seeds"<<std::endl;
     std::vector<trkf::BezierTrack*> ReturnVector;
     
-    std::vector<std::vector<art::Ptr<recob::Seed> > > OrgSeeds = OrganizeSeedsIntoTracks(TrackSeeds);
+    std::vector<std::vector<recob::Seed> > OrgSeeds = OrganizeSeedsIntoTracks(TrackSeeds);
 	
     mf::LogInfo("BezierTrackerAlgorithm")<<"Bezier Tracker OrgSeeds size : " << OrgSeeds.size()<<std::endl;
     // Loop through track candidate seed collections
@@ -104,11 +104,11 @@ namespace trkf {
 	std::vector<std::vector<recob::SpacePoint> > SPUsed;
 	mf::LogInfo("BezierTrackerAlgorithm")<<"Getting seeds " <<std::endl;
 	
-	std::vector<recob::Seed*> TrackSeeds = fTheSeedFinder->FindSeeds(SPVec, SPUsed);
+	std::vector<recob::Seed> TrackSeeds = fTheSeedFinder->FindSeeds(SPVec, SPUsed);
 	   	    
 	mf::LogInfo("BezierTrackerAlgorithm")<<"Organizing seed collections " <<std::endl;
 	// Organize these seeds into tracklike collections
-	std::vector<std::vector<recob::Seed* > > OrgSeeds = OrganizeSeedsIntoTracks(TrackSeeds);
+	std::vector<std::vector<recob::Seed > > OrgSeeds = OrganizeSeedsIntoTracks(TrackSeeds);
 	
 	// If we didn't find any, continue and quit
 	if(OrgSeeds.size()==0) 
@@ -162,7 +162,7 @@ namespace trkf {
   // Produce a track using the seeds we found
   // Note : we also need to add new seeds at beginning and end to get
   //  entire length of track extremities
-  BezierTrack * BezierTrackerAlgorithm::ProduceTrackFromSeeds(std::vector<art::Ptr<recob::Seed> > Seeds)
+  BezierTrack * BezierTrackerAlgorithm::ProduceTrackFromSeeds(std::vector<recob::Seed> const& Seeds)
   {
 
     std::vector<TVector3> Pos;
@@ -172,8 +172,8 @@ namespace trkf {
     double pt[3], dir[3], dummy[3];
     for(unsigned int i=0; i!=Seeds.size(); i++)
       {
-	Seeds.at(i)->GetPoint(     pt,  dummy );
-	Seeds.at(i)->GetDirection( dir, dummy );
+	Seeds.at(i).GetPoint(     pt,  dummy );
+	Seeds.at(i).GetDirection( dir, dummy );
 	/*
 	if(i==0)  // put in beginning seed
 	  {
@@ -211,56 +211,6 @@ namespace trkf {
     return TheTrack;
   }
 
-  //----------------------------------------------------------------------
-  BezierTrack * BezierTrackerAlgorithm::ProduceTrackFromSeeds(std::vector<recob::Seed* > Seeds)
-  {
-
-    std::vector<TVector3> Pos;
-    std::vector<TVector3> Dir;
-    std::vector<std::vector<double > > dQdx;
-    
-    double pt[3], dir[3], dummy[3];
-    for(unsigned int i=0; i!=Seeds.size(); i++)
-      {
-	Seeds.at(i)->GetPoint(     pt,  dummy );
-	Seeds.at(i)->GetDirection( dir, dummy );
-
-	if(i==0)  // put in beginning seed
-	  {
-	    double ExtraPoint[3];
-	    for(int j=0; j!=3; ++j)
-	      ExtraPoint[j]=pt[j]+dir[j];
-	    TVector3 ThisPos(ExtraPoint[0],ExtraPoint[1],ExtraPoint[2]);
-	    TVector3 ThisDir(dir[0],dir[1],dir[2]);
-	    
-	    Pos.push_back(ThisPos);
-	    Dir.push_back(ThisDir);
-	  }
-	
-	TVector3 ThisPos(pt[0],  pt[1],  pt[2]  );
-	TVector3 ThisDir(dir[0], dir[1], dir[2] );
-
-	Pos.push_back(ThisPos);
-	Dir.push_back(ThisDir);
-
-	if(i==(Seeds.size()-1))  // put in end seed
-	  {
-	    double ExtraPoint[3];
-	    for(int j=0; j!=3; ++j)
-	      ExtraPoint[j]=pt[j]-dir[j];
-	    TVector3 ThisPos(ExtraPoint[0],ExtraPoint[1],ExtraPoint[2]);
-	    TVector3 ThisDir(dir[0],dir[1],dir[2]);
-	    
-	    Pos.push_back(ThisPos);
-	    Dir.push_back(ThisDir);
-	  }
-
-      }
-
-    BezierTrack * TheTrack = new BezierTrack(Pos,Dir,dQdx,fTopTrackID++);
-    return TheTrack;
-  }
-
 
   //----------------------------------------------------------------------
   //
@@ -285,92 +235,41 @@ namespace trkf {
 
 
   
-  //----------------------------------------------------------------------
 
-  std::vector<std::vector<art::Ptr< recob::Seed> > > BezierTrackerAlgorithm::OrganizeSeedsIntoTracks(std::vector<art::Ptr<recob::Seed> > TrackSeeds)
+  //----------------------------------------------------------------------
+  std::vector<std::vector< recob::Seed > > BezierTrackerAlgorithm::OrganizeSeedsIntoTracks(std::vector<recob::Seed > TrackSeeds)
   {
-    std::vector<std::vector<art::Ptr<recob::Seed> > > OrganizedByTrack;
+    std::vector<std::vector<recob::Seed > > OrganizedByTrack;
 
     while(TrackSeeds.size()>1)
       {
 	// Declare this track
-	std::vector<art::Ptr<recob::Seed> > ThisTrack;
-	ThisTrack.clear();
-
+	std::vector<recob::Seed > ThisTrack;
+	
         // Add first element
-	std::vector<art::Ptr<recob::Seed> >::iterator ifirst= TrackSeeds.begin();
+	std::vector<recob::Seed >::iterator ifirst= TrackSeeds.begin();
         ThisTrack.push_back(*ifirst);
         TrackSeeds.erase(ifirst);
 	
-        for(std::vector<art::Ptr<recob::Seed> >::iterator it=TrackSeeds.begin();
+        for(std::vector<recob::Seed >::iterator it=TrackSeeds.begin();
 	    it!=TrackSeeds.end(); it++)
 	  {
-	    art::Ptr<recob::Seed> LastSeedAdded = ThisTrack.at(ThisTrack.size()-1);
-	    art::Ptr<recob::Seed> ThisSeed = *it;
-	    
-            // Does this seed fit with this track?
-	    double SeedPos[3],Err[3];
-	    ThisSeed->GetPoint(SeedPos,Err);
-
-	    // float Angle = ThisSeed->GetAngle(*LastSeedAdded);
-	    // float ProjDis = ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded);	    
-	    // std::cout<<"BezierTrackerAlgorithm: " << Angle << " " << ProjDis << "  for seed : "; 
-	    //   std::cout<<double(SeedPos[0]) << " " << double(SeedPos[1]) << " " << double(SeedPos[2]) << std::endl;
-            if((  abs(ThisSeed->GetAngle(*LastSeedAdded))                 < fMaxKinkAngle)
-	       &&( abs(ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded))  < fMaxTrackMissAngle)
-	       &&( abs(ThisSeed->GetDistance(*LastSeedAdded)<fMaxJumpDistance)))
-                {
-                  // if so, add it into the track, erase it from the stack
-                  // and start looping at the beginning again
-                  ThisTrack.push_back(ThisSeed);
-                  TrackSeeds.erase(it);
-		  it=TrackSeeds.begin();
-                }
-          }
-        // We ran out of seeds on the stack. store this track and go again
-	if(ThisTrack.size()>2)
-	  OrganizedByTrack.push_back(ThisTrack);
-      }   
-    return OrganizedByTrack;
-  }
-
-
-
-
-  //----------------------------------------------------------------------
-  std::vector<std::vector< recob::Seed* > > BezierTrackerAlgorithm::OrganizeSeedsIntoTracks(std::vector<recob::Seed* > TrackSeeds)
-  {
-    std::vector<std::vector<recob::Seed* > > OrganizedByTrack;
-
-    while(TrackSeeds.size()>1)
-      {
-	// Declare this track
-	std::vector<recob::Seed* > ThisTrack;
-	
-        // Add first element
-	std::vector<recob::Seed* >::iterator ifirst= TrackSeeds.begin();
-        ThisTrack.push_back(*ifirst);
-        TrackSeeds.erase(ifirst);
-	
-        for(std::vector<recob::Seed* >::iterator it=TrackSeeds.begin();
-	    it!=TrackSeeds.end(); it++)
-	  {
-	    recob::Seed* LastSeedAdded = ThisTrack.at(ThisTrack.size()-1);
-	    recob::Seed* ThisSeed = *it;
+	    recob::Seed LastSeedAdded = ThisTrack.at(ThisTrack.size()-1);
+	    recob::Seed ThisSeed = *it;
 	    
             // Does this seed fit with this track?
 	    double SeedPos[3],Err[3];
 
-	    ThisSeed->GetPoint(SeedPos,Err);
+	    ThisSeed.GetPoint(SeedPos,Err);
 	    
 
 	    //  float Angle = ThisSeed->GetAngle(*LastSeedAdded);
 	    //  float ProjDis = ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded);
 	    //  std::cout<<"BezierTrackerAlgorithm: " << Angle << " " << ProjDis << "  for seed : "; 
 	    //  std::cout<<double(SeedPos[0]) << " " << double(SeedPos[1]) << " " << double(SeedPos[2]) << std::endl;
-            if((  abs(ThisSeed->GetAngle(*LastSeedAdded))                 < fMaxKinkAngle)
-	       &&( abs(ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded))  < fMaxTrackMissAngle)
-	       &&( abs(ThisSeed->GetDistance(*LastSeedAdded)<fMaxJumpDistance)))
+            if((  abs(ThisSeed.GetAngle(LastSeedAdded))                 < fMaxKinkAngle)
+	       &&( abs(ThisSeed.GetProjAngleDiscrepancy(LastSeedAdded))  < fMaxTrackMissAngle)
+	       &&( abs(ThisSeed.GetDistance(LastSeedAdded)<fMaxJumpDistance)))
                 {
                   // if so, add it into the track, erase it from the stack
                   // and start looping at the beginning again

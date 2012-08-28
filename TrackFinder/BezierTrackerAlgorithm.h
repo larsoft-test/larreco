@@ -41,19 +41,16 @@ namespace trkf {
     explicit BezierTrackerAlgorithm(fhicl::ParameterSet const& pset);
     virtual ~BezierTrackerAlgorithm();
 
-    std::vector<trkf::BezierTrack* > MakeBezierTracksFromSeeds(std::vector<art::Ptr<recob::Seed> > TrackSeeds );
+    std::vector<trkf::BezierTrack* > MakeBezierTracksFromSeeds(std::vector<recob::Seed> const& TrackSeeds  );
 
     std::vector<trkf::BezierTrack* > MakeBezierTracksFromHits(std::vector<art::Ptr<recob::Hit> > HitVec, std::vector<art::PtrVector<recob::Hit> >& HitsForAssns );
 
 
 
+    std::vector<std::vector<recob::Seed> > OrganizeSeedsIntoTracks(std::vector<recob::Seed >  SeedVector);
 
-    std::vector<std::vector<art::Ptr<recob::Seed> > > OrganizeSeedsIntoTracks(std::vector<art::Ptr<recob::Seed> > SeedVector);
 
-    std::vector<std::vector<recob::Seed* > > OrganizeSeedsIntoTracks(std::vector<recob::Seed* > SeedVector);
-
-    BezierTrack* ProduceTrackFromSeeds(std::vector<art::Ptr<recob::Seed> > Seeds);
-    BezierTrack* ProduceTrackFromSeeds(std::vector<recob::Seed* > Seeds);
+    BezierTrack* ProduceTrackFromSeeds(std::vector<recob::Seed> const& Seeds);
 
     std::vector<int> DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, BezierTrack * BTrack, double HitCollectionDistance, std::vector<double>& SValues);
     
