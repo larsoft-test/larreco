@@ -70,7 +70,7 @@ void cluster::fuzzyClusterAlg::reconfigure(fhicl::ParameterSet const& p)
 }
 
 //----------------------------------------------------------
-void cluster::fuzzyClusterAlg::InitFuzzy(art::PtrVector<recob::Hit>& allhits, 
+void cluster::fuzzyClusterAlg::InitFuzzy(std::vector<art::Ptr<recob::Hit> >& allhits, 
 			       std::set<unsigned int> badChannels)
 {
   // clear all the data member vectors for the new set of hits
@@ -302,7 +302,7 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
 // This is the algorithm that finds clusters:
 //
 //  Ben Carls' implementation of fuzzyClusterAlg as much like examples as possible
-void cluster::fuzzyClusterAlg::run_fuzzy_cluster(art::PtrVector<recob::Hit>& allhits) {
+void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit> >& allhits) {
 
   int iMinXBClusterNum = 0;
   std::vector<float> fXieBeniIndices;
