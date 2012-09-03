@@ -52,7 +52,7 @@ namespace trkf {
 
     double                      CountHits(std::vector<recob::SpacePoint> Points);
     
-    SpacePointAlg const&        GetSpacePointAlg() const { return fSptalg; }
+    SpacePointAlg *             GetSpacePointAlg() const { return fSptalg; }
 
 
 
@@ -72,7 +72,7 @@ namespace trkf {
                        
     // Fcl Attributes.
 
-    SpacePointAlg         fSptalg;            
+    SpacePointAlg       *  fSptalg;            
  
     double                fInitSeedLength;    
                                         

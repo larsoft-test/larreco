@@ -17,6 +17,7 @@ standard_beziertrackermodule:
  module_type:         "BezierTrackerModule"
  SeedModuleLabel:     "seedfinder"
  HitModuleLabel:      "ffthit"
+ ClusterModuleLabel:  "cluster"
  TrackMode:           1
  MakeHitAssns:        true
  BezierTrackerAlgorithm: @local::standard_beziertrackeralgorithm

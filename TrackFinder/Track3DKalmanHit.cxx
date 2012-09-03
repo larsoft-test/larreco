@@ -347,7 +347,7 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
       // Extract hits used by space points in this seed.
 
       art::PtrVector<recob::Hit> seedhits;
-      SpacePointsToHits(seedsptvec, seedhits, fSeedFinderAlg.GetSpacePointAlg());
+      SpacePointsToHits(seedsptvec, seedhits, *fSeedFinderAlg.GetSpacePointAlg());
 
       // Filter hits used by seed from hits available to make future seeds.
       // No matter what, we will never use these hits for another seed.

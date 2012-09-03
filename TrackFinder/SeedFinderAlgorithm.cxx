@@ -25,8 +25,7 @@
 namespace trkf {
 
   //----------------------------------------------------------------------------
-  SeedFinderAlgorithm::SeedFinderAlgorithm(const fhicl::ParameterSet& pset) :
-    fSptalg(pset.get<fhicl::ParameterSet>("SpacePointAlg"))
+  SeedFinderAlgorithm::SeedFinderAlgorithm(const fhicl::ParameterSet& pset)
   {
     reconfigure(pset);
   }
@@ -40,8 +39,8 @@ namespace trkf {
   void SeedFinderAlgorithm::reconfigure(fhicl::ParameterSet const& pset)
   {
  
-    fSptalg                = pset.get<fhicl::ParameterSet>("SpacePointAlg");
-
+    fSptalg                = new trkf::SpacePointAlg(pset.get<fhicl::ParameterSet>("SpacePointAlg"));
+    
     fInitSeedLength        = pset.get<double>("InitSeedLength");
     fMinPointsInSeed       = pset.get<unsigned int>("MinPointsInSeed");
     fAngularDev            = pset.get<double>("AngularDev");
@@ -92,7 +91,7 @@ namespace trkf {
   {
     std::vector<recob::SpacePoint> ReturnVec;
     
-    fSptalg.makeSpacePoints(Hits, ReturnVec);
+    fSptalg->makeSpacePoints(Hits, ReturnVec);
     //   std::cout<<"Making SPs : " <<Hits.size()<< " " << ReturnVec.size()<< std::endl;
  
     return ReturnVec;
@@ -361,6 +360,8 @@ namespace trkf {
     // Get the actual spacepoints for the IDs provided
     std::vector<recob::SpacePoint>   SPsUsed        = ExtractSpacePoints(AllSpacePoints, PointsUsed);
 
+    std::cout<<"first extract" <<std::endl;
+
     // This is the seed we will return - initially make a fresh seed with the same coordinates as the input seed
     recob::Seed * BestSeed = new recob::Seed(*TheSeed);
 
@@ -390,6 +391,8 @@ namespace trkf {
 
 
     // We extend the seed in both directions.  Backward first:
+    
+    std::cout<<"Begin extending"<<std::endl;
 
     bool KeepExtending=true;
     while(KeepExtending!=false)
@@ -419,6 +422,7 @@ namespace trkf {
 	std::cout<<"Size of SP vec in ext "<< NearbySPs.size()<<std::endl;
 	std::vector<recob::SpacePoint> ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
 
+      
 	RefitSeed(TheNewSeed,ThePoints);
 
         // With refitted seed, count number of hits and work out dNdx and RMS
@@ -593,7 +597,7 @@ namespace trkf {
     for(std::vector<recob::SpacePoint>::const_iterator itSP=SpacePoints.begin();
         itSP!=SpacePoints.end(); itSP++)
       {
-	art::PtrVector<recob::Hit> HitsThisSP = fSptalg.getAssociatedHits(*itSP);
+	art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits(*itSP);
 	for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
 	    itHit!=HitsThisSP.end(); itHit++)
 	  {
@@ -717,7 +721,7 @@ namespace trkf {
         itSP!=SpacePoints.end(); itSP++)
       {
         // get hits from each plane (ensuring each used once only)
-	art::PtrVector<recob::Hit> HitsThisSP = fSptalg.getAssociatedHits(*itSP);
+	art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits(*itSP);
 	for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
 	    itHit!=HitsThisSP.end(); itHit++)
 	  {
@@ -952,7 +956,7 @@ namespace trkf {
       {
 	unsigned int p = 0, w=0, t=0, c=0;
 	
-	art::PtrVector<recob::Hit> HitsThisSP = fSptalg.getAssociatedHits((*itSP));
+	art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits((*itSP));
 	for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
 	    itHit!=HitsThisSP.end(); itHit++)
 	  {

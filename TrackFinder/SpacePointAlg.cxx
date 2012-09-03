@@ -1424,8 +1424,10 @@ namespace  trkf{
     std::map<int, art::PtrVector<recob::Hit> >::const_iterator it =
       fSptHitMap.find(spt.ID());
     if(it == fSptHitMap.end())
-      throw cet::exception("SpacePointAlg") << "No Hits associated with space point.\n";
-
+      {
+	std::cout<<"Looking for ID " << spt.ID()<< " from " << fSptHitMap.size()<<std::endl;
+	throw cet::exception("SpacePointAlg") << "No Hits associated with space point.\n";
+      }
     return (*it).second;
 
   }
