@@ -5,6 +5,7 @@
 #include "Geometry/geo.h"
 #include "TVector3.h"
 #include "cetlib/exception.h"
+#include "Calorimetry/CalorimetryAlg.h"
 
 namespace trkf {
 
@@ -23,10 +24,14 @@ namespace trkf {
   //----------------------------------------------------------------------
   // Constructor from seed vector (for production)
   //
-  BezierTrack::BezierTrack(std::vector<recob::Seed*> SeedCol)
+  BezierTrack::BezierTrack(std::vector<recob::Seed*> const SeedCol )
     : recob::Track()
   {
-    fSeedCollection = SeedCol;
+    for(size_t i=0; i!=SeedCol.size(); ++i)
+      {
+	fSeedCollection.push_back(new recob::Seed(*SeedCol.at(i)));
+      }
+    std::cout<<"Constructing BTrack from " << fSeedCollection.size()<<" seeds."<<std::endl;
     CalculateSegments();
     fBezierResolution=1000;
   }
@@ -97,7 +102,7 @@ namespace trkf {
   //------------------------------------------------------
   // Build an anab::Calorimetry object for this track
 
-  anab::Calorimetry BezierTrack::GetCalorimetryObject(std::vector<art::Ptr<recob::Hit> > Hits, geo::View_t view)
+  anab::Calorimetry BezierTrack::GetCalorimetryObject(std::vector<art::Ptr<recob::Hit> > Hits, geo::View_t view, calo::CalorimetryAlg const& calalg)
   {
     
     art::ServiceHandle<geo::Geometry> geom;
@@ -114,6 +119,7 @@ namespace trkf {
     double s, d;
     TVector3 PlanePitchDirection;
 
+
     for(size_t i=0; i!=Hits.size(); ++i)
       {
 	if(Hits.at(i)->View()==view)
@@ -123,8 +129,7 @@ namespace trkf {
 	    TrkPitch.push_back(ThisPitch);
 	    resRange.push_back(s*Range);
 	    dQdx.push_back(Hits.at(i)->Charge()/ThisPitch);
-
-	    //dEdx.push_back( Some_Method_From_A_Polish_Guy );
+	    dEdx.push_back( calalg.dEdx_AMP(Hits.at(i), ThisPitch, false) );
 	  }
 
 
@@ -177,14 +182,21 @@ namespace trkf {
   //----------------------------------------------------------------------
   void BezierTrack::FillTrajectoryVectors()
   {
+    art::ServiceHandle<geo::Geometry> geom;
+    int NPlanes = geom->Nplanes();
+    fdQdx.resize(NPlanes) ;
     double Pt[3], Dir[3], ErrPt[3], ErrDir[3];
     for(std::vector<recob::Seed*>::const_iterator it=fSeedCollection.begin();
 	it!=fSeedCollection.end(); ++it)
       {
+	
 	(*it)->GetPoint(Pt,ErrPt);
 	(*it)->GetDirection(Dir, ErrDir);
 	TVector3 Point(Pt[0],Pt[1],Pt[2]);
 	TVector3 Direction(Dir[0],Dir[1],Dir[2]);
+	
+	for(int i=0; i!=NPlanes; ++i)
+	  fdQdx.at(i).push_back(0);
 	fXYZ.push_back(Point);
 	fDir.push_back(Direction);
       }
@@ -198,6 +210,7 @@ namespace trkf {
 
   void BezierTrack::CalculateSegments()
   {
+    std::cout<<"Entering calculatesegments method"<<std::endl;
     if(fSeedCollection.size()==0)
       { 
 	if(NSegments()!=0) FillSeedVector();
@@ -213,7 +226,9 @@ namespace trkf {
       }
     if(NSegments()==0)
       {
-	if(!fSeedCollection.size()!=0) FillTrajectoryVectors();
+	std::cout<<"Filling traj vectors             "<<std::endl;
+	if(fSeedCollection.size()!=0)  FillTrajectoryVectors();
+	std::cout<<"Filed traj vectors               "<<std::endl;
       }
     
     std::cout<<"Loading bezier track with ID "<<  ID()<<std::endl;
@@ -223,7 +238,7 @@ namespace trkf {
     
     fTrackLength=0;
     bool FirstSeg=true;
-    for(int i=0; i!=Segments; i++)
+    for(int i=0; i!=Segments; ++i)
       {
 	if(!FirstSeg)
 	  {
@@ -235,7 +250,7 @@ namespace trkf {
 	FirstSeg=false;
 	fCumulativeLength.push_back(fTrackLength);
       }      
-    std::cout<<"Total track length : " <<fTrackLength<<std::endl;
+    std::cout<<"Total track length : " <<fTrackLength<< ", N = " << NSegments()<<std::endl;
   }
 
 

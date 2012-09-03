@@ -14,6 +14,10 @@ namespace recob
   class SpacePoint;
 }
 
+namespace calo
+{
+  class CalorimetryAlg;
+}
 
 namespace trkf {
   
@@ -26,7 +30,7 @@ namespace trkf {
 		std::vector<TVector3> Dir, 
 		std::vector<std::vector<double> > dQdx,
 		int const& id);
-    BezierTrack(std::vector<recob::Seed*> );
+    BezierTrack(std::vector<recob::Seed*> const);
      
     ~BezierTrack();
 
@@ -63,7 +67,7 @@ namespace trkf {
     void   CalculatedQdx(art::PtrVector<recob::Hit>);   
     void   CalculatedQdx(art::PtrVector<recob::Hit>, std::vector<double> SValues);   
     
-    anab::Calorimetry GetCalorimetryObject(std::vector<art::Ptr<recob::Hit> > Hits, geo::View_t view);
+    anab::Calorimetry GetCalorimetryObject(std::vector<art::Ptr<recob::Hit> > Hits, geo::View_t view, calo::CalorimetryAlg const& );
 
 
     std::vector<recob::SpacePoint> FillMySpacePoints(int N);
