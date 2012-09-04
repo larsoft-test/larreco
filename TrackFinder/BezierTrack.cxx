@@ -27,9 +27,33 @@ namespace trkf {
   BezierTrack::BezierTrack(std::vector<recob::Seed*> const SeedCol )
     : recob::Track()
   {
+    if(SeedCol.size()>0)
+      {
+	double Pt[3], Dir[3], PtErr[3], DirErr[3];
+	double FirstPt[3];
+	SeedCol.at(0)->GetPoint(     Pt,  PtErr  );
+	SeedCol.at(0)->GetDirection( Dir, DirErr );
+	for(int i=0; i!=3; ++i)
+	  {
+	    FirstPt[i]=Pt[i]-Dir[3];
+	  }
+	fSeedCollection.push_back(new recob::Seed(FirstPt, Dir, PtErr, DirErr));
+      }
     for(size_t i=0; i!=SeedCol.size(); ++i)
       {
 	fSeedCollection.push_back(new recob::Seed(*SeedCol.at(i)));
+      }
+    if(SeedCol.size()>0)
+      {
+	double Pt[3], Dir[3], PtErr[3], DirErr[3];
+	double LastPt[3];
+	SeedCol.at(SeedCol.size()-1)->GetPoint(     Pt,  PtErr  );
+	SeedCol.at(SeedCol.size()-1)->GetDirection( Dir, DirErr );
+	for(int i=0; i!=3; ++i)
+	  {
+	    LastPt[i]=Pt[i]+Dir[3];
+	  }
+	fSeedCollection.push_back(new recob::Seed(LastPt, Dir, PtErr, DirErr));
       }
     std::cout<<"Constructing BTrack from " << fSeedCollection.size()<<" seeds."<<std::endl;
     CalculateSegments();
