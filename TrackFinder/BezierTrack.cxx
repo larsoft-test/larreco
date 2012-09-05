@@ -35,7 +35,7 @@ namespace trkf {
 	SeedCol.at(0)->GetDirection( Dir, DirErr );
 	for(int i=0; i!=3; ++i)
 	  {
-	    FirstPt[i]=Pt[i]-Dir[3];
+	    FirstPt[i]=Pt[i]+Dir[i];
 	  }
 	fSeedCollection.push_back(new recob::Seed(FirstPt, Dir, PtErr, DirErr));
       }
@@ -51,7 +51,7 @@ namespace trkf {
 	SeedCol.at(SeedCol.size()-1)->GetDirection( Dir, DirErr );
 	for(int i=0; i!=3; ++i)
 	  {
-	    LastPt[i]=Pt[i]+Dir[3];
+	    LastPt[i]=Pt[i]-Dir[i];
 	  }
 	fSeedCollection.push_back(new recob::Seed(LastPt, Dir, PtErr, DirErr));
       }
