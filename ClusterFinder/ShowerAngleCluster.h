@@ -216,7 +216,7 @@ namespace cluster {
     std::vector< unsigned int> mcwirevertex;  // wire coordinate of vertex for each plane
     std::vector< double> mctimevertex;  // time coordinate of vertex for each plane
 
-    bool startflag;
+    std::vector<bool> startflag;
     bool endflag;
     bool matchflag;
     
