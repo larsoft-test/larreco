@@ -67,7 +67,8 @@ namespace trkf {
     void   CalculatedQdx(art::PtrVector<recob::Hit>);   
     void   CalculatedQdx(art::PtrVector<recob::Hit>, std::vector<double> SValues);   
     
-    anab::Calorimetry GetCalorimetryObject(std::vector<art::Ptr<recob::Hit> > Hits, geo::View_t view, calo::CalorimetryAlg const& );
+    anab::Calorimetry GetCalorimetryObject(std::vector<art::Ptr<recob::Hit> > Hits, geo::SigType_t sigtype, calo::CalorimetryAlg const& );
+
 
 
     std::vector<recob::SpacePoint> FillMySpacePoints(int N);
@@ -100,6 +101,15 @@ namespace trkf {
     int     fBezierResolution;
     
   };
+
+  class HitPtrVec
+  {
+  public:
+    HitPtrVec() {}
+    ~HitPtrVec() {}
+    std::vector<art::Ptr<recob::Hit> > Hits;
+  };
+
 }
 
 #endif

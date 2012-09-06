@@ -110,14 +110,16 @@ namespace trkf {
 	
 	double WirePitch = geom->WirePitch(view);
 
-	TVector3 WireVec(WireEnd2-WireEnd1);
+	TVector3 WireVec;
+	for(size_t i=0; i!=3; ++i)
+	  WireVec[i]= WireEnd2[i] -WireEnd1[i];
 	PitchVecs[view] = (1.0 / WirePitch) * WireVec.Cross(TVector3(1,0,0)).Unit(); 
-	
+
 	DoneCalc[view]=true;
       }
 
     TVector3 TrackDir = GetTrackDirectionV(s).Unit();
-    
+
     return 1. / (PitchVecs[view].Dot(TrackDir));
   }
 
@@ -126,7 +128,7 @@ namespace trkf {
   //------------------------------------------------------
   // Build an anab::Calorimetry object for this track
 
-  anab::Calorimetry BezierTrack::GetCalorimetryObject(std::vector<art::Ptr<recob::Hit> > Hits, geo::View_t view, calo::CalorimetryAlg const& calalg)
+  anab::Calorimetry BezierTrack::GetCalorimetryObject(std::vector<art::Ptr<recob::Hit> > Hits, geo::SigType_t sigtype, calo::CalorimetryAlg const& calalg)
   {
     
     art::ServiceHandle<geo::Geometry> geom;
@@ -138,7 +140,7 @@ namespace trkf {
     double Range = GetLength();
     std::vector<double>  TrkPitch;
     
-    double WirePitch = geom->WirePitch(view);
+
     
     double s, d;
     TVector3 PlanePitchDirection;
@@ -146,14 +148,17 @@ namespace trkf {
 
     for(size_t i=0; i!=Hits.size(); ++i)
       {
-	if(Hits.at(i)->View()==view)
+	if(Hits.at(i)->SignalType()==sigtype)
 	  {
+	    geo::View_t view = Hits.at(i)->View();
+	    double WirePitch = geom->WirePitch(view);
 	    GetClosestApproach(Hits.at(i),s,d);
 	    double ThisPitch = GetTrackPitch( view, s, WirePitch );
 	    TrkPitch.push_back(ThisPitch);
-	    resRange.push_back(s*Range);
+	    resRange.push_back(Range - s*Range);
 	    dQdx.push_back(Hits.at(i)->Charge()/ThisPitch);
 	    dEdx.push_back( calalg.dEdx_AMP(Hits.at(i), ThisPitch, false) );
+	    std::cout<<Hits.at(i)->Charge()<< " " << ThisPitch<< " " << dEdx.at(dEdx.size()-1)<<std::endl;
 	  }
 
 
@@ -642,7 +647,7 @@ namespace trkf {
     
     for(int i=0; i!=3; ++i)
       {
-	xyz[i] = (xyz1[0]-xyz2[0])/dx;
+	xyz[i] = (xyz1[i]-xyz2[i])/dx;
       }
       
   }
