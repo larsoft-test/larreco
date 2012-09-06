@@ -6,7 +6,10 @@ standard_shower:
  module_type:              "ShowerReco"
  ClusterModuleLabel:       "showeranglecluster"
  VertexClusterModuleLabel: "linemerger" 
+ CaloAlg:            	   @local::microboone_calorimetryalg
 }
+
+
 
 standard_showercheater:
 {

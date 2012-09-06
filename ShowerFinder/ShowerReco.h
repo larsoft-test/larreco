@@ -23,6 +23,8 @@
 #include "TTree.h"
 
 #include "RecoBase/Cluster.h"
+#include "Calorimetry/CalorimetryAlg.h"
+
 
 namespace shwf {
 
@@ -56,7 +58,7 @@ namespace shwf {
 
     void   FitAngularDistributions(int plane); 
  //   void   LongTransEnergyI(art::PtrVector < recob::Hit> hitlistInd); //Longtudinal and transverse enegry of the shower (Induction plane)
-    void   LongTransEnergy(unsigned int set, std::vector< art::Ptr<recob::Hit> > hitlist); //Longtudinal and transverse enegry of the shower (Collection plane)
+    void   LongTransEnergy(unsigned int set, std::vector< art::Ptr<recob::Hit> > hitlist, bool isData=false); //Longtudinal and transverse enegry of the shower (Collection plane)
    double ProjectedLength(unsigned int set,unsigned int plane ) 	 const;
 
 
@@ -89,8 +91,7 @@ namespace shwf {
  private:
 
   int fRun,fEvent,fSubRun;
-   
-   
+ //  calo::CalorimetryAlg calorim;
 //input labels:
   
   std::string fClusterModuleLabel;
@@ -109,7 +110,8 @@ namespace shwf {
 //  double CdEdx4cm_corr; //dedx of the first 4cm of the shower 
   double totCnrg,totCnrg_corr;
   double fMean_wire_pitch ;   // wire pitch in cm
-
+  //std::string CaloConf;
+  fhicl::ParameterSet fCaloPSet;
 //     std::vector<double> fOmega_Mean;    // Mean value of the 2D angular distribution (0=Ind - 1=Coll) cm,cm
 //     std::vector<double> fOmega_RMS;     // RMS of the 2D angular distribution  (0=Ind - 1=Coll) cm, cm
 // 
@@ -146,6 +148,13 @@ namespace shwf {
   std::vector<double> fChargeADC_4cm;   //Initial charge in ADC/cm for each plane first 4cm
   std::vector<double> fChargeMeV_4cm;  //initial charge in MeV/cm for each plane first 4cm
 
+  std::vector<double> fChargeMeV_2cm_refined;
+  std::vector<double> fChargeMeV_4cm_refined;
+   
+  std::vector<double> fChargeMeV_2cm_axsum;
+  std::vector<double> fChargeMeV_4cm_axsum;
+  
+  
   std::vector<double> fChargeADC_6cm;   //Initial charge in ADC/cm for each plane first 6cm
   std::vector<double> fChargeMeV_6cm;  //initial charge in MeV/cm for each plane first 6cm
 
@@ -157,6 +166,7 @@ namespace shwf {
 
   std::vector<std::vector<double> > fDistribChargeADC;  //vector with the first De/Dx points ADC
   std::vector<std::vector<double> > fDistribChargeMeV;  //vector with the first De/Dx points converted energy
+  std::vector<std::vector<double> > fDistribHalfChargeMeV;
   std::vector<std::vector<double> > fDistribChargeposition;  //vector with the first De/Dx points' positions 
 
 std::vector<std::vector<double> > fSingleEvtAngle;  //vector with the first De/Dx points
@@ -166,6 +176,9 @@ std::vector<std::vector<double> > fSingleEvtAngleVal;  //vector with the first D
     std::vector<unsigned int> fWire_vertex;  // wire coordinate of vertex for each plane
     std::vector<double> fTime_vertex;  // time coordinate of vertex for each plane
 
+    std::vector<double> fWire_vertexError;  // wire coordinate of vertex for each plane
+    std::vector<double> fTime_vertexError;  // time coordinate of vertex for each plane
+    
     std::vector<unsigned int> fWire_last;  // wire coordinate of last point for each plane
     std::vector<double> fTime_last;  // time coordinate of last point for each plane
 
@@ -184,7 +197,14 @@ std::vector<std::vector<double> > fSingleEvtAngleVal;  //vector with the first D
   //  std::vector<double> fPitch;
     std::vector< std::vector<double> > fNPitch;   // double array, to use each plane for each set of angles
 
-
+  double Kin_En;
+  std::vector<double> vdEdx;
+  std::vector<double> vresRange;
+  std::vector<double> vdQdx;
+  std::vector<double> deadwire; //residual range for dead wires
+  double Trk_Length;
+  double fTrkPitchC;
+    
   
   unsigned int fTPC;    //tpc type
   unsigned int fNPlanes; // number of planes  
