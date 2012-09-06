@@ -10,6 +10,7 @@
 // 05/02/12: Fully functional, still need to work on speed of the algorithm
 // 06/14/12: Fixed speed issues by changing ROOT fitting options
 // 07/25/12: Fixed bug in retrieving Amplitude for the Reco Hit
+// 08/06/12: Updating for error calculation on the hits
 // -----------------------------------
 // This algorithm is based on the FFTHitFinder and keeps many of the 
 // same variable definitions but attempts to clean up many of the 
@@ -154,15 +155,6 @@ TH1::AddDirectory(kFALSE);
   	{
       	art::Ptr<recob::Wire> wire(wireVecHandle, wireIter);
 	
-	/*
-	////////////////////////////////////////////////////////////////
-	std::cout<<std::endl;
-	std::cout<<"~~~~~~~~~~~~~~~~~~~~~~~~~~~~"<<std::endl;
-	std::cout<<"Wire Number = "<<wireIter<<std::endl;
-	std::cout<<"~~~~~~~~~~~~~~~~~~~~~~~~~~~~"<<std::endl;
-	std::cout<<std::endl;
-	////////////////////////////////////////////////////////////////
-	*/
 	
 	// --- Setting Channel Number and Wire Number as well as signal type ---
 	channel       = wire->RawDigit()->Channel();
@@ -357,16 +349,6 @@ TH1::AddDirectory(kFALSE);
 		// --- TH1D HitSignal ---
 		TH1D hitSignal("hitSignal","",size,startT,endT);
 		
-		
-		/*
-		/////////////////////////////////////////////////////////////
-		std::cout<<std::endl;
-		std::cout<<"~~~~~~~~~~~~~~~~~~~~~~~~~~~~"<<std::endl;
-		std::cout<<"Wire Number = "<<wireIter<<std::endl;
-		std::cout<<"~~~~~~~~~~~~~~~~~~~~~~~~~~~~"<<std::endl;
-		std::cout<<std::endl;
-		/////////////////////////////////////////////////////////////
-		*/
 		for(int i = (int)startT; i < (int)endT; i++)
 			{
 			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -400,9 +382,9 @@ TH1::AddDirectory(kFALSE);
 		// --- TF1 function for GausHit  ---
 		TF1 Gaus("Gaus",eqn.c_str(),0,size);
 		
-		// #############################################################################
-		// ### For multipulse hits we loop over all the hits and fit N Gaus function ###
-		// #############################################################################
+		// ##############################################################################
+		// ### For multi-pulse hits we loop over all the hits and fit N Gaus function ###
+		// ##############################################################################
 		if(numHits > 1) 
 			{
       			// --- Loop over numHits ---
@@ -438,14 +420,14 @@ TH1::AddDirectory(kFALSE);
 		// ####################################################
 		// ### PERFORMING THE TOTAL GAUSSIAN FIT OF THE HIT ###
 		// ####################################################
+		hitSignal.Sumw2();
 		hitSignal.Fit(&Gaus,"QNRW","", startT, endT);
+		//hitSignal.Fit(&Gaus,"QR0LLi","", startT, endT);
 		
 		for(int hitNumber = 0; hitNumber < numHits; ++hitNumber) 
 			{
           		totSig = 0;	
 			
-			//std::cout<<"Amplitude = "<<Gaus.GetParameter(3*hitNumber)<<" , threshold = "<<threshold<<std::endl;
-			//std::cout<<"width = "<<Gaus.GetParameter(3*hitNumber+2)<<" , minWidth = "<<minWidth<<std::endl;
 			
 			// ###########################################################
 			// ### Record this hit if the amplitude is > threshold/2.0 ###
@@ -454,13 +436,19 @@ TH1::AddDirectory(kFALSE);
 			if(Gaus.GetParameter(3*hitNumber) > threshold/2.0 && Gaus.GetParameter(3*hitNumber+2) > minWidth) 
 				{
 				StartIime			= Gaus.GetParameter(3*hitNumber+1) - Gaus.GetParameter(3*hitNumber+2); // position - width
-				StartTimeError			= TMath::Sqrt( (Gaus.GetParError(3*hitNumber+1)*Gaus.GetParError(3*hitNumber+1)) + 
-									       (Gaus.GetParError(3*hitNumber+2)*Gaus.GetParError(3*hitNumber+2)));
+				
 				EndTime				= Gaus.GetParameter(3*hitNumber+1) + Gaus.GetParameter(3*hitNumber+2); // position + width
-				EndTimeError			= TMath::Sqrt( (Gaus.GetParError(3*hitNumber+1)*Gaus.GetParError(3*hitNumber+1)) + 
-							                       (Gaus.GetParError(3*hitNumber+2)*Gaus.GetParError(3*hitNumber+2)));
+				
 				MeanPosition			= Gaus.GetParameter(3*hitNumber+1);
-				MeanPosError			= Gaus.GetParError(3*hitNumber+1);
+				
+				//StartTimeError			= TMath::Sqrt( (Gaus.GetParError(3*hitNumber+1)*Gaus.GetParError(3*hitNumber+1)) + 
+				//					       (Gaus.GetParError(3*hitNumber+2)*Gaus.GetParError(3*hitNumber+2)));
+				
+				//EndTimeError			= TMath::Sqrt( (Gaus.GetParError(3*hitNumber+1)*Gaus.GetParError(3*hitNumber+1)) + 
+				//			                       (Gaus.GetParError(3*hitNumber+2)*Gaus.GetParError(3*hitNumber+2)));
+									       
+									       
+				//MeanPosError			= Gaus.GetParError(3*hitNumber+1);
 				
 				hitSig.resize(size);
 				for(int sigPos = 0; sigPos<size; sigPos++) //<---Loop over the size (endT - startT)
@@ -486,23 +474,38 @@ TH1::AddDirectory(kFALSE);
 				AmpError			= Gaus.GetParError(3*hitNumber);
 				NumOfHits			= numHits;
 				
+				
+				// #######################################################
+				// ### Using seeded values to get a better estimate of ###
+				// ###        the errors associated with the fit       ###
+				// #######################################################
 				// -----------------------------------------
 				// --- Determing the goodness of the fit ---
 				// -----------------------------------------
-				hit->FixParameter(0,Gaus.GetParameter(3*hitNumber));
-				hit->FixParameter(1,MeanPosition);
-	  			hit->FixParameter(2,Gaus.GetParameter(3*hitNumber+2));//<---Should I be setting the fitWidth initally
-				
+				hit->FixParameter(0,Amp);
+				//hit->SetParLimits(0,Amp/2, Amp*2);
+				//hit->FixParameter(1,MeanPosition);
+				hit->SetParLimits(1,MeanPosition - 3, MeanPosition + 3);
+	  			//hit->FixParameter(2,Gaus.GetParameter(3*hitNumber+2));//<---Should I be setting the fitWidth initally
 				// #############################
 				// ### Perform Hit on Signal ###
 				// #############################
-				hitSignal.Fit(hit,"QR0LLi","", StartIime, EndTime);
-				
+				hitSignal.Fit(hit,"QNRLLi","", StartIime, EndTime);
 				
 				FitGoodnes			= hit->GetChisquare() / hit->GetNDF();
 				
+				StartTimeError			= TMath::Sqrt( (hit->GetParError(1)*hit->GetParError(1)) + 
+									       (hit->GetParError(2)*hit->GetParError(2)));
 				
-				// ### skipping hits with a chi2/NDF larger than the value defined in the .fcl file
+				EndTimeError			= TMath::Sqrt( (hit->GetParError(1)*hit->GetParError(1)) + 
+							                       (hit->GetParError(2)*hit->GetParError(2)));
+									       
+									       
+				MeanPosError			= hit->GetParError(1);
+				
+				// ####################################################################################
+				// ### Skipping hits with a chi2/NDF larger than the value defined in the .fcl file ###
+				// ####################################################################################
 				if(FitGoodnes > fChi2NDF){continue;}
 				
 				recob::Hit hit(wire, 

@@ -13,18 +13,22 @@
 
 #include "RecoBase/recobase.h"
 #include "Utilities/LArFFT.h"
+#include "Simulation/sim.h"
+#include "SimulationBase/simbase.h"
 
 #include "TComplex.h"
 #include "TString.h"
 #include "TGraph.h"
+#include "TH1.h"
 #include "TH2.h"
+#include "TProfile.h"
 #include "TTree.h"
 
 #include "art/Framework/Core/EDAnalyzer.h"
 
 #include <vector>
 #include <string>
-
+using namespace std;
 
 namespace geo { class Geometry; }
 
@@ -48,18 +52,52 @@ namespace hit {
 
     std::string            fGausHitFinderModuleLabel;
     std::string            fLArG4ModuleLabel;
-    
+    std::string		   fHitCheaterModuleLabel;
+    std::vector<const sim::SimChannel*>    fSimChannels;           ///< all the SimChannels for the event
+      
+      TH1F* fRun;
+      TH1F* fEvt;
+      TH1F* fWireNumbMulti1; //<---Wire number of hit with multiplicity of 1
+      TH1F* fFitGoodnessMulti1; //<---Goodness of hit with mulitplicity of 1
+      TH1F* fChargeMulti1; //<---Charge of hit with multiplicity of 1
+      
+      TH1F* fTruthPeakPosition;//<---Peak time of hit from backtracker with multiplicity of 1
+      TH1F* fTruthPeakPositionPlane0Multi1;
+      TH1F* fTruthPeakPositionPlane1Multi1;
+      TH1F* fTruthPeakPositionPlane2Multi1;
+      
+      TH1F* fRecoPeakPositionMulti1;//<---Peak time of hit with multiplicity of 1
+      TH1F* fRecoPeakPositionPlane0Multi1;//<---Peak time of hit with multiplicity of 1 in plane 0
+      TH1F* fRecoPeakPositionPlane1Multi1;//<---Peak time of hit with multiplicity of 1 in plane 1
+      TH1F* fRecoPeakPositionPlane2Multi1;//<---Peak time of hit with multiplicity of 1 in plane 2
+      
+      TH1F* fRecoPeakPositionUncertMulti1;//<---Peak time of hit with multiplicity of 1
+      TH1F* fRecoPeakPositionUncertPlane0Multi1;//<---Peak time of hit with multiplicity of 1 in plane 0
+      TH1F* fRecoPeakPositionUncertPlane1Multi1;//<---Peak time of hit with multiplicity of 1 in plane 1
+      TH1F* fRecoPeakPositionUncertPlane2Multi1;//<---Peak time of hit with multiplicity of 1 in plane 2
+      
+      TH1F* fRecoPeakPositionUncertMultiGT1;//<---Peak time of hit with multiplicity of > 1
+      TH1F* fRecoPeakPositionUncertPlane0MultiGT1;//<---Peak time of hit with multiplicity of > 1 in plane 0
+      TH1F* fRecoPeakPositionUncertPlane1MultiGT1;//<---Peak time of hit with multiplicity of > 1 in plane 1
+      TH1F* fRecoPeakPositionUncertPlane2MultiGT1;//<---Peak time of hit with multiplicity of > 1 in plane 2
+      
+      TH1F* fHitResidualAll;
+      TH1F* fHitResidualMulti1;
+      TH1F* fHitResidualPlane0Multi1;
+      TH1F* fHitResidualPlane1Multi1;
+      TH1F* fHitResidualPlane2Multi1;
+      
       TTree* fHTree;
-      Int_t fRun;
-      Int_t fEvt;
+      //Int_t fRun;
+      //Int_t fEvt;
       Int_t fnhits; //<---Number of Hits in the Event
       Int_t fnOnePulseHits; //<---Number of One Pulse hit events
       Int_t fmulitPulseHits; //<---Number of Multi pulse hit events
       
+      
       Int_t fSingleHit; //<<---Set a indicator to know if this is a single pulse hit or multihit
       Int_t fMultiHit;  //<<---Set a indicator to know if this is a single pulse hit or multihit
       
-      Int_t fWiren1; //<---Wire number of hit with multiplicity of 1
       Float_t fgoodoffitn1; //<---Goodness of hit with mulitplicity of 1
       Float_t fChargen1; //<---Charge of hit with multiplicity of 1
       Float_t fSigmaChargen1; //<---Uncertainty of charge of hit with multiplicity of 1
@@ -84,9 +122,8 @@ namespace hit {
       Float_t fEndTimenGT1; //<---End Position of the hit with multiplicity > 1
       Float_t fEndTimeUncertnGT1; //<---End Time Uncertainty of the hit with multiplicity > 1
       
-      Int_t fNp0;
-      Int_t fNp1;
-      Int_t fNp2;
+      
+
       Int_t fN3p0;
       Int_t fN3p1;
       Int_t fN3p2;
@@ -112,7 +149,126 @@ namespace hit {
       Int_t*  fMCPdg2;
       Int_t*  fMCTId2;
       Float_t*  fMCE2;
+/*      
+/////////////////////////////////////////////////////////////////////////////////////
+// 
+// Declare and fill 1D histo with Title
+//
+void FillHisto( double var, const string& hname, 
+				int nbins, float xmin, float xmax ) 
+{
+  // If histo not already booked, book it
+  if ( !gDirectory->FindObject( hname.c_str() ) ) {
+    std::vector<TH1D*> vectHist ;
+    vectHist.push_back( new TH1D( hname.c_str(), "", nbins, xmin, xmax ) )  ;
+  }
 
+  // Fill histo
+  ((TH1D*)gDirectory->Get(hname.c_str()))->Fill( var ) ;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+// 
+// Book and fill 1D histo with Title
+//
+void FillHisto( double var, const string& hname, const string& htit, 
+				int nbins, float xmin, float xmax ) 
+{
+  // If histo not already booked, book it
+  if ( !gDirectory->FindObject( hname.c_str() ) ) {
+    std::vector<TH1D*> vectHist ;
+    vectHist.push_back( new TH1D( hname.c_str(), "", nbins, xmin, xmax ) )  ;
+    vectHist[vectHist.size()-1]->SetXTitle( htit.c_str() ) ;
+  }
+
+  // Fill histo
+  ((TH1D*)gDirectory->Get(hname.c_str()))->Fill( var ) ;
+
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// Book and fill 2D histo
+//
+void FillHisto( double var1, double var2, const string& hname, 
+				int nbinsx, float xmin, float xmax, 
+				int nbinsy, float ymin, float ymax ) 
+{
+  // If histo not already booked, book it
+  if ( !gDirectory->FindObject( hname.c_str() ) ) {
+    std::vector<TH2D*> vectHist ;
+    vectHist.push_back( new TH2D( hname.c_str(), "", nbinsx, xmin, xmax,
+                                  nbinsy, ymin, ymax ) )  ;
+  }
+
+  // Fill histo
+  ((TH2D*)gDirectory->Get(hname.c_str()))->Fill( var1, var2 ) ;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// Book and fill 2D histo with Title
+//
+void FillHisto( double var1, double var2, const string& hname, const string& htit,
+				int nbinsx, float xmin, float xmax, 
+				int nbinsy, float ymin, float ymax ) 
+{
+  // If histo not already booked, book it
+  if ( !gDirectory->FindObject( hname.c_str() ) ) {
+    std::vector<TH2D*> vectHist ;
+    vectHist.push_back( new TH2D( hname.c_str(), "", nbinsx, xmin, xmax,
+                                  nbinsy, ymin, ymax ) )  ;
+    vectHist[vectHist.size()-1]->SetXTitle( htit.c_str() ) ;
+  }
+
+  // Fill histo
+  ((TH2D*)gDirectory->Get(hname.c_str()))->Fill( var1, var2 ) ;
+
+}
+
+
+///////////////////////////////////////////////////////////////
+//
+// Book and fill 1D profile histo
+//
+void FillProf( double var1, double var2, const string& hname, 
+			       int nbins, float xmin, float xmax ,float ymin, float ymax ) 
+{
+  // If histo not already booked, book it
+  if ( !gDirectory->FindObject( hname.c_str() ) ) {
+    std::vector<TProfile*> vectHist ;
+    vectHist.push_back( new TProfile( hname.c_str(), "", nbins, xmin, xmax, ymin, ymax )
+                        )  ;
+  }
+
+  // Fill histo
+  ((TProfile*)gDirectory->Get(hname.c_str()))->Fill( var1, var2, 1. ) ;
+
+}
+
+
+///////////////////////////////////////////////////////////////
+//
+// Book and fill 2D profile histo
+//
+void FillProf( double var1, double var2, const string& hname, const string& htit,
+			       int nbins, float xmin, float xmax ,float ymin, float ymax ) 
+{
+  // If histo not already booked, book it
+  if ( !gDirectory->FindObject( hname.c_str() ) ) {
+    std::vector<TProfile*> vectHist ;
+    vectHist.push_back( new TProfile( hname.c_str(), "", nbins, xmin, xmax, ymin, ymax )
+                        )  ;
+    vectHist[vectHist.size()-1]->SetXTitle( htit.c_str() ) ;
+  }
+
+  // Fill histo
+  ((TProfile*)gDirectory->Get(hname.c_str()))->Fill( var1, var2, 1. ) ;
+
+}*/
   }; // class GausHitFinderAna
 
 }
