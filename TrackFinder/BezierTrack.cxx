@@ -31,13 +31,17 @@ namespace trkf {
       {
 	double Pt[3], Dir[3], PtErr[3], DirErr[3];
 	double FirstPt[3];
+	double FirstDir[3];
 	SeedCol.at(0)->GetPoint(     Pt,  PtErr  );
 	SeedCol.at(0)->GetDirection( Dir, DirErr );
 	for(int i=0; i!=3; ++i)
 	  {
-	    FirstPt[i]=Pt[i]+Dir[i];
+	    double BigN=10000;
+	    FirstPt[i]=Pt[i]-((1.+1/BigN) * Dir[i]);
+	    FirstDir[i]=Dir[i]/BigN;
 	  }
-	fSeedCollection.push_back(new recob::Seed(FirstPt, Dir, PtErr, DirErr));
+	fSeedCollection.push_back(new recob::Seed(FirstPt, FirstDir, PtErr, DirErr));
+	
       }
     for(size_t i=0; i!=SeedCol.size(); ++i)
       {
@@ -46,14 +50,16 @@ namespace trkf {
     if(SeedCol.size()>0)
       {
 	double Pt[3], Dir[3], PtErr[3], DirErr[3];
-	double LastPt[3];
+	double LastPt[3], LastDir[3];
 	SeedCol.at(SeedCol.size()-1)->GetPoint(     Pt,  PtErr  );
 	SeedCol.at(SeedCol.size()-1)->GetDirection( Dir, DirErr );
 	for(int i=0; i!=3; ++i)
 	  {
-	    LastPt[i]=Pt[i]-Dir[i];
+	    double BigN=10000;
+	    LastPt[i]=Pt[i]+((1.+1/BigN) * Dir[i]);
+	    LastDir[i]=Dir[i]/BigN;
 	  }
-	fSeedCollection.push_back(new recob::Seed(LastPt, Dir, PtErr, DirErr));
+	fSeedCollection.push_back(new recob::Seed(LastPt, LastDir, PtErr, DirErr));
       }
     std::cout<<"Constructing BTrack from " << fSeedCollection.size()<<" seeds."<<std::endl;
     CalculateSegments();
