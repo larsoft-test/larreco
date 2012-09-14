@@ -80,11 +80,9 @@ namespace hit{
     evt.getByLabel(fCalDataModuleLabel,wireVecHandle);
     art::ServiceHandle<geo::Geometry> geom;
    
-    std::vector<double> signal;              // vector contaning wire signal
     std::vector<int> startTimes;             // stores time of 1st local minimum
     std::vector<int> maxTimes;    	     // stores time of local maximum    
     std::vector<int> endTimes;    	     // stores time of 2nd local minimum
-    std::vector<double>::iterator timeIter;  // iterator for time bins
     int time               = 0;              // current time bin
     int minTimeHolder      = 0;              // current start time
     unsigned int channel   = 0;              // channel number
@@ -106,7 +104,8 @@ namespace hit{
       startTimes.clear();
       maxTimes.clear();
       endTimes.clear();
-      signal        = wire->fSignal;
+      std::vector<double> signal(wire->Signal());
+      std::vector<double>::iterator timeIter;   // iterator for time bins
       time          = 0;
       minTimeHolder = 0;
       maxFound      = false;
