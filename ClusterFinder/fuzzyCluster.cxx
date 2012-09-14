@@ -91,6 +91,9 @@ void cluster::fuzzyCluster::produce(art::Event& evt)
   // loop over all hits in the event and look for clusters (for each plane)
   std::vector<art::Ptr<recob::Hit> > allhits;
 
+  //std::cout << "Event number check: " << evt.event() << std::endl;
+  srand((unsigned)evt.event()); 
+  
   // get the ChannelFilter
   filter::ChannelFilter chanFilt;
       
