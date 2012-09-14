@@ -78,15 +78,14 @@ standard_kingacluster:
 
 standard_kingaclusterana:
 { 
- module_type:              "KingaClusterAna"
- LineMergerModuleLabel: "linemerger"
- EndPoint2DModuleLabel: "vertex2d"
+ module_type:               "KingaClusterAna"
+ LineMergerModuleLabel:     "linemerger"
+ EndPoint2DModuleLabel:     "vertex2d"
  ClusterCheaterModuleLabel: "cluster"
- KingaModuleLabel:         "kingacluster"
- GenieGenModuleLabel:      "generator"
- LArGeantModuleLabel:      "largeant"
+ KingaModuleLabel:          "kingacluster"
+ GenieGenModuleLabel:       "generator"
+ LArGeantModuleLabel:       "largeant"
 }
-
 
 standard_showeranglecluster:
 {
@@ -100,10 +99,10 @@ standard_showeranglecluster:
 
 standard_clustercheater:
 {
- module_type:       "ClusterCheater"
- HitModuleLabel: "ffthit"
- G4ModuleLabel:     "largeant"
- HoughLineAlg:      @local::standard_houghlinealg
+ module_type:    "ClusterCheater"
+ HitModuleLabel: "hit"
+ G4ModuleLabel:  "largeant"
+ HoughLineAlg:   @local::standard_houghlinealg
 }
 
 argoneut_dbcluster:                    @local::standard_dbcluster      

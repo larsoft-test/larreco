@@ -265,7 +265,7 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>          
 	  unsigned int channel, plane, wire, tpc, cstat;
 	  //there must be a better way to find which plane a cluster comes from
 	  int dx = geom->Cryostat(cs).TPC(t).Plane(p).Nwires();//number of wires 
-	  int dy = hit[0]->Wire()->fSignal.size();//number of time samples. 
+	  int dy = hit[0]->Wire()->NSignal();//number of time samples. 
 	  skip.clear();
 	  skip.resize(hit.size());
 	  std::vector<int> listofxmax;
@@ -500,7 +500,7 @@ size_t cluster::HoughLineAlg::Transform(std::vector< art::Ptr<recob::Hit> >& hit
 
   art::ServiceHandle<geo::Geometry> geom;
   int dx = geom->Nwires(0);               //number of wires 
-  int dy = hits[0]->Wire()->fSignal.size();//number of time samples. 
+  int dy = hits[0]->Wire()->NSignal();//number of time samples. 
 
   c.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
 

@@ -76,6 +76,8 @@ namespace cluster{
     // a responsible particle for an EM process
     bt->SetEveIdCalculator(new sim::EmEveIdCalculator);
 
+    mf::LogVerbatim("ClusterCheater") << bt->ParticleList();
+
     // make a map of vectors of art::Ptrs keyed by eveID values
     std::map< int, std::vector< art::Ptr<recob::Hit> > > eveHitMap;
     std::map< int, std::vector< art::Ptr<recob::Hit> > >::iterator hitMapItr = eveHitMap.begin();
