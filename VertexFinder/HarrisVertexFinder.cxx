@@ -174,7 +174,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 	if(hit.size() == 0) continue;
 	
 	numberwires       = geom->Cryostat(cs).TPC(t).Plane(p).Nwires();
-	numbertimesamples = hit[0]->Wire()->fSignal.size();
+	numbertimesamples = hit[0]->Wire()->NSignal();
 	double MatrixAsum[numberwires][fTimeBins];
 	double MatrixBsum[numberwires][fTimeBins];
 	double hit_map[numberwires][fTimeBins];//the map of hits 
