@@ -437,13 +437,14 @@ size_t cluster::HoughLineAlg::Transform(art::PtrVector<recob::Cluster>          
 	      ++clusterID;
 	      ccol.push_back(cluster);
 	      clusHitsOut.push_back(clusterHits);
-	      //allow double assignment of first and last hits
-	      for(size_t i = 0; i < lastHits.size(); ++i){ 
-		if(skip[hitTemp[lastHits[i]]] ==1){
-		  channel = hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();  
-		  if( channel == sc || channel == ec) skip[i] = 0;
-		}
-	      }
+//Turn off hit sharing. T. Yang 9/14/12
+//	      //allow double assignment of first and last hits
+//	      for(size_t i = 0; i < lastHits.size(); ++i){ 
+//		if(skip[hitTemp[lastHits[i]]] ==1){
+//		  channel = hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();  
+//		  if( channel == sc || channel == ec) skip[i] = 0;
+//		}
+//	      }
               
 	    }// end if !isnan
 	    
