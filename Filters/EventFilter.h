@@ -39,6 +39,13 @@ namespace filter {
     std::vector < unsigned int >            fBadEvents; ///< list of bad events
     std::vector < unsigned int >            fBadRuns;   ///< list of bad runs
 
+    std::vector < unsigned int >            fSelEvents; ///< list of selected events
+    std::vector < unsigned int >            fSelRuns;   ///< list of selected runs
+    std::string fEventList;
+    int         fSelection; //0: reject events based on input
+                            //>0: accept events based on txt file
+                            //<0: reject events based on txt file
+                                    
 
       }; //class EventFilter
 }
