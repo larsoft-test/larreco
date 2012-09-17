@@ -229,7 +229,7 @@ void cluster::ShowerAngleCluster::ClearandResizeVectors(unsigned int nClusters) 
   fMaxTime.clear();
   startflag.clear();
   
-  std::cout << " sizes after clear " << fMinWire.size() << " " << fMaxTime.size() << std::endl;
+ 
   // delete histograms maybe?
   
  // tgx.clear();
@@ -384,7 +384,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
   
   
   endflag=false;
-  GetVertexN(evt);
+ // GetVertexN(evt);
   
   
   for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++){
@@ -411,7 +411,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
 	fWireVertex.push_back(spos[0]);
 	fTimeVertex.push_back(spos[1]);
 	startflag.push_back(true);
-	std::cout << "setting external starting points " << spos[0] << " " << spos[1] <<" " << sposerr[0] <<" "<< sposerr[1] << std::endl;
+	//std::cout << "setting external starting points " << spos[0] << " " << spos[1] <<" " << sposerr[0] <<" "<< sposerr[1] << std::endl;
       }
 	  else
 	startflag.push_back(false); 
@@ -420,12 +420,31 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
 	fWireLast.push_back(epos[0]);
 	fTimeLast.push_back(epos[1]);
 	endflag=true;
-	std::cout << "setting external ending points " << epos[0] << " " << epos[1] << std::endl;
+	//std::cout << "setting external ending points " << epos[0] << " " << epos[1] << std::endl;
       }
 	
     //  for(std::vector < art::Ptr < recob::Hit > >::const_iterator a = hitlist.begin(); a != hitlist.end();  a++){ //loop over cluster hits
 //	GetPlaneAndTPC(*a,p,cs,t,w);
 //          hitlist_all.push_back(hitlist);
+     //use MC vertex:
+     /////////// ----------- to remove - testing purposes
+//      if(fWireVertex.size()<iClust && iClust<fNPlanes){
+//        startflag[iClust]=true;
+//        fWireVertex.push_back(mcwirevertex[iClust]);
+//      }
+//      else{
+//        fWireVertex[iClust]=mcwirevertex[iClust];
+//         startflag[iClust]=true;
+//      }
+// 	
+//      if(fTimeVertex.size()<iClust && iClust<fNPlanes)
+//       fTimeVertex.push_back(mctimevertex[iClust]);
+//      else
+//        fTimeVertex[iClust]=mctimevertex[iClust];
+
+     /////////////////------------- end of to remove
+     
+
 	  
   // find min and max wires for this set of clusters: 
       fMinWire.push_back(9999),fMaxWire.push_back(0);
@@ -469,7 +488,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
      tverror=0;
     }
       
-      std::cout << " saving cluster with errors, plane: "<< iplane <<" " << wverror << " " << tverror << std::endl;
+      //std::cout << " saving cluster with errors, plane: "<< iplane <<" " << wverror << " " << tverror << std::endl;
     
     recob::Cluster temp(fWireVertex[iplane], wverror,
                          fTimeVertex[iplane], tverror,
@@ -485,7 +504,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
     ShowerAngleCluster->push_back(temp);
     // associate the hits to this cluster
     util::CreateAssn(*this, evt, *(ShowerAngleCluster.get()), hitlist, *(assn.get()));
-   std::cout << "######## in plane loop filling clusters " << std::endl;
+  // std::cout << "######## in plane loop filling clusters " << std::endl;
     }
 
     
@@ -509,7 +528,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
      }
   else
     {
-    for(int i=0;i<clusterAssociationHandle->size();i++)  
+    for(unsigned int i=0;i<clusterAssociationHandle->size();i++)  
     classn->push_back((*clusterAssociationHandle)[i]);
     }
 
@@ -942,7 +961,7 @@ double slp=slope[nClust];
 double wireend=fWireLast[nClust];
 //double timeend=time_end[iplane];
 
-double intercept=tst-slp*(double)wst;
+//double intercept=tst-slp*(double)wst;
 
 
 
@@ -954,7 +973,7 @@ double projlength=gser.Get2DPitchDistance(xangle[nClust],wst,wireend);
 
 int nbins = (hitlist.size() > 1000) ? 100 : hitlist.size()/10;
 
-std::cout << "---- projected length for plane: " << nClust << " " << projlength << " nbins " << nbins <<  std::endl;
+//std::cout << "---- projected length for plane: " << nClust << " " << projlength << " nbins " << nbins <<  std::endl;
 
 TH1F * hithist=new TH1F(Form("hithist_ev_%d_pl_%d",fEvent,nClust),Form("hithist_ev_%d_pl_%d",fEvent,nClust),nbins,0.,projlength);  
   
@@ -1049,7 +1068,7 @@ double projlength=gser.Get2DPitchDistanceWSlope(slp_cm,wst,wireend);
 //int nbins = (hitlist.size() > 1000) ? 100 : hitlist.size()/10;
 int nbins = 10;
 
-std::cout << "---- projected length for plane: " << " "<<nClust << " " << plane << " " << projlength << " nbins " << nbins <<  std::endl;
+//std::cout << "---- projected length for plane: " << " "<<nClust << " " << plane << " " << projlength << " nbins " << nbins <<  std::endl;
 
 TH1F * hhist=new TH1F(Form("hhist_ev_%d_pl_%d",fEvent,nClust),Form("hhist_ev_%d_pl_%d",fEvent,nClust),nbins,0.,projlength);  
   
@@ -1392,7 +1411,7 @@ void   cluster::ShowerAngleCluster::Find2DStartPoints(int nClust,std::vector< ar
   gser.GetPointOnLineWSlopes(a,c,extreme_intercept_end,wire_online_end,time_online_end);
   gser.GetPointOnLineWSlopes(a,c,extreme_intercept_start,wire_online_begin,time_online_begin);
   
-  std::cout << " :::::::: wire_online begin point " << wire_online_begin << " " << time_online_begin << std::endl;
+ // std::cout << " :::::::: wire_online begin point " << wire_online_begin << " " << time_online_begin << std::endl;
 
   //calculate the first and last cluster points on the through line:
   
@@ -1421,12 +1440,7 @@ void   cluster::ShowerAngleCluster::Find2DStartPoints(int nClust,std::vector< ar
   std::cout << " ----++++ determined start wire points Cluster " << nClust << " "  << wire_start << " " << time_start <<std::endl;  
 
 
-  
 
-std::cout << " final wire, time vertices for all planes:  " << std::endl;  
-
-  
-    std::cout  << " " << wire_start << " " << time_start << " " <<  geom->Plane(plane,0).SignalType() << " " << geo::kCollection << " " << geo::kInduction  << std::endl;
     
     if(!startflag[nClust]){
     fWireVertex.push_back(wire_start);
@@ -1453,7 +1467,7 @@ void cluster::ShowerAngleCluster::Find2DBestPlanes(std::vector<int> &best_planes
   for (unsigned int iplane=0;iplane<fNPlanes;iplane++){
     if(fabs(tgx[iplane]->GetCorrelationFactor()) > 0.6 )	
       best_planes.push_back(iplane);
-    std::cout << " correlation factors in 0.6 search" << tgx[iplane]->GetCorrelationFactor() << std::endl;
+  //  std::cout << " correlation factors in 0.6 search" << tgx[iplane]->GetCorrelationFactor() << std::endl;
   }
 
  
@@ -1482,7 +1496,7 @@ void cluster::ShowerAngleCluster::Find2DBestPlanes(std::vector<int> &best_planes
 	    }
 	} // end for loop on planes
 
-    std::cout << "pushing back " << maxplane << std::endl;
+   // std::cout << "pushing back " << maxplane << std::endl;
     used_plane=maxplane;  // to cut out redundancy.
     best_planes.push_back(maxplane);
 
@@ -1531,7 +1545,7 @@ void cluster::ShowerAngleCluster::RefineStartPoints(unsigned int nClust,std::vec
     
     
     }
-    std::cout << "hitlist_local size " << nClust << " " <<  hitlistlocal.size() << std::endl;
+   // std::cout << "hitlist_local size " << nClust << " " <<  hitlistlocal.size() << std::endl;
    // end old loop on best planes 
     
     
@@ -1668,7 +1682,7 @@ void cluster::ShowerAngleCluster::RefineStartPoints(unsigned int nClust,std::vec
    // end of third bestplanes loop
    
 //   for(unsigned int xx=0;xx<bestplanes.size();xx++){
-   std::cout << "new wire and time starts: " << nClust << " " << nwire_start << " " << ntime_start << std::endl;
+//   std::cout << "new wire and time starts: " << nClust << " " << nwire_start << " " << ntime_start << std::endl;
    
    //}
    
