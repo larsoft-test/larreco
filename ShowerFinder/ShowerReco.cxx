@@ -111,7 +111,7 @@ void shwf::ShowerReco::beginJob()
   art::ServiceHandle<util::DetectorProperties> detp;
   ftimetick=detp->SamplingRate()/1000.;
   
-  std::cout << "------------ timetick? " << ftimetick<< std::endl;
+
   
   
   /** Create Histos names*/
@@ -175,6 +175,9 @@ void shwf::ShowerReco::beginJob()
   
   ftree_shwf->Branch("fthetaN","std::vector<double>",&fThetaN_ang);
   ftree_shwf->Branch("fphiN","std::vector<double>",&fPhiN_ang);
+  
+  ftree_shwf->Branch("xtheta",&xtheta,"xtheta/D");
+  ftree_shwf->Branch("xphi",&xphi,"xphi/D");
   
   //    ftree_shwf->Branch("fthetaNC","std::vector<double>",&fThetaNC_ang);
   //    ftree_shwf->Branch("fphiNC","std::vector<double>",&fPhiNC_ang);
@@ -329,9 +332,9 @@ fNPitch.resize(fNAngles);
   fChargeMeV_2cm_axsum.resize(fNAngles,0);;
   fChargeMeV_4cm_axsum.resize(fNAngles,0);;
   
- vdEdx.clear();
-    vresRange.clear();
-    vdQdx.clear(); 
+  vdEdx.clear();
+  vresRange.clear();
+  vdQdx.clear(); 
   
   /**Get Clusters*/
  
@@ -413,7 +416,7 @@ fNPitch.resize(fNAngles);
   //AxisRecoAlg tt;
   
   //find best set:
-  int bp1,bp2;
+  unsigned int bp1,bp2;
   double maxerror1=99999999,maxerror2=9999999;
   for(unsigned int ii = 0; ii < fNPlanes; ++ii)
   {
@@ -435,27 +438,29 @@ fNPitch.resize(fNAngles);
      bp2=ij;
     }
   }
-  
+  //bp1=0;
+  //bp1=2;
   std::cout << " best planes " << bp1 << " " << bp2 << std::endl;
   
-  unsigned int set=0;
+ // unsigned int set=0;
   //for(unsigned int ii = 0; ii < fNPlanes-1; ++ii)
    // for(unsigned int ij = ii+1; ij < fNPlanes; ++ij) {
-      double xphi,xtheta;
+      //double xphi,xtheta;
      /* Get3DaxisN(set++,ii,ij);
       gser.Get3DaxisN(ii,ij,slope[ii]*TMath::Pi()/180.,slope[ij]*TMath::Pi()/180.,xphi,xtheta);
      */
       Get3DaxisN(0,bp1,bp2);
+      
       gser.Get3DaxisN(bp1,bp2,slope[bp1]*TMath::Pi()/180.,slope[bp2]*TMath::Pi()/180.,xphi,xtheta);
      
      
-     std::cout << "^^^^^^cross-check xphi and xtheta: " << xphi << " " << xtheta << std::endl;
+   //  std::cout << "^^^^^^cross-check xphi and xtheta: " << xphi << " " << xtheta << std::endl;
       
-      double xtheta2;
-      if(xphi < 2 && xphi > -2)
-	 xtheta2= gser.Get3DSpecialCaseTheta(bp1,bp2,fWire_last[bp1]-fWire_vertex[bp1], fWire_last[bp2]-fWire_vertex[bp2]);
+     
+      if(fabs(xphi) < 2 )
+	 xtheta= gser.Get3DSpecialCaseTheta(bp1,bp2,fWire_last[bp1]-fWire_vertex[bp1], fWire_last[bp2]-fWire_vertex[bp2]);
 	
-	std::cout << "xphi, xtheta1:" << xphi << " " << xtheta << " new th: "<< xtheta2 <<std::endl;
+//	std::cout << "xphi, xtheta1:" << xphi << " " << xtheta << " new th: "<< xtheta2 <<std::endl;
       
     //}
     
@@ -511,8 +516,9 @@ fNPitch.resize(fNAngles);
   }
 
 
-//for(unsigned int set=0;set<fNAngles;set++)  
-   LongTransEnergy(0,hitlist_all[fNPlanes-1]); //temporary only plane 2. Do not use for ArgoneuT
+//for(unsigned int set=0;set<fNAngles;set++)
+   if(!(fabs(xphi) >89 && fabs(xphi)<91)) // do not calculate pitch for extreme angles
+    LongTransEnergy(0,hitlist_all[fNPlanes-1]); //temporary only plane 2. Do not use for ArgoneuT
   
   // LongTransEnergy(hitlistCol); //Longitudinal and Transverse energy profile of the Shower induction
   /// \todo this has to be plane independent 
@@ -703,33 +709,33 @@ int shwf::ShowerReco::Get3DaxisN(unsigned int set,int iplane0,int iplane1){
  angle[iplane0]=geom->Plane(iplane0).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to 
  angle[iplane1]=geom->Plane(iplane1).Wire(0).ThetaZ(false)-TMath::Pi()/2.; // wire angle with respect to
  
- std::cout <<  " actual angles " << angle[iplane0]*180/pi << " " 
-			   << angle[iplane1]*180/pi<< std::endl;
+ //std::cout <<  " actual angles " << angle[iplane0]*180/pi << " " 
+//			   << angle[iplane1]*180/pi<< std::endl;
  
  if(angle[iplane0] == 0){   
    // first plane is at 0 degrees
    Cplane=iplane0;
    Iplane=iplane1;
-   std::cout << "+++++ new calc first test case 1 angle[0]==0 "<< std::endl;
+  // std::cout << "+++++ new calc first test case 1 angle[0]==0 "<< std::endl;
  }
  else if(angle[iplane1] == 0){  
    // second plane is at 0 degrees
     
    Cplane = iplane1;
    Iplane = iplane0;
-   std::cout << "+++++ new calc first test case 2 angle[1]==0 "<< std::endl;
+  // std::cout << "+++++ new calc first test case 2 angle[1]==0 "<< std::endl;
  }
  else if(angle[iplane0] != 0 && angle[iplane1] != 0){
    //both planes are at non zero degree - find the one with deg<0
    if(angle[iplane1] < angle[iplane0]){
      Cplane = iplane1;
      Iplane = iplane0;
-     std::cout << "+++++ new calc first test case 3 angle[1]< angle[0] "<< std::endl;
+   //  std::cout << "+++++ new calc first test case 3 angle[1]< angle[0] "<< std::endl;
    }
    else if(angle[iplane1] > angle[iplane0]){
      Cplane = iplane0;
      Iplane = iplane1;
-     std::cout << "+++++ new calc first test case 4 angle[1]> angle[0] "<< std::endl;
+   //  std::cout << "+++++ new calc first test case 4 angle[1]> angle[0] "<< std::endl;
    }
    else{
      //throw error - same plane.
@@ -747,11 +753,11 @@ int shwf::ShowerReco::Get3DaxisN(unsigned int set,int iplane0,int iplane1){
  
  l = 1;
 
- std::cout << "+++++ new calc first test c(I) ,I,C,I/C " 
+ /*std::cout << "+++++ new calc first test c(I) ,I,C,I/C " 
 			   << cos(angle[Iplane]) << " " <<  cos(angle[Cplane]) 
 			   << " " << cos(angle[Iplane])/cos(angle[Cplane]) 
 			   <<" nfact  " << nfact << " sines, I,C " << sin(angle[Iplane]) 
-			   << " " << sin(angle[Cplane])<< std::endl;
+			   << " " << sin(angle[Cplane])<< std::endl;*/
 
  m = (1/(2*sin(angle[Iplane])))*((cos(angle[Iplane])/(slopeC*cos(angle[Cplane])))-(1/slopeI) 
 				 +nfact*(  cos(angle[Iplane])/slopeC-1/slopeI  )     );
@@ -765,9 +771,9 @@ int shwf::ShowerReco::Get3DaxisN(unsigned int set,int iplane0,int iplane1){
  fThetaN.push_back( acos(m/(sqrt(pow(l,2)+pow(m,2)+pow(n,2)))) );
  
  
- std::cout << "+++++ new calc first test angles tests, Phi, Thet: " 
-			   << fPhiN[fPhiN.size()-1]*180/pi << " " 
-			   << fThetaN[fThetaN.size()-1]*180/pi<< std::endl;
+ //std::cout << "+++++ new calc first test angles tests, Phi, Thet: " 
+//			   << fPhiN[fPhiN.size()-1]*180/pi << " " 
+//			   << fThetaN[fThetaN.size()-1]*180/pi<< std::endl;
 
  // solve the ambiguities due to tangent periodicity
  float Phi = fPhiN[fPhiN.size()-1]>0. ? (TMath::Pi()/2)-fPhiN[fPhiN.size()-1] : fabs(fPhiN[fPhiN.size()-1])-(TMath::Pi()/2) ; 
@@ -775,18 +781,39 @@ int shwf::ShowerReco::Get3DaxisN(unsigned int set,int iplane0,int iplane1){
  if(Phi < 0)Theta = (TMath::Pi()/2)-fThetaN[fThetaN.size()-1];
  if(Phi > 0)Theta = fThetaN[fThetaN.size()-1]-(TMath::Pi()/2);
  
- std::cout << " NPhi=" <<Phi*180/pi << "   Ntheta=" << Theta*180/pi<< "rad:" << Phi << " "<< Theta <<  std::endl;
+// std::cout << " NPhi=" <<Phi*180/pi << "   Ntheta=" << Theta*180/pi<< "rad:" << Phi << " "<< Theta <<  std::endl;
  
  
  fh_phi_act->Fill(Phi*180/pi);
  
  fh_thet_act->Fill(Theta*180/pi);
+ 
+ 
+ util::GeometryUtilities gser;
+ 
+//  for(unsigned int ip=0;ip<fNPlanes;ip++)
+//  {
+//  double npitch;  
+//  npitch=gser.CalculatePitchPolar(ip,fPhiN[fPhiN.size()-1],fThetaN[fThetaN.size()-1]);
+// // std::cout << "++++++new -Pitch["<<ip<<"] =" 
+// 	//		      <<npitch<< std::endl;
+//   }
+ 
+ 
  GetPitchLength(set); //Get pitch of (two) wire planes 
  
  fPhiN[fPhiN.size()-1]=Phi;
  fThetaN[fThetaN.size()-1]=Theta;
  
  
+ 
+//  for(int ip=0;ip<fNPlanes;ip++)
+//  {
+//  double npitch;  
+//  npitch=gser.CalculatePitch(ip,Phi,Theta);
+// // std::cout << "++++++final -Pitch Angles["<<ip<<"] =" 
+// //			      <<npitch<< std::endl;
+//   }
  
  fPhiN_ang.push_back(Phi*180/pi);
  fThetaN_ang.push_back(Theta*180/pi);
@@ -958,6 +985,9 @@ void shwf::ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<
 
   calo::CalorimetryAlg calalg(fCaloPSet);
 
+  util::GeometryUtilities gser;
+  
+  
   
   double totCnrg = 0,totCnrg_corr =0 ; // tot enegry of the shower in collection
   //double CdEdx4cm = 0; // tot enegry of the shower in collection
@@ -966,7 +996,7 @@ void shwf::ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<
   art::ServiceHandle<util::LArProperties> larp;
   art::ServiceHandle<util::DetectorProperties> detprop;
   int channel;
-  double fElectronsToADC = detprop->ElectronsToADC();
+ 
 
   //double CdEdx4cm=0,CdEdx6cm=0,CdEdx8cm=0,CdEdx10cm=0;
   
@@ -975,12 +1005,13 @@ void shwf::ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<
   unsigned int wire=0,plane=0;
   unsigned int cstat = 0;
   
-  double chav2cm=0.,mevav2cm=0.;
-  double chav4cm=0.,mevav4cm=0.;
+  double mevav2cm=0.;  //chav2cm=0., chav4cm=0.,
+  double mevav4cm=0.;
   
-  std::cout << " --- plane, " << plane << " size:::: " << hitlist.size()<< std::endl;
+ // std::cout << " --- plane, " << plane << " size:::: " << hitlist.size()<< std::endl;
   
-
+  double sum=0.;
+  double npoints_calo=0;
 //first loop on hits, to calculate mean values at start
   for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     art::Ptr<recob::Hit> theHit = (*hitIter);
@@ -996,13 +1027,15 @@ void shwf::ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<
         dQdx_e *= LifetimeCorrection(time);   // Lifetime Correction (dQdx_e in e/c
         double dEdx = larp->BirksCorrection(dQdx_e);   // Correction f  
 	*/
-     double dEdx = calalg.dEdx_AMP((*hitIter), fNPitch[set][plane], isData ); 
+     double newpitch=gser.PitchInView(plane,xphi,xtheta);
+     double dEdx = calalg.dEdx_AMP((*hitIter), fNPitch[set][plane], isData );
+     double dEdx_new = calalg.dEdx_AMP((*hitIter), newpitch, isData ); 
      double dEdx_half = 2*calalg.dEdx_AMP((*hitIter)->Charge(true)/2/fNPitch[set][plane],time,plane , isData);
      //double dQdx,double time, unsigned int plane, bool isReal=true
      //double dEdx_half = 2*larp->BirksCorrection(dQdx_e/2);
       /////////////////////end from Calorimetry
 	
-     
+      
     
    // totCnrg +=dQdx; // Sum the energy of all the hits
     ///////////// !!! To be corrected for calFactor per plane? 
@@ -1010,22 +1043,32 @@ void shwf::ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<
     
     
     double hlimit=30.4;  //arbitrary value to get first ~30 cm of the shower.    
-    double axlimit=2;  //arbitrary limit to get only points around 2cm of the axis.
+ //   double axlimit=2;  //arbitrary limit to get only points around 2cm of the axis.
     
-    double wdist_cm=(wire-fWire_vertex[plane])*fMean_wire_pitch;
+    double wdist_cm=((double)wire-(double)fWire_vertex[plane])*fMean_wire_pitch;
     double tdist_cm=(time-fTime_vertex[plane])*ftimetick*fdriftvelocity;
     
-    double wdist=((wire-fWire_vertex[plane])*fNPitch[set][plane]);
+//     double wdist=((wire-fWire_vertex[plane])*fNPitch[set][plane]);
+    double wdist=(((double)wire-(double)fWire_vertex[plane])*newpitch);
     double rdist=TMath::Sqrt( wdist_cm*wdist_cm + tdist_cm*tdist_cm );
 
-  if( (wdist<8.)&&(wdist>0.2)){  
+ //   std::cout << " --- plane, " << plane << "wd, rd" <<wdist << " " << rdist << std::endl;
+    
+  
+    
+  if( (fabs(wdist)<8.)&&(fabs(wdist)>0.2)){  
     
     vdEdx.push_back(dEdx);
-    vresRange.push_back(wdist);
+    vresRange.push_back(fabs(wdist));
     vdQdx.push_back((*hitIter)->Charge(true)/fNPitch[set][plane]);
     Trk_Length=wdist;
     fTrkPitchC=fNPitch[set][plane];
     Kin_En+=dEdx*fTrkPitchC;
+    npoints_calo++;
+    sum+=dEdx;
+    
+   std::cout << " CALORIMETRY:" << " Pitch " <<newpitch << " dist: " << wdist <<  " dE/dx: " << dEdx_new << "MeV/cm "  << " average: " <<  sum/npoints_calo  << "hit: wire, time " << wire << " " << time << " " << rdist  <<   std::endl;
+    
   //deadwire; //re
     
   }
@@ -1053,8 +1096,7 @@ void shwf::ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<
 	      fNpoints_4cm[set]++;
 	     }
 	     
-	 if(wdist<4.4 &&  fNpoints_4cm[set] )
-	std::cout << " charge calc, set " << set << " " << fNPitch[set][set] << " " << wdist << " " <<  " npoints " << fNpoints_4cm[set] << " MeV/cm: " << dEdx << " " << " av up to now: MeV " <<  fChargeMeV_4cm[set]/fNpoints_4cm[set] << " 2cm test: " << fChargeADC_2cm[set] << " " << fChargeMeV_2cm[set] << " av up to now: MeV " << fChargeMeV_2cm[set]/fNpoints_2cm[set] << "hit: wire, time " << wire << " " << time << " " << rdist << " " << fTime_vertex[plane] <<   std::endl;
+	
 	     
         // fill out for 6cm preshower
        	  if(wdist<6.4)
@@ -1077,26 +1119,26 @@ void shwf::ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<
     
   }
   
- std::cout << " ------------ set nr " << set << " - hit-Vertex=" << std::endl;
+ //std::cout << " ------------ set nr " << set << " - hit-Vertex=" << std::endl;
       if(plane==fNPlanes-1)
 	{
        fTotChargeADC[set]=totCnrg*fNPitch[set][plane]; 
        fTotChargeMeV[set]=totCnrg_corr*fNPitch[set][plane];  
 	}
       
-  std::cout << " +++++++ set nr " << set << " totalENERGY: " << fTotChargeMeV[set] << std::endl;
+ // std::cout << " +++++++ set nr " << set << " totalENERGY: " << fTotChargeMeV[set] << std::endl;
   
   if(fNpoints_2cm[set]>0)	{
-    std::cout << " -----------NPoints 2cm, 4cm " << fNpoints_2cm[set] 
-			      << " " << fNpoints_4cm[set] <<   " average De/Dx, charge:  " 
-			      << fChargeADC_2cm[set]/fNpoints_2cm[set] << " " 
-			      << fChargeADC_4cm[set]/fNpoints_4cm[set] << " " 
-			      << fChargeMeV_2cm[set]/fNpoints_2cm[set]
-			      << " " << fChargeMeV_4cm[set]/fNpoints_4cm[set];
-    
-    chav2cm=fChargeADC_2cm[set]/fNpoints_2cm[set]; 
+//     std::cout << " -----------NPoints 2cm, 4cm " << fNpoints_2cm[set] 
+// 			      << " " << fNpoints_4cm[set] <<   " average De/Dx, charge:  " 
+// 			      << fChargeADC_2cm[set]/fNpoints_2cm[set] << " " 
+// 			      << fChargeADC_4cm[set]/fNpoints_4cm[set] << " " 
+// 			      << fChargeMeV_2cm[set]/fNpoints_2cm[set]
+// 			      << " " << fChargeMeV_4cm[set]/fNpoints_4cm[set];
+//     
+//    chav2cm=fChargeADC_2cm[set]/fNpoints_2cm[set]; 
     mevav2cm=fChargeMeV_2cm[set]/fNpoints_2cm[set];
-    chav4cm=fChargeADC_4cm[set]/fNpoints_4cm[set]; 
+//    chav4cm=fChargeADC_4cm[set]/fNpoints_4cm[set]; 
     mevav4cm=fChargeMeV_4cm[set]/fNpoints_4cm[set];
     
   }
@@ -1155,13 +1197,13 @@ void shwf::ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<
   }      
   
   if(fNpoints_2cm[set]>0)	{
-    std::cout << " ####### Npoints " << fNpoints_2cm[set] << " " 
+   /* std::cout << " ####### Npoints " << fNpoints_2cm[set] << " " 
 			      << fNpoints_4cm[set] <<   " RMS, ADC:  " 
 			      << TMath::Sqrt(RMS_ADC_2cm/fNpoints_2cm[set]) 
 			      << " " <<TMath::Sqrt(RMS_ADC_4cm/fNpoints_4cm[set]) 
 			      << " MeV: " << TMath::Sqrt(fRMS_2cm[set]/fNpoints_2cm[set])
 			      << " " << TMath::Sqrt(fRMS_4cm[set]/fNpoints_4cm[set]) << std::endl;
-    
+   */ 
     fRMS_2cm[set]=TMath::Sqrt(fRMS_2cm[set]/fNpoints_2cm[set]);
     fRMS_4cm[set]=TMath::Sqrt(fRMS_4cm[set]/fNpoints_4cm[set]);
     RMS_ADC_2cm=TMath::Sqrt(RMS_ADC_2cm/fNpoints_2cm[set]);
@@ -1237,23 +1279,23 @@ void shwf::ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<
   }   
   
   if(fNpoints_corr_MeV_2cm[set]>0){
-	std::cout << " ++ NPoints 2cm, ADC and MeV " 
-				  << fNpoints_corr_MeV_2cm[set] << " " 
-				  << fNpoints_corr_ADC_2cm[set] 
-				  << " corrected average De/Dx, charge, MeV:  " 
-				  << fCorr_Charge_2cm[set]/fNpoints_corr_ADC_2cm[set] 
-				  << " " << fCorr_MeV_2cm[set]/fNpoints_corr_MeV_2cm[set] << std::endl;
+// 	std::cout << " ++ NPoints 2cm, ADC and MeV " 
+// 				  << fNpoints_corr_MeV_2cm[set] << " " 
+// 				  << fNpoints_corr_ADC_2cm[set] 
+// 				  << " corrected average De/Dx, charge, MeV:  " 
+// 				  << fCorr_Charge_2cm[set]/fNpoints_corr_ADC_2cm[set] 
+// 				  << " " << fCorr_MeV_2cm[set]/fNpoints_corr_MeV_2cm[set] << std::endl;
 	fCorr_Charge_2cm[set]/=fNpoints_corr_ADC_2cm[set];
 	fCorr_MeV_2cm[set]/=fNpoints_corr_MeV_2cm[set];
   }
   
   if(fNpoints_corr_MeV_4cm[set] > 0){
-    std::cout << " ++ NPoints 4cm, ADC and MeV "
-			      << fNpoints_corr_MeV_4cm[set] << " " 
-			      << fNpoints_corr_ADC_4cm[set] 
-			      << " corrected average De/Dx, charge, MeV:  " 
-			      << fCorr_Charge_4cm[set]/fNpoints_corr_ADC_4cm[set] 
-			      << " " << fCorr_MeV_4cm[set]/fNpoints_corr_MeV_4cm[set]<< std::endl;
+//     std::cout << " ++ NPoints 4cm, ADC and MeV "
+// 			      << fNpoints_corr_MeV_4cm[set] << " " 
+// 			      << fNpoints_corr_ADC_4cm[set] 
+// 			      << " corrected average De/Dx, charge, MeV:  " 
+// 			      << fCorr_Charge_4cm[set]/fNpoints_corr_ADC_4cm[set] 
+// 			      << " " << fCorr_MeV_4cm[set]/fNpoints_corr_MeV_4cm[set]<< std::endl;
     
     fCorr_Charge_4cm[set]/=fNpoints_corr_ADC_4cm[set];
     fCorr_MeV_4cm[set]/=fNpoints_corr_MeV_4cm[set];
@@ -1270,8 +1312,8 @@ void shwf::ShowerReco::GetPitchLength(unsigned int set){
   
   for(unsigned int pl = 0; pl < fNPlanes; ++pl){
     fNPitch[set][pl] = ProjectedLength(set,pl);
-    std::cout << "++++++ calculating  -Pitch[" << set <<"]["<<pl<<"] =" 
-			      <<fNPitch[set][pl]<< std::endl;
+   // std::cout << "++++++ calculating  -Pitch[" << set <<"]["<<pl<<"] =" 
+//			      <<fNPitch[set][pl]<< std::endl;
  
   }
   //std::cout << std::endl; 
@@ -1327,9 +1369,9 @@ double shwf::ShowerReco::ProjectedLength(unsigned int set,unsigned int plane ) 	
      double fPhi=fPhiN[set];  
      
       //fTheta=TMath::Pi()/2;
-     std::cout << " angles inside projected length " << fTheta << " " << fPhi << " " << 180/pi*fTheta << " " << 180/pi*fPhi << " "  << std::endl;
+    // std::cout << " angles inside projected length " << fTheta << " " << fPhi << " " << 180/pi*fTheta << " " << 180/pi*fPhi << " "  << std::endl;
      
-     double pi=TMath::Pi();
+
      for(unsigned int cs = 0; cs < geo->Ncryostats(); ++cs){
        for(unsigned int t = 0; t < geo->Cryostat(cs).NTPC(); ++t){
 	 for(unsigned int i = 0; i < geo->Cryostat(cs).TPC(t).Nplanes(); ++i){
@@ -1337,11 +1379,11 @@ double shwf::ShowerReco::ProjectedLength(unsigned int set,unsigned int plane ) 	
 	     double wirePitch = geo->Cryostat(cs).TPC(t).WirePitch(0,1,i);
 	     double angleToVert =0.5*TMath::Pi() - geo->Cryostat(cs).TPC(t).Plane(i).Wire(0).ThetaZ(false) ;
 
-	     std::cout <<" %%%%%%%%%%  " << i << " angle " 
-				       << angleToVert*180/pi << " " 
-				       << geo->Plane(i).Wire(0).ThetaZ(false)*180/pi 
-				       <<" wirePitch " << wirePitch
-				       <<"\n %%%%%%%%%%  " << fTheta << " " << fPhi<< std::endl;
+// 	     std::cout <<" %%%%%%%%%%  " << i << " angle " 
+// 				       << angleToVert*180/pi << " " 
+// 				       << geo->Plane(i).Wire(0).ThetaZ(false)*180/pi 
+// 				       <<" wirePitch " << wirePitch
+// 				       <<"\n %%%%%%%%%%  " << fTheta << " " << fPhi<< std::endl;
 	   
 	     //(sin(angleToVert),cos(angleToVert)) is the direction perpendicular to wire
 	     //(fDCosStart[1],fDDosStart[2]) is the direction of prong in the y-z plane
@@ -1361,19 +1403,3 @@ double shwf::ShowerReco::ProjectedLength(unsigned int set,unsigned int plane ) 	
 }
 
 
-/////////////////////////from Calorimetry:
-//------------------------------------------------------------------------------------//
-double shwf::ShowerReco::LifetimeCorrection(float time){
-  
-  float t = time;
-  art::ServiceHandle<util::LArProperties> LArProp;
-  art::ServiceHandle<util::DetectorProperties> detprop;
-  double timetick = detprop->SamplingRate()*1.e-3;    //time sample in microsec
-  double presamplings = detprop->TriggerOffset();
-  t -= presamplings;
-  
-  time = t * timetick;  //  (in microsec)
-  double tau = LArProp->ElectronLifetime();
-  double correction = exp(time/tau);
-  return correction;
-}

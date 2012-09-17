@@ -87,7 +87,7 @@ namespace shwf {
     const static float presamplings  = 60.;
     const static float fdriftvelocity =  0.157;
     const static int    alpha           = 5;     // parameter (how many RMs (of the anglular distribution) is large the cone of the shower)
-    double LifetimeCorrection(float time);
+ 
  private:
 
   int fRun,fEvent,fSubRun;
@@ -223,6 +223,8 @@ TH1F *fh_thet_act;
   // Save enegry in a file
   //std::ofstream myfile;
   
+  double xphi,xtheta;   // new calculated angles. Temporary fix.
+
   // Variables to get the angular distribution of the hits
  // float AI, BI, thetaI; // Induction  plane
   
