@@ -164,8 +164,8 @@ void GausHitFinder::produce(art::Event& evt)
     startTimes.clear();
     maxTimes.clear();
     endTimes.clear();
-    std::vector<double> signal(wire->Signal());
-    std::vector<double>::iterator timeIter;  	    // iterator for time bins
+    std::vector<float> signal(wire->Signal());
+    std::vector<float>::iterator timeIter;  	    // iterator for time bins
     time          = 0;
     minTimeHolder = 0;
     maxFound      = false;
