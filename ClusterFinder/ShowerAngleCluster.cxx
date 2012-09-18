@@ -1614,7 +1614,7 @@ void cluster::ShowerAngleCluster::RefineStartPoints(unsigned int nClust,std::vec
   
     }
    
-  // std::cout << "new wire and time starts, before last step: " << nClust << " " << nwire_start << " " << ntime_start << " old vals: " << wire_start<< " " << time_start << std::endl;
+   mf::LogVerbatim("ShowerAngleCluster") << "new wire and time starts, before last step (TEST): " << nClust << " " << nwire_start << " " << ntime_start << " old vals: " << wire_start<< " " << time_start << std::endl;
       
    // here was the end of the second bsetplanes loop.
   //
