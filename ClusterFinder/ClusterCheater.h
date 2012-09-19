@@ -9,7 +9,7 @@
 #include <string>
 
 #include "art/Framework/Core/EDProducer.h"
-#include "ClusterFinder/HoughLineAlg.h"
+#include "ClusterFinder/HoughBaseAlg.h"
 
 namespace cluster {
   class ClusterCheater : public art::EDProducer {
@@ -26,7 +26,7 @@ namespace cluster {
     std::string fHitModuleLabel;    ///< label for module creating recob::Hit objects	   
     std::string fG4ModuleLabel;     ///< label for module running G4 and making particles, etc
 
-    HoughLineAlg fHLAlg;            ///< object holding algorithm to do Hough transforms
+    HoughBaseAlg fHLAlg;            ///< object holding algorithm to do Hough transforms
 
   };
 }
