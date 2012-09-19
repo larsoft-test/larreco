@@ -24,6 +24,7 @@
 #include "art/Framework/Services/Optional/TFileService.h"
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#include "CLHEP/Random/JamesRandom.h"
 
 #include "Geometry/geo.h"
 #include "SimulationBase/simbase.h"
@@ -50,6 +51,9 @@ cluster::fuzzyCluster::fuzzyCluster(fhicl::ParameterSet const& pset) :
   this->reconfigure(pset);
   produces< std::vector<recob::Cluster> >();  
   produces< art::Assns<recob::Cluster, recob::Hit> >();
+
+  // Create random number engine needed for PPHT
+  createEngine(1,"HepJamesRandom");
 }
 
 //-------------------------------------------------
@@ -91,8 +95,14 @@ void cluster::fuzzyCluster::produce(art::Event& evt)
   // loop over all hits in the event and look for clusters (for each plane)
   std::vector<art::Ptr<recob::Hit> > allhits;
 
+  // Set event number as the random number seed needed for PPHT
   //std::cout << "Event number check: " << evt.event() << std::endl;
+  art::ServiceHandle<art::RandomNumberGenerator> rng;
+  CLHEP::HepRandomEngine &engine = rng->getEngine();
+  engine.setSeed((long int)evt.event(),0);
+
   srand((unsigned)evt.event()); 
+  
   
   // get the ChannelFilter
   filter::ChannelFilter chanFilt;

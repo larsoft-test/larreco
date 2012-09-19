@@ -46,25 +46,25 @@ BEGIN_PROLOG
   MergeCutoff:   10   # The maximum distance between clusters prior to merging, needed for fuzzy clustering, 10 was what was used before
   HoughClusAlg:
   {
-   MaxLines:            20  # The maximum number of Hough lines to look for, 20 had been working!
-   MinHits:              5  # 10 was working, 5 may be a little bit better
+   MaxLines:            50  # The maximum number of Hough lines to look for, 20 had been working!
+   MinHits:              5  # 10 was working, 5 may be a little bit better (okay, a lot better!)
    SaveAccumulator:      0
-   NumAngleCells:    20000 # The number of angle cells to create for the Hough transform, was set to 5000
-   RhoResolutionFactor:    5   # Was set to 5
+   NumAngleCells:    20000 # The number of angle cells to create for the Hough transform, was set to 20000
+   RhoResolutionFactor:   5  # Was set to 5
    MaxDistance:         0.1  # 0.1 was working (okay, not really, larger is probably better, e.g. 5, or 1, 1 is probably best)
    MaxSlope:            80.0 # 80 was working fine previously
    RhoZeroOutRange:      0
    ThetaZeroOutRange:    0
    HitsPerCluster:       1
-   MissedHits:           0
+   MissedHits:           0  # Was set to 0
    EndPointCutoff:      20  # The maximum distance between Hough lines and EndPoint, 20 had been working!
-   HoughLineMergeAngle: 20  # The maximum angle between slopes of Hough lines to be merged, 30 was working, 20 might be better
-   HoughLineMergeCutoff:   10 # The maximum distance between Hough line endpoints before they can be merged, 
+   HoughLineMergeAngle:  20  # The maximum angle between slopes of Hough lines to be merged, 30 was working, 20 might be better
+   HoughLineMergeCutoff: 2 # The maximum distance between Hough line endpoints before they can be merged, 
                               # 2 was working, a larger value is likely necessary though, like 5
-   ParaHoughLineMergeAngle:  5   # The maximum angle between slopes of Hough lines to be merged, 30 was working, 20 might be better
-   ParaHoughLineMergeCutoff: 100  # The maximum distance between Hough line endpoints before they can be merged, 
+   ParaHoughLineMergeAngle:  5    # The maximum angle between slopes of Hough lines to be merged, 30 was working, 20 might be better
+   ParaHoughLineMergeCutoff: 10  # The maximum distance between Hough line endpoints before they can be merged, 
                                  # 2 was working, a larger value is likely necessary though, like 5 or 10
-   LineIsolationCut:    1.5# The cut on the Hough lines isolation
+   LineIsolationCut:   0.5 # The cut on the Hough lines isolation
    }
   EndPointClusAlg:
   {
@@ -84,17 +84,36 @@ standard_dbscanalg_fast.Method: 2
 
  standard_houghlinealg:
  {
-  MaxLines:             15
-  MinHits:              3
+#  MaxLines:             15
+#  MinHits:              3
+#  SaveAccumulator:      0
+#  NumAngleCells:        5000
+#  RhoResolutionFactor:  5
+#  MaxDistance:          5.0
+#  MaxSlope:             80.0
+#  RhoZeroOutRange:      0
+#  ThetaZeroOutRange:    0
+#  HitsPerCluster:       1
+#  MissedHits:           1
+  MaxLines:            50  # The maximum number of Hough lines to look for, 20 had been working!
+  MinHits:              5  # 10 was working, 5 may be a little bit better (okay, a lot better!)
   SaveAccumulator:      0
-  NumAngleCells:        5000
-  RhoResolutionFactor:  5
-  MaxDistance:          5.0
-  MaxSlope:             80.0
+  NumAngleCells:    20000 # The number of angle cells to create for the Hough transform, was set to 20000
+  RhoResolutionFactor:   5  # Was set to 5
+  MaxDistance:         0.1  # 0.1 was working (okay, not really, larger is probably better, e.g. 5, or 1, 1 is probably best)
+  MaxSlope:            80.0 # 80 was working fine previously
   RhoZeroOutRange:      0
   ThetaZeroOutRange:    0
   HitsPerCluster:       1
-  MissedHits:           1
+  MissedHits:           0  # Was set to 0
+  EndPointCutoff:      20  # The maximum distance between Hough lines and EndPoint, 20 had been working!
+  HoughLineMergeAngle:  20  # The maximum angle between slopes of Hough lines to be merged, 30 was working, 20 might be better
+  HoughLineMergeCutoff: 2 # The maximum distance between Hough line endpoints before they can be merged, 
+                             # 2 was working, a larger value is likely necessary though, like 5
+  ParaHoughLineMergeAngle:  5    # The maximum angle between slopes of Hough lines to be merged, 30 was working, 20 might be better
+  ParaHoughLineMergeCutoff: 10  # The maximum distance between Hough line endpoints before they can be merged, 
+                                # 2 was working, a larger value is likely necessary though, like 5 or 10
+  LineIsolationCut:   0.5 # The cut on the Hough lines isolation
  }
  
  standard_houghclusalg:

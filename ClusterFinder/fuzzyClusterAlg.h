@@ -122,7 +122,7 @@ namespace cluster{
     TMatrixT<double>                         fpsCentroids;
 
     // Object used for Hough transforms
-    HoughClusAlg fHCAlg;        
+    HoughBaseAlg fHCAlg;        
     EndPointClusAlg fEPCAlg;        ///< object that does the Hough Transform
 
 
