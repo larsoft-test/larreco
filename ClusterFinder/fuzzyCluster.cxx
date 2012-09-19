@@ -31,6 +31,7 @@
 #include "Simulation/sim.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
+#include "Utilities/SeedCreator.h"
 #include "ClusterFinder/fuzzyCluster.h"
 #include "Filters/ChannelFilter.h"
 
@@ -53,7 +54,7 @@ cluster::fuzzyCluster::fuzzyCluster(fhicl::ParameterSet const& pset) :
   produces< art::Assns<recob::Cluster, recob::Hit> >();
 
   // Create random number engine needed for PPHT
-  createEngine(1,"HepJamesRandom");
+  createEngine(SeedCreator::CreateRandomNumberSeed(),"HepJamesRandom");
 }
 
 //-------------------------------------------------
@@ -97,11 +98,11 @@ void cluster::fuzzyCluster::produce(art::Event& evt)
 
   // Set event number as the random number seed needed for PPHT
   //std::cout << "Event number check: " << evt.event() << std::endl;
-  art::ServiceHandle<art::RandomNumberGenerator> rng;
-  CLHEP::HepRandomEngine &engine = rng->getEngine();
-  engine.setSeed((long int)evt.event(),0);
+  //art::ServiceHandle<art::RandomNumberGenerator> rng;
+  //CLHEP::HepRandomEngine &engine = rng->getEngine();
+  //engine.setSeed((long int)evt.event(),0);
 
-  srand((unsigned)evt.event()); 
+  //srand((unsigned)evt.event()); 
   
   
   // get the ChannelFilter
