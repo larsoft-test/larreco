@@ -12,7 +12,7 @@
 #include "art/Persistency/Common/Ptr.h"
 #include "art/Persistency/Common/PtrVector.h"
 #include "ClusterFinder/RStarTree/RStarTree.h"
-#include "ClusterFinder/HoughClusAlg.h"
+#include "ClusterFinder/HoughBaseAlg.h"
 #include "ClusterFinder/EndPointClusAlg.h"
 
 #include "Geometry/geo.h"

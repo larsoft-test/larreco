@@ -127,7 +127,7 @@ namespace cluster {
     // Copy the functions over entirely to the base class
     size_t Transform(std::vector<art::Ptr<recob::Cluster> >           & clusIn,
      	             std::vector<recob::Cluster>                      & ccol,  
-		     std::vector<std::vector<art::Ptr<recob::Hit> > > & clusHitsOut,
+		     std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
 		     art::Event                                const& evt,
 		     std::string                               const& label);
 

@@ -14,7 +14,7 @@
 #include <string>
 
 #include "art/Framework/Core/EDProducer.h"
-#include "ClusterFinder/HoughLineAlg.h"
+#include "ClusterFinder/HoughBaseAlg.h"
 class TH1F;
 class TTree;
 
@@ -36,7 +36,7 @@ namespace cluster {
 
     std::string fDBScanModuleLabel;    
     
-    HoughLineAlg fHLAlg;            ///< object that does the Hough Transform
+    HoughBaseAlg fHLAlg;            ///< object that does the Hough Transform
   
   };
   

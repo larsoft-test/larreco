@@ -43,12 +43,12 @@ extern "C" {
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
 #include "Geometry/geo.h"
-#include "ClusterFinder/HoughLineAlg.h"
+#include "ClusterFinder/HoughBaseAlg.h"
 #include "ClusterFinder/HoughLineFinder.h"
 
 //------------------------------------------------------------------------------
 cluster::HoughLineFinder::HoughLineFinder(fhicl::ParameterSet const& pset) 
-  : fHLAlg(pset.get< fhicl::ParameterSet >("HoughLineAlg"))
+  : fHLAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg"))
 {
   this->reconfigure(pset);
   produces< std::vector<recob::Cluster> >();
@@ -64,7 +64,7 @@ cluster::HoughLineFinder::~HoughLineFinder()
 void cluster::HoughLineFinder::reconfigure(fhicl::ParameterSet const& p)
 {
   fDBScanModuleLabel = p.get< std::string >("DBScanModuleLabel");
-  fHLAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughLineAlg"));
+  fHLAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughBaseAlg"));
 }
 
 //------------------------------------------------------------------------------
@@ -79,7 +79,8 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
 
-  art::PtrVector<recob::Cluster> clusIn;
+  //art::PtrVector<recob::Cluster> clusIn;
+  std::vector<art::Ptr<recob::Cluster> > clusIn;
   for(unsigned int ii = 0; ii < clusterListHandle->size(); ++ii){
     art::Ptr<recob::Cluster> cluster(clusterListHandle, ii);
     clusIn.push_back(cluster);
@@ -92,8 +93,14 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
   std::vector< art::PtrVector<recob::Hit> > clusHitsOut;
   
   size_t numclus = fHLAlg.Transform(clusIn, clusOut, clusHitsOut, evt, fDBScanModuleLabel);
+    
+  //size_t Transform(std::vector<art::Ptr<recob::Cluster> >           & clusIn,
+                          //std::vector<recob::Cluster>                      & ccol,  
+		     //std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
+		     //art::Event                                const& evt,
+		     //std::string                               const& label);
 
-  LOG_DEBUG("HoughLineClusters") << "found " << numclus << "clusters with HoughLineAlg";
+  LOG_DEBUG("HoughLineClusters") << "found " << numclus << "clusters with HoughBaseAlg";
 
   //Point to a collection of clusters to output.
   std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>(clusOut));
