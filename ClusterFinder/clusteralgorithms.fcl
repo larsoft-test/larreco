@@ -82,7 +82,7 @@ standard_dbscanalg_fast.eps:    1.25
 standard_dbscanalg_fast.epstwo: 1.75
 standard_dbscanalg_fast.Method: 2
 
- standard_houghlinealg:
+ standard_houghbasealg:
  {
 #  MaxLines:             15
 #  MinHits:              3
@@ -143,15 +143,15 @@ standard_dbscanalg_fast.Method: 2
 
  argoneut_dbscanalg:       @local::standard_dbscanalg
  argoneut_fuzzyclusteralg: @local::standard_fuzzyclusteralg
- argoneut_houghlinealg: @local::standard_houghlinealg
+ argoneut_houghbasealg: @local::standard_houghbasealg
  argoneut_endpointalg:  @local::standard_endpointalg
 
  microboone_dbscanalg:    @local::standard_dbscanalg_fast
- microboone_houghlinealg: @local::standard_houghlinealg
+ microboone_houghbasealg: @local::standard_houghbasealg
  microboone_endpointalg:  @local::standard_endpointalg
 
  lbne_dbscanalg:    @local::standard_dbscanalg_fast
- lbne_houghlinealg: @local::standard_houghlinealg
+ lbne_houghbasealg: @local::standard_houghbasealg
  lbne_endpointalg:  @local::standard_endpointalg 
 
 END_PROLOG
