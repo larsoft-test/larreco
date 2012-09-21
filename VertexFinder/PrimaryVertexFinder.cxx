@@ -115,10 +115,10 @@ namespace vertex{
     evt.getByLabel(fTrackModuleLabel,trackListHandle);
     
     //Point to a collection of vertices to output.
-    std::auto_ptr< std::vector<recob::Vertex> > vcol(new std::vector<recob::Vertex>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Hit> > vhassn(new art::Assns<recob::Vertex, recob::Hit>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Track> > vtassn(new art::Assns<recob::Vertex, recob::Track>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Shower> > vsassn(new art::Assns<recob::Vertex, recob::Shower>);
+    std::unique_ptr< std::vector<recob::Vertex> > vcol(new std::vector<recob::Vertex>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Hit> > vhassn(new art::Assns<recob::Vertex, recob::Hit>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Track> > vtassn(new art::Assns<recob::Vertex, recob::Track>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Shower> > vsassn(new art::Assns<recob::Vertex, recob::Shower>);
     
 
     art::PtrVector<recob::Track> trkIn;
@@ -361,10 +361,10 @@ namespace vertex{
     mf::LogVerbatim("Summary") << "PrimaryVertexFinder Summary:";
     for(size_t i = 0; i < vcol->size(); ++i) mf::LogVerbatim("Summary") << vcol->at(i) ;
 
-    evt.put(vcol);
-    evt.put(vtassn);
-    evt.put(vhassn);
-    evt.put(vsassn);
+    evt.put(std::move(vcol));
+    evt.put(std::move(vtassn));
+    evt.put(std::move(vhassn));
+    evt.put(std::move(vsassn));
     
   } // end of produce
 } // end of vertex namespace

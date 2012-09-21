@@ -86,20 +86,20 @@ namespace vertex {
     // and see if there's an overlap of a sufficient (>0) number of hits. If so,
     // call the track a match to the vtx. Then, .... stick the track pointer(s)
     // into the AggVertex object.  EC, 23-July-2010.
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Track>  > vtassn(new art::Assns<recob::Vertex, recob::Track>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Shower> > vsassn(new art::Assns<recob::Vertex, recob::Shower>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Hit>    > vhassn(new art::Assns<recob::Vertex, recob::Hit>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Track>  > vtassn(new art::Assns<recob::Vertex, recob::Track>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Shower> > vsassn(new art::Assns<recob::Vertex, recob::Shower>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Hit>    > vhassn(new art::Assns<recob::Vertex, recob::Hit>);
 
-    std::auto_ptr< std::vector<recob::Vertex> > vcol (MatchV2T(evt, *vtassn, *vsassn, *vhassn));
+    std::unique_ptr< std::vector<recob::Vertex> > vcol (MatchV2T(evt, *vtassn, *vsassn, *vhassn));
 
-    evt.put(vcol);
-    evt.put(vtassn);
-    evt.put(vsassn);
-    evt.put(vhassn);
+    evt.put(std::move(vcol));
+    evt.put(std::move(vtassn));
+    evt.put(std::move(vsassn));
+    evt.put(std::move(vhassn));
   }
 
   //-------------------------------------------------------------------------------
-  std::auto_ptr< std::vector<recob::Vertex> >  AggregateVertex::MatchV2T(art::Event& evt,
+  std::unique_ptr< std::vector<recob::Vertex> >  AggregateVertex::MatchV2T(art::Event& evt,
 									 art::Assns<recob::Vertex, recob::Track>& vtassn,
 									 art::Assns<recob::Vertex, recob::Shower>& vsassn,
 									 art::Assns<recob::Vertex, recob::Hit>& vhassn)
@@ -113,11 +113,11 @@ namespace vertex {
     // Bail if there are no tracks or vertices.
     //  if (!((int)vertexlistStrong.size()) || !((int)tracklist.size())) return NULL;
     if (feplistStrong.isNull() || ftracklist.isNull()) {
-      return std::auto_ptr< std::vector<recob::Vertex> > (new std::vector<recob::Vertex>);
+      return std::unique_ptr< std::vector<recob::Vertex> > (new std::vector<recob::Vertex>);
     }
 
     // Loop on the vertices, and all the hits in each
-    std::auto_ptr< std::vector<recob::Vertex> > verts(new std::vector<recob::Vertex>);
+    std::unique_ptr< std::vector<recob::Vertex> > verts(new std::vector<recob::Vertex>);
 
     art::FindManyP<recob::Hit> fmht(ftracklist, evt, fTrack3DModuleLabel);
 

@@ -122,12 +122,12 @@ namespace vertex{
     art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fClusterModuleLabel);
 
     //Point to a collection of vertices to output.
-    std::auto_ptr<std::vector<recob::Vertex> >                 vcol(new std::vector<recob::Vertex>);          //3D vertex
-    std::auto_ptr<std::vector<recob::EndPoint2D> >             epcol(new std::vector<recob::EndPoint2D>);  //2D vertex
-    std::auto_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assnep(new art::Assns<recob::EndPoint2D, recob::Hit>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Shower> >  assnsh(new art::Assns<recob::Vertex, recob::Shower>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Track> >   assntr(new art::Assns<recob::Vertex, recob::Track>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Hit> >     assnh(new art::Assns<recob::Vertex, recob::Hit>);
+    std::unique_ptr<std::vector<recob::Vertex> >                 vcol(new std::vector<recob::Vertex>);          //3D vertex
+    std::unique_ptr<std::vector<recob::EndPoint2D> >             epcol(new std::vector<recob::EndPoint2D>);  //2D vertex
+    std::unique_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assnep(new art::Assns<recob::EndPoint2D, recob::Hit>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Shower> >  assnsh(new art::Assns<recob::Vertex, recob::Shower>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Track> >   assntr(new art::Assns<recob::Vertex, recob::Track>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Hit> >     assnh(new art::Assns<recob::Vertex, recob::Hit>);
 
     for(size_t cstat = 0; cstat < geom->Ncryostats(); ++cstat){
       for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
@@ -413,12 +413,12 @@ namespace vertex{
     for(size_t i = 0; i<epcol->size(); ++i) mf::LogVerbatim("Summary") << epcol->at(i) ;
     for(size_t i = 0; i<vcol->size(); ++i) mf::LogVerbatim("Summary") << vcol->at(i) ;
     
-    evt.put(epcol);
-    evt.put(vcol);
-    evt.put(assnep);
-    evt.put(assntr);
-    evt.put(assnsh);
-    evt.put(assnh);
+    evt.put(std::move(epcol));
+    evt.put(std::move(vcol));
+    evt.put(std::move(assnep));
+    evt.put(std::move(assntr));
+    evt.put(std::move(assnsh));
+    evt.put(std::move(assnh));
 
   } // end of produce
 } // end of vertex namespace

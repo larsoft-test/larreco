@@ -185,10 +185,10 @@ namespace vertex{
       trkitr++;
     }// end loop over tracks
 
-    std::auto_ptr< std::vector<recob::Vertex> > vertexcol(new std::vector<recob::Vertex>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Shower> > vsassn(new art::Assns<recob::Vertex, recob::Shower>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Track>  > vtassn(new art::Assns<recob::Vertex, recob::Track>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Hit>    > vhassn(new art::Assns<recob::Vertex, recob::Hit>);
+    std::unique_ptr< std::vector<recob::Vertex> > vertexcol(new std::vector<recob::Vertex>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Shower> > vsassn(new art::Assns<recob::Vertex, recob::Shower>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Track>  > vtassn(new art::Assns<recob::Vertex, recob::Track>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Hit>    > vhassn(new art::Assns<recob::Vertex, recob::Hit>);
 
     // loop over the eve ID values and make Vertexs
     for(std::vector<int>::iterator eItr = eveIDs.begin(); eItr != eveIDs.end(); eItr++){
@@ -252,10 +252,10 @@ namespace vertex{
 
     } // end loop over the eve ID values
 
-    evt.put(vertexcol);
-    evt.put(vsassn);
-    evt.put(vtassn);
-    evt.put(vhassn);
+    evt.put(std::move(vertexcol));
+    evt.put(std::move(vsassn));
+    evt.put(std::move(vtassn));
+    evt.put(std::move(vhassn));
 
     return;
 

@@ -112,8 +112,8 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
   evt.getByLabel(fDBScanModuleLabel, clusterListHandle);
 
   //Point to a collection of vertices to output and the associations with the hits
-  std::auto_ptr<std::vector<recob::EndPoint2D> > vtxcol(new std::vector<recob::EndPoint2D>);
-  std::auto_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assn(new art::Assns<recob::EndPoint2D, recob::Hit>);
+  std::unique_ptr<std::vector<recob::EndPoint2D> > vtxcol(new std::vector<recob::EndPoint2D>);
+  std::unique_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assn(new art::Assns<recob::EndPoint2D, recob::Hit>);
 
   filter::ChannelFilter chanFilt;  
   std::vector< art::Ptr<recob::Hit> > cHits;
@@ -349,7 +349,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
   mf::LogInfo("HarrisVertexFinder") << "Size of vtxcol= " << vtxcol->size();
   fNoVertices->Fill(evt.id().event(),vtxcol->size());
   
-  evt.put(vtxcol);   
+  evt.put(std::move(vtxcol));   
 }
 
 //-----------------------------------------------------------------------------

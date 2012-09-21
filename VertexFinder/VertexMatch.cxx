@@ -82,8 +82,8 @@ void vertex::VertexMatch::produce(art::Event& evt)
   art::Handle< std::vector<recob::Cluster> > houghListHandle;
   evt.getByLabel(fHoughModuleLabel,houghListHandle);
   
-  std::auto_ptr<std::vector<recob::EndPoint2D> > mvertexcol(new std::vector<recob::EndPoint2D>);
-  std::auto_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assn(new art::Assns<recob::EndPoint2D, recob::Hit>);
+  std::unique_ptr<std::vector<recob::EndPoint2D> > mvertexcol(new std::vector<recob::EndPoint2D>);
+  std::unique_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assn(new art::Assns<recob::EndPoint2D, recob::Hit>);
   
   art::ServiceHandle<geo::Geometry> geom;
   //hits associated with a vertex
@@ -296,8 +296,8 @@ void vertex::VertexMatch::produce(art::Event& evt)
     }//end loop over tpc
   }// end loop over cryostats
 
-  evt.put(mvertexcol);
-  evt.put(assn);
+  evt.put(std::move(mvertexcol));
+  evt.put(std::move(assn));
 }
   
 
