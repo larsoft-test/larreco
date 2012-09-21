@@ -66,7 +66,7 @@ namespace event {
   void AggregateEvent::produce(art::Event& evt)
   { 
 
-    std::auto_ptr<std::vector<recob::Event> > ecol(new std::vector<recob::Event>);
+    std::unique_ptr<std::vector<recob::Event> > ecol(new std::vector<recob::Event>);
     
     // get the geometry
     art::ServiceHandle<geo::Geometry> geom;

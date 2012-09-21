@@ -32,10 +32,10 @@ event::EventMaker::~EventMaker()
 void event::EventMaker::produce(art::Event &e) 
 {
 
-  // make the auto_ptr of the vector for the recob::Events
-  std::auto_ptr< std::vector<recob::Event> > eventcol(new std::vector<recob::Event>);
-  std::auto_ptr< art::Assns<recob::Event, recob::Vertex> > evassn(new art::Assns<recob::Event, recob::Vertex>);
-  std::auto_ptr< art::Assns<recob::Event, recob::Hit> >    ehassn(new art::Assns<recob::Event, recob::Hit>);
+  // make the unique_ptr of the vector for the recob::Events
+  std::unique_ptr< std::vector<recob::Event> > eventcol(new std::vector<recob::Event>);
+  std::unique_ptr< art::Assns<recob::Event, recob::Vertex> > evassn(new art::Assns<recob::Event, recob::Vertex>);
+  std::unique_ptr< art::Assns<recob::Event, recob::Hit> >    ehassn(new art::Assns<recob::Event, recob::Hit>);
 
   // first get the recob::Vertex objects out of the event
   art::Handle< std::vector<recob::Vertex> > vtxHandle;
@@ -60,9 +60,9 @@ void event::EventMaker::produce(art::Event &e)
     std::vector< art::Ptr<recob::Hit> > hits = fmh.at(0);
     util::CreateAssn(*this, e, *eventcol, hits, *ehassn);
 
-    e.put(eventcol);
-    e.put(ehassn);
-    e.put(evassn);
+    e.put(std::move(eventcol));
+    e.put(std::move(ehassn));
+    e.put(std::move(evassn));
 
     return;
   }
@@ -126,9 +126,9 @@ void event::EventMaker::produce(art::Event &e)
   }
 
   // put the collection of events in the art::Event
-  e.put(eventcol);
-  e.put(ehassn);
-  e.put(evassn);
+  e.put(std::move(eventcol));
+  e.put(std::move(ehassn));
+  e.put(std::move(evassn));
 
   return;
 

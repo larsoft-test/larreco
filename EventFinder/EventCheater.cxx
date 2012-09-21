@@ -100,9 +100,9 @@ namespace event{
       vertexitr++;
     }// end loop over vertices
 
-    std::auto_ptr< std::vector<recob::Event> >               eventcol(new std::vector<recob::Event>);
-    std::auto_ptr< art::Assns<recob::Event, recob::Vertex> > evassn(new art::Assns<recob::Event, recob::Vertex>);
-    std::auto_ptr< art::Assns<recob::Event, recob::Hit> >    ehassn(new art::Assns<recob::Event, recob::Hit>);
+    std::unique_ptr< std::vector<recob::Event> >               eventcol(new std::vector<recob::Event>);
+    std::unique_ptr< art::Assns<recob::Event, recob::Vertex> > evassn(new art::Assns<recob::Event, recob::Vertex>);
+    std::unique_ptr< art::Assns<recob::Event, recob::Hit> >    ehassn(new art::Assns<recob::Event, recob::Hit>);
 
     // loop over the map and associate all vertex objects with an event
     for(vertexMapItr = vertexMap.begin(); vertexMapItr != vertexMap.end(); vertexMapItr++){
@@ -130,9 +130,9 @@ namespace event{
 
     } // end loop over the map
 
-    evt.put(eventcol);
-    evt.put(evassn);
-    evt.put(ehassn);
+    evt.put(std::move(eventcol));
+    evt.put(std::move(evassn));
+    evt.put(std::move(ehassn));
 
     return;
 
