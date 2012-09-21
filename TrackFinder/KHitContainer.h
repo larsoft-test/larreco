@@ -47,8 +47,8 @@
 
 #include <list>
 #include "TrackFinder/KHitGroup.h"
-#include "KTrack.h"
-#include "Propagator.h"
+#include "TrackFinder/KTrack.h"
+#include "TrackFinder/Propagator.h"
 
 namespace trkf {
 

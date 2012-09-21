@@ -11,8 +11,8 @@
 #include <cmath>
 #include "TrackFinder/KGTrack.h"
 #include "TrackFinder/KHitWireX.h"
-#include "SurfXYZPlane.h"
-#include "PropXYZPlane.h"
+#include "TrackFinder/SurfXYZPlane.h"
+#include "TrackFinder/PropXYZPlane.h"
 #include "Geometry/geo.h"
 #include "cetlib/exception.h"
 
