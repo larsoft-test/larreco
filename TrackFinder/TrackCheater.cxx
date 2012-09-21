@@ -16,7 +16,7 @@
 #include "Utilities/AssociationUtil.h"
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
-#include "Utilities/PhysicalConstants.h"
+#include "SimpleTypesAndConstants/PhysicalConstants.h"
 #include "Utilities/DetectorProperties.h"
 
 // Framework includes
