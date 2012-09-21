@@ -77,9 +77,9 @@ namespace shwf{
   void ShowerFinder::produce(art::Event& evt)
   { 
         
-    std::auto_ptr<std::vector<recob::Shower> > showercol(new std::vector<recob::Shower>);
-    std::auto_ptr< art::Assns<recob::Shower, recob::Cluster> > cassn(new art::Assns<recob::Shower, recob::Cluster>);
-    std::auto_ptr< art::Assns<recob::Shower, recob::Hit>     > hassn(new art::Assns<recob::Shower, recob::Hit>);
+    std::unique_ptr<std::vector<recob::Shower> > showercol(new std::vector<recob::Shower>);
+    std::unique_ptr< art::Assns<recob::Shower, recob::Cluster> > cassn(new art::Assns<recob::Shower, recob::Cluster>);
+    std::unique_ptr< art::Assns<recob::Shower, recob::Hit>     > hassn(new art::Assns<recob::Shower, recob::Hit>);
 
     // Read in the vertex List object(s).
     art::Handle< std::vector<recob::EndPoint2D> > vertexListHandle;
@@ -291,9 +291,9 @@ namespace shwf{
 
     vertSel.clear();
     
-    evt.put(showercol);
-    evt.put(cassn);
-    evt.put(hassn);
+    evt.put(std::move(showercol));
+    evt.put(std::move(cassn));
+    evt.put(std::move(hassn));
 
     return;
   } // end of produce

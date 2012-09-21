@@ -357,7 +357,7 @@ fNPitch.resize(fNAngles);
   hitlist_all.resize(fNPlanes);
   
   
-  //std::auto_ptr<std::vector<recob::Shower> > Shower3DVector(new std::vector<recob::Shower>);
+  //std::unique_ptr<std::vector<recob::Shower> > Shower3DVector(new std::vector<recob::Shower>);
   
   for(size_t iClust = 0; iClust < CurrentClusters.size(); iClust++){
     
@@ -566,9 +566,9 @@ fNPitch.resize(fNAngles);
   
   recob::Shower  singShower(dcosVtx, dcosVtxErr, maxTransWidth, distMaxWidth, 1);
   
-   std::auto_ptr<std::vector<recob::Shower> > Shower3DVector(new std::vector<recob::Shower>);
-   std::auto_ptr< art::Assns<recob::Shower, recob::Cluster> > cassn(new art::Assns<recob::Shower, recob::Cluster>);
-   std::auto_ptr< art::Assns<recob::Shower, recob::Hit>     > hassn(new art::Assns<recob::Shower, recob::Hit>);
+   std::unique_ptr<std::vector<recob::Shower> > Shower3DVector(new std::vector<recob::Shower>);
+   std::unique_ptr< art::Assns<recob::Shower, recob::Cluster> > cassn(new art::Assns<recob::Shower, recob::Cluster>);
+   std::unique_ptr< art::Assns<recob::Shower, recob::Hit>     > hassn(new art::Assns<recob::Shower, recob::Hit>);
   
    Shower3DVector->push_back(singShower);
    // associate the shower with its clusters
@@ -580,8 +580,8 @@ fNPitch.resize(fNAngles);
     util::CreateAssn(*this, evt, *Shower3DVector, hits, *hassn);
    }
   
-  std::auto_ptr< std::vector<anab::Calorimetry> > calorimetrycol(new std::vector<anab::Calorimetry>);
-  std::auto_ptr< art::Assns< anab::Calorimetry,recob::Shower> > calassn(new art::Assns<anab::Calorimetry,recob::Shower>);
+  std::unique_ptr< std::vector<anab::Calorimetry> > calorimetrycol(new std::vector<anab::Calorimetry>);
+  std::unique_ptr< art::Assns< anab::Calorimetry,recob::Shower> > calassn(new art::Assns<anab::Calorimetry,recob::Shower>);
 
   calorimetrycol->push_back(anab::Calorimetry(Kin_En,
  						vdEdx,
@@ -609,11 +609,11 @@ fNPitch.resize(fNAngles);
   //fh_theta[iplane]->Write(Form("fh_theta_%d_%d",iplane,evt.id().event()));
   // This needs work, clearly.  
   //for(int p=0;p<2;p++)Shower3DVector->push_back(shower);
-  evt.put(Shower3DVector);
-  evt.put(cassn);  
-  evt.put(hassn);
-  evt.put(calorimetrycol);
-  evt.put(calassn);
+  evt.put(std::move(Shower3DVector));
+  evt.put(std::move(cassn));  
+  evt.put(std::move(hassn));
+  evt.put(std::move(calorimetrycol));
+  evt.put(std::move(calassn));
   } // end loop on Vectors of "Associated clusters"
 
 }

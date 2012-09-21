@@ -104,12 +104,12 @@ namespace shwf{
     }// end loop over clusters
 
     // loop over the map and make prongs
-    std::auto_ptr< std::vector<recob::Shower> > showercol(new std::vector<recob::Shower>);
-    std::auto_ptr< std::vector<recob::SpacePoint> > spcol(new std::vector<recob::SpacePoint>);
-    std::auto_ptr< art::Assns<recob::Shower, recob::Cluster> > scassn(new art::Assns<recob::Shower, recob::Cluster>);
-    std::auto_ptr< art::Assns<recob::Shower, recob::Hit> > shassn(new art::Assns<recob::Shower, recob::Hit>);
-    std::auto_ptr< art::Assns<recob::Shower, recob::SpacePoint> > sspassn(new art::Assns<recob::Shower, recob::SpacePoint>);
-    std::auto_ptr< art::Assns<recob::Hit, recob::SpacePoint> > sphassn(new art::Assns<recob::Hit, recob::SpacePoint>);
+    std::unique_ptr< std::vector<recob::Shower> > showercol(new std::vector<recob::Shower>);
+    std::unique_ptr< std::vector<recob::SpacePoint> > spcol(new std::vector<recob::SpacePoint>);
+    std::unique_ptr< art::Assns<recob::Shower, recob::Cluster> > scassn(new art::Assns<recob::Shower, recob::Cluster>);
+    std::unique_ptr< art::Assns<recob::Shower, recob::Hit> > shassn(new art::Assns<recob::Shower, recob::Hit>);
+    std::unique_ptr< art::Assns<recob::Shower, recob::SpacePoint> > sspassn(new art::Assns<recob::Shower, recob::SpacePoint>);
+    std::unique_ptr< art::Assns<recob::Hit, recob::SpacePoint> > sphassn(new art::Assns<recob::Hit, recob::SpacePoint>);
 
     for(clusterMapItr = eveClusterMap.begin(); clusterMapItr != eveClusterMap.end(); clusterMapItr++){
 
@@ -204,12 +204,12 @@ namespace shwf{
       }// end if this is a shower
     } // end loop over the map
 
-    evt.put(showercol);
-    evt.put(spcol);
-    evt.put(scassn);
-    evt.put(shassn);
-    evt.put(sspassn);
-    evt.put(sphassn);
+    evt.put(std::move(showercol));
+    evt.put(std::move(spcol));
+    evt.put(std::move(scassn));
+    evt.put(std::move(shassn));
+    evt.put(std::move(sspassn));
+    evt.put(std::move(sphassn));
 
     return;
 
