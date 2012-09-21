@@ -41,7 +41,7 @@ extern "C" {
 #include "art/Framework/Services/Optional/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
  
-#include "HoughLineFinderAna.h"
+#include "ClusterFinder/HoughLineFinderAna.h"
 #include "SimulationBase/simbase.h"
 #include "RawData/RawDigit.h"
 #include "RecoBase/recobase.h"

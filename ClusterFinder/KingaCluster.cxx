@@ -6,7 +6,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 
-#include "KingaCluster.h"
+#include "ClusterFinder/KingaCluster.h"
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>

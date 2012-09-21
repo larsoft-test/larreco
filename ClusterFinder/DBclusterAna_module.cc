@@ -9,7 +9,7 @@
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h" 
 
-#include "DBclusterAna.h"
+#include "ClusterFinder/DBclusterAna.h"
 
 namespace cluster{
 

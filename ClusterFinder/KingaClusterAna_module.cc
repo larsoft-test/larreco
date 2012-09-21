@@ -9,7 +9,7 @@
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h" 
 
-#include "KingaClusterAna.h"
+#include "ClusterFinder/KingaClusterAna.h"
 
 namespace cluster{
 
