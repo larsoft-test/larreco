@@ -93,13 +93,13 @@ void cluster::EndPointModule::produce(art::Event& evt)
   LOG_DEBUG("Vertex") << "found " << numvtx << "vertices with VertexService";
 
   //Point to a collection of vertices to output.
-  std::auto_ptr<std::vector<recob::EndPoint2D> > vtxcol(new std::vector<recob::EndPoint2D>(vtxOut));
-  std::auto_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assn(new art::Assns<recob::EndPoint2D, recob::Hit>);
+  std::unique_ptr<std::vector<recob::EndPoint2D> > vtxcol(new std::vector<recob::EndPoint2D>(vtxOut));
+  std::unique_ptr< art::Assns<recob::EndPoint2D, recob::Hit> > assn(new art::Assns<recob::EndPoint2D, recob::Hit>);
 
   for(size_t v = 0; v < vtxcol->size(); ++v)
     util::CreateAssn(*this, evt, *(vtxcol.get()), vtxHitsOut[v], *(assn.get()), v);
   
-  evt.put(vtxcol);   
-  evt.put(assn);
+  evt.put(std::move(vtxcol));   
+  evt.put(std::move(assn));
 }
 

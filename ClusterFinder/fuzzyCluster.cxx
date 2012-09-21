@@ -85,8 +85,8 @@ void cluster::fuzzyCluster::produce(art::Event& evt)
 {
    
   //get a collection of clusters   
-  std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
-  std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
+  std::unique_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
+  std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
   art::ServiceHandle<geo::Geometry> geom;
 
@@ -200,8 +200,8 @@ void cluster::fuzzyCluster::produce(art::Event& evt)
   mf::LogVerbatim("Summary") << "fuzzyCluster Summary:";
   for(unsigned int i = 0; i<ccol->size(); ++i) mf::LogVerbatim("Summary") << ccol->at(i) ;
 
-  evt.put(ccol);
-  evt.put(assn);
+  evt.put(std::move(ccol));
+  evt.put(std::move(assn));
 
   return;
 }

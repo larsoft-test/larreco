@@ -114,8 +114,8 @@ namespace cluster{
     }// end loop over hits
 
     // loop over the map and make clusters
-    std::auto_ptr< std::vector<recob::Cluster> > clustercol(new std::vector<recob::Cluster>);
-    std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
+    std::unique_ptr< std::vector<recob::Cluster> > clustercol(new std::vector<recob::Cluster>);
+    std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
     unsigned int plane = 0;
     unsigned int wire  = 0;
@@ -202,8 +202,8 @@ namespace cluster{
       } // end loop over the cryostats
     } // end loop over the map
 
-    evt.put(clustercol);
-    evt.put(assn);
+    evt.put(std::move(clustercol));
+    evt.put(std::move(assn));
 
     return;
 

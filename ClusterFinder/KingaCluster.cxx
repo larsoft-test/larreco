@@ -185,8 +185,8 @@ void cluster::KingaCluster::produce(art::Event& evt)
   evt.getByLabel(fDBScanModuleLabel,clusterListHandle);
 
   //Point to a collection of clusters to output.
-  std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
-  std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
+  std::unique_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
+  std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
   art::PtrVector<recob::Cluster> clusIn;
  
@@ -382,8 +382,8 @@ void cluster::KingaCluster::produce(art::Event& evt)
     }// end loop over tpcs 
   }// end loop over cryostats
  
-  evt.put(ccol);
-  evt.put(assn);
+  evt.put(std::move(ccol));
+  evt.put(std::move(assn));
     
   return;
 }

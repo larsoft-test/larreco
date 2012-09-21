@@ -99,8 +99,8 @@ namespace cluster{
       }// end switch on view
     }// end loop over input clusters
 
-    std::auto_ptr<std::vector<recob::Cluster> >             SuperClusters(new std::vector<recob::Cluster>);
-    std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
+    std::unique_ptr<std::vector<recob::Cluster> >             SuperClusters(new std::vector<recob::Cluster>);
+    std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
     for(int i = 0; i < nplanes; ++i){
 
@@ -183,8 +183,8 @@ namespace cluster{
     for(size_t i = 0; i < SuperClusters->size(); ++i) 
       mf::LogVerbatim("Summary") << SuperClusters->at(i);
 
-    evt.put(SuperClusters);
-    evt.put(assn);
+    evt.put(std::move(SuperClusters));
+    evt.put(std::move(assn));
 
     return;
 

@@ -473,8 +473,8 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
   
  
   // make an art::PtrVector of the clusters
-  std::auto_ptr<std::vector<recob::Cluster> > ShowerAngleCluster(new std::vector<recob::Cluster>);
-  std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
+  std::unique_ptr<std::vector<recob::Cluster> > ShowerAngleCluster(new std::vector<recob::Cluster>);
+  std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
   for(unsigned int iplane=0;iplane<fNPlanes;iplane++){
     std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iplane);
@@ -511,7 +511,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
   }
 
   /////////////////////////////////////////////
-  std::auto_ptr< std::vector < art::PtrVector < recob::Cluster > > > classn(new std::vector < art::PtrVector < recob::Cluster > >);
+  std::unique_ptr< std::vector < art::PtrVector < recob::Cluster > > > classn(new std::vector < art::PtrVector < recob::Cluster > >);
   
   if(!matchflag)
      {
@@ -535,9 +535,9 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
   /**Fill the output tree with all information */
   ftree_cluster->Fill();
 
-  evt.put(ShowerAngleCluster);
-  evt.put(assn);
-  evt.put(classn);
+  evt.put(std::move(ShowerAngleCluster));
+  evt.put(std::move(assn));
+  evt.put(std::move(classn));
 }
 
 

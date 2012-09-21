@@ -103,8 +103,8 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
   LOG_DEBUG("HoughLineClusters") << "found " << numclus << "clusters with HoughBaseAlg";
 
   //Point to a collection of clusters to output.
-  std::auto_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>(clusOut));
-  std::auto_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
+  std::unique_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>(clusOut));
+  std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
   mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
   mf::LogVerbatim("Summary") << "HoughLineFinder Summary:";
@@ -115,8 +115,8 @@ void cluster::HoughLineFinder::produce(art::Event& evt)
     util::CreateAssn(*this, evt, *(ccol.get()), clusHitsOut[i], *(assn.get()), i);
   }
 
-  evt.put(ccol);
-  evt.put(assn);
+  evt.put(std::move(ccol));
+  evt.put(std::move(assn));
   return;
 }
 
