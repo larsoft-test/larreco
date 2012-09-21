@@ -70,9 +70,9 @@ namespace trkf {
 
     // Declare products to store
 
-    std::auto_ptr< std::vector<recob::Track > > btracks ( new std::vector<recob::Track>);
-    std::auto_ptr< std::vector<recob::Seed > > seeds ( new std::vector<recob::Seed>);
-    std::auto_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
+    std::unique_ptr< std::vector<recob::Track > > btracks ( new std::vector<recob::Track>);
+    std::unique_ptr< std::vector<recob::Seed > > seeds ( new std::vector<recob::Seed>);
+    std::unique_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
    
     std::vector<trkf::BezierTrack * >         BTracks;
     std::vector<recob::Seed * >               SeedsToStore;
@@ -134,9 +134,9 @@ namespace trkf {
       }
   
     mf::LogInfo("BezierTrackerAlgorithm")<<"Storing in evt"<<std::endl;
-    evt.put(btracks);
-    evt.put(seeds);
-    evt.put(assn);
+    evt.put(std::move(btracks));
+    evt.put(std::move(seeds));
+    evt.put(std::move(assn));
   }
 
 

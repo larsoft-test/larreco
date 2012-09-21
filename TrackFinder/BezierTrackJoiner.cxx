@@ -63,11 +63,11 @@ namespace trkf {
 
     // Declare products to store
     
-    std::auto_ptr< std::vector<recob::Track > > tracksout ( new std::vector<recob::Track>);
-    std::auto_ptr< std::vector<recob::Vertex > > verticesout ( new std::vector<recob::Vertex>);
-    std::auto_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Track > > tvassn( new art::Assns<recob::Vertex, recob::Track>);
-    std::auto_ptr< art::Assns<recob::Vertex, recob::Hit > > vhassn( new art::Assns<recob::Vertex, recob::Hit>);
+    std::unique_ptr< std::vector<recob::Track > > tracksout ( new std::vector<recob::Track>);
+    std::unique_ptr< std::vector<recob::Vertex > > verticesout ( new std::vector<recob::Vertex>);
+    std::unique_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Track > > tvassn( new art::Assns<recob::Vertex, recob::Track>);
+    std::unique_ptr< art::Assns<recob::Vertex, recob::Hit > > vhassn( new art::Assns<recob::Vertex, recob::Hit>);
     
         
     mf::LogVerbatim("BezierTrackJoiner") << "Getting tracks ";
@@ -162,9 +162,9 @@ namespace trkf {
 
     // Store the fruits of our labour in the event
     mf::LogVerbatim("BezierTrackJoiner") << "Storing in evt";
-    evt.put(tracksout);
-    evt.put(verticesout);
-    evt.put(tvassn);
+    evt.put(std::move(tracksout));
+    evt.put(std::move(verticesout));
+    evt.put(std::move(tvassn));
     
 
   }

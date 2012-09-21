@@ -325,13 +325,13 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   art::ServiceHandle<util::LArProperties> larprop;
 
   //////////////////////////////////////////////////////
-  // Make a std::auto_ptr<> for the thing you want to put into the event
+  // Make a std::unique_ptr<> for the thing you want to put into the event
   // because that handles the memory management for you
   //////////////////////////////////////////////////////
-  std::auto_ptr<std::vector<recob::Track> > tcol(new std::vector<recob::Track>);
-  std::auto_ptr< art::Assns<recob::Track, recob::SpacePoint> > tspassn(new art::Assns<recob::Track, recob::SpacePoint>); 
-  std::auto_ptr< art::Assns<recob::Track, recob::Cluster> > assn(new art::Assns<recob::Track, recob::Cluster>); 
-  std::auto_ptr< art::Assns<recob::Track, recob::Hit> > hassn(new art::Assns<recob::Track, recob::Hit>); 
+  std::unique_ptr<std::vector<recob::Track> > tcol(new std::vector<recob::Track>);
+  std::unique_ptr< art::Assns<recob::Track, recob::SpacePoint> > tspassn(new art::Assns<recob::Track, recob::SpacePoint>); 
+  std::unique_ptr< art::Assns<recob::Track, recob::Cluster> > assn(new art::Assns<recob::Track, recob::Cluster>); 
+  std::unique_ptr< art::Assns<recob::Track, recob::Hit> > hassn(new art::Assns<recob::Track, recob::Hit>); 
   unsigned int tcnt = 0;
 
   // define TPC parameters
@@ -866,8 +866,8 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
       
       if (!repMC) delete repMC;
       
-      evt.put(tcol); 
-      evt.put(assn);
-      evt.put(hassn);
-      evt.put(tspassn);
+      evt.put(std::move(tcol)); 
+      evt.put(std::move(assn));
+      evt.put(std::move(hassn));
+      evt.put(std::move(tspassn));
 }

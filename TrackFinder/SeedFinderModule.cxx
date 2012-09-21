@@ -58,7 +58,7 @@ namespace trkf {
   void SeedFinderModule::produce(art::Event& evt)
   {
     
-    std::auto_ptr<std::vector<recob::Seed> > seeds(new std::vector<recob::Seed>);
+    std::unique_ptr<std::vector<recob::Seed> > seeds(new std::vector<recob::Seed>);
 
     std::vector<std::vector<recob::SpacePoint> > SpacePointsWithSeeds;
     std::vector<recob::Seed> SeedVector;
@@ -110,7 +110,7 @@ namespace trkf {
     else
       std::cout<<"Seed finder made no seeds : no space points in event"<<std::endl;
     
-    evt.put(seeds);
+    evt.put(std::move(seeds));
     
 
 

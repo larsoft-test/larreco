@@ -98,10 +98,10 @@ namespace trkf {
 
       // Make a collection of space points that will be inserted into the event.
 
-      std::auto_ptr<std::vector< art::PtrVector<recob::SpacePoint> > > sptvecs(new std::vector< art::PtrVector<recob::SpacePoint> >);
-      std::auto_ptr<std::vector<recob::SpacePoint> >                   spts(new std::vector<recob::SpacePoint>);
-      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Hit> >       sphitassn(new art::Assns<recob::SpacePoint, recob::Hit>);
-      std::auto_ptr< art::Assns<recob::SpacePoint, recob::Cluster> >   spclassn(new art::Assns<recob::SpacePoint, recob::Cluster>);
+      std::unique_ptr<std::vector< art::PtrVector<recob::SpacePoint> > > sptvecs(new std::vector< art::PtrVector<recob::SpacePoint> >);
+      std::unique_ptr<std::vector<recob::SpacePoint> >                   spts(new std::vector<recob::SpacePoint>);
+      std::unique_ptr< art::Assns<recob::SpacePoint, recob::Hit> >       sphitassn(new art::Assns<recob::SpacePoint, recob::Hit>);
+      std::unique_ptr< art::Assns<recob::SpacePoint, recob::Cluster> >   spclassn(new art::Assns<recob::SpacePoint, recob::Cluster>);
 
       // Make a hit vector which will be used to store hits to be passed
       // to SpacePointAlg.
@@ -281,11 +281,11 @@ namespace trkf {
 
       // Add space points and associations to event.
 
-      evt.put(spts);
-      evt.put(sptvecs);
-      evt.put(sphitassn);
+      evt.put(std::move(spts));
+      evt.put(std::move(sptvecs));
+      evt.put(std::move(sphitassn));
       if(fClusterAssns)
-	evt.put(spclassn);
+	evt.put(std::move(spclassn));
     }
   }
 

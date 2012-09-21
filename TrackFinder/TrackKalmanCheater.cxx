@@ -118,15 +118,15 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
   // Make a collection of tracks, plus associations, that will
   // eventually be inserted into the event.
 
-  std::auto_ptr<std::vector<recob::Track> > tracks(new std::vector<recob::Track>);
-  std::auto_ptr< art::Assns<recob::Track, recob::Hit> > th_assn(new art::Assns<recob::Track, recob::Hit>);
-  std::auto_ptr< art::Assns<recob::Track, recob::SpacePoint> > tsp_assn(new art::Assns<recob::Track, recob::SpacePoint>);
+  std::unique_ptr<std::vector<recob::Track> > tracks(new std::vector<recob::Track>);
+  std::unique_ptr< art::Assns<recob::Track, recob::Hit> > th_assn(new art::Assns<recob::Track, recob::Hit>);
+  std::unique_ptr< art::Assns<recob::Track, recob::SpacePoint> > tsp_assn(new art::Assns<recob::Track, recob::SpacePoint>);
 
   // Make a collection of space points, plus associations, that will
   // be inserted into the event.
 
-  std::auto_ptr<std::vector<recob::SpacePoint> > spts(new std::vector<recob::SpacePoint>);
-  std::auto_ptr< art::Assns<recob::SpacePoint, recob::Hit> > sph_assn(new art::Assns<recob::SpacePoint, recob::Hit>);
+  std::unique_ptr<std::vector<recob::SpacePoint> > spts(new std::vector<recob::SpacePoint>);
+  std::unique_ptr< art::Assns<recob::SpacePoint, recob::Hit> > sph_assn(new art::Assns<recob::SpacePoint, recob::Hit>);
 
   // Make a collection of KGTracks where we will save our results.
 
@@ -404,11 +404,11 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 
   // Add tracks and associations to event.
 
-  evt.put(tracks);
-  evt.put(spts);
-  evt.put(th_assn);
-  evt.put(tsp_assn);
-  evt.put(sph_assn);
+  evt.put(std::move(tracks));
+  evt.put(std::move(spts));
+  evt.put(std::move(th_assn));
+  evt.put(std::move(tsp_assn));
+  evt.put(std::move(sph_assn));
 }
 
 //------------------------------------------------------------------------------

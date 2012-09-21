@@ -91,15 +91,15 @@ void trkf::SpacePts::produce(art::Event& evt)
   art::ServiceHandle<util::LArProperties> larprop;
   
   //////////////////////////////////////////////////////
-  // Make a std::auto_ptr<> for the thing you want to put into the event
+  // Make a std::unique_ptr<> for the thing you want to put into the event
   // because that handles the memory management for you
   //////////////////////////////////////////////////////
-  std::auto_ptr<std::vector<recob::Track>      >              tcol (new std::vector<recob::Track>);	   
-  std::auto_ptr<std::vector<recob::SpacePoint> > 	      spcol(new std::vector<recob::SpacePoint>);
-  std::auto_ptr<art::Assns<recob::Track, recob::SpacePoint> > tspassn(new art::Assns<recob::Track, recob::SpacePoint>);
-  std::auto_ptr<art::Assns<recob::Track, recob::Cluster> >    tcassn(new art::Assns<recob::Track, recob::Cluster>);
-  std::auto_ptr<art::Assns<recob::Track, recob::Hit> >        thassn(new art::Assns<recob::Track, recob::Hit>);
-  std::auto_ptr<art::Assns<recob::SpacePoint, recob::Hit> >   shassn(new art::Assns<recob::SpacePoint, recob::Hit>);
+  std::unique_ptr<std::vector<recob::Track>      >              tcol (new std::vector<recob::Track>);	   
+  std::unique_ptr<std::vector<recob::SpacePoint> > 	      spcol(new std::vector<recob::SpacePoint>);
+  std::unique_ptr<art::Assns<recob::Track, recob::SpacePoint> > tspassn(new art::Assns<recob::Track, recob::SpacePoint>);
+  std::unique_ptr<art::Assns<recob::Track, recob::Cluster> >    tcassn(new art::Assns<recob::Track, recob::Cluster>);
+  std::unique_ptr<art::Assns<recob::Track, recob::Hit> >        thassn(new art::Assns<recob::Track, recob::Hit>);
+  std::unique_ptr<art::Assns<recob::SpacePoint, recob::Hit> >   shassn(new art::Assns<recob::SpacePoint, recob::Hit>);
   // define TPC parameters
   TString tpcName = geom->GetLArTPCVolumeName();
   
@@ -597,11 +597,11 @@ void trkf::SpacePts::produce(art::Event& evt)
    mf::LogVerbatim("Summary") << "SpacePts Summary:";
    for(unsigned int i = 0; i<tcol->size(); ++i) mf::LogVerbatim("Summary") << tcol->at(i) ;
  
-   evt.put(tcol);
-   evt.put(spcol);
-   evt.put(tspassn);
-   evt.put(tcassn);
-   evt.put(thassn);
-   evt.put(shassn);
+   evt.put(std::move(tcol));
+   evt.put(std::move(spcol));
+   evt.put(std::move(tspassn));
+   evt.put(std::move(tcassn));
+   evt.put(std::move(thassn));
+   evt.put(std::move(shassn));
 
 }

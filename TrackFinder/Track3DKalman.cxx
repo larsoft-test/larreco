@@ -198,14 +198,14 @@ void trkf::Track3DKalman::produce(art::Event& evt)
   CLHEP::RandGaussQ gauss(engine);
 
   //////////////////////////////////////////////////////
-  // Make a std::auto_ptr<> for the thing you want to put into the event
+  // Make a std::unique_ptr<> for the thing you want to put into the event
   // because that handles the memory management for you
   //////////////////////////////////////////////////////
-  std::auto_ptr<std::vector<recob::Track> > tcol(new std::vector<recob::Track>);
-  std::auto_ptr< std::vector<recob::SpacePoint> >              spcol  (new std::vector<recob::SpacePoint>);
-  std::auto_ptr< art::Assns<recob::Track, recob::SpacePoint> > tspassn(new art::Assns<recob::Track, recob::SpacePoint>);
-  std::auto_ptr< art::Assns<recob::Track, recob::Cluster> >    tcassn (new art::Assns<recob::Track, recob::Cluster>);
-  std::auto_ptr< art::Assns<recob::Track, recob::Hit> >        thassn (new art::Assns<recob::Track, recob::Hit>);
+  std::unique_ptr<std::vector<recob::Track> > tcol(new std::vector<recob::Track>);
+  std::unique_ptr< std::vector<recob::SpacePoint> >              spcol  (new std::vector<recob::SpacePoint>);
+  std::unique_ptr< art::Assns<recob::Track, recob::SpacePoint> > tspassn(new art::Assns<recob::Track, recob::SpacePoint>);
+  std::unique_ptr< art::Assns<recob::Track, recob::Cluster> >    tcassn (new art::Assns<recob::Track, recob::Cluster>);
+  std::unique_ptr< art::Assns<recob::Track, recob::Hit> >        thassn (new art::Assns<recob::Track, recob::Hit>);
 
   // define TPC parameters
   TString tpcName = geom->GetLArTPCVolumeName();
@@ -496,10 +496,10 @@ void trkf::Track3DKalman::produce(art::Event& evt)
 	
       } // end loop over Track3Dreco/SpacePt tracks/groups (whichever) we brought into this event.
       
-      evt.put(tcol);
-      evt.put(spcol);
-      evt.put(tcassn);
-      evt.put(thassn);
-      evt.put(tspassn);
+      evt.put(std::move(tcol));
+      evt.put(std::move(spcol));
+      evt.put(std::move(tcassn));
+      evt.put(std::move(thassn));
+      evt.put(std::move(tspassn));
 
 }

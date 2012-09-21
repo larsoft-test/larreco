@@ -84,12 +84,12 @@ void trkf::Track3Dreco::produce(art::Event& evt)
    art::ServiceHandle<geo::Geometry> geom;
    art::ServiceHandle<util::LArProperties> larprop;
 
-   std::auto_ptr<std::vector<recob::Track>                    > tcol(new std::vector<recob::Track>);
-   std::auto_ptr<std::vector<recob::SpacePoint>               > spacepoints(new std::vector<recob::SpacePoint>);
-   std::auto_ptr< art::Assns<recob::Track, recob::Cluster>    > cassn (new art::Assns<recob::Track,      recob::Cluster>);
-   std::auto_ptr< art::Assns<recob::Track, recob::SpacePoint> > sassn (new art::Assns<recob::Track,      recob::SpacePoint>);
-   std::auto_ptr< art::Assns<recob::SpacePoint, recob::Hit>   > shassn(new art::Assns<recob::SpacePoint, recob::Hit>);
-   std::auto_ptr< art::Assns<recob::Track, recob::Hit>        > hassn (new art::Assns<recob::Track,      recob::Hit>);
+   std::unique_ptr<std::vector<recob::Track>                    > tcol(new std::vector<recob::Track>);
+   std::unique_ptr<std::vector<recob::SpacePoint>               > spacepoints(new std::vector<recob::SpacePoint>);
+   std::unique_ptr< art::Assns<recob::Track, recob::Cluster>    > cassn (new art::Assns<recob::Track,      recob::Cluster>);
+   std::unique_ptr< art::Assns<recob::Track, recob::SpacePoint> > sassn (new art::Assns<recob::Track,      recob::SpacePoint>);
+   std::unique_ptr< art::Assns<recob::SpacePoint, recob::Hit>   > shassn(new art::Assns<recob::SpacePoint, recob::Hit>);
+   std::unique_ptr< art::Assns<recob::Track, recob::Hit>        > hassn (new art::Assns<recob::Track,      recob::Hit>);
 
    // define TPC parameters
    TString tpcName = geom->GetLArTPCVolumeName();
@@ -558,12 +558,12 @@ void trkf::Track3Dreco::produce(art::Event& evt)
       mf::LogVerbatim("Summary") << tcol->at(i) ;
    } 
  
-   evt.put(tcol);
-   evt.put(spacepoints);
-   evt.put(cassn);
-   evt.put(sassn);
-   evt.put(hassn);
-   evt.put(shassn);
+   evt.put(std::move(tcol));
+   evt.put(std::move(spacepoints));
+   evt.put(std::move(cassn));
+   evt.put(std::move(sassn));
+   evt.put(std::move(hassn));
+   evt.put(std::move(shassn));
 
    return;
 }

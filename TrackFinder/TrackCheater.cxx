@@ -106,11 +106,11 @@ namespace trkf{
     }// end loop over clusters
 
     // loop over the map and make prongs
-    std::auto_ptr< std::vector<recob::Track> >                   trackcol(new std::vector<recob::Track>);
-    std::auto_ptr< std::vector<recob::SpacePoint> >              spcol  (new std::vector<recob::SpacePoint>);
-    std::auto_ptr< art::Assns<recob::Track, recob::SpacePoint> > tspassn(new art::Assns<recob::Track, recob::SpacePoint>);
-    std::auto_ptr< art::Assns<recob::Track, recob::Cluster> >    tcassn (new art::Assns<recob::Track, recob::Cluster>);
-    std::auto_ptr< art::Assns<recob::Track, recob::Hit> >        thassn (new art::Assns<recob::Track, recob::Hit>);
+    std::unique_ptr< std::vector<recob::Track> >                   trackcol(new std::vector<recob::Track>);
+    std::unique_ptr< std::vector<recob::SpacePoint> >              spcol  (new std::vector<recob::SpacePoint>);
+    std::unique_ptr< art::Assns<recob::Track, recob::SpacePoint> > tspassn(new art::Assns<recob::Track, recob::SpacePoint>);
+    std::unique_ptr< art::Assns<recob::Track, recob::Cluster> >    tcassn (new art::Assns<recob::Track, recob::Cluster>);
+    std::unique_ptr< art::Assns<recob::Track, recob::Hit> >        thassn (new art::Assns<recob::Track, recob::Hit>);
 
     for(clusterMapItr = eveClusterMap.begin(); clusterMapItr != eveClusterMap.end(); clusterMapItr++){
 
@@ -208,11 +208,11 @@ namespace trkf{
 
     } // end loop over the map
 
-    evt.put(trackcol);
-    evt.put(spcol);
-    evt.put(tcassn);
-    evt.put(thassn);
-    evt.put(tspassn);
+    evt.put(std::move(trackcol));
+    evt.put(std::move(spcol));
+    evt.put(std::move(tcassn));
+    evt.put(std::move(thassn));
+    evt.put(std::move(tspassn));
 
     return;
 
