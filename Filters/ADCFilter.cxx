@@ -23,7 +23,7 @@
 
 
 //Larsoft Includes
-#include "ADCFilter.h"
+#include "Filters/ADCFilter.h"
 #include "RawData/raw.h"
 #include "Filters/ChannelFilter.h"
 

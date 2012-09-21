@@ -21,7 +21,7 @@
 
 
 //Larsoft Includes
-#include "FinalStateParticleFilter.h"
+#include "Filters/FinalStateParticleFilter.h"
 #include "TDatabasePDG.h"
 #include "SimulationBase/MCNeutrino.h"
 #include "SimulationBase/simbase.h"
