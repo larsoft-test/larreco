@@ -35,8 +35,8 @@ hit::HitCheater::~HitCheater()
 //-------------------------------------------------------------------
 void hit::HitCheater::produce(art::Event & e)
 {
-  // make the auto_ptr for the hits
-  std::auto_ptr< std::vector<recob::Hit> > hits(new std::vector<recob::Hit>);
+  // make the unique_ptr for the hits
+  std::unique_ptr< std::vector<recob::Hit> > hits(new std::vector<recob::Hit>);
 
   // Read in the wire List object(s).
   art::Handle< std::vector<recob::Wire> > wHandle;
@@ -65,7 +65,7 @@ void hit::HitCheater::produce(art::Event & e)
 
   // put the cheated hits into the event
   LOG_DEBUG("HitCheater") << "putting " << hits->size() << " hits into the event";
-  e.put(hits);
+  e.put(std::move(hits));
 
   return;
 }

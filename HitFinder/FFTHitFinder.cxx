@@ -74,7 +74,7 @@ namespace hit{
   void FFTHitFinder::produce(art::Event& evt)
   { 
     
-    std::auto_ptr<std::vector<recob::Hit> > hcol(new std::vector<recob::Hit>);
+    std::unique_ptr<std::vector<recob::Hit> > hcol(new std::vector<recob::Hit>);
     // Read in the wire List object(s).
     art::Handle< std::vector<recob::Wire> > wireVecHandle;
     evt.getByLabel(fCalDataModuleLabel,wireVecHandle);
@@ -318,7 +318,7 @@ namespace hit{
       
     } // while on Wires
     
-    evt.put(hcol);
+    evt.put(std::move(hcol));
 
   } // End of produce()
   

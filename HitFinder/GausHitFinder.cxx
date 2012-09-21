@@ -111,7 +111,7 @@ void GausHitFinder::produce(art::Event& evt)
   // ---------------------------
   TF1 *hit	= new TF1("hit","gaus",0,9000);
 
-  std::auto_ptr<std::vector<recob::Hit> > hcol(new std::vector<recob::Hit>);
+  std::unique_ptr<std::vector<recob::Hit> > hcol(new std::vector<recob::Hit>);
     
   // ##########################################
   // ### Reading in the Wire List object(s) ###
@@ -517,7 +517,7 @@ void GausHitFinder::produce(art::Event& evt)
   
   
     
-  evt.put(hcol);
+  evt.put(std::move(hcol));
   
 
 
