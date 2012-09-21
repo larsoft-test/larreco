@@ -27,7 +27,7 @@
 #include "TMatrixT.h"
 #include "TObject.h"
 
-#include "GFDetPlane.h"
+#include "Genfit/GFDetPlane.h"
 
 namespace genf {
 

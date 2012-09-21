@@ -1,5 +1,5 @@
-#include "GFAbsRecoHit.h"
-#include "SlTrackRep.h"
+#include "Genfit/GFAbsRecoHit.h"
+#include "Genfit/SlTrackRep.h"
 #include <cmath>
 
 genf::SlTrackRep::SlTrackRep()

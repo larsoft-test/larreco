@@ -19,7 +19,7 @@
 #include <assert.h>
 #include <iostream>
 
-#include "GFTrack.h"
+#include "Genfit/GFTrack.h"
 #include "TVirtualGeoTrack.h"
 
 genf::GFTrack::GFTrack(GFAbsTrackRep* defaultRep) 

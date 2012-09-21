@@ -27,7 +27,7 @@
 #include "TMatrixT.h"
 #include "TObject.h"
 
-#include "GFDetPlane.h"
+#include "Genfit/GFDetPlane.h"
 
 /** @brief policy class for hits in wire detectors (STT and DCH)
  *  which can measure the coordinate along the wire

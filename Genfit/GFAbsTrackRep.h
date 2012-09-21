@@ -31,7 +31,7 @@
 #include "TMatrixT.h"
 #include "TVector3.h"
 
-#include "GFDetPlane.h"
+#include "Genfit/GFDetPlane.h"
 
 //class genf::GFAbsRecoHit;    
 

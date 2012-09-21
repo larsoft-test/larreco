@@ -31,7 +31,7 @@
 #ifndef GFRECTFINITEPLANE_H
 #define GFRECTFINITEPLANE_H
 
-#include "GFAbsFinitePlane.h"
+#include "Genfit/GFAbsFinitePlane.h"
 
 /** @brief Concrete implementation of finitie detector plane for rectangles.
  */

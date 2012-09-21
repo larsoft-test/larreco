@@ -20,7 +20,7 @@
 // Please see GFWireHitPolicy.h  before using this class.
 // ----------------------------------------------------------
 
-#include "GFWireHitPolicy.h"
+#include "Genfit/GFWireHitPolicy.h"
 
 #include "assert.h"
 #include <cmath>
@@ -28,8 +28,8 @@
 #include "TMath.h"
 #include "TVector3.h"
 
-#include "GFAbsRecoHit.h"
-#include "GFException.h"
+#include "Genfit/GFAbsRecoHit.h"
+#include "Genfit/GFException.h"
 
 const std::string genf::GFWireHitPolicy::fPolicyName = "GFWireHitPolicy";
 

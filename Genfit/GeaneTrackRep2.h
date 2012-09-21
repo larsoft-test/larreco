@@ -21,7 +21,7 @@
 #define GeaneTRACKREP2_HH
 
 // Base Class Headers ----------------
-#include "GFAbsTrackRep.h"
+#include "Genfit/GFAbsTrackRep.h"
 //#include "FairTrackParP.h"
 
 // Collaborating Class Headers -------

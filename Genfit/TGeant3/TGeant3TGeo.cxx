@@ -392,13 +392,13 @@ Cleanup of code
 #include "TArrayI.h"
 #include "TArrayD.h"
 
-#include "TGeant3TGeo.h"
+#include "Genfit/TGeant3/TGeant3TGeo.h"
 
 #include "TGeoManager.h"
 #include "TGeoMatrix.h"
 #include "TGeoMCGeometry.h"
 
-#include "TCallf77.h"
+#include "Genfit/TGeant3/TCallf77.h"
 #include "TVirtualMCDecayer.h"
 #include "TPDGCode.h"
 

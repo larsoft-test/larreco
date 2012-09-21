@@ -33,9 +33,9 @@
 #include "TMath.h"
 #include "TGeoManager.h"
 #include "TDatabasePDG.h"
-#include "GFException.h"
-#include "GFFieldManager.h"
-#include "GFMaterialEffects.h"
+#include "Genfit/GFException.h"
+#include "Genfit/GFFieldManager.h"
+#include "Genfit/GFMaterialEffects.h"
 
 #include "cetlib/exception.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"

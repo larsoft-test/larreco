@@ -26,7 +26,7 @@
  */
 
 
-#include "GFDaf.h"
+#include "Genfit/GFDaf.h"
 
 #include "assert.h"
 #include "stdlib.h"
@@ -36,12 +36,12 @@
 #include "TMath.h"
 #include "math.h"
 
-#include "GFTrack.h"
-#include "GFAbsRecoHit.h"
-#include "GFAbsTrackRep.h"
-#include "GFException.h"
-#include "GFAbsRecoHit.h"
-#include "GFAbsTrackRep.h"
+#include "Genfit/GFTrack.h"
+#include "Genfit/GFAbsRecoHit.h"
+#include "Genfit/GFAbsTrackRep.h"
+#include "Genfit/GFException.h"
+#include "Genfit/GFAbsRecoHit.h"
+#include "Genfit/GFAbsTrackRep.h"
   
 #define COVEXC "cov_is_zero"
 

@@ -17,7 +17,7 @@
    along with GENFIT.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "GFEnergyLossBrems.h"
+#include "Genfit/GFEnergyLossBrems.h"
 #include "assert.h"
 #include "math.h"
 #include <iostream>

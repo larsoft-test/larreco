@@ -29,9 +29,9 @@
 #define RKTRACKREP_H
 
 
-#include "GFAbsTrackRep.h"
-#include "GFDetPlane.h"
-#include "GFTrackCand.h"
+#include "Genfit/GFAbsTrackRep.h"
+#include "Genfit/GFDetPlane.h"
+#include "Genfit/GFTrackCand.h"
 #include <TMatrixT.h>
 
 //#include "GFMaterialEffects.h"

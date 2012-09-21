@@ -1,4 +1,4 @@
-#include "GeaneMCApplication.h"
+#include "Genfit/GeaneMCApplication.h"
 #include "TVirtualMC.h"
 #include <iostream>
 #include "TSystem.h"

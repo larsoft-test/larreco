@@ -17,20 +17,20 @@
    along with GENFIT.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "GFMaterialEffects.h"
+#include "Genfit/GFMaterialEffects.h"
 #include <iostream>
 #include "stdlib.h"
 
 
 #include "math.h"
 
-#include "GFAbsEnergyLoss.h"
-#include "GFEnergyLossBetheBloch.h"
-#include "GFEnergyLossBrems.h"
-#include "GFEnergyLossCoulomb.h"
-#include "GFException.h"
+#include "Genfit/GFAbsEnergyLoss.h"
+#include "Genfit/GFEnergyLossBetheBloch.h"
+#include "Genfit/GFEnergyLossBrems.h"
+#include "Genfit/GFEnergyLossCoulomb.h"
+#include "Genfit/GFException.h"
 
-#include "GFGeoMatManager.h"
+#include "Genfit/GFGeoMatManager.h"
 
 genf::GFMaterialEffects* genf::GFMaterialEffects::finstance = NULL;
 

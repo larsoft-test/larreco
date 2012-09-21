@@ -17,7 +17,7 @@
    along with GENFIT.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "GFEnergyLossCoulomb.h"
+#include "Genfit/GFEnergyLossCoulomb.h"
 #include "assert.h"
 #include "math.h"
 #include <iostream>

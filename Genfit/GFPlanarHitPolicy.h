@@ -29,7 +29,7 @@
 #include "TMatrixT.h"
 #include "TObject.h"
 
-#include "GFDetPlane.h"
+#include "Genfit/GFDetPlane.h"
 
 
 /** @brief Policy class implementing a planar hit geometry. 

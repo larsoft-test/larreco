@@ -29,8 +29,8 @@
 #include "TMatrixT.h"
 #include "TObject.h"
 
-#include "GFAbsTrackRep.h"
-#include "GFDetPlane.h"
+#include "Genfit/GFAbsTrackRep.h"
+#include "Genfit/GFDetPlane.h"
 #include<cmath>
 
 /** @brief Base Class for representing a Hit in GENFIT

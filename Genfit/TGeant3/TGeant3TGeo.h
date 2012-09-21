@@ -10,7 +10,7 @@
 ////////////////////////////////////////////////
 
 
-#include "TGeant3.h"
+#include "Genfit/TGeant3/TGeant3.h"
 
 class TGeoMaterial;
 

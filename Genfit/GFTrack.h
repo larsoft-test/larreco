@@ -27,14 +27,14 @@
 #include"assert.h"
 #include<map>
 
-#include "GFAbsTrackRep.h"
-#include "GFAbsRecoHit.h"
+#include "Genfit/GFAbsTrackRep.h"
+#include "Genfit/GFAbsRecoHit.h"
 
 #include "TClonesArray.h"
 #include "TObjArray.h"
 
-#include "GFTrackCand.h"
-#include "GFBookkeeping.h"
+#include "Genfit/GFTrackCand.h"
+#include "Genfit/GFBookkeeping.h"
 
 class TVirtualGeoTrack;
 

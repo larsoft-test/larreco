@@ -1,14 +1,14 @@
 // This Class' Header ------------------
-#include "PointHit.h"
+#include "Genfit/PointHit.h"
 
 // C/C++ Headers ----------------------
 
 
 // Collaborating Class Headers --------
-#include "GeaneTrackRep2.h"
-#include "RKTrackRep.h"
-#include "SlTrackRep.h"
-#include "GFDetPlane.h"
+#include "Genfit/GeaneTrackRep2.h"
+#include "Genfit/RKTrackRep.h"
+#include "Genfit/SlTrackRep.h"
+#include "Genfit/GFDetPlane.h"
 #include "TRandom.h"
 #include "math.h"
 

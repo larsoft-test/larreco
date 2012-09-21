@@ -17,7 +17,7 @@
    along with GENFIT.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "GFEnergyLossBetheBloch.h"
+#include "Genfit/GFEnergyLossBetheBloch.h"
 #include "assert.h"
 #include "math.h"
 #include <iostream>

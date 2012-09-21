@@ -18,7 +18,7 @@
 // Panda Headers ----------------------
 
 // This Class' Header ------------------
-#include "GeaneTrackRep2.h"
+#include "Genfit/GeaneTrackRep2.h"
 
 // C/C++ Headers ----------------------
 #include <iostream>
@@ -26,8 +26,8 @@
 #include <cassert>
 
 // Collaborating Class Headers --------
-#include "GFAbsRecoHit.h"
-#include "GFException.h"
+#include "Genfit/GFAbsRecoHit.h"
+#include "Genfit/GFException.h"
 #include "TGeant3/TGeant3.h"
 #include "TDatabasePDG.h"
 // Class Member definitions -----------

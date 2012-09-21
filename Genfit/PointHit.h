@@ -2,8 +2,8 @@
 #define POINTHIT_HH
 
 // Base Class Headers ----------------
-#include "GFRecoHitIfc.h"
-#include "GFSpacepointHitPolicy.h"
+#include "Genfit/GFRecoHitIfc.h"
+#include "Genfit/GFSpacepointHitPolicy.h"
 
 // Collaborating Class Headers -------
 #include <ostream> // remove if you do not need streaming op

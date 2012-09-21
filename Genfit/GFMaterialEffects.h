@@ -34,8 +34,8 @@
 #include "TGeoMaterial.h"
 #include "TGeoManager.h"
 
-#include "GFAbsEnergyLoss.h"
-#include "GFGeoMatManager.h"
+#include "Genfit/GFAbsEnergyLoss.h"
+#include "Genfit/GFGeoMatManager.h"
 
   
 /** @brief  Handles energy loss classes. Contains stepper and energy loss/noise matrix calculation

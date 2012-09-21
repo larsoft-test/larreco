@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Lesser General Public License
    along with GENFIT.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "GFKalman.h"
+#include "Genfit/GFKalman.h"
 
 #include "assert.h"
 #include <iostream>
@@ -27,10 +27,10 @@
 #include "TRandom.h"
 #include "TDatabasePDG.h"
 
-#include "GFTrack.h"
-#include "GFAbsRecoHit.h"
-#include "GFAbsTrackRep.h"
-#include "GFException.h"
+#include "Genfit/GFTrack.h"
+#include "Genfit/GFAbsRecoHit.h"
+#include "Genfit/GFAbsTrackRep.h"
+#include "Genfit/GFException.h"
 
 #include "cetlib/exception.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"

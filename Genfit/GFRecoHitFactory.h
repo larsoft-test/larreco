@@ -31,8 +31,8 @@
 #include<vector>
 #include<map>
 
-#include "GFRecoHitProducer.h"
-#include "GFTrackCand.h"
+#include "Genfit/GFRecoHitProducer.h"
+#include "Genfit/GFTrackCand.h"
 
 
 namespace genf {
