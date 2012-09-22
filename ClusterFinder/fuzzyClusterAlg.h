@@ -15,8 +15,7 @@
 #include "ClusterFinder/HoughBaseAlg.h"
 #include "ClusterFinder/EndPointClusAlg.h"
 
-#include "Geometry/geo.h"
-#include "TMatrixTBase.h"
+#include "TMatrixD.h"
 
 
 class TH1F;
@@ -61,7 +60,7 @@ namespace cluster{
     bool updateMembership(int k);
     inline bool canStop(){
       double epsilon = 0.01;
-      TMatrixT<double> diffMatrix = fpsMembership - fpsNewMembership;
+      TMatrixD diffMatrix = fpsMembership - fpsNewMembership;
       double difference = diffMatrix.Norm1();
       return difference < epsilon;
     }
@@ -79,7 +78,7 @@ namespace cluster{
     //std::vector< dbsPoint > fRect;
    
     //Matrices for Ben's fuzzy cluster
-    TMatrixT<double>                         fpsMat;
+    TMatrixD                         fpsMat;
 
 
 
@@ -116,10 +115,10 @@ namespace cluster{
                                            ///< dead wire counting ala fBadChannelSum[m]-fBadChannelSum[n]. 
 
     //Matrices for Ben's fuzzy cluster
-    TMatrixT<double>                         fpsMembership;
-    TMatrixT<double>                         fpsNewMembership;
-    TMatrixT<double>                         fpsMembershipFinal;
-    TMatrixT<double>                         fpsCentroids;
+    TMatrixD                         fpsMembership;
+    TMatrixD                         fpsNewMembership;
+    TMatrixD                         fpsMembershipFinal;
+    TMatrixD                         fpsCentroids;
 
     // Object used for Hough transforms
     HoughBaseAlg fHCAlg;        

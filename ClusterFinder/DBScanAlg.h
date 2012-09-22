@@ -13,7 +13,6 @@
 #include "art/Persistency/Common/PtrVector.h"
 #include "ClusterFinder/RStarTree/RStarTree.h"
 
-#include "Geometry/geo.h"
 
 class TH1F;
 

@@ -40,7 +40,10 @@ extern "C" {
 #include "Utilities/DetectorProperties.h"
 #include "Utilities/AssociationUtil.h"
 #include "RecoBase/recobase.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/CryostatGeo.h"
+#include "Geometry/TPCGeo.h"
+#include "Geometry/PlaneGeo.h"
 
 //-----------------------------------------------------------------------------
 cluster::EndPointAlg::EndPointAlg(fhicl::ParameterSet const& pset) 

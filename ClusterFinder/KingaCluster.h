@@ -17,7 +17,7 @@
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Framework/Core/EDProducer.h"
 
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
 
 class TH1F;
 class TH2F;

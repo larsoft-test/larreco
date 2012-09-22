@@ -45,6 +45,10 @@ extern "C" {
 #include "Simulation/sim.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
+#include "Geometry/CryostatGeo.h"
+#include "Geometry/TPCGeo.h"
+#include "Geometry/PlaneGeo.h"
+
 
 //-------------------------------------------------
 cluster::KingaCluster::KingaCluster(fhicl::ParameterSet const& pset)

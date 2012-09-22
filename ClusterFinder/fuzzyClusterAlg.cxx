@@ -26,15 +26,14 @@
 #include "Utilities/DetectorProperties.h"
 #include "ClusterFinder/fuzzyClusterAlg.h"
 #include "RecoBase/recobase.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/PlaneGeo.h"
+#include "Geometry/WireGeo.h"
 
 #include <cmath>
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
-
-
-#include "TH1.h"
-
 
 
 

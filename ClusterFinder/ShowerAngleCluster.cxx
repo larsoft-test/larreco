@@ -45,13 +45,10 @@ extern "C" {
 // LArSoft includes
 #include "Simulation/sim.h"
 #include "ClusterFinder/ShowerAngleCluster.h"
-#include "Geometry/geo.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
-
+#include "Geometry/PlaneGeo.h"
 #include "SimulationBase/simbase.h"
-#include "RawData/RawDigit.h"
-#include "SummaryData/summary.h"
 #include "Utilities/GeometryUtilities.h"
 
 // ***************** //
@@ -549,7 +546,7 @@ int cluster::ShowerAngleCluster::GetPlaneAndTPC(art::Ptr<recob::Hit> a,
 						unsigned int &w)
 {
   unsigned int c = a->Wire()->RawDigit()->Channel(); 
-  geom->ChannelToWire(c,cs,t,p,w);
+  geo->ChannelToWire(c,cs,t,p,w);
     
   return 0;
 }
@@ -713,7 +710,7 @@ void cluster::ShowerAngleCluster::Find2DAxisRough(unsigned int nClust,std::vecto
 //     //time_C -= (presamplings+10.1);
 //     art::Ptr<recob::Wire> theWire = theHit->Wire();
 //     channel = theWire->RawDigit()->Channel();
-//     geom->ChannelToWire(channel, cstat, tpc, iplane, wire);
+//     geo->ChannelToWire(channel, cstat, tpc, iplane, wire);
 // 
 // 
 // 
@@ -726,7 +723,7 @@ void cluster::ShowerAngleCluster::Find2DAxisRough(unsigned int nClust,std::vecto
 //     //time_C -= (presamplings+10.1);
 //     art::Ptr<recob::Wire> theWire = theHit->Wire();
 //     channel = theWire->RawDigit()->Channel();
-//     geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+//     geo->ChannelToWire(channel, cstat, tpc, plane, wire);
 //   
 //       BC = ((double)wire - fWireVertex[plane])*fWiretoCm; // in cm
 //       AC = ((double)time - fTimeVertex[plane])*fTimetoCm; //in cm 
@@ -800,7 +797,7 @@ double cluster::ShowerAngleCluster::Get2DAngleForHit( unsigned int swire,double 
     //time_C -= (presamplings+10.1);
     art::Ptr<recob::Wire> theWire = theHit->Wire();
     channel = theWire->RawDigit()->Channel();
-    geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+    geo->ChannelToWire(channel, cstat, tpc, plane, wire);
   
     double omx=gser.Get2Dangle((double)wire,(double)swire,time,stime);
       
@@ -831,7 +828,7 @@ double cluster::ShowerAngleCluster::Get2DAngleForHit( art::Ptr<recob::Hit> start
     //time_C -= (presamplings+10.1);
     art::Ptr<recob::Wire> theWire = starthit->Wire();
     channel = theWire->RawDigit()->Channel();
-    geom->ChannelToWire(channel, cstat, tpc, iplane, swire);
+    geo->ChannelToWire(channel, cstat, tpc, iplane, swire);
 
 return Get2DAngleForHit( swire,stime,hitlist);  // in degrees
 
@@ -917,14 +914,14 @@ for(unsigned int iplane=0;iplane<fNPlanes;iplane++)
 double pos[3];
  unsigned int  wirevertex, t, cs;
 unsigned int p;
-geom->Plane(iplane).LocalToWorld(origin, pos);
+geo->Plane(iplane).LocalToWorld(origin, pos);
 	//planex[p] = pos[0];
 std::cout << "plane X positionp " << iplane << " " << pos[0] << std::endl;
 
 pos[1]=xyz_vertex[1];
 pos[2]=xyz_vertex[2];
- unsigned int channel2 = geom->NearestChannel(pos,iplane);
- geom->ChannelToWire(channel2,cs,t,p,wirevertex); 
+ unsigned int channel2 = geo->NearestChannel(pos,iplane);
+ geo->ChannelToWire(channel2,cs,t,p,wirevertex); 
        
 if(iplane!=p)
 	{std::cout << " error - planes don't match " << iplane << " " << p << std::endl;
@@ -1161,7 +1158,7 @@ hhist2->Write();
 //   // get starting positions for all planes
 //   for(unsigned int xx=0;xx<fNPlanes;xx++){
 //     double pos1[3];
-//     geom->Plane(xx).LocalToWorld(origin, pos1);
+//     geo->Plane(xx).LocalToWorld(origin, pos1);
 //     std::vector <double > pos2;
 //     pos2.push_back(pos1[0]);
 //     pos2.push_back(pos1[1]);
@@ -1210,11 +1207,11 @@ hhist2->Write();
 
 //  // Assuming there is no problem ( and we found the best pair that comes close in time )
 //   // we try to get the Y and Z coordinates for the start of the shower. 
-// 	int chan1=geom->PlaneWireToChannel(best_planes[0],wire_start[best_planes[0]], 0);
-// 	int chan2=geom->PlaneWireToChannel(best_planes[1],wire_start[best_planes[1]], 0);
+// 	int chan1=geo->PlaneWireToChannel(best_planes[0],wire_start[best_planes[0]], 0);
+// 	int chan2=geo->PlaneWireToChannel(best_planes[1],wire_start[best_planes[1]], 0);
 // 
 // 	double y,z;
-// 	bool wires_cross = geom->ChannelsIntersect(chan1,chan2,y,z);
+// 	bool wires_cross = geo->ChannelsIntersect(chan1,chan2,y,z);
 // 
 // 	
 // 	xyz_vertex_fit[1]=y;
@@ -1259,7 +1256,7 @@ hhist2->Write();
 			}
 		}	
 
-	geom->Plane(worst_plane).LocalToWorld(origin, pos);
+	geo->Plane(worst_plane).LocalToWorld(origin, pos);
 	//planex[p] = pos[0];
 	std::cout << "plane X positionp " << worst_plane << " " << pos[0] << std::endl;*/
 
@@ -1267,9 +1264,9 @@ hhist2->Write();
 	
 	///////////////////////////////////////
 	// geometry test:
-// 	double width  = 2.*geom->TPC(0).HalfWidth();  //notice the geometry gives the 1/2 width, so multiply by 2
-// 	double height = 2.*geom->TPC(0).HalfHeight(); //notice the geometry gives the 1/2 height, so multiply by 2
-// 	double length =    geom->TPC(0).Length();     //notice the geometry gives the total length
+// 	double width  = 2.*geo->TPC(0).HalfWidth();  //notice the geometry gives the 1/2 width, so multiply by 2
+// 	double height = 2.*geo->TPC(0).HalfHeight(); //notice the geometry gives the 1/2 height, so multiply by 2
+// 	double length =    geo->TPC(0).Length();     //notice the geometry gives the total length
 // 	
 // 	
 // 	std::cout << "-------- height " << height << " " << length << " " <<width << std::endl;
@@ -1277,13 +1274,13 @@ hhist2->Write();
 // 	//display first and last wires:
 // 	
 // 	for(unsigned int iplane=0;iplane<fNPlanes;iplane++)
-// 	    { std::cout << " +++ pl" << iplane << geom->Plane(iplane).Nwires()  << std::endl;
+// 	    { std::cout << " +++ pl" << iplane << geo->Plane(iplane).Nwires()  << std::endl;
 // 	      double wire1_Start[3]={0},wire1_End[3]={0};
-// 	    geom->WireEndPoints(0,iplane,0,wire1_Start,wire1_End);
+// 	    geo->WireEndPoints(0,iplane,0,wire1_Start,wire1_End);
 // 	      std::cout << "++++++++ wire positions: w nr " << 0 << " " << wire1_Start[0] << " " << wire1_Start[1] << " " << wire1_Start[2] << " "<< wire1_End[0] << " " << wire1_End[1] << " "<< wire1_End[2] << " " << std::endl;
 // 	
-// 	      geom->WireEndPoints(0,iplane,geom->Plane(iplane).Nwires()-1,wire1_Start,wire1_End);
-// 	      std::cout << "++++++++ wire positions: w nr " << geom->Plane(iplane).Nwires()-1 << " " << wire1_Start[0] << " " << wire1_Start[1] << " " << wire1_Start[2] << " "<< wire1_End[0] << " " << wire1_End[1] << " "<< wire1_End[2] << " " << std::endl;
+// 	      geo->WireEndPoints(0,iplane,geo->Plane(iplane).Nwires()-1,wire1_Start,wire1_End);
+// 	      std::cout << "++++++++ wire positions: w nr " << geo->Plane(iplane).Nwires()-1 << " " << wire1_Start[0] << " " << wire1_Start[1] << " " << wire1_Start[2] << " "<< wire1_End[0] << " " << wire1_End[1] << " "<< wire1_End[2] << " " << std::endl;
 // 	
 // 	      
 // 	
@@ -1295,8 +1292,8 @@ hhist2->Write();
 	
 //     pos[1]=xyz_vertex_fit[1];
 //     pos[2]=xyz_vertex_fit[2];
-//     unsigned int channel2 = geom->NearestChannel(pos,worst_plane);
-//     geom->ChannelToWire(channel2,cstat,t,worst_plane,wirevertex); 
+//     unsigned int channel2 = geo->NearestChannel(pos,worst_plane);
+//     geo->ChannelToWire(channel2,cstat,t,worst_plane,wirevertex); 
 // 
 // 
 //     double drifttick=(xyz_vertex_fit[0]/larp->DriftVelocity(larp->Efield(),larp->Temperature()))*(1./fTimeTick);

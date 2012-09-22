@@ -26,6 +26,9 @@
 #include "Utilities/DetectorProperties.h"
 #include "ClusterFinder/DBScanAlg.h"
 #include "RecoBase/recobase.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/PlaneGeo.h"
+#include "Geometry/WireGeo.h"
 
 #include <cmath>
 #include <iostream>

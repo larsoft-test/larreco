@@ -41,7 +41,6 @@ extern "C" {
 #include "TMath.h"
 
 #include "RecoBase/recobase.h"
-#include "Geometry/geo.h"
 #include "ClusterFinder/EndPointAlg.h"
 #include "ClusterFinder/EndPointModule.h"
 #include "Utilities/AssociationUtil.h"

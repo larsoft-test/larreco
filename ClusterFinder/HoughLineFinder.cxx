@@ -42,7 +42,6 @@ extern "C" {
 #include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
-#include "Geometry/geo.h"
 #include "ClusterFinder/HoughBaseAlg.h"
 #include "ClusterFinder/HoughLineFinder.h"
 

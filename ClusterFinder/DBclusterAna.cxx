@@ -30,7 +30,8 @@
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
 #include "ClusterFinder/DBclusterAna.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/PlaneGeo.h"
 #include "SimulationBase/simbase.h"
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"

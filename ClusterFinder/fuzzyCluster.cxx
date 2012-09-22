@@ -26,9 +26,10 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "CLHEP/Random/JamesRandom.h"
 
-#include "Geometry/geo.h"
-#include "SimulationBase/simbase.h"
-#include "Simulation/sim.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/CryostatGeo.h"
+#include "Geometry/TPCGeo.h"
+#include "Geometry/PlaneGeo.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
 #include "Utilities/SeedCreator.h"

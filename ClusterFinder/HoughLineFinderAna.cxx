@@ -45,7 +45,10 @@ extern "C" {
 #include "SimulationBase/simbase.h"
 #include "RawData/RawDigit.h"
 #include "RecoBase/recobase.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/CryostatGeo.h"
+#include "Geometry/TPCGeo.h"
+#include "Geometry/PlaneGeo.h"
 #include "Utilities/AssociationUtil.h"
 
 cluster::HoughLineFinderAna::HoughLineFinderAna(fhicl::ParameterSet const& pset) : 

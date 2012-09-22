@@ -25,7 +25,7 @@
 
 //LArSoft includes:
 #include "ClusterFinder/LineMerger.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
 

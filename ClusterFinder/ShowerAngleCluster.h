@@ -25,6 +25,7 @@
 #include "TF1.h"
 #include "TH2F.h"
 
+#include "Geometry/Geometry.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/GeometryUtilities.h"
 #include "Utilities/DetectorProperties.h"
@@ -69,7 +70,6 @@ namespace cluster {
     
     
     
-    art::ServiceHandle<geo::Geometry> geom;
     art::ServiceHandle<util::DetectorProperties> detp;
     art::ServiceHandle<util::LArProperties> larp;
     art::ServiceHandle<geo::Geometry> geo;

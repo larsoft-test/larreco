@@ -33,7 +33,9 @@
 
 
 #include "ClusterFinder/KingaClusterAna.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/CryostatGeo.h"
+#include "Geometry/TPCGeo.h"
 #include "SimulationBase/simbase.h"
 #include "Simulation/sim.h"
 #include "Simulation/SimListUtils.h"
@@ -43,8 +45,6 @@
 #include "Simulation/LArVoxelData.h"
 #include "Simulation/LArVoxelID.h"
 #include "RecoBase/recobase.h"
-#include "Geometry/geo.h"
-#include "Utilities/LArProperties.h"
 #include "Utilities/LArProperties.h"
 #include "MCCheater/BackTracker.h"
 #include "Utilities/AssociationUtil.h"
