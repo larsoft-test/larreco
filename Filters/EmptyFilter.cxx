@@ -30,7 +30,7 @@ extern "C" {
 //Larsoft Includes
 #include "Filters/EmptyFilter.h"
 #include "RecoBase/recobase.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
 #include "Geometry/WireGeo.h"
 
 namespace filt{
