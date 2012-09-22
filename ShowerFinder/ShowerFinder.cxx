@@ -29,7 +29,9 @@ extern "C" {
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
 // LArSoft Includes
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/CryostatGeo.h"
+#include "Geometry/TPCGeo.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
 

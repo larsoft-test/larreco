@@ -45,7 +45,11 @@ extern "C" {
 // LArSoft includes
 
 #include "ShowerFinder/ShowerReco.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/CryostatGeo.h"
+#include "Geometry/TPCGeo.h"
+#include "Geometry/PlaneGeo.h"
+#include "Geometry/WireGeo.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
 #include "Utilities/LArProperties.h"
