@@ -43,7 +43,7 @@
 #include "Filters/ChannelFilter.h"
 #include "SimulationBase/simbase.h"
 #include "RecoBase/recobase.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TVectorD.h"

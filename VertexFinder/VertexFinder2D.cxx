@@ -33,10 +33,12 @@
 #include <TVector3.h>
 #include <vector>
 
-#include "RawData/RawDigit.h"
-#include "Filters/ChannelFilter.h"
 #include "RecoBase/recobase.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/CryostatGeo.h"
+#include "Geometry/TPCGeo.h"
+#include "Geometry/PlaneGeo.h"
+#include "Geometry/WireGeo.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/DetectorProperties.h"
 #include "Utilities/AssociationUtil.h"

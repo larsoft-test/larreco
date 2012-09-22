@@ -43,10 +43,12 @@ extern "C" {
 #include "TH2.h"
 
 
-#include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
 #include "RecoBase/recobase.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/CryostatGeo.h"
+#include "Geometry/TPCGeo.h"
+#include "Geometry/PlaneGeo.h"
 #include "Utilities/AssociationUtil.h"
 
 //-----------------------------------------------------------------------------
