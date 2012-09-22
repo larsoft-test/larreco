@@ -28,7 +28,7 @@ extern "C" {
 
 // LArSoft includes
 #include "EventFinder/AggregateEvent.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
 
 // ROOT includes
 #include "TMatrixD.h"
