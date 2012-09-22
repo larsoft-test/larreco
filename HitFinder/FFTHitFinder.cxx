@@ -18,7 +18,10 @@ extern "C" {
 
 // LArSoft Includes
 #include "HitFinder/FFTHitFinder.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/CryostatGeo.h"
+#include "Geometry/TPCGeo.h"
+#include "Geometry/PlaneGeo.h"
 #include "RecoBase/Hit.h"
 
 // ROOT Includes 
