@@ -12,7 +12,9 @@
 #include <algorithm>
 
 #include "TrackFinder/SpacePointAna.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/TPCGeo.h"
+#include "Geometry/PlaneGeo.h"
 #include "Utilities/DetectorProperties.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/AssociationUtil.h"

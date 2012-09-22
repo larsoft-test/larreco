@@ -28,10 +28,13 @@
 
 // LArSoft includes
 #include "TrackFinder/Track3Dreco.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/PlaneGeo.h"
+#include "Geometry/WireGeo.h"
 #include "RecoBase/Hit.h"
 #include "RecoBase/Cluster.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Track.h"
+#include "RecoBase/SpacePoint.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/AssociationUtil.h"
 

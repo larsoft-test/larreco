@@ -21,7 +21,11 @@
 
 // LArSoft includes
 #include "TrackFinder/SpacePts.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/CryostatGeo.h"
+#include "Geometry/TPCGeo.h"
+#include "Geometry/PlaneGeo.h"
+#include "Geometry/WireGeo.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/AssociationUtil.h"

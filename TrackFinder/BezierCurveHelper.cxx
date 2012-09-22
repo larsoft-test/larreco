@@ -14,7 +14,6 @@
 #include <map>
 #include <sstream>
 
-#include "Geometry/geo.h"
 #include "RecoBase/Hit.h"
 #include "TrackFinder/BezierCurveHelper.h"
 

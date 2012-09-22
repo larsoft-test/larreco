@@ -9,7 +9,9 @@
 #include <vector>
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "TrackFinder/SeedFinderAlgorithm.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/TPCGeo.h"
+#include "Geometry/PlaneGeo.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "RecoBase/Hit.h"

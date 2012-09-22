@@ -9,7 +9,7 @@
 #include <vector>
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "TrackFinder/SeedFinderModule.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "RecoBase/Hit.h"

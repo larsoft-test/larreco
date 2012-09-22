@@ -12,7 +12,7 @@
 #include "TrackFinder/SurfXYZPlane.h"
 #include "TrackFinder/PropXYZPlane.h"
 #include "TrackFinder/KHit.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
 #include "art/Framework/Services/Optional/TFileService.h" 

@@ -13,7 +13,7 @@
 #include "TrackFinder/KHitWireX.h"
 #include "TrackFinder/SurfXYZPlane.h"
 #include "TrackFinder/PropXYZPlane.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
 #include "cetlib/exception.h"
 
 namespace trkf {

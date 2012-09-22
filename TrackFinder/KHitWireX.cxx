@@ -10,7 +10,7 @@
 
 #include "TrackFinder/KHitWireX.h"
 #include "TrackFinder/SurfWireX.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
 #include "Utilities/DetectorProperties.h"
 #include "cetlib/exception.h"
 

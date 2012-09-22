@@ -14,7 +14,7 @@
 #include "Utilities/DetectorProperties.h"
 #include "TrackFinder/BezierTrackAna.h"
 #include "TrackFinder/BezierTrack.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
 #include "Utilities/LArProperties.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h" 

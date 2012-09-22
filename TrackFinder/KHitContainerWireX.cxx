@@ -13,7 +13,7 @@
 #include "TrackFinder/KHitWireX.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/DetectorProperties.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
 
 namespace trkf {
 

@@ -9,7 +9,8 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "TrackFinder/SurfWireX.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/WireGeo.h"
 #include "TMath.h"
 
 namespace trkf {

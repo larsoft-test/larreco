@@ -1,7 +1,10 @@
 #include "TrackFinder/BezierTrack.h"
 
 #include "Calorimetry/CalorimetryAlg.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/CryostatGeo.h"
+#include "Geometry/TPCGeo.h"
+#include "Geometry/PlaneGeo.h"
 #include "RecoBase/Hit.h"
 #include "RecoBase/SpacePoint.h"
 #include "SimpleTypesAndConstants/PhysicalConstants.h"

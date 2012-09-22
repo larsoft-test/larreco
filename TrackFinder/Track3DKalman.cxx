@@ -27,7 +27,7 @@
 
 // LArSoft includes
 #include "TrackFinder/Track3DKalman.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
 #include "RecoBase/recobase.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/AssociationUtil.h"

@@ -14,7 +14,10 @@ extern "C" {
 
 // LArSoft includes
 #include "TrackFinder/MagDriftAna.h"
-#include "Geometry/geo.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/TPCGeo.h"
+#include "Geometry/PlaneGeo.h"
+#include "Geometry/WireGeo.h"
 #include "MagneticField/mag.h"
 #include "Utilities/LArProperties.h"
 #include "MCCheater/BackTracker.h"
