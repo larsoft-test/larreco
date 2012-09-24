@@ -26,7 +26,6 @@ extern "C" {
 #include "RecoBase/Hit.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/DetectorProperties.h"
-#include "HitFinder/HitCheater.h"
 
 // ROOT includes
 #include <TMath.h>
