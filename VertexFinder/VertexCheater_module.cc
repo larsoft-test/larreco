@@ -15,10 +15,12 @@
 
 // LArSoft includes
 #include "MCCheater/BackTracker.h"
-#include "VertexFinder/VertexCheater.h"
 #include "Utilities/AssociationUtil.h"
-#include "RecoBase/recobase.h"
-#include "Simulation/sim.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Shower.h"
+#include "RecoBase/Track.h"
+#include "RecoBase/Vertex.h"
+#include "Simulation/ParticleList.h"
 
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h"

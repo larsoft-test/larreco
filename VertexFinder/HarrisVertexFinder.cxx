@@ -39,12 +39,15 @@ extern "C" {
 #include <fstream>
 #include <math.h>
 #include <algorithm>
+
 #include "TMath.h"
 #include "TH2.h"
 
 
 #include "Filters/ChannelFilter.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/EndPoint2D.h"
+#include "RecoBase/Hit.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"

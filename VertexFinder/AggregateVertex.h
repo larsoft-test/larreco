@@ -9,10 +9,17 @@
 
 // Framework includes
 #include "art/Framework/Core/EDProducer.h" 
+#include "Utilities/AssociationUtil.h"
+
+namespace recob{
+  class EndPoint2D;
+  class Hit;
+  class Shower;
+  class Track;
+  class Vertex;
+}
 
 // LArSoft includes
-#include "RecoBase/recobase.h"
-#include "Utilities/AssociationUtil.h"
 
 #include <vector>
 #include <string>

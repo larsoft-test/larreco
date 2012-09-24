@@ -10,9 +10,8 @@
 
 // Framework includes
 #include "art/Framework/Core/EDAnalyzer.h"
-
-// LArSoft includes
-#include "RecoBase/recobase.h"
+#include "art/Persistency/Common/Ptr.h" 
+#include "art/Persistency/Common/PtrVector.h" 
 
 #include "TH2F.h"
 #include "TH1F.h"
@@ -20,6 +19,10 @@
 #include <vector>
 #include <string>
 
+#include "RecoBase/Track.h"
+#include "RecoBase/Vertex.h"
+#include "RecoBase/EndPoint2D.h"
+#include "RecoBase/Hit.h"
 
 namespace vertex {
 

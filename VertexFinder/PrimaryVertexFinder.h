@@ -12,10 +12,14 @@
 #include "TMath.h"
 #include <vector>
 #include <string>
-#include "RecoBase/recobase.h"
+
+namespace recob{
+  class SpacePoint;
+}
 
 class TH1F;
 class TH2F;
+class TVector3;
 
 ///vertex reconstruction
 namespace vertex {

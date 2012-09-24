@@ -12,7 +12,6 @@
 #include "TMath.h"
 #include <vector>
 #include <string>
-#include "RecoBase/recobase.h"
 
 class TH1D;
 

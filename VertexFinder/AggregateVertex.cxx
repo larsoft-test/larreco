@@ -28,6 +28,13 @@ extern "C" {
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
 #include "VertexFinder/AggregateVertex.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/EndPoint2D.h"
+#include "RecoBase/Track.h"
+#include "RecoBase/Shower.h"
+#include "RecoBase/Vertex.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/EndPoint2D.h"
 
 namespace vertex {
 

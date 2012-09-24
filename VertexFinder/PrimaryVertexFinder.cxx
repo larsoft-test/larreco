@@ -24,30 +24,28 @@
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "VertexFinder/PrimaryVertexFinder.h"
-#include "Utilities/AssociationUtil.h"
-
 #include <iomanip>
 #include <ios>
 #include <sstream>
 #include <fstream>
 #include <math.h>
 #include <algorithm>
-#include "TMath.h"
-#include <TVector3.h>
 #include <vector>
 
-
-
-#include "RawData/RawDigit.h"
-#include "Filters/ChannelFilter.h"
-#include "SimulationBase/simbase.h"
-#include "RecoBase/recobase.h"
-#include "Geometry/Geometry.h"
+#include "TMath.h"
+#include <TVector3.h>
 #include "TH1.h"
 #include "TH2.h"
 #include "TVectorD.h"
-#include "TGeoManager.h"
+
+#include "RecoBase/Hit.h"
+#include "RecoBase/SpacePoint.h"
+#include "RecoBase/Shower.h"
+#include "RecoBase/Track.h"
+#include "RecoBase/Vertex.h"
+#include "Geometry/Geometry.h"
+#include "VertexFinder/PrimaryVertexFinder.h"
+#include "Utilities/AssociationUtil.h"
 
 
 //------------------------------------------------------------------------------

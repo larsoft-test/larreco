@@ -12,6 +12,13 @@
 
 
 #include <iostream>
+#include <iomanip>
+#include <ios>
+#include <sstream>
+#include <fstream>
+#include <math.h>
+#include <algorithm>
+#include <vector>
 
 // Framework includes
 #include "art/Framework/Principal/Event.h"
@@ -24,16 +31,13 @@
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "VertexFinder/VertexFinder2D.h"
-#include <iomanip>
-#include <ios>
-#include <sstream>
-#include <fstream>
-#include <math.h>
-#include <algorithm>
-#include <TVector3.h>
-#include <vector>
 
-#include "RecoBase/recobase.h"
+#include "RecoBase/EndPoint2D.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Track.h"
+#include "RecoBase/Shower.h"
+#include "RecoBase/Vertex.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"
@@ -49,6 +53,7 @@
 #include "TMath.h"
 #include "TGraph.h"
 #include "TF1.h"
+#include <TVector3.h>
 
 namespace vertex{
 
