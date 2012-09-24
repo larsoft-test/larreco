@@ -9,12 +9,12 @@
 
 #include "art/Framework/Core/EDProducer.h"
 
-#include "RecoBase/recobase.h"
-
 #include "TH2F.h"
 #include "TF1.h"
 #include <vector>
 #include <string>
+
+namespace recob{ class Vertex; }
 
 namespace event {
    

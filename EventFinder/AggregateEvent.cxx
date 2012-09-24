@@ -28,6 +28,8 @@ extern "C" {
 
 // LArSoft includes
 #include "EventFinder/AggregateEvent.h"
+#include "RecoBase/Event.h"
+#include "RecoBase/Vertex.h"
 #include "Geometry/Geometry.h"
 
 // ROOT includes
