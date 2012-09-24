@@ -35,8 +35,10 @@
 #include <fstream>
 #include <cstdlib>
 
-
 #include "TH1.h"
+
+const unsigned int cluster::DBScanAlg::kNO_CLUSTER    = UINT_MAX;
+const unsigned int cluster::DBScanAlg::kNOISE_CLUSTER = UINT_MAX-1;
 
 //----------------------------------------------------------
 // RStarTree stuff
