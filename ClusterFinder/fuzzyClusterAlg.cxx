@@ -35,7 +35,8 @@
 #include <fstream>
 #include <cstdlib>
 
-
+const unsigned int cluster::fuzzyClusterAlg::kNO_CLUSTER    = UINT_MAX;
+const unsigned int cluster::fuzzyClusterAlg::kNOISE_CLUSTER = UINT_MAX-1;
 
 //----------------------------------------------------------
 // fuzzyClusterAlg stuff
