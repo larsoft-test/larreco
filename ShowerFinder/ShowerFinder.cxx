@@ -7,8 +7,6 @@
 //  This algorithm is designed to find all the showers in an event.
 ////////////////////////////////////////////////////////////////////////
 
-#include "ShowerFinder/ShowerFinder.h"
-
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -32,8 +30,13 @@ extern "C" {
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"
-#include "RecoBase/recobase.h"
 #include "Utilities/AssociationUtil.h"
+#include "ShowerFinder/ShowerFinder.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Shower.h"
+#include "RecoBase/EndPoint2D.h"
+
 
 // ROOT 
 #include "TMath.h"

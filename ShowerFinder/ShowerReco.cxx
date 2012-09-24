@@ -33,6 +33,7 @@ extern "C" {
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
+//ROOT includes
 #include "TMatrixD.h"
 #include "TVectorD.h"
 #include "TDecompSVD.h"
@@ -50,13 +51,15 @@ extern "C" {
 #include "Geometry/TPCGeo.h"
 #include "Geometry/PlaneGeo.h"
 #include "Geometry/WireGeo.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Shower.h"
+#include "RecoBase/SpacePoint.h"
+#include "AnalysisBase/Calorimetry.h"
 #include "Utilities/AssociationUtil.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/GeometryUtilities.h"
 #include "Utilities/DetectorProperties.h"
-#include "SummaryData/summary.h"
-#include "AnalysisBase/anabase.h"
 
 // ***************** //
 

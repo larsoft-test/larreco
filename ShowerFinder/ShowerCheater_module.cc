@@ -16,12 +16,13 @@
 // LArSoft includes
 #include "Geometry/Geometry.h"
 #include "MCCheater/BackTracker.h"
-#include "ShowerFinder/ShowerCheater.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Shower.h"
+#include "RecoBase/SpacePoint.h"
 #include "Utilities/AssociationUtil.h"
 #include "SimpleTypesAndConstants/PhysicalConstants.h"
-#include "Simulation/sim.h"
-#include "Simulation/SimListUtils.h"
+
 
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h"
