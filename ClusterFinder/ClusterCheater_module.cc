@@ -20,10 +20,10 @@
 #include "Geometry/PlaneGeo.h"
 #include "MCCheater/BackTracker.h"
 #include "ClusterFinder/ClusterCheater.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Hit.h"
 #include "Utilities/AssociationUtil.h"
-#include "Simulation/sim.h"
-#include "Simulation/SimListUtils.h"
+#include "Simulation/EmEveIdCalculator.h"
 #include "ClusterFinder/HoughBaseAlg.h"
 
 // Framework includes

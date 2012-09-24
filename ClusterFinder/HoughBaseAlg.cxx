@@ -41,9 +41,10 @@ extern "C" {
 #include "art/Framework/Services/Optional/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
  
-#include "ClusterFinder/HoughBaseAlg.h"
 #include "Filters/ChannelFilter.h"
-#include "RecoBase/recobase.h"
+#include "ClusterFinder/HoughBaseAlg.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Cluster.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"

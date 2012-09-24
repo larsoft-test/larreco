@@ -40,10 +40,9 @@ extern "C" {
 
  
 #include "RawData/RawDigit.h"
-#include "Filters/ChannelFilter.h"
-#include "SimulationBase/simbase.h"
-#include "Simulation/sim.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/EndPoint2D.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Hit.h"
 #include "Utilities/AssociationUtil.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"
@@ -111,44 +110,6 @@ void cluster::KingaCluster::produce(art::Event& evt)
 
   ftime_vertex_reco.clear();
   fwire_vertex_reco.clear();
-
-  /// \todo reconstruction algorithms that test on whether data is real or MC are ticking time 
-  /// \todo bombs in terms of data/MC differences.  Commenting out this code as the resulting 
-  /// \todo information appears to not be used in the rest of the algorithm - bjr 4/22/12
-  //   if( !evt.isRealData() ) {
-  //     //art::ServiceHandle<util::LArProperties> larp;
-    
-  //     // fMC=0; 
-  //     // ftime_vertex.clear();
-  //     // fwire_vertex.clear();
-    
-  //     mf::LogInfo("KingaCluster") <<" YOU ARE WORKING WITH MC !!!!!!!!!!!!!!!!!!!!! ";
-  //     fMC=1;
-  //     fGenieGenModuleLabel="generator";
-
-  //     art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
-  //     evt.getByLabel(fGenieGenModuleLabel,mctruthListHandle);
-  //     art::PtrVector<simb::MCTruth> mclist;
-  //     for (size_t ii = 0; ii <  mctruthListHandle->size(); ++ii){
-  //       art::Ptr<simb::MCTruth> mc(mctruthListHandle,ii);
-
-  //       simb::MCParticle neut(mc->GetParticle(i));
-
-  //       // mf::LogInfo("KingaCluster")<<"vertex: "<<neut.Nu().Vx()<<" "<<neut.Nu().Vy()<<" "<<neut.Nu().Vz();
-  //       MCvertex[0] =neut.Vx();
-  //       MCvertex[1] =neut.Vy();
-  //       MCvertex[2] =neut.Vz();
-  //       mf::LogInfo("KingaCluster")<<"MCvertex[0]= "<<MCvertex[0];
-  //       mf::LogInfo("KingaCluster")<<"driftvelocity= "
-  // 				 <<larp->DriftVelocity(larp->Efield(),larp->Temperature());
-  //       double presamplings=60.0;
-  //       double drifttick=(MCvertex[0]/larp->DriftVelocity(larp->Efield(),larp->Temperature()))*(1./.198)+presamplings;
-    
-  //       mf::LogInfo("KingaCluster")<<"%%%%%%%%%%%%%%%%%%   drifttick= "<<std::setprecision(10)<<drifttick<<std::endl;
-  //       ftime_vertex.push_back(drifttick);
-  //       ftime_vertex.push_back(drifttick);
-  //     } // end loop over MCTruths
-  //   } // end if MC
 
   //////////////////////////////////////////////////////
   // here is how to get a collection of objects out of the file

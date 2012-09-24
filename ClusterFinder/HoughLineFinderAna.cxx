@@ -42,9 +42,8 @@ extern "C" {
 #include "messagefacility/MessageLogger/MessageLogger.h" 
  
 #include "ClusterFinder/HoughLineFinderAna.h"
-#include "SimulationBase/simbase.h"
-#include "RawData/RawDigit.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Hit.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"

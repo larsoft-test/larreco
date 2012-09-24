@@ -26,15 +26,16 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "CLHEP/Random/JamesRandom.h"
 
+#include "Filters/ChannelFilter.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"
 #include "Geometry/PlaneGeo.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Hit.h"
 #include "Utilities/AssociationUtil.h"
 #include "Utilities/SeedCreator.h"
 #include "ClusterFinder/fuzzyCluster.h"
-#include "Filters/ChannelFilter.h"
 
 #include <cmath>
 #include <iostream>

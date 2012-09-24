@@ -38,9 +38,8 @@ extern "C" {
 
 // LArSoft includes 
 #include "RawData/RawDigit.h"
-#include "Filters/ChannelFilter.h"
-#include "SimulationBase/simbase.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Hit.h"
 #include "Utilities/AssociationUtil.h"
 #include "ClusterFinder/HoughBaseAlg.h"
 #include "ClusterFinder/HoughLineFinder.h"

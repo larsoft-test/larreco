@@ -43,12 +43,12 @@ extern "C" {
 #include "TTree.h"
 
 // LArSoft includes
-#include "Simulation/sim.h"
 #include "ClusterFinder/ShowerAngleCluster.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Cluster.h"
 #include "Utilities/AssociationUtil.h"
 #include "Geometry/PlaneGeo.h"
-#include "SimulationBase/simbase.h"
+#include "SimulationBase/MCTruth.h"
 #include "Utilities/GeometryUtilities.h"
 
 // ***************** //
@@ -59,8 +59,6 @@ cluster::ShowerAngleCluster::ShowerAngleCluster(fhicl::ParameterSet const& pset)
   this->reconfigure(pset);
   produces< std::vector<recob::Cluster> >();
   produces< art::Assns<recob::Cluster, recob::Hit>  >(); 
- // produces< art::Assns<recob::Cluster, recob::Hit>  >(); 
-  //produces< art::Assns<recob::Cluster, recob::Cluster>  >(); 
   produces< std::vector < art::PtrVector <recob::Cluster> >  >();
 }
 

@@ -40,7 +40,9 @@ extern "C" {
 #include <algorithm>
 #include "TMath.h"
 
-#include "RecoBase/recobase.h"
+#include "RecoBase/EndPoint2D.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Hit.h"
 #include "ClusterFinder/EndPointAlg.h"
 #include "ClusterFinder/EndPointModule.h"
 #include "Utilities/AssociationUtil.h"

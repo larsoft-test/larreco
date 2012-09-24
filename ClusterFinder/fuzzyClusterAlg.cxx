@@ -25,7 +25,7 @@
 #include "Utilities/LArProperties.h"
 #include "Utilities/DetectorProperties.h"
 #include "ClusterFinder/fuzzyClusterAlg.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Hit.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/PlaneGeo.h"
 #include "Geometry/WireGeo.h"
