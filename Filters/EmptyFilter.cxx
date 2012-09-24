@@ -29,7 +29,7 @@ extern "C" {
 
 //Larsoft Includes
 #include "Filters/EmptyFilter.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Hit.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/WireGeo.h"
 

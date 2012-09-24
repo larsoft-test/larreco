@@ -31,7 +31,8 @@ extern "C" {
 
 //Larsoft Includes
 #include "Filters/MuonFilter.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Cluster.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/PlaneGeo.h"
 #include "Geometry/WireGeo.h"
