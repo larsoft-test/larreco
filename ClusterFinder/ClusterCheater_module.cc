@@ -19,7 +19,6 @@
 #include "Geometry/TPCGeo.h"
 #include "Geometry/PlaneGeo.h"
 #include "MCCheater/BackTracker.h"
-#include "ClusterFinder/ClusterCheater.h"
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Hit.h"
 #include "Utilities/AssociationUtil.h"
