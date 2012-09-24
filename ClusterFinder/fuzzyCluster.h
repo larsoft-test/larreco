@@ -8,7 +8,6 @@
 #include <iostream>
 #include "art/Framework/Core/EDProducer.h"
 #include "ClusterFinder/fuzzyClusterAlg.h"
-//#include "ClusterFinder/HoughClusAlg.h"
 
 class TH1F;
 
@@ -29,7 +28,10 @@ namespace cluster{
     TH1F *fhitwidth;
     TH1F *fhitwidth_ind_test;  
     TH1F *fhitwidth_coll_test;  
-   
+  
+    std::string fSaveGenStateFile;
+    std::string fResGenStateFile;
+
     std::string fhitsModuleLabel;
    
     fuzzyClusterAlg ffuzzyCluster; ///< object that implements the fuzzy cluster algorithm
