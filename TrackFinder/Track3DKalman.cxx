@@ -28,10 +28,13 @@
 // LArSoft includes
 #include "TrackFinder/Track3DKalman.h"
 #include "Geometry/Geometry.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Track.h"
+#include "RecoBase/SpacePoint.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/AssociationUtil.h"
-#include "SimulationBase/simbase.h"
+#include "SimulationBase/MCTruth.h"
 #include "Simulation/sim.h"
 
 

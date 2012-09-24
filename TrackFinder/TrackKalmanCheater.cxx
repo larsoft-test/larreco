@@ -15,9 +15,13 @@
 #include "TrackFinder/PropYZPlane.h"
 #include "TrackFinder/KHit.h"
 #include "Geometry/Geometry.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Track.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/SpacePoint.h"
+#include "RecoBase/Hit.h"
 #include "MCCheater/BackTracker.h"
 #include "Utilities/AssociationUtil.h"
+
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h"
 

@@ -29,9 +29,12 @@
 // LArSoft includes
 #include "TrackFinder/Track3DKalmanSPS.h"
 #include "Geometry/Geometry.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Track.h"
+#include "RecoBase/SpacePoint.h"
 #include "Utilities/LArProperties.h"
-#include "SimulationBase/simbase.h"
+#include "SimulationBase/MCTruth.h"
 #include "Simulation/sim.h"
 #include "Utilities/AssociationUtil.h"
 
@@ -353,7 +356,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   // the View leaves you with a std::vector which can not be cast 
   // to a PtrVector.
 
-  art::View < recob::Prong > prongListHandle;
+  art::View < recob::Track > prongListHandle;
   evt.getView(fProngModuleLabel,prongListHandle);
 
   art::FindManyP<recob::SpacePoint> fmsp(prongListHandle, evt, fProngModuleLabel);
@@ -364,8 +367,7 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
   /// \todo Should never test whether the event is real data in reconstruction algorithms
   /// \todo as that introduces potential data/MC differences that are very hard to track down
   /// \todo Remove this test as soon as possible please
-  if (!evt.isRealData())
-    {
+  if (!evt.isRealData()){
 
       //      std::cout << "Track3DKalmanSPS: This is MC." << std::endl;
       // std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
@@ -412,9 +414,9 @@ void trkf::Track3DKalmanSPS::produce(art::Event& evt)
       throw cet::exception("Track3DKalmanSPS.cxx: ") << " Line " << __LINE__ << ", " << __FILE__ << " Throw. \n";
     }
 
-  art::PtrVector<recob::Prong> prongIn;
+  art::PtrVector<recob::Track> prongIn;
   prongListHandle.fill(prongIn);
-  art::PtrVector<recob::Prong>::const_iterator pprong = prongIn.begin();
+  art::PtrVector<recob::Track>::const_iterator pprong = prongIn.begin();
 
   TVector3 MCOrigin;
   TVector3 MCMomentum;

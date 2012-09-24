@@ -55,11 +55,14 @@
 #include <string>
 #include "fhiclcpp/ParameterSet.h"
 #include "art/Persistency/Common/PtrVector.h"
-#include "RecoBase/recobase.h"
 
 class TH1F;
 namespace sim {
   class IDE;
+}
+namespace recob{
+  class Hit;
+  class SpacePoint;
 }
 
 namespace trkf {

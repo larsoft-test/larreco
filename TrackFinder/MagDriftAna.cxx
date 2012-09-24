@@ -21,9 +21,8 @@ extern "C" {
 #include "MagneticField/mag.h"
 #include "Utilities/LArProperties.h"
 #include "MCCheater/BackTracker.h"
-#include "SimulationBase/simbase.h"
-#include "Simulation/sim.h"
-#include "Simulation/SimListUtils.h"
+#include "RecoBase/Track.h"
+#include "RecoBase/Hit.h"
 
 // ROOT includes
 #include "TMath.h"

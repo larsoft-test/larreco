@@ -21,9 +21,12 @@
 // LArSoft includes
 #include "MCCheater/BackTracker.h"
 #include "Geometry/Geometry.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/SpacePoint.h"
+#include "RecoBase/Track.h"
 #include "Utilities/AssociationUtil.h"
-#include "Simulation/sim.h"
+#include "Simulation/Particle.h"
 #include "SimpleTypesAndConstants/PhysicalConstants.h"
 #include "Utilities/DetectorProperties.h"
 

@@ -26,7 +26,11 @@
 #include "Geometry/TPCGeo.h"
 #include "Geometry/PlaneGeo.h"
 #include "Geometry/WireGeo.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/EndPoint2D.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Track.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/SpacePoint.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/AssociationUtil.h"
 

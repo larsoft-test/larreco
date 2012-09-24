@@ -18,7 +18,9 @@
 #include "Utilities/DetectorProperties.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/AssociationUtil.h"
-#include "RecoBase/recobase.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/SpacePoint.h"
 #include "MCCheater/BackTracker.h"
 
 #include "messagefacility/MessageLogger/MessageLogger.h"

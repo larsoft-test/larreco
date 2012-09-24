@@ -28,6 +28,9 @@
 #include "art/Framework/Principal/View.h"
 #include "Utilities/DetectorProperties.h"
 #include "MCCheater/BackTracker.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/SpacePoint.h"
+
 #include "TH1F.h"
 
 //----------------------------------------------------------------------

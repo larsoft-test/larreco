@@ -11,9 +11,6 @@
 #define MAGDRIFTANA_H
 
 
-#include "RecoBase/recobase.h"
-#include "Utilities/LArFFT.h"
-
 #include "TComplex.h"
 #include "TString.h"
 #include "TGraph.h"

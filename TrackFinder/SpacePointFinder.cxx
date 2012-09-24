@@ -12,7 +12,9 @@
 #include "Geometry/Geometry.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
-#include "RecoBase/recobase.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Cluster.h"
+#include "RecoBase/SpacePoint.h"
 #include "Utilities/AssociationUtil.h"
 
 namespace trkf {
