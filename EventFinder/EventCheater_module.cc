@@ -15,7 +15,6 @@
 
 // LArSoft includes
 #include "MCCheater/BackTracker.h"
-#include "EventFinder/EventCheater.h"
 #include "Utilities/AssociationUtil.h"
 #include "RecoBase/Event.h"
 #include "RecoBase/Vertex.h"

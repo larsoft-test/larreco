@@ -5,7 +5,6 @@
 
 
 #include "art/Framework/Principal/Event.h"
-#include "EventFinder/EventMaker.h"
 #include "RecoBase/Event.h"
 #include "RecoBase/Vertex.h"
 #include "RecoBase/Hit.h"
