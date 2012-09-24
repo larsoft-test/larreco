@@ -15,8 +15,8 @@
 #include "Geometry/Geometry.h"
 #include "Geometry/TPCGeo.h"
 #include "Geometry/PlaneGeo.h"
-#include "Simulation/sim.h"
-#include "RecoBase/recobase.h"
+#include "Simulation/SimChannel.h"
+#include "RecoBase/Hit.h"
 #include "Utilities/DetectorProperties.h"
 
 #include "art/Framework/Services/Optional/TFileService.h"

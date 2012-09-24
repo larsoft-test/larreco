@@ -11,11 +11,6 @@
 #define GAUSHITFINDERANA_H
 
 
-#include "RecoBase/recobase.h"
-#include "Utilities/LArFFT.h"
-#include "Simulation/sim.h"
-#include "SimulationBase/simbase.h"
-
 #include "TComplex.h"
 #include "TString.h"
 #include "TGraph.h"
@@ -28,9 +23,9 @@
 
 #include <vector>
 #include <string>
-using namespace std;
 
-namespace geo { class Geometry; }
+namespace geo { class Geometry;   }
+namespace sim { class SimChannel; }
 
 ///Detector simulation of raw signals on wires
 namespace hit {
@@ -193,8 +188,8 @@ void FillHisto( double var, const string& hname, const string& htit,
 // Book and fill 2D histo
 //
 void FillHisto( double var1, double var2, const string& hname, 
-				int nbinsx, float xmin, float xmax, 
-				int nbinsy, float ymin, float ymax ) 
+int nbinsx, float xmin, float xmax, 
+int nbinsy, float ymin, float ymax ) 
 {
   // If histo not already booked, book it
   if ( !gDirectory->FindObject( hname.c_str() ) ) {
@@ -235,7 +230,7 @@ void FillHisto( double var1, double var2, const string& hname, const string& hti
 // Book and fill 1D profile histo
 //
 void FillProf( double var1, double var2, const string& hname, 
-			       int nbins, float xmin, float xmax ,float ymin, float ymax ) 
+int nbins, float xmin, float xmax ,float ymin, float ymax ) 
 {
   // If histo not already booked, book it
   if ( !gDirectory->FindObject( hname.c_str() ) ) {
@@ -255,7 +250,7 @@ void FillProf( double var1, double var2, const string& hname,
 // Book and fill 2D profile histo
 //
 void FillProf( double var1, double var2, const string& hname, const string& htit,
-			       int nbins, float xmin, float xmax ,float ymin, float ymax ) 
+int nbins, float xmin, float xmax ,float ymin, float ymax ) 
 {
   // If histo not already booked, book it
   if ( !gDirectory->FindObject( hname.c_str() ) ) {

@@ -46,10 +46,8 @@ extern "C" {
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"
 #include "MCCheater/BackTracker.h"
-#include "SimulationBase/simbase.h"
-#include "Simulation/sim.h"
-#include "Simulation/SimListUtils.h"
-#include "RecoBase/recobase.h"
+#include "Simulation/ParticleList.h"
+#include "RecoBase/Hit.h"
 #include "Utilities/LArFFT.h"
 
 #include "TComplex.h"
