@@ -29,9 +29,6 @@ namespace cluster{
     TH1F *fhitwidth_ind_test;  
     TH1F *fhitwidth_coll_test;  
   
-    std::string fSaveGenStateFile;
-    std::string fResGenStateFile;
-
     std::string fhitsModuleLabel;
    
     fuzzyClusterAlg ffuzzyCluster; ///< object that implements the fuzzy cluster algorithm
