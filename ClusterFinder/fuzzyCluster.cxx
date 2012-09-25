@@ -57,19 +57,6 @@ cluster::fuzzyCluster::fuzzyCluster(fhicl::ParameterSet const& pset) :
 
   // Create random number engine needed for PPHT
   createEngine(SeedCreator::CreateRandomNumberSeed(),"HepJamesRandom");
-  art::ServiceHandle<art::RandomNumberGenerator> rng;
-  CLHEP::HepRandomEngine & engine = rng -> getEngine();
-  if(!fSaveGenStateFile.empty()){ 
-    engine.saveStatus(fSaveGenStateFile.c_str());
-    std::cout << "Saving PPHT generator state as: " << fSaveGenStateFile << std::endl;
-  }
-  if(!fResGenStateFile.empty()) {
-    engine.restoreStatus(fResGenStateFile.c_str());
-    std::cout << "Restoring PPHT generator state from: " << fResGenStateFile << std::endl;
-  }
-  if(!fSaveGenStateFile.empty() && !fResGenStateFile.empty()) 
-    std::cout << "Warning! You are saving and restoring a random number generator state" << std::endl;
-
 }
 
 //-------------------------------------------------
@@ -81,8 +68,6 @@ cluster::fuzzyCluster::~fuzzyCluster()
 void cluster::fuzzyCluster::reconfigure(fhicl::ParameterSet const& p)
 {
   fhitsModuleLabel  = p.get< std::string >("HitsModuleLabel");
-  fSaveGenStateFile = p.get< std::string >("SaveGenStateFile");
-  fResGenStateFile  = p.get< std::string >("ResGenStateFile");
   ffuzzyCluster.reconfigure(p.get< fhicl::ParameterSet >("fuzzyClusterAlg"));
 }
 
