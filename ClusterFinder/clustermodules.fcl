@@ -13,14 +13,6 @@ standard_fuzzycluster:
 {
  module_type:     "fuzzyCluster"
  HitsModuleLabel: "ffthit"
- SaveGenStateFile: "HepJamesRandom.conf"   # File name to store the random number generator's state at the
-                                           # beginning of the job, the generator is needed for the PPHT (Hough transform) used
-                                           # by fuzzy clustering, the state will not be saved if it is left empty
- ResGenStateFile: ""                       # File name for a previously used random number generator's state at the
-                                            # beginning of it's job, this will set the random number generators state of the currently running
-                                            # job to that saved in the ResGenStateFile, a new random number generator state will be created
-                                            # if this is left blank
-                                            # Note, SaveGenStateFile and ResGenStateFile should not be set at the same time!
  fuzzyClusterAlg: @local::standard_fuzzyclusteralg
  HoughClusAlg:    @local::standard_houghclusalg
 }
