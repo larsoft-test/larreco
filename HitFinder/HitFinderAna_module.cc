@@ -41,7 +41,6 @@ extern "C" {
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 // LArSoft includes
-#include "HitFinder/HitFinderAna.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"
