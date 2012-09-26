@@ -855,18 +855,18 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
 
   //// Do a merge based on distances between line segments instead of endpoints
   //mergeParaHoughLinesBySegment(0,&linesFound,&newClusNum,&newClusDist,xyScale);
-  //mergeHoughLinesBySegment(0,&linesFound,&newClusNum,&newClusDist,xyScale);
+  mergeHoughLinesBySegment(0,&linesFound,&newClusNum,&newClusDist,xyScale);
 
-  //// Reassign the merged lines
-  //for(size_t i = 0; i < hits.size(); ++i) {
-    //if(fpointId_to_clusterId->at(i) == clusterId)
-      //continue;
-    //for(unsigned int k = 0; k < linesFound.size(); k++){
-      ////mf::LogInfo("HoughBaseAlg") << fpointId_to_clusterId->at(i)  << linesFound[j].oldClusterNumber;
-      //if(fpointId_to_clusterId->at(i) == linesFound[k].oldClusterNumber)
-        //fpointId_to_clusterId->at(i) = linesFound[k].clusterNumber;
-    //}
-  //}
+  // Reassign the merged lines
+  for(size_t i = 0; i < hits.size(); ++i) {
+    if(fpointId_to_clusterId->at(i) == clusterId)
+      continue;
+    for(unsigned int k = 0; k < linesFound.size(); k++){
+      //mf::LogInfo("HoughBaseAlg") << fpointId_to_clusterId->at(i)  << linesFound[j].oldClusterNumber;
+      if(fpointId_to_clusterId->at(i) == linesFound[k].oldClusterNumber)
+        fpointId_to_clusterId->at(i) = linesFound[k].clusterNumber;
+    }
+  }
 
 
 
@@ -1090,7 +1090,7 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
   bool lineMerged = false;
 
   
-  mf::LogVerbatim("HoughBaseAlg") << "Merging with clusIndexStart: " << clusIndexStart;
+  //mf::LogVerbatim("HoughBaseAlg") << "Merging with clusIndexStart: " << clusIndexStart;
 
   // If we reach the last Hough line, move on 
   if(linesFound->size() == clusIndexStart+1)
@@ -1175,7 +1175,7 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
     mergeTheta[i] = atan(fabs(( toMergeSlope - mergeSlope[i])/(1 + toMergeSlope*mergeSlope[i] )))*(180/TMath::Pi());
     mergeDistSinTheta[i] = newClusDistTemp[i]*sin(mergeTheta[i]); 
 
-    std::cout << "minTheta: " << mergeTheta[i] << std::endl; 
+    //std::cout << "minTheta: " << mergeTheta[i] << std::endl; 
     //mf::LogInfo("HoughBaseAlg") << "minTheta: " << mergeTheta[i]; 
   }
 
