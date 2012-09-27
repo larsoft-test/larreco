@@ -11,7 +11,6 @@
 #include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Ptr.h"
 #include "art/Persistency/Common/PtrVector.h"
-#include "ClusterFinder/RStarTree/RStarTree.h"
 #include "ClusterFinder/HoughBaseAlg.h"
 #include "ClusterFinder/EndPointClusAlg.h"
 
@@ -21,14 +20,6 @@
 class TH1F;
 
 namespace recob { class Hit; }
-
-// RStarTree related infrastructure
-//
-// Our core objects have a physical extent (I.e. there are not
-// points), but a R*-tree should be able to deal with that.
-//class dbsPoint; // forward declaration
-typedef RStarTree< unsigned int, 2, 32, 64 > RTree; // payload is just an index
-typedef RTree::BoundingBox BoundingBox;
 
 namespace cluster{
 
@@ -74,9 +65,6 @@ namespace cluster{
     std::vector<std::vector<double> >       fsim3;            	     ///<
     double fMaxWidth;
 
-    RTree fRTree;
-    //std::vector< dbsPoint > fRect;
-   
     //Matrices for Ben's fuzzy cluster
     TMatrixD                         fpsMat;
 
@@ -105,8 +93,6 @@ namespace cluster{
     unsigned int fDistanceMetric; ///< Which distance metric to use
       
     // noise vector
-    static const unsigned int kNO_CLUSTER;
-    static const unsigned int kNOISE_CLUSTER;
     std::vector<bool>      fnoise;	
     std::vector<bool>      fvisited;					     
     std::vector<double>    fWirePitch;     ///< the pitch of the wires in each plane

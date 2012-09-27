@@ -60,7 +60,7 @@ namespace cluster{
 
   //--------------------------------------------------------------------
   ClusterCheater::ClusterCheater(fhicl::ParameterSet const& pset)
-    : fHLAlg(pset.get< fhicl::ParameterSet >("HoughLineAlg"))
+    : fHLAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg"))
   {
     this->reconfigure(pset);
 
@@ -78,7 +78,7 @@ namespace cluster{
   {
     fHitModuleLabel    = pset.get< std::string >("HitModuleLabel",    "hit"     );
     fG4ModuleLabel     = pset.get< std::string >("G4ModuleLabel",     "largeant");
-    fHLAlg.reconfigure(pset.get< fhicl::ParameterSet >("HoughLineAlg"));
+    fHLAlg.reconfigure(pset.get< fhicl::ParameterSet >("HoughBaseAlg"));
 
     return;
   }

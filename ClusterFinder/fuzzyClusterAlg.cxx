@@ -35,8 +35,10 @@
 #include <fstream>
 #include <cstdlib>
 
-const unsigned int cluster::fuzzyClusterAlg::kNO_CLUSTER    = UINT_MAX;
-const unsigned int cluster::fuzzyClusterAlg::kNOISE_CLUSTER = UINT_MAX-1;
+namespace cluster{
+  const unsigned int kNO_CLUSTER    = UINT_MAX;
+  const unsigned int kNOISE_CLUSTER = UINT_MAX-1;
+}
 
 //----------------------------------------------------------
 // fuzzyClusterAlg stuff
@@ -92,11 +94,6 @@ void cluster::fuzzyClusterAlg::InitFuzzy(std::vector<art::Ptr<recob::Hit> >& all
   fpsMembership.Clear();
   fpsNewMembership.Clear();
   fpsCentroids.Clear(); 
-
-  // Clear the RTree
-  fRTree.Remove(RTree::AcceptAny(),RTree::RemoveLeaf());
-  // and the bounds list
-  //fRect.clear();
 
   //------------------------------------------------------------------
   // Determine spacing between wires (different for each detector)

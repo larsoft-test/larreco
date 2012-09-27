@@ -14,7 +14,7 @@ standard_fuzzycluster:
  module_type:     "fuzzyCluster"
  HitsModuleLabel: "ffthit"
  fuzzyClusterAlg: @local::standard_fuzzyclusteralg
- HoughClusAlg:    @local::standard_houghclusalg
+ HoughClusAlg:    @local::standard_houghbasealg
 }
 
 standard_dbclusterana:

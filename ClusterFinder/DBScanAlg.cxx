@@ -37,9 +37,6 @@
 
 #include "TH1.h"
 
-const unsigned int cluster::DBScanAlg::kNO_CLUSTER    = UINT_MAX;
-const unsigned int cluster::DBScanAlg::kNOISE_CLUSTER = UINT_MAX-1;
-
 //----------------------------------------------------------
 // RStarTree stuff
 //----------------------------------------------------------
@@ -249,7 +246,10 @@ struct AcceptFindNeighbors {
   }
 };
 
-
+namespace cluster{
+  const unsigned int kNO_CLUSTER    = UINT_MAX;
+  const unsigned int kNOISE_CLUSTER = UINT_MAX-1;
+}
 
 //----------------------------------------------------------
 // DBScanAlg stuff
