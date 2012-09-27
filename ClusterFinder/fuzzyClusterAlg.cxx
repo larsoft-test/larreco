@@ -5,7 +5,7 @@
 // Ben Carls, bcarls@fnal.gov
 //
 // This code looks for clusters using a fuzzy c-means algorithm. The
-// clusters are then examined by the HoughClusAlg to identify Hough lines
+// clusters are then examined by the HoughBaseAlg to identify Hough lines
 // which can then be split off into their own clusters. See the webpage below
 // for more information on the fuzzy clustering algorithm.
 //
@@ -44,7 +44,7 @@ namespace cluster{
 // fuzzyClusterAlg stuff
 //----------------------------------------------------------
 cluster::fuzzyClusterAlg::fuzzyClusterAlg(fhicl::ParameterSet const& pset) :
-   fHBAlg(pset.get< fhicl::ParameterSet >("HoughClusAlg")),
+   fHBAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg")),
    fEPCAlg(pset.get< fhicl::ParameterSet >("EndPointClusAlg"))
 {
  this->reconfigure(pset); 
@@ -67,7 +67,7 @@ void cluster::fuzzyClusterAlg::reconfigure(fhicl::ParameterSet const& p)
   nMaxClusters    = p.get< int    >("MaxClusters");
   nIterations     = p.get< int    >("Iterations");
   fMergeCutoff    = p.get< double >("MergeCutoff");
-  fHBAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughClusAlg"));
+  fHBAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughBaseAlg"));
   fEPCAlg.reconfigure(p.get< fhicl::ParameterSet >("EndPointClusAlg"));
 }
 
