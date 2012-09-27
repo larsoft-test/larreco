@@ -107,7 +107,7 @@ standard_clustercheater:
 
 argoneut_dbcluster:                    @local::standard_dbcluster      
 argoneut_fuzzycluster:                 @local::standard_fuzzycluster      
-argoneut_fuzzycluster.HoughClusAlg:    @local::standard_houghclusalg      
+argoneut_fuzzycluster.HoughBaseAlg:    @local::standard_houghbasealg      
 argoneut_dbcluster.DBScanAlg:          @local::argoneut_dbscanalg   
 argoneut_dbclusterana:                 @local::standard_dbclusterana   
 argoneut_kingacluster:                 @local::standard_kingacluster   
@@ -124,7 +124,7 @@ microboone_dbcluster:                    @local::standard_dbcluster
 microboone_dbcluster.DBScanAlg:          @local::microboone_dbscanalg    
 microboone_dbclusterana:                 @local::standard_dbclusterana   
 microboone_fuzzycluster:                 @local::standard_fuzzycluster      
-microboone_fuzzycluster.HoughClusAlg:    @local::standard_houghclusalg      
+microboone_fuzzycluster.HoughBaseAlg:    @local::standard_houghbasealg      
 microboone_kingacluster:                 @local::standard_kingacluster   
 microboone_kingaclusterana:              @local::standard_kingaclusterana
 microboone_houghlinefinder:              @local::standard_houghlinefinder
