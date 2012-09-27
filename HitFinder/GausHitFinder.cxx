@@ -11,8 +11,10 @@
 // 06/14/12: Fixed speed issues by changing ROOT fitting options
 // 07/25/12: Fixed bug in retrieving Amplitude for the Reco Hit
 // 08/06/12: Updating for error calculation on the hits
+// 09/26.12: Fixing a bug with the size of the hit found when looking at Argoneut data (Tingjun and Ornella)
 // -----------------------------------
-// This algorithm is based on the FFTHitFinder and keeps many of the 
+// This algorithm is based on the FFTHitFinder written by Brian Page, 
+// Michigan State University, for the ArgoNeuT experimentand keeps many of the 
 // same variable definitions but attempts to clean up many of the 
 // ambiguities and potential problems calculating the Chi^2 and GoodnessOfFit  
 //
@@ -334,6 +336,13 @@ void GausHitFinder::produce(art::Event& evt)
       // ###############################################################
       //--- Size of hit = endT - startT ---
       size = (int)(endT-startT);
+      
+      // ###########################################################################
+      // ###    Bug Fix: For ADC counts occuring at the end of the ticks range   ###
+      // ### the hitfinder incorrectly assigns the size of the hit as a negative ###
+      // ###      number...so we fix this to be 0 so that this hit is skipped    ###
+      // ###########################################################################
+      if(size < 0){size = 0;}
       // --- TH1D HitSignal ---
       TH1D hitSignal("hitSignal","",size,startT,endT);
 	  
