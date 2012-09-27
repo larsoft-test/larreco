@@ -35,14 +35,6 @@ namespace cluster{
     void InitFuzzy(std::vector<art::Ptr<recob::Hit> >& allhits, std::set<unsigned int> badChannels);
     // Three differnt version of the clustering code
     void run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit> >& allhits);     
-    double getSimilarity(const std::vector<double> v1, const std::vector<double> v2); 
-    std::vector<unsigned int> findNeighbors( unsigned int pid, double threshold, double threshold2);
-    void computeSimilarity();
-    void run_cluster();     
-    double getSimilarity2(const std::vector<double> v1, const std::vector<double> v2); 
-    void computeSimilarity2();
-    double getWidthFactor(const std::vector<double> v1, const std::vector<double> v2); 
-    void computeWidthFactor();
    
     //Functions for fuzzy clustering
     void computeCentroids(int k);
@@ -67,9 +59,6 @@ namespace cluster{
 
     //Matrices for Ben's fuzzy cluster
     TMatrixD                         fpsMat;
-
-
-
 
   private:
     
@@ -107,17 +96,9 @@ namespace cluster{
     TMatrixD                         fpsCentroids;
 
     // Object used for Hough transforms
-    HoughBaseAlg fHCAlg;        
+    HoughBaseAlg fHBAlg;        
     EndPointClusAlg fEPCAlg;        ///< object that does the Hough Transform
 
-
-    // Helper routined for run_dbscan_cluster() names and
-    // responsibilities taken directly from the paper
-    bool ExpandCluster(unsigned int point /* to be added */, 
-		       unsigned int clusterID /* which is being expanded */);
-    std::set<unsigned int> RegionQuery(unsigned int point);
-    // Helper for the accelerated run_FN_cluster()
-    std::vector<unsigned int> RegionQuery_vector(unsigned int point);
 
 
   }; // class fuzzyClusterAlg
