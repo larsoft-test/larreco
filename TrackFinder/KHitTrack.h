@@ -39,7 +39,7 @@ namespace trkf {
     KHitTrack();
 
     /// Initializing constructor - KFitTrack + measurement.
-    KHitTrack(const KFitTrack& trf, const boost::shared_ptr<const KHitBase>& hit);
+    KHitTrack(const KFitTrack& trf, const std::shared_ptr<const KHitBase>& hit);
 
     /// Initializing constructor - KETrack.
     KHitTrack(const KETrack& tre);
@@ -50,12 +50,12 @@ namespace trkf {
     // Accessor.
 
     /// Measurement.
-    const boost::shared_ptr<const KHitBase>& getHit() const {return fHit;}
+    const std::shared_ptr<const KHitBase>& getHit() const {return fHit;}
 
     // Modifiers.
 
     /// Set measurement.
-    void setHit(const boost::shared_ptr<const KHitBase>& hit) {fHit = hit;}
+    void setHit(const std::shared_ptr<const KHitBase>& hit) {fHit = hit;}
 
     /// Printout
     virtual std::ostream& Print(std::ostream& out, bool doTitle = true) const;
@@ -65,7 +65,7 @@ namespace trkf {
     // Attributes.
 
     /// Measurement.
-    boost::shared_ptr<const KHitBase> fHit;
+    std::shared_ptr<const KHitBase> fHit;
   };
 }
 

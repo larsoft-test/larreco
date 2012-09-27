@@ -21,7 +21,7 @@ namespace trkf {
   ///
   /// tcut - Maximum delta ray energy.
   ///
-  Propagator::Propagator(double tcut, const boost::shared_ptr<const Interactor>& interactor) :
+  Propagator::Propagator(double tcut, const std::shared_ptr<const Interactor>& interactor) :
     fTcut(tcut),
     fInteractor(interactor)
   {}
@@ -47,7 +47,7 @@ namespace trkf {
   /// maximum size.
   ///
   boost::optional<double> Propagator::vec_prop(KTrack& trk,
-					       const boost::shared_ptr<const Surface>& psurf, 
+					       const std::shared_ptr<const Surface>& psurf, 
 					       PropDirection dir,
 					       bool doDedx,
 					       TrackMatrix* prop_matrix,
@@ -145,7 +145,7 @@ namespace trkf {
 	// Generate destionation surface for this step (either final
 	// destination, or some intermediate surface).
 
-	boost::shared_ptr<const Surface> pstep;
+	std::shared_ptr<const Surface> pstep;
 	if(std::abs(*dist) <= smax) {
 	  done = true;
 	  pstep = psurf;
@@ -174,7 +174,7 @@ namespace trkf {
 
 	  // Make intermediate surface object.
 
-	  pstep = boost::shared_ptr<const Surface>(new SurfYZPlane(xyz[1], xyz[2], phi));
+	  pstep = std::shared_ptr<const Surface>(new SurfYZPlane(xyz[1], xyz[2], phi));
 	}
 
 	// Do the actual step propagation.
@@ -237,7 +237,7 @@ namespace trkf {
   /// If the reference track is null, this method simply calls vec_prop.
   ///
   boost::optional<double> Propagator::lin_prop(KTrack& trk,
-					       const boost::shared_ptr<const Surface>& psurf, 
+					       const std::shared_ptr<const Surface>& psurf, 
 					       PropDirection dir,
 					       bool doDedx,
 					       KTrack* ref,
@@ -312,7 +312,7 @@ namespace trkf {
   /// Returned value: propagation distance + success flag.
   ///
   boost::optional<double> Propagator::err_prop(KETrack& tre,
-					       const boost::shared_ptr<const Surface>& psurf, 
+					       const std::shared_ptr<const Surface>& psurf, 
 					       PropDirection dir,
 					       bool doDedx,
 					       KTrack* ref,
@@ -352,7 +352,7 @@ namespace trkf {
   /// Returned value: propagation distance + success flag.
   ///
   boost::optional<double> Propagator::noise_prop(KETrack& tre,
-						 const boost::shared_ptr<const Surface>& psurf, 
+						 const std::shared_ptr<const Surface>& psurf, 
 						 PropDirection dir,
 						 bool doDedx,
 						 KTrack* ref) const

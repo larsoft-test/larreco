@@ -25,7 +25,7 @@ namespace trkf {
   /// tcut   - Delta ray energy cutoff for calculating dE/dx.
   ///
   PropXYZPlane::PropXYZPlane(double tcut) :
-    Propagator(tcut, boost::shared_ptr<const Interactor>(new InteractPlane(tcut)))
+    Propagator(tcut, std::shared_ptr<const Interactor>(new InteractPlane(tcut)))
   {}
 
   /// Destructor.
@@ -48,7 +48,7 @@ namespace trkf {
   ///
   boost::optional<double>
   PropXYZPlane::short_vec_prop(KTrack& trk,
-			       const boost::shared_ptr<const Surface>& psurf, 
+			       const std::shared_ptr<const Surface>& psurf, 
 			       Propagator::PropDirection dir,
 			       bool doDedx,
 			       TrackMatrix* prop_matrix,

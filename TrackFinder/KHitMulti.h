@@ -58,7 +58,7 @@ namespace trkf {
     KHitMulti();
 
     /// Initializing Constructor -- measurement surface only.
-    KHitMulti(const boost::shared_ptr<const Surface>& psurf);
+    KHitMulti(const std::shared_ptr<const Surface>& psurf);
 
     /// Destructor.
     virtual ~KHitMulti();
@@ -69,7 +69,7 @@ namespace trkf {
     int getMeasDim() const {return fMeasDim;}
 
     /// Measurement collection.
-    const std::vector<boost::shared_ptr<const KHit<1> > >& getMeasVec() const {return fMeasVec;}
+    const std::vector<std::shared_ptr<const KHit<1> > >& getMeasVec() const {return fMeasVec;}
 
     /// Measurement vector.
     const ublas::vector<double>& getMeasVector() const {return fMvec;}
@@ -101,10 +101,10 @@ namespace trkf {
     // Modifiers.
 
     /// Add a measurement of unknown type.
-    void addMeas(const boost::shared_ptr<const KHitBase>& pmeas);
+    void addMeas(const std::shared_ptr<const KHitBase>& pmeas);
 
     /// Add a one-dimensional measurement.
-    void addMeas(const boost::shared_ptr<const KHit<1> >& pmeas);
+    void addMeas(const std::shared_ptr<const KHit<1> >& pmeas);
 
     // Overrides.
 
@@ -123,7 +123,7 @@ namespace trkf {
     // Attributes.
 
     int fMeasDim;                                   ///< Measurement space dimension.
-    std::vector<boost::shared_ptr<const KHit<1> > > fMeasVec;   ///< Underlying measurements.
+    std::vector<std::shared_ptr<const KHit<1> > > fMeasVec;   ///< Underlying measurements.
     mutable ublas::vector<double> fMvec;                    ///< Measurement vector.
     mutable ublas::symmetric_matrix<double> fMerr;          ///< Measurement error matrix.
     mutable ublas::vector<double> fPvec;            ///< Prediction vector.

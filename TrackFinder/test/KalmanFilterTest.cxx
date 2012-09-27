@@ -31,7 +31,7 @@ namespace trkf {
 
     // Make a test track.
 
-    boost::shared_ptr<const trkf::Surface> psurf(new trkf::SurfYZPlane(0., 1000., 0.));
+    std::shared_ptr<const trkf::Surface> psurf(new trkf::SurfYZPlane(0., 1000., 0.));
     TrackVector vec(5);
     vec(0) = 10.;
     vec(1) = 0.;
@@ -52,7 +52,7 @@ namespace trkf {
     // Make some test measurements.
 
     int nsurf = 20;
-    std::vector<boost::shared_ptr<const trkf::KHitBase> > phits;
+    std::vector<std::shared_ptr<const trkf::KHitBase> > phits;
     for(int i=0; i<nsurf; ++i) {
       int channel = 0;
       if(i%3 == 0)
@@ -69,7 +69,7 @@ namespace trkf {
       bool ok = prop.vec_prop(treprop, hit.getMeasSurface(), trkf::Propagator::UNKNOWN, false);
       assert(ok);
       double x = treprop.getVector()(0);
-      phits.push_back(boost::shared_ptr<const trkf::KHitBase>(new KHitWireX(channel, x, 0.1)));
+      phits.push_back(std::shared_ptr<const trkf::KHitBase>(new KHitWireX(channel, x, 0.1)));
     }
 
     // Make a new starting track.
@@ -113,7 +113,7 @@ namespace trkf {
     std::cout << "\nCompound hit method." << std::endl;
     KHitMulti mhit;
     for(unsigned int i=0; i<phits.size(); ++i) {
-      boost::shared_ptr<const KHitBase>& phit = phits[i];
+      std::shared_ptr<const KHitBase>& phit = phits[i];
       mhit.addMeas(phit);
     }
     mhit.predict(tre3, &prop);

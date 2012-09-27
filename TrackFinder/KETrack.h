@@ -34,10 +34,10 @@ namespace trkf {
     KETrack();
 
     /// Constructor - specify surface only.
-    KETrack(const boost::shared_ptr<const Surface>& psurf);
+    KETrack(const std::shared_ptr<const Surface>& psurf);
 
     /// Constructor - surface + track parameters + error matrix.
-    KETrack(const boost::shared_ptr<const Surface>& psurf,
+    KETrack(const std::shared_ptr<const Surface>& psurf,
 	    const TrackVector& vec,
 	    const TrackError& err, 
 	    Surface::TrackDirection dir = Surface::UNKNOWN,

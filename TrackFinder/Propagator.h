@@ -61,10 +61,10 @@
 #ifndef PROPAGATOR_H
 #define PROPAGATOR_H
 
+#include <memory>
 #include "TrackFinder/KalmanLinearAlgebra.h"
 #include "TrackFinder/KETrack.h"
 #include "TrackFinder/Interactor.h"
-#include "boost/shared_ptr.hpp"
 #include "boost/optional.hpp"
 
 namespace trkf {
@@ -77,7 +77,7 @@ namespace trkf {
     enum PropDirection {FORWARD, BACKWARD, UNKNOWN};
 
     /// Constructor.
-    Propagator(double tcut, const boost::shared_ptr<const Interactor>& interactor);
+    Propagator(double tcut, const std::shared_ptr<const Interactor>& interactor);
 
     /// Destructor.
     virtual ~Propagator();
@@ -85,7 +85,7 @@ namespace trkf {
     // Accessors.
 
     double getTcut() const {return fTcut;}
-    const boost::shared_ptr<const Interactor>& getInteractor() const {return fInteractor;}
+    const std::shared_ptr<const Interactor>& getInteractor() const {return fInteractor;}
 
     // Virtual methods.
 
@@ -94,7 +94,7 @@ namespace trkf {
 
     /// Propagate without error (short distance).
     virtual boost::optional<double> short_vec_prop(KTrack& trk,
-						   const boost::shared_ptr<const Surface>& psurf, 
+						   const std::shared_ptr<const Surface>& psurf, 
 						   PropDirection dir,
 						   bool doDedx,
 						   TrackMatrix* prop_matrix = 0,
@@ -102,7 +102,7 @@ namespace trkf {
 
     /// Propagate without error (long distance).
     boost::optional<double> vec_prop(KTrack& trk,
-				     const boost::shared_ptr<const Surface>& psurf, 
+				     const std::shared_ptr<const Surface>& psurf, 
 				     PropDirection dir,
 				     bool doDedx,
 				     TrackMatrix* prop_matrix = 0,
@@ -110,7 +110,7 @@ namespace trkf {
 
     /// Linearized propagate without error.
     boost::optional<double> lin_prop(KTrack& trk,
-				     const boost::shared_ptr<const Surface>& psurf, 
+				     const std::shared_ptr<const Surface>& psurf, 
 				     PropDirection dir,
 				     bool doDedx,
 				     KTrack* ref = 0,
@@ -118,7 +118,7 @@ namespace trkf {
 				     TrackError* noise_matrix = 0) const;
     /// Propagate with error, but without noise.
     boost::optional<double> err_prop(KETrack& tre,
-				     const boost::shared_ptr<const Surface>& psurf, 
+				     const std::shared_ptr<const Surface>& psurf, 
 				     PropDirection dir,
 				     bool doDedx,
 				     KTrack* ref = 0,
@@ -126,7 +126,7 @@ namespace trkf {
 
     /// Propagate with error and noise.
     boost::optional<double> noise_prop(KETrack& tre,
-				       const boost::shared_ptr<const Surface>& psurf, 
+				       const std::shared_ptr<const Surface>& psurf, 
 				       PropDirection dir,
 				       bool doDedx,
 				       KTrack* ref = 0) const;
@@ -139,8 +139,8 @@ namespace trkf {
 
     // Attributes.
 
-    double fTcut;                                     ///< Maximum delta ray energy for dE/dx.
-    boost::shared_ptr<const Interactor> fInteractor;  ///< Interactor (for calculating noise).
+    double fTcut;                                   ///< Maximum delta ray energy for dE/dx.
+    std::shared_ptr<const Interactor> fInteractor;  ///< Interactor (for calculating noise).
   };
 }
 

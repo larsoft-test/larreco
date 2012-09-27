@@ -47,13 +47,13 @@ namespace trkf {
     // Accessors.
 
     /// Surface accessor.
-    const boost::shared_ptr<const Surface>& getSurface() const {return fSurf;}
+    const std::shared_ptr<const Surface>& getSurface() const {return fSurf;}
 
     /// Plane index.
     int getPlane() const {return fPlane;}
 
     /// Measurement collection accessor.
-    const std::vector<boost::shared_ptr<const KHitBase> >& getHits() const {return fHits;}
+    const std::vector<std::shared_ptr<const KHitBase> >& getHits() const {return fHits;}
 
     /// Path flag.
     bool getHasPath() const {return fHasPath;}
@@ -67,7 +67,7 @@ namespace trkf {
     void clear() {fHits.clear();}
 
     /// Add a mesaurement into the colleciton.
-    void addHit(const boost::shared_ptr<const KHitBase>& hit);
+    void addHit(const std::shared_ptr<const KHitBase>& hit);
 
     /// Set path flag and estimated path distance.
     void setPath(bool has_path, double path) {fHasPath = has_path; fPath = path;}
@@ -81,11 +81,11 @@ namespace trkf {
 
     // Attributes.
 
-    boost::shared_ptr<const Surface> fSurf;                  ///< Common surface.
-    int fPlane;                                              ///< Plane index of measurements.
-    std::vector<boost::shared_ptr<const KHitBase> > fHits;   ///< Measuement collection.
-    bool fHasPath;                                           ///< Path flag.
-    double fPath;                                            ///< Estimated path distance.
+    std::shared_ptr<const Surface> fSurf;                  ///< Common surface.
+    int fPlane;                                            ///< Plane index of measurements.
+    std::vector<std::shared_ptr<const KHitBase> > fHits;   ///< Measuement collection.
+    bool fHasPath;                                         ///< Path flag.
+    double fPath;                                          ///< Estimated path distance.
   };
 }
 

@@ -23,7 +23,7 @@ namespace trkf {
   /// trf - KFitTrack.
   /// hit - Measurement.
   ///
-  KHitTrack::KHitTrack(const KFitTrack& trf, const boost::shared_ptr<const KHitBase>& hit) :
+  KHitTrack::KHitTrack(const KFitTrack& trf, const std::shared_ptr<const KHitBase>& hit) :
     KFitTrack(trf),
     fHit(hit)
   {}

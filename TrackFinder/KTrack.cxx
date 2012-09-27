@@ -35,7 +35,7 @@ namespace trkf {
   ///
   /// psurf - Surface pointer.
   ///
-  KTrack::KTrack(const boost::shared_ptr<const Surface>& psurf) :
+  KTrack::KTrack(const std::shared_ptr<const Surface>& psurf) :
     fSurf(psurf),
     fDir(Surface::UNKNOWN),
     fPdgCode(0)
@@ -50,7 +50,7 @@ namespace trkf {
   /// dir   - Track direction.
   /// pdg   - Pdg code.
   ///
-  KTrack::KTrack(boost::shared_ptr<const Surface> psurf,
+  KTrack::KTrack(std::shared_ptr<const Surface> psurf,
 		 const TrackVector& vec,
 		 Surface::TrackDirection dir,
 		 int pdg) :

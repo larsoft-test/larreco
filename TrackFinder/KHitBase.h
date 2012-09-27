@@ -37,7 +37,7 @@
 /// class) every time method predict is called.
 ///
 /// As with KTrack, the surface attributes are polymorphic, and is held
-/// via boost::shared_ptr type of smart pointer, which handles memory
+/// via std::shared_ptr type of smart pointer, which handles memory
 /// management using reference-counted shared ownership.
 ///
 ////////////////////////////////////////////////////////////////////////
@@ -49,7 +49,6 @@
 #include "TrackFinder/Surface.h"
 #include "TrackFinder/KETrack.h"
 #include "TrackFinder/Propagator.h"
-#include "boost/shared_ptr.hpp"
 
 namespace trkf {
 
@@ -61,7 +60,7 @@ namespace trkf {
     KHitBase();
 
     /// Initializing Constructor.
-    KHitBase(const boost::shared_ptr<const Surface>& psurf, int plane = -1);
+    KHitBase(const std::shared_ptr<const Surface>& psurf, int plane = -1);
 
     /// Destructor.
     virtual ~KHitBase();
@@ -69,13 +68,13 @@ namespace trkf {
     // Accessors.
 
     /// Predition surface.
-    const boost::shared_ptr<const Surface>& getPredSurface() const {return fPredSurf;}
+    const std::shared_ptr<const Surface>& getPredSurface() const {return fPredSurf;}
 
     /// Prediction distance.
     double getPredDistance() const {return fPredDist;}
 
     /// Measurement surface.
-    const boost::shared_ptr<const Surface>& getMeasSurface() const {return fMeasSurf;}
+    const std::shared_ptr<const Surface>& getMeasSurface() const {return fMeasSurf;}
 
     /// Measurement plane index.
     int getMeasPlane() const {return fMeasPlane;}
@@ -83,7 +82,7 @@ namespace trkf {
     // Modifiers.
 
     /// Measurement surface.
-    void setMeasSurface(const boost::shared_ptr<const Surface>& psurf) {fMeasSurf = psurf;}
+    void setMeasSurface(const std::shared_ptr<const Surface>& psurf) {fMeasSurf = psurf;}
 
     /// Measurement plane.
     void setMeasPlane(int plane) {fMeasPlane = plane;}
@@ -107,13 +106,13 @@ namespace trkf {
 
   protected:
 
-    mutable boost::shared_ptr<const Surface> fPredSurf;   ///< Prediction surface.
-    mutable double fPredDist;                             ///< Prediction distance.
+    mutable std::shared_ptr<const Surface> fPredSurf;   ///< Prediction surface.
+    mutable double fPredDist;                           ///< Prediction distance.
 
   private:
 
-    boost::shared_ptr<const Surface> fMeasSurf;           ///< Measurement surface.
-    int fMeasPlane;                                       ///< Measurement plane index.
+    std::shared_ptr<const Surface> fMeasSurf;           ///< Measurement surface.
+    int fMeasPlane;                                     ///< Measurement plane index.
   };
 
   /// Output operator.

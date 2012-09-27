@@ -24,7 +24,7 @@ namespace trkf {
   ///
   /// psurf - Measurement surface pointer.
   ///
-  KHitBase::KHitBase(const boost::shared_ptr<const Surface>& psurf, int plane) :
+  KHitBase::KHitBase(const std::shared_ptr<const Surface>& psurf, int plane) :
     fPredDist(0.),
     fMeasSurf(psurf),
     fMeasPlane(plane)

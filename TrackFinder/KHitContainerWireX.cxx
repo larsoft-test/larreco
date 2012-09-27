@@ -87,11 +87,11 @@ namespace trkf {
 
       // Get surface from KHitGroup (might be null pointer).
 
-      const boost::shared_ptr<const Surface>& psurf = pgr->getSurface();
+      const std::shared_ptr<const Surface>& psurf = pgr->getSurface();
 
       // Construct KHitWireX object.
 
-      boost::shared_ptr<const KHitBase> phit(new KHitWireX(*ihit, psurf));
+      std::shared_ptr<const KHitBase> phit(new KHitWireX(*ihit, psurf));
 
       // Insert hit into KHitGroup.
 

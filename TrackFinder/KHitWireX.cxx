@@ -28,7 +28,7 @@ namespace trkf {
   /// memory.
   ///
   KHitWireX::KHitWireX(const art::Ptr<recob::Hit>& hit,
-		       const boost::shared_ptr<const Surface>& psurf) :
+		       const std::shared_ptr<const Surface>& psurf) :
     KHit(psurf),
     fHit(hit)
   {
@@ -47,7 +47,7 @@ namespace trkf {
     // that the specified surface agrees with the channel number.
 
     if(psurf.get() == 0) {
-      boost::shared_ptr<const Surface> new_psurf(new SurfWireX(channel));
+      std::shared_ptr<const Surface> new_psurf(new SurfWireX(channel));
       setMeasSurface(new_psurf);
     }
     else {
@@ -97,7 +97,7 @@ namespace trkf {
   /// xerr    - X error.
   ///
   KHitWireX::KHitWireX(unsigned int channel, double x, double xerr) :
-    KHit(boost::shared_ptr<const Surface>(new SurfWireX(channel)))
+    KHit(std::shared_ptr<const Surface>(new SurfWireX(channel)))
   {
     // Get services.
 

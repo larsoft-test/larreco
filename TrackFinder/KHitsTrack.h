@@ -51,12 +51,12 @@ namespace trkf {
     // Accessor.
 
     /// Measurement collection.
-    const std::vector<boost::shared_ptr<const KHitBase> >& getHits() {return fHits;}
+    const std::vector<std::shared_ptr<const KHitBase> >& getHits() {return fHits;}
 
     // Modifiers.
 
     /// Add a measurement.
-    void addHit(const boost::shared_ptr<const KHitBase>& hit) {fHits.push_back(hit);}
+    void addHit(const std::shared_ptr<const KHitBase>& hit) {fHits.push_back(hit);}
 
     /// Printout
     virtual std::ostream& Print(std::ostream& out, bool doTitle = true) const;
@@ -66,7 +66,7 @@ namespace trkf {
     // Attributes.
 
     /// Measurement collection.
-    std::vector<boost::shared_ptr<const KHitBase> > fHits;
+    std::vector<std::shared_ptr<const KHitBase> > fHits;
   };
 }
 

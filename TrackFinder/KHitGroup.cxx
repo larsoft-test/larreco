@@ -36,7 +36,7 @@ namespace trkf {
   ///
   /// hit - Measurement to add.
   /// 
-  void KHitGroup::addHit(const boost::shared_ptr<const KHitBase>& hit)
+  void KHitGroup::addHit(const std::shared_ptr<const KHitBase>& hit)
   {
     // Make sure that the measurement pointer is not null (throw exception if null).
 

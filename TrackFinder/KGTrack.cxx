@@ -178,8 +178,8 @@ namespace trkf {
 	// Construct surface perpendicular to track momentun, and
 	// propagate track to that surface (zero distance).
 
-	const boost::shared_ptr<const Surface> psurf(new SurfXYZPlane(pos[0], pos[1], pos[2],
-								      mom[0], mom[1], mom[2]));
+	const std::shared_ptr<const Surface> psurf(new SurfXYZPlane(pos[0], pos[1], pos[2],
+								    mom[0], mom[1], mom[2]));
 	KETrack tre(trh);
 	boost::optional<double> dist = prop.err_prop(tre, psurf, Propagator::UNKNOWN, false);
 	assert(!!dist);
@@ -195,7 +195,7 @@ namespace trkf {
 
       for(int iview=0; iview<nview; ++iview)
 	dqdx[iview].push_back(0.);
-      const boost::shared_ptr<const KHitBase>& phit = trh.getHit();
+      const std::shared_ptr<const KHitBase>& phit = trh.getHit();
       if(phit.get() != 0) {
 	const KHitWireX* phitx = dynamic_cast<const KHitWireX*>(&*phit);
 	if(phitx != 0) {
@@ -239,7 +239,7 @@ namespace trkf {
 
       // Extrack Hit from track.
 
-      const boost::shared_ptr<const KHitBase>& hit = track.getHit();
+      const std::shared_ptr<const KHitBase>& hit = track.getHit();
       const KHitWireX* phit = dynamic_cast<const KHitWireX*>(&*hit);
       if(phit != 0) {
 	const art::Ptr<recob::Hit> prhit = phit->getHit();
@@ -280,7 +280,7 @@ namespace trkf {
 
       // Extrack Hit from track.
 
-      const boost::shared_ptr<const KHitBase>& hit = track.getHit();
+      const std::shared_ptr<const KHitBase>& hit = track.getHit();
       const KHitWireX* phit = dynamic_cast<const KHitWireX*>(&*hit);
       if(phit != 0) {
 	const art::Ptr<recob::Hit> prhit = phit->getHit();

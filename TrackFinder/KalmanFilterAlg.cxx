@@ -268,7 +268,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
     // Otherwise, use the current track surface as the prediction
     // surface.
 
-    boost::shared_ptr<const Surface> psurf = trf.getSurface();
+    std::shared_ptr<const Surface> psurf = trf.getSurface();
     assert(gr.getPlane() >= 0);
     if(fPlane < 0 || gr.getPlane() < 0 || fPlane == gr.getPlane())
       psurf = gr.getSurface();
@@ -304,10 +304,10 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 
       // Loop over measurements in this group.
 
-      const std::vector<boost::shared_ptr<const KHitBase> >& hits = gr.getHits();
+      const std::vector<std::shared_ptr<const KHitBase> >& hits = gr.getHits();
       double best_chisq = 0.;
-      boost::shared_ptr<const KHitBase> best_hit;
-      for(std::vector<boost::shared_ptr<const KHitBase> >::const_iterator ihit = hits.begin();
+      std::shared_ptr<const KHitBase> best_hit;
+      for(std::vector<std::shared_ptr<const KHitBase> >::const_iterator ihit = hits.begin();
 	  ihit != hits.end(); ++ihit) {
 	const KHitBase& hit = **ihit;
 
@@ -613,7 +613,7 @@ bool trkf::KalmanFilterAlg::smoothTrack(KGTrack& trg,
 
 	// Propagate KFitTrack to the next track surface.
 	  
-	boost::shared_ptr<const Surface> psurf = trh.getSurface();
+	std::shared_ptr<const Surface> psurf = trh.getSurface();
 	boost::optional<double> dist = prop->noise_prop(trf, psurf, Propagator::UNKNOWN,
 							true, &ref);
 
@@ -914,7 +914,7 @@ bool trkf::KalmanFilterAlg::extendTrack(KGTrack& trg,
 	// Otherwise, use the current track surface as the prediction
 	// surface.
 
-	boost::shared_ptr<const Surface> psurf = trf.getSurface();
+	std::shared_ptr<const Surface> psurf = trf.getSurface();
 	assert(gr.getPlane() >= 0);
 	if(fPlane < 0 || gr.getPlane() < 0 || fPlane == gr.getPlane())
 	  psurf = gr.getSurface();
@@ -950,10 +950,10 @@ bool trkf::KalmanFilterAlg::extendTrack(KGTrack& trg,
 
 	  // Loop over measurements in this group.
 
-	  const std::vector<boost::shared_ptr<const KHitBase> >& hits = gr.getHits();
+	  const std::vector<std::shared_ptr<const KHitBase> >& hits = gr.getHits();
 	  double best_chisq = 0.;
-	  boost::shared_ptr<const KHitBase> best_hit;
-	  for(std::vector<boost::shared_ptr<const KHitBase> >::const_iterator ihit = hits.begin();
+	  std::shared_ptr<const KHitBase> best_hit;
+	  for(std::vector<std::shared_ptr<const KHitBase> >::const_iterator ihit = hits.begin();
 	      ihit != hits.end(); ++ihit) {
 	    const KHitBase& hit = **ihit;
 
@@ -1236,7 +1236,7 @@ bool trkf::KalmanFilterAlg::fitMomentumMS(const KGTrack& trg,
 
       // Propagate tracks to the current track surface.
 
-      boost::shared_ptr<const Surface> psurf = trh.getSurface();
+      std::shared_ptr<const Surface> psurf = trh.getSurface();
       boost::optional<double> dist_inf = prop->err_prop(tre_inf, psurf,
 							Propagator::UNKNOWN, false);
       boost::optional<double> dist_range = prop->vec_prop(trk_range, psurf,
@@ -1333,7 +1333,7 @@ bool trkf::KalmanFilterAlg::fitMomentumMS(const KGTrack& trg,
   // always succeed, but if it doesn't, don't update the track.
 
   const KHitTrack& trh0 = itend[0]->second;
-  boost::shared_ptr<const Surface> psurf = trh0.getSurface();
+  std::shared_ptr<const Surface> psurf = trh0.getSurface();
   boost::optional<double> dist_noise = prop->noise_prop(tre_noise, psurf,
 							Propagator::UNKNOWN, true);
   result = !!dist_noise;

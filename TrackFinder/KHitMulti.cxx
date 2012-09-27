@@ -25,7 +25,7 @@ namespace trkf {
   ///
   /// psurf - Measurement surface pointer.
   ///
-  KHitMulti::KHitMulti(const boost::shared_ptr<const Surface>& psurf) :
+  KHitMulti::KHitMulti(const std::shared_ptr<const Surface>& psurf) :
     KHitBase(psurf),
     fMeasDim(0),
     fChisq(0.)
@@ -44,7 +44,7 @@ namespace trkf {
   /// This method tries to dynamic cast the measurement to a supported
   /// type.  If the dynamic cast fails, throw an exception.
   ///
-  void KHitMulti::addMeas(const boost::shared_ptr<const KHitBase>& pmeas)
+  void KHitMulti::addMeas(const std::shared_ptr<const KHitBase>& pmeas)
   {
     // It is an error to pass in a null pointer.
 
@@ -53,8 +53,8 @@ namespace trkf {
 
     // Do the dynamic cast.
 
-    boost::shared_ptr<const KHit<1> > pmeas1 =
-      boost::dynamic_pointer_cast<const KHit<1>, const KHitBase>(pmeas);
+    std::shared_ptr<const KHit<1> > pmeas1 =
+      std::dynamic_pointer_cast<const KHit<1>, const KHitBase>(pmeas);
 
     // Throw an exception if dynamic cast failed.
 
@@ -69,7 +69,7 @@ namespace trkf {
   ///
   /// pmeas - Measurement.
   ///
-  void KHitMulti::addMeas(const boost::shared_ptr<const KHit<1> >& pmeas)
+  void KHitMulti::addMeas(const std::shared_ptr<const KHit<1> >& pmeas)
   {
     // It is an error to pass in a null pointer.
 

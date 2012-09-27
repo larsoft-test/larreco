@@ -78,10 +78,10 @@ namespace trkf {
     KHit();
 
     /// Initializing Constructor -- surface only.
-    KHit(const boost::shared_ptr<const Surface>& psurf);
+    KHit(const std::shared_ptr<const Surface>& psurf);
 
     /// Fully Initializing Constructor.
-    KHit(const boost::shared_ptr<const Surface>& psurf,
+    KHit(const std::shared_ptr<const Surface>& psurf,
 	 const typename KVector<N>::type& mvec,
 	 const typename KSymMatrix<N>::type& merr);
 
@@ -175,7 +175,7 @@ namespace trkf {
   /// psurf - Surface pointer.
   ///
   template<int N>
-  KHit<N>::KHit(const boost::shared_ptr<const Surface>& psurf) :
+  KHit<N>::KHit(const std::shared_ptr<const Surface>& psurf) :
     KHitBase(psurf),
     fChisq(0.)
   {}
@@ -189,7 +189,7 @@ namespace trkf {
   /// merr  - Measurement error.
   ///
   template<int N>
-  KHit<N>::KHit(const boost::shared_ptr<const Surface>& psurf,
+  KHit<N>::KHit(const std::shared_ptr<const Surface>& psurf,
 		const typename KVector<N>::type& mvec,
 		const typename KSymMatrix<N>::type& merr) :
     KHitBase(psurf),

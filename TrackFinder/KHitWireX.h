@@ -44,7 +44,7 @@ namespace trkf {
 
     /// Constructor from Hit.
     KHitWireX(const art::Ptr<recob::Hit>& hit,
-	      const boost::shared_ptr<const Surface>& psurf);
+	      const std::shared_ptr<const Surface>& psurf);
 
     /// Constructor from channel (mainly for testing).
     KHitWireX(unsigned int channel, double x, double xerr);

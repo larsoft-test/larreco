@@ -39,7 +39,7 @@ namespace trkf {
     // Make some random surfaces.
     // Also make initial tracks.
 
-    std::vector<boost::shared_ptr<const trkf::Surface> > surfaces;
+    std::vector<std::shared_ptr<const trkf::Surface> > surfaces;
     std::vector<trkf::KETrack> tracks;
 
     int nsurf = 10;
@@ -50,7 +50,7 @@ namespace trkf {
       double y0 = 100.*double(rand()) / double(RAND_MAX) - 50.;  // (-50,50)
       double z0 = 1000.*double(rand()) / double(RAND_MAX);       // (0,1000)
       double phi = TMath::TwoPi() * double(rand()) / double(RAND_MAX) - TMath::Pi();  // (-pi,pi)
-      boost::shared_ptr<const trkf::Surface> psurf(new trkf::SurfYZPlane(y0, z0, phi));
+      std::shared_ptr<const trkf::Surface> psurf(new trkf::SurfYZPlane(y0, z0, phi));
       surfaces.push_back(psurf);
 
       // Make random track vector.
@@ -96,7 +96,7 @@ namespace trkf {
 
       // Get initial surface and track object.
 
-      const boost::shared_ptr<const trkf::Surface>& psurf1 = surfaces[isurf];
+      const std::shared_ptr<const trkf::Surface>& psurf1 = surfaces[isurf];
       const trkf::KETrack& trk1 = tracks[isurf];
       const trkf::TrackVector& vec1 = trk1.getVector();
       const trkf::TrackError& err1 = trk1.getError();
@@ -120,7 +120,7 @@ namespace trkf {
 
 	// Get destination surface.
 
-	const boost::shared_ptr<const trkf::Surface>& psurf2 = surfaces[jsurf];
+	const std::shared_ptr<const trkf::Surface>& psurf2 = surfaces[jsurf];
 
 	// Make a copy of the initial track and propagate it to the 
 	// destination surface.
@@ -257,8 +257,8 @@ namespace trkf {
 
     double z0 = 0.;
     double z1 = 100.;
-    boost::shared_ptr<const trkf::SurfYZPlane> psurf0(new trkf::SurfYZPlane(0., z0, 0.));
-    boost::shared_ptr<const trkf::SurfYZPlane> psurf1(new trkf::SurfYZPlane(0., z1, 0.));
+    std::shared_ptr<const trkf::SurfYZPlane> psurf0(new trkf::SurfYZPlane(0., z0, 0.));
+    std::shared_ptr<const trkf::SurfYZPlane> psurf1(new trkf::SurfYZPlane(0., z1, 0.));
 
     // Make initial KETrack (muon) with zero error.
 
@@ -289,7 +289,7 @@ namespace trkf {
     int nprop = 100;
     for(int iprop=1; iprop <= nprop; ++iprop) {
       double z = z0 + (z1-z0) * double(iprop) / double(nprop);
-      boost::shared_ptr<const trkf::SurfYZPlane> psurf(new trkf::SurfYZPlane(0., z, 0.));
+      std::shared_ptr<const trkf::SurfYZPlane> psurf(new trkf::SurfYZPlane(0., z, 0.));
       prop->noise_prop(tre2, psurf, trkf::Propagator::UNKNOWN, false);
       if(iprop == nprop) {
 	std::cout << "\nStep " << iprop << " track: " << std::endl;
@@ -331,7 +331,7 @@ namespace trkf {
       double theta =
 	2. * double(rand()) / double(RAND_MAX) - 1.;   // (-1.,1.)
       double phi = TMath::TwoPi() * double(rand()) / double(RAND_MAX) - TMath::Pi();  // (-pi,pi)
-      boost::shared_ptr<const trkf::Surface> psurf(new trkf::SurfXYZPlane(x0, y0, z0, theta,  phi));
+      std::shared_ptr<const trkf::Surface> psurf(new trkf::SurfXYZPlane(x0, y0, z0, theta,  phi));
       surfaces.push_back(psurf);
 
       // Make random track vector.
@@ -377,7 +377,7 @@ namespace trkf {
 
       // Get initial surface and track object.
 
-      const boost::shared_ptr<const trkf::Surface>& psurf1 = surfaces[isurf];
+      const std::shared_ptr<const trkf::Surface>& psurf1 = surfaces[isurf];
       const trkf::KETrack& trk1 = tracks[isurf];
       const trkf::TrackVector& vec1 = trk1.getVector();
       const trkf::TrackError& err1 = trk1.getError();
@@ -401,7 +401,7 @@ namespace trkf {
 
 	// Get destination surface.
 
-	const boost::shared_ptr<const trkf::Surface>& psurf2 = surfaces[jsurf];
+	const std::shared_ptr<const trkf::Surface>& psurf2 = surfaces[jsurf];
 
 	// Make a copy of the initial track and propagate it to the 
 	// destination surface.
@@ -538,8 +538,8 @@ namespace trkf {
 
     z0 = 0.;
     z1 = 100.;
-    boost::shared_ptr<const trkf::SurfXYZPlane> psurf2(new trkf::SurfXYZPlane(0., 0., z0, 0., 0.));
-    boost::shared_ptr<const trkf::SurfXYZPlane> psurf3(new trkf::SurfXYZPlane(0., 0., z1, 0., 0.));
+    std::shared_ptr<const trkf::SurfXYZPlane> psurf2(new trkf::SurfXYZPlane(0., 0., z0, 0., 0.));
+    std::shared_ptr<const trkf::SurfXYZPlane> psurf3(new trkf::SurfXYZPlane(0., 0., z1, 0., 0.));
 
     // Make initial KETrack (muon) with zero error.
 
@@ -568,7 +568,7 @@ namespace trkf {
     nprop = 100;
     for(int iprop=1; iprop <= nprop; ++iprop) {
       double z = z0 + (z1-z0) * double(iprop) / double(nprop);
-      boost::shared_ptr<const trkf::SurfXYZPlane> psurf(new trkf::SurfXYZPlane(0., 0., z, 0., 0.));
+      std::shared_ptr<const trkf::SurfXYZPlane> psurf(new trkf::SurfXYZPlane(0., 0., z, 0., 0.));
       prop->noise_prop(tre2, psurf, trkf::Propagator::UNKNOWN, false);
       if(iprop == nprop) {
 	std::cout << "\nStep " << iprop << " track: " << std::endl;

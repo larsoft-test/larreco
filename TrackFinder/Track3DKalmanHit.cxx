@@ -367,8 +367,8 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
       seed.GetPoint(xyz, err);
       seed.GetDirection(dir, err);
 
-      boost::shared_ptr<const Surface> psurf(new SurfXYZPlane(xyz[0], xyz[1], xyz[2],
-							      dir[0], dir[1], dir[2]));
+      std::shared_ptr<const Surface> psurf(new SurfXYZPlane(xyz[0], xyz[1], xyz[2],
+							    dir[0], dir[1], dir[2]));
       TrackVector vec(5);
       vec(0) = 0.;
       vec(1) = 0.;
@@ -542,7 +542,7 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
     for(std::multimap<double, KHitTrack>::const_iterator ih = trackmap.begin();
 	ih != trackmap.end(); ++ih) {
       const KHitTrack& trh = (*ih).second;
-      const boost::shared_ptr<const KHitBase>& hit = trh.getHit();
+      const std::shared_ptr<const KHitBase>& hit = trh.getHit();
       double chisq = hit->getChisq();
       fHIncChisq->Fill(chisq);
       const KHit<1>* ph1 = dynamic_cast<const KHit<1>*>(&*hit);

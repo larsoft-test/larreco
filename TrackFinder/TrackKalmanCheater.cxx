@@ -269,7 +269,7 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 
 	  // Make a seed track (KTrack).
 
-	  boost::shared_ptr<const Surface> psurf(new SurfYZPlane(y, z, 0.));
+	  std::shared_ptr<const Surface> psurf(new SurfYZPlane(y, z, 0.));
 	  TrackVector vec(5);
 	  vec(0) = x;
 	  vec(1) = 0.;
@@ -345,7 +345,7 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
       for(std::multimap<double, KHitTrack>::const_iterator ih = trackmap.begin();
 	  ih != trackmap.end(); ++ih) {
 	const KHitTrack& trh = (*ih).second;
-	const boost::shared_ptr<const KHitBase>& hit = trh.getHit();
+	const std::shared_ptr<const KHitBase>& hit = trh.getHit();
 	double chisq = hit->getChisq();
 	fHIncChisq->Fill(chisq);
 	const KHit<1>* ph1 = dynamic_cast<const KHit<1>*>(&*hit);

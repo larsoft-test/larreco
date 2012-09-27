@@ -65,7 +65,7 @@ namespace trkf {
 
       // Get destination surface.
 
-      const boost::shared_ptr<const Surface>& psurf = gr.getSurface();
+      const std::shared_ptr<const Surface>& psurf = gr.getSurface();
 
       // Make a fresh copy of the track and propagate it to
       // the destination surface.
