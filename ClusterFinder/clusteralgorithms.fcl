@@ -80,7 +80,7 @@ standard_fuzzyclusteralg:
   MergeCutoff:    10   # The maximum distance between clusters prior to merging,  
                        #needed for fuzzy clustering, 10 was what was used before
 
-  HoughClusAlg:    @local::standard_houghbasealg
+  HoughBaseAlg:    @local::standard_houghbasealg
   EndPointClusAlg: @local::standard_endpointalg
 }
 
