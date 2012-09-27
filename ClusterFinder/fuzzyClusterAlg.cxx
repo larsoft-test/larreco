@@ -44,7 +44,7 @@ namespace cluster{
 // fuzzyClusterAlg stuff
 //----------------------------------------------------------
 cluster::fuzzyClusterAlg::fuzzyClusterAlg(fhicl::ParameterSet const& pset) :
-   fHCAlg(pset.get< fhicl::ParameterSet >("HoughClusAlg")),
+   fHBAlg(pset.get< fhicl::ParameterSet >("HoughClusAlg")),
    fEPCAlg(pset.get< fhicl::ParameterSet >("EndPointClusAlg"))
 {
  this->reconfigure(pset); 
@@ -67,7 +67,7 @@ void cluster::fuzzyClusterAlg::reconfigure(fhicl::ParameterSet const& p)
   nMaxClusters    = p.get< int    >("MaxClusters");
   nIterations     = p.get< int    >("Iterations");
   fMergeCutoff    = p.get< double >("MergeCutoff");
-  fHCAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughClusAlg"));
+  fHBAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughClusAlg"));
   fEPCAlg.reconfigure(p.get< fhicl::ParameterSet >("EndPointClusAlg"));
 }
 
@@ -497,7 +497,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   // Loop over clusters with the Hough line finder to break the clusters up further
   if(nClustersTemp > 0)
     for (unsigned int i = 0; i <= (unsigned int)nClustersTemp-1; i++){
-      fHCAlg.Transform(allhits, &fpointId_to_clusterId, i, &nClusters, corners);
+      fHBAlg.Transform(allhits, &fpointId_to_clusterId, i, &nClusters, corners);
     }
   cid = nClusters;
   
@@ -797,200 +797,5 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
 //}
 
 
-//-----------------------------------------------------------------
-void cluster::fuzzyClusterAlg::computeSimilarity()
-{
-  int size = fps.size();
-  fsim.resize(size, std::vector<double>(size));
-  for ( int i=0; i < size; i++){
-    for ( int j=i+1; j < size; j++){
-      fsim[j] [i] = fsim[i][ j] = getSimilarity(fps[i], fps[j]);
-    }
-  }
-}
 
-//------------------------------------------------------------------
-void cluster::fuzzyClusterAlg::computeSimilarity2()
-{
-  int size = fps.size();
-  fsim2.resize(size, std::vector<double>(size));
-  for ( int i=0; i < size; i++){
-    for ( int j=i+1; j < size; j++){
-      fsim2[j] [i] = fsim2[i][ j] = getSimilarity2(fps[i], fps[j]);
-    }
-  }
-}
-
-//------------------------------------------------------------------
-void cluster::fuzzyClusterAlg::computeWidthFactor()
-{
-  int size = fps.size();
-  fsim3.resize(size, std::vector<double>(size));
-       
-  for ( int i=0; i < size; i++){
-    for ( int j=i+1; j < size; j++){
-      fsim3[j] [i] = fsim3[i][ j] = getWidthFactor(fps[i], fps[j]);
-    }
-  }
-}
-
-//----------------------------------------------------------------
-double cluster::fuzzyClusterAlg::getWidthFactor(const std::vector<double> v1, const std::vector<double> v2){
- 
-  //double k=0.13; //this number was determined by looking at flat muon hits' widths. 
-                   //The average width of these hits in cm is 0.505, so 4*2*(w1^2)=2.04 
-                   //where w1=w2=0.505, e^2.044= 7.69. In order not to change the distance 
-                   //in time direction of the ellipse we want to make it equal to 1 for 
-                   //these hits. Thus the k factor is k=1/7.69=0.13//for coeff=4
-
-  //double k=0.78;
-  //..................................................
-  double k = 0.1;//for 4.5 coeff
-  double WFactor = (exp(4.6*(( v1[2]*v1[2])+( v2[2]*v2[2]))))*k;
-  //........................................................
-  //Let's try something different:
-  // double k=1.96;
-  // double WFactor=(( v1[2]*v1[2])+( v2[2]*v2[2]))*k;
-  if(WFactor > 1){
-    if(WFactor < 6.25) return WFactor;  //remember that we are increasing the distance in 
-                                        //eps2 as sqrt of this number (i.e sqrt(6.25))
-    else return 6.25;
-   
-  }
-  else return 1.0;  
-}
-
-//----------------------------------------------------------------
-//\todo this is O(n) in the number of hits, while the high performance
-//      claimed for fuzzyCluster relies on it being O(log n)!
-std::vector<unsigned int> cluster::fuzzyClusterAlg::findNeighbors( unsigned int pid, 
-							  double threshold,
-							  double threshold2) {
-  std::vector<unsigned int> ne;
-  
-  for ( int unsigned j=0; j < fsim.size(); j++){
-    if((pid != j ) 
-       && (((fsim[pid][j])/ (threshold*threshold))
-	   + ((fsim2[pid][j])/ (threshold2*threshold2*(fsim3[pid][j]))))<1){ //ellipse
-      ne.push_back(j);
-    }
-  }// end loop over fsim
-  
-  return ne;
-}
-
-//----------------------------------------------------------
-double cluster::fuzzyClusterAlg::getSimilarity(const std::vector<double> v1, const std::vector<double> v2){
-  
-   
-  //for Euclidean distance comment everything out except this-->>>
-  // return sqrt((v2[1]-v1[1])*(v2[1]-v1[1])+(v2[0]-v1[0])*(v2[0]-v1[0]));
-  //------------------------------------------------------------------------
-  // return fabs( v2[0]-v1[0]); //for rectangle
-  //---------------------------------------------------------------------- 
-  //Manhattan distance:
-  //return fabs(v1[0]-v2[0])+fabs(v1[1]-v2[1]);
-  
-  /// \todo this code assumes that all planes have the same wire pitch
-  double wire_dist = fWirePitch[0];
-
-  unsigned int wire1=(unsigned int)(v1[0]/wire_dist+0.5); //to make sure to get desired integer
-  unsigned int wire2=(unsigned int)(v2[0]/wire_dist+0.5);
-  int wirestobridge=0;
-
-  if (wire1>wire2) {
-    unsigned int wire = wire1;
-    wire1 = wire2;
-    wire2 = wire;
-  }
-
-  for(unsigned int i=wire1;i<wire2;i++){
-    if(fBadChannels.find(i) != fBadChannels.end())
-      wirestobridge++;
-  }    
-  
-  double cmtobridge=wirestobridge*wire_dist;  
-  //---------------------------------------------------------------------
-  return (( fabs(v2[0]-v1[0])-cmtobridge)*( fabs(v2[0]-v1[0])-cmtobridge)); //for ellipse
-}
-
-//----------------------------------------------------------------
-double cluster::fuzzyClusterAlg::getSimilarity2(const std::vector<double> v1, const std::vector<double> v2){
-
-  //-------------------------------------------
-  //return fabs( v2[1]-v1[1]);//for rectangle
-  //------------------------------------------
-
-  /// \todo this code assumes all planes have the same wire pitch
-  double wire_dist = fWirePitch[0];
-
-  unsigned int wire1=(unsigned int)(v1[0]/wire_dist+0.5); //to make sure to get desired integer
-  unsigned int wire2=(unsigned int)(v2[0]/wire_dist+0.5);
-  int wirestobridge=0;
-
-  if (wire1>wire2) {
-    unsigned int wire = wire1;
-    wire1 = wire2;
-    wire2 = wire;
-  }
-
-  for(unsigned int i=wire1;i<wire2;i++){
-    if(fBadChannels.find(i) != fBadChannels.end())
-      wirestobridge++;
-  }    
-  
-  double cmtobridge=wirestobridge*wire_dist;  
-  
-  if (fabs(v2[0]-v1[0])>1e-10){
-    cmtobridge *= fabs((v2[1]-v1[1])/(v2[0]-v1[0]));
-  }
-  else cmtobridge = 0;
-
-  return (( fabs(v2[1]-v1[1])-cmtobridge)*( fabs(v2[1]-v1[1])-cmtobridge));//for ellipse
-  
-  
-}
-
-
-
-    // These were feeble attempts to solve the single cluster problem
-
-    // Perform a quick sanity check for the one cluster case to see if it's valid
-    // See how populated the area around the centroid is in the one cluster case
-    //int nOneClusHits = 0;
-    //if( k == 1) 
-      //for ( int i = 0; i < fpsMat.GetNrows(); i++)
-        //if ( (fpsMat(i,0) > fpsCentroids(0,0) - 10) && (fpsMat(i,0) < fpsCentroids(0,0) + 10))
-          //if ( (fpsMat(i,1) > fpsCentroids(0,1) - 10) && (fpsMat(i,1) < fpsCentroids(0,1) + 10))
-            //nOneClusHits++; 
-    //if( nOneClusHits > 5)
-      //fXieBeniNumer=0;
-    //if (k == 1){
-      //mf::LogInfo("fuzzyCluster") << "Density around centroid: " << nOneClusHits ;
-    //}
-    //for (int i = 0; i < k; i++)   
-      //mf::LogInfo("fuzzyCluster") << "Centroid: " << fpsCentroids(i,0) << ", " << fpsCentroids(i,1) ;
- 
-
-
-    // Perform a quick sanity check for the one cluster case to see if it's valid, version 2
-    // See how populated the area around the average centroid is in the one cluster case
-    // The average centroid comes from the 2 cluster case so that it wont be weighted!
-    //if( k == 2){ 
-      //int nOneClusHits = 0;
-      //float fCentAvg0 = 0.5*(fpsCentroids(0,0) + fpsCentroids(1,0));
-      //float fCentAvg1 = 0.5*(fpsCentroids(0,1) + fpsCentroids(1,1));
-        //for ( int i = 0; i < fpsMat.GetNrows(); i++)
-          //if ( (fpsMat(i,0) > fCentAvg0 - 5) && (fpsMat(i,0) < fCentAvg0 + 5))
-            //if ( (fpsMat(i,1) > fCentAvg1 - 5) && (fpsMat(i,1) < fCentAvg1 + 5))
-              //nOneClusHits++; 
-      //if( nOneClusHits > 5)
-        //fXieBeniIndices[0]=0;
-      //else
-        //fXieBeniIndices[0]=999999999;
-      //mf::LogInfo("fuzzyCluster") << "Density around centroid: " << nOneClusHits ;
-      //mf::LogInfo("fuzzyCluster") << "Average centroid: " << fCentAvg0 << ", " << fCentAvg1 ;
-    //}
-    //for (int i = 0; i < k; i++)   
-      //mf::LogInfo("fuzzyCluster") << "Centroid: " << fpsCentroids(i,0) << ", " << fpsCentroids(i,1) ;
 
