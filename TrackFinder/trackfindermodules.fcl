@@ -37,7 +37,6 @@ standard_trackkalmancheater:
   UseClusterHits:     true
   HitModuleLabel:     "ffthit"
   ClusterModuleLabel: "dbcluster"
-  G4ModuleLabel:      "largeant"
   MaxTcut:            10.           # Maximum delta ray energy in MeV for restricted dE/dx
   KalmanFilterAlg:    @local::standard_kalmanfilteralg
   SpacePointAlg:      @local::standard_spacepointalg
@@ -85,7 +84,6 @@ standard_trackana:
 {
   module_type:        "TrackAna"
   TrackModuleLabel:   "trackkalmanhit"
-  G4ModuleLabel:      "largeant"
   MinMCKE:            0.05
   MatchColinearity:   0.99
   MatchDisp:          2.0
@@ -108,7 +106,6 @@ standard_spacepointana:
   UseClusterHits:          true
   ClusterModuleLabel:      "dbcluster"
   UseMC:                   false
-  G4ModuleLabel:           "largeant"
   SpacePointAlgTime:       @local::standard_spacepointalg
   SpacePointAlgSep:        @local::standard_spacepointalg
   SpacePointAlgDefault:    @local::standard_spacepointalg
@@ -127,7 +124,6 @@ standard_spacepointcheater:
 {
   module_type:        "SpacePointCheater"
   ClusterModuleLabel: "dbcluster"
-  G4ModuleLabel:      "largeant"
   MinHits:            10
   ClusterAssns:       true
   SpacePointAlg:      @local::standard_spacepointalg

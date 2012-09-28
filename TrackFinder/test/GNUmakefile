@@ -1,7 +1,6 @@
 PACKAGE     := TrackFinderTest
 LIB_TYPE    := shared
 LIB         := lib$(PACKAGE)
-LIBCXXFILES := PropTest.cxx KalmanFilterTest.cxx
 
 LIBLINK     := -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -l$(PACKAGE)
 
@@ -33,6 +32,6 @@ include SoftRelTools/arch_spec_art.mk
 include SoftRelTools/arch_spec_pgsql.mk
 include SoftRelTools/standard.mk
 
-override BINLIBS += -lTrackFinder -lGeometry_service -lart_Framework_Services_Registry -lart_Framework_Core -lCintex
+override BINLIBS += -lMagneticField -lAnalysisBase -lBackTracker_service -lLArProperties_service -lTrackFinder -lLArFFT_service -lCalorimetry -lDetectorProperties_service -lDatabaseUtil_service -lGeometry_service -lart_Framework_Services_Registry -lart_Framework_Core -lCintex
 
 override LIBLIBS += $(LOADLIBES) -L$(ART_LIB) -lart_Framework_Services_Optional_TFileService_service -L$(ROOTSYS)/lib -lHist -lRIO -lGeom -lXMLIO -lGdml -lTree -lGraf -lGui -lGed -lGeomBuilder -lGraf3d -lGpad -lGeomPainter -L$(ROOTSYS)/lib -lGeom -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -lTrackFinder -lUtilities -lGeometry

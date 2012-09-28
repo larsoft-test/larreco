@@ -3,6 +3,17 @@
 //
 // Purpose: Module SpacePointAna.
 //
+//
+// Configuration parameters.
+//
+//  HitModuleLabel:        Hit module label.
+//  UseClusterHits:        If true, use clustered hits (otherwise all hits).
+//  ClusterModuleLabel:    Cluster module label.
+//  UseMC:                 Use MC truth information.
+//  SpacePointAlgTime:     SpacePointAlg configuration (loose time cuts).
+//  SpacePointAlgSep:      SpacePointAlg configuration (loose separation cuts).
+//  SpacePointAlgDefault:  SpacePointAlg configuration (default cuts).
+//
 // Created: 2-Aug-2011  H. Greenlee
 //
 
@@ -63,7 +74,6 @@ namespace trkf {
     bool fUseClusterHits;
     std::string fClusterModuleLabel;
     bool fUseMC;
-    std::string fG4ModuleLabel;    // For SimChannel.
 
     // Histograms.
 
@@ -109,7 +119,6 @@ namespace trkf {
     fUseClusterHits(pset.get<bool>("UseClusterHits")),
     fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel")),
     fUseMC(pset.get<bool>("UseMC")),
-    fG4ModuleLabel(pset.get<std::string>("G4ModuleLabel")),
     fBooked(false),
     fHDTUE(0),
     fHDTVE(0),
@@ -141,8 +150,7 @@ namespace trkf {
       << "  HitModuleLabel = " << fHitModuleLabel << "\n"
       << "  UseClusterHits = " << fUseClusterHits << "\n"
       << "  ClusterModuleLabel = " << fClusterModuleLabel << "\n"
-      << "  UseMC = " << fUseMC << "\n"
-      << "  G4ModuleLabel = " << fG4ModuleLabel;
+      << "  UseMC = " << fUseMC;
   }
 
   SpacePointAna::~SpacePointAna()
