@@ -44,8 +44,7 @@ namespace cluster{
 // fuzzyClusterAlg stuff
 //----------------------------------------------------------
 cluster::fuzzyClusterAlg::fuzzyClusterAlg(fhicl::ParameterSet const& pset) :
-   fHBAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg")),
-   fEPCAlg(pset.get< fhicl::ParameterSet >("EndPointClusAlg"))
+   fHBAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg"))
 {
  this->reconfigure(pset); 
 }
@@ -68,7 +67,6 @@ void cluster::fuzzyClusterAlg::reconfigure(fhicl::ParameterSet const& p)
   nIterations     = p.get< int    >("Iterations");
   fMergeCutoff    = p.get< double >("MergeCutoff");
   fHBAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughBaseAlg"));
-  fEPCAlg.reconfigure(p.get< fhicl::ParameterSet >("EndPointClusAlg"));
 }
 
 //----------------------------------------------------------
@@ -491,7 +489,6 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   std::vector<unsigned int> corners;
   corners.clear();
   int nClustersTemp = nClusters;
-  //if(nClustersTemp > 0) fEPCAlg.EndPoint(allhits, &corners); 
 
   
   // Loop over clusters with the Hough line finder to break the clusters up further
