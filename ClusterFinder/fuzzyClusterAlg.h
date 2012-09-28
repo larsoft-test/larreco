@@ -12,7 +12,6 @@
 #include "art/Persistency/Common/Ptr.h"
 #include "art/Persistency/Common/PtrVector.h"
 #include "ClusterFinder/HoughBaseAlg.h"
-#include "ClusterFinder/EndPointClusAlg.h"
 
 #include "TMatrixD.h"
 
@@ -97,7 +96,6 @@ namespace cluster{
 
     // Object used for Hough transforms
     HoughBaseAlg fHBAlg;        
-    EndPointClusAlg fEPCAlg;        ///< object that does the Hough Transform
 
 
 
