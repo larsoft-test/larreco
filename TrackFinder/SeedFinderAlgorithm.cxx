@@ -44,7 +44,7 @@ namespace trkf {
     fSptalg                = new trkf::SpacePointAlg(pset.get<fhicl::ParameterSet>("SpacePointAlg"));
     
     fInitSeedLength        = pset.get<double>("InitSeedLength");
-    fMinPointsInSeed       = pset.get<unsigned int>("MinPointsInSeed");
+    fMinPointsInSeed       = pset.get<int>("MinPointsInSeed");
     fAngularDev            = pset.get<double>("AngularDev");
 
     fRefits                = pset.get<double>("Refits");
@@ -235,7 +235,7 @@ namespace trkf {
     
     // Check we have enough points in here to form a seed,
     // otherwise return a dud
-    unsigned int NPoints = PointsInRange.size();
+    int NPoints = PointsInRange.size();
     if(NPoints<fMinPointsInSeed) return new recob::Seed();
     CentreOfPoints = (1./float(NPoints)) * CentreOfPoints;
     

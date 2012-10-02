@@ -76,7 +76,7 @@ namespace trkf {
  
     double                fInitSeedLength;    
                                         
-    unsigned int          fMinPointsInSeed;   
+    int                   fMinPointsInSeed;   
                                         
     float                 fAngularDev;        
                                         
