@@ -30,36 +30,6 @@ standard_houghbasealg:
   EndPointCutoff:           0
 }
 
-argoneut_houghbasealg:
-{
-  MaxLines:                 15   # The maximum number of Hough lines to look for, 20 had been working!
-  MinHits:                  3    # 10 was working, 5 may be a little bit better (okay, a lot better!)
-  SaveAccumulator:          0
-  NumAngleCells:            5000 # The number of angle cells to create for the Hough transform, 
-                                 # was set to 20000
-  RhoResolutionFactor:      5    # Was set to 5
-  MaxDistance:              5.0  # 0.1 was working (okay, not really, larger is probably better, 
-                                 # e.g. 5, or 1, 1 is probably best)
-  MaxSlope:                 80.0 # 80 was working fine previously
-  RhoZeroOutRange:          0
-  ThetaZeroOutRange:        0
-  HitsPerCluster:           1
-  MissedHits:               1    # Was set to 0
-  DoHoughLineMerge:         1    # Turns on Hough line merging (0-off, 1-on)
-  HoughLineMergeAngle:      15   # The maximum angle between slopes of Hough lines to be merged, 
-                                 # 30 was working, 20 might be better
-  HoughLineMergeCutoff:     5    # The maximum distance between Hough line endpoints before they can be merged, 
-                                 # 2 was working, a larger value is likely necessary though, like 5
-  DoParaHoughLineMerge:     0    # Turns on parallel Hough line merging (0-off, 1-on)
-  ParaHoughLineMergeAngle:  5    # The maximum angle between slopes of Hough lines to be merged, 
-                                 # 30 was working, 20 might be better
-  ParaHoughLineMergeCutoff: 10   # The maximum distance between Hough line endpoints before 
-                                 # they can be merged, 
-                                 # 2 was working, a larger value is likely necessary though, like 5 or 10
-  LineIsolationCut:         0.1  # The cut on the Hough lines isolation
-  EndPointCutoff:           0
-}
-
 
 standard_endpointalg:
 {
@@ -125,7 +95,11 @@ standard_dbscanalg_fast.Method: 2
 
 argoneut_dbscanalg:       @local::standard_dbscanalg
 argoneut_fuzzyclusteralg: @local::standard_fuzzyclusteralg 
-argoneut_houghbasealg:    @local::argoneut_houghbasealg
+argoneut_houghbasealg:    @local::standard_houghbasealg
+argoneut_houghbasealg.MaxLines: 15
+argoneut_houghbasealg.MinHits: 3
+argoneut_houghbasealg.NumAngleCells: 5000
+argoneut_houghbasealg.MaxDistance: 5.0
 argoneut_endpointalg:     @local::standard_endpointalg
 
 microboone_dbscanalg:    @local::standard_dbscanalg_fast
