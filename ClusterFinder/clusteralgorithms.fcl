@@ -1,6 +1,8 @@
 BEGIN_PROLOG
 
 standard_houghbasealg:
+# Do not alter these parameters without the express written consent of 
+# all experiments using LArSoft (ArgoNeuT, MicroBooNE, LBNE)
 {
   MaxLines:                 50   # The maximum number of Hough lines to look for, 20 had been working!
   MinHits:                  5    # 10 was working, 5 may be a little bit better (okay, a lot better!)
