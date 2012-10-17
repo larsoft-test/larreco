@@ -14,7 +14,6 @@ standard_fuzzycluster:
  module_type:     "fuzzyCluster"
  HitsModuleLabel: "ffthit"
  fuzzyClusterAlg: @local::standard_fuzzyclusteralg
- HoughClusAlg:    @local::standard_houghbasealg
 }
 
 standard_dbclusterana:
@@ -124,7 +123,7 @@ microboone_dbcluster:                    @local::standard_dbcluster
 microboone_dbcluster.DBScanAlg:          @local::microboone_dbscanalg    
 microboone_dbclusterana:                 @local::standard_dbclusterana   
 microboone_fuzzycluster:                 @local::standard_fuzzycluster      
-microboone_fuzzycluster.HoughBaseAlg:    @local::standard_houghbasealg      
+microboone_fuzzycluster.fuzzyClusterAlg: @local::microboone_fuzzyclusteralg      
 microboone_kingacluster:                 @local::standard_kingacluster   
 microboone_kingaclusterana:              @local::standard_kingaclusterana
 microboone_houghlinefinder:              @local::standard_houghlinefinder
@@ -134,6 +133,7 @@ microboone_linemerger:                   @local::standard_linemerger
 microboone_endpointmod:                  @local::standard_endpointmod       
 microboone_endpointmod.EndPointAlg:      @local::microboone_endpointalg
 microboone_showeranglecluster:           @local::standard_showeranglecluster
+
 
 lbne_dbcluster:                    @local::standard_dbcluster      
 lbne_dbcluster.DBScanAlg:          @local::lbne_dbscanalg          
