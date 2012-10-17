@@ -1,8 +1,6 @@
 BEGIN_PROLOG
 
 standard_houghbasealg:
-# Do not alter these parameters without the express written consent of 
-# all experiments using LArSoft (ArgoNeuT, MicroBooNE, LBNE)
 {
   MaxLines:                 50   # The maximum number of Hough lines to look for, 20 had been working!
   MinHits:                  5    # 10 was working, 5 may be a little bit better (okay, a lot better!)
@@ -104,9 +102,19 @@ argoneut_houghbasealg.NumAngleCells: 5000
 argoneut_houghbasealg.MaxDistance: 5.0
 argoneut_endpointalg:     @local::standard_endpointalg
 
-microboone_dbscanalg:    @local::standard_dbscanalg_fast
-microboone_houghbasealg: @local::standard_houghbasealg 
-microboone_endpointalg:  @local::standard_endpointalg
+microboone_dbscanalg:       @local::standard_dbscanalg_fast
+microboone_endpointalg:     @local::standard_endpointalg
+microboone_houghbasealg:    @local::standard_houghbasealg 
+microboone_houghbasealg.DoHoughLineMerge: 0
+microboone_houghbasealg.MaxLines: 50
+microboone_houghbasealg.MaxDistance: 1.0
+microboone_houghbasealg.MinHits: 5
+microboone_houghbasealg.NumAngleCells: 20000
+microboone_houghbasealg.DoHoughLineMerge: 0
+microboone_houghbasealg.HoughLineMergeAngle: 15
+microboone_houghbasealg.HoughLineMergeCutoff: 5
+microboone_fuzzyclusteralg: @local::standard_fuzzyclusteralg 
+microboone_fuzzyclusteralg.HoughBaseAlg: @local::microboone_houghbasealg 
 
 lbne_dbscanalg:    @local::standard_dbscanalg_fast
 lbne_houghbasealg: @local::standard_houghbasealg
