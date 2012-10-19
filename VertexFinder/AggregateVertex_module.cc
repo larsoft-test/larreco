@@ -28,7 +28,6 @@ extern "C" {
 #include "art/Framework/Services/Optional/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
-#include "VertexFinder/AggregateVertex.h"
 #include "RecoBase/Cluster.h"
 #include "RecoBase/EndPoint2D.h"
 #include "RecoBase/Track.h"
