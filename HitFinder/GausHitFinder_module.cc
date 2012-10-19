@@ -41,7 +41,6 @@ extern "C" {
 
 
 // LArSoft Includes
-#include "HitFinder/GausHitFinder.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"

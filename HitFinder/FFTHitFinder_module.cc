@@ -16,7 +16,6 @@
 #include "art/Framework/Core/EDProducer.h" 
 
 // LArSoft Includes
-#include "HitFinder/FFTHitFinder.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"
