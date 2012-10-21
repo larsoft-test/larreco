@@ -590,21 +590,27 @@ fNPitch.resize(fNAngles);
   std::unique_ptr< std::vector<anab::Calorimetry> > calorimetrycol(new std::vector<anab::Calorimetry>);
   std::unique_ptr< art::Assns< anab::Calorimetry,recob::Shower> > calassn(new art::Assns<anab::Calorimetry,recob::Shower>);
 
+  // make a vector to hold the track pitch, this is a hack to 
+  // make this code compile
+  // \todo The anab::Calorimetry object needs a vector of pitches
+  // \todo and the following line is a hack to get this module to compile, fix it!
+  std::vector<double> trkPitch(vdEdx.size(), fTrkPitchC);
+
   calorimetrycol->push_back(anab::Calorimetry(Kin_En,
- 						vdEdx,
- 						vdQdx,
- 						vresRange,
- 						deadwire,
- 						Trk_Length,
- 						fTrkPitchC));
+					      vdEdx,
+					      vdQdx,
+					      vresRange,
+					      deadwire,
+					      Trk_Length,
+					      trkPitch));
 
   art::PtrVector < recob::Shower >  ssvec;
 	
-    //for(unsigned int ip=0;ip<1;ip++)  {
-	art::ProductID aid = this->getProductID< std::vector < recob::Shower > >(evt);
-	art::Ptr< recob::Shower > aptr(aid, 0, evt.productGetter(aid));
-	ssvec.push_back(aptr);
-      //}
+  //for(unsigned int ip=0;ip<1;ip++)  {
+  art::ProductID aid = this->getProductID< std::vector < recob::Shower > >(evt);
+  art::Ptr< recob::Shower > aptr(aid, 0, evt.productGetter(aid));
+  ssvec.push_back(aptr);
+  //}
     
   
   //util::CreateAssn(*this, evt, *Shower3DVector, calorimetrycol, *calassn);
