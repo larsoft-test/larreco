@@ -1,3 +1,4 @@
+#include "job/calorimetry.fcl"
 BEGIN_PROLOG
 
 
@@ -6,7 +7,7 @@ standard_shower:
  module_type:              "ShowerReco"
  ClusterModuleLabel:       "showeranglecluster"
  VertexClusterModuleLabel: "linemerger" 
- CaloAlg:            	   @local::microboone_calorimetryalg
+ CaloAlg:            	   @local::standard_calorimetryalg
 }
 
 
