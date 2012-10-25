@@ -1004,9 +1004,9 @@ namespace cluster{
         fStartPointx[i]=geant_part[i]->Vx();
         fStartPointy[i]=geant_part[i]->Vy();
         fStartPointz[i]=geant_part[i]->Vz();
-        fEndPointx[i]=geant_part[i]->EndPoint()[0];
-        fEndPointy[i]=geant_part[i]->EndPoint()[1];
-        fEndPointz[i]=geant_part[i]->EndPoint()[2];
+        fEndPointx[i]=geant_part[i]->EndPosition()[0];
+        fEndPointy[i]=geant_part[i]->EndPosition()[1];
+        fEndPointz[i]=geant_part[i]->EndPosition()[2];
   	
         fNumberDaughters[i]=geant_part[i]->NumberDaughters();
   	
