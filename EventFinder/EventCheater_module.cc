@@ -84,10 +84,6 @@ namespace event{
   void EventCheater::produce(art::Event& evt)
   {
 
-    // grab the sim::ParticleList
-    //art::ServiceHandle<cheat::BackTracker> bt;
-    //const sim::ParticleList& plist = bt->ParticleList();
-
     art::Handle< std::vector<sim::Particle> > pcol;
     evt.getByLabel(fG4ModuleLabel, pcol);
 
