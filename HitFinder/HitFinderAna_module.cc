@@ -45,6 +45,7 @@ extern "C" {
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"
 #include "MCCheater/BackTracker.h"
+#include "SimulationBase/MCParticle.h"
 #include "Simulation/ParticleList.h"
 #include "RecoBase/Hit.h"
 #include "Utilities/LArFFT.h"
@@ -267,7 +268,7 @@ namespace hit{
 	    while( idesitr != trackides.end() ){
 	      fMCTId0[fNp0] = (*idesitr).trackID;
 	      if (_particleList.find((*idesitr).trackID) != _particleList.end()){
-		const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+		const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
 		fMCPdg0[fNp0] = particle->PdgCode();
 		fMCE0[fNp0] = particle->E();
 	      }
@@ -289,7 +290,7 @@ namespace hit{
 	    while( idesitr != trackides.end() ){
 	      fMCTId1[fNp1] = (*idesitr).trackID;
 	      if (_particleList.find((*idesitr).trackID) != _particleList.end()){
-		const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+		const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
 		fMCPdg1[fNp1] = particle->PdgCode();
 		fMCE1[fNp1] = particle->E();
 	      }
@@ -310,7 +311,7 @@ namespace hit{
 	    while( idesitr != trackides.end()){
 	      fMCTId2[fNp2] = (*idesitr).trackID;
 	      if (_particleList.find((*idesitr).trackID) != _particleList.end() ){
-		const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+		const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
 		fMCPdg2[fNp2] = particle->PdgCode();
 		fMCE2[fNp2] = particle->E();
 	      }
