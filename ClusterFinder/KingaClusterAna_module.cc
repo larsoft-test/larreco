@@ -654,7 +654,7 @@ namespace cluster{
         
   	vec_trackid.push_back((*idesitr).trackID);
   	//mf::LogInfo("KingaClusterAna")<<"EngFraction= "<<(*idesitr).energyFrac;
-  	const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+  	const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
   	int pdg = particle->PdgCode();
   	//mf::LogInfo("KingaClusterAna")<<"pdg= "<<pdg;
   	  
@@ -770,7 +770,7 @@ namespace cluster{
   	  
   	vec_trackid.push_back((*idesitr).trackID);
   	//mf::LogInfo("KingaClusterAna")<<"EngFraction= "<<(*idesitr).energyFrac;
-  	const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+  	const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
   	int pdg = particle->PdgCode();
   	//mf::LogInfo("KingaClusterAna")<<"pdg= "<<pdg;
   	  
@@ -894,7 +894,7 @@ namespace cluster{
   	 
   	vec_trackid.push_back((*idesitr).trackID);
   	//mf::LogInfo("KingaClusterAna")<<"EngFraction= "<<(*idesitr).energyFrac;
-  	const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+  	const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
   	int pdg = particle->PdgCode();
   	//mf::LogInfo("KingaClusterAna")<<"pdg= "<<pdg;
   	 
@@ -958,13 +958,9 @@ namespace cluster{
     ///       can correctly count tracks:
     //--------------------------------------------------------------//
    
-    art::Handle< std::vector<sim::Particle> > geant_list;
-    evt.getByLabel (fLArGeantModuleLabel,geant_list);
-      
-    art::PtrVector<sim::Particle> geant_part;
-    for (unsigned int ii = 0; ii <  geant_list->size(); ++ii){
-      art::Ptr<sim::Particle> p(geant_list,ii);
-      geant_part.push_back(p);
+    std::vector<const simb::MCParticle*> geant_part;
+    for (size_t ii = 0; ii <  _particleList.size(); ++ii){
+      geant_part.push_back(_particleList.Particle(ii));
     } 
     std::string pri ("primary");
     int primary=0;

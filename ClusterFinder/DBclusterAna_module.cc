@@ -237,7 +237,7 @@ namespace cluster{
       rawdigits.push_back(rawdigit);
     }
   
-    //get the sim::Particle collection from the art::Event and then use the 
+    //get the simb::MCParticle collection from the art::Event and then use the 
     //Simulation/SimListUtils object to create a sim::ParticleList from the art::Event.  
     bt->SetEveIdCalculator(new sim::EmEveIdCalculator);
     
@@ -247,12 +247,8 @@ namespace cluster{
     
     //check_particleList(_particleList[0]);
     //std::cout<<"checking trackID: ";
-    for ( sim::ParticleList::const_iterator i = _particleList.begin(); i != _particleList.end(); ++i ){
-      // const sim::Particle* particle = (*i).second;
-      //int pdgcode=particle->PdgCode();
-      //  std::cout<<"pdg= "<<pdgcode<<" ";
+    for ( auto i = _particleList.begin(); i != _particleList.end(); ++i ){
       int trackID = (*i).first;
-      //std::cout<<"trackID= "<<trackID<<std::endl;
       mc_trackids.push_back(trackID);      
     }
     
@@ -414,7 +410,7 @@ namespace cluster{
   		// 			  
   		// 			  // 	double energyTrackID=voxelData.Energy[trackID];
   		// 			  //  	std::cout<<"ENERGY OF PRIMARY TRACKID= "<<energyTrackID<<std::endl;
-  		const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+  		const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
   		// 			  
   		int pdg = particle->PdgCode();
   		// std::cout<<"pdg= "<<pdg<<std::endl;
@@ -479,7 +475,7 @@ namespace cluster{
   	      // 	     std::cout<<"no of PRIMARIES: "<<numberPrimaries<<std::endl;
   	      // 	    for ( int i = 0; i != numberPrimaries; ++i )
   	      // 	    {
-  	      // 	    const sim::Particle* primaryParticle = particleList->Primary(i);
+  	      // 	    const simb::MCParticle* primaryParticle = particleList->Primary(i);
   	      // 			int trackID = primaryParticle->TrackId();
   	      // 		std::cout<<"from PRIMARY trackID= "<<trackID<<std::endl;
   	      // 	double energy=voxelData.Energy[trackID];
@@ -817,7 +813,7 @@ namespace cluster{
         //std::cout<<"0:TOTAL ENERGY FROM HITS for P=1 = "<<total_eng_hits_p1<<std::endl;
   
   
-        const sim::Particle* particle = _particleList.at( (*idesitr).trackID);
+        const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
   		  
         int pdg = particle->PdgCode();
         //std::cout<<"pdg= "<<pdg<<std::endl;
