@@ -39,6 +39,7 @@
 #include "TrackFinder/PropYZPlane.h"
 #include "TrackFinder/KHit.h"
 #include "Utilities/AssociationUtil.h"
+#include "SimulationBase/MCParticle.h"
 
 #include "TH1F.h"
 
@@ -292,7 +293,7 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
     mf::LogDebug log("TrackKalmanCheater");
     for(sim::ParticleList::const_iterator ipart = plist.begin();
 	ipart != plist.end(); ++ipart) {
-      const sim::Particle* part = (*ipart).second;
+      const simb::MCParticle* part = (*ipart).second;
       assert(part != 0);
       int pdg = part->PdgCode();
 

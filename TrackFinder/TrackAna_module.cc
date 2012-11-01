@@ -27,6 +27,7 @@
 #include "Geometry/Geometry.h"
 #include "RecoBase/Track.h"
 #include "MCCheater/BackTracker.h"
+#include "SimulationBase/MCParticle.h"
 
 #include "TH2F.h"
 #include "TFile.h"
@@ -36,7 +37,7 @@ namespace {
   // Local functions.
 
   // Calculate distance to boundary.
-
+  //----------------------------------------------------------------------------
   double bdist(const TVector3& pos, unsigned int tpc = 0, unsigned int cstat = 0)
   {
     // Get geometry.
@@ -55,7 +56,7 @@ namespace {
   }
 
   // Length of reconstructed track.
-
+  //----------------------------------------------------------------------------
   double length(const recob::Track& track)
   {
     double result = 0.;
@@ -73,8 +74,8 @@ namespace {
   }
 
   // Length of MC particle.
-
-  double length(const sim::Particle& part, 
+  //----------------------------------------------------------------------------
+  double length(const simb::MCParticle& part, 
 		TVector3& start, TVector3& end,
 		unsigned int tpc = 0, unsigned int cstat = 0)
   {
@@ -593,7 +594,7 @@ namespace trkf {
     // Get mc particles.
 
     sim::ParticleList plist;
-    std::vector<const sim::Particle*> plist2;
+    std::vector<const simb::MCParticle*> plist2;
     plist2.reserve(plist.size());
 
     if(mc) {
@@ -606,7 +607,7 @@ namespace trkf {
 
       for(sim::ParticleList::const_iterator ipart = plist.begin();
 	  ipart != plist.end(); ++ipart) {
-	const sim::Particle* part = (*ipart).second;
+	const simb::MCParticle* part = (*ipart).second;
 	assert(part != 0);
 	int pdg = part->PdgCode();
 
@@ -719,9 +720,8 @@ namespace trkf {
 
 	  // Loop over track-like mc particles.
 
-	  for(std::vector<const sim::Particle*>::const_iterator ipart = plist2.begin();
-	      ipart != plist2.end(); ++ipart) {
-	    const sim::Particle* part = *ipart;
+	  for(auto ipart = plist2.begin(); ipart != plist2.end(); ++ipart) {
+	    const simb::MCParticle* part = *ipart;
 	    assert(part != 0);
 	    int pdg = part->PdgCode();
 	    assert(fMCHistMap.count(pdg) > 0);

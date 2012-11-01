@@ -26,7 +26,7 @@
 #include "RecoBase/SpacePoint.h"
 #include "RecoBase/Track.h"
 #include "Utilities/AssociationUtil.h"
-#include "Simulation/Particle.h"
+#include "SimulationBase/MCParticle.h"
 #include "SimpleTypesAndConstants/PhysicalConstants.h"
 #include "Utilities/DetectorProperties.h"
 
@@ -150,7 +150,7 @@ namespace trkf{
 
       art::PtrVector<recob::Cluster> ptrvs;
 
-      sim::Particle *part = bt->ParticleList()[(*clusterMapItr).first];
+      simb::MCParticle *part = bt->ParticleList()[(*clusterMapItr).first];
 
       // is this prong electro-magnetic in nature or 
       // hadronic/muonic?  EM --> shower, everything else is a track
