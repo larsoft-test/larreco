@@ -485,7 +485,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 
   
   std::vector < art::PtrVector<recob::SpacePoint> > spptIn;
-  std::vector < art::PtrVector<recob::SpacePoint> >::const_iterator sppt = spptIn.begin();
+  std::vector < art::PtrVector<recob::SpacePoint> >::const_iterator sppt = spptListHandle->begin();
 
   TVector3 MCOrigin;
   TVector3 MCMomentum;
@@ -539,12 +539,11 @@ void Track3DKalmanSPS::produce(art::Event& evt)
       TParticlePDG * part = TDatabasePDG::Instance()->GetParticle(fPdg);
       Double_t mass = part->Mass();
 
-      // loop on Prongs
-      art::PtrVector<recob::Track> prongIn;
+
       size_t cntp(0);
-      while (sppt!=spptIn.end()) 
+      while (sppt!=spptListHandle->end()) 
 	{
-	  //	  const art::PtrVector<recob::SpacePoint> & spacepoints = spptIn.at(nTrks);
+
 	  const art::PtrVector<recob::SpacePoint> & spacepoints = *sppt;
 
 	  double fMaxUpdateHere(fMaxUpdateU);
@@ -554,7 +553,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 
 	  if (spacepoints.size()<10) { sppt++; continue;} // for now...
 		  
-	  mf::LogInfo("Track3DKalmanSPS: ")<<"\n\t found "<<spacepoints.size()<<" 3D spacepoint(s) for this prong \n";
+	  mf::LogInfo("Track3DKalmanSPS: ")<<"\n\t found "<<spacepoints.size()<<" 3D spacepoint(s) for this element of std::vector<art:PtrVector> spacepoints. \n";
 	  
 	  //const double resolution = posErr.Mag(); 
 	  //	  
