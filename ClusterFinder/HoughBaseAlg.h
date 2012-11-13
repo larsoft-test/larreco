@@ -168,10 +168,10 @@ namespace cluster {
                                            ///< at once
     int    fMissedHits;                    ///< Number of wires that are allowed to be missed before a line is broken up into
                                            ///< segments
-    double fEndPointCutoff;                ///< Max distance from a Hough line's end point and an end point from the end point
-                                           ///< finder, this is obsolete
+    double fDoHoughLineMerge;              ///< Turns on Hough line merging (0-off, 1-on)
     double fHoughLineMergeAngle;           ///< Max angle between slopes before two lines are merged (muon tracks), only for fuzzy clustering
     double fParaHoughLineMergeAngle;       ///< Max angle between slopes before two lines are merged, they should 
+    double fDoParaHoughLineMerge;          ///< Turns on parallel Hough line merging (0-off, 1-on)
                                            ///< be close to parallel (electron showers), only for fuzzy clustering
     double fLineIsolationCut;              ///< Cut on the Hough line isolation, only for fuzzy clustering
     double fHoughLineMergeCutoff;          ///< Max distance between Hough lines before two lines are merged (muon tracks), only for fuzzy clustering
