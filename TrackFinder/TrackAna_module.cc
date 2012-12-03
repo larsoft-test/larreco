@@ -291,6 +291,7 @@ namespace trkf {
     double fMinMCKE;           // Minimum MC particle kinetic energy (GeV).
     double fMatchColinearity;  // Minimum matching colinearity.
     double fMatchDisp;         // Maximum matching displacement.
+    bool fIgnoreSign;          // Ignore sign of mc particle if true.
 
     // Histograms.
 
@@ -561,6 +562,7 @@ namespace trkf {
     fMinMCKE(pset.get<double>("MinMCKE")),
     fMatchColinearity(pset.get<double>("MatchColinearity")),
     fMatchDisp(pset.get<double>("MatchDisp")),
+    fIgnoreSign(pset.get<bool>("IgnoreSign")),
     fNumEvent(0)
   {
 
@@ -610,6 +612,8 @@ namespace trkf {
 	const simb::MCParticle* part = (*ipart).second;
 	assert(part != 0);
 	int pdg = part->PdgCode();
+	if(fIgnoreSign)
+	  pdg = std::abs(pdg);
 
 	// Ignore everything except stable charged nonshowering particles.
 
@@ -631,7 +635,7 @@ namespace trkf {
 
 	    if(fMCHistMap.count(pdg) == 0) {
 	      std::ostringstream ostr;
-	      ostr << "MC" << (pdg > 0 ? "Pos" : "Neg") << std::abs(pdg);
+	      ostr << "MC" << (fIgnoreSign ? "All" : (pdg > 0 ? "Pos" : "Neg")) << std::abs(pdg);
 	      fMCHistMap[pdg] = MCHists(ostr.str());
 	    }
 	    const MCHists& mchists = fMCHistMap[pdg];
@@ -724,6 +728,8 @@ namespace trkf {
 	    const simb::MCParticle* part = *ipart;
 	    assert(part != 0);
 	    int pdg = part->PdgCode();
+	    if(fIgnoreSign)
+	      pdg = std::abs(pdg);
 	    assert(fMCHistMap.count(pdg) > 0);
 	    const MCHists& mchists = fMCHistMap[pdg];
 
