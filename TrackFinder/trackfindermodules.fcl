@@ -87,6 +87,7 @@ standard_trackana:
   MinMCKE:            0.05
   MatchColinearity:   0.99
   MatchDisp:          2.0
+  IgnoreSign:         true
 }
 
 standard_spacepts:
