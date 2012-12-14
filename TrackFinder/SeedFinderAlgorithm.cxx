@@ -239,8 +239,8 @@ namespace trkf {
     if(NPoints<fMinPointsInSeed) return new recob::Seed();
     CentreOfPoints = (1./float(NPoints)) * CentreOfPoints;
     
-    std::cout<<"Trying seed at " << CentreOfPoints[0]<<" " <<
-      CentreOfPoints[1]<<" " << CentreOfPoints[2]<<" " <<NPoints<<std::endl;
+    //std::cout<<"Trying seed at " << CentreOfPoints[0]<<" " <<
+    //  CentreOfPoints[1]<<" " << CentreOfPoints[2]<<" " <<NPoints<<std::endl;
     
     // See if seed points have some linearity
     float costheta=0, phi=0, costheta2=0, phi2=0;    
@@ -327,13 +327,13 @@ namespace trkf {
     if(fMaxViewRMS.at(0)>0)
       {
 	std::vector<double> RMS = GetHitRMS(ReturnSeed, PointsUsed);
-	std::cout<<"RMS vector size : " << RMS.size() <<", contents ";
+	//std::cout<<"RMS vector size : " << RMS.size() <<", contents ";
 	for(size_t j=0; j!=fMaxViewRMS.size(); j++)
 	  {
-	    std::cout<<RMS.at(j)<<" ";
+	    //std::cout<<RMS.at(j)<<" ";
 	    if(fMaxViewRMS.at(j)<RMS.at(j)) ThrowOutSeed=true;
 	  }
-	std::cout<<std::endl; 
+	//std::cout<<std::endl; 
       }
 
 
@@ -357,12 +357,12 @@ namespace trkf {
 
   bool SeedFinderAlgorithm::ExtendSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, std::map<int,int>& PointStatus, std::vector<int>& PointsUsed)
   {
-    std::cout<<"Begin ExtendSeed method"<<std::endl;
+    //std::cout<<"Begin ExtendSeed method"<<std::endl;
    
     // Get the actual spacepoints for the IDs provided
     std::vector<recob::SpacePoint>   SPsUsed        = ExtractSpacePoints(AllSpacePoints, PointsUsed);
 
-    std::cout<<"first extract" <<std::endl;
+    //std::cout<<"first extract" <<std::endl;
 
     // This is the seed we will return - initially make a fresh seed with the same coordinates as the input seed
     recob::Seed * BestSeed = new recob::Seed(*TheSeed);
@@ -394,7 +394,7 @@ namespace trkf {
 
     // We extend the seed in both directions.  Backward first:
     
-    std::cout<<"Begin extending"<<std::endl;
+    //std::cout<<"Begin extending"<<std::endl;
 
     bool KeepExtending=true;
     while(KeepExtending!=false)
@@ -421,7 +421,7 @@ namespace trkf {
         // Find nearby spacepoints and refit
 	std::vector<int> NearbySPs               = DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
 	if(NearbySPs.size()<3) return true;
-	std::cout<<"Size of SP vec in ext "<< NearbySPs.size()<<std::endl;
+	//std::cout<<"Size of SP vec in ext "<< NearbySPs.size()<<std::endl;
 	std::vector<recob::SpacePoint> ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
 
       
@@ -433,13 +433,13 @@ namespace trkf {
         ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
 
         NoOfHits = CountHits(ThePoints);
-	std::cout<<"SPs: " <<NearbySPs.size()<<" " << ThePoints.size()<< " Hits: " << NoOfHits<<std::endl;
+	//std::cout<<"SPs: " <<NearbySPs.size()<<" " << ThePoints.size()<< " Hits: " << NoOfHits<<std::endl;
         ThisN        = NoOfHits;
         ThisdNdx     = double(NoOfHits) / VecDir.Mag();
         ThisRMS      = GetHitRMS(TheNewSeed,ThePoints);
         ThisAveRMS   = pow(pow(ThisRMS.at(0),2)+pow(ThisRMS.at(1),2)+pow(ThisRMS.at(2),2),0.5);
 
-	std::cout<<" Deciding whether to increase: " << ThisdNdx<<" " <<BestdNdx<<", " << ThisAveRMS<<" " <<BestAveRMS<<std::endl;
+	//std::cout<<" Deciding whether to increase: " << ThisdNdx<<" " <<BestdNdx<<", " << ThisAveRMS<<" " <<BestAveRMS<<std::endl;
 
         // Decide whether to keep the extended seed
         if((ThisdNdx > BestdNdx*fExtendThresh)&&(ThisAveRMS < BestAveRMS/fExtendThresh)&&(ThisN>BestN))
@@ -493,7 +493,7 @@ namespace trkf {
         ThisRMS      = GetHitRMS(TheNewSeed,ThePoints);
         ThisAveRMS   = pow(pow(ThisRMS.at(0),2)+pow(ThisRMS.at(1),2)+pow(ThisRMS.at(2),2),0.5);
 
-	std::cout<<" Deciding whether to increase: " << ThisdNdx<<" " <<BestdNdx<<std::endl;
+	//std::cout<<" Deciding whether to increase: " << ThisdNdx<<" " <<BestdNdx<<std::endl;
 
         // Decide whether to keep the extended seed
         if((ThisdNdx > BestdNdx*fExtendThresh)&&(ThisAveRMS < BestAveRMS/fExtendThresh)&&(ThisN>BestN))
@@ -514,7 +514,7 @@ namespace trkf {
             KeepExtending=false;
           }
       }
-    std::cout<<"Done extending.  Final length : " << BestSeed->GetLength()<<std::endl;
+    //std::cout<<"Done extending.  Final length : " << BestSeed->GetLength()<<std::endl;
 
     BestSeed->GetDirection( ThisDir, ThisErr);
     BestSeed->GetPoint(     ThisPt,  ThisErr);
@@ -696,7 +696,7 @@ namespace trkf {
   void SeedFinderAlgorithm::RefitSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> SpacePoints)
   {
 
-    std::cout<<"Refit module called on vector of " << SpacePoints.size() << " space points " << std::endl;
+    //std::cout<<"Refit module called on vector of " << SpacePoints.size() << " space points " << std::endl;
     //  std::cout<<"Beginning of refit: "<<std::endl;
     //  TheSeed->Print();
     // Get the services we need
