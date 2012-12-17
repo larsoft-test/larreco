@@ -123,9 +123,13 @@ namespace cluster {
     HoughBaseAlg(fhicl::ParameterSet const& pset); 
     virtual ~HoughBaseAlg();
         
-
-    // Copy the functions over entirely to the base class
     size_t Transform(std::vector<art::Ptr<recob::Cluster> >           & clusIn,
+     	             std::vector<recob::Cluster>                      & ccol,  
+		     std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
+		     art::Event                                const& evt,
+		     std::string                               const& label);
+
+    size_t FastTransform(std::vector<art::Ptr<recob::Cluster> >           & clusIn,
      	             std::vector<recob::Cluster>                      & ccol,  
 		     std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
 		     art::Event                                const& evt,
