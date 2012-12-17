@@ -41,6 +41,25 @@ standard_houghlinefinder:
  RhoZeroOutRange:      0
  ThetaZeroOutRange:    0
  HitsPerCluster:       1
+ UseFastAlgorithm:     0
+ HoughBaseAlg:         @local::standard_houghbasealg
+}
+
+standard_fasthoughlinefinder:
+{
+ module_type:          "HoughLineFinder"
+ DBScanModuleLabel:    "dbcluster"
+ MaxLines:             5
+ MinHits:              3
+ SaveAccumulator:      0
+ NumAngleCells:        5000
+ RhoResolutionFactor:  5
+ SmootherSigma:        0.
+ MaxDistance:          5.
+ RhoZeroOutRange:      0
+ ThetaZeroOutRange:    0
+ HitsPerCluster:       1
+ UseFastAlgorithm:     1
  HoughBaseAlg:         @local::standard_houghbasealg
 }
 
@@ -112,6 +131,7 @@ argoneut_dbclusterana:                 @local::standard_dbclusterana
 argoneut_kingacluster:                 @local::standard_kingacluster   
 argoneut_kingaclusterana:              @local::standard_kingaclusterana
 argoneut_houghlinefinder:              @local::standard_houghlinefinder
+argoneut_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
 argoneut_houghlinefinder.HoughBaseAlg: @local::argoneut_houghbasealg
 argoneut_houghlinefinderana:           @local::standard_houghlinefinderana 
 argoneut_linemerger:                   @local::standard_linemerger         
@@ -127,6 +147,7 @@ microboone_fuzzycluster.fuzzyClusterAlg: @local::microboone_fuzzyclusteralg
 microboone_kingacluster:                 @local::standard_kingacluster   
 microboone_kingaclusterana:              @local::standard_kingaclusterana
 microboone_houghlinefinder:              @local::standard_houghlinefinder
+microboone_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
 microboone_houghlinefinder.HoughBaseAlg: @local::microboone_houghbasealg
 microboone_houghlinefinderana:           @local::standard_houghlinefinderana
 microboone_linemerger:                   @local::standard_linemerger        
@@ -141,6 +162,7 @@ lbne_dbclusterana:                 @local::standard_dbclusterana
 lbne_kingacluster:                 @local::standard_kingacluster   
 lbne_kingaclusterana:              @local::standard_kingaclusterana
 lbne_houghlinefinder:              @local::standard_houghlinefinder
+lbne_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
 lbne_houghlinefinder.HoughBaseAlg: @local::lbne_houghbasealg
 lbne_houghlinefinderana:           @local::standard_houghlinefinderana
 lbne_linemerger:                   @local::standard_linemerger        
