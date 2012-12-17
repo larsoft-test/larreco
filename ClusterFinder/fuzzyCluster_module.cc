@@ -173,7 +173,7 @@ namespace cluster{
   	//*******************************************************************
   	ffuzzyCluster.run_fuzzy_cluster(allhits);
   
-          //End clustering with fuzzy
+        //End clustering with fuzzy
   
   
   	for(size_t i = 0; i < ffuzzyCluster.fclusters.size(); ++i){
@@ -185,8 +185,8 @@ namespace cluster{
   	    if(ffuzzyCluster.fpointId_to_clusterId[j]==i){ 
   	      clusterHits.push_back(allhits[j]);
   	      totalQ += clusterHits.back()->Charge();
-              }
-            } 
+            }
+          } 
   
   
   	  ////////
