@@ -55,6 +55,7 @@ extern "C" {
 #include "Utilities/AssociationUtil.h"
 #include "ClusterFinder/HoughBaseAlg.h"
 #include "art/Framework/Core/EDProducer.h"
+#include "Utilities/SeedCreator.h"
 
 //#ifndef CLUSTER_HOUGHLINEFINDER_H
 //#define CLUSTER_HOUGHLINEFINDER_H
@@ -80,7 +81,8 @@ namespace cluster {
   private:
 
     std::string fDBScanModuleLabel;    
-    
+    int         fUseFastAlgorithm;
+
     HoughBaseAlg fHLAlg;            ///< object that does the Hough Transform
   
   };
@@ -101,6 +103,9 @@ namespace cluster {
     this->reconfigure(pset);
     produces< std::vector<recob::Cluster> >();
     produces< art::Assns<recob::Cluster, recob::Hit> >();
+    
+    // Create random number engine needed for PPHT
+    createEngine(SeedCreator::CreateRandomNumberSeed(),"HepJamesRandom");
   }
   
   //------------------------------------------------------------------------------
@@ -112,6 +117,7 @@ namespace cluster {
   void HoughLineFinder::reconfigure(fhicl::ParameterSet const& p)
   {
     fDBScanModuleLabel = p.get< std::string >("DBScanModuleLabel");
+    fUseFastAlgorithm  = p.get< int >("UseFastAlgorithm");
     fHLAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughBaseAlg"));
   }
   
@@ -140,8 +146,12 @@ namespace cluster {
     std::vector<recob::Cluster>               clusOut;
     std::vector< art::PtrVector<recob::Hit> > clusHitsOut;
     
-    size_t numclus = fHLAlg.Transform(clusIn, clusOut, clusHitsOut, evt, fDBScanModuleLabel);
+    size_t numclus = 0;
       
+    if(fUseFastAlgorithm) numclus = fHLAlg.FastTransform(clusIn, clusOut, clusHitsOut, evt, fDBScanModuleLabel);
+    else numclus = fHLAlg.Transform(clusIn, clusOut, clusHitsOut, evt, fDBScanModuleLabel); 
+
+
     //size_t Transform(std::vector<art::Ptr<recob::Cluster> >           & clusIn,
                             //std::vector<recob::Cluster>                      & ccol,  
   		     //std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
