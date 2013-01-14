@@ -416,7 +416,6 @@ namespace hit{
     	// ===================================================================
     	// Using Track IDE's to locate the XYZ location from truth information
     	// ===================================================================
-	bt->Rebuild(evt);
     	std::vector<cheat::TrackIDE> trackides = bt->HitToTrackID(hit);
     	//std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
     	std::vector<double> xyz = bt->HitToXYZ(hit);
@@ -424,9 +423,18 @@ namespace hit{
     	// ==============================================================
     	// Translating the truth xyz information into truth wire position
     	// ==============================================================
-    	channel2 = geom->NearestChannel(xyz,p);//<---Give the function the truth xyz position and the current plane of the hit (i.e. p)
-    	geom->ChannelToWire(channel2,c2,t2,p2,TruthWirePos);//<---From this channel calculate the cryostat (c2), tpc# (t2), plane# (p2), and Wire Number (TruthWirePos)
-        
+    	try{
+	  channel2 = geom->NearestChannel(xyz,p);
+	  //<---Give the function the truth xyz position and the current plane of the hit (i.e. p)
+	  geom->ChannelToWire(channel2,c2,t2,p2,TruthWirePos);
+	  //<---From this channel calculate the cryostat (c2), tpc# (t2), plane# (p2),
+	  //and Wire Number (TruthWirePos)
+	}
+	catch(cet::exception &e){
+	  mf::LogWarning("GausHitFinderAna") << "caught exception " << e
+					     << "\n continue";
+	  continue;
+	}
 	
 	
     	// ==============================================================
