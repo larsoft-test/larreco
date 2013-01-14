@@ -164,9 +164,9 @@ namespace cluster{
     //  fCl_for_Pion_m211=tfs->make<TH1F>("fCl_for_Pion_m211","Number of Clusters for Pion (-211)", 1500,0 ,15);
     // fCl_for_Proton=tfs->make<TH1F>("fCl_for_Proton","Number of Clusters for Proton", 1500,0 ,15);
   
-    fNoClustersInEvent=tfs->make<TH1F>("fNoClustersInEvent","Number of Clusters in an Event", 5000,0 ,50);
+    fNoClustersInEvent=tfs->make<TH1F>("fNoClustersInEvent","Number of Clusters in an Event", 50,0 ,50);
   
-    fPercentNoise=tfs->make<TH1F>("fPercentNoise","% of hits that were marked as Noise by DBSCAN",2500,0 ,25);
+    fPercentNoise=tfs->make<TH1F>("fPercentNoise","% of hits that were marked as Noise by DBSCAN",250,0 ,25);
   
     fno_of_clusters_per_track=tfs->make<TH1F>("fno_of_clusters_per_track","Number of Clusters per TrackID per plane", 1500,0 ,15);
   
