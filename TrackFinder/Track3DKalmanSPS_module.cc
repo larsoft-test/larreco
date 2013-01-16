@@ -576,6 +576,8 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	  // I need to shuffle these around, so use copy constructor
 	  // to make non-const version spacepointss.
 	  art::PtrVector<recob::SpacePoint> spacepointss(spacepoints);
+
+	  // This f*cks up the order when tracks not along z. Try to go w.o.
 	  std::sort(spacepointss.begin(), spacepointss.end(), sp_sort_3dz);
 	  int nTailPoints = 0; // 100;
 	  for (unsigned int point=0;point<(spacepointss.size()-nTailPoints);++point)
@@ -583,7 +585,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	      data[0] = spacepointss[point]->XYZ()[0];
 	      data[1] = spacepointss[point]->XYZ()[1];
 	      data[2] = spacepointss[point]->XYZ()[2];
-	      //		      std::cout << "Spacepoint " << point << " added:" << spacepointss[point]->XYZ()[0]<< ", " << spacepointss[point]->XYZ()[1]<< ", " << spacepointss[point]->XYZ()[2]<< ". " << std::endl;
+	      std::cout << "Spacepoint " << point << " added:" << spacepointss[point]->XYZ()[0]<< ", " << spacepointss[point]->XYZ()[1]<< ", " << spacepointss[point]->XYZ()[2]<< ". " << std::endl;
 	      principal->AddRow(data);
 	    }
 	  delete [] data;
@@ -654,8 +656,8 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	  if (
 	      spacepointss[spacepointss.size()-1]->XYZ()[0] > (2.*geom->DetHalfWidth(0,0)-close) || spacepointss[spacepointss.size()-1]->XYZ()[0] < close ||
 	      spacepointss[0]->XYZ()[0] > (2.*geom->DetHalfWidth(0,0)-close) || spacepointss[0]->XYZ()[0] < close ||
-	      spacepointss[spacepointss.size()-1]->XYZ()[1] > (2.*geom->DetHalfHeight(0,0)-close) || (spacepointss[spacepointss.size()-1]->XYZ()[1] < -2.*geom->DetHalfHeight(0,0)+close) ||
-	      spacepointss[0]->XYZ()[1] > (2.*geom->DetHalfHeight(0,0)-close) || spacepointss[0]->XYZ()[1] < (-2.*geom->DetHalfHeight(0,0)+close) ||
+	      spacepointss[spacepointss.size()-1]->XYZ()[1] > (1.*geom->DetHalfHeight(0,0)-close) || (spacepointss[spacepointss.size()-1]->XYZ()[1] < -1.*geom->DetHalfHeight(0,0)+close) ||
+	      spacepointss[0]->XYZ()[1] > (1.*geom->DetHalfHeight(0,0)-close) || spacepointss[0]->XYZ()[1] < (-1.*geom->DetHalfHeight(0,0)+close) ||
 	      spacepointss[spacepointss.size()-1]->XYZ()[2] > (geom->DetLength(0,0)-close) || spacepointss[spacepointss.size()-1]->XYZ()[2] < close ||
 	      spacepointss[0]->XYZ()[2] > (geom->DetLength(0,0)-close) || spacepointss[0]->XYZ()[2] < close
 	      )
@@ -690,7 +692,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 			     momM[1]/100.0,
 			     momM[2]/100.0);   // GeV
 	  
-	  genf::GFFieldManager::getInstance()->init(new genf::GFConstField(0.,0.,0.0));
+	  genf::GFFieldManager::getInstance()->init(new genf::GFConstField(0.0,0.0,0.0));
 	  genf::GFDetPlane planeG((TVector3)(spacepointss[0]->XYZ()),momM);
 	  
 
