@@ -265,11 +265,7 @@ namespace hit {
 //     std::vector< art::Ptr<recob::Track> > tracks;
 //     art::fill_ptr_vector(tracks, trackHandle);
     
-    unsigned int p(0); // plane
-    unsigned int w(0); // wire
-    unsigned int t(0); // TPC 
-    unsigned int c(0); // cryostat
-    unsigned int channel(0);
+    geo::WireID hitWireID;
 
     //++++++++++
     // Loop over the hits (data) and fill histos
@@ -277,20 +273,18 @@ namespace hit {
     for ( std::vector< art::Ptr<recob::Hit> >::iterator itr = hits.begin();
 	  itr != hits.end();
 	  ++itr) {
-      // Find the DAQ channel associated with the hit
-      channel=(*itr)->Wire()->RawDigit()->Channel();
-      c=0;t=0;p=0;w=0;
-      geom->ChannelToWire(channel,c,t,p,w);
+
+      hitWireID = (*itr)->WireID();
       // By assumption the drift occurs only in the z-direction, so
       // we can get all the info we need from the z-measug plane.
-      if (p != (geom->Nplanes()-1)) continue;
+      if (hitWireID.Plane != (geom->Nplanes()-1)) continue;
       
       // Charge collected at the wire 
       //
       // Exactly once for each recob::Hit
       double w0pos[3] = {0.};
-      geom->TPC(t).Plane(p).Wire(0).GetCenter(w0pos);
-      double HitZpos = w0pos[2] + w * geom->TPC(t).WirePitch();
+      geom->TPC(hitWireID.TPC).Plane(hitWireID.Plane).Wire(0).GetCenter(w0pos);
+      double HitZpos = w0pos[2] + hitWireID.Wire * geom->TPC(hitWireID.TPC).WirePitch();
       double Charge = (*itr)->Charge();
       fHitZpos->Fill(HitZpos,Charge);
 	

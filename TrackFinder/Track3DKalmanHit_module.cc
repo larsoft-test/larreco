@@ -143,11 +143,11 @@ namespace {
     for(art::PtrVector<recob::Hit>::const_iterator ih = hits.begin();
 	ih != hits.end(); ++ih) {
       const recob::Hit& hit = **ih;
-      unsigned int channel = hit.Channel();
-      unsigned int cstat, tpc, plane, wire;
-      geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-      assert(plane >= 0 && plane < planehits.size());
-      ++planehits[plane];
+      //unsigned int channel = hit.Channel();
+      //unsigned int cstat, tpc, plane, wire;
+      //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+      assert(hit.WireID().Plane >= 0 && hit.WireID().Plane < planehits.size());
+      ++planehits[hit.WireID().Plane];
     }
 
     // Figure out which plane has the most hits.

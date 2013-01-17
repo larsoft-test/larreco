@@ -665,19 +665,11 @@ namespace trkf {
 	double a = SeedDirInTime / SeedDirInPlane;
 
 
-	unsigned int p=0;
 	for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisPlane.begin(); itHit!=HitsThisPlane.end(); itHit++)
           {
-            unsigned int Wire;
-            double Time;
-            double XDisp;
-            double DDisp;
-
-            geom->ChannelToWire((*itHit)->Channel(), c, t, p, Wire);
-            DDisp = (double(Wire)-SeedCentralWire)*WirePitch;
-
-            Time=(*itHit)->PeakTime();
-            XDisp = (Time-SeedCentralTime)*OneTickInX;
+            double DDisp = (double((*itHit)->WireID().Wire)-SeedCentralWire)*WirePitch;
+	    double Time = (*itHit)->PeakTime();
+	    double XDisp = (Time-SeedCentralTime)*OneTickInX;
 
             LSTot += pow(XDisp - a * DDisp, 2);
             Count++;
@@ -774,13 +766,10 @@ namespace trkf {
 	WireOffsets[view]         = PlaneNormDirections.at(view).Dot(Wire0End1Vec);
 	
 	art::PtrVector<recob::Hit> HitsThisPlane = HitMap[view]; 
-	unsigned int c=0, t=0, p=0;
 	for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisPlane.begin(); itHit!=HitsThisPlane.end(); itHit++)
 	  {
-	    unsigned int Wire;
-	    geom->ChannelToWire((*itHit)->Channel(), c, t, p, Wire);
+	    HitCentralWires[view]  += (*itHit)->WireID().Wire;
 	    HitCentralTimes[view]  += (*itHit)->PeakTime();
-	    HitCentralWires[view]  += Wire;
 	  }
 	
 	HitCentralTimes[view]/=HitsThisPlane.size();
@@ -857,17 +846,9 @@ namespace trkf {
 	    // std::cout<<"No of hits : " << HitsThisPlane.size()<<std::endl;
             for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisPlane.begin(); itHit!=HitsThisPlane.end(); itHit++)
               {
-               unsigned int Wire;
-	       double Time;
-	       double XDisp;
-	       
-	       double DDisp;
-
-	       geom->ChannelToWire((*itHit)->Channel(), c, t, p, Wire);
-	       DDisp = (double(Wire)-SeedCentralWire)*WirePitch;
-
-	       Time=(*itHit)->PeakTime();
-	       XDisp = det->ConvertTicksToX(Time,p,t,c) - AverageXDemocratic;
+		double DDisp = (double((*itHit)->WireID().Wire)-SeedCentralWire)*WirePitch; 
+	       double Time  = (*itHit)->PeakTime();
+	       double XDisp = det->ConvertTicksToX(Time,p,t,c) - AverageXDemocratic;
 
 	       x  += XDisp;
 	       d  += DDisp;
@@ -956,13 +937,10 @@ namespace trkf {
     for(std::vector<recob::SpacePoint>::const_iterator itSP=SpacePoints.begin();
 	itSP!=SpacePoints.end(); itSP++)
       {
-	unsigned int p = 0, w=0, t=0, c=0;
-	
 	art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits((*itSP));
 	for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
 	    itHit!=HitsThisSP.end(); itHit++)
 	  {
-	    geom->ChannelToWire((*itHit)->Channel(), c, t, p, w);
 	    HitsClaimed[(*itHit)->Channel()]=true;
 	  }
       }

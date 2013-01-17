@@ -183,12 +183,9 @@ void Track3Dreco::produce(art::Event& evt)
    std::vector<unsigned int> Ccluster_count; 
 
    // Some variables for the hit
-   unsigned int channel;  //channel number
    float time;            //hit time at maximum
    unsigned int wire;     //hit wire number
    unsigned int plane;    //hit plane number
-   unsigned int tpc;      //hit plane number
-   unsigned int cstat;    //hit cryostat number
 
    size_t startSPIndex = spacepoints->size(); //index for knowing which spacepoints are with which cluster
    size_t endSPIndex = spacepoints->size(); //index for knowing which spacepoints are with which cluster
@@ -230,8 +227,8 @@ void Track3Dreco::produce(art::Event& evt)
 	
 	time -= presamplings;
 	
-	channel = (*theHit)->Channel();
-	geom->ChannelToWire(channel,cstat,tpc,plane,wire);
+	plane = (*theHit)->WireID().Plane;
+	wire = (*theHit)->WireID().Wire;
 	
 	//correct for the distance between wire planes
 	if(plane == 1) time -= tIC;   // Collection
@@ -427,9 +424,10 @@ void Track3Dreco::produce(art::Event& evt)
 
 	 for(size_t imin = 0; imin < minhits.size(); ++imin){ 
 	   //get wire - time coordinate of the hit
-	   unsigned int channel,wire,plane1,plane2;
-	   channel = minhits[imin]->Channel();
-	   geom->ChannelToWire(channel,cstat,tpc,plane1,wire);
+	   unsigned int wire,plane1,plane2;
+	   wire = minhits[imin]->WireID().Wire;
+	   plane1 = minhits[imin]->WireID().Plane;
+
 	   // get the wire-time co-ordinates of the hit to be matched
 	   double w1;
 	   if(plane1 == 0)
@@ -461,8 +459,9 @@ void Track3Dreco::produce(art::Event& evt)
 	   for(size_t imax = 0; imax < maxhits.size(); ++imax){ 
 	     if(!maxhitsMatch[imax]){
 	       //get wire - time coordinate of the hit
-	       channel = maxhits[imax]->Channel();
-	       geom->ChannelToWire(channel,cstat,tpc,plane2,wire);
+	       wire = maxhits[imax]->WireID().Wire;
+	       plane2 = maxhits[imax]->WireID().Plane;
+	       
 	       double w2;
 	       if(plane2 == 0)
 		 w2 = (double)((wire+3.95)*wire_pitch);
@@ -494,8 +493,9 @@ void Track3Dreco::produce(art::Event& evt)
 	   }
 	   
 	   // Get the time-wire co-ordinates of the matched hit
-	   channel =  maxhits[imaximum]->Channel();
-	   geom->ChannelToWire(channel,cstat, tpc,plane2,wire);
+	   wire = maxhits[imaximum]->WireID().Wire;
+	   plane2 = maxhits[imaximum]->WireID().Plane;
+	   
 	   double w1_match;
 	   if(plane2 == 0)
 	     w1_match = (double)((wire+3.95)*wire_pitch);
@@ -519,21 +519,6 @@ void Track3Dreco::produce(art::Event& evt)
 	   hitcoord[1] = hit3d.Y();
 	   hitcoord[2] = hit3d.Z();           
 
-	   /*
-	     double yy,zz;
-	     if(geom->ChannelsIntersect(geom->PlaneWireToChannel(0,(int)((Iw/wire_pitch)-3.95)),      geom->PlaneWireToChannel(1,(int)((Cw/wire_pitch)-1.84)),yy,zz))
-	     {
-	     //channelsintersect provides a slightly more accurate set of y and z coordinates. use channelsintersect in case the wires in question do cross.
-	     hitcoord[1] = yy;
-	     hitcoord[2] = zz;               
-	     mf::LogInfo("SpacePts: ") << "SpacePoint adding xyz ..." << hitcoord[0] <<","<< hitcoord[1] <<","<< hitcoord[2];	       
-	     // 	           std::cout<<"wire 1: "<<(Iw/wire_pitch)-3.95<<" "<<(Cw/wire_pitch)-1.84<<std::endl;
-	     //                std::cout<<"Intersect: "<<yy<<" "<<zz<<std::endl;
-	     }
-	     else
-	     continue;
-	   */
-           
 	   Double_t hitcoord_errs[3];
 	   for (int i=0; i<3; i++) hitcoord_errs[i]=-1.000;
 

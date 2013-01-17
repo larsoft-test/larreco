@@ -33,12 +33,9 @@ namespace trkf {
     fHit(hit)
   {
     // Get services.
-
-    art::ServiceHandle<geo::Geometry> geom;
     art::ServiceHandle<util::DetectorProperties> detprop;
 
     // Extract channel number.
-
     unsigned int channel = hit->Channel();
 
     // Check the surface (determined by channel number).  If the
@@ -56,11 +53,7 @@ namespace trkf {
 	throw cet::exception("KHitWireX") << "Measurement surface doesn't match channel.\n";
     }
 
-    // Get cryostat, tpc, plane, and wire number.
-
-    unsigned int cstat, tpc, plane, wire;
-    geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-    setMeasPlane(plane);
+    setMeasPlane(hit->WireID().Plane);
 
     // Extract time information from hit.
 
@@ -75,7 +68,7 @@ namespace trkf {
 
     // Calculate position and error.
 
-    double x = detprop->ConvertTicksToX(t, plane, tpc, cstat);
+    double x = detprop->ConvertTicksToX(t, hit->WireID().Plane, hit->WireID().TPC, hit->WireID().Cryostat);
     double xerr = terr * detprop->GetXTicksCoefficient();
 
     // Update measurement vector and error matrix.
@@ -105,18 +98,24 @@ namespace trkf {
 
     // Get plane number.
 
-    unsigned int cstat, tpc, plane, wire;
-    geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-    setMeasPlane(plane);
+    //unsigned int cstat, tpc, plane, wire;
+    //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+	  
+	std::vector<geo::WireID> channelWireIDs = geom->ChannelToWire(channel);
 
-    // Update measurement vector and error matrix.
+	  for (auto i=channelWireIDs.begin(), e=channelWireIDs.end(); i!=e; ++i ) {
+		setMeasPlane(i->Plane);
+		//setMeasPlane(plane);
 
-    trkf::KVector<1>::type mvec(1, x);
-    setMeasVector(mvec);
+		// Update measurement vector and error matrix.
 
-    trkf::KSymMatrix<1>::type merr(1);
-    merr(0,0) = xerr * xerr;
-    setMeasError(merr);
+		trkf::KVector<1>::type mvec(1, x);
+		setMeasVector(mvec);
+
+		trkf::KSymMatrix<1>::type merr(1);
+		merr(0,0) = xerr * xerr;
+		setMeasError(merr);
+	}
   }
 
   /// Destructor.

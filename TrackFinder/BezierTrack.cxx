@@ -365,15 +365,12 @@ namespace trkf {
     // Get point in 3D space
     GetTrackPoint(s , xyz);
 
-    unsigned int c1,t1,p1,wirepoint;
     int NPlanes=geo->Cryostat(c).TPC(t).Nplanes();
 
     for(int p=0; p!=NPlanes; p++)
-      {
-  unsigned int channelpoint = geo->NearestChannel(xyz,p,t,c);
-  geo->ChannelToWire(channelpoint,c1,t1,p1,wirepoint);
-  uvw[p]=wirepoint;
-      }
+	{	
+		uvw[p]= geo->NearestWire(xyz,p,t,c);
+	}
     x[0]=xyz[0];
   }
 
@@ -397,15 +394,12 @@ namespace trkf {
     // Get point in 3D space
     GetTrackPoint(s , xyz);
 
-    unsigned int c1,t1,p1,wirepoint;
     int NPlanes=geo->Cryostat(c).TPC(t).Nplanes();
 
     for(int p=0; p!=NPlanes; p++)
       {
-  unsigned int channelpoint = geo->NearestChannel(xyz,p,t,c);
-  geo->ChannelToWire(channelpoint,c1,t1,p1,wirepoint);
-  uvw[p]=wirepoint;
-  ticks[p]=det->ConvertXToTicks(xyz[0],p,t,c);
+		  uvw[p]= geo->NearestWire(xyz,p,t,c);
+		  ticks[p]=det->ConvertXToTicks(xyz[0],p,t,c);
       }
   }
 
@@ -442,7 +436,7 @@ namespace trkf {
     HitEnd2s.resize(hits.size());
     WireLengths.resize(hits.size());
 
-    unsigned int c1, t1, p1, w1;
+	//unsigned int c1, t1, p1, w1;
     double End1[3], End2[3];
 
     size_t NHits = hits.size();
@@ -452,11 +446,13 @@ namespace trkf {
   Distances.push_back(10000);
   s.push_back(-1);
 
-  geo->ChannelToWire(hits.at(i)->Channel(),c1,t1,p1,w1);
+  //geo->ChannelToWire(hits.at(i)->Channel(),c1,t1,p1,w1);
+ 
+  geo::WireID hitWireID = hits.at(i)->WireID();
 
-  geo->WireEndPoints(c1,t1,p1,w1,End1,End2);
+  geo->WireEndPoints(hitWireID.Cryostat,hitWireID.TPC,hitWireID.Plane,hitWireID.Wire,End1,End2);
 
-  HitEnd1s.at(i)[0]= HitEnd2s.at(i)[0]= det->ConvertTicksToX(hits.at(i)->PeakTime(),p1,t1,c1);
+  HitEnd1s.at(i)[0]= HitEnd2s.at(i)[0]= det->ConvertTicksToX(hits.at(i)->PeakTime(),hitWireID.Plane,hitWireID.TPC,hitWireID.Cryostat);
   HitEnd1s.at(i)[1]= End1[1];
   HitEnd2s.at(i)[1]= End2[1];
   HitEnd1s.at(i)[2]= End1[2];
@@ -500,15 +496,17 @@ namespace trkf {
     art::ServiceHandle<util::DetectorProperties> det;
     art::ServiceHandle<geo::Geometry>            geo;
 
-    unsigned int c1, t1, p1, w1;
+    //unsigned int c1, t1, p1, w1;
 
     double xyzend1[3], xyzend2[3];
 
-    double channel = hit->Channel();
-    geo->ChannelToWire(channel,c1,t1,p1,w1);
-    geo->WireEndPoints(c1,t1,p1,w1,xyzend1,xyzend2);
+    //double channel = hit->Channel();
+    //geo->ChannelToWire(channel,c1,t1,p1,w1);
+    //geo->WireEndPoints(c1,t1,p1,w1,xyzend1,xyzend2);
+	geo::WireID hitWireID = hit->WireID();
+	geo->WireEndPoints(hitWireID.Cryostat,hitWireID.TPC,hitWireID.Plane,hitWireID.Wire,xyzend1,xyzend2);
 
-    xyzend1[0] = xyzend2[0] = det->ConvertTicksToX(hit->PeakTime(),p1,t1,c1);
+	  xyzend1[0] = xyzend2[0] = det->ConvertTicksToX(hit->PeakTime(),hitWireID.Plane,hitWireID.TPC,hitWireID.Cryostat);
 
     double iS, xyz[3], MinDistanceToPoint=10000, MinS=0;
 
@@ -548,15 +546,16 @@ namespace trkf {
     art::ServiceHandle<util::DetectorProperties> det;
     art::ServiceHandle<geo::Geometry>            geo;
 
-    unsigned int c1, t1, p1, w1;
+    //unsigned int c1, t1, p1, w1;
 
     double xyzend1[3], xyzend2[3];
 
-    double channel = hit->Channel();
-    geo->ChannelToWire(channel,c1,t1,p1,w1);
-    geo->WireEndPoints(c1,t1,p1,w1,xyzend1,xyzend2);
+	//double channel = hit->Channel();
+    //geo->ChannelToWire(channel,c1,t1,p1,w1);
+	geo::WireID hitWireID = hit->WireID();
+    geo->WireEndPoints(hitWireID.Cryostat,hitWireID.TPC,hitWireID.Plane,hitWireID.Wire,xyzend1,xyzend2);
 
-    xyzend1[0] = xyzend2[0] = det->ConvertTicksToX(hit->PeakTime(),p1,t1,c1);
+	  xyzend1[0] = xyzend2[0] = det->ConvertTicksToX(hit->PeakTime(),hitWireID.Plane,hitWireID.TPC,hitWireID.Cryostat);
 
     double iS, xyz[3], MinDistanceToPoint=10000, MinS=0;
 

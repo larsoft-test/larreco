@@ -281,17 +281,13 @@ namespace trkf {
 	  ihit != hits.end(); ++ihit) {
 	const recob::Hit& hit = **ihit;
 
-	unsigned short channel = hit.Channel();
-	unsigned int tpc, plane, wire, cstat;
-	geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-	geo::View_t view = hit.View();
-	assert(geom->TPC(tpc).Plane(plane).View() == view);
+	assert(geom->View(hit.Channel()) == hit.View());
 	double tpeak = hit.PeakTime();
 	//double tstart = hit.StartTime();
 	//double tend = hit.EndTime();
 	double terr = hit.SigmaPeakTime();
 
-	assert(channel == hit.Channel());
+	//assert(channel == hit.Channel());
 
 	// Loop over electrons associated with this hit/channel and fill
 	// hit-electron time difference histograms.
@@ -322,22 +318,22 @@ namespace trkf {
 	//  tav = sumt / sumw;
 
 	std::vector<double> hitxyz = bt->HitToXYZ(*ihit);
-	double tav = detprop->ConvertXToTicks(hitxyz[0], plane, tpc, cstat);
+	double tav = detprop->ConvertXToTicks(hitxyz[0], (*ihit)->WireID().Plane, (*ihit)->WireID().TPC, (*ihit)->WireID().Cryostat);
 
-	if(view == geo::kU) {
+	if((*ihit)->View() == geo::kU) {
 	  fHDTUE->Fill(tpeak - tav);
 	  fHDTUPull->Fill((tpeak - tav) / terr);
 	}
-	else if(view == geo::kV) {
+	else if((*ihit)->View() == geo::kV) {
 	  fHDTVE->Fill(tpeak - tav);
 	  fHDTVPull->Fill((tpeak - tav) / terr);
 	}
-	else if(view == geo::kW) {
+	else if((*ihit)->View() == geo::kW) {
 	  fHDTWE->Fill(tpeak - tav);
 	  fHDTWPull->Fill((tpeak - tav) / terr);
 	}
 	else
-	  throw cet::exception("SpacePointAna") << "Bad view = " << view << "\n";
+	  throw cet::exception("SpacePointAna") << "Bad view = " << (*ihit)->View() << "\n";
       }
     }
     
@@ -405,9 +401,11 @@ namespace trkf {
 	    ihit != spthits.end(); ++ihit) {
 	  const recob::Hit& hit1 = **ihit;
 
-	  unsigned short channel1 = hit1.Channel();
-	  unsigned int tpc1, plane1, wire1, cs1;
-	  geom->ChannelToWire(channel1, cs1, tpc1, plane1, wire1);
+	  geo::WireID hit1WireID = hit1.WireID();
+	  unsigned int tpc1, plane1;
+	  tpc1 = hit1WireID.TPC;
+	  plane1 = hit1WireID.Plane;
+		
 	  geo::View_t view1 = hit1.View();
 	  double t1 = fSptalgTime.correctedTime(hit1);
 
@@ -415,9 +413,10 @@ namespace trkf {
 	      jhit != spthits.end(); ++jhit) {
 	    const recob::Hit& hit2 = **jhit;
 
-	    unsigned short channel2 = hit2.Channel();
-	    unsigned int tpc2, plane2, wire2, cs2;
-	    geom->ChannelToWire(channel2, cs2, tpc2, plane2, wire2);
+	    geo::WireID hit2WireID = hit2.WireID();
+	    unsigned int tpc2, plane2;
+	    tpc2 = hit2WireID.TPC;
+	    plane2 = hit2WireID.Plane;
 
 	    // Require same tpc, different view.
 

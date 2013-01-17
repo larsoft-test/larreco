@@ -59,18 +59,19 @@ namespace trkf {
       const recob::Hit& hit = **ihit;
 
       // Extract the channel number from the Hit.
-
+	  geo::WireID hitWireID = hit.WireID();
+		
       unsigned int channel = hit.Channel();
 
       // Extract the cryostat, tpc, and plane.
       // We only care about the plane.
 
-      unsigned int cstat, tpc, plane, wire;
-      geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+	  //unsigned int cstat, tpc, plane, wire;
+      //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
 
-      // Choose plane.
+		// Choose plane.
 
-      if(only_plane >= 0 && plane != (unsigned int)(only_plane))
+      if(only_plane >= 0 && hitWireID.Plane != (unsigned int)(only_plane))
 	continue;
 
       // See if we need to make a new KHitGroup.

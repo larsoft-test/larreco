@@ -358,9 +358,8 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
 	  for(art::PtrVector<recob::Hit>::const_iterator ih = trackhits.begin();
 	      ih != trackhits.end(); ++ih) {
 	    const recob::Hit& hit = **ih;
-	    unsigned int channel = hit.Channel();
-	    unsigned int cstat, tpc, plane, wire;
-	    geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+	    unsigned int plane = hit.WireID().Plane;
+
 	    assert(plane >= 0 && plane < planehits.size());
 	    ++planehits[plane];
 	  }

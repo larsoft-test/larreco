@@ -209,15 +209,9 @@ void trkf::SpacePts::produce(art::Event& evt)
       }
       //else continue; //what to do if a 2D vertex is not found? perhaps vertex finder was not even run.
     
-     // Some variables for the hit
-      unsigned int channel;  //channel number
+      // Some variables for the hit
       float time;            //hit time at maximum
-      unsigned int wire;     //hit wire number
-      unsigned int plane;    //hit plane number
-      unsigned int tpc;      //hit tpc number
-      unsigned int cstat;    //hit cryostat number
-      
-      
+            
       std::vector< art::Ptr<recob::Hit> > hitlist = fm.at(ii);
       std::sort(hitlist.begin(), hitlist.end(), trkf::SortByWire());
       
@@ -236,22 +230,23 @@ void trkf::SpacePts::produce(art::Event& evt)
 	
 	time -= presamplings;
 	
-	channel = (*theHit)->Channel();
-	geom->ChannelToWire(channel,cstat, tpc,plane,wire);
+		
+	//channel = (*theHit)->Channel();
+	//geom->ChannelToWire(channel,cstat, tpc,plane,wire);
 	
 	//correct for the distance between wire planes
 	//          if(plane==0) time -= tSI;         // Induction
 	//          if(plane==1) time -= (tSI+tIC);   // Collection
 	
 	
-	if(geom->Cryostat(cstat).TPC(tpc).Plane(plane).SignalType() == geo::kCollection) 
+	if(geom->SignalType((*theHit)->Channel()) == geo::kCollection) 
 	  time -= tIC;   // Collection
 	//transform hit wire and time into cm
 	double wire_cm = 0.; 
-	if(geom->Cryostat(cstat).TPC(tpc).Plane(plane).SignalType() == geo::kInduction)
-	  wire_cm = (double)((wire+3.95) * wire_pitch);          
+	if(geom->SignalType((*theHit)->Channel()) == geo::kInduction)
+	  wire_cm = (double)(((*theHit)->WireID().Wire+3.95) * wire_pitch);          
 	else
-	  wire_cm = (double)((wire+1.84) * wire_pitch);
+	  wire_cm = (double)(((*theHit)->WireID().Wire+1.84) * wire_pitch);
 	
 	//double time_cm = (double)(time * timepitch);
 	double time_cm;
@@ -291,7 +286,7 @@ void trkf::SpacePts::produce(art::Event& evt)
 
 
       // actually store the 2Dtrack info
-      switch(geom->Cryostat(cstat).TPC(tpc).Plane(plane).SignalType()){
+      switch(geom->SignalType((*hitlist.begin())->Channel())){
          case geo::kInduction:
             Iwirefirsts.push_back(w0);
             Iwirelasts.push_back(w1);
@@ -431,30 +426,31 @@ void trkf::SpacePts::produce(art::Event& evt)
 	    size_t spStart = spcol->size();
             for(unsigned int imin=0;imin<minhits.size();imin++){ //loop over hits
                //get wire - time coordinate of the hit
-	      unsigned int channel,wire,plane1,plane2,tpc,cstat;
-               channel = minhits[imin]->Channel();
-               geom->ChannelToWire(channel,cstat,tpc,plane1,wire);
+				//unsigned int channel,wire,plane1,plane2,tpc,cstat;
+				geo::WireID hit1WireID = minhits[imin]->WireID();
+				//channel = minhits[imin]->Channel();
+               //geom->ChannelToWire(channel,cstat,tpc,plane1,wire);
                // get the wire-time co-ordinates of the hit to be matched
                //double w1 = (double)((wire+1)*wire_pitch);
                double w1=0;
                
                //the 3.95 and 1.84 below are the ArgoNeuT TPC offsets for the induction and collection plane, respectively and are in units of wire pitch.
-               if(geom->Cryostat(cstat).TPC(tpc).Plane(plane1).SignalType() == geo::kInduction)
-               w1 = (double)((wire+3.95) * wire_pitch);          
+               if(geom->Cryostat(hit1WireID.Cryostat).TPC(hit1WireID.TPC).Plane(hit1WireID.Plane).SignalType() == geo::kInduction)
+               w1 = (double)((hit1WireID.Wire+3.95) * wire_pitch);          
                else
-               w1 = (double)((wire+1.84) * wire_pitch);
+               w1 = (double)((hit1WireID.Wire+1.84) * wire_pitch);
                
                double temptime1 = minhits[imin]->PeakTime()-presamplings;
-               if(geom->Cryostat(cstat).TPC(tpc).Plane(plane1).SignalType() == geo::kCollection) temptime1 -= tIC;
+               if(geom->Cryostat(hit1WireID.Cryostat).TPC(hit1WireID.TPC).Plane(hit1WireID.Plane).SignalType() == geo::kCollection) temptime1 -= tIC;
                double t1;// = plane1==1?(double)((minhits[imin]->PeakTime()-presamplings-tIC)*timepitch):(double)((minhits[imin]->PeakTime()-presamplings)*timepitch); //in cm
                if(temptime1>tSI) t1 = (double)( (temptime1-tSI)*timepitch + tSI*driftvelocity_SI*timetick);
                else t1 = temptime1*driftvelocity_SI*timetick;
 
                //get the track origin co-ordinates in the two views
                TVector2 minVtx2D;
-               (geom->Plane(plane1,tpc).SignalType() == geo::kCollection) ? minVtx2D.Set(collVtx.X(),collVtx.Y()): minVtx2D.Set(indVtx.X(),indVtx.Y());
+               (geom->Plane(hit1WireID.Plane,hit1WireID.TPC).SignalType() == geo::kCollection) ? minVtx2D.Set(collVtx.X(),collVtx.Y()): minVtx2D.Set(indVtx.X(),indVtx.Y());
                TVector2 maxVtx2D;
-               (geom->Plane(plane1,tpc).SignalType() == geo::kCollection) ? maxVtx2D.Set(indVtx.X(),indVtx.Y()): maxVtx2D.Set(collVtx.X(),collVtx.Y());
+               (geom->Plane(hit1WireID.Plane,hit1WireID.TPC).SignalType() == geo::kCollection) ? maxVtx2D.Set(indVtx.X(),indVtx.Y()): maxVtx2D.Set(collVtx.X(),collVtx.Y());
                
                double ratio = (collLength>indLength) ? collLength/indLength : indLength/collLength;	  
 
@@ -468,17 +464,18 @@ void trkf::SpacePts::produce(art::Event& evt)
                for(unsigned int imax = 0; imax < maxhits.size(); imax++){ //loop over hits of the other view
                   if(!maxhitsMatch[imax]){
                      //get wire - time coordinate of the hit
-                     channel = maxhits[imax]->Channel();
-                     geom->ChannelToWire(channel,cstat,tpc,plane2,wire);
+					 geo::WireID hit2WireID = maxhits[imax]->WireID();
+					 //channel = maxhits[imax]->Channel();
+                     //geom->ChannelToWire(channel,cstat,tpc,plane2,wire);
                      //double w2 = (double)((wire+1)*wire_pitch);
                      double w2=0.;
-                     if(geom->Cryostat(cstat).TPC(tpc).Plane(plane2).SignalType() == geo::kInduction)
-                     w2 = (double)((wire+3.95) * wire_pitch);          
+                     if(geom->Cryostat(hit2WireID.Cryostat).TPC(hit2WireID.TPC).Plane(hit2WireID.Plane).SignalType() == geo::kInduction)
+                     w2 = (double)((hit2WireID.Wire+3.95) * wire_pitch);          
                      else
-                     w2 = (double)((wire+1.84) * wire_pitch);
+                     w2 = (double)((hit2WireID.Wire+1.84) * wire_pitch);
                      
                      double temptime2 = maxhits[imax]->PeakTime()-presamplings;
-                     if(geom->Cryostat(cstat).TPC(tpc).Plane(plane2).SignalType() == geo::kCollection) temptime2 -= tIC;
+                     if(geom->Cryostat(hit2WireID.Cryostat).TPC(hit2WireID.TPC).Plane(hit2WireID.Plane).SignalType() == geo::kCollection) temptime2 -= tIC;
                      double t2;
                      if(temptime2>tSI) t2 = (double)( (temptime2-tSI)*timepitch + tSI*driftvelocity_SI*timetick);
                      else t2 = temptime2*driftvelocity_SI*timetick;
@@ -502,26 +499,27 @@ void trkf::SpacePts::produce(art::Event& evt)
                }
 	  
                // Get the time-wire co-ordinates of the matched hit
-               channel =  maxhits[imaximum]->Channel();
-               geom->ChannelToWire(channel,cstat,tpc,plane2,wire);
-             
+			   //channel =  maxhits[imaximum]->Channel();
+               //geom->ChannelToWire(channel,cstat,tpc,plane2,wire);
+				geo::WireID hit2WireID = maxhits[imaximum]->WireID();
+				
                //double w1_match = (double)((wire+1)*wire_pitch);  
                double w1_match=0.;
-               if(geom->Cryostat(cstat).TPC(tpc).Plane(plane2).SignalType() == geo::kInduction)
-               w1_match = (double)((wire+3.95) * wire_pitch);          
+               if(geom->Cryostat(hit2WireID.Cryostat).TPC(hit2WireID.TPC).Plane(hit2WireID.Plane).SignalType() == geo::kInduction)
+               w1_match = (double)((hit2WireID.Wire+3.95) * wire_pitch);          
                else
-               w1_match = (double)((wire+1.84) * wire_pitch);
+               w1_match = (double)((hit2WireID.Wire+1.84) * wire_pitch);
                
                double temptime3 = maxhits[imaximum]->PeakTime()-presamplings;
-               if(geom->Cryostat(cstat).TPC(tpc).Plane(plane2).SignalType() == geo::kCollection) temptime3 -= tIC;
+               if(geom->Cryostat(hit2WireID.Cryostat).TPC(hit2WireID.TPC).Plane(hit2WireID.Plane).SignalType() == geo::kCollection) temptime3 -= tIC;
                double t1_match;
                if(temptime3>tSI) t1_match = (double)( (temptime3-tSI)*timepitch + tSI*driftvelocity_SI*timetick);
                else t1_match = temptime3*driftvelocity_SI*timetick;
              
                // create the 3D hit, compute its co-ordinates and add it to the 3D hits list	  
-               double Ct = geom->Cryostat(cstat).TPC(tpc).Plane(plane1).SignalType()==geo::kCollection?t1:t1_match;
-               double Cw = geom->Cryostat(cstat).TPC(tpc).Plane(plane1).SignalType()==geo::kCollection?w1:w1_match;
-               double Iw = geom->Cryostat(cstat).TPC(tpc).Plane(plane1).SignalType()==geo::kCollection?w1_match:w1;
+               double Ct = geom->Cryostat(hit1WireID.Cryostat).TPC(hit1WireID.TPC).Plane(hit1WireID.Plane).SignalType()==geo::kCollection?t1:t1_match;
+               double Cw = geom->Cryostat(hit1WireID.Cryostat).TPC(hit1WireID.TPC).Plane(hit1WireID.Plane).SignalType()==geo::kCollection?w1:w1_match;
+               double Iw = geom->Cryostat(hit1WireID.Cryostat).TPC(hit1WireID.TPC).Plane(hit1WireID.Plane).SignalType()==geo::kCollection?w1_match:w1;
 
                const TVector3 hit3d(Ct,(Cw-Iw)/(2.*TMath::Sin(Angle)),(Cw+Iw)/(2.*TMath::Cos(Angle))-YC/2.*TMath::Tan(Angle)); 
                
