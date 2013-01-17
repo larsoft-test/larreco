@@ -16,6 +16,7 @@
 #include "art/Framework/Core/EDProducer.h" 
 
 // LArSoft Includes
+#include "SimpleTypesAndConstants/geo_types.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"
@@ -116,10 +117,6 @@ namespace hit{
     int time               = 0;              // current time bin
     int minTimeHolder      = 0;              // current start time
     unsigned int channel   = 0;              // channel number
-    unsigned int w         = 0;              // wire number
-    unsigned int p         = 0;              // plane number
-    unsigned int t         = 0;              // tpc number
-    unsigned int cs        = 0;              // cryostat number
     bool maxFound          = false;          // Flag for whether a peak > threshold has been found
     double threshold       = 0.;             // minimum signal size for id'ing a hit
     double fitWidth        = 0.;             // hit fit width initial value
@@ -140,8 +137,7 @@ namespace hit{
       minTimeHolder = 0;
       maxFound      = false;
       channel       = wire->RawDigit()->Channel();
-      geom->ChannelToWire(channel, cs, t, p, w);
-      sigType       = geom->Cryostat(cs).TPC(t).Plane(p).SignalType();
+      sigType       = geom->SignalType(channel);
 
       //Set the appropriate signal widths and thresholds
       if(sigType == geo::kInduction){
@@ -325,8 +321,15 @@ namespace hit{
             if(fAreaMethod) 
               totSig = sqrt(2*TMath::Pi())*amplitude*width/fAreaNorms[(size_t)sigType];              
 
+	    // get the WireID for this hit
+	    std::vector<geo::WireID> wids = geom->ChannelToWire(channel);
+	    ///\todo need to have a disambiguation algorithm somewhere in here
+	    // for now, just take the first option returned from ChannelToWire
+	    geo::WireID wid = wids[0];
+
 	    // make the hit
 	    recob::Hit hit(wire, 
+			   wid,
 			   position - width, 
                            widthErr,
 			   position + width, 

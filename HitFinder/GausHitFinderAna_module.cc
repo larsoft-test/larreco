@@ -78,102 +78,102 @@ namespace hit{
     std::string		   fHitCheaterModuleLabel;
     std::vector<const sim::SimChannel*>    fSimChannels;           ///< all the SimChannels for the event
       
-      TH1F* fRun;
-      TH1F* fEvt;
-      TH1F* fWireNumbMulti1; //<---Wire number of hit with multiplicity of 1
-      TH1F* fFitGoodnessMulti1; //<---Goodness of hit with mulitplicity of 1
-      TH1F* fChargeMulti1; //<---Charge of hit with multiplicity of 1
+    TH1F* fRun;
+    TH1F* fEvt;
+    TH1F* fWireNumbMulti1; //<---Wire number of hit with multiplicity of 1
+    TH1F* fFitGoodnessMulti1; //<---Goodness of hit with mulitplicity of 1
+    TH1F* fChargeMulti1; //<---Charge of hit with multiplicity of 1
       
-      TH1F* fTruthPeakPosition;//<---Peak time of hit from backtracker with multiplicity of 1
-      TH1F* fTruthPeakPositionPlane0Multi1;
-      TH1F* fTruthPeakPositionPlane1Multi1;
-      TH1F* fTruthPeakPositionPlane2Multi1;
+    TH1F* fTruthPeakPosition;//<---Peak time of hit from backtracker with multiplicity of 1
+    TH1F* fTruthPeakPositionPlane0Multi1;
+    TH1F* fTruthPeakPositionPlane1Multi1;
+    TH1F* fTruthPeakPositionPlane2Multi1;
       
-      TH1F* fRecoPeakPositionMulti1;//<---Peak time of hit with multiplicity of 1
-      TH1F* fRecoPeakPositionPlane0Multi1;//<---Peak time of hit with multiplicity of 1 in plane 0
-      TH1F* fRecoPeakPositionPlane1Multi1;//<---Peak time of hit with multiplicity of 1 in plane 1
-      TH1F* fRecoPeakPositionPlane2Multi1;//<---Peak time of hit with multiplicity of 1 in plane 2
+    TH1F* fRecoPeakPositionMulti1;//<---Peak time of hit with multiplicity of 1
+    TH1F* fRecoPeakPositionPlane0Multi1;//<---Peak time of hit with multiplicity of 1 in plane 0
+    TH1F* fRecoPeakPositionPlane1Multi1;//<---Peak time of hit with multiplicity of 1 in plane 1
+    TH1F* fRecoPeakPositionPlane2Multi1;//<---Peak time of hit with multiplicity of 1 in plane 2
       
-      TH1F* fRecoPeakPositionUncertMulti1;//<---Peak time of hit with multiplicity of 1
-      TH1F* fRecoPeakPositionUncertPlane0Multi1;//<---Peak time of hit with multiplicity of 1 in plane 0
-      TH1F* fRecoPeakPositionUncertPlane1Multi1;//<---Peak time of hit with multiplicity of 1 in plane 1
-      TH1F* fRecoPeakPositionUncertPlane2Multi1;//<---Peak time of hit with multiplicity of 1 in plane 2
+    TH1F* fRecoPeakPositionUncertMulti1;//<---Peak time of hit with multiplicity of 1
+    TH1F* fRecoPeakPositionUncertPlane0Multi1;//<---Peak time of hit with multiplicity of 1 in plane 0
+    TH1F* fRecoPeakPositionUncertPlane1Multi1;//<---Peak time of hit with multiplicity of 1 in plane 1
+    TH1F* fRecoPeakPositionUncertPlane2Multi1;//<---Peak time of hit with multiplicity of 1 in plane 2
       
-      TH1F* fRecoPeakPositionUncertMultiGT1;//<---Peak time of hit with multiplicity of > 1
-      TH1F* fRecoPeakPositionUncertPlane0MultiGT1;//<---Peak time of hit with multiplicity of > 1 in plane 0
-      TH1F* fRecoPeakPositionUncertPlane1MultiGT1;//<---Peak time of hit with multiplicity of > 1 in plane 1
-      TH1F* fRecoPeakPositionUncertPlane2MultiGT1;//<---Peak time of hit with multiplicity of > 1 in plane 2
+    TH1F* fRecoPeakPositionUncertMultiGT1;//<---Peak time of hit with multiplicity of > 1
+    TH1F* fRecoPeakPositionUncertPlane0MultiGT1;//<---Peak time of hit with multiplicity of > 1 in plane 0
+    TH1F* fRecoPeakPositionUncertPlane1MultiGT1;//<---Peak time of hit with multiplicity of > 1 in plane 1
+    TH1F* fRecoPeakPositionUncertPlane2MultiGT1;//<---Peak time of hit with multiplicity of > 1 in plane 2
       
-      TH1F* fHitResidualAll;
-      TH1F* fHitResidualMulti1;
-      TH1F* fHitResidualPlane0Multi1;
-      TH1F* fHitResidualPlane1Multi1;
-      TH1F* fHitResidualPlane2Multi1;
+    TH1F* fHitResidualAll;
+    TH1F* fHitResidualMulti1;
+    TH1F* fHitResidualPlane0Multi1;
+    TH1F* fHitResidualPlane1Multi1;
+    TH1F* fHitResidualPlane2Multi1;
       
-      TTree* fHTree;
-      //Int_t fRun;
-      //Int_t fEvt;
-      Int_t fnhits; //<---Number of Hits in the Event
-      Int_t fnOnePulseHits; //<---Number of One Pulse hit events
-      Int_t fmulitPulseHits; //<---Number of Multi pulse hit events
-      
-      
-      Int_t fSingleHit; //<<---Set a indicator to know if this is a single pulse hit or multihit
-      Int_t fMultiHit;  //<<---Set a indicator to know if this is a single pulse hit or multihit
-      
-      Float_t fgoodoffitn1; //<---Goodness of hit with mulitplicity of 1
-      Float_t fChargen1; //<---Charge of hit with multiplicity of 1
-      Float_t fSigmaChargen1; //<---Uncertainty of charge of hit with multiplicity of 1
-      Float_t fWidthn1; //<---Width of the Hit (Endtime - Peaktime) with multiplicity of 1
-      Float_t fPeakn1; //<---Peak time of hit with multiplicity of 1
-      Float_t fPeakUncertn1; //<---Uncertainty in the peak position of the hit with multiplicity of 1
-      Float_t fStartTimen1; //<---Start Position of the hit with multiplicity of 1
-      Float_t fStartTimeUncertn1; //<---Start Time Uncertainty of the hit with multiplicity of 1
-      Float_t fEndTimen1; //<---End Position of the hit with multiplicity of 1
-      Float_t fEndTimeUncertn1; //<---End Time Uncertainty of the hit with multiplicity of 1
+    TTree* fHTree;
+    //Int_t fRun;
+    //Int_t fEvt;
+    Int_t fnhits; //<---Number of Hits in the Event
+    Int_t fnOnePulseHits; //<---Number of One Pulse hit events
+    Int_t fmulitPulseHits; //<---Number of Multi pulse hit events
       
       
-      Int_t fWirenGT1; //<---Wire number of hit with multiplicity of 1
-      Float_t fWidthnGT1; //<---Width of the Hit (Endtime - Peaktime) with multiplicity > 1
-      Float_t fPeaknGT1; //<---Peak time of hit with multiplicity > 1
-      Float_t fPeakUncertnGT1; //<---Uncertainty in the peak position of the hit with multiplicity > 1
-      Float_t fSigmaChargenGT1; //<---Uncertainty of charge of hit with multiplicity > 1
-      Float_t fgoodoffitnGT1; //<---Goodness of hit with mulitplicity > 1
-      Float_t fChargenGT1; //<---Charge of hit with multiplicity > 1
-      Float_t fStartTimenGT1; //<---Start Position of the hit with multiplicity > 1
-      Float_t fStartTimeUncertnGT1; //<---Start Time Uncertainty of the hit with multiplicity > 1
-      Float_t fEndTimenGT1; //<---End Position of the hit with multiplicity > 1
-      Float_t fEndTimeUncertnGT1; //<---End Time Uncertainty of the hit with multiplicity > 1
+    Int_t fSingleHit; //<<---Set a indicator to know if this is a single pulse hit or multihit
+    Int_t fMultiHit;  //<<---Set a indicator to know if this is a single pulse hit or multihit
+      
+    Float_t fgoodoffitn1; //<---Goodness of hit with mulitplicity of 1
+    Float_t fChargen1; //<---Charge of hit with multiplicity of 1
+    Float_t fSigmaChargen1; //<---Uncertainty of charge of hit with multiplicity of 1
+    Float_t fWidthn1; //<---Width of the Hit (Endtime - Peaktime) with multiplicity of 1
+    Float_t fPeakn1; //<---Peak time of hit with multiplicity of 1
+    Float_t fPeakUncertn1; //<---Uncertainty in the peak position of the hit with multiplicity of 1
+    Float_t fStartTimen1; //<---Start Position of the hit with multiplicity of 1
+    Float_t fStartTimeUncertn1; //<---Start Time Uncertainty of the hit with multiplicity of 1
+    Float_t fEndTimen1; //<---End Position of the hit with multiplicity of 1
+    Float_t fEndTimeUncertn1; //<---End Time Uncertainty of the hit with multiplicity of 1
+      
+      
+    Int_t fWirenGT1; //<---Wire number of hit with multiplicity of 1
+    Float_t fWidthnGT1; //<---Width of the Hit (Endtime - Peaktime) with multiplicity > 1
+    Float_t fPeaknGT1; //<---Peak time of hit with multiplicity > 1
+    Float_t fPeakUncertnGT1; //<---Uncertainty in the peak position of the hit with multiplicity > 1
+    Float_t fSigmaChargenGT1; //<---Uncertainty of charge of hit with multiplicity > 1
+    Float_t fgoodoffitnGT1; //<---Goodness of hit with mulitplicity > 1
+    Float_t fChargenGT1; //<---Charge of hit with multiplicity > 1
+    Float_t fStartTimenGT1; //<---Start Position of the hit with multiplicity > 1
+    Float_t fStartTimeUncertnGT1; //<---Start Time Uncertainty of the hit with multiplicity > 1
+    Float_t fEndTimenGT1; //<---End Position of the hit with multiplicity > 1
+    Float_t fEndTimeUncertnGT1; //<---End Time Uncertainty of the hit with multiplicity > 1
       
       
 
-      Int_t fN3p0;
-      Int_t fN3p1;
-      Int_t fN3p2;
-      Float_t* fPeakTime0;
-      Float_t* fPeakTime1;
-      Float_t* fPeakTime2;
-      Int_t* fWirep0;
-      Int_t* fWirep1;
-      Int_t* fWirep2;
-      Float_t* fChgp0;
-      Float_t* fChgp1;
-      Float_t* fChgp2;
-      Float_t* fXYZp0;
-      Float_t* fXYZp1;
-      Float_t* fXYZp2;
+    Int_t fN3p0;
+    Int_t fN3p1;
+    Int_t fN3p2;
+    Float_t* fPeakTime0;
+    Float_t* fPeakTime1;
+    Float_t* fPeakTime2;
+    Int_t* fWirep0;
+    Int_t* fWirep1;
+    Int_t* fWirep2;
+    Float_t* fChgp0;
+    Float_t* fChgp1;
+    Float_t* fChgp2;
+    Float_t* fXYZp0;
+    Float_t* fXYZp1;
+    Float_t* fXYZp2;
 
-      Int_t*  fMCPdg0;
-      Int_t*  fMCTId0;
-      Float_t*  fMCE0;
-      Int_t*  fMCPdg1;
-      Int_t*  fMCTId1;
-      Float_t*  fMCE1;
-      Int_t*  fMCPdg2;
-      Int_t*  fMCTId2;
-      Float_t*  fMCE2;
+    Int_t*  fMCPdg0;
+    Int_t*  fMCTId0;
+    Float_t*  fMCE0;
+    Int_t*  fMCPdg1;
+    Int_t*  fMCTId1;
+    Float_t*  fMCE1;
+    Int_t*  fMCPdg2;
+    Int_t*  fMCTId2;
+    Float_t*  fMCE2;
       
-}; // class GausHitFinderAna
+  }; // class GausHitFinderAna
 
 
 
@@ -285,32 +285,32 @@ namespace hit{
     
     
     /*fHTree->Branch("Hit0PeakTime", &fNp0, "Hit0PeakTime/I");
-    fHTree->Branch("HNp1", &fNp1, "HNp1/I");
-    fHTree->Branch("HNp2", &fNp2, "HNp2/I");
-    fHTree->Branch("HN3p0", &fN3p0, "HN3p0/I");
-    fHTree->Branch("HN3p1", &fN3p1, "HN3p1/I");
-    fHTree->Branch("HN3p2", &fN3p2, "HN3p2/I");
-    fHTree->Branch("Htp0", fPeakTime0, "Htp0[Hit0PeakTime]/F");
-    fHTree->Branch("Htp1", fPeakTime1, "Htp1[HNp1]/F");
-    fHTree->Branch("Htp2", fPeakTime2, "Htp2[HNp2]/F");
-    fHTree->Branch("Hwp0", fWirep0, "Hwp0[Hit0PeakTime]/I");
-    fHTree->Branch("Hwp1", fWirep1, "Hwp1[HNp1]/I");
-    fHTree->Branch("Hwp2", fWirep2, "Hwp2[HNp2]/I");
-    fHTree->Branch("Hchgp0", fChgp0, "Hchgp0[Hit0PeakTime]/F");
-    fHTree->Branch("Hchgp1", fChgp1, "Hchgp1[HNp1]/F");
-    fHTree->Branch("Hchgp2", fChgp2, "Hchgp2[HNp2]/F");
-    fHTree->Branch("HMCXYZp0", fXYZp0, "HMCXYZp0[HN3p0]/F");
-    fHTree->Branch("HMCXYZp1", fXYZp1, "HMCXYZp1[HN3p1]/F");
-    fHTree->Branch("HMCXYZp2", fXYZp2, "HMCXYZp2[HN3p2]/F");
-    fHTree->Branch("HMCPdgp0", fMCPdg0, "HMCPdgp0[Hit0PeakTime]/I");
-    fHTree->Branch("HMCPdgp1", fMCPdg1, "HMCPdgp1[HNp1]/I");
-    fHTree->Branch("HMCPdgp2", fMCPdg2, "HMCPdgp2[HNp2]/I");
-    fHTree->Branch("HMCTIdp0", fMCTId0, "HMCTIdp0[Hit0PeakTime]/I");
-    fHTree->Branch("HMCTIdp1", fMCTId1, "HMCTIdp1[HNp1]/I");
-    fHTree->Branch("HMCTIdp2", fMCTId2, "HMCTIdp2[HNp2]/I");
-    fHTree->Branch("HMCEp0", fMCE0, "HMCEp0[Hit0PeakTime]/F");
-    fHTree->Branch("HMCEp1", fMCE1, "HMCEp1[HNp1]/F");
-    fHTree->Branch("HMCEp2", fMCE2, "HMCEp2[HNp2]/F");*/
+      fHTree->Branch("HNp1", &fNp1, "HNp1/I");
+      fHTree->Branch("HNp2", &fNp2, "HNp2/I");
+      fHTree->Branch("HN3p0", &fN3p0, "HN3p0/I");
+      fHTree->Branch("HN3p1", &fN3p1, "HN3p1/I");
+      fHTree->Branch("HN3p2", &fN3p2, "HN3p2/I");
+      fHTree->Branch("Htp0", fPeakTime0, "Htp0[Hit0PeakTime]/F");
+      fHTree->Branch("Htp1", fPeakTime1, "Htp1[HNp1]/F");
+      fHTree->Branch("Htp2", fPeakTime2, "Htp2[HNp2]/F");
+      fHTree->Branch("Hwp0", fWirep0, "Hwp0[Hit0PeakTime]/I");
+      fHTree->Branch("Hwp1", fWirep1, "Hwp1[HNp1]/I");
+      fHTree->Branch("Hwp2", fWirep2, "Hwp2[HNp2]/I");
+      fHTree->Branch("Hchgp0", fChgp0, "Hchgp0[Hit0PeakTime]/F");
+      fHTree->Branch("Hchgp1", fChgp1, "Hchgp1[HNp1]/F");
+      fHTree->Branch("Hchgp2", fChgp2, "Hchgp2[HNp2]/F");
+      fHTree->Branch("HMCXYZp0", fXYZp0, "HMCXYZp0[HN3p0]/F");
+      fHTree->Branch("HMCXYZp1", fXYZp1, "HMCXYZp1[HN3p1]/F");
+      fHTree->Branch("HMCXYZp2", fXYZp2, "HMCXYZp2[HN3p2]/F");
+      fHTree->Branch("HMCPdgp0", fMCPdg0, "HMCPdgp0[Hit0PeakTime]/I");
+      fHTree->Branch("HMCPdgp1", fMCPdg1, "HMCPdgp1[HNp1]/I");
+      fHTree->Branch("HMCPdgp2", fMCPdg2, "HMCPdgp2[HNp2]/I");
+      fHTree->Branch("HMCTIdp0", fMCTId0, "HMCTIdp0[Hit0PeakTime]/I");
+      fHTree->Branch("HMCTIdp1", fMCTId1, "HMCTIdp1[HNp1]/I");
+      fHTree->Branch("HMCTIdp2", fMCTId2, "HMCTIdp2[HNp2]/I");
+      fHTree->Branch("HMCEp0", fMCE0, "HMCEp0[Hit0PeakTime]/F");
+      fHTree->Branch("HMCEp1", fMCE1, "HMCEp1[HNp1]/F");
+      fHTree->Branch("HMCEp2", fMCE2, "HMCEp2[HNp2]/F");*/
 
   
     return;
@@ -321,96 +321,93 @@ namespace hit{
   void GausHitFinderAna::analyze(const art::Event& evt)
   {
 
-  // ##############################################
-  // ### Outputting Run Number and Event Number ###
-  // ##############################################
-  std::cout << "run    : " << evt.run() <<" event  : "<<evt.id().event() << std::endl;
-  fRun->Fill( evt.run() );
-  fEvt->Fill( evt.id().event() );
-  //fRun = evt.run();
-  //fEvt = evt.id().event();
+    // ##############################################
+    // ### Outputting Run Number and Event Number ###
+    // ##############################################
+    std::cout << "run    : " << evt.run() <<" event  : "<<evt.id().event() << std::endl;
+    fRun->Fill( evt.run() );
+    fEvt->Fill( evt.id().event() );
+    //fRun = evt.run();
+    //fEvt = evt.id().event();
   
-  // #########################################
-  // ### Generic Variables used throughout ###
-  // #########################################
-  int NSinglePulseEvents = 0 , NMultiPulseEvents = 0;
-  int SinglePulse = 0, Multipulse = 0;
-  unsigned int TruthWirePos = 0;
-  double TruthHitTime = 0 , TruthHitCalculated = 0;
+    // #########################################
+    // ### Generic Variables used throughout ###
+    // #########################################
+    int NSinglePulseEvents = 0 , NMultiPulseEvents = 0;
+    int SinglePulse = 0, Multipulse = 0;
+    double TruthHitTime = 0 , TruthHitCalculated = 0;
   
-  // ###############################################
-  // ### Hit Variables to be saved to Histograms ###
-  // ###############################################
-  float GoodnessOfFit_multiplicity1 = 0; 	//<---Goodness of hit with mulitplicity of 1
-  float Charge_multiplicity1 = 0;		//<---Charge of hit with multiplicity of 1
-  float SigmaCharge_multiplicity1 = 0;		//<---Uncertainty of charge of hit with multiplicity of 1
-  float PeakPositionmultiplicity1 = 0;
-  float PeakPositionUncertmulitplicity1 = 0;
-  float PeakPositionUncertmulitplicityGT1 = 0;
-  // ####################################
-  // ### Getting Geometry Information ###
-  // ####################################
-  art::ServiceHandle<geo::Geometry> geom;
+    // ###############################################
+    // ### Hit Variables to be saved to Histograms ###
+    // ###############################################
+    float GoodnessOfFit_multiplicity1 = 0; 	//<---Goodness of hit with mulitplicity of 1
+    float Charge_multiplicity1 = 0;		//<---Charge of hit with multiplicity of 1
+    float SigmaCharge_multiplicity1 = 0;		//<---Uncertainty of charge of hit with multiplicity of 1
+    float PeakPositionmultiplicity1 = 0;
+    float PeakPositionUncertmulitplicity1 = 0;
+    float PeakPositionUncertmulitplicityGT1 = 0;
+    // ####################################
+    // ### Getting Geometry Information ###
+    // ####################################
+    art::ServiceHandle<geo::Geometry> geom;
   
-  // #######################################
-  // ### Getting Liquid Argon Properites ###
-  // #######################################
-  art::ServiceHandle<util::LArProperties> larp;
+    // #######################################
+    // ### Getting Liquid Argon Properites ###
+    // #######################################
+    art::ServiceHandle<util::LArProperties> larp;
   
-  // ###################################
-  // ### Getting Detector Properties ###
-  // ###################################
-  art::ServiceHandle<util::DetectorProperties> detp;
+    // ###################################
+    // ### Getting Detector Properties ###
+    // ###################################
+    art::ServiceHandle<util::DetectorProperties> detp;
   
   
-  // ##################################################
-  // ### Getting the Reconstructed Hits (hitHandle) ###
-  // ##################################################
-  art::Handle< std::vector<recob::Hit> > hitHandle;
-  evt.getByLabel(fGausHitFinderModuleLabel,hitHandle);
+    // ##################################################
+    // ### Getting the Reconstructed Hits (hitHandle) ###
+    // ##################################################
+    art::Handle< std::vector<recob::Hit> > hitHandle;
+    evt.getByLabel(fGausHitFinderModuleLabel,hitHandle);
   
-  // #########################################
-  // ### Putting Hits into a vector (hits) ###
-  // #########################################
-  std::vector< art::Ptr<recob::Hit> > hits;
-  art::fill_ptr_vector(hits, hitHandle);
+    // #########################################
+    // ### Putting Hits into a vector (hits) ###
+    // #########################################
+    std::vector< art::Ptr<recob::Hit> > hits;
+    art::fill_ptr_vector(hits, hitHandle);
   
     
-  // ####################################
-  // ### Using BackTracker HitCheater ###
-  // ####################################
-  art::ServiceHandle<cheat::BackTracker> bt;
+    // ####################################
+    // ### Using BackTracker HitCheater ###
+    // ####################################
+    art::ServiceHandle<cheat::BackTracker> bt;
   
   
-  // ###############################################################
-  // ### Integers used for setting Channel, TPC, Plane, and Wire ###
-  // ###############################################################
-  unsigned int channel = 0, c = 0, t = 0, p = 0, w = 0;
-  unsigned int channel2 = 0, c2 = 0, t2 = 0, p2 = 0;
+    // ###############################################################
+    // ### Integers used for setting Channel, TPC, Plane, and Wire ###
+    // ###############################################################
+    unsigned int c = 0, t = 0, p = 0, w = 0;
+    unsigned int c2 = 0, t2 = 0, p2 = 0;
  
-  fnhits = hitHandle->size();
+    fnhits = hitHandle->size();
   
-  // ================================================
-  // === Calculating Time Tick and Drift Velocity ===
-  // ================================================
-  double time_tick 	= detp->SamplingRate()/1000.;
-  double drift_velocity = larp->DriftVelocity(larp->Efield(),larp->Temperature());
+    // ================================================
+    // === Calculating Time Tick and Drift Velocity ===
+    // ================================================
+    double time_tick 	= detp->SamplingRate()/1000.;
+    double drift_velocity = larp->DriftVelocity(larp->Efield(),larp->Temperature());
   
 
-  // #########################
-  // ### Looping over Hits ###
-  // #########################
-  for(size_t nHits = 0; nHits< hitHandle->size(); ++nHits)
-  	{
+    // #########################
+    // ### Looping over Hits ###
+    // #########################
+    for(size_t nHits = 0; nHits< hitHandle->size(); ++nHits)
+      {
 
     	// === Finding Channel associated with the hit ===
     	art::Ptr<recob::Hit> hit(hitHandle, nHits);
-    	channel = hit->Wire()->RawDigit()->Channel();
-    	// === Going from the Channel to the wire location ===
-    	// (Note:3/16/12 Channel to wire function now reads
-    	// (Channedl,cryostat,tpc,plane,wire)
-    	geom->ChannelToWire(channel,c,t,p,w);
-    	
+	c = hit->WireID().Cryostat;
+	t = hit->WireID().TPC;
+	p = hit->WireID().Plane;
+	w = hit->WireID().Wire;    	
 	
     
     	// ===================================================================
@@ -420,23 +417,6 @@ namespace hit{
     	//std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
     	std::vector<double> xyz = bt->HitToXYZ(hit);
 
-    	// ==============================================================
-    	// Translating the truth xyz information into truth wire position
-    	// ==============================================================
-    	try{
-	  channel2 = geom->NearestChannel(xyz,p);
-	  //<---Give the function the truth xyz position and the current plane of the hit (i.e. p)
-	  geom->ChannelToWire(channel2,c2,t2,p2,TruthWirePos);
-	  //<---From this channel calculate the cryostat (c2), tpc# (t2), plane# (p2),
-	  //and Wire Number (TruthWirePos)
-	}
-	catch(cet::exception &e){
-	  mf::LogWarning("GausHitFinderAna") << "caught exception " << e
-					     << "\n continue";
-	  continue;
-	}
-	
-	
     	// ==============================================================
     	// Calculating the truth tick position of the hit using 2 methods
 	// Method 1: ConvertXtoTicks from the detector properties package
@@ -466,214 +446,214 @@ namespace hit{
     	// ### Looking at "Hits" with a multiplicity == 1 ###
     	// ##################################################
     	if(hit->Multiplicity() == 1)
-    		{
+	  {
 
-      		NSinglePulseEvents++;
-      		SinglePulse = 1;
+	    NSinglePulseEvents++;
+	    SinglePulse = 1;
       
-      		fSingleHit         = SinglePulse;
+	    fSingleHit         = SinglePulse;
 		
-		// *******************
-		// *** Wire Number ***
-		// *******************
-		//---Filling Histogram---
-		fWireNumbMulti1->Fill(w);
+	    // *******************
+	    // *** Wire Number ***
+	    // *******************
+	    //---Filling Histogram---
+	    fWireNumbMulti1->Fill(w);
       		
 		
-		// ***********************
-		// *** Goodness of Fit ***
-		// ***********************
-		GoodnessOfFit_multiplicity1	= hit->GoodnessOfFit();
-		//---Filling Histogram---
-		fFitGoodnessMulti1->Fill( GoodnessOfFit_multiplicity1);
+	    // ***********************
+	    // *** Goodness of Fit ***
+	    // ***********************
+	    GoodnessOfFit_multiplicity1	= hit->GoodnessOfFit();
+	    //---Filling Histogram---
+	    fFitGoodnessMulti1->Fill( GoodnessOfFit_multiplicity1);
 		
 		
-		// **************
-		// *** Charge ***
-		// **************
-		Charge_multiplicity1		= hit->Charge();
-		//---Filling Histogram---
-		fChargeMulti1->Fill( Charge_multiplicity1 );
-		//FillHisto(Charge_multiplicity1, hname, 2000,0,1000);
-		//---Filling TTree---
-      		fChargen1          = hit->Charge();
+	    // **************
+	    // *** Charge ***
+	    // **************
+	    Charge_multiplicity1		= hit->Charge();
+	    //---Filling Histogram---
+	    fChargeMulti1->Fill( Charge_multiplicity1 );
+	    //FillHisto(Charge_multiplicity1, hname, 2000,0,1000);
+	    //---Filling TTree---
+	    fChargen1          = hit->Charge();
 		
-		// ***********************
-		// *** Error on Charge ***
-		// ***********************
-		SigmaCharge_multiplicity1  = hit->SigmaCharge();
-		//---Filling Histogram---
+	    // ***********************
+	    // *** Error on Charge ***
+	    // ***********************
+	    SigmaCharge_multiplicity1  = hit->SigmaCharge();
+	    //---Filling Histogram---
 		
-		//---Filling TTree---
-      		fSigmaChargen1     = SigmaCharge_multiplicity1;
+	    //---Filling TTree---
+	    fSigmaChargen1     = SigmaCharge_multiplicity1;
 		
-		// *********************
-		// *** Peak Position ***
-		// *********************
-		PeakPositionmultiplicity1 = hit->PeakTime();
-		//---Filling Histogram---
-		fRecoPeakPositionMulti1->Fill(PeakPositionmultiplicity1);
-		fTruthPeakPosition->Fill(TruthHitTime);
-		//---Filling TTree---
-		fPeakn1            = PeakPositionmultiplicity1;
+	    // *********************
+	    // *** Peak Position ***
+	    // *********************
+	    PeakPositionmultiplicity1 = hit->PeakTime();
+	    //---Filling Histogram---
+	    fRecoPeakPositionMulti1->Fill(PeakPositionmultiplicity1);
+	    fTruthPeakPosition->Fill(TruthHitTime);
+	    //---Filling TTree---
+	    fPeakn1            = PeakPositionmultiplicity1;
 		
-		// *********************************
-		// *** Peak Position Uncertainty ***
-		// *********************************
-		PeakPositionUncertmulitplicity1 = hit->SigmaPeakTime();
-		//---Filling Histogram---
-		fRecoPeakPositionUncertMulti1->Fill(PeakPositionUncertmulitplicity1);
-		//---Filling TTree---
-		fPeakUncertn1      = PeakPositionUncertmulitplicity1;
+	    // *********************************
+	    // *** Peak Position Uncertainty ***
+	    // *********************************
+	    PeakPositionUncertmulitplicity1 = hit->SigmaPeakTime();
+	    //---Filling Histogram---
+	    fRecoPeakPositionUncertMulti1->Fill(PeakPositionUncertmulitplicity1);
+	    //---Filling TTree---
+	    fPeakUncertn1      = PeakPositionUncertmulitplicity1;
 		
 		
 		
-      		fWidthn1           = (hit->EndTime() - hit->PeakTime());
+	    fWidthn1           = (hit->EndTime() - hit->PeakTime());
       
       			
       		
-      		fStartTimen1       = hit->StartTime();
-      		fStartTimeUncertn1 = hit->SigmaStartTime();
-      		fEndTimen1         = hit->EndTime();
-      		fEndTimeUncertn1   = hit->SigmaEndTime();
+	    fStartTimen1       = hit->StartTime();
+	    fStartTimeUncertn1 = hit->SigmaStartTime();
+	    fEndTimen1         = hit->EndTime();
+	    fEndTimeUncertn1   = hit->SigmaEndTime();
 		
 		
+	    double hitresid = ( ( TruthHitTime - hit->PeakTime() ) / hit->SigmaPeakTime() );
+	    fHitResidualMulti1->Fill( hitresid );
+		
+	    if(p == 0 && p2 == 0)
+	      {
+
+		// ---------------------------------
+		// --- Calculating Hit Residuals ---
+		// ---------------------------------
+		//double hitresid = ( ( TruthHitCalculated - hit->PeakTime() ) / hit->SigmaPeakTime() );
 		double hitresid = ( ( TruthHitTime - hit->PeakTime() ) / hit->SigmaPeakTime() );
-		fHitResidualMulti1->Fill( hitresid );
-		
-      		if(p == 0 && p2 == 0)
-      			{
 
-			// ---------------------------------
-			// --- Calculating Hit Residuals ---
-			// ---------------------------------
-			//double hitresid = ( ( TruthHitCalculated - hit->PeakTime() ) / hit->SigmaPeakTime() );
-			double hitresid = ( ( TruthHitTime - hit->PeakTime() ) / hit->SigmaPeakTime() );
-
-			//---Filling Histograms---
-			fRecoPeakPositionPlane0Multi1->Fill( hit->PeakTime() );
-			fRecoPeakPositionUncertPlane0Multi1->Fill( hit->SigmaPeakTime() );
+		//---Filling Histograms---
+		fRecoPeakPositionPlane0Multi1->Fill( hit->PeakTime() );
+		fRecoPeakPositionUncertPlane0Multi1->Fill( hit->SigmaPeakTime() );
 			
-			fTruthPeakPositionPlane0Multi1->Fill( TruthHitCalculated );
-			fHitResidualPlane0Multi1->Fill( hitresid );
+		fTruthPeakPositionPlane0Multi1->Fill( TruthHitCalculated );
+		fHitResidualPlane0Multi1->Fill( hitresid );
 
 	
-      			}//<---End looking at plane 0
+	      }//<---End looking at plane 0
 	
-      		if(p == 1 && p2 == 1)
-      			{
-      			//double hitresid = ( ( TruthHitCalculated - hit->PeakTime() ) / hit->SigmaPeakTime() );
-			double hitresid = ( ( TruthHitTime - hit->PeakTime() ) / hit->SigmaPeakTime() );
+	    if(p == 1 && p2 == 1)
+	      {
+		//double hitresid = ( ( TruthHitCalculated - hit->PeakTime() ) / hit->SigmaPeakTime() );
+		double hitresid = ( ( TruthHitTime - hit->PeakTime() ) / hit->SigmaPeakTime() );
 			
-			//---Filling Histograms---
-			fRecoPeakPositionPlane1Multi1->Fill( hit->PeakTime() );
-			fRecoPeakPositionUncertPlane1Multi1->Fill( hit->SigmaPeakTime() );
+		//---Filling Histograms---
+		fRecoPeakPositionPlane1Multi1->Fill( hit->PeakTime() );
+		fRecoPeakPositionUncertPlane1Multi1->Fill( hit->SigmaPeakTime() );
 			
-			fTruthPeakPositionPlane1Multi1->Fill(TruthHitCalculated);
-			fHitResidualPlane1Multi1->Fill( hitresid );
+		fTruthPeakPositionPlane1Multi1->Fill(TruthHitCalculated);
+		fHitResidualPlane1Multi1->Fill( hitresid );
 	
-			}//<---End looking at Plane 1
+	      }//<---End looking at Plane 1
       
 	
-      		if(p == 2 && p2 == 2)
-      			{
-      			//double hitresid = ( ( TruthHitCalculated - hit->PeakTime() ) / hit->SigmaPeakTime() );
-			double hitresid = ( ( TruthHitTime - hit->PeakTime() ) / hit->SigmaPeakTime() );
+	    if(p == 2 && p2 == 2)
+	      {
+		//double hitresid = ( ( TruthHitCalculated - hit->PeakTime() ) / hit->SigmaPeakTime() );
+		double hitresid = ( ( TruthHitTime - hit->PeakTime() ) / hit->SigmaPeakTime() );
 			
-			//---Filling Histograms---
-			fRecoPeakPositionPlane2Multi1->Fill( hit->PeakTime() );
-			fRecoPeakPositionUncertPlane2Multi1->Fill( hit->SigmaPeakTime() );
+		//---Filling Histograms---
+		fRecoPeakPositionPlane2Multi1->Fill( hit->PeakTime() );
+		fRecoPeakPositionUncertPlane2Multi1->Fill( hit->SigmaPeakTime() );
 			
-			fTruthPeakPositionPlane2Multi1->Fill(TruthHitCalculated);
-			fHitResidualPlane2Multi1->Fill( hitresid );
+		fTruthPeakPositionPlane2Multi1->Fill(TruthHitCalculated);
+		fHitResidualPlane2Multi1->Fill( hitresid );
 			
-      			}//<---End looking at Plane 2
+	      }//<---End looking at Plane 2
 		
-    		}//<---End Hit Multiplicity == 1
+	  }//<---End Hit Multiplicity == 1
     
     	// ##################################################
     	// ### Looking at "Hits" with a multiplicity == 1 ###
     	// ##################################################
     	if(hit->Multiplicity() > 1)
-    		{
-      		Multipulse = 1;
-      		NMultiPulseEvents++;
+	  {
+	    Multipulse = 1;
+	    NMultiPulseEvents++;
       
-      		fMultiHit            = Multipulse;
-      		fWirenGT1            = w;
-      		fgoodoffitnGT1       = hit->GoodnessOfFit();
-      		fChargenGT1          = hit->Charge();
-      		fSigmaChargenGT1     = hit->SigmaCharge();
-      		fWidthnGT1           = (hit->EndTime() - hit->PeakTime());
+	    fMultiHit            = Multipulse;
+	    fWirenGT1            = w;
+	    fgoodoffitnGT1       = hit->GoodnessOfFit();
+	    fChargenGT1          = hit->Charge();
+	    fSigmaChargenGT1     = hit->SigmaCharge();
+	    fWidthnGT1           = (hit->EndTime() - hit->PeakTime());
       
-      		fPeaknGT1            = hit->PeakTime();
-      		fStartTimenGT1       = hit->StartTime();
-      		fStartTimeUncertnGT1 = hit->SigmaStartTime();
-      		fEndTimenGT1         = hit->EndTime();
-      		fEndTimeUncertnGT1   = hit->SigmaEndTime();
+	    fPeaknGT1            = hit->PeakTime();
+	    fStartTimenGT1       = hit->StartTime();
+	    fStartTimeUncertnGT1 = hit->SigmaStartTime();
+	    fEndTimenGT1         = hit->EndTime();
+	    fEndTimeUncertnGT1   = hit->SigmaEndTime();
 		
-		// *********************************
-		// *** Peak Position Uncertainty ***
-		// *********************************
-		PeakPositionUncertmulitplicityGT1 = hit->SigmaPeakTime();
-		//---Filling Histogram---
-		fRecoPeakPositionUncertMultiGT1->Fill(PeakPositionUncertmulitplicityGT1);
-		//---Filling TTree---
-		fPeakUncertnGT1      = PeakPositionUncertmulitplicityGT1;
+	    // *********************************
+	    // *** Peak Position Uncertainty ***
+	    // *********************************
+	    PeakPositionUncertmulitplicityGT1 = hit->SigmaPeakTime();
+	    //---Filling Histogram---
+	    fRecoPeakPositionUncertMultiGT1->Fill(PeakPositionUncertmulitplicityGT1);
+	    //---Filling TTree---
+	    fPeakUncertnGT1      = PeakPositionUncertmulitplicityGT1;
 		
 		
-      		if(p==0)
-      			{
-      			//fHitResidualnGT1Plane0     = ( ( TruthHitTime - hit->PeakTime() )/ hit->SigmaPeakTime() );
-			//fHitResidualnGT1Plane0     = ( ( TruthHitCalculated - hit->PeakTime() )/ hit->SigmaPeakTime() );
-			fRecoPeakPositionUncertPlane0MultiGT1->Fill( hit->SigmaPeakTime() );
-      			}
+	    if(p==0)
+	      {
+		//fHitResidualnGT1Plane0     = ( ( TruthHitTime - hit->PeakTime() )/ hit->SigmaPeakTime() );
+		//fHitResidualnGT1Plane0     = ( ( TruthHitCalculated - hit->PeakTime() )/ hit->SigmaPeakTime() );
+		fRecoPeakPositionUncertPlane0MultiGT1->Fill( hit->SigmaPeakTime() );
+	      }
 	
-      		if(p==1)
-      			{
-      			//fHitResidualnGT1Plane1     = ( ( TruthHitTime - hit->PeakTime() )/ hit->SigmaPeakTime() );
-			//fHitResidualnGT1Plane1     = ( ( TruthHitCalculated - hit->PeakTime() )/ hit->SigmaPeakTime() );
-			fRecoPeakPositionUncertPlane1MultiGT1->Fill( hit->SigmaPeakTime() );
-      			}
+	    if(p==1)
+	      {
+		//fHitResidualnGT1Plane1     = ( ( TruthHitTime - hit->PeakTime() )/ hit->SigmaPeakTime() );
+		//fHitResidualnGT1Plane1     = ( ( TruthHitCalculated - hit->PeakTime() )/ hit->SigmaPeakTime() );
+		fRecoPeakPositionUncertPlane1MultiGT1->Fill( hit->SigmaPeakTime() );
+	      }
 	
-      		if(p==2)
-      			{
-      			//fHitResidualnGT1Plane2     = ( ( TruthHitTime - hit->PeakTime() )/ hit->SigmaPeakTime() );
-			//fHitResidualnGT1Plane2     = ( ( TruthHitCalculated - hit->PeakTime() )/ hit->SigmaPeakTime() );
-			fRecoPeakPositionUncertPlane2MultiGT1->Fill( hit->SigmaPeakTime() );
-      			}		
+	    if(p==2)
+	      {
+		//fHitResidualnGT1Plane2     = ( ( TruthHitTime - hit->PeakTime() )/ hit->SigmaPeakTime() );
+		//fHitResidualnGT1Plane2     = ( ( TruthHitCalculated - hit->PeakTime() )/ hit->SigmaPeakTime() );
+		fRecoPeakPositionUncertPlane2MultiGT1->Fill( hit->SigmaPeakTime() );
+	      }		
 	
-    		}//<---End Hit Multiplicity > 1
+	  }//<---End Hit Multiplicity > 1
     
     
     	/*std::cout<<"c = "<<c<<" t = "<<t<<" p = "<<p<<" w = "<<w<<std::endl;
-      	std::cout<<"Start Time        = "<<	hit->StartTime()	<<	std::endl;
-      	std::cout<<"Sigma Start Time  = "<<	hit->SigmaStartTime()	<<	std::endl;
-      	std::cout<<"End Time          = "<<	hit->EndTime()		<<	std::endl;
-      	std::cout<<"Sigma End Time    = "<<	hit->SigmaEndTime()	<<	std::endl;
-      	std::cout<<"Peak Time         = "<<	hit->PeakTime()		<<	std::endl;
-      	std::cout<<"Sigma Peak Time   = "<<	hit->SigmaPeakTime()	<<	std::endl;
-      	std::cout<<"Multiplicity      = "<<	hit->Multiplicity()	<<	std::endl;
-      	std::cout<<"Charge            = "<<	hit->Charge()		<<	std::endl;
-      	std::cout<<"Sigma Charge      = "<<	hit->SigmaCharge()	<<	std::endl;
-      	std::cout<<"Goodness Fit      = "<<	hit->GoodnessOfFit()	<<	std::endl;
-     	std::cout<<std::endl;*/
+	  std::cout<<"Start Time        = "<<	hit->StartTime()	<<	std::endl;
+	  std::cout<<"Sigma Start Time  = "<<	hit->SigmaStartTime()	<<	std::endl;
+	  std::cout<<"End Time          = "<<	hit->EndTime()		<<	std::endl;
+	  std::cout<<"Sigma End Time    = "<<	hit->SigmaEndTime()	<<	std::endl;
+	  std::cout<<"Peak Time         = "<<	hit->PeakTime()		<<	std::endl;
+	  std::cout<<"Sigma Peak Time   = "<<	hit->SigmaPeakTime()	<<	std::endl;
+	  std::cout<<"Multiplicity      = "<<	hit->Multiplicity()	<<	std::endl;
+	  std::cout<<"Charge            = "<<	hit->Charge()		<<	std::endl;
+	  std::cout<<"Sigma Charge      = "<<	hit->SigmaCharge()	<<	std::endl;
+	  std::cout<<"Goodness Fit      = "<<	hit->GoodnessOfFit()	<<	std::endl;
+	  std::cout<<std::endl;*/
     	
     	fHTree->Fill();
     	Multipulse = 0;
     	SinglePulse = 0;
-  	}//<---End Loop over hits
+      }//<---End Loop over hits
 	
-  fnOnePulseHits = NSinglePulseEvents;
-  fmulitPulseHits = NMultiPulseEvents;
-  fHTree->Fill();
-  return;
+    fnOnePulseHits = NSinglePulseEvents;
+    fmulitPulseHits = NMultiPulseEvents;
+    fHTree->Fill();
+    return;
   
   }//end analyze method
   
 
 
-// --------------------------------------------------------
+  // --------------------------------------------------------
 
 
 

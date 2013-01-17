@@ -18,6 +18,7 @@
 #include "Simulation/SimChannel.h"
 #include "RecoBase/Hit.h"
 #include "Utilities/DetectorProperties.h"
+#include "SimpleTypesAndConstants/geo_types.h"
 
 #include "art/Framework/Services/Optional/TFileService.h"
 #include "art/Framework/Principal/Event.h"
@@ -60,7 +61,7 @@ private:
   std::string         fWireModuleLabel;      ///< label name for module making recob::Wires
   std::vector<TH1D *> fChannelEnergyDepsInd; ///< Energy depositions vs time for each induction channel
   std::vector<TH1D *> fChannelEnergyDepsCol; ///< Energy depositions vs time for each collection channel
-
+  double              fMinCharge;            ///< Minimum charge required to make a hit
   double              fElectronsToADC;       ///< Conversion factor of electrons to ADC counts
 
 };
@@ -121,11 +122,15 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
 					std::vector<recob::Hit>& hits,
 					art::Ptr<recob::Wire>&   wire)
 {
+  art::ServiceHandle<geo::Geometry> geo;
+
   // make a map of the total signal at each tdc value
   // if there is a gap of >= 1 tdc count between signals
   // make separate hits.  If there is a dip between 
   // two peaks of order 600 electrons, make multiple hits
+  // also map the tdc to a weighted position from where the electrons originated
   std::map<unsigned short, double> tdcVsE;
+  std::map<unsigned short, std::vector<double> > tdcVsPos;
   std::vector<unsigned short> tdcEnds;
 
   std::map<unsigned short, std::vector<sim::IDE> >::const_iterator mapitr = idemap.begin();
@@ -138,13 +143,27 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
     if(tdc - prev > 1) tdcEnds.push_back(prev);
 
     double total = 0.;
+    double x = 0.;
+    double y = 0.;
+    double z = 0.;
     // loop over the ides
     std::vector<sim::IDE>::const_iterator ideitr = mapitr->second.begin();
     for(ideitr = mapitr->second.begin(); ideitr != mapitr->second.end(); ideitr++){
       total += ideitr->numElectrons;
+      x += ideitr->numElectrons*ideitr->x;
+      y += ideitr->numElectrons*ideitr->y;
+      z += ideitr->numElectrons*ideitr->z;
     }
     
-    tdcVsE[tdc] = total;
+    std::vector<double> pos(3,0.);
+    if(total > 0){
+      pos[0] = x/total;
+      pos[1] = y/total;
+      pos[2] = z/total;
+    }
+
+    tdcVsE[tdc]   = total;
+    tdcVsPos[tdc] = pos;
 
     // reset the starts variable
     prev = tdc;
@@ -155,6 +174,25 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
   std::map<unsigned short, double>::iterator tdcVsEitr;  
   std::vector<unsigned short>::iterator endItr = tdcEnds.begin();
   for(tdcVsEitr = tdcVsE.begin(); tdcVsEitr != tdcVsE.end() && endItr != tdcEnds.end(); tdcVsEitr++){
+
+    // get the options for WireIDs
+    std::vector<geo::WireID> wireids = geo->ChannelToWire(wire->Channel());
+    // figure out which TPC we are in
+    unsigned int tpc = 0;
+    unsigned int cstat = 0;
+    geo::WireID widForHit;
+    std::vector<double> pos = tdcVsPos[tdcVsEitr->first];    
+    geo->PositionToTPC(&pos[0], tpc, cstat);
+    for( auto const& wid : wireids){
+      if(wid.TPC == tpc && wid.Cryostat == cstat){
+	// in the right TPC, now figure out which wire we want
+	// this works because there is only one plane option for 
+	// each WireID in each TPC
+	if(wid.Wire == geo->NearestWire(pos, wid.Plane, wid.TPC, wid.Cryostat))
+	  widForHit = wid;
+      }
+    }
+
     double startTime =  1.*tdcVsEitr->first;
     double endTime   =  0.;
     double peakTime  =  0.;
@@ -178,8 +216,9 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
     // tick when cheating, make the uncertainty on the charges just be the sqrt 
     // of their values.
     // don't make an object if the total charge is less than 5 adc count
-    if(totCharge > 5.){
+    if(totCharge > fMinCharge){
       hits.push_back(recob::Hit(wire, 
+				widForHit,
 				startTime, 1.,
 				endTime,   1.,
 				peakTime,  1.,
@@ -190,7 +229,7 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
 		     );
       
       LOG_DEBUG("HitCheater") << "new hit is " << hits.back();
-    }
+    }// end if charge is large enough
 
     endItr++;
   }// end loop over tdc values
@@ -236,7 +275,7 @@ void hit::HitCheater::reconfigure(fhicl::ParameterSet const & p)
 {
   fG4ModuleLabel   = p.get< std::string >("G4ModuleLabel",   "largeant");
   fWireModuleLabel = p.get< std::string >("WireModuleLabel", "caldata" );
-
+  fMinCharge       = p.get< double      >("MinimumCharge",   5.        );
   art::ServiceHandle<util::DetectorProperties> detprop;
   fElectronsToADC = detprop->ElectronsToADC();
 

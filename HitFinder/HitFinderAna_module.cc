@@ -230,7 +230,7 @@ namespace hit{
     
     art::ServiceHandle<geo::Geometry> geom;  
   
-    unsigned int p(0),w(0), t(0), cs(0), channel(0);
+    unsigned int p(0), w(0);
     for(unsigned int cstat = 0; cstat < geom->Ncryostats(); ++cstat){
       for(unsigned int tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
 	fNp0=0;       fN3p0=0;
@@ -240,13 +240,8 @@ namespace hit{
 	std::vector< art::Ptr<recob::Hit> >::iterator itr = hits.begin();
 	while(itr != hits.end()) {
 	  
-	  //art::Ptr<recob::Hit> hit(hitHandle, i);
-	  channel = (*itr)->Wire()->RawDigit()->Channel();
-	  cs = 0; 
-	  t  = 0; 
-	  p  = 0; 
-	  w  = 0;
-	  geom->ChannelToWire(channel, cs, t, p, w);
+	  p = (*itr)->WireID().Plane; 
+	  w = (*itr)->WireID().Wire;
 	  
 	  fRun = evt.run();
 	  fEvt = evt.id().event();

@@ -5,6 +5,7 @@ standard_hitcheater:
  module_type:       "HitCheater"
  G4ModuleLabel:     "largeant"
  WireModuleLabel:   "caldata"
+ MinimumCharge:     5.
 }
 
 standard_hitfinder:

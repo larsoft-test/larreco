@@ -184,10 +184,6 @@ void GausHitFinder::produce(art::Event& evt)
   double fitWidth               = 0.;               //hit fit width initial value
   double minWidth               = 0.;               //minimum hit width
   unsigned int channel          = 0;                // channel number
-  unsigned int wireNum          = 0;                // wire number
-  unsigned int planeNum         = 0;                // plane number
-  unsigned int tpcNum           = 0;                // tpc number
-  unsigned int cryostatNum      = 0;                // cryostat number
   geo::SigType_t sigType;                           // Signal Type (Collection or Induction)
   std::vector<int> startTimes;             	    // stores time of 1st local minimum
   std::vector<int> maxTimes;    	   	    // stores time of local maximum    
@@ -211,9 +207,8 @@ void GausHitFinder::produce(art::Event& evt)
 	
 	
     // --- Setting Channel Number and Wire Number as well as signal type ---
-    channel       = wire->RawDigit()->Channel();
-    geom->ChannelToWire(channel, cryostatNum, tpcNum, planeNum, wireNum);
-    sigType       = geom->Cryostat(cryostatNum).TPC(tpcNum).Plane(planeNum).SignalType();
+    channel = wire->RawDigit()->Channel();
+    sigType = geom->SignalType(channel);
       
     // -----------------------------------------------------------
     // -- Clearing variables at the start of looping over wires --
@@ -550,7 +545,15 @@ void GausHitFinder::produce(art::Event& evt)
 	  // ####################################################################################
 	  if(FitGoodnes > fChi2NDF){continue;}
 	      
+
+	  // get the WireID for this hit
+	  std::vector<geo::WireID> wids = geom->ChannelToWire(channel);
+	  ///\todo need to have a disambiguation algorithm somewhere in here
+	  // for now, just take the first option returned from ChannelToWire
+	  geo::WireID wid = wids[0];
+
 	  recob::Hit hit(wire, 
+			 wid,
 			 StartIime, 
 			 StartTimeError,
 			 EndTime, 
