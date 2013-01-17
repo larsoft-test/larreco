@@ -147,10 +147,6 @@ namespace cluster{
     std::unique_ptr< std::vector<recob::Cluster> > clustercol(new std::vector<recob::Cluster>);
     std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
-    unsigned int plane = 0;
-    unsigned int wire  = 0;
-    unsigned int tpc   = 0;
-    unsigned int cstat = 0;
     for(hitMapItr = eveHitMap.begin(); hitMapItr != eveHitMap.end(); hitMapItr++){
 
       // separate out the hits for each particle into the different views
@@ -171,26 +167,28 @@ namespace cluster{
 
 	    for(size_t h = 0; h < eveHits.size(); ++h){
 	      
-	      geo->ChannelToWire(eveHits[h]->Channel(), cstat, tpc, plane, wire);
-	      
-	      if(plane != pl || tpc != t || cstat != c) continue;
+	      geo::WireID wid = eveHits[h]->WireID();
+
+	      if(wid.Plane    != pl || 
+		 wid.TPC      != t  || 
+		 wid.Cryostat != c) continue;
 	      
 	      ptrvs.push_back(eveHits[h]);
 	      totalQ += eveHits[h]->Charge();
 	      
-	      if(wire < startWire){
-		startWire = wire;
+	      if(wid.Wire < startWire){
+		startWire = wid.Wire;
 		startTime = 1.e6;
 	      }
-	      if(wire > endWire  ){
-		endWire = wire;
+	      if(wid.Wire > endWire  ){
+		endWire = wid.Wire;
 		endTime = -1.e-6;
 	      }
 	      
-	      if(wire == startWire && eveHits[h]->StartTime() < startTime) 
+	      if(wid.Wire == startWire && eveHits[h]->StartTime() < startTime) 
 		startTime = eveHits[h]->StartTime();
 	      
-	      if(wire == endWire   && eveHits[h]->EndTime()   > endTime  ) 
+	      if(wid.Wire == endWire   && eveHits[h]->EndTime()   > endTime  ) 
 		endTime   = eveHits[h]->EndTime();
 	      
 	    } // end loop over hits for this particle	
@@ -218,7 +216,7 @@ namespace cluster{
 						 dQdW,      0.,
 						 totalQ,
 						 view,
-						 ((*hitMapItr).first * 1000) + pl*100 + tpc*10 + cstat));
+						 ((*hitMapItr).first * 1000) + pl*100 + t*10 + c));
 	    
 	    // association the hits to this cluster
 	    util::CreateAssn(*this, evt, *(clustercol.get()), ptrvs, *(assn.get()));

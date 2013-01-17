@@ -989,11 +989,6 @@ namespace cluster{
   	    
   	    
   	    
-    // 	    channel=(*wireIter)->RawDigit()->Channel();
-  	    
-    // 	    geom->ChannelToWire(channel,t,pl,wire);
-  	    
-  	    
     // 	    _rawdigit2 = (*wireIter)->RawDigit();
     // 	    sim::SimDigit* simdigit = dynamic_cast< sim::SimDigit*>(_rawdigit2);
     // 	    int numberOfElectrons = simdigit->NumberOfElectrons();
@@ -1141,9 +1136,6 @@ namespace cluster{
     // // 	    
     // 	    
     // 	    
-    //     channel=(*wireIter2)->RawDigit()->Channel();
-    // 	   
-    //     geom->ChannelToWire(channel,t,pl,wire);
     //     // std::cout<<"channel: "<<wire<<std::endl;
     // 	    
     //     // loop over the SimChannels to find this one

@@ -119,7 +119,6 @@ namespace cluster{
     // get the ChannelFilter
     filter::ChannelFilter chanFilt;
         
-    unsigned int p(0),w(0), t(0), c(0), channel(0);
     for(unsigned int cstat = 0; cstat < geom->Ncryostats(); ++cstat){
       for(unsigned int tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
         for(unsigned int plane = 0; plane < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
@@ -128,10 +127,9 @@ namespace cluster{
         
   	  art::Ptr<recob::Hit> hit(hitcol, i);
         
-  	  channel=hit->Wire()->RawDigit()->Channel();
-  	  geom->ChannelToWire(channel, c, t, p, w);
-      
-  	  if(p == plane && t == tpc && c == cstat) allhits.push_back(hit);
+  	  if(hit->WireID().Plane    == plane && 
+	     hit->WireID().TPC      == tpc   && 
+	     hit->WireID().Cryostat == cstat) allhits.push_back(hit);
   	
   	}  
         
@@ -166,10 +164,8 @@ namespace cluster{
   	  if (clusterHits.size()>0){
   	    
   	    /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
-  	    unsigned int sw = 0;
-  	    unsigned int ew = 0;
-  	    geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), c, t, p, sw);
-  	    geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), c, t, p, ew);
+  	    unsigned int sw = clusterHits[0]->WireID().Wire;
+  	    unsigned int ew = clusterHits[clusterHits.size()-1]->WireID().Wire;
   	 
   	    recob::Cluster cluster(sw*1., 0.,
   				   clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
@@ -178,7 +174,7 @@ namespace cluster{
   				   -999., 0., 
   				   -999., 0.,
   				   totalQ,
-  				   geom->Cryostat(c).TPC(t).Plane(p).View(),
+  				   geom->View(clusterHits[0]->Channel()),
   				   ccol->size());
   	    
   	    ccol->push_back(cluster);

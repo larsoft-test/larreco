@@ -195,7 +195,7 @@ namespace cluster{
     struct SortByWire {
       bool operator() (recob::Hit const& h1, recob::Hit const& h2) const 
       { 
-        return h1.Wire()->RawDigit()->Channel() < h2.Wire()->RawDigit()->Channel() ;
+        return h1.Wire()->Channel() < h2.Wire()->Channel() ;
       }
     };
   }
@@ -268,8 +268,6 @@ namespace cluster{
     art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fDBScanModuleLabel);
     mf::LogInfo("KingaCluster")<<"No of DBSCAN clusters= "<<clusIn.size();
   
-    unsigned int p(0),w(0),t(0),cs(0), channel(0);
-    
     for(unsigned int cstat = 0; cstat < fGeom->Ncryostats(); ++cstat){
       for(unsigned int tpc = 0; tpc < fGeom->Cryostat(cstat).NTPC(); ++tpc){
         mf::LogInfo("KingaCluster") << "No of planes = " << fGeom->Cryostat(cstat).TPC(tpc).Nplanes();
@@ -283,10 +281,10 @@ namespace cluster{
   	  hits = fmh.at(j);
   
   	  for(size_t i = 0; i < hits.size(); ++i){
-  	    channel=hits[i]->Wire()->RawDigit()->Channel();
-  	    fGeom->ChannelToWire(channel, cs, t, p, w);
   	    
-  	    if(p == plane && t == tpc && cs == cstat){
+  	    if(hits[i]->WireID().Plane    == plane && 
+	       hits[i]->WireID().TPC      == tpc   && 
+	       hits[i]->WireID().Cryostat == cstat){
   	      allhits.push_back(hits[i]);
   	      //mf::LogInfo("KingaCluster")<<"plane= "<<plane<<" wire= "<<w<<" time= "<<hits[i]->PeakTime();
   	    }
@@ -400,10 +398,8 @@ namespace cluster{
   	    unsigned int p = 0; 
   	    unsigned int t = 0; 
   	    unsigned int c = 0; 
-  	    unsigned int sw = 0;
-  	    unsigned int ew = 0;
-  	    fGeom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), c, t, p, sw);
-  	    fGeom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), c, t, p, ew);
+  	    unsigned int sw = clusterHits[0]->WireID().Wire;
+  	    unsigned int ew = clusterHits[clusterHits.size()-1]->WireID().Wire;
   	    
   	    clusterHits.sort(cluster::SortByWire());
   	    
@@ -490,12 +486,6 @@ namespace cluster{
     fdriftvelocity =  0.157;  //get from paramtereset 9either k and V)
     fpi            = TMath::Pi();
         
-    unsigned int channel = 0;
-    unsigned int w       = 0;
-    unsigned int p       = plane;
-    unsigned int t       = tpc;	 
-    unsigned int c       = cstat;
-     
     //   mf::LogInfo("KingaCluster")<<"for PLANE "<<plane
     // 			     <<" fwire_vertex= "<<fwire_vertex[plane]
     // 			     <<" ftime_vertex= "<<ftime_vertex[plane];
@@ -513,8 +503,6 @@ namespace cluster{
       // 			       <<" ftime_vertex= "<<ftime_vertex;
       //           }   
        
-      channel=allhits[i]->Wire()->RawDigit()->Channel();
-      fGeom->ChannelToWire(channel, c, t, p, w);
       //mf::LogInfo("KingaCluster")<<"................................";
       //     mf::LogInfo("KingaCluster")<<" For hit# "<<i
       // 			       <<" w= "<<w
@@ -522,7 +510,7 @@ namespace cluster{
       // 			       <<fwire_vertex[plane]
       // 			       <<" ftime_vertex[plane]= "<<ftime_vertex[plane];
        
-      int diff_w = w - fwire_vertex_reco[plane];
+      int diff_w = allhits[i]->WireID().Wire - fwire_vertex_reco[plane];
       b_polar = diff_w*0.4; /**in cm*/
        
       //mf::LogInfo("KingaCluster")<<" diff_w= "<<diff_w;
@@ -1954,12 +1942,6 @@ namespace cluster{
     }
   
   
-    unsigned int channel = 0;
-    unsigned int w       = 0;	  
-    unsigned int p       = plane; 
-    unsigned int t       = tpc;	  
-    unsigned int cs      = cstat;
-  
     //int no_noise_hits=0;
     mf::LogInfo("KingaCluster")<<"In FindClusters(int plane), we should be producing "
   			     <<MaxStartPoint.size()<<" clusters";
@@ -1969,10 +1951,8 @@ namespace cluster{
   
     for(size_t i = 0; i < allhits.size(); ++i){
      
-      channel = allhits[i]->Wire()->RawDigit()->Channel();
-      fGeom->ChannelToWire(channel, cs, t, p, w);
      
-      int diff_w= w - fwire_vertex_reco[plane];
+      int diff_w= allhits[i]->WireID().Wire - fwire_vertex_reco[plane];
       b_polar = diff_w*0.4; /**in cm*/
       //b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
       a_polar = (allhits[i]->PeakTime() - ftime_vertex_reco[plane])* ftimetick *fdriftvelocity; /** in cm*/
@@ -2062,7 +2042,7 @@ namespace cluster{
         for(size_t h = 0; h < HitsWithClusterID.size(); ++h) {
       
           if(HitsWithClusterID[h] == NClus+1){
-  	  WireNo.push_back(allhits[h]->Wire()->RawDigit()->Channel());
+  	  WireNo.push_back(allhits[h]->Channel());
           }
       
         }

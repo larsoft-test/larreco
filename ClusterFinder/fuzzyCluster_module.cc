@@ -69,13 +69,12 @@ namespace cluster{
 
 }
 
-
-
 namespace cluster{
 
 
+  //-------------------------------------------------
   fuzzyCluster::fuzzyCluster(fhicl::ParameterSet const& pset) :
-     ffuzzyCluster(pset.get< fhicl::ParameterSet >("fuzzyClusterAlg")) 
+    ffuzzyCluster(pset.get< fhicl::ParameterSet >("fuzzyClusterAlg")) 
   {  
     this->reconfigure(pset);
     produces< std::vector<recob::Cluster> >();  
@@ -136,90 +135,83 @@ namespace cluster{
     // get the ChannelFilter
     filter::ChannelFilter chanFilt;
         
-    unsigned int p(0),w(0), t(0), c(0), channel(0);
     for(unsigned int cstat = 0; cstat < geom->Ncryostats(); ++cstat){
       for(unsigned int tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
         for(unsigned int plane = 0; plane < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
-  	geo::SigType_t sigType = geom->Cryostat(cstat).TPC(tpc).Plane(plane).SignalType();
-  	for(size_t i = 0; i< hitcol->size(); ++i){
+	  geo::SigType_t sigType = geom->Cryostat(cstat).TPC(tpc).Plane(plane).SignalType();
+	  for(size_t i = 0; i< hitcol->size(); ++i){
         
-  	  art::Ptr<recob::Hit> hit(hitcol, i);
+	    art::Ptr<recob::Hit> hit(hitcol, i);
         
-  	  channel=hit->Wire()->RawDigit()->Channel();
-  	  geom->ChannelToWire(channel, c, t, p, w);
-      
-  	  if(p == plane && t == tpc && c == cstat) allhits.push_back(hit);
-  	
-  	}  
+	    if(hit->WireID().Plane    == plane && 
+	       hit->WireID().TPC      == tpc   && 
+	       hit->WireID().Cryostat == cstat) allhits.push_back(hit);  	
+	  }  
         
           //Begin clustering with fuzzy
           
           //Attempt to get number of clusters
           //std::cout << "Number of clusters: " << fHCAlg.Transform(allhits) << std::endl; 
   
-  	ffuzzyCluster.InitFuzzy(allhits, chanFilt.SetOfBadChannels());
+	  ffuzzyCluster.InitFuzzy(allhits, chanFilt.SetOfBadChannels());
   
-  	//----------------------------------------------------------------
-  	for(unsigned int j = 0; j < ffuzzyCluster.fps.size(); ++j){
+	  //----------------------------------------------------------------
+	  for(unsigned int j = 0; j < ffuzzyCluster.fps.size(); ++j){
   	  
-  	  if(allhits.size() != ffuzzyCluster.fps.size()) break;
+	    if(allhits.size() != ffuzzyCluster.fps.size()) break;
   	  
-  	  fhitwidth->Fill(ffuzzyCluster.fps[j][2]);
+	    fhitwidth->Fill(ffuzzyCluster.fps[j][2]);
   	  
-  	  if(sigType == geo::kInduction)  fhitwidth_ind_test->Fill(ffuzzyCluster.fps[j][2]);
-  	  if(sigType == geo::kCollection) fhitwidth_coll_test->Fill(ffuzzyCluster.fps[j][2]);
-  	}
+	    if(sigType == geo::kInduction)  fhitwidth_ind_test->Fill(ffuzzyCluster.fps[j][2]);
+	    if(sigType == geo::kCollection) fhitwidth_coll_test->Fill(ffuzzyCluster.fps[j][2]);
+	  }
    
-  	//*******************************************************************
-  	ffuzzyCluster.run_fuzzy_cluster(allhits);
+	  //*******************************************************************
+	  ffuzzyCluster.run_fuzzy_cluster(allhits);
   
-        //End clustering with fuzzy
+	  //End clustering with fuzzy
   
   
-  	for(size_t i = 0; i < ffuzzyCluster.fclusters.size(); ++i){
+	  for(size_t i = 0; i < ffuzzyCluster.fclusters.size(); ++i){
             std::vector<art::Ptr<recob::Hit> > clusterHits;
-  	  double totalQ = 0.;
+	    double totalQ = 0.;
   	  
-  	  for(size_t j = 0; j < ffuzzyCluster.fpointId_to_clusterId.size(); ++j){
-              //std::cout << "ffuzzyCluster.fpointId_to_clusterId[j]: " << ffuzzyCluster.fpointId_to_clusterId[j] << " i: " << i << std::endl;
-  	    if(ffuzzyCluster.fpointId_to_clusterId[j]==i){ 
-  	      clusterHits.push_back(allhits[j]);
-  	      totalQ += clusterHits.back()->Charge();
-            }
-          } 
+	    for(size_t j = 0; j < ffuzzyCluster.fpointId_to_clusterId.size(); ++j){
+	      if(ffuzzyCluster.fpointId_to_clusterId[j]==i){ 
+		clusterHits.push_back(allhits[j]);
+		totalQ += clusterHits.back()->Charge();
+	      }
+	    } 
   
   
-  	  ////////
-  	  if (clusterHits.size()>0){
-  	    //std::cout << "i: " << i << std::endl; 
-  	    /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
-  	    unsigned int sw = 0;
-  	    unsigned int ew = 0;
-  	    geom->ChannelToWire(clusterHits[0]->Wire()->RawDigit()->Channel(), c, t, p, sw);
-  	    geom->ChannelToWire(clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel(), c, t, p, ew);
+	    ////////
+	    if (clusterHits.size()>0){
+	      /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
+	      unsigned int sw = clusterHits[0]->WireID().Wire;
+	      unsigned int ew = clusterHits[clusterHits.size()-1]->WireID().Wire;
   	 
-  	    recob::Cluster cluster(sw*1., 0.,
-  				   clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
-  				   ew*1., 0.,
-  				   clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
-  				   -999., 0., 
-  				   -999., 0.,
-  				   totalQ,
-  				   geom->Cryostat(c).TPC(t).Plane(p).View(),
-  				   ccol->size());
+	      recob::Cluster cluster(sw*1., 0.,
+				     clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
+				     ew*1., 0.,
+				     clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
+				     -999., 0., 
+				     -999., 0.,
+				     totalQ,
+				     clusterHits[0]->View(),
+				     ccol->size());
   	    
-  	    ccol->push_back(cluster);
+	      ccol->push_back(cluster);
   
-  	    // associate the hits to this cluster
-  	    util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
+	      // associate the hits to this cluster
+	      util::CreateAssn(*this, evt, *ccol, clusterHits, *assn);
   	    
-  	    clusterHits.clear();
+	      clusterHits.clear();
   	    
-  	  }//end if clusterHits has at least one hit
+	    }//end if clusterHits has at least one hit
      
-  	}//end loop over fclusters
+	  }//end loop over fclusters
   	
-  	allhits.clear();
+	  allhits.clear();
         } // end loop over planes
       } // end loop over tpcs
     } // end loop over cryostats
@@ -234,14 +226,7 @@ namespace cluster{
     return;
   } // end produce
   
-
-
-
-
 } // end namespace
-
-
-
 
 namespace cluster{
 

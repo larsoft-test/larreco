@@ -176,12 +176,8 @@ size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>            
     }
   }
   
-  unsigned int channel = 0;
-  unsigned int plane   = 0;
   unsigned int wire    = 0;
   unsigned int wire2   = 0;
-  unsigned int tpc     = 0;
-  unsigned int cstat   = 0;
   for(unsigned int c = 0; c < geom->Ncryostats(); ++c){
     for(unsigned int t = 0; t < geom->Cryostat(c).NTPC(); ++t){
       for(unsigned int p = 0; p < geom->Cryostat(c).TPC(t).Nplanes(); p++) {
@@ -224,8 +220,7 @@ size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>            
 	  MatrixBsum[wi].resize(fTimeBins,0);
 	}      
 	for(unsigned int i = 0; i < hit.size(); ++i){
-	  channel=hit[i]->Wire()->RawDigit()->Channel();
-	  geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+	  wire = hit[i]->WireID().Wire;
 	  //pixelization using a Gaussian
 	  for(int j = 0; j <= (int)(hit[i]->EndTime()-hit[i]->StartTime()+.5); ++j)    
 	    hit_map[wire][(int)((hit[i]->StartTime()+j)*(fTimeBins/numbertimesamples)+.5)] += Gaussian((int)(j-((hit[i]->EndTime()-hit[i]->StartTime())/2.)+.5),0,hit[i]->EndTime()-hit[i]->StartTime());      
@@ -291,8 +286,7 @@ size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>            
 	    
 	    if(Cornerness[wire][timebin] > 0){	  
 	      for(unsigned int i = 0;i < hit.size(); ++i){
-		channel = hit[i]->Wire()->RawDigit()->Channel();
-		geom->ChannelToWire(channel, cstat, tpc, plane, wire2);	 
+		wire2 = hit[i]->WireID().Wire;	 
 		//make sure the end point candidate coincides with an actual hit.
 		if(wire == wire2 
 		   && hit[i]->StartTime() < timebin*(numbertimesamples/fTimeBins) 

@@ -1,12 +1,4 @@
 ////////////////////////////////////////////////////////////////////////
-// $Id: HoughLineFinderAna.cxx,v 1.36 2010/09/15  bpage Exp $
-//
-// HoughLineFinderAna class
-//
-// kinga,josh,echurch@fnal.gov
-//
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
 //
 // HoughLineFinder class
 //
@@ -215,10 +207,8 @@ namespace cluster {
     fm_run_timestamp=evt.time().value(); // won't cast, EC, 7-Oct-2010.
     unsigned int firstwire=0;
     unsigned int lastwire=0;
-    unsigned int c, p, t;
     fm_sizeClusterZ=0;
     fm_sizeHitZ=0;
-    unsigned int wire=0;
     fm_dbsize=0;  
     art::ServiceHandle<geo::Geometry> geo;
   
@@ -245,16 +235,15 @@ namespace cluster {
   	    fm_clusterslope=(double)clusters[j]->dTdW();
   	    fm_clusterintercept=(double)clusters[j]->StartPos()[1];
   	    if(_hits.size()!=0){
-  	      geo->ChannelToWire(_hits[0]->Wire()->RawDigit()->Channel(), c, t, p, firstwire);
-  	      geo->ChannelToWire(_hits[_hits.size()-1]->Wire()->RawDigit()->Channel(), c, t, p, lastwire);
+	      firstwire = _hits[0]->WireID().Wire;
+  	      lastwire  = _hits[_hits.size()-1]->WireID().Wire;
   	      fm_wirespan = lastwire-firstwire;
   	      fm_sizeHitZ = _hits.size();
   	    
   	      for(unsigned int i = 0; i < _hits.size(); ++i){	     
   		
-  		geo->ChannelToWire(_hits[i]->Wire()->RawDigit()->Channel(), c, t, p, wire);
   		fm_hitidZ[i]     = i;         
-  		fm_wireZ[i]      = wire;
+  		fm_wireZ[i]      = _hits[i]->WireID().Wire;
   		fm_mipZ[i]       = (double)_hits[i]->Charge();
   		fm_drifttimeZ[i] = (double)_hits[i]->PeakTime();
   		fm_widthZ[i]     = (double)_hits[i]->EndTime()-_hits[i]->StartTime();

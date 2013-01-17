@@ -501,7 +501,7 @@ namespace cluster{
     }
     //.............
     // now wire vertex:
-    unsigned int channel2,plane2,wire2,tpc2,cstat2;
+    unsigned int wire2 = 0;
     for(size_t cs = 0; cs < geom->Ncryostats(); ++cs){
       for(size_t tpc = 0; tpc < geom->Cryostat(cs).NTPC(); ++tpc){
         mf::LogInfo("KingaClusterAna") << "No of planes = " << geom->Cryostat(cs).TPC(tpc).Nplanes();
@@ -514,19 +514,13 @@ namespace cluster{
   	}
        
   	try{
-  	  channel2 = geom->NearestChannel(fMCvertex, plane, tpc, cs);   
+  	  wire2 = geom->NearestWire(fMCvertex, plane, tpc, cs);   
   	}
   	catch(cet::exception &e){
   	  mf::LogWarning("KingaClusterexc") << e;
   	  
-  	  ///\todo Where does 5 come from?
-  	  if(plane == 0 && fMCvertex[2] < 5) channel2 = 0;
-  	  else if(plane == 0 && fMCvertex[2] > geom->DetLength(tpc,cs) - 5) channel2 = (geom->Nchannels())/2 -1;
-  	  else if(plane == 1 && fMCvertex[2] > geom->DetLength(tpc,cs) - 5) channel2 = geom->Nchannels()-1;
-  	  else if(plane == 1 && fMCvertex[2] < 5) channel2 = (geom->Nchannels())/2 -1;
   	}
   
-  	geom->ChannelToWire(channel2, cstat2, tpc2, plane2, wire2);   
   	mf::LogInfo("KingaCluster") << "%%%%%%%%%%%%%%%%%%   WIRE VERTEX IS: " << wire2;
   	fwire_vertex.push_back(wire2);
      

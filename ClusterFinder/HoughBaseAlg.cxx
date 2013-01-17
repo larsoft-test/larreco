@@ -98,15 +98,13 @@ cluster::HoughTransform::HoughTransform()
 
 //------------------------------------------------------------------------------
 size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits,
-    std::vector<unsigned int>     *fpointId_to_clusterId,
-    unsigned int clusterId, // The id of the cluster we are examining
-    int *nClusters,
-    std::vector<unsigned int> corners
-    )
+					std::vector<unsigned int>     *fpointId_to_clusterId,
+					unsigned int clusterId, // The id of the cluster we are examining
+					int *nClusters,
+					std::vector<unsigned int> corners
+					)
 {
   
-  //art::FindManyP<recob::Hit> fmh(clusIn, evt, label);
-
   HoughTransform c;
   std::vector< art::Ptr<recob::Hit> > hit;
 
@@ -115,19 +113,9 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
   art::ServiceHandle<util::DetectorProperties> detprop;
   filter::ChannelFilter chanFilt;
 
-
-
   unsigned int channel = hits[0]->Wire()->RawDigit()->Channel();
-  unsigned int plane   = 0;
   unsigned int wire    = 0;
   unsigned int wireMax = 0;
-  unsigned int tpc     = 0;
-  unsigned int cstat   = 0;
-  unsigned int p  = 0;
-  unsigned int w  = 0;
-  unsigned int t  = 0;
-  unsigned int cs = 0;
-  geom->ChannelToWire(channel, cs, t, p, w);
   std::vector<lineSlope> linesFound;
   linesFound.clear();
 
@@ -141,20 +129,23 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
 
   //size_t cinctr = 0;
   //geo::View_t    view = geom->Cryostat(cs).TPC(t).Plane(p).View();
-  geo::SigType_t sigt = geom->Cryostat(cs).TPC(t).Plane(p).SignalType();
+  geo::SigType_t sigt = geom->SignalType(channel);
   std::vector<int> skip;  
   hit.clear();
   
   //factor to make x and y scale the same units
   double xyScale  = .001*larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
-  xyScale        *= detprop->SamplingRate()/geom->WirePitch(0,1,p,t,cs);
+  xyScale        *= detprop->SamplingRate()/geom->WirePitch(0, 1, 
+							    hits[0]->WireID().Plane,
+							    hits[0]->WireID().TPC,
+							    hits[0]->WireID().Cryostat);
 
   mf::LogInfo("HoughBaseAlg") << "xyScale: " << xyScale;
   
   int x, y;
   //unsigned int channel, plane, wire, tpc, cstat;
   //there must be a better way to find which plane a cluster comes from
-  int dx = geom->Cryostat(cs).TPC(t).Plane(p).Nwires();//number of wires 
+  int dx = geom->Cryostat(hits[0]->WireID().Cryostat).TPC(hits[0]->WireID().TPC).Plane(hits[0]->WireID().Plane).Nwires();//number of wires 
   int dy = hits[0]->Wire()->NSignal();//number of time samples. 
   skip.clear();
   skip.resize(hits.size());
@@ -198,16 +189,11 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
   ///END LOOP over hits, picking a random one
   ///
 
-  
-
-
-
-
   //Init specifies the size of the two-dimensional accumulator 
   //(based on the arguments, number of wires and number of time samples). 
   c.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
   // Adds all of the hits to the accumulator
-  //std::cout << "Beginning PPHT" << std::endl;
+  //mf::LogVerbatim("HoughBaseAlg") << "Beginning PPHT" << std::endl;
   mf::LogInfo("HoughBaseAlg") << "Beginning PPHT";
 
   c.GetAccumSize(accDy, accDx);
@@ -232,8 +218,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
     //unsigned int randInd = rand() % hits.size();
     unsigned int randInd = (unsigned int)(flat.fire()*hits.size());
 
-    //std::cout << "count: " << count << " randInd: " << randInd << std::endl;
-    //std::cout << "count: " << count << " flat.fire(): " << (unsigned int)(flat.fire()*hits.size()) << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "count: " << count << " randInd: " << randInd << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "count: " << count << " flat.fire(): " << (unsigned int)(flat.fire()*hits.size()) << std::endl;
 
     // If the point isn't in the current fuzzy cluster, skip it
     if(fpointId_to_clusterId->at(randInd) != clusterId)
@@ -247,11 +233,6 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
     if(accumPoints[randInd])
       continue;
     accumPoints[randInd]=1;
-   
-
-
-    
-
    
     // zeroes out the neighborhood of all previous lines  
     for(unsigned int i = 0; i < listofxmax.size(); ++i){
@@ -279,16 +260,15 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
     xMax = 0;
     yMax = 0;
     unsigned short channel = hits[randInd]->Wire()->RawDigit()->Channel();
-    //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-    geom->ChannelToWire(channel, cstat, tpc, plane, wireMax);
+    wireMax = hits[randInd]->WireID().Wire;
     double peakMax = hits[randInd]->PeakTime();
 
     // Add the randomly selected point to the accumulator
     maxCell = c.AddPointReturnMax(wireMax, (int)(hits[randInd]->PeakTime()), &yMax, &xMax, fMinHits);
     nAccum++; 
 
-    //std::cout << "cout: " << count << " maxCell: " << maxCell << std::endl;
-    //std::cout << "xMax: " << xMax << " yMax: " << yMax << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "cout: " << count << " maxCell: " << maxCell << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "xMax: " << xMax << " yMax: " << yMax << std::endl;
 
 
     // The threshold calculation, see http://www.via.cornell.edu/ece547/projects/Hough/webpage/statistics.html
@@ -298,43 +278,43 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
     //double mean = (double)nAccum/(double)accDx;
     //threshGaus->SetParameter(0,sigma);
     //threshGaus->SetParameter(1,mean);
-    //std::cout << "threshGaus mean: " << mean << " sigma: " << sigma << " accDx: " << accDx << std::endl;
-    //std::cout << "nAccum: " << nAccum << std::endl;
-    //std::cout << "threshGaus integral range: " << mean-2*sigma << " to " << maxCell << std::endl;
-    //std::cout << "threshGaus integral: " << threshGaus->Integral(mean-2*sigma,maxCell) << std::endl;
-    //std::cout << "threshGaus integral: " << threshGaus->Integral(0,maxCell) << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "threshGaus mean: " << mean << " sigma: " << sigma << " accDx: " << accDx << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "nAccum: " << nAccum << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "threshGaus integral range: " << mean-2*sigma << " to " << maxCell << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "threshGaus integral: " << threshGaus->Integral(mean-2*sigma,maxCell) << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "threshGaus integral: " << threshGaus->Integral(0,maxCell) << std::endl;
 
 
     // The threshold calculation using a Poisson distribution instead
     //double poisProbSum = 0;
     //for(int j = 0; j <= maxCell; j++){
-      //double poisProb = TMath::Poisson(j,mean);
-      //poisProbSum+=poisProb;
-      //std::cout << "Poisson: " << poisProb << std::endl;
+    //double poisProb = TMath::Poisson(j,mean);
+    //poisProbSum+=poisProb;
+    //mf::LogVerbatim("HoughBaseAlg") << "Poisson: " << poisProb << std::endl;
     //}
-    //std::cout << "Poisson prob sum: " << poisProbSum << std::endl;
-    //std::cout << "Probability it is higher: " << 1-poisProbSum << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "Poisson prob sum: " << poisProbSum << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "Probability it is higher: " << 1-poisProbSum << std::endl;
 
     // Continue if the probability of finding a point, (1-poisProbSum) is the probability of finding a 
     // value of maxCell higher than what it currently is
     //if( (1-poisProbSum) > 1e-13)
-      //continue;
+    //continue;
 
 
     // The threshold calculation using a Poisson distribution instead
     //double binomProbSum = 0;
     //for(int j = 0; j <= maxCell; j++){
-      //double binomProb = TMath::BinomialI(1/(double)accDx,nAccum,j);
-      //binomProbSum+=binomProb;
-      //std::cout << "BinomialI: " << binomProb << std::endl;
+    //double binomProb = TMath::BinomialI(1/(double)accDx,nAccum,j);
+    //binomProbSum+=binomProb;
+    //mf::LogVerbatim("HoughBaseAlg") << "BinomialI: " << binomProb << std::endl;
     //}
-    //std::cout << "BinomialI prob sum: " << binomProbSum << std::endl;
-    //std::cout << "Probability it is higher: " << 1-binomProbSum << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "BinomialI prob sum: " << binomProbSum << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "Probability it is higher: " << 1-binomProbSum << std::endl;
 
     // Continue if the probability of finding a point, (1-poisProbSum) is the probability of finding a 
     // value of maxCell higher than what it currently is
     //if( (1-binomProbSum) > 1e-13)
-      //continue;
+    //continue;
 
 
 
@@ -370,8 +350,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
     //c.GetEquation(yMax, xMax, rho, theta);
     slope = -1./tan(theta);    
     intercept = (rho/sin(theta));
-    //std::cout << std::endl;
-    //std::cout << "slope: " << slope << " intercept: " << intercept << std::endl; 
+    //mf::LogVerbatim("HoughBaseAlg") << std::endl;
+    //mf::LogVerbatim("HoughBaseAlg") << "slope: " << slope << " intercept: " << intercept << std::endl; 
     //mf::LogInfo("HoughBaseAlg") << "slope: " << slope << " intercept: " << intercept;
     double distance;
     /// \todo: the collection plane's characteristic hit width's are, 
@@ -399,25 +379,24 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
         if(fpointId_to_clusterId->at(i) != clusterId)
           continue;
         channel = hits[i]->Wire()->RawDigit()->Channel();
-        geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-        distance = (TMath::Abs(hits[i]->PeakTime()-slope*(double)(wire)-intercept)/(sqrt(pow(xyScale*slope,2)+1)));
+        distance = (TMath::Abs(hits[i]->PeakTime()-slope*(double)(hits[i]->WireID().Wire)-intercept)/(sqrt(pow(xyScale*slope,2)+1)));
       
         //if(wire == wireMax){
-          ////std::cout << "wireMax: " << wireMax << " distance: " << distance << " less than: " << fMaxDistance+((hits[i]->EndTime()-hits[i]->StartTime())/2.)+indcolscaling << std::endl;
+	////mf::LogVerbatim("HoughBaseAlg") << "wireMax: " << wireMax << " distance: " << distance << " less than: " << fMaxDistance+((hits[i]->EndTime()-hits[i]->StartTime())/2.)+indcolscaling << std::endl;
         //}
        
         if(distance < fMaxDistance+((hits[i]->EndTime()-hits[i]->StartTime())/2.)+indcolscaling && skip[i]!=1){
           hitsTemp.push_back(i);
           sequenceHolder.push_back(channel);
           //if(wire < fMinWire){
-            //fMinWire = wire;
-            //fMinPeak = hits[i]->PeakTime();
-            //iMinWire = i;
+	  //fMinWire = wire;
+	  //fMinPeak = hits[i]->PeakTime();
+	  //iMinWire = i;
           //}
           //if(wire > fMaxWire){
-            //fMaxWire = wire;
-            //fMaxPeak = hits[i]->PeakTime();
-            //iMaxWire = i;
+	  //fMaxWire = wire;
+	  //fMaxPeak = hits[i]->PeakTime();
+	  //iMaxWire = i;
           //}
           if(hits[i]->PeakTime() < fMinPeak){
             fMinWire = wire;
@@ -432,8 +411,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
         }
       }// end loop over hits
    
-      //std::cout << "Wire: " << fMinWire << " Peak time: " << hits[iMinWire]->PeakTime() << std::endl; 
-      //std::cout << "Wire: " << fMaxWire << " Peak time: " << hits[iMaxWire]->PeakTime() << std::endl; 
+      //mf::LogVerbatim("HoughBaseAlg") << "Wire: " << fMinWire << " Peak time: " << hits[iMinWire]->PeakTime() << std::endl; 
+      //mf::LogVerbatim("HoughBaseAlg") << "Wire: " << fMaxWire << " Peak time: " << hits[iMaxWire]->PeakTime() << std::endl; 
    
       if(hitsTemp.size() < 5) continue;
       currentHits.clear();  
@@ -466,8 +445,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
       for(size_t k = 0; k < lastHits.size(); ++k) {
         if(fpointId_to_clusterId->at(hitsTemp[lastHits[k]]) != clusterId)
           continue;
-        unsigned short channel = hits[hitsTemp[lastHits[k]]]->Wire()->RawDigit()->Channel();
-        geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+        wire = hits[hitsTemp[lastHits[k]]]->WireID().Wire;
         if(wire < fMinWire){
           fMinWire = wire;
           fMinPeak = hits[hitsTemp[lastHits[k]]]->PeakTime();
@@ -479,32 +457,35 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
           iMaxWire = hitsTemp[lastHits[k]];
         }
         //if(hits[hitsTemp[lastHits[k]]]->PeakTime() < fMinPeak){
-          //fMinWire = wire;
-          //fMinPeak = hits[hitsTemp[lastHits[k]]]->PeakTime();
-          //iMinWire = hitsTemp[lastHits[k]];
+	//fMinWire = wire;
+	//fMinPeak = hits[hitsTemp[lastHits[k]]]->PeakTime();
+	//iMinWire = hitsTemp[lastHits[k]];
         //}
         //if(hits[hitsTemp[lastHits[k]]]->PeakTime() > fMaxPeak){
-          //fMaxWire = wire;
-          //fMaxPeak = hits[hitsTemp[lastHits[k]]]->PeakTime();
-          //iMaxWire = hitsTemp[lastHits[k]];
+	//fMaxWire = wire;
+	//fMaxPeak = hits[hitsTemp[lastHits[k]]]->PeakTime();
+	//iMaxWire = hitsTemp[lastHits[k]];
         //}
       }
 
+      // grab the plane, tpc and cryostat for these hits
+      // this assumes all hits are coming from the same plane/tpc/cryostat
+      unsigned int tpc = hits[0]->WireID().TPC;
+      unsigned int cstat = hits[0]->WireID().Cryostat;
+      unsigned int plane = hits[0]->WireID().Plane;
 
       // Loop over hits to sum up background around prospective Hough line
       for(size_t i = 0; i < hits.size(); ++i) {
         //if(fpointId_to_clusterId->at(i) != clusterId)
-          //continue;
-        channel = hits[i]->Wire()->RawDigit()->Channel();
-        geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-        distance = (TMath::Abs(hits[i]->PeakTime()-slope*(double)(wire)-intercept)/(sqrt(pow(xyScale*slope,2)+1)));
+	//continue;
+        distance = (TMath::Abs(hits[i]->PeakTime()-slope*(double)(hits[i]->WireID().Wire)-intercept)/(sqrt(pow(xyScale*slope,2)+1)));
 
         // Sum up background hits, use smart distance
         if(fMaxDistance+((hits[i]->EndTime()-hits[i]->StartTime())/2.)+indcolscaling < distance 
            //&& distance < 10*fMaxDistance+((hits[i]->EndTime()-hits[i]->StartTime())/2.)+indcolscaling 
            && distance < 100*(fMaxDistance+((hits[i]->EndTime()-hits[i]->StartTime())/2.)+indcolscaling) 
            //&& skip[i]!=1){
-          ){
+	   ){
           double peakTimePerpMin=-(1/slope)*(double)(wire)+hits[iMinWire]->PeakTime()+(1/slope)*(fMinWire);
           double peakTimePerpMax=-(1/slope)*(double)(wire)+hits[iMaxWire]->PeakTime()+(1/slope)*(fMaxWire);
           if((-1/slope) > 0 && hits[iMinWire]->PeakTime() < peakTimePerpMin && hits[iMaxWire]->PeakTime() > peakTimePerpMax)
@@ -517,9 +498,9 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
 
       // Evaluate S/sqrt(B)
       //if(background > 0){
-        //mf::LogInfo("HoughBaseAlg") << "S/sqrt(B): " << lastHits.size()/sqrt(background);
-        //mf::LogInfo("HoughBaseAlg") << "S/B: " << lastHits.size()/background;
-        //mf::LogInfo("HoughBaseAlg") << "B/S: " << background/lastHits.size();
+      //mf::LogInfo("HoughBaseAlg") << "S/sqrt(B): " << lastHits.size()/sqrt(background);
+      //mf::LogInfo("HoughBaseAlg") << "S/B: " << lastHits.size()/background;
+      //mf::LogInfo("HoughBaseAlg") << "B/S: " << background/lastHits.size();
       //}
 
 
@@ -544,56 +525,9 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
       double wire_dist = posWorld0[1]- posWorld1[1];
       double tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
       tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
-      //double pMax[2];
-      //pMax[0] = (hits[iMaxWire]->Wire()->RawDigit()->Channel())*wire_dist;
-      //pMax[1] = ((hits[iMaxWire]->StartTime()+hits[iMaxWire]->EndTime())/2.)*tickToDist;
-      //double pMin[2];
-      //pMin[0] = (hits[iMinWire]->Wire()->RawDigit()->Channel())*wire_dist;
-      //pMin[1] = ((hits[iMinWire]->StartTime()+hits[iMinWire]->EndTime())/2.)*tickToDist;
-      ////mf::LogInfo("HoughBaseAlg") << "fEndPointCutoff: " << fEndPointCutoff;
-      //for(size_t k = 0; k < corners.size(); k++){
-        //double pCorner[2];
-        //pCorner[0] = (hits[corners[k]]->Wire()->RawDigit()->Channel())*wire_dist;
-        //pCorner[1] = ((hits[corners[k]]->StartTime()+hits[corners[k]]->EndTime())/2.)*tickToDist;
-        //unsigned int cornerWire  = 0;
-        //unsigned int cornerChannel = hits[corners[k]]->Wire()->RawDigit()->Channel();
-        //geom->ChannelToWire(cornerChannel, cstat, tpc, plane, cornerWire);
-        ////mf::LogInfo("HoughBaseAlg") << "min dist: " << sqrt(pow(pMin[0]-pCorner[0],2) + pow(pMin[1]-pCorner[1],2));
-        ////mf::LogInfo("HoughBaseAlg") << "max dist: " << sqrt(pow(pMax[0]-pCorner[0],2) + pow(pMax[1]-pCorner[1],2));
-        //if(sqrt( pow(pMin[0]-pCorner[0],2) + pow(pMin[1]-pCorner[1],2)) < fEndPointCutoff){
-          //nCorners++;
-          //minCorner = true;
-        //}
-        //if(sqrt( pow(pMax[0]-pCorner[0],2) + pow(pMax[1]-pCorner[1],2)) < fEndPointCutoff){
-          //nCorners++;
-          //maxCorner = true;
-        //}
-      //}
-
-      //protection against very steep uncorrelated hits
-      //if(TMath::Abs(slope)>fMaxSlope 
-         //&& TMath::Abs((*clusterHits.begin())->Wire()->RawDigit()->Channel()-
-                      //clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel())>=0
-        //)
-        //continue;
-          
       if(TMath::Abs(slope)>fMaxSlope ){
-        //for(size_t i = 0; i < lastHits.size(); ++i) {
-          //if(fpointId_to_clusterId->at(hitsTemp[lastHits[i]]) != clusterId)
-            //continue;
-
-          //unsigned short channel = hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();
-          //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-          //if(accumPoints[hitsTemp[lastHits[i]]]) 
-            //c.SubtractPoint(wire, (int)(hits[hitsTemp[lastHits[i]]]->PeakTime()));
-          //skip[hitsTemp[lastHits[i]]]=1;
-        //}
         continue;
       }
-
-
-
-
 
       /// Walk along the Hough line to determine if gaps exist
       /// Start at hit (wire) we are examining first
@@ -602,23 +536,14 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
       ///   Step foreward wire by wire until gap gets too large
       ///     Measure distance between point given by equation, and points found in line
       ///   If too many gaps found, veto the line
-
-      //std::cout << "Found line!" << std::endl;
-      ////std::cout << "wireMax: " << wireMax << " peakMax: " << slope*(double)wireMax + intercept << std::endl;
-      //std::cout << "Slope: " << slope << std::endl;
-      //std::cout << "Number of hits: " << lastHits.size() << std::endl;
-      //std::cout << "Wire: " << fMinWire << " Peak time: " << hits[iMinWire]->PeakTime() << std::endl; 
-      //std::cout << "Wire: " << fMaxWire << " Peak time: " << hits[iMaxWire]->PeakTime() << std::endl; 
-
-
-      
-
-
       // If the slope is really high, check if it's a fake
       unsigned int numHitsMissing = 0;
       unsigned int numHitsSearched = 0;
+      ///\todo change 5 to a tunable parameter
       if( fabs(slope) > 5 ) {      
-        std::cout << "peakMax: " << peakMax << " fMinPeak: " << fMinPeak << " fMaxPeak: " << fMaxPeak << std::endl; 
+	mf::LogVerbatim("HoughBaseAlg") << "peakMax: " << peakMax 
+					<< " fMinPeak: " << fMinPeak 
+					<< " fMaxPeak: " << fMaxPeak;
         if( peakMax < fMinPeak || peakMax > fMaxPeak){
           //peakMax = 0.5*(fMinPeak+fMaxPeak);
           peakMax = fMinPeak;
@@ -630,18 +555,19 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
           fMinPeak = fMaxPeakTemp;
         }
 
-        std::cout << "Found line!" << std::endl;
-        //std::cout << "wireMax: " << wireMax << " peakMax: " << slope*(double)wireMax + intercept << std::endl;
-        std::cout << "Slope: " << slope << std::endl;
-        std::cout << "Number of hits: " << lastHits.size() << std::endl;
-        std::cout << "Wire: " << fMinWire << " Peak time: " << hits[iMinWire]->PeakTime() << std::endl; 
-        std::cout << "Wire: " << fMaxWire << " Peak time: " << hits[iMaxWire]->PeakTime() << std::endl; 
+        mf::LogVerbatim("HoughBaseAlg")  << "Found line!" << std::endl
+					 << "Slope: " << slope << std::endl
+					 << "Number of hits: " << lastHits.size() << std::endl
+					 << "Wire: " << fMinWire << " Peak time: " 
+					 << hits[iMinWire]->PeakTime() << std::endl
+					 << "Wire: " << fMaxWire << " Peak time: " 
+					 << hits[iMaxWire]->PeakTime();
 
 
         // Determine step distance
         //double step = (fMaxPeak-fMinPeak)/((double)lastHits.size()-1);
         double step = (fMaxPeak-fMinPeak)/(double)lastHits.size();
-        std::cout << "Step size: " << step << std::endl;
+	mf::LogVerbatim("HoughBaseAlg") << "Step size: " << step;
 
         // Step backward
         //for(double i = peakMax; i >= fMinPeak; --i) {
@@ -653,9 +579,11 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
           numHitsSearched++;
           double iWire = (i-intercept)*(1/slope);
           if(iWire < 0) continue;
-          std::cout << "i: " << i << " iWire: " << iWire << " (unsigned int)iWire: " << (unsigned int)iWire << std::endl;
+	  mf::LogVerbatim("HoughBaseAlg") << "i: " << i 
+					  << " iWire: " << iWire 
+					  << " (unsigned int)iWire: " << (unsigned int)iWire;
           unsigned int lineChannel = geom->PlaneWireToChannel(plane,(unsigned int)iWire,tpc,cstat);
-          //std::cout << "i: " << i << " lineChannel: " << lineChannel << " iWire: " << iWire << " (unsigned int)iWire: " << (unsigned int)iWire << std::endl;
+          //mf::LogVerbatim("HoughBaseAlg") << "i: " << i << " lineChannel: " << lineChannel << " iWire: " << iWire << " (unsigned int)iWire: " << (unsigned int)iWire << std::endl;
           double pLineHit[2];
           pLineHit[0] = lineChannel*wire_dist;
           pLineHit[1] = i*tickToDist;
@@ -663,15 +591,15 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
           for(size_t k = 0; k < lastHits.size(); ++k) {
             if(fpointId_to_clusterId->at(hitsTemp[lastHits[k]]) != clusterId)
               continue;
-            //std::cout << "i: " << i << " k: " << k << std::endl;
+            //mf::LogVerbatim("HoughBaseAlg") << "i: " << i << " k: " << k << std::endl;
             double pRealHit[2];
             pRealHit[0] = (hits[hitsTemp[lastHits[k]]]->Wire()->RawDigit()->Channel())*wire_dist;
             pRealHit[1] = ((hits[hitsTemp[lastHits[k]]]->StartTime()+hits[hitsTemp[lastHits[k]]]->EndTime())/2.)*tickToDist;
             bool usedhit = false;
             if( sqrt( pow(pLineHit[0]-pRealHit[0],2) + pow(pLineHit[1]-pRealHit[1],2)) < 1.0){
-              //std::cout << "before foundhits.size(): " << foundhits.size() << std::endl;
+              //mf::LogVerbatim("HoughBaseAlg") << "before foundhits.size(): " << foundhits.size() << std::endl;
               for( size_t l = 0; l < foundHits.size(); l++){
-                //std::cout << "l : " << l << " k: " << k << " foundhits[l]: " << foundhits[l] << std::endl;
+                //mf::LogVerbatim("HoughBaseAlg") << "l : " << l << " k: " << k << " foundhits[l]: " << foundhits[l] << std::endl;
                 if(foundHits[l] == k){
                   usedhit = true; 
                   break;
@@ -680,7 +608,6 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
               if (usedhit)
                 continue;
               foundHits.push_back(k);
-              geom->ChannelToWire(hits[hitsTemp[lastHits[k]]]->Wire()->RawDigit()->Channel(), cstat, tpc, plane, wire);
               foundHit = true;
               i = ((hits[hitsTemp[lastHits[k]]]->StartTime()+hits[hitsTemp[lastHits[k]]]->EndTime())/2.); 
               i = i - step;
@@ -701,9 +628,10 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
           numHitsSearched++;
           double iWire = (i-intercept)*(1/slope);
           if(iWire < 0) continue;
-          std::cout << "i: " << i << " iWire: " << iWire << " (unsigned int)iWire: " << (unsigned int)iWire << std::endl;
+	  mf::LogVerbatim("HoughBaseAlg") << "i: " << i 
+					  << " iWire: " << iWire 
+					  << " (unsigned int)iWire: " << (unsigned int)iWire;
           unsigned int lineChannel = geom->PlaneWireToChannel(plane,(unsigned int)iWire,tpc,cstat);
-          //std::cout << "i: " << i << " lineChannel: " << lineChannel << " iWire: " << iWire << " (unsigned int)iWire: " << (unsigned int)iWire << std::endl;
           double pLineHit[2];
           pLineHit[0] = lineChannel*wire_dist;
           pLineHit[1] = i*tickToDist;
@@ -718,7 +646,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
             bool usedhit = false;
             if( sqrt( pow(pLineHit[0]-pRealHit[0],2) + pow(pLineHit[1]-pRealHit[1],2)) < 1.0){
               for( size_t l = 0; l < foundHits.size(); l++){
-                //std::cout << "l : " << l << " k: " << k << " foundhits[l]: " << foundhits[l] << std::endl;
+                //mf::LogVerbatim("HoughBaseAlg") << "l : " << l << " k: " << k << " foundhits[l]: " << foundhits[l] << std::endl;
                 if(foundHits[l] == k){
                   usedhit = true; 
                   break;
@@ -727,8 +655,6 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
               if (usedhit)
                 continue;
               foundHits.push_back(k);
-              geom->ChannelToWire(hits[hitsTemp[lastHits[k]]]->Wire()->RawDigit()->Channel(), cstat, tpc, plane, wire);
-              //std::cout << "i: " << i << " k: " << k << " wire: " << wire << " distance: " << sqrt( pow(pLineHit[0]-pRealHit[0],2) + pow(pLineHit[1]-pRealHit[1],2)) << std::endl;
               foundHit = true;
               i = ((hits[hitsTemp[lastHits[k]]]->StartTime()+hits[hitsTemp[lastHits[k]]]->EndTime())/2.); 
               i = i + step;
@@ -738,65 +664,12 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
           if(!foundHit) numHitsMissing++;
           if(!foundHit) i = i + step;
         }
-        std::cout << "numHitsMissing: " << numHitsMissing << " numHitsSearched: " << numHitsSearched << std::endl;
-        if(numHitsSearched > 0) std::cout << "numHitsMissing/numHitsSearched: " << (double)numHitsMissing/(double)numHitsSearched << std::endl;
+        mf::LogVerbatim("HoughBaseAlg") << "numHitsMissing: " << numHitsMissing << " numHitsSearched: " << numHitsSearched << std::endl;
+        if(numHitsSearched > 0) mf::LogVerbatim("HoughBaseAlg") << "numHitsMissing/numHitsSearched: " << (double)numHitsMissing/(double)numHitsSearched << std::endl;
         if(numHitsSearched > 0) 
           if((double)numHitsMissing/(double)numHitsSearched > 0.1)
             continue;
       }
-
-
-      //std::cout << "numHitsMissing: " << numHitsMissing << " numHitsSearched: " << numHitsSearched << std::endl;
-      //if(numHitsSearched > 0) std::cout << "numHitsMissing/numHitsSearched: " << (double)numHitsMissing/(double)numHitsSearched << std::endl;
-      //if(numHitsMissing > 0) continue;
-      //if(numHitsSearched > 0) 
-        //if((double)numHitsMissing/(double)numHitsSearched > 0.0)
-          //continue;
-
-
-
-        //for(size_t k = 0; k < lastHits.size(); ++k) {
-          //if(fpointId_to_clusterId->at(hitsTemp[lastHits[k]]) != clusterId)
-            //continue;
-          //geom->ChannelToWire(hits[hitsTemp[lastHits[k]]]->Wire()->RawDigit()->Channel(), cstat, tpc, plane, wire);
-          //std::cout << "k: " << k << " wire: " << wire << " peak time: " << hits[hitsTemp[lastHits[k]]]->PeakTime() << std::endl;
-        //}
-
-
-
-
-
-
-
-
-
-
-
-
-
-      
-      //if(background > 0){
-        ////if(hitsTemp.size()/sqrt(background) < 10){
-        ////if(hitsTemp.size()/background < 10) {
-        ////if(background/lastHits.size() >= 1){
-        //if(background/lastHits.size() >= 0.1){
-          //for(size_t i = 0; i < lastHits.size(); ++i){
-            //unsigned short channel = hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();
-            //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-            //c.SubtractPoint(wire, (int)(hits[hitsTemp[lastHits[i]]]->PeakTime()));
-            //skip[hitsTemp[lastHits[i]]]=1;
-          //}
-          //unsigned int wireMin;
-          //unsigned int wireMax;
-          //geom->ChannelToWire(hits[iMinWire]->Wire()->RawDigit()->Channel(), cstat, tpc, plane, wireMin);
-          //geom->ChannelToWire(hits[iMaxWire]->Wire()->RawDigit()->Channel(), cstat, tpc, plane, wireMax);
-          //mf::LogInfo("HoughBaseAlg") << "Rejected line!";
-          //mf::LogInfo("HoughBaseAlg") << "Wire: " << wireMin << " Time bin: " << hits[iMinWire]->StartTime(); 
-          //mf::LogInfo("HoughBaseAlg") << "Wire: " << wireMax << " Time bin: " << hits[iMaxWire]->StartTime(); 
-          //continue;
-        //}
-      //}
-
 
       // Add new line to list of lines
       double pCornerMin[2];
@@ -823,8 +696,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
         fpointId_to_clusterId->at(hitsTemp[lastHits[i]]) = *nClusters-1;
         clusterHits.push_back(hits[hitsTemp[lastHits[i]]]);
         totalQ += clusterHits.back()->Charge();
-        channel = hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();
-        geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+        wire = hits[hitsTemp[lastHits[i]]]->WireID().Wire;
 
         skip[hitsTemp[lastHits[i]]]=1;
         // Subtract points from the accumulator that have already been used
@@ -842,20 +714,20 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
           iMaxWire = hitsTemp[lastHits[i]];
         }
         //if(hits[hitsTemp[lastHits[i]]]->PeakTime() < fMinPeak){
-          //fMinWire = wire;
-          //fMinPeak = hits[hitsTemp[lastHits[i]]]->PeakTime();
-          //iMinWire = hitsTemp[lastHits[i]];
+	//fMinWire = wire;
+	//fMinPeak = hits[hitsTemp[lastHits[i]]]->PeakTime();
+	//iMinWire = hitsTemp[lastHits[i]];
         //}
         //if(hits[hitsTemp[lastHits[i]]]->PeakTime() > fMaxPeak){
-          //fMaxWire = wire;
-          //fMaxPeak = hits[hitsTemp[lastHits[i]]]->PeakTime();
-          //iMaxWire = hitsTemp[lastHits[i]];
+	//fMaxWire = wire;
+	//fMaxPeak = hits[hitsTemp[lastHits[i]]]->PeakTime();
+	//iMaxWire = hitsTemp[lastHits[i]];
         //}
       }
 
-      //std::cout << "wireMax: " << wireMax << " peakMax: " << slope*(double)wireMax + intercept << std::endl;
-      //std::cout << "Wire: " << fMinWire << " Peak time: " << hits[iMinWire]->PeakTime() << std::endl; 
-      //std::cout << "Wire: " << fMaxWire << " Peak time: " << hits[iMaxWire]->PeakTime() << std::endl; 
+      //mf::LogVerbatim("HoughBaseAlg") << "wireMax: " << wireMax << " peakMax: " << slope*(double)wireMax + intercept << std::endl;
+      //mf::LogVerbatim("HoughBaseAlg") << "Wire: " << fMinWire << " Peak time: " << hits[iMinWire]->PeakTime() << std::endl; 
+      //mf::LogVerbatim("HoughBaseAlg") << "Wire: " << fMaxWire << " Peak time: " << hits[iMaxWire]->PeakTime() << std::endl; 
 
 
 
@@ -908,13 +780,21 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
       linesFoundSizes[linesFound[i].clusterNumber] = sqrt( pow(linesFound[i].pMin0-linesFound[i].pMax0,2)+pow(linesFound[i].pMin1-linesFound[i].pMax1,2));
     else 
       linesFoundSizes[linesFound[i].clusterNumber]+= sqrt( pow(linesFound[i].pMin0-linesFound[i].pMax0,2)+pow(linesFound[i].pMin1-linesFound[i].pMax1,2));
-    std::cout << "i: " << i << " linesFound[i].clusterNumber: " <<  linesFound[i].clusterNumber << " linesFound[i] size: " << sqrt( pow(linesFound[i].pMin0-linesFound[i].pMax0,2)+pow(linesFound[i].pMin1-linesFound[i].pMax1,2)) << " size: " << linesFoundSizes[linesFound[i].clusterNumber] << std::endl;
+    mf::LogInfo("HoughBaseAlg") << "i: " << i 
+				<< " linesFound[i].clusterNumber: " 
+				<<  linesFound[i].clusterNumber 
+				<< " linesFound[i] size: " 
+				<< sqrt( pow(linesFound[i].pMin0-linesFound[i].pMax0,2)
+					 +pow(linesFound[i].pMin1-linesFound[i].pMax1,2)) 
+				<< " size: " 
+				<< linesFoundSizes[linesFound[i].clusterNumber];
   }
 
 
 
   
-  // Merge remains of original fuzzy cluster into nearest Hough line, assumes the Hough line is a segment
+  // Merge remains of original fuzzy cluster into nearest Hough line, 
+  // assumes the Hough line is a segment
   const double pos[3] = {0., 0.0, 0.};
   double posWorld0[3] = {0.};
   double posWorld1[3] = {0.};
@@ -928,8 +808,6 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
   for(size_t i = 0; i < hits.size(); ++i) {
     if(fpointId_to_clusterId->at(i) != clusterId)
       continue;
-    channel = hits[i]->Wire()->RawDigit()->Channel();
-    geom->ChannelToWire(channel, cstat, tpc, plane, wire);
     double p0 = (hits[i]->Wire()->RawDigit()->Channel())*wire_dist;
     double p1 = ((hits[i]->StartTime()+hits[i]->EndTime())/2.)*tickToDist;
     double minDistance = 10000;
@@ -944,147 +822,11 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
     }
   } 
 
+  hit.clear();
+  lastHits.clear();
 
-
-
-
-
-  // Now do the signal/background check
-  //linesnewclus.clear();
-  //for(unsigned int i = 0; i < linesfound.size(); i++){
-    //if(linesfound[i].clusternumber == clusterid)
-      //continue;
-    //bool firstline=false;
-    //if(linesnewclus.size() == 0){
-      //linesnewclus.push_back(linesfound[i].clusternumber);
-      //firstline=true;
-    //}
-    //bool oldline=false;
-    //for(unsigned int j = 0; j < linesnewclus.size(); j++){
-      //if(linesfound[i].clusternumber == linesnewclus[j]) 
-      //oldline = true;    
-    //}
-    //if(oldline && !firstline) continue;
-    //linesnewclus.push_back(linesfound[i].clusternumber);
-    //double signaltotal = 0;
-    //double backgroundtotal = 0;
-    //if(linesfound[i].clusternumber == linesnewclus.back()){
-      ////for(unsigned int k = 0; k < newclusnum.size(); k++){
-        ////if(linesfound[i].clusternumber == newclusnum[k]){
-          ////if(signaltotal > 0) signaltotal+=linesfoundsig[i];
-          ////if(backgroundtotal > 0)backgroundtotal+=linesfoundbkg[i];
-        ////}
-      ////}
-      //for(unsigned int k = 0; k < linesfound.size(); k++){
-        //if(linesfound[i].clusternumber == linesfound[k].clusternumber){
-          ////std::cout << i  << linesfound[i].clusternumber  << linesfoundsig[k]  << linesfoundbkg[k] << std::endl;
-          //if(linesfoundsig[k] > 0) signaltotal+=linesfoundsig[k];
-          //if(linesfoundbkg[k] > 0) backgroundtotal+=linesfoundbkg[k];
-        //}
-      //}  
-    //}
-    ////std::cout << "cluster number: " << linesfound[i].clusternumber << " backgroundtotal/signaltotal: " << backgroundtotal/signaltotal << std::endl;
-    //// kill the junk cluster
-    //if(backgroundtotal/signaltotal > fLineIsolationCut){
-      //for(unsigned int k = 0; k < linesfound.size(); k++){
-        //if(linesnewclus.back() == linesfound[k].clusternumber){
-          //linesfound[k].clusternumber = clusterid;
-        //}
-      //}  
-    //}
-  //}
-
-
-
-
-
-  
-  
-  
-
-
-  
-  
-
-
-
-
-
-
-
-
-
-
-   //// saves a bitmap image of the accumulator (useful for debugging), 
-   //// with scaling based on the maximum cell value
-   //if(fSaveAccumulator){   
-     //unsigned char *outPix = new unsigned char [accDx*accDy];
-     ////finds the maximum cell in the accumulator for image scaling
-     //int cell, pix = 0, maxCell = 0;
-     //for (y = 0; y < accDy; ++y){ 
-       //for (x = 0; x < accDx; ++x){
- 	//cell = c.GetCell(y,x);
- 	//if (cell > maxCell) maxCell = cell;
-       //}
-     //}
-     //for (y = 0; y < accDy; ++y){
-       //for (x = 0; x < accDx; ++x){ 
- 	////scales the pixel weights based on the maximum cell value     
- 	//if(maxCell > 0)
- 	  //pix = (int)((1500*c.GetCell(y,x))/maxCell);
- 	//outPix[y*accDx + x] = pix;
-       //}
-     //}
- 		
-     //SaveBMPFile("houghaccum.bmp", outPix, accDx, accDy);
-     //delete [] outPix;
-   //}// end if saving accumulator
-   
-   hit.clear();
-   lastHits.clear();
-   //if(clusterIter != clusIn.end()){
-     //clusterIter++;
-     //++cinctr;
-   //}
-   listofxmax.clear();
-   listofymax.clear();
-
-
-
-
-
-
-
-
-
-  ////gets the actual two-dimensional size of the accumulator
-  //int accDx = 0;
-  //int accDy = 0;
-  //c.GetAccumSize(accDy, accDx);
-
-
-  ////
-  //// Find the local maxima
-  ////
-
-  ////accMaxStore stores the largest value of x for every value of y
-  //int accMaxStore[accDy]; 
-  //int cell;
-
-  //for (int y = 0; y < accDy; ++y){ 
-    //int maxX = 0;
-    //for (int x = 0; x < accDx; ++x){
-      //cell = c.GetCell(y,x);
-      //if (cell > 0) 
-        //maxX = x;
-    //}
-    //accMaxStore[y] = maxX;
-  //}
-
-  //for (int y = 0; y < accDy; ++y){ 
-    //mf::LogInfo("HoughBaseAlg") << accMaxStore[y];
-  //}
-
+  listofxmax.clear();
+  listofymax.clear();
 
   // saves a bitmap image of the accumulator (useful for debugging), 
   // with scaling based on the maximum cell value
@@ -1117,7 +859,11 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
 
 
 // Merges based on the distance between line segments
-void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart,std::vector<lineSlope> *linesFound,std::vector<int> *newClusNum,std::vector<double> *newClusDist, double xyScale)
+void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart,
+						     std::vector<lineSlope> *linesFound,
+						     std::vector<int> *newClusNum,
+						     std::vector<double> *newClusDist, 
+						     double xyScale)
 {
 
   // If we have zero or one Hough lines, move on 
@@ -1149,41 +895,41 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
     if(linesFound->at(clusIndexStart).clusterNumber != linesFound->at(j).clusterNumber)
       continue;
     //if(linesFound->at(j).isolation > fLineIsolationCut)
-      //continue;
+    //continue;
     for(unsigned int i = 0; i < linesFound->size(); i++){
       if(linesFound->at(clusIndexStart).clusterNumber == linesFound->at(i).clusterNumber)
         continue;
       //if(linesFound->at(i).isolation > fLineIsolationCut)
-        //continue;
+      //continue;
       double segmentDistance = HoughLineDistance(linesFound->at(j).pMin0,linesFound->at(j).pMin1,linesFound->at(j).pMax0, linesFound->at(j).pMax1, 
-        linesFound->at(i).pMin0,linesFound->at(i).pMin1,linesFound->at(i).pMax0, linesFound->at(i).pMax1);
+						 linesFound->at(i).pMin0,linesFound->at(i).pMin1,linesFound->at(i).pMax0, linesFound->at(i).pMax1);
       if(segmentDistance<fHoughLineMergeCutoff)
-      {
-        toMerge.push_back(i);
+	{
+	  toMerge.push_back(i);
 
-        mergeSlope.push_back(linesFound->at(j).clusterSlope*xyScale);
-        //mergeSlope.push_back( (linesFound->at(j).pMax1-linesFound->at(j).pMin1)/(linesFound->at(j).pMax0-linesFound->at(j).pMin0) );
+	  mergeSlope.push_back(linesFound->at(j).clusterSlope*xyScale);
+	  //mergeSlope.push_back( (linesFound->at(j).pMax1-linesFound->at(j).pMin1)/(linesFound->at(j).pMax0-linesFound->at(j).pMin0) );
 
-        //double slopeLine1 = (linesFound->at(j).pMax1-linesFound->at(j).pMin1)/(linesFound->at(j).pMax0-linesFound->at(j).pMin0);
-        //double slopeLine2 = (linesFound->at(i).pMax1-linesFound->at(i).pMin1)/(linesFound->at(i).pMax0-linesFound->at(i).pMin0);
+	  //double slopeLine1 = (linesFound->at(j).pMax1-linesFound->at(j).pMin1)/(linesFound->at(j).pMax0-linesFound->at(j).pMin0);
+	  //double slopeLine2 = (linesFound->at(i).pMax1-linesFound->at(i).pMin1)/(linesFound->at(i).pMax0-linesFound->at(i).pMin0);
         
-        newClusDistTemp.push_back(segmentDistance);
-        //std::cout << "Check at min, clusIndexStart: " << clusIndexStart << " mergee: " << i << " merger: " << j << std::endl;
-        //std::cout << "Distance: " << segmentDistance << std::endl;
-        //std::cout << "p0MinLine1: " <<  linesFound->at(j).pMin0 << " p1MinLine1: " << linesFound->at(j).pMin1 << " p0MaxLine1: " << linesFound->at(j).pMax0 << " p1MaxLine1: " <<  linesFound->at(j).pMax1 << std::endl;
-        //std::cout << "p0MinLine2: " <<  linesFound->at(i).pMin0 << " p1MinLine2: " << linesFound->at(i).pMin1 << " p0MaxLine2: " << linesFound->at(i).pMax0 << " p1MaxLine2: " <<  linesFound->at(i).pMax1 << std::endl;
-        //std::cout << "slope line1: " << slopeLine1 << std::endl;
-        //std::cout << "slope line2: " << slopeLine2 << std::endl;
-        //std::cout << "slope line1 from Hough: " << linesFound->at(j).clusterSlope*xyScale << std::endl;
-        //std::cout << "slope line2 from Hough: " << linesFound->at(i).clusterSlope*xyScale  << std::endl;
-        //std::cout << "angle between slopes: " << atan(fabs(( slopeLine1 - slopeLine2)/(1 + slopeLine1*slopeLine2 )))*(180/TMath::Pi()) << std::endl;
-        //std::cout << "angle between slopes from Hough: " << atan(fabs(( linesFound->at(j).clusterSlope*xyScale - linesFound->at(i).clusterSlope*xyScale)/(1 + linesFound->at(j).clusterSlope*xyScale*linesFound->at(i).clusterSlope*xyScale)))*(180/TMath::Pi()) << std::endl;
-        //mf::LogInfo("HoughBaseAlg") << "Check at min, clusIndexStart: " << clusIndexStart << " mergee: " << i << " merger: " << j;
-        //mf::LogInfo("HoughBaseAlg") << "Distance: " << HoughLineDistance(linesFound->at(j).pMin0,linesFound->at(j).pMin1,linesFound->at(j).pMax0, linesFound->at(j).pMax1, 
-        //linesFound->at(i).pMin0,linesFound->at(i).pMin1,linesFound->at(i).pMax0, linesFound->at(i).pMax1);
-        //mf::LogInfo("HoughBaseAlg") << "p0MinLine1: " <<  linesFound->at(j).pMin0 << " p1MinLine1: " << linesFound->at(j).pMin1 << " p0MaxLine1: " << linesFound->at(j).pMax0 << " p1MaxLine1: " <<  linesFound->at(j).pMax1;
-        //mf::LogInfo("HoughBaseAlg") << "p0MinLine2: " <<  linesFound->at(i).pMin0 << " p1MinLine2: " << linesFound->at(i).pMin1 << " p0MaxLine2: " << linesFound->at(i).pMax0 << " p1MaxLine2: " <<  linesFound->at(i).pMax1;
-      }
+	  newClusDistTemp.push_back(segmentDistance);
+	  //mf::LogVerbatim("HoughBaseAlg") << "Check at min, clusIndexStart: " << clusIndexStart << " mergee: " << i << " merger: " << j << std::endl;
+	  //mf::LogVerbatim("HoughBaseAlg") << "Distance: " << segmentDistance << std::endl;
+	  //mf::LogVerbatim("HoughBaseAlg") << "p0MinLine1: " <<  linesFound->at(j).pMin0 << " p1MinLine1: " << linesFound->at(j).pMin1 << " p0MaxLine1: " << linesFound->at(j).pMax0 << " p1MaxLine1: " <<  linesFound->at(j).pMax1 << std::endl;
+	  //mf::LogVerbatim("HoughBaseAlg") << "p0MinLine2: " <<  linesFound->at(i).pMin0 << " p1MinLine2: " << linesFound->at(i).pMin1 << " p0MaxLine2: " << linesFound->at(i).pMax0 << " p1MaxLine2: " <<  linesFound->at(i).pMax1 << std::endl;
+	  //mf::LogVerbatim("HoughBaseAlg") << "slope line1: " << slopeLine1 << std::endl;
+	  //mf::LogVerbatim("HoughBaseAlg") << "slope line2: " << slopeLine2 << std::endl;
+	  //mf::LogVerbatim("HoughBaseAlg") << "slope line1 from Hough: " << linesFound->at(j).clusterSlope*xyScale << std::endl;
+	  //mf::LogVerbatim("HoughBaseAlg") << "slope line2 from Hough: " << linesFound->at(i).clusterSlope*xyScale  << std::endl;
+	  //mf::LogVerbatim("HoughBaseAlg") << "angle between slopes: " << atan(fabs(( slopeLine1 - slopeLine2)/(1 + slopeLine1*slopeLine2 )))*(180/TMath::Pi()) << std::endl;
+	  //mf::LogVerbatim("HoughBaseAlg") << "angle between slopes from Hough: " << atan(fabs(( linesFound->at(j).clusterSlope*xyScale - linesFound->at(i).clusterSlope*xyScale)/(1 + linesFound->at(j).clusterSlope*xyScale*linesFound->at(i).clusterSlope*xyScale)))*(180/TMath::Pi()) << std::endl;
+	  //mf::LogInfo("HoughBaseAlg") << "Check at min, clusIndexStart: " << clusIndexStart << " mergee: " << i << " merger: " << j;
+	  //mf::LogInfo("HoughBaseAlg") << "Distance: " << HoughLineDistance(linesFound->at(j).pMin0,linesFound->at(j).pMin1,linesFound->at(j).pMax0, linesFound->at(j).pMax1, 
+	  //linesFound->at(i).pMin0,linesFound->at(i).pMin1,linesFound->at(i).pMax0, linesFound->at(i).pMax1);
+	  //mf::LogInfo("HoughBaseAlg") << "p0MinLine1: " <<  linesFound->at(j).pMin0 << " p1MinLine1: " << linesFound->at(j).pMin1 << " p0MaxLine1: " << linesFound->at(j).pMax0 << " p1MaxLine1: " <<  linesFound->at(j).pMax1;
+	  //mf::LogInfo("HoughBaseAlg") << "p0MinLine2: " <<  linesFound->at(i).pMin0 << " p1MinLine2: " << linesFound->at(i).pMin1 << " p0MaxLine2: " << linesFound->at(i).pMax0 << " p1MaxLine2: " <<  linesFound->at(i).pMax1;
+	}
     }
   }
 
@@ -1193,13 +939,13 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
 
   // Find slope in cluster being examined to compare to cluster that will be merged into it
   //for(unsigned int j = 0; j < toMerge.size(); j++){
-    //for(unsigned int i = 0; i < linesFound->size(); i++){
-      //if(linesFound->at(clusIndexStart).clusterNumber != linesFound->at(i).clusterNumber)
-        //continue;
-      //if(HoughLineDistance(linesFound->at(toMerge[j]).pMin0,linesFound->at(toMerge[j]).pMin1,linesFound->at(toMerge[j]).pMax0, linesFound->at(toMerge[j]).pMax1, 
-      //linesFound->at(i).pMin0,linesFound->at(i).pMin1,linesFound->at(i).pMax0, linesFound->at(i).pMax1)<fHoughLineMergeCutoff)
-        //mergeSlope[j] = linesFound->at(i).clusterSlope;
-    //}
+  //for(unsigned int i = 0; i < linesFound->size(); i++){
+  //if(linesFound->at(clusIndexStart).clusterNumber != linesFound->at(i).clusterNumber)
+  //continue;
+  //if(HoughLineDistance(linesFound->at(toMerge[j]).pMin0,linesFound->at(toMerge[j]).pMin1,linesFound->at(toMerge[j]).pMax0, linesFound->at(toMerge[j]).pMax1, 
+  //linesFound->at(i).pMin0,linesFound->at(i).pMin1,linesFound->at(i).pMax0, linesFound->at(i).pMax1)<fHoughLineMergeCutoff)
+  //mergeSlope[j] = linesFound->at(i).clusterSlope;
+  //}
   //}
 
   // Find the angle between the slopes
@@ -1213,14 +959,14 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
     mergeTheta[i] = atan(fabs(( toMergeSlope - mergeSlope[i])/(1 + toMergeSlope*mergeSlope[i] )))*(180/TMath::Pi());
     mergeDistSinTheta[i] = newClusDistTemp[i]*sin(mergeTheta[i]); 
 
-    //std::cout << "minTheta: " << mergeTheta[i] << std::endl; 
+    //mf::LogVerbatim("HoughBaseAlg") << "minTheta: " << mergeTheta[i] << std::endl; 
     //mf::LogInfo("HoughBaseAlg") << "minTheta: " << mergeTheta[i]; 
   }
 
   // Perform the merge
   for(unsigned int i = 0; i < mergeTheta.size(); i++){
     if(mergeTheta[i] < fHoughLineMergeAngle ){
-    //if(mergeDistSinTheta[i] < 5 ){
+      //if(mergeDistSinTheta[i] < 5 ){
       lineMerged = true;
       linesFound->at(clusIndexStart).merged = true;
       linesFound->at(toMerge[i]).merged = true;
@@ -1291,32 +1037,32 @@ void cluster::HoughBaseAlg::mergeParaHoughLinesBySegment(unsigned int clusIndexS
       if(linesFound->at(i).isolation < fLineIsolationCut)
         continue;
       double segmentDistance = HoughLineDistance(linesFound->at(j).pMin0,linesFound->at(j).pMin1,linesFound->at(j).pMax0, linesFound->at(j).pMax1, 
-        linesFound->at(i).pMin0,linesFound->at(i).pMin1,linesFound->at(i).pMax0, linesFound->at(i).pMax1);
+						 linesFound->at(i).pMin0,linesFound->at(i).pMin1,linesFound->at(i).pMax0, linesFound->at(i).pMax1);
       if(segmentDistance<fParaHoughLineMergeCutoff
-          && segmentDistance>=fHoughLineMergeCutoff
-          )
-      {
-        toMerge.push_back(i);
+	 && segmentDistance>=fHoughLineMergeCutoff
+	 )
+	{
+	  toMerge.push_back(i);
 
-        //mergeSlope.push_back( (linesFound->at(j).pMax1-linesFound->at(j).pMin1)/(linesFound->at(j).pMax0-linesFound->at(j).pMin0) );
-        mergeSlope.push_back(linesFound->at(j).clusterSlope*xyScale);
+	  //mergeSlope.push_back( (linesFound->at(j).pMax1-linesFound->at(j).pMin1)/(linesFound->at(j).pMax0-linesFound->at(j).pMin0) );
+	  mergeSlope.push_back(linesFound->at(j).clusterSlope*xyScale);
         
 
-        //newClusDistTemp.push_back(sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)+pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2)));
-        newClusDistTemp.push_back(segmentDistance);
-        std::cout << std::endl;
-        std::cout << "Check at min, clusIndexStart: " << clusIndexStart << " mergee: " << i << " merger: " << j << std::endl;
-        std::cout << "Distance: " << segmentDistance << std::endl;
-        std::cout << "p0MinLine1: " <<  linesFound->at(j).pMin0 << " p1MinLine1: " << linesFound->at(j).pMin1 << " p0MaxLine1: " << linesFound->at(j).pMax0 << " p1MaxLine1: " <<  linesFound->at(j).pMax1 << std::endl;
-        std::cout << "line 1 isolation: " << linesFound->at(j).isolation << std::endl;
-        std::cout << "p0MinLine2: " <<  linesFound->at(i).pMin0 << " p1MinLine2: " << linesFound->at(i).pMin1 << " p0MaxLine2: " << linesFound->at(i).pMax0 << " p1MaxLine2: " <<  linesFound->at(i).pMax1 << std::endl;
-        std::cout << "line 2 isolation: " << linesFound->at(i).isolation << std::endl;
-        //mf::LogInfo("HoughBaseAlg") << "Check at min, clusIndexStart: " << clusIndexStart << " mergee: " << i << " merger: " << j;
-        //mf::LogInfo("HoughBaseAlg") << "Distance: " << HoughLineDistance(linesFound->at(j).pMin0,linesFound->at(j).pMin1,linesFound->at(j).pMax0, linesFound->at(j).pMax1, 
-        //linesFound->at(i).pMin0,linesFound->at(i).pMin1,linesFound->at(i).pMax0, linesFound->at(i).pMax1);
-        //mf::LogInfo("HoughBaseAlg") << "p0MinLine1: " <<  linesFound->at(j).pMin0 << " p1MinLine1: " << linesFound->at(j).pMin1 << " p0MaxLine1: " << linesFound->at(j).pMax0 << " p1MaxLine1: " <<  linesFound->at(j).pMax1;
-        //mf::LogInfo("HoughBaseAlg") << "p0MinLine2: " <<  linesFound->at(i).pMin0 << " p1MinLine2: " << linesFound->at(i).pMin1 << " p0MaxLine2: " << linesFound->at(i).pMax0 << " p1MaxLine2: " <<  linesFound->at(i).pMax1;
-      }
+	  //newClusDistTemp.push_back(sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)+pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2)));
+	  newClusDistTemp.push_back(segmentDistance);
+	  mf::LogVerbatim("HoughBaseAlg") << std::endl;
+	  mf::LogVerbatim("HoughBaseAlg") << "Check at min, clusIndexStart: " << clusIndexStart << " mergee: " << i << " merger: " << j << std::endl;
+	  mf::LogVerbatim("HoughBaseAlg") << "Distance: " << segmentDistance << std::endl;
+	  mf::LogVerbatim("HoughBaseAlg") << "p0MinLine1: " <<  linesFound->at(j).pMin0 << " p1MinLine1: " << linesFound->at(j).pMin1 << " p0MaxLine1: " << linesFound->at(j).pMax0 << " p1MaxLine1: " <<  linesFound->at(j).pMax1 << std::endl;
+	  mf::LogVerbatim("HoughBaseAlg") << "line 1 isolation: " << linesFound->at(j).isolation << std::endl;
+	  mf::LogVerbatim("HoughBaseAlg") << "p0MinLine2: " <<  linesFound->at(i).pMin0 << " p1MinLine2: " << linesFound->at(i).pMin1 << " p0MaxLine2: " << linesFound->at(i).pMax0 << " p1MaxLine2: " <<  linesFound->at(i).pMax1 << std::endl;
+	  mf::LogVerbatim("HoughBaseAlg") << "line 2 isolation: " << linesFound->at(i).isolation << std::endl;
+	  //mf::LogInfo("HoughBaseAlg") << "Check at min, clusIndexStart: " << clusIndexStart << " mergee: " << i << " merger: " << j;
+	  //mf::LogInfo("HoughBaseAlg") << "Distance: " << HoughLineDistance(linesFound->at(j).pMin0,linesFound->at(j).pMin1,linesFound->at(j).pMax0, linesFound->at(j).pMax1, 
+	  //linesFound->at(i).pMin0,linesFound->at(i).pMin1,linesFound->at(i).pMax0, linesFound->at(i).pMax1);
+	  //mf::LogInfo("HoughBaseAlg") << "p0MinLine1: " <<  linesFound->at(j).pMin0 << " p1MinLine1: " << linesFound->at(j).pMin1 << " p0MaxLine1: " << linesFound->at(j).pMax0 << " p1MaxLine1: " <<  linesFound->at(j).pMax1;
+	  //mf::LogInfo("HoughBaseAlg") << "p0MinLine2: " <<  linesFound->at(i).pMin0 << " p1MinLine2: " << linesFound->at(i).pMin1 << " p0MaxLine2: " << linesFound->at(i).pMax0 << " p1MaxLine2: " <<  linesFound->at(i).pMax1;
+	}
     }
   }
 
@@ -1331,7 +1077,7 @@ void cluster::HoughBaseAlg::mergeParaHoughLinesBySegment(unsigned int clusIndexS
     double toMergeSlope =  linesFound->at(toMerge[i]).clusterSlope*xyScale;
     mergeTheta[i] = atan(fabs(( toMergeSlope - mergeSlope[i])/(1 + toMergeSlope*mergeSlope[i] )))*(180/TMath::Pi());
     
-    //std::cout << "minTheta: " << mergeTheta[i] << std::endl; 
+    //mf::LogVerbatim("HoughBaseAlg") << "minTheta: " << mergeTheta[i] << std::endl; 
     //mf::LogInfo("HoughBaseAlg") << "minTheta: " << mergeTheta[i]; 
   }
 
@@ -1361,17 +1107,12 @@ void cluster::HoughBaseAlg::mergeParaHoughLinesBySegment(unsigned int clusIndexS
 
 }
 
-
-
-
-
-
-
-
-
-
 // The normal merger code that uses the distance between the min and max points
-void cluster::HoughBaseAlg::mergeHoughLines(unsigned int clusIndexStart,std::vector<lineSlope> *linesFound,std::vector<int> *newClusNum,std::vector<double> *newClusDist, double xyScale)
+void cluster::HoughBaseAlg::mergeHoughLines(unsigned int clusIndexStart,
+					    std::vector<lineSlope> *linesFound,
+					    std::vector<int> *newClusNum,
+					    std::vector<double> *newClusDist, 
+					    double xyScale)
 {
 
   // If we only have zero or one Hough lines, move on 
@@ -1409,14 +1150,17 @@ void cluster::HoughBaseAlg::mergeHoughLines(unsigned int clusIndexStart,std::vec
       if(linesFound->at(clusIndexStart).clusterNumber != linesFound->at(j).clusterNumber)
         continue;
       if(sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)+pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2))<fHoughLineMergeCutoff
-          && linesFound->at(j).pMin0 > linesFound->at(i).pMax0
-          ){
+	 && linesFound->at(j).pMin0 > linesFound->at(i).pMax0
+	 ){
         minMerge.push_back(i);
         newClusDistTemp.push_back(sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)+pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2)));
-        //std::cout << "Check at min, clusIndexStart: " << clusIndexStart << " minMerge: " << i << std::endl;
-        //std::cout << "Distance: " << sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)+pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2)) << std::endl;
-        mf::LogInfo("HoughBaseAlg") << "Check at min, clusIndexStart: " << clusIndexStart << " minMerge: " << i;
-        mf::LogInfo("HoughBaseAlg") << "Distance: " << sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)+pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2));
+        //mf::LogVerbatim("HoughBaseAlg") << "Check at min, clusIndexStart: " << clusIndexStart << " minMerge: " << i << std::endl;
+        //mf::LogVerbatim("HoughBaseAlg") << "Distance: " << sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)+pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2)) << std::endl;
+        mf::LogInfo("HoughBaseAlg") << "Check at min, clusIndexStart: " 
+				    << clusIndexStart << " minMerge: " << i;
+        mf::LogInfo("HoughBaseAlg") << "Distance: " 
+				    << sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)
+					    +pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2));
       }
     }
   }
@@ -1437,7 +1181,7 @@ void cluster::HoughBaseAlg::mergeHoughLines(unsigned int clusIndexStart,std::vec
   // Find the angle between the slopes
   for(unsigned int i = 0; i < minTheta.size(); i++){
     minTheta[i] = atan(fabs((linesFound->at(minMerge[i]).clusterSlope*xyScale-minSlope[i]*xyScale)/(1 + linesFound->at(minMerge[i]).clusterSlope*xyScale*minSlope[i]*xyScale)))*(180/TMath::Pi());
-    //std::cout << "minTheta: " << minTheta[i] << std::endl; 
+    //mf::LogVerbatim("HoughBaseAlg") << "minTheta: " << minTheta[i] << std::endl; 
     //mf::LogInfo("HoughBaseAlg") << "minTheta: " << minTheta[i]; 
   }
 
@@ -1464,11 +1208,11 @@ void cluster::HoughBaseAlg::mergeHoughLines(unsigned int clusIndexStart,std::vec
       if(linesFound->at(clusIndexStart).clusterNumber != linesFound->at(j).clusterNumber)
         continue;
       if(sqrt(pow(linesFound->at(j).pMax0-linesFound->at(i).pMin0,2)+pow(linesFound->at(j).pMax1-linesFound->at(i).pMin1,2))<fHoughLineMergeCutoff
-          && linesFound->at(j).pMax0 < linesFound->at(i).pMin0
-          ){
+	 && linesFound->at(j).pMax0 < linesFound->at(i).pMin0
+	 ){
         maxMerge.push_back(i);
-        //std::cout << "Check at max, clusIndexStart: " << clusIndexStart << " maxMerge: " << i << std::endl;
-        //std::cout << "Distance: " << sqrt(pow(linesFound->at(j).pMax0-linesFound->at(i).pMin0,2)+pow(linesFound->at(j).pMax1-linesFound->at(i).pMin1,2)) << std::endl;
+        //mf::LogVerbatim("HoughBaseAlg") << "Check at max, clusIndexStart: " << clusIndexStart << " maxMerge: " << i << std::endl;
+        //mf::LogVerbatim("HoughBaseAlg") << "Distance: " << sqrt(pow(linesFound->at(j).pMax0-linesFound->at(i).pMin0,2)+pow(linesFound->at(j).pMax1-linesFound->at(i).pMin1,2)) << std::endl;
         mf::LogInfo("HoughBaseAlg") << "Check at max, clusIndexStart: " << clusIndexStart << " maxMerge: " << i;
         mf::LogInfo("HoughBaseAlg") << "Distance: " << sqrt(pow(linesFound->at(j).pMax0-linesFound->at(i).pMin0,2)+pow(linesFound->at(j).pMax1-linesFound->at(i).pMin1,2));
         newClusDistTemp.push_back(sqrt(pow(linesFound->at(j).pMax0-linesFound->at(i).pMin0,2)+pow(linesFound->at(j).pMax1-linesFound->at(i).pMin1,2)));
@@ -1492,8 +1236,8 @@ void cluster::HoughBaseAlg::mergeHoughLines(unsigned int clusIndexStart,std::vec
   // Find the angle between the slopes
   for(unsigned int i = 0; i < maxTheta.size(); i++){
     maxTheta[i] = atan(fabs((linesFound->at(maxMerge[i]).clusterSlope*xyScale-maxSlope[i]*xyScale)/(1 + linesFound->at(maxMerge[i]).clusterSlope*xyScale*maxSlope[i]*xyScale)))*(180/TMath::Pi());
-    //std::cout << "maxTheta: " << maxTheta[i] << std::endl; 
-    //std::cout << "maxTheta: " << maxTheta[i] << std::endl; 
+    //mf::LogVerbatim("HoughBaseAlg") << "maxTheta: " << maxTheta[i] << std::endl; 
+    //mf::LogVerbatim("HoughBaseAlg") << "maxTheta: " << maxTheta[i] << std::endl; 
     mf::LogInfo("HoughBaseAlg") << "maxTheta: " << maxTheta[i]; 
     mf::LogInfo("HoughBaseAlg") << "maxTheta: " << maxTheta[i]; 
   }
@@ -1521,7 +1265,7 @@ void cluster::HoughBaseAlg::mergeHoughLines(unsigned int clusIndexStart,std::vec
 }
 
 
- //This merge function specifically looks for parallel lines and merges them
+//This merge function specifically looks for parallel lines and merges them
 int cluster::HoughBaseAlg::mergeParaHoughLines(unsigned int clusIndexStart,std::vector<lineSlope> *linesFound,std::vector<int> *newClusNum,std::vector<double> *newClusDist, double xyScale)
 {
 
@@ -1563,11 +1307,11 @@ int cluster::HoughBaseAlg::mergeParaHoughLines(unsigned int clusIndexStart,std::
         continue;
       if(sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)+pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2))<20
          && sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)+pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2))>=2
-        ){
+	 ){
         minMerge.push_back(i);
         newClusDistTemp.push_back(sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)+pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2)));
-        //std::cout << "Check at min, clusIndexStart: " << clusIndexStart << " minMerge: " << i << std::endl;
-        //std::cout << "Distance: " << sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)+pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2)) << std::endl;
+        //mf::LogVerbatim("HoughBaseAlg") << "Check at min, clusIndexStart: " << clusIndexStart << " minMerge: " << i << std::endl;
+        //mf::LogVerbatim("HoughBaseAlg") << "Distance: " << sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)+pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2)) << std::endl;
         mf::LogInfo("HoughBaseAlg") << "Check at min, clusIndexStart: " << clusIndexStart << " minMerge: " << i;
         mf::LogInfo("HoughBaseAlg") << "Distance: " << sqrt(pow(linesFound->at(j).pMin0-linesFound->at(i).pMax0,2)+pow(linesFound->at(j).pMin1-linesFound->at(i).pMax1,2));
       }
@@ -1590,14 +1334,14 @@ int cluster::HoughBaseAlg::mergeParaHoughLines(unsigned int clusIndexStart,std::
   // Find the angle between the slopes
   for(unsigned int i = 0; i < minTheta.size(); i++){
     minTheta[i] = atan(fabs((linesFound->at(minMerge[i]).clusterSlope*xyScale-minSlope[i]*xyScale)/(1 + linesFound->at(minMerge[i]).clusterSlope*xyScale*minSlope[i]*xyScale)))*(180/TMath::Pi());
-    //std::cout << "minTheta: " << minTheta[i] << std::endl; 
+    //mf::LogVerbatim("HoughBaseAlg") << "minTheta: " << minTheta[i] << std::endl; 
     mf::LogInfo("HoughBaseAlg") << "minTheta: " << minTheta[i]; 
   }
 
   // Perform the merge
   for(unsigned int i = 0; i < minTheta.size(); i++){
     if(minTheta[i] < 5 ){
-    //if(minTheta[i] < 10 ){
+      //if(minTheta[i] < 10 ){
       linesFound->at(minMerge[i]).clusterNumber = linesFound->at(clusIndexStart).clusterNumber;
       lineMerged = true;
       linesFound->at(clusIndexStart).merged = true;
@@ -1618,10 +1362,10 @@ int cluster::HoughBaseAlg::mergeParaHoughLines(unsigned int clusIndexStart,std::
         continue;
       if(sqrt(pow(linesFound->at(j).pMax0-linesFound->at(i).pMin0,2)+pow(linesFound->at(j).pMax1-linesFound->at(i).pMin1,2))<20
          && sqrt(pow(linesFound->at(j).pMax0-linesFound->at(i).pMin0,2)+pow(linesFound->at(j).pMax1-linesFound->at(i).pMin1,2))>=2
-        ){
+	 ){
         maxMerge.push_back(i);
-        //std::cout << "Check at max, clusIndexStart: " << clusIndexStart << " maxMerge: " << i << std::endl;
-        //std::cout << "Distance: " << sqrt(pow(linesFound->at(j).pMax0-linesFound->at(i).pMin0,2)+pow(linesFound->at(j).pMax1-linesFound->at(i).pMin1,2)) << std::endl;
+        //mf::LogVerbatim("HoughBaseAlg") << "Check at max, clusIndexStart: " << clusIndexStart << " maxMerge: " << i << std::endl;
+        //mf::LogVerbatim("HoughBaseAlg") << "Distance: " << sqrt(pow(linesFound->at(j).pMax0-linesFound->at(i).pMin0,2)+pow(linesFound->at(j).pMax1-linesFound->at(i).pMin1,2)) << std::endl;
         mf::LogInfo("HoughBaseAlg") << "Check at max, clusIndexStart: " << clusIndexStart << " maxMerge: " << i;
         mf::LogInfo("HoughBaseAlg") << "Distance: " << sqrt(pow(linesFound->at(j).pMax0-linesFound->at(i).pMin0,2)+pow(linesFound->at(j).pMax1-linesFound->at(i).pMin1,2));
         newClusDistTemp.push_back(sqrt(pow(linesFound->at(j).pMax0-linesFound->at(i).pMin0,2)+pow(linesFound->at(j).pMax1-linesFound->at(i).pMin1,2)));
@@ -1645,14 +1389,14 @@ int cluster::HoughBaseAlg::mergeParaHoughLines(unsigned int clusIndexStart,std::
   // Find the angle between the slopes
   for(unsigned int i = 0; i < maxTheta.size(); i++){
     maxTheta[i] = atan(fabs((linesFound->at(maxMerge[i]).clusterSlope*xyScale-maxSlope[i]*xyScale)/(1 + linesFound->at(maxMerge[i]).clusterSlope*xyScale*maxSlope[i]*xyScale)))*(180/TMath::Pi());
-    //std::cout << "maxTheta: " << maxTheta[i] << std::endl; 
+    //mf::LogVerbatim("HoughBaseAlg") << "maxTheta: " << maxTheta[i] << std::endl; 
     mf::LogInfo("HoughBaseAlg") << "maxTheta: " << maxTheta[i]; 
   }
 
   // Perform the merge
   for(unsigned int i = 0; i < maxTheta.size(); i++){
     if(maxTheta[i] <  5 ){
-    //if(maxTheta[i] < 10 ){
+      //if(maxTheta[i] < 10 ){
       linesFound->at(maxMerge[i]).clusterNumber = linesFound->at(clusIndexStart).clusterNumber;
       lineMerged = true;
       linesFound->at(clusIndexStart).merged = true;
@@ -1674,7 +1418,14 @@ int cluster::HoughBaseAlg::mergeParaHoughLines(unsigned int clusIndexStart,std::
 
 
 //------------------------------------------------------------------------------
-double cluster::HoughBaseAlg::HoughLineDistance(double p0MinLine1, double p1MinLine1, double p0MaxLine1, double p1MaxLine1, double p0MinLine2, double p1MinLine2, double p0MaxLine2, double p1MaxLine2)
+double cluster::HoughBaseAlg::HoughLineDistance(double p0MinLine1, 
+						double p1MinLine1, 
+						double p0MaxLine1, 
+						double p1MaxLine1, 
+						double p0MinLine2, 
+						double p1MinLine2, 
+						double p0MaxLine2, 
+						double p1MaxLine2)
 {
   //distance between two segments in the plane:
   //  one segment is (x11, y11) to (x12, y12) or (p0MinLine1, p1MinLine1) to (p0MaxLine1, p1MaxLine1)
@@ -1710,7 +1461,14 @@ double cluster::HoughBaseAlg::HoughLineDistance(double p0MinLine1, double p1MinL
 
 
 //------------------------------------------------------------------------------
-bool cluster::HoughBaseAlg::HoughLineIntersect(double x11,double  y11,double  x12,double  y12,double  x21,double  y21,double  x22,double  y22)
+bool cluster::HoughBaseAlg::HoughLineIntersect(double x11,
+					       double  y11,
+					       double  x12,
+					       double  y12,
+					       double  x21,
+					       double  y21,
+					       double  x22,
+					       double  y22)
 {
   //whether two segments in the plane intersect:
   //one segment is (x11, y11) to (x12, y12)
@@ -1734,7 +1492,12 @@ bool cluster::HoughBaseAlg::HoughLineIntersect(double x11,double  y11,double  x1
 
 
 //------------------------------------------------------------------------------
-double cluster::HoughBaseAlg::PointSegmentDistance(double px,double  py,double  x1,double  y1,double  x2,double  y2)
+double cluster::HoughBaseAlg::PointSegmentDistance(double px,
+						   double  py,
+						   double  x1,
+						   double  y1,
+						   double  x2,
+						   double  y2)
 {
   double dx = x2 - x1;
   double dy = y2 - y1;
@@ -1765,11 +1528,6 @@ double cluster::HoughBaseAlg::PointSegmentDistance(double px,double  py,double  
 
 }
 
-
-
-
-
-
 //------------------------------------------------------------------------------
 cluster::HoughTransform::~HoughTransform()
 {  
@@ -1785,7 +1543,11 @@ bool cluster::HoughTransform::AddPoint(int x, int y)
 
 
 //------------------------------------------------------------------------------
-int cluster::HoughTransform::AddPointReturnMax(int x, int y, int *yMax, int *xMax, int minHits)
+int cluster::HoughTransform::AddPointReturnMax(int x, 
+					       int y, 
+					       int *yMax, 
+					       int *xMax, 
+					       int minHits)
 {
   if (x>m_dx || y>m_dy || x<0.0 || y<0.0)
     return 0;
@@ -1804,7 +1566,9 @@ bool cluster::HoughTransform::SubtractPoint(int x, int y)
 
 
 //------------------------------------------------------------------------------
-void cluster::HoughTransform::Init(int dx, int dy, int rhores,
+void cluster::HoughTransform::Init(int dx, 
+				   int dy, 
+				   int rhores,
 				   int numACells)
 {
   m_numAngleCells=numACells;
@@ -1812,12 +1576,12 @@ void cluster::HoughTransform::Init(int dx, int dy, int rhores,
   m_accum.clear();
   m_accum.resize(m_numAngleCells);
   m_numAccumulated = 0;   
-//   m_cosTable.clear();
-//   m_sinTable.clear();
+  //   m_cosTable.clear();
+  //   m_sinTable.clear();
   m_cosTable.resize(m_numAngleCells);
   m_sinTable.resize(m_numAngleCells);
   //if (dx == m_dx && dy == m_dy)
-    //return;
+  //return;
   m_dx = dx;
   m_dy = dy;
   m_rowLength = (int)(m_rhoResolutionFactor*2. * sqrt(dx*dx + dy*dy));
@@ -1833,7 +1597,8 @@ void cluster::HoughTransform::Init(int dx, int dy, int rhores,
 
 
 //------------------------------------------------------------------------------
-int cluster::HoughTransform::GetMax(int &xmax, int &ymax)
+int cluster::HoughTransform::GetMax(int &xmax, 
+				    int &ymax)
 {
   std::map<int,int>::iterator rhoIter;
   int maxVal = -1;
@@ -1852,7 +1617,11 @@ int cluster::HoughTransform::GetMax(int &xmax, int &ymax)
 
 
 //------------------------------------------------------------------------------
-int cluster::HoughTransform::DoAddPointReturnMax(int x, int y, int *ymax, int *xmax, int minHits)
+int cluster::HoughTransform::DoAddPointReturnMax(int x, 
+						 int y, 
+						 int *ymax, 
+						 int *xmax, 
+						 int minHits)
 {
   int distCenter = (int)(m_rowLength/2.);
  
@@ -1876,7 +1645,7 @@ int cluster::HoughTransform::DoAddPointReturnMax(int x, int y, int *ymax, int *x
           *xmax = lastDist;
           *ymax = a;
         }
-        //std::cout << "First, a: " << a << " lastDist: " << lastDist << std::endl;
+        //mf::LogVerbatim("HoughBaseAlg") << "First, a: " << a << " lastDist: " << lastDist << std::endl;
       }
       else{
 	// fill in all values in row a, not just a single cell
@@ -1896,7 +1665,7 @@ int cluster::HoughTransform::DoAddPointReturnMax(int x, int y, int *ymax, int *x
   }
   m_numAccumulated++;
   
-  //std::cout << "Add point says xmax: " << *xmax << " ymax: " << *ymax << std::endl;
+  //mf::LogVerbatim("HoughBaseAlg") << "Add point says xmax: " << *xmax << " ymax: " << *ymax << std::endl;
 
   return max_val;
 }
@@ -1919,7 +1688,7 @@ bool cluster::HoughTransform::DoAddPoint(int x, int y)
     if (dist >= 0 && dist<m_rowLength){
       if(lastDist==dist){
 	m_accum[a][lastDist]++;
-        //std::cout << "First, a: " << a << " lastDist: " << lastDist << std::endl;
+        //mf::LogVerbatim("HoughBaseAlg") << "First, a: " << a << " lastDist: " << lastDist << std::endl;
       }
       else{
 	// fill in all values in row a, not just a single cell
@@ -2067,7 +1836,10 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Cluster> >  
 	  xyScale        *= detprop->SamplingRate()/geom->WirePitch(0,1,p,t,cs);
 	  
 	  int x, y;
-	  unsigned int channel, plane, wire, tpc, cstat;
+	  unsigned int channel = 0;
+	  unsigned int plane   = 0;
+	  unsigned int tpc     = 0;
+	  unsigned int cstat   = 0;
 	  //there must be a better way to find which plane a cluster comes from
 	  int dx = geom->Cryostat(cs).TPC(t).Plane(p).Nwires();//number of wires 
 	  int dy = hit[0]->Wire()->NSignal();//number of time samples. 
@@ -2101,10 +1873,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Cluster> >  
 	    //adds all of the hits (that have not yet been associated with a line) to the accumulator
 	    
 	    for(unsigned int i = 0; i < hit.size(); ++i){
-	      channel=hit[i]->Wire()->RawDigit()->Channel();
-	      geom->ChannelToWire(channel, cstat, tpc, plane, wire);
 	      if (skip[i] != 1)
-	      c.AddPoint(wire,(int)(hit[i]->PeakTime()));
+		c.AddPoint(hit[i]->WireID().Wire,(int)(hit[i]->PeakTime()));
 	    }// end loop over hits
  	   
 	    //gets the actual two-dimensional size of the accumulator
@@ -2176,9 +1946,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Cluster> >  
 	      sequenceHolder.clear();
 	      hitTemp.clear();
 	      for(size_t i = 0; i < hit.size(); ++i){
-		channel = hit[i]->Wire()->RawDigit()->Channel();
-		geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-		distance = (TMath::Abs(hit[i]->PeakTime()-slope*(double)(wire)-intercept)/(sqrt(pow(xyScale*slope,2)+1)));
+		distance = (TMath::Abs(hit[i]->PeakTime()-slope*(double)(hit[i]->WireID().Wire)-intercept)/(sqrt(pow(xyScale*slope,2)+1)));
 		
 		if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling  && skip[i]!=1){
 		  hitTemp.push_back(i);
@@ -2219,15 +1987,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Cluster> >  
 		 )
 		continue;
 	      
-	      unsigned int sw = 0;
-	      unsigned int ew = 0;
-	      unsigned int sc = 0;
-	      unsigned int ec = 0;
-	      sc = (*clusterHits.begin())->Wire()->RawDigit()->Channel(); 
-	      geom->ChannelToWire(sc, cstat, tpc, plane, sw);
-	      
-	      ec = (*(clusterHits.end()-1))->Wire()->RawDigit()->Channel(); 
-	      geom->ChannelToWire(ec, cstat, tpc, plane, ew);
+	      unsigned int sw = (*clusterHits.begin())->WireID().Wire;
+	      unsigned int ew = (*(clusterHits.end()-1))->WireID().Wire;
 	      
 	      recob::Cluster cluster(sw, 0.,
 				     (*clusterHits.begin())->PeakTime(), 0.,
@@ -2242,14 +2003,14 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Cluster> >  
 	      ++clusterID;
 	      ccol.push_back(cluster);
 	      clusHitsOut.push_back(clusterHits);
-//Turn off hit sharing. T. Yang 9/14/12
-//	      //allow double assignment of first and last hits
-//	      for(size_t i = 0; i < lastHits.size(); ++i){ 
-//		if(skip[hitTemp[lastHits[i]]] ==1){
-//		  channel = hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();  
-//		  if( channel == sc || channel == ec) skip[i] = 0;
-//		}
-//	      }
+	      //Turn off hit sharing. T. Yang 9/14/12
+	      //	      //allow double assignment of first and last hits
+	      //	      for(size_t i = 0; i < lastHits.size(); ++i){ 
+	      //		if(skip[hitTemp[lastHits[i]]] ==1){
+	      //		  channel = hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();  
+	      //		  if( channel == sc || channel == ec) skip[i] = 0;
+	      //		}
+	      //	      }
               
 	    }// end if !isnan
 	    
@@ -2300,16 +2061,11 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Cluster> >  
 
 //------------------------------------------------------------------------------
 size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster> >           & clusIn,
-					std::vector<recob::Cluster>                      & ccol,  
-					std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
-					art::Event                                const& evt,
-					std::string                               const& label)
+					    std::vector<recob::Cluster>                      & ccol,  
+					    std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
+					    art::Event                                const& evt,
+					    std::string                               const& label)
 {
-  
-  //art::FindManyP<recob::Hit> fmh(clusIn, evt, label);
-
-
-
   std::vector<int> skip;  
 
   art::FindManyP<recob::Hit> fmh(clusIn, evt, label);
@@ -2366,8 +2122,6 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 	  xyScale        *= detprop->SamplingRate()/geom->WirePitch(0,1,p,t,cs);
 	  
 	  int x, y;
-	  unsigned int plane, wire, tpc, cstat;
-	  //there must be a better way to find which plane a cluster comes from
 	  int dx = geom->Cryostat(cs).TPC(t).Plane(p).Nwires();//number of wires 
 	  int dy = hit[0]->Wire()->NSignal();//number of time samples. 
 	  skip.clear();
@@ -2445,12 +2199,9 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
   
             //find the weightiest cell in the accumulator.
             int maxCell = 0;
-            unsigned int wireMax = 0;
+            unsigned int wireMax = hit[randInd]->WireID().Wire;
             xMax = 0;
             yMax = 0;
-            unsigned short channel = hit[randInd]->Wire()->RawDigit()->Channel();
-            //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-            geom->ChannelToWire(channel, cstat, tpc, plane, wireMax);
             double peakMax = hit[randInd]->PeakTime();
 
             // Add the randomly selected point to the accumulator
@@ -2486,8 +2237,8 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
             //c.GetEquation(yMax, xMax, rho, theta);
             slope = -1./tan(theta);    
             intercept = (rho/sin(theta));
-            //std::cout << std::endl;
-            //std::cout << "slope: " << slope << " intercept: " << intercept << std::endl; 
+            //mf::LogVerbatim("HoughBaseAlg") << std::endl;
+            //mf::LogVerbatim("HoughBaseAlg") << "slope: " << slope << " intercept: " << intercept << std::endl; 
             //mf::LogInfo("HoughBaseAlg") << "slope: " << slope << " intercept: " << intercept;
             double distance;
             /// \todo: the collection plane's characteristic hit width's are, 
@@ -2515,13 +2266,11 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 	      sequenceHolder.clear();
 	      hitTemp.clear();
 	      for(size_t i = 0; i < hit.size(); ++i){
-		channel = hit[i]->Wire()->RawDigit()->Channel();
-		geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-		distance = (TMath::Abs(hit[i]->PeakTime()-slope*(double)(wire)-intercept)/(sqrt(pow(xyScale*slope,2)+1)));
+		distance = (TMath::Abs(hit[i]->PeakTime()-slope*(double)(hit[i]->WireID().Wire)-intercept)/(sqrt(pow(xyScale*slope,2)+1)));
 		
 		if(distance < fMaxDistance+((hit[i]->EndTime()-hit[i]->StartTime())/2.)+indcolscaling  && skip[i]!=1){
 		  hitTemp.push_back(i);
-		  sequenceHolder.push_back(channel);
+		  sequenceHolder.push_back(hit[i]->Channel());
 		}
 		
 	      }// end loop over hits
@@ -2567,8 +2316,7 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
               fMinWire = 99999999;
               iMinWire = -1;
               for(size_t k = 0; k < lastHits.size(); ++k) {
-                unsigned short channel = hit[hitTemp[lastHits[k]]]->Wire()->RawDigit()->Channel();
-                geom->ChannelToWire(channel, cstat, tpc, plane, wire);
+                unsigned int wire = hit[hitTemp[lastHits[k]]]->WireID().Wire;
                 if(wire < fMinWire){
                   fMinWire = wire;
                   fMinPeak = hit[hitTemp[lastHits[k]]]->PeakTime();
@@ -2599,9 +2347,12 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
               // If the slope is really high, check if it's a fake
               unsigned int numHitsMissing = 0;
               unsigned int numHitsSearched = 0;
+	      ///\todo: why is this hard coded????
               if( fabs(slope) > 5 ) {      
                 tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
-                std::cout << "peakMax: " << peakMax << " fMinPeak: " << fMinPeak << " fMaxPeak: " << fMaxPeak << std::endl; 
+                mf::LogVerbatim("HoughBaseAlg") << "peakMax: " << peakMax 
+						<< " fMinPeak: " << fMinPeak 
+						<< " fMaxPeak: " << fMaxPeak;
                 if( peakMax < fMinPeak || peakMax > fMaxPeak){
                   //peakMax = 0.5*(fMinPeak+fMaxPeak);
                   peakMax = fMinPeak;
@@ -2613,18 +2364,17 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
                   fMinPeak = fMaxPeakTemp;
                 }
 
-                std::cout << "Found line!" << std::endl;
-                //std::cout << "wireMax: " << wireMax << " peakMax: " << slope*(double)wireMax + intercept << std::endl;
-                std::cout << "Slope: " << slope << std::endl;
-                std::cout << "Number of hits: " << lastHits.size() << std::endl;
-                std::cout << "Wire: " << fMinWire << " Peak time: " << hit[iMinWire]->PeakTime() << std::endl; 
-                std::cout << "Wire: " << fMaxWire << " Peak time: " << hit[iMaxWire]->PeakTime() << std::endl; 
+                mf::LogVerbatim("HoughBaseAlg") << "Found line!" << std::endl
+						<< "Slope: " << slope << std::endl
+						<< "Number of hits: " << lastHits.size() << std::endl
+						<< "Wire: " << fMinWire << " Peak time: " << hit[iMinWire]->PeakTime() << std::endl
+						<< "Wire: " << fMaxWire << " Peak time: " << hit[iMaxWire]->PeakTime(); 
 
 
                 // Determine step distance
                 //double step = (fMaxPeak-fMinPeak)/((double)lastHits.size()-1);
                 double step = (fMaxPeak-fMinPeak)/(double)lastHits.size();
-                std::cout << "Step size: " << step << std::endl;
+                mf::LogVerbatim("HoughBaseAlg") << "Step size: " << step << std::endl;
 
                 // Step backward
                 std::vector<unsigned int> foundHits;
@@ -2633,9 +2383,10 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
                   numHitsSearched++;
                   double iWire = (i-intercept)*(1/slope);
                   if(iWire < 0) continue;
-                  std::cout << "i: " << i << " iWire: " << iWire << " (unsigned int)iWire: " << (unsigned int)iWire << std::endl;
-                  unsigned int lineChannel = geom->PlaneWireToChannel(plane,(unsigned int)iWire,tpc,cstat);
-                  //std::cout << "i: " << i << " lineChannel: " << lineChannel << " iWire: " << iWire << " (unsigned int)iWire: " << (unsigned int)iWire << std::endl;
+                  mf::LogVerbatim("HoughBaseAlg") << "i: " << i 
+						  << " iWire: " << iWire 
+						  << " (unsigned int)iWire: " << (unsigned int)iWire;
+                  unsigned int lineChannel = geom->PlaneWireToChannel(p,(unsigned int)iWire,t,cs);
                   double pLineHit[2];
                   pLineHit[0] = lineChannel*wire_dist;
                   pLineHit[1] = i*tickToDist;
@@ -2646,9 +2397,7 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
                     pRealHit[1] = ((hit[hitTemp[lastHits[k]]]->StartTime()+hit[hitTemp[lastHits[k]]]->EndTime())/2.)*tickToDist;
                     bool usedhit = false;
                     if( sqrt( pow(pLineHit[0]-pRealHit[0],2) + pow(pLineHit[1]-pRealHit[1],2)) < 1.0){
-                      //std::cout << "before foundhits.size(): " << foundhits.size() << std::endl;
                       for( size_t l = 0; l < foundHits.size(); l++){
-                        //std::cout << "l : " << l << " k: " << k << " foundhits[l]: " << foundhits[l] << std::endl;
                         if(foundHits[l] == k){
                           usedhit = true; 
                           break;
@@ -2657,7 +2406,6 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
                       if (usedhit)
                         continue;
                       foundHits.push_back(k);
-                      geom->ChannelToWire(hit[hitTemp[lastHits[k]]]->Wire()->RawDigit()->Channel(), cstat, tpc, plane, wire);
                       foundHit = true;
                       i = ((hit[hitTemp[lastHits[k]]]->StartTime()+hit[hitTemp[lastHits[k]]]->EndTime())/2.); 
                       i = i - step;
@@ -2675,9 +2423,10 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
                   numHitsSearched++;
                   double iWire = (i-intercept)*(1/slope);
                   if(iWire < 0) continue;
-                  std::cout << "i: " << i << " iWire: " << iWire << " (unsigned int)iWire: " << (unsigned int)iWire << std::endl;
-                  unsigned int lineChannel = geom->PlaneWireToChannel(plane,(unsigned int)iWire,tpc,cstat);
-                  //std::cout << "i: " << i << " lineChannel: " << lineChannel << " iWire: " << iWire << " (unsigned int)iWire: " << (unsigned int)iWire << std::endl;
+                  mf::LogVerbatim("HoughBaseAlg") << "i: " << i 
+						  << " iWire: " << iWire 
+						  << " (unsigned int)iWire: " << (unsigned int)iWire;
+                  unsigned int lineChannel = geom->PlaneWireToChannel(p,(unsigned int)iWire,t,cs);
                   double pLineHit[2];
                   pLineHit[0] = lineChannel*wire_dist;
                   pLineHit[1] = i*tickToDist;
@@ -2689,7 +2438,6 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
                     bool usedhit = false;
                     if( sqrt( pow(pLineHit[0]-pRealHit[0],2) + pow(pLineHit[1]-pRealHit[1],2)) < 1.0){
                       for( size_t l = 0; l < foundHits.size(); l++){
-                        //std::cout << "l : " << l << " k: " << k << " foundhits[l]: " << foundhits[l] << std::endl;
                         if(foundHits[l] == k){
                           usedhit = true; 
                           break;
@@ -2698,8 +2446,6 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
                       if (usedhit)
                         continue;
                       foundHits.push_back(k);
-                      geom->ChannelToWire(hit[hitTemp[lastHits[k]]]->Wire()->RawDigit()->Channel(), cstat, tpc, plane, wire);
-                      //std::cout << "i: " << i << " k: " << k << " wire: " << wire << " distance: " << sqrt( pow(pLineHit[0]-pRealHit[0],2) + pow(pLineHit[1]-pRealHit[1],2)) << std::endl;
                       foundHit = true;
                       i = ((hit[hitTemp[lastHits[k]]]->StartTime()+hit[hitTemp[lastHits[k]]]->EndTime())/2.); 
                       i = i + step;
@@ -2709,29 +2455,20 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
                   if(!foundHit) numHitsMissing++;
                   if(!foundHit) i = i + step;
                 }
-                std::cout << "numHitsMissing: " << numHitsMissing << " numHitsSearched: " << numHitsSearched << std::endl;
-                if(numHitsSearched > 0) std::cout << "numHitsMissing/numHitsSearched: " << (double)numHitsMissing/(double)numHitsSearched << std::endl;
+		mf::LogVerbatim("HoughBaseAlg") << "numHitsMissing: " 
+						<< numHitsMissing 
+						<< " numHitsSearched: " 
+						<< numHitsSearched;
+                if(numHitsSearched > 0) 
+		  mf::LogVerbatim("HoughBaseAlg") << "numHitsMissing/numHitsSearched: " 
+						  << (double)numHitsMissing/(double)numHitsSearched;
                 if(numHitsSearched > 0) 
                   if((double)numHitsMissing/(double)numHitsSearched > 0.1)
                     continue;
               }
 
-
-
-
-
-
-
-
-	      unsigned int sw = 0;
-	      unsigned int ew = 0;
-	      unsigned int sc = 0;
-	      unsigned int ec = 0;
-	      sc = (*clusterHits.begin())->Wire()->RawDigit()->Channel(); 
-	      geom->ChannelToWire(sc, cstat, tpc, plane, sw);
-	      
-	      ec = (*(clusterHits.end()-1))->Wire()->RawDigit()->Channel(); 
-	      geom->ChannelToWire(ec, cstat, tpc, plane, ew);
+	      unsigned int sw = (*clusterHits.begin())->WireID().Wire;
+	      unsigned int ew = (*(clusterHits.end()-1))->WireID().Wire;
 	      
 	      recob::Cluster cluster(sw, 0.,
 				     (*clusterHits.begin())->PeakTime(), 0.,
@@ -2740,20 +2477,21 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 				     slope, 0., 
 				     -999., 0., 
 				     totalQ,
-				     geom->Cryostat(cstat).TPC(tpc).Plane(plane).View(),
+				     geom->View((*clusterHits.begin())->Channel()),
 				     clusterID);	      
 	      
 	      ++clusterID;
 	      ccol.push_back(cluster);
 	      clusHitsOut.push_back(clusterHits);
-//Turn off hit sharing. T. Yang 9/14/12
-//	      //allow double assignment of first and last hits
-//	      for(size_t i = 0; i < lastHits.size(); ++i){ 
-//		if(skip[hitTemp[lastHits[i]]] ==1){
-//		  channel = hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();  
-//		  if( channel == sc || channel == ec) skip[i] = 0;
-//		}
-//	      }
+
+	      //Turn off hit sharing. T. Yang 9/14/12
+	      //	      //allow double assignment of first and last hits
+	      //	      for(size_t i = 0; i < lastHits.size(); ++i){ 
+	      //		if(skip[hitTemp[lastHits[i]]] ==1){
+	      //		  channel = hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();  
+	      //		  if( channel == sc || channel == ec) skip[i] = 0;
+	      //		}
+	      //	      }
               
 	    }// end if !isnan
    
@@ -2828,14 +2566,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector< art::Ptr<recob::Hit> >& hit
 
   c.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
 
-  unsigned int plane = 0;
-  unsigned int wire  = 0;
-  unsigned int tpc   = 0;
-  unsigned int cstat = 0;
   for(unsigned int i=0;i < hits.size(); ++i){
-    unsigned short channel = hits[i]->Wire()->RawDigit()->Channel();
-    geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-    c.AddPoint(wire, (int)(hits[i]->PeakTime()));
+    c.AddPoint(hits[i]->WireID().Wire, (int)(hits[i]->PeakTime()));
   }// end loop over hits
 
   //gets the actual two-dimensional size of the accumulator
