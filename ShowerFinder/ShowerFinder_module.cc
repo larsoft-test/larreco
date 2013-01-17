@@ -150,12 +150,6 @@ namespace shwf{
 
     art::ServiceHandle<geo::Geometry> geom;
     
-    unsigned int channel = 0;
-    unsigned int plane   = 0;
-    unsigned int wire    = 0;
-    unsigned int tpc     = 0;
-    unsigned int cstat   = 0;
-    
     //This vector will contain all strong and strongest vertices
     art::PtrVector<recob::EndPoint2D> vertSel;
     
@@ -246,16 +240,14 @@ namespace shwf{
 		art::Ptr<recob::Cluster> clust(clusterListHandle, iclust);
 	    
 		//Get the hits vector from the cluster
-		plane = p;
 		clusterhits = fmh.at(iclust);
 		if(clusterhits.size() == 0) continue;
 
 		//Loop over ALL hits in the cluster. Looking if the cluster's hit is comprised in the cone
 		for(size_t ihits = 0; ihits < clusterhits.size(); ++ihits){
-	      
-		  channel = clusterhits[ihits]->Wire()->RawDigit()->Channel();
-		  geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-		  x_hit = channel;
+
+		  
+		  x_hit = clusterhits[ihits]->WireID().Wire;
 		  y_hit = clusterhits[ihits]->PeakTime();
 	      
 		  // Check in hits is INSIDE cone
