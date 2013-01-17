@@ -206,8 +206,10 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	    }  
 	  }
 	  if(houghhit.size()){
-	    channel=houghhit[0]->Wire()->RawDigit()->Channel();
-	    geom->ChannelToWire(channel,cstat,tpc,plane,wire);
+	    cstat = houghhit[0]->WireID().Cryostat;
+	    tpc   = houghhit[0]->WireID().TPC;
+	    plane = houghhit[0]->WireID().Plane;
+	    wire  = houghhit[0]->WireID().Wire;
 	  }
 	  if(p==plane && t == tpc && cs == cstat){
 	    slope=(*houghIter)->dTdW();
@@ -215,8 +217,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	    for(unsigned int i=0;i < vertexhit.size(); i++){  
 	      
 	      distance=-1;
-	      channel=vertexhit[i]->Wire()->RawDigit()->Channel();
-	      geom->ChannelToWire(channel,cstat,tpc,plane,wire);
+	      wire  = vertexhit[i]->WireID().Wire;
 	      
 	      starttime=(*houghIter)->StartPos()[1];
 	      endtime=(*houghIter)->EndPos()[1];
@@ -230,7 +231,8 @@ void vertex::VertexMatch::produce(art::Event& evt)
 		  )
 		 &&((TMath::Abs(vertexhit[i]->PeakTime()-starttime)<fMaxDistance)
 		    ||(TMath::Abs(vertexhit[i]->PeakTime()-endtime)<fMaxDistance)
-		    ))          		  distance=(TMath::Abs(vertexhit[i]->PeakTime()-slope*(double)wire-intercept)/(sqrt(pow(.0743*slope,2)+1))); 
+		    ))          		  
+		distance=(TMath::Abs(vertexhit[i]->PeakTime()-slope*(double)wire-intercept)/(sqrt(pow(.0743*slope,2)+1))); 
 	      
 	      if(distance<(fMaxDistance+((vertexhit[i]->EndTime()-vertexhit[i]->StartTime())/2.))&&distance>-1)
 		matchedvertex.push_back(std::pair<art::Ptr<recob::Hit>,double>(vertexhit[i], weakvertexstrength[i]*sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
@@ -279,7 +281,6 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	  // I think this is grabbing first item in pair, itself a pointer then grabbing first 
 	  // (.begin()) one of those. EC, 18-Oct-2010.
 	  channel=(matchedvertex[i].first)->Wire()->RawDigit()->Channel();
-	  geom->ChannelToWire(channel,cstat,tpc,plane,wire);
 	  
 	  // strongvertex, despite name, is a hit vector.
 	  strongvertex.push_back(matchedvertex[i].first);
@@ -309,7 +310,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
 				   wire,
 				   strongvertexstrength[i],   
 				   id,
-				   geom->Cryostat(cs).TPC(tpc).Plane(plane).View(),
+				   geom->View(channel),
 				   totalQ);      
 	  
 	  mvertexcol->push_back(vertex);

@@ -197,14 +197,7 @@ namespace vertex{
 	  default :
 	    break;
 	  }
-	  
-	  unsigned int channel = 0;
-	  unsigned int wire    = 0;
-	  unsigned int t       = 0;
-	  unsigned int cs      = 0;
-	  unsigned int plane   = 0;
-	  double       time    = 0.;
-	  
+	  	  
 	  std::vector<double> wires;
 	  std::vector<double> times;
 	  
@@ -212,11 +205,8 @@ namespace vertex{
 
 	  int n = 0;
 	  for(size_t i = 0; i < hit.size(); ++i){
-	    time = hit[i]->PeakTime();
-	    channel = hit[i]->Channel();
-	    geom->ChannelToWire(channel,cs,t,plane,wire);
-	    wires.push_back(wire);
-	    times.push_back(time);
+	    wires.push_back(hit[i]->WireID().Wire);
+	    times.push_back(hit[i]->PeakTime());
 	    ++n;
 	  }
 	  if(n>=2){

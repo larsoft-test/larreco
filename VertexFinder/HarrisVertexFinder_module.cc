@@ -191,13 +191,6 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
     }
   }
   
-  unsigned int channel = 0;
-  unsigned int plane   = 0;
-  unsigned int wire    = 0;
-  unsigned int wire2   = 0;
-  unsigned int tpc     = 0;
-  unsigned int cstat   = 0;
-
   for(size_t cs = 0; cs < geom->Ncryostats(); ++cs){
     for(size_t t = 0; t < geom->Cryostat(cs).NTPC(); ++t){
       for(unsigned int p = 0; p < geom->Cryostat(cs).TPC(t).Nplanes(); ++p) {
@@ -231,8 +224,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 	  }
 	
 	for(unsigned int i = 0; i < hit.size(); ++i){
-	  channel = hit[i]->Wire()->RawDigit()->Channel();
-	  geom->ChannelToWire(channel,cstat,tpc,plane,wire);
+	  unsigned int wire = hit[i]->WireID().Wire;
 	  //pixelization using a Gaussian
 	  for(int j = 0;j <= (int)(hit[i]->EndTime()-hit[i]->StartTime()+.5); ++j)    
 	    hit_map[wire][(int)((hit[i]->StartTime()+j)*(fTimeBins/numbertimesamples)+.5)]+=Gaussian((int)(j-((hit[i]->EndTime()-hit[i]->StartTime())/2.)+.5),0,hit[i]->EndTime()-hit[i]->StartTime());      
@@ -291,8 +283,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 	    
 	    if(Cornerness[wire][timebin]>0){	  
 	      for(unsigned int i = 0;i < hit.size(); ++i){
-		channel = hit[i]->Wire()->RawDigit()->Channel();
-		geom->ChannelToWire(channel,cstat,tpc,plane,wire2);	 
+		unsigned int wire2 = hit[i]->WireID().Wire;
 		//make sure the vertex candidate coincides with an actual hit.
 		if(wire == wire2 
 		   && hit[i]->StartTime() < timebin*(numbertimesamples/fTimeBins) 
