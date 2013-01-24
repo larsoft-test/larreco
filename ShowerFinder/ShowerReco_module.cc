@@ -6,14 +6,19 @@
 // thomas.strauss@lhep.unibe.ch (ART  : general detector)
 //
 // andrzej.szelc@yale.edu (port to detector agnostic version)
+// jasaadi@fnal.gov (Try to rewrite the code to make it more readable and to be able to handle 
+//                   multiple TPC's and cryostats and more than one cluster per plane.)
 //
 // This algorithm is designed to reconstruct showers
 // 
 ///////////////////////////////////////////////////////////////////////
 
 
+
 //#ifndef SHOWERRECO_H
 //#define SHOWERRECO_H
+
+// ### Generic C++ includes ###
 #include <vector>
 #include <string>
 #include <cmath>
@@ -27,7 +32,7 @@ extern "C" {
 #include <sys/stat.h>
 }
 
-// Framework includes
+// ### Framework includes ###
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Core/EDProducer.h" 
 #include "art/Framework/Principal/Event.h" 
@@ -40,7 +45,7 @@ extern "C" {
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h" 
 
-//ROOT includes
+// ### ROOT includes ###
 #include "TMatrixD.h"
 #include "TVectorD.h"
 #include "TDecompSVD.h"
@@ -51,7 +56,7 @@ extern "C" {
 #include "TMath.h"
 #include "TTree.h"
 
-// LArSoft includes
+// ### LArSoft includes ###
 
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
@@ -75,60 +80,47 @@ namespace shwf {
 
   public:
 
-    /**METHODS global*/
-    explicit ShowerReco(fhicl::ParameterSet const& pset);/**Constructor*/
-    virtual ~ShowerReco();                               /**Destructor*/
+    // ### Global Methods ###
+    
+    /*** Constructor ****/
+    explicit ShowerReco(fhicl::ParameterSet const& pset);
+    /**** Destructor ****/
+    virtual ~ShowerReco();                              
     void beginJob();
     void reconfigure(fhicl::ParameterSet const& pset);
-    void produce(art::Event& evt);                       /**Actual routine that reconstruct the shower*/
+    /*** Event routine that reconstructs the showers ***/
+    void produce(art::Event& evt);                       
 
-    //  int    Get3Daxis(float thetaI, float thetaC, float Wire_vertexI, float Wire_vertexC, float Time_vertex); // in rad
-
+    /*** Asaadi: Need to define what this routine does ***/
     int Get3DaxisN(unsigned int set,int iplane0,int iplane1);
 
-    //  int Get3Daxis_coords();
-
-    //int    Get2Dvariables(float Wire_vertexI_wt, float Wire_vertexC_wt, float Time_I_wt, float Time_C_wt); // in rad
-    // void   GetVertex(art::Event& evt); // Get shower vertex
-    // void   GetVertexN(art::Event& evt); // Get shower vertex
-
+    /*** Get the clusters (aka showers) vertex and the slope of the cluster  ***/
     void   GetVertexAndAnglesFromCluster(art::Ptr< recob::Cluster > clust,unsigned int plane); // Get shower vertex and slopes.
-
+    
+    /*** Get the pitch length of both planes ***/
     void   GetPitchLength(unsigned int set); //Get pitch length of both planes
-    //  void   AngularDistributionI(art::PtrVector < recob::Hit> hitlistInd); //Get angular distribution of the shower (Induction plane)
-    //  void   AngularDistribution(art::PtrVector < recob::Hit> hitlist);  //Get angular distribution of the shower (Collection plane)
+    
+    /*** Asaadi: Need to define what this routine does ***/
     void   Get2DVariables(art::PtrVector < recob::Hit> hitlist);
-
+    
+    /*** Asaadi: Need to define what this routine does ***/
     void   FitAngularDistributions(int plane);
-    //   void   LongTransEnergyI(art::PtrVector < recob::Hit> hitlistInd); //Longtudinal and transverse enegry of the shower (Induction plane)
+    /*** Asaadi: Need to define what this routine does ***/
     void   LongTransEnergy(unsigned int set, std::vector< art::Ptr<recob::Hit> > hitlist, bool isData=false); //Longtudinal and transverse enegry of the shower (Collection plane)
+    /*** Asaadi: Need to define what this routine does ***/
     double ProjectedLength(unsigned int set,unsigned int plane )    const;
 
 
-
-
-    //    float LastWire[2];  // last wire of the shower
-    //    float LastTime[2];  // last t_hit of the shower
-
-    // 2D slope and intercept of the shower axis
+    // ### Variables for the 2D slope and intercept of the shower axis ###
     float slope[3];       // in cm, cm
     float intercept[3];   // in cm, cm
     float slope_wt[3];       // in wire, tick
     float intercept_wt[3];   // in wire,tick
 
 
-
-    //double fTotCharge;
-
-    // float wireI1; // Wire Vertex position (Induction)
-    //  float timeI1; // Time Vertex position (Induction)
-    //  float wire1C; // Wire Vertex poistion (Collection)
-    // float time1C; // Time Vertex position (Collection)
-
-    // Changed per Brian R. 2012/09/21
-    //    static constexpr float pi            = 3.141519;
-    static constexpr float pi            = M_PI;
-
+    static constexpr float pi            = M_PI; //<---aka 3.14159265
+    
+    // ### JAsaadi: Many parameters here hard coded that really don't need to be! ###
     float ftimetick; // time sample in us
     static constexpr float presamplings  = 60.;
     static constexpr float fdriftvelocity =  0.157;
@@ -156,15 +148,10 @@ namespace shwf {
     //  double CdEdx4cm_corr; //dedx of the first 4cm of the shower
     double totCnrg,totCnrg_corr;
     double fMean_wire_pitch ;   // wire pitch in cm
-    //std::string CaloConf;
+    
+    
     fhicl::ParameterSet fCaloPSet;
-    //     std::vector<double> fOmega_Mean;    // Mean value of the 2D angular distribution (0=Ind - 1=Coll) cm,cm
-    //     std::vector<double> fOmega_RMS;     // RMS of the 2D angular distribution  (0=Ind - 1=Coll) cm, cm
-    //
-    //     std::vector<double> fOmega_Mean_reb;    // Mean value of the 2D angular Rebinned by 4
-    //     std::vector<double> fOmega_RMS_reb;     // RMS of the 2D angular distribution  Rebinned by 4
-    //     std::vector<double> fOmega_Mean_Mean;    // Mean value of the 2D angular use mean instead of maximum
-    //  //   std::vector<double> fOmega_Mean_RMS;     // RMS of the 2D angular distribution use mean instead of maximum
+
     std::vector<double> fRMS_2cm;
     std::vector<int> fNpoints_2cm;
 
@@ -234,11 +221,6 @@ namespace shwf {
     std::vector< double > fThetaN, fPhiN; // 3d angles calculated using a new "det independent" method
     std::vector< double > fThetaN_ang, fPhiN_ang; // 3d angles calculated using a new "det"// independent method degrees
 
-    //  std::vector< double > fThetaNC, fPhiNC; // 3d angles calculated using a new "det independent" method
-    //  std::vector< double > fThetaNC_ang, fPhiNC_ang; // 3d angles calculated using a new "det"
-    //std::vector< double > fXvertex,fYvertex,fZvertex;
-    //std::vector< double > fXlast,fYlast,fZlast;
-
 
     //  std::vector<double> fPitch;
     std::vector< std::vector<double> > fNPitch;   // double array, to use each plane for each set of angles
@@ -271,16 +253,17 @@ namespace shwf {
 
     double xphi,xtheta;   // new calculated angles. Temporary fix.
 
-    // Variables to get the angular distribution of the hits
-    // float AI, BI, thetaI; // Induction  plane
 
-
+    // ### JAsaadi: Many parameters here hard coded that really don't need to be! ###
     static constexpr double calFactor=700.54;  // in ADC/fC
     static constexpr double eCharge=1.6e-4;  // electron charge in fC
 
 
   }; // class ShowerReco
 
+
+  //----------------------------------------------------------------------------------------------
+  //----- SortByWire takes a list of hits and sorts them by Channel number (lower to higher) -----
   struct SortByWire 
   {
     bool operator() (art::Ptr<recob::Hit> const& h1, art::Ptr<recob::Hit> const& h2) const  
@@ -290,6 +273,7 @@ namespace shwf {
   };
 
   //------------------------------------------------------------------------------
+  //--------------------- What will be produced in the event ---------------------
   ShowerReco::ShowerReco(fhicl::ParameterSet const& pset) 
   {
     this->reconfigure(pset);
@@ -301,6 +285,7 @@ namespace shwf {
   }
 
   //------------------------------------------------------------------------------
+  //-------------------- Reconfigure to get Module Lables ------------------------
   void  ShowerReco::reconfigure(fhicl::ParameterSet const& pset) 
   {
     fClusterModuleLabel = pset.get< std::string >("ClusterModuleLabel");
@@ -310,23 +295,38 @@ namespace shwf {
   }
 
   //------------------------------------------------------------------------------
+  //------------------------------- Destructor -----------------------------------
   ShowerReco::~ShowerReco()
   {
   }
 
-  // ***************** //
+  //------------------------------------------------------------------------------
+  //-------------------------------- Begin Job -----------------------------------
   void  ShowerReco::beginJob()
   {
 
 
-
-    /** Get Geometry*/
+    // ####################################
+    // ### Calling art geometry package ###
+    // ####################################
     art::ServiceHandle<geo::Geometry> geo;
 
-    /// \todo the call to geo->Nplanes() assumes this is a single cryostat and single TPC detector
-    /// \todo need to generalize to multiple cryostats and TPCs
-    fNPlanes = geo->Nplanes();
+    // ##########################################################################
+    // ### Looping over number of cryostats, TPCs to get the number of planes ###
+    // ##########################################################################
+    for(unsigned int cstat = 0; cstat < geo->Ncryostats(); ++cstat)
+    	{
+	for(unsigned int tpc =  0; tpc < geo->Cryostat(cstat).NTPC(); ++tpc)
+		{
+		// Finding the number of planes
+		fNPlanes = geo->Cryostat(cstat).TPC(tpc).Nplanes();
+		
+		
+		
+		}//<---End tpc loop
+	}//<---End cstat loop
     fMean_wire_pitch = geo->WirePitch(0,1,0);    //wire pitch in cm
+
 
     /**Get TFileService and define output Histograms*/
     art::ServiceHandle<art::TFileService> tfs;
@@ -447,7 +447,8 @@ namespace shwf {
  
   }
 
-  // ***************** //
+  // ---------------------------------------------------------------------------------
+  // ------------------------------ Event for Shower Reco ----------------------------
   void  ShowerReco::produce(art::Event& evt)
   { 
 
@@ -465,13 +466,32 @@ namespace shwf {
     ///\todo:  Probably need to use the cryostat and TPC objects to 
     ///\todo:  get number of planes more reliably.  ie
     ///\todo:  fNPlanes = geo->Cryostat(cstat).TPC(tpc).Nplanes();
-    fNPlanes = geo->Nplanes();
-    //fdriftvelocity = larprob->DriftVelocity(Efield_SI,Temperature);
-  
-    //calculate factorial for number of angles
+    
+    // ##########################################################################
+    // ### Looping over number of cryostats, TPCs to get the number of planes ###
+    // ##########################################################################
+    for(unsigned int cstat = 0; cstat < geo->Ncryostats(); ++cstat)
+    	{
+	for(unsigned int tpc =  0; tpc < geo->Cryostat(cstat).NTPC(); ++tpc)
+		{
+		// Finding the number of planes
+		fNPlanes = geo->Cryostat(cstat).TPC(tpc).Nplanes();
+		
+		
+		
+		}//<---End tpc loop
+	}//<---End cstat loop
+
+    // ####################################################
+    // ### Calculate the factorial for number of angles ###
+    // ####################################################
     int fact=1;
-    for (unsigned int i = 1; i <= fNPlanes; ++i) fact *= i;
-  
+    for (unsigned int i = 1; i <= fNPlanes; ++i) 
+    	{
+	fact *= i;
+	}//<---End i loop
+    
+    // === JAsaadi: Need to understand these variables ===  
     fNAngles=fact/2;
 
     fPhiN.resize(0);
@@ -558,63 +578,112 @@ namespace shwf {
     vdEdx.clear();
     vresRange.clear();
     vdQdx.clear(); 
+    
+    
+    // ==============================================
+    // === Filling Run, Subrun, Event information ===
+    // ==============================================
+    fRun = evt.id().run();
+    fSubRun = evt.id().subRun();
+    fEvent = evt.id().event();
   
-    /**Get Clusters*/
- 
+    // ##############################################################
+    // ### Getting the Reconstructed Clusters (clusterListHandle) ###
+    // ############################################################## 
     art::Handle< std::vector<recob::Cluster> > clusterListHandle;
     evt.getByLabel(fClusterModuleLabel,clusterListHandle);
-
+    
+    // ####################################################
+    // ### Making Ptr Vector (clusterAssociationHandle) ###
+    // ####################################################
     art::Handle< std::vector<art::PtrVector < recob::Cluster> > > clusterAssociationHandle;
     evt.getByLabel(fClusterModuleLabel,clusterAssociationHandle);
   
-  
+    
+    // #############################################################
+    // ### Finding the mapping of the clusters to the hits (fmh) ###
+    // #############################################################
     art::FindManyP<recob::Hit> fmh(clusterListHandle, evt,fClusterModuleLabel);
   
+    // ========================================
+    // === Looping over cluster::Ptr vector ===
+    // ========================================
+    for(size_t iClustSet = 0; iClustSet < clusterAssociationHandle->size(); iClustSet++)
+    	{
+ 	
+	// ====================================================================
+	// === Ptr Vector of Current Clusters looping over (CurrentClusters) ===
+	// ====================================================================
+      	art::PtrVector<recob::Cluster>  CurrentClusters=(*clusterAssociationHandle)[iClustSet];
+        
+	
+	// =====================================================================
+	// === Making a vector for all the hits in the cluster (hitlist_all) ===
+	// ===================================================================== 
+      	std::vector< std::vector< art::Ptr<recob::Hit> > > hitlist_all;
+	
+      	//=== JAsaadi: Why resize this to be the size of fNPlanes? ===
+      	hitlist_all.resize(fNPlanes);
   
-    for(size_t iClustSet = 0; iClustSet < clusterAssociationHandle->size(); iClustSet++){
- 
-      art::PtrVector<recob::Cluster>  CurrentClusters=(*clusterAssociationHandle)[iClustSet];
+   	
+	// ========================================
+	// === Looping over the CurrentClusters ===
+	// ========================================
+      	for(size_t iClust = 0; iClust < CurrentClusters.size(); iClust++)
+		{
+    		
+		// === JAsaadi: why use size_t and not unsigned int...does it matter ===
+		size_t ii=0; 
   
-      std::vector< std::vector< art::Ptr<recob::Hit> > > hitlist_all;
-      //art::PtrVector < recob::Hit> hitlistInd;
-      hitlist_all.resize(fNPlanes);
-  
-  
-      //std::unique_ptr<std::vector<recob::Shower> > Shower3DVector(new std::vector<recob::Shower>);
-  
-      for(size_t iClust = 0; iClust < CurrentClusters.size(); iClust++){
+  		// === Setting the ii variable to be the right value as the Current cluster ===
+		// === JAsaadi: Why are we doing this extra step to match clusters to hits? ===
+		for( ii = 0; ii < clusterListHandle->size(); ii++)
+			{
+	  		art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
+	  		if((*cl).ID() == (*CurrentClusters[iClust]).ID() )  //find the right cluster out of the list of associated clusters
+	    		break;
     
-	size_t ii=0; 
-  
-  
-	for( ii = 0; ii < clusterListHandle->size(); ii++){
-	  art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
-	  if((*cl).ID() == (*CurrentClusters[iClust]).ID() )  //find the right cluster out of the list of associated clusters
-	    break;
-    
-	}
-	// art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
-	//get vertex position and slope information to start with:
-    
-	std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(ii);
-	std::sort(hitlist.begin(), hitlist.end(),  SortByWire());
-    
-	if(hitlist.size() == 0) continue;
-      
-	art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
-	GetVertexAndAnglesFromCluster( cl, (*hitlist.begin())->WireID().Plane);
+			}//<---End ii loop
+			
+			
+		//get vertex position and slope information to start with:
+    		
+		// ==========================================================================================
+		// === Getting the list of hits for the cluster ii which is matched to the CurrentCluster ===
+		// ==========================================================================================
+		std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(ii);
+		
+		// ============================================================================
+		// === Now sort the hits using SortByWire() (Lowest Channel # to Highest #) ===
+		// ============================================================================
+		std::sort(hitlist.begin(), hitlist.end(),  SortByWire());
+    		
+		// ==================================================
+		// === Skip over if there are no hits to be found ===
+		// ==================================================
+		if(hitlist.size() == 0) continue;
+      		
+		// ===================================================================
+		// ===  Now picking the current cluster (which is the same as ii)  ===
+		// === to get the "vertex" (which is the start of the cluster) and ===
+		// ===                 the angles from the cluster                 ===
+		// ===================================================================
+		art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
+		
+		// ==================================================================================
+		// === Passing the current cluster and the plane of the first hit in this cluster ===
+		// ==================================================================================
+		GetVertexAndAnglesFromCluster( cl, (*hitlist.begin())->WireID().Plane);
           
       
-	//loop over cluster hits
-	for(art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin(); a != hitlist.end();  a++){
-	  hitlist_all[(*a)->WireID().Plane].push_back(*a);      
-	}
+		//loop over cluster hits
+		for(art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin(); a != hitlist.end();  a++){
+	  	hitlist_all[(*a)->WireID().Plane].push_back(*a);      
+		}
 
-      } // End loop on clusters.
+      		} //<---End loop on clusters iClust.
 
-      fRun = evt.id().run();
-      fSubRun = evt.id().subRun();
-      fEvent = evt.id().event();
+      	
   
   
   
@@ -835,7 +904,7 @@ namespace shwf {
       evt.put(std::move(hassn));
       evt.put(std::move(calorimetrycol));
       evt.put(std::move(calassn));
-    } // end loop on Vectors of "Associated clusters"
+	} //<---end loop on Vectors of "Associated clusters"
 
   }
 
@@ -1532,7 +1601,10 @@ namespace shwf {
 
 
 
-  //------------------------------------------------------------------------------------//  
+  //-----------------------------------------------------------------------------------------------
+  //---- Grabbing the predetermined (e.g. from ShowerAngleCluster) 2-d slope and start postion ----
+  //---- JAsaadi: This seems to only save this for one cluster per plane...i.e. the vector it  ----
+  //----                    is saving is only one value for plane = ###                        ----
   void    ShowerReco::GetVertexAndAnglesFromCluster(art::Ptr< recob::Cluster > clust,unsigned int plane) 
   // Get shower vertex and slopes.
   {
