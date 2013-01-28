@@ -679,13 +679,18 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
   // make an art::PtrVector of the clusters
   std::unique_ptr<std::vector<recob::Cluster> > ShowerAngleCluster(new std::vector<recob::Cluster>);
   std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
-
-  for(unsigned int iplane=0;iplane<fNPlanes;iplane++){
+  
+  // Asaadi
+  for(unsigned int iplane=0;iplane<clusterListHandle->size();iplane++){
+  //for(unsigned int iplane=0;iplane<fNPlanes;iplane++){
     std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iplane);
     if(hitlist.size()>0) {
       
       double wverror=fWireVertex[iplane]*0.05,tverror=fTimeVertex[iplane]*0.05;
-    
+     
+    geo::View_t viewfix = hitlist[0]->View();
+      
+      
       if(startflag[iplane])
 	{
 	  wverror=0;
@@ -699,8 +704,9 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
 			  fWireLast[iplane], fWireLast[iplane]*0.05,
 			  fTimeLast[iplane], fTimeLast[iplane]*0.05,  
 			  xangle[iplane], xangle[iplane]*0.05, lineslope[iplane],lineinterc[iplane],5.,
-			  geo->Plane(iplane,0,0).View(),
-			  iplane);
+			  viewfix,
+			 // geo->Cryostat(cstat).TPC(tpc).Plane(plane).View(), //(Fix me!!!)
+		          ShowerAngleCluster->size());
   
       mf::LogVerbatim("ShowerAngleCluster")  << " Saving cluster for plane: " << iplane << " w,t " << fWireVertex[iplane] << " " << fTimeVertex[iplane] << " 2D angle: " <<  xangle[iplane] << " lslope " << lineslope[iplane] << std::endl;
 
