@@ -166,7 +166,7 @@ void GausHitFinder::produce(art::Event& evt)
   // ---------------------------
   // --- Seed Fit Functions  --- (This function used to "seed" the mean peak position)
   // ---------------------------
-  TF1 *hit	= new TF1("hit","gaus",0,9000);
+  TF1 *hit	= new TF1("hit","gaus",0,3200);
 
   std::unique_ptr<std::vector<recob::Hit> > hcol(new std::vector<recob::Hit>);
     
@@ -390,6 +390,8 @@ void GausHitFinder::produce(art::Event& evt)
       // ###      number...so we fix this to be 0 so that this hit is skipped    ###
       // ###########################################################################
       if(size < 0){size = 0;}
+      
+
       // --- TH1D HitSignal ---
       TH1D hitSignal("hitSignal","",size,startT,endT);
 	  
@@ -435,6 +437,7 @@ void GausHitFinder::produce(art::Event& evt)
 	  // ### Set the parameters of the Gaus hit based on the seedHit fit ###
 	  // ###################################################################
 	  //amplitude = 0.5*(threshold+signal[maxTimes[hitIndex+i]]);
+	  
 	  amplitude = signal[maxTimes[hitIndex+i]];
 	  Gaus.SetParameter(3*i,amplitude);
 	  Gaus.SetParameter(1+3*i, maxTimes[hitIndex+i]);
@@ -460,6 +463,7 @@ void GausHitFinder::produce(art::Event& evt)
       // ### PERFORMING THE TOTAL GAUSSIAN FIT OF THE HIT ###
       // ####################################################
       hitSignal.Sumw2();
+      
       hitSignal.Fit(&Gaus,"QNRW","", startT, endT);
       //hitSignal.Fit(&Gaus,"QR0LLi","", startT, endT);
 	  
@@ -487,11 +491,14 @@ void GausHitFinder::produce(art::Event& evt)
 	      
 	      
 	  //MeanPosError			= Gaus.GetParError(3*hitNumber+1);
+	  
+	  
+		
 	      
 	  hitSig.resize(size);
 	  for(int sigPos = 0; sigPos<size; sigPos++){ //<---Loop over the size (endT - startT)
 		
-	    hitSig[sigPos] = Gaus.GetParameter(3*hitNumber)*TMath::Gaus(sigPos+startT,Gaus.GetParameter(1), Gaus.GetParameter(3*hitNumber+2));
+	    hitSig[sigPos] = Gaus.GetParameter(3*hitNumber)*TMath::Gaus(sigPos+startT,Gaus.GetParameter(3*hitNumber+1), Gaus.GetParameter(3*hitNumber+2));
 	    totSig+=hitSig[(int)sigPos];
 		
 	  }//<---End Signal postion loop
@@ -511,7 +518,6 @@ void GausHitFinder::produce(art::Event& evt)
 	  AmpError			= Gaus.GetParError(3*hitNumber);
 	  NumOfHits			= numHits;
 	      
-	      
 	  // #######################################################
 	  // ### Using seeded values to get a better estimate of ###
 	  // ###        the errors associated with the fit       ###
@@ -519,6 +525,7 @@ void GausHitFinder::produce(art::Event& evt)
 	  // -----------------------------------------
 	  // --- Determing the goodness of the fit ---
 	  // -----------------------------------------
+	  hit->SetParameters(Amp,MeanPosition, Gaus.GetParameter(3*hitNumber+2));
 	  hit->FixParameter(0,Amp);
 	  //hit->SetParLimits(0,Amp/2, Amp*2);
 	  //hit->FixParameter(1,MeanPosition);
@@ -527,7 +534,13 @@ void GausHitFinder::produce(art::Event& evt)
 	  // #############################
 	  // ### Perform Hit on Signal ###
 	  // #############################
-	  hitSignal.Fit(hit,"QNRLLi","", StartIime, EndTime);
+
+	
+	  float TempStartIime = MeanPosition - 4;
+	  float TempEndTime   = MeanPosition  + 4;
+	 	
+	  hitSignal.Fit(hit,"QNRLLi","", TempStartIime, TempEndTime);
+	
 	      
 	  FitGoodnes			= hit->GetChisquare() / hit->GetNDF();
 	      
