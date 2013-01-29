@@ -55,7 +55,8 @@ private:
 
   void FindHitsOnChannel(std::map<unsigned short, std::vector<sim::IDE> > const& idemap,
 			 std::vector<recob::Hit>& hits,
-			 art::Ptr<recob::Wire>&   wire);
+  			 art::Ptr<recob::Wire>&   wire, int spill);
+
 
   std::string         fG4ModuleLabel;        ///< label name for module making sim::SimChannels
   std::string         fWireModuleLabel;      ///< label name for module making recob::Wires
@@ -63,7 +64,9 @@ private:
   std::vector<TH1D *> fChannelEnergyDepsCol; ///< Energy depositions vs time for each collection channel
   double              fMinCharge;            ///< Minimum charge required to make a hit
   double              fElectronsToADC;       ///< Conversion factor of electrons to ADC counts
-
+  std::string         fCalDataProductInstanceName;      ///< label name for module making recob::Wires
+  int                 fReadOutWindowSize;        ///< Number of samples in a readout window; NOT #total samples
+  int                 fNumberTimeSamples;        ///< Number of total time samples (N*readoutwindowsize)
 };
 
 //-------------------------------------------------------------------
@@ -87,7 +90,15 @@ void hit::HitCheater::produce(art::Event & e)
 
   // Read in the wire List object(s).
   art::Handle< std::vector<recob::Wire> > wHandle;
-  e.getByLabel(fWireModuleLabel,wHandle);
+  int whatSpill = 1;
+  if( fCalDataProductInstanceName.size()>0 ) {
+    e.getByLabel(fWireModuleLabel,fCalDataProductInstanceName,wHandle);
+    if( fCalDataProductInstanceName.find("ost") != std::string::npos) whatSpill=2;
+    else whatSpill=0;
+  }
+  else {
+    e.getByLabel(fWireModuleLabel,wHandle);
+  }
   
   // make a map of wires to channel numbers
   std::map<unsigned int, art::Ptr<recob::Wire> > wireMap;
@@ -106,7 +117,7 @@ void hit::HitCheater::produce(art::Event & e)
     // loop over all the ides for this channel
     const std::map<unsigned short, std::vector<sim::IDE> >& idemap = sccol[sc]->TDCIDEMap();
     
-    FindHitsOnChannel(idemap, *hits, wireMap.find(sccol[sc]->Channel())->second);
+    FindHitsOnChannel(idemap, *hits, wireMap.find(sccol[sc]->Channel())->second, whatSpill);
 
   }// end loop over SimChannels
 
@@ -120,7 +131,7 @@ void hit::HitCheater::produce(art::Event & e)
 //-------------------------------------------------------------------
 void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim::IDE> > const& idemap,
 					std::vector<recob::Hit>& hits,
-					art::Ptr<recob::Wire>&   wire)
+					art::Ptr<recob::Wire>&   wire, int spill)
 {
   art::ServiceHandle<geo::Geometry> geo;
 
@@ -137,6 +148,13 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
   unsigned short prev = mapitr->first;
   for(mapitr = idemap.begin(); mapitr != idemap.end(); mapitr++){
     unsigned short tdc = mapitr->first;
+
+
+    if( fReadOutWindowSize != fNumberTimeSamples ) {
+      if( tdc<spill*fReadOutWindowSize || tdc>(spill+1)*fReadOutWindowSize )  continue;
+    }
+    
+
 
     // more than a one tdc gap between times with 
     // signal, start a new hit
@@ -278,6 +296,18 @@ void hit::HitCheater::reconfigure(fhicl::ParameterSet const & p)
   fMinCharge       = p.get< double      >("MinimumCharge",   5.        );
   art::ServiceHandle<util::DetectorProperties> detprop;
   fElectronsToADC = detprop->ElectronsToADC();
+
+
+   fCalDataProductInstanceName="";
+   size_t pos = fWireModuleLabel.find(":");
+   if( pos!=std::string::npos ) {
+     fCalDataProductInstanceName = fWireModuleLabel.substr( pos+1 );
+     fWireModuleLabel = fWireModuleLabel.substr( 0, pos );
+   }
+
+   fReadOutWindowSize  = art::ServiceHandle<util::DetectorProperties>()->ReadOutWindowSize();
+   fNumberTimeSamples  = art::ServiceHandle<util::DetectorProperties>()->NumberTimeSamples();
+
 
   return;
 }

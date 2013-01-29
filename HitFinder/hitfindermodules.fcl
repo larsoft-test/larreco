@@ -8,6 +8,11 @@ standard_hitcheater:
  MinimumCharge:     5.
 }
 
+standard_hitcheater_preSpill:  @local::standard_hitcheater
+standard_hitcheater_postSpill: @local::standard_hitcheater
+standard_hitcheater_preSpill.WireModuleLabel:  "caldataPreSpill:preSpill"
+standard_hitcheater_postSpill.WireModuleLabel: "caldataPostSpill:postSpill"
+
 standard_hitfinder:
 {
  module_type:         "FFTHitFinder"
