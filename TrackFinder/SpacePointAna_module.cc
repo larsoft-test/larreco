@@ -317,23 +317,31 @@ namespace trkf {
 	//if(sumw != 0.)
 	//  tav = sumt / sumw;
 
-	std::vector<double> hitxyz = bt->HitToXYZ(*ihit);
-	double tav = detprop->ConvertXToTicks(hitxyz[0], (*ihit)->WireID().Plane, (*ihit)->WireID().TPC, (*ihit)->WireID().Cryostat);
-
-	if((*ihit)->View() == geo::kU) {
-	  fHDTUE->Fill(tpeak - tav);
-	  fHDTUPull->Fill((tpeak - tav) / terr);
+	bool tav_ok = true;
+	double tav = 0.;
+	try {
+	  std::vector<double> hitxyz = bt->HitToXYZ(*ihit);
+	  tav = detprop->ConvertXToTicks(hitxyz[0], (*ihit)->WireID().Plane, (*ihit)->WireID().TPC, (*ihit)->WireID().Cryostat);
 	}
-	else if((*ihit)->View() == geo::kV) {
-	  fHDTVE->Fill(tpeak - tav);
-	  fHDTVPull->Fill((tpeak - tav) / terr);
+	catch(cet::exception& x) {
+	  tav_ok = false;
 	}
-	else if((*ihit)->View() == geo::kW) {
-	  fHDTWE->Fill(tpeak - tav);
-	  fHDTWPull->Fill((tpeak - tav) / terr);
+	if(tav_ok) {
+	  if((*ihit)->View() == geo::kU) {
+	    fHDTUE->Fill(tpeak - tav);
+	    fHDTUPull->Fill((tpeak - tav) / terr);
+	  }
+	  else if((*ihit)->View() == geo::kV) {
+	    fHDTVE->Fill(tpeak - tav);
+	    fHDTVPull->Fill((tpeak - tav) / terr);
+	  }
+	  else if((*ihit)->View() == geo::kW) {
+	    fHDTWE->Fill(tpeak - tav);
+	    fHDTWPull->Fill((tpeak - tav) / terr);
+	  }
+	  else
+	    throw cet::exception("SpacePointAna") << "Bad view = " << (*ihit)->View() << "\n";
 	}
-	else
-	  throw cet::exception("SpacePointAna") << "Bad view = " << (*ihit)->View() << "\n";
       }
     }
     
@@ -476,16 +484,19 @@ namespace trkf {
       fHy->Fill(spt.XYZ()[1]);
       fHz->Fill(spt.XYZ()[2]);
       if(mc) {
-	std::vector<double> mcxyz = bt->SpacePointHitsToXYZ(fSptalgDefault.getAssociatedHits(spt));
-	fHMCdx->Fill(spt.XYZ()[0] - mcxyz[0]);
-	fHMCdy->Fill(spt.XYZ()[1] - mcxyz[1]);
-	fHMCdz->Fill(spt.XYZ()[2] - mcxyz[2]);
-	if(spt.ErrXYZ()[0] > 0.)
-	  fHMCxpull->Fill((spt.XYZ()[0] - mcxyz[0]) / std::sqrt(spt.ErrXYZ()[0]));
-	if(spt.ErrXYZ()[2] > 0.)
-	  fHMCypull->Fill((spt.XYZ()[1] - mcxyz[1]) / std::sqrt(spt.ErrXYZ()[2]));
-	if(spt.ErrXYZ()[5] > 0.)
-	  fHMCzpull->Fill((spt.XYZ()[2] - mcxyz[2]) / std::sqrt(spt.ErrXYZ()[5]));
+	try {
+	  std::vector<double> mcxyz = bt->SpacePointHitsToXYZ(fSptalgDefault.getAssociatedHits(spt));
+	  fHMCdx->Fill(spt.XYZ()[0] - mcxyz[0]);
+	  fHMCdy->Fill(spt.XYZ()[1] - mcxyz[1]);
+	  fHMCdz->Fill(spt.XYZ()[2] - mcxyz[2]);
+	  if(spt.ErrXYZ()[0] > 0.)
+	    fHMCxpull->Fill((spt.XYZ()[0] - mcxyz[0]) / std::sqrt(spt.ErrXYZ()[0]));
+	  if(spt.ErrXYZ()[2] > 0.)
+	    fHMCypull->Fill((spt.XYZ()[1] - mcxyz[1]) / std::sqrt(spt.ErrXYZ()[2]));
+	  if(spt.ErrXYZ()[5] > 0.)
+	    fHMCzpull->Fill((spt.XYZ()[2] - mcxyz[2]) / std::sqrt(spt.ErrXYZ()[5]));
+	}
+	catch(cet::exception& x) {}
       }
     }
   }

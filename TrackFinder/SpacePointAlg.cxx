@@ -912,7 +912,12 @@ namespace  trkf{
 	    
 	      // Get position of ionization for this hit.
 	    
-	      mcinfo.xyz = bt->SimIDEsToXYZ(ides);
+	      try {
+		mcinfo.xyz = bt->SimIDEsToXYZ(ides);
+	      }
+	      catch(cet::exception& x) {
+		mcinfo.xyz.clear();
+	      }
 	    } // end loop over ihit
 	  }// end loop oer planes
 	}// end loop over TPCs
@@ -928,28 +933,33 @@ namespace  trkf{
 	      const art::Ptr<recob::Hit>& phit = ihit->second;
 	      const recob::Hit& hit = *phit;
 	      HitMCInfo& mcinfo = fHitMCMap[&hit];
+	      if(mcinfo.xyz.size() != 0) {
+		assert(mcinfo.xyz.size() == 3);
 	    
-	      // Fill nearest neighbor information for this hit.
+		// Fill nearest neighbor information for this hit.
 	    
-	      for(int plane2 = 0; plane2 < nplane; ++plane2) {
-		for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator jhit = hitmap[cstat][tpc][plane2].begin();
-		    jhit != hitmap[cstat][tpc][plane2].end(); ++jhit) {
-		  const art::Ptr<recob::Hit>& phit2 = jhit->second;
-		  const recob::Hit& hit2 = *phit2;
-		  const HitMCInfo& mcinfo2 = fHitMCMap[&hit2];
-		
-		  assert(mcinfo.xyz.size() == 3);
-		  assert(mcinfo2.xyz.size() == 3);
-		  double dx = mcinfo.xyz[0] - mcinfo2.xyz[0];
-		  double dy = mcinfo.xyz[1] - mcinfo2.xyz[1];
-		  double dz = mcinfo.xyz[2] - mcinfo2.xyz[2];
-		  double dist2 = dx*dx + dy*dy + dz*dz;
-		  if(dist2 < mcinfo.dist2[plane2]) {
-		    mcinfo.dist2[plane2] = dist2;
-		    mcinfo.pchit[plane2] = &hit2;
-		  }
-		}// end loop over jhit
-	      }// end loop over plane2
+		for(int plane2 = 0; plane2 < nplane; ++plane2) {
+		  for(std::map<unsigned int, art::Ptr<recob::Hit> >::const_iterator jhit = hitmap[cstat][tpc][plane2].begin();
+		      jhit != hitmap[cstat][tpc][plane2].end(); ++jhit) {
+		    const art::Ptr<recob::Hit>& phit2 = jhit->second;
+		    const recob::Hit& hit2 = *phit2;
+		    const HitMCInfo& mcinfo2 = fHitMCMap[&hit2];
+		    
+		    
+		    if(mcinfo2.xyz.size() != 0) {
+		      assert(mcinfo2.xyz.size() == 3);
+		      double dx = mcinfo.xyz[0] - mcinfo2.xyz[0];
+		      double dy = mcinfo.xyz[1] - mcinfo2.xyz[1];
+		      double dz = mcinfo.xyz[2] - mcinfo2.xyz[2];
+		      double dist2 = dx*dx + dy*dy + dz*dz;
+		      if(dist2 < mcinfo.dist2[plane2]) {
+			mcinfo.dist2[plane2] = dist2;
+			mcinfo.pchit[plane2] = &hit2;
+		      }
+		    }// end if mcinfo2.xyz valid
+		  }// end loop over jhit
+		}// end loop over plane2
+	      }// end if mcinfo.xyz valid.
 	    }// end loop over ihit
 	  }// end loop over plane
 	}// end loop over tpc
