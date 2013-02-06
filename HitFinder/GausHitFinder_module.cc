@@ -558,7 +558,6 @@ void GausHitFinder::produce(art::Event& evt)
 	  // ####################################################################################
 	  if(FitGoodnes > fChi2NDF){continue;}
 	      
-
 	  // get the WireID for this hit
 	  std::vector<geo::WireID> wids = geom->ChannelToWire(channel);
 	  ///\todo need to have a disambiguation algorithm somewhere in here

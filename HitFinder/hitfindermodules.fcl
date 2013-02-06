@@ -60,12 +60,15 @@ gaus_hitfinderana:
  LArGeantModuleLabel:  "largeant"
 }
 
-argoneut_hitfinder:   @local::standard_hitfinder
+bo_hitfinder:       @local::standard_hitfinder
+bo_gaushitfinder:   @local::gaus_hitfinder
+
+argoneut_hitfinder:     @local::standard_hitfinder
 argoneut_gaushitfinder: @local::gaus_hitfinder
-argoneut_mc_hitfinder: @local::standard_hitfinder
+argoneut_mc_hitfinder:  @local::standard_hitfinder
 argoneut_mc_hitfinder.AreaNorms: [ 12.89, 14.51 ]
 
-microboone_hitfinder: @local::standard_hitfinder
+microboone_hitfinder:     @local::standard_hitfinder
 microboone_gaushitfinder: @local::gaus_hitfinder
 microboone_hitfinder.IndMinWidth: 1.0
 microboone_hitfinder.ColMinWidth: 1.0
@@ -73,5 +76,6 @@ microboone_gaushitfinder.IndMinWidth: 1.0
 microboone_gaushitfinder.ColMinWidth: 1.0
 
 lbne_hitfinder:       @local::standard_hitfinder
-lbne_gaushitfinder:       @local::gaus_hitfinder
+lbne_gaushitfinder:   @local::gaus_hitfinder
+
 END_PROLOG
