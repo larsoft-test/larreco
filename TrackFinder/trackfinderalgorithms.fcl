@@ -1,7 +1,5 @@
 BEGIN_PROLOG
 
-
-
 standard_spacepointalg:
 {
   MaxDT:      2.0
@@ -15,8 +13,6 @@ standard_spacepointalg:
   PreferColl: false
 }
 
-
-
 standard_seedfinderalgorithm:
 {
   SpacePointAlg:          @local::standard_spacepointalg
@@ -28,10 +24,7 @@ standard_seedfinderalgorithm:
   ExtendStep:             1.
   ExtendResolution:       2.
   MaxViewRMS:             [0.0,0.0,0.0]
-  
-
 }
-
 
 standard_beziertrackeralgorithm:
 {	
@@ -39,9 +32,10 @@ standard_beziertrackeralgorithm:
   MaxTrackMissAngle:   100.0
   MaxJumpDistance:     30.0
   HitDistance:         0.5
-
   SeedFinder:          @local::standard_seedfinderalgorithm
 }
+
+bo_spacepointalg: @local::standard_spacepointalg
 
 argoneut_spacepointalg: @local::standard_spacepointalg
 
@@ -74,17 +68,15 @@ standard_kalmanfilteralg:
   FitMomMS: false    # Fit momentum using multiple scattering.
 }
 
+bo_kalmanfilteralg:          @local::standard_kalmanfilteralg
 argoneut_kalmanfilteralg:    @local::standard_kalmanfilteralg
 microboone_kalmanfilteralg:  @local::standard_kalmanfilteralg
 lbne_kalmanfilteralg:        @local::standard_kalmanfilteralg
 
-
-
-microboone_seedfinderalgorithm:  @local::standard_seedfinderalgorithm
-microboone_seedfinderalgorithm.SpacePointAlg : @local::microboone_spacepointalg
+microboone_seedfinderalgorithm:                          @local::standard_seedfinderalgorithm
+microboone_seedfinderalgorithm.SpacePointAlg :           @local::microboone_spacepointalg
 microboone_seedfinderalgorithm.SpacePointAlg.PreferColl: true
-
-microboone_beziertrackeralgorithm: @local::standard_beziertrackeralgorithm
-microboone_beziertrackeralgorithm.SeedFinderAlgorithm: @local::microboone_seedfinderalgorithm
+microboone_beziertrackeralgorithm:                       @local::standard_beziertrackeralgorithm
+microboone_beziertrackeralgorithm.SeedFinderAlgorithm:   @local::microboone_seedfinderalgorithm
 
 END_PROLOG

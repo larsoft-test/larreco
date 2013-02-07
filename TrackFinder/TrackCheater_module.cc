@@ -176,6 +176,7 @@ namespace trkf{
 	size_t spStart = spcol->size();
 	for(size_t t = 0; t < numtraj; ++t){
 	  try{
+	    // check if the particle is inside a TPC
 	    double pos[3] = {part->Vx(t), part->Vy(t), part->Vz(t)};
 	    unsigned int tpc   = 0;
 	    unsigned int cstat = 0;
@@ -185,6 +186,12 @@ namespace trkf{
 	    continue;
 	  }
 	  
+	  LOG_DEBUG("TrackCheater") << "pos: [" << part->Vx(t) << ", " << part->Vy(t) 
+				    << ", "<< part->Vz(t) << "]\n"
+				    << "dir: [" << part->Px(t) << ", " << part->Py(t) 
+				    << ", "<< part->Pz(t) << "]\n"
+				    << "tot P: " << part->P();
+
 	  points[t].SetXYZ(part->Vx(t), part->Vy(t), part->Vz(t));
 	  dirs[t].SetXYZ(part->Px(t)/part->P(), part->Py(t)/part->P(), part->Pz(t)/part->P());
 
