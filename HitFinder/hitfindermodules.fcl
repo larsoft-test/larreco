@@ -60,6 +60,9 @@ gaus_hitfinderana:
  LArGeantModuleLabel:  "largeant"
 }
 
+jp250L_hitfinder:       @local::standard_hitfinder
+jp250L_gaushitfinder:   @local::gaus_hitfinder
+
 bo_hitfinder:       @local::standard_hitfinder
 bo_gaushitfinder:   @local::gaus_hitfinder
 
