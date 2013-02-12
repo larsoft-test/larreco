@@ -92,15 +92,23 @@ standard_dbscanalg_fast.eps:    1.25
 standard_dbscanalg_fast.epstwo: 1.75
 standard_dbscanalg_fast.Method: 2
 
+jp250L_dbscanalg:                  @local::standard_dbscanalg      
+jp250L_fuzzyclusteralg:            @local::standard_fuzzyclusteralg
+jp250L_houghbasealg:               @local::standard_houghbasealg   
+jp250L_houghbasealg.MaxLines:      15
+jp250L_houghbasealg.MinHits:       3
+jp250L_houghbasealg.NumAngleCells: 5000
+jp250L_houghbasealg.MaxDistance:   5.0
+jp250L_endpointalg:                @local::standard_endpointalg
 
-bo_dbscanalg:       @local::standard_dbscanalg
-bo_fuzzyclusteralg: @local::standard_fuzzyclusteralg 
-bo_houghbasealg:    @local::standard_houghbasealg
-bo_houghbasealg.MaxLines: 15
-bo_houghbasealg.MinHits: 3
-bo_houghbasealg.NumAngleCells: 5000
-bo_houghbasealg.MaxDistance: 5.0
-bo_endpointalg:     @local::standard_endpointalg
+bo_dbscanalg:                   @local::standard_dbscanalg      
+bo_fuzzyclusteralg:             @local::standard_fuzzyclusteralg
+bo_houghbasealg:                @local::standard_houghbasealg   
+bo_houghbasealg.MaxLines:       15
+bo_houghbasealg.MinHits:        3
+bo_houghbasealg.NumAngleCells:  5000
+bo_houghbasealg.MaxDistance:    5.0
+bo_endpointalg:                 @local::standard_endpointalg
 
 argoneut_dbscanalg:       @local::standard_dbscanalg
 argoneut_fuzzyclusteralg: @local::standard_fuzzyclusteralg 
