@@ -776,7 +776,7 @@ bool genf::RKTrackRep::RKutta (const GFDetPlane& plane,
   //for saving points only when the direction didnt change
   int Ssign=1;
   if(S<0) Ssign = -1;
-
+ 
   while(fabs(Step)>MINSTEP && !stopBecauseOfMaterial) {
     
     // call stepper and reduce stepsize

@@ -99,10 +99,13 @@ private:
   std::vector < TMatrixT<Double_t> > fHitMeasCov;
   std::vector < TMatrixT<Double_t> > fHitUpdate;
   std::vector < TMatrixT<Double_t> > fHitState;
-  std::vector < TMatrixT<Double_t> > fHitCov;
+  std::vector < Double_t >           fHitChi2;
   std::vector < TMatrixT<Double_t> > fHitCov7x7;
+  std::vector < TMatrixT<Double_t> > fHitCov;
   std::vector < TVector3 >  fHitPlaneXYZ;
   std::vector < TVector3 >  fHitPlaneUxUyUz;
+  std::vector < TVector3 >  fHitPlaneU;
+  std::vector < TVector3 >  fHitPlaneV;
 
   int fPDG;
     
@@ -346,20 +349,25 @@ public:
   
   void setHitMeasuredCov(TMatrixT<Double_t> mat) {fHitMeasCov.push_back(mat);}
   void setHitUpdate(TMatrixT<Double_t> mat) {fHitUpdate.push_back(mat);}
+  void setHitChi2(Double_t mat) {fHitChi2.push_back(mat);}
   void setHitState(TMatrixT<Double_t> mat) {fHitState.push_back(mat);}
   void setHitCov(TMatrixT<Double_t> mat) {fHitCov.push_back(mat);}
   void setHitCov7x7(TMatrixT<Double_t> mat) {fHitCov7x7.push_back(mat);}
   void setHitPlaneXYZ(TVector3 pl) { fHitPlaneXYZ.push_back(pl);}
   void setHitPlaneUxUyUz(TVector3 pl) { fHitPlaneUxUyUz.push_back(pl);}
+  void setHitPlaneU(TVector3 pl) { fHitPlaneU.push_back(pl);}
+  void setHitPlaneV(TVector3 pl) { fHitPlaneV.push_back(pl);}
   void setPDG(int pdgt) {fPDG = pdgt;}
   std::vector < TMatrixT<Double_t> > getHitMeasuredCov() {return fHitMeasCov;}
   std::vector < TMatrixT<Double_t> > getHitUpdate() {return fHitUpdate;}
+  std::vector < Double_t > getHitChi2() {return fHitChi2;}
   std::vector < TMatrixT<Double_t> > getHitState() {return fHitState;}
   std::vector < TMatrixT<Double_t> > getHitCov() {return fHitCov;}
   std::vector < TMatrixT<Double_t> > getHitCov7x7() {return fHitCov;}
   std::vector < TVector3 > getHitPlaneXYZ()   {return fHitPlaneXYZ;}
   std::vector < TVector3 > getHitPlaneUxUyUz()   {return fHitPlaneUxUyUz;}
-
+  std::vector < TVector3 > getHitPlaneU()   {return fHitPlaneU;}
+  std::vector < TVector3 > getHitPlaneV()   {return fHitPlaneV;}
 
   int getPDG() {return fPDG;}
   /** @brief Get residuals

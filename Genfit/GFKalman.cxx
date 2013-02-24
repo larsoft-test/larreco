@@ -74,7 +74,7 @@ void genf::GFKalman::processTrack(GFTrack* trk){
   for(int ipass=0; ipass<2*fNumIt; ipass++){
     //    std::cout << "GFKalman:: numreps, numhits, ipass, direction"<< trk->getNumReps()<<", "<< trk->getNumHits()<<", "<< ipass<<", " <<direction << std::endl;
     //    if(floor(ipass/2)==fNumIt && direction==1) blowUpCovsDiag(trk);
-    if(ipass>0) blowUpCovs(trk);
+    if(ipass>0) blowUpCovs(trk); // Back to >0, not >=0 EC, 9-11-Feb-2013
     if(direction==1){
       trk->setNextHitToFit(0);
     }
@@ -290,8 +290,10 @@ genf::GFKalman::getChi2Hit(GFAbsRecoHit* hit, GFAbsTrackRep* rep)
 
 
   TMatrixT<Double_t> H = hit->getHMatrix(rep);
+
   // get hit covariances  
   TMatrixT<Double_t> V=hit->getHitCov(pl);
+  //  V[0][0] *= fErrScaleMTh;
   TMatrixT<Double_t> r=hit->residualVector(rep,state,pl);
   assert(r.GetNrows()>0);
 
@@ -456,10 +458,10 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   TMatrixT<Double_t> H=hit->getHMatrix(rep,beta,dist);
 
 
-  // Can force huge error here on p, and thus insensitivity to p, by
-  // setting V[0][0]->inf.
-  TMatrixT<Double_t> V=hit->getHitCov(pl,plPrev,state,mass);
-  V[0][0] = V[0][0]*fErrScaleMTh;
+  // Can force huge error here on p and du,v/dw, and thus insensitivity to p, 
+  // by setting V[0][0]->inf.
+  TMatrixT<Double_t> V=hit->getHitCov(pl,plPrev,state,mass); 
+  V[0][0] *= fErrScaleMTh;
   tr->setHitMeasuredCov(V);
 
   // calculate kalman gain ------------------------------
@@ -495,19 +497,27 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   // (with measurement errors in it) we'd expect a smear like this on ang.
   // EC, 22-Feb-2012. 
   // Error is taken on th^2
-  ang = (H*state)[0][0];
+  ang = (Hnew*state)[0][0]; // H->Hnew
 
   // fErrScale is extra-fun bonus factor!
-  thetaPlanes = ang*ang + fErrScaleSTh*gRandom->Gaus(0.0,V[0][0]);
+  //thetaPlanes = ang*ang; // + fErrScaleSTh*gRandom->Gaus(0.0,V[0][0]);
+  thetaPlanes = gRandom->Gaus(0.0,ang*ang);
   thetaPlanes = TMath::Min(sqrt(fabs(thetaPlanes)),0.95*TMath::Pi()/2.0);
 
   Double_t dtheta =  thetaMeas - thetaPlanes; // was fabs(res[0][0]). EC, 26-Jan-2012
-  if ((ihit==(nhits-1)&&direction==-1) || (ihit==0&&direction==1)) 
-    dtheta = 0.0;
+  if (((ihit==(nhits-1)||ihit==(nhits-2))&&direction==-1) || ((ihit==0||ihit==1)&&direction==1)) 
+    {
+      dtheta = 0.0; // at the bare minimum (Jan-2013). Now (Feb-2013), ....
+      // Do not let these 4 points*direction influence the state or chi2.
+      rep->setData(state,pl,&cov); // This is where fState,
+                                   // fRefPlane and fCov are updated.
+      pointerPrev = pointer;
+      return;
+    }
 
   oldState = state;
 
-  res[0][0] = dtheta;
+  res[0][0] = dtheta/Hnew[0][0];
   // The particle was propagated through material until its poca
   // to this current hit was found. At that point its plane is defined, 
   // in which du/dw=dv/dw=0 by construction. But, there's a deviation
@@ -515,7 +525,7 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   TVector3 uPrev(plPrev.getU());
   TVector3 vPrev(plPrev.getV());
   TVector3 wPrev(u.Cross(v));
-  // We want the newest momentum vector's du,v/dw defined in the prev plane. 
+  // We want the newest momentum vector's d{u,v}/dw defined in the prev plane. 
   // That is the predicted du,v/dw. We will subtract from the actual.
   // But the u's and v's need to come from the State not the Planes, cuz I
   // haven't updated pl,plPrev per latest State. plFilt, the updated plPrev,
@@ -528,10 +538,10 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
       vPrev = plFilt.getV();
       wPrev = plFilt.getNormal();
     }
-  res[1][0] = (pointer*uPrev)/(pointer*wPrev) - (w*uPrev)/(w*wPrev);
-  res[2][0] = (pointer*vPrev)/(pointer*wPrev) - (w*vPrev)/(w*wPrev);
-  res[1][0] = 0.0;
-  res[2][0] = 0.0;
+  //res[1][0] = (pointer*uPrev)/(pointer*wPrev) - (w*uPrev)/(w*wPrev);
+  //res[2][0] = (pointer*vPrev)/(pointer*wPrev) - (w*vPrev)/(w*wPrev);
+  //  res[1][0] = 0.0;
+  //  res[2][0] = 0.0;
 
   TMatrixT<Double_t> update=Gain*res;
 
@@ -544,7 +554,15 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   // migrate across zero. Similarly, don't allow tiny momentum.
   // 
   tr->setHitUpdate(update);
-  if (fabs(update[0][0])>fMaxUpdate ) update[0][0] = 0.0;/* update.Zero();*/
+  if (fabs(update[0][0])>fMaxUpdate ) 
+    { // zero the gain so as to not update cov, state
+      // zero the updates
+      update[0][0] = 0.0;/* */
+      //      update[0][0] = fMaxUpdate*update[0][0]/fabs(update[0][0]);
+      // either of below leads to craziness, somehow.
+      // update.Zero();
+      // Gain.Zero();
+    }
   state+=update; // prediction overwritten!      
 
   // Debugging purposes
@@ -554,15 +572,18 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
       //      std::cout << "GFKalman:: Beginnings of a problem." << std::endl;
       Hnew[0][0] = Hnew[0][0] - eps/Gain[0][0];
     }
+  TMatrixT<Double_t> GHc(GH*cov);
   
   cov-=Gain*(Hnew*cov);
+
   // Below is protection required at end of contained track when
   // momentum is tiny and cov[0][0] gets huge.
   
-  if (cov[0][0]>pi2/Hnew[0][0] || cov[0][0] <= 0.0 || TMath::IsNaN(cov[0][0])) 
-    {
-      //    cov[0][0]=pi2/Hnew[0][0];
-      cov = covFilt;
+  //  if (cov[0][0]>pi2/Hnew[0][0] || cov[0][0] <= 0.0 || TMath::IsNaN(cov[0][0])) 
+  if (cov[0][0] <= 0.0 || TMath::IsNaN(cov[0][0])) 
+                                                                                                                                                                                                                                                                                             {
+      cov[0][0]=pi2/Hnew[0][0]; // some big value.a
+      //cov = covFilt;
     }
   else  // store away a good cov matrix
     {
@@ -608,22 +629,26 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
 
   tr->setHitPlaneXYZ(plFilt.getO());
   tr->setHitPlaneUxUyUz(plFilt.getNormal());
+  tr->setHitPlaneU(plFilt.getU());
+  tr->setHitPlaneV(plFilt.getV());
+
   // calculate filtered chisq from filtered residuals
   TMatrixT<Double_t> r=hit->residualVector(rep,state,plFilt,plPrev,mass);
   if (direction==-1) wold.Rotate(TMath::Pi(),wold.Orthogonal());
   dtheta = thetaMeas - TMath::Min(fabs(wold.Angle(plFilt.getNormal())),0.95*TMath::Pi()/2.);
-  r[0][0] = dtheta;
-  r[1][0] = (pointer*uPrev)/(pointer*wPrev) - (wf*uPrev)/(wf*wPrev);
-  r[2][0] = (pointer*vPrev)/(pointer*wPrev) - (wf*vPrev)/(wf*wPrev);
-  r[1][0] = 0.;
-  r[2][0] = 0.;
+  r[0][0] = dtheta/Hnew[0][0];
+  //r[1][0] = (pointer*uPrev)/(pointer*wPrev) - (wf*uPrev)/(wf*wPrev);
+  //r[2][0] = (pointer*vPrev)/(pointer*wPrev) - (wf*vPrev)/(wf*wPrev);
+  //r[1][0] = 0.;
+  //r[2][0] = 0.;
 
   double chi2 = chi2Increment(r,Hnew,cov,V);
   int ndf = r.GetNrows();
+  if (update[0][0]==0.0) {chi2=0.0; ndf=0;};
   rep->addChiSqu( chi2 );
   rep->addNDF( ndf );
   pointerPrev = pointer;
-
+  tr->setHitChi2(chi2);
   /*
   if(direction==1){
     tr->getBK(irep)->setNumber("fChi2",ihit,chi2/ndf);
@@ -665,7 +690,7 @@ genf::GFKalman::calcCov7x7(const TMatrixT<Double_t>& cov, const GFDetPlane& plan
   double pTildeMag = pTilde.Mag();
 
   jac.Zero();
-  jac[6][0] = 1.0; // C; // 1/C;
+  jac[6][0] = 1.; //  Should be C as in GFSpacepointHitPolicy. 16-Feb-2013.
 
   jac[0][3] = u[0];
   jac[1][3] = u[1];
@@ -760,6 +785,7 @@ genf::GFKalman::calcGain(const TMatrixT<Double_t>& cov,
 
   }
 
+  // gain is CH^T/(V + HCH^T)
   // calculate gain
   TMatrixT<Double_t> gain1(H,TMatrixT<Double_t>::kTransposeMult,covsum);
   TMatrixT<Double_t> gain(cov,TMatrixT<Double_t>::kMult,gain1);

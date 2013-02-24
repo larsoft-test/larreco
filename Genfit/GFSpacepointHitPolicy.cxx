@@ -317,7 +317,7 @@ genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, c
 
   // That was delta(cos(theta))^2. I want delta(theta)^2. dTh^2 = d(cosTh)^2/sinTh^2
   Double_t theta(TMath::ACos((plane.getO()-planePrev.getO()).Unit() * (planePrev.getO()-planePrevPrev.getO()).Unit()));
-  rawCov[6][6] = pow(dcosTh,2.)/pow(TMath::Sin(theta),2.);
+  rawCov[6][6] = TMath::Min(pow(dcosTh,2.)/pow(TMath::Sin(theta),2.),pow(TMath::Pi()/2.0,2.));
 
   // This means I'm too close to the endpoints to have histories that allow
   // proper calculation of above rawCovs. Use below defaults instead.
@@ -327,10 +327,12 @@ genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, c
       rawCov[4][4] = pow(0.2,2.0); // Unit Py
       rawCov[5][5] = pow(0.2,2.0); // Unit Pz
       rawCov[6][6] = pow(0.1,2.0); // theta. 0.3/3mm, say.
+      dist = 0.3;
+      C = 0.0136/beta*sqrt(dist/14.0)*(1+0.038*log(dist/14.0)); 
     }
-  rawCov[6][6] = TMath::Min(rawCov[6][6],TMath::Pi()/2.0);
-  // This forces a huge theta error, which effectively freezes theta, as is.
-  // rawCov[6][6] = 9.99e9;
+
+  // This forces a huge/tiny theta error, which effectively freezes/makes-us-sensitive theta, as is.
+  //rawCov[6][6] = /*9.99e9*/ 0.1;
   
   TVector3 u=plane.getU();
   TVector3 v=plane.getV();
@@ -343,7 +345,7 @@ genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, c
   double pTildeMag = pTilde.Mag();
 
   jac.Zero();
-  jac[6][0] = 1.0; // C; // 1/C;
+  jac[6][0] = 1./C; // Should be 1/C?; Had 1 until ... 12-Feb-2013
 
   jac[0][3] = _U[0];
   jac[1][3] = _U[1];
