@@ -274,16 +274,14 @@ namespace trkf {
     // Fill histograms that don't depend on space points.
 
     if(mc) {
-      std::cout << "SpacePointAna_module: Nhits: " << hits.size()<< std::endl;
+
       // Loop over hits and fill hit-electron time difference histogram.
-      int cnt(0);
+
       for(art::PtrVector<recob::Hit>::const_iterator ihit = hits.begin();
 	  ihit != hits.end(); ++ihit) {
 	const recob::Hit& hit = **ihit;
-	cnt++;
 
 	assert(geom->View(hit.Channel()) == hit.View());
-
 	double tpeak = hit.PeakTime();
 	//double tstart = hit.StartTime();
 	//double tend = hit.EndTime();
@@ -476,12 +474,11 @@ namespace trkf {
     }
 
     // Loop over default space points and fill histograms.
-    int sptNo(0);
-    std::cout << "SpacePointAna_module: Nspts: " << spts3.size() << std::endl;
+
     for(std::vector<recob::SpacePoint>::const_iterator i = spts3.begin();
 	i != spts3.end(); ++i) {
       const recob::SpacePoint& spt = *i;
-      sptNo++;
+
       fHchisq->Fill(spt.Chisq());
       fHx->Fill(spt.XYZ()[0]);
       fHy->Fill(spt.XYZ()[1]);
