@@ -600,7 +600,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 
 
   // std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
-  mf::LogInfo("Track3DKalmanSPS: ") << "There are " <<  spptListHandle->size() << " Spacepoint PtrVectors (spacepoint clumps) in this event.";
+  mf::LogWarning("Track3DKalmanSPS") << "There are " <<  spptListHandle->size() << " Spacepoint PtrVectors (spacepoint clumps) in this event.";
 
   std::vector < art::PtrVector<recob::SpacePoint> > spptIn(spptListHandle->begin(),spptListHandle->end());
   // Get the spptvectors that are largest to be first, and smallest last.
@@ -634,7 +634,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	    for(int jj = 0; jj < mc->NParticles(); ++jj)
 	      {
 		simb::MCParticle part(mc->GetParticle(jj));
-		mf::LogInfo("Track3DKalmanSPS: ") << "FROM MC TRUTH, the particle's pdg code is: "<<part.PdgCode()<< " with energy = "<<part.E() <<", with energy = "<<part.E()<< " and vtx and momentum in Global (not volTPC) coords are " ;
+		mf::LogWarning("Track3DKalmanSPS") << "FROM MC TRUTH, the particle's pdg code is: "<<part.PdgCode()<< " with energy = "<<part.E() <<", with energy = "<<part.E()<< " and vtx and momentum in Global (not volTPC) coords are " ;
 		MCOrigin.SetXYZ(part.Vx(),part.Vy(),part.Vz()); // V for Vertex
 		MCMomentum.SetXYZ(part.Px(),part.Py(),part.Pz());
 		MCOrigin.Print();
@@ -653,7 +653,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	  *stMCT = repMC->getState();
 	  covMCT-> ResizeTo(repMC->getCov());
 	  *covMCT = repMC->getCov();
-	  mf::LogInfo("Track3DKalmanSPS: ") <<" repMC, covMC are ... " ;
+	  mf::LogWarning("Track3DKalmanSPS") <<" repMC, covMC are ... " ;
 	  repMC->getState().Print();
 	  repMC->getCov().Print();
 
@@ -678,7 +678,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	  if (spacepoints.size()<5) 
 	    { sppt++; rePass0 = 3; continue;} // for now...
 		  
-	  mf::LogInfo("Track3DKalmanSPS: ")<<"\n\t found "<<spacepoints.size()<<" 3D spacepoint(s) for this element of std::vector<art:PtrVector> spacepoints. \n";
+	  mf::LogWarning("Track3DKalmanSPS")<<"\n\t found "<<spacepoints.size()<<" 3D spacepoint(s) for this element of std::vector<art:PtrVector> spacepoints. \n";
 	  
 	  //const double resolution = posErr.Mag(); 
 	  //	  
@@ -804,13 +804,13 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	      // track and give large angular deviations which
 	      // will kill the fit.
 	      mom.SetMag(2.0 * mom.Mag()); 
-	      std::cout<<"Track3DKalmanSPS: Uncontained track ... "<<std::endl;
+	      mf::LogWarning("Track3DKalmanSPS")<<"Uncontained track ... ";
 	      fDecimateHere = fDecimateU;
 	      fMaxUpdateHere = fMaxUpdateU;
 	    }
 	  else
 	    {
-	      std::cout<<"Track3DKalmanSPS: Contained track ... Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
+	      mf::LogWarning("Track3DKalmanSPS")<<"Contained track ... Run "<<evt.run()<<" Event "<<evt.id().event();
 	      // Don't decimate contained tracks as drastically, 
 	      // and omit only very large corrections ...
 	      // which hurt only high momentum tracks.
@@ -877,7 +877,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		  TVector3 two((TVector3)(spacepointss[ppoint]->XYZ()));
 		  if (rePass==2 && uncontained) 
 		    {
-		      epsMag = 20.0;
+		      epsMag = 10.0;
 		      fNumIt = 2;
 		      //		      std::cout << "Spacepoint " << point << " ?DROPPED? magnitude and TV3 diff to ppoint is :" << (((TVector3)(spacepointss[point]->XYZ()-spacepointss[ppoint]->XYZ())).Mag()) << " and " << one[0] << ", " << one[1] << ", " << one[2] << two[0] << ", " << two[1] << ", " << two[2] << ". " << std::endl;
 		    }
@@ -955,11 +955,11 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	  
 	      if (fptsNo<=4) // Cuz 1st 2 in each direction don't count. Should have, say, 3 more.
 		{ 
-		  mf::LogInfo("Track3DKalmanSPS: ") << "Bailing cuz only " << fptsNo << " spacepoints.";
+		  mf::LogWarning("Track3DKalmanSPS") << "Bailing cuz only " << fptsNo << " spacepoints.";
 		  rePass++;
 		  continue;
 		} 
-	      mf::LogInfo("Track3DKalmanSPS: ") << "Fitting on " << fptsNo << " spacepoints.";
+	      mf::LogWarning("Track3DKalmanSPS") << "Fitting on " << fptsNo << " spacepoints.";
 	      //      std::cout<<"Track3DKalmanSPS about to do GFKalman."<<std::endl;
 	      genf::GFKalman k;
 	      k.setBlowUpFactor(5); // 500 out of box. EC, 6-Jan-2011.
@@ -1002,17 +1002,17 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	  
 	      if(rep->getStatusFlag()==0) // 0 is successful completion
 		{
-		  mf::LogDebug("Track3DKalmanSPS: ") << __FILE__ << " " << __LINE__ ;
-		  mf::LogDebug("Track3DKalmanSPS: ") << "Track3DKalmanSPS.cxx: Original plane:";
+		  mf::LogWarning("Track3DKalmanSPS") << __FILE__ << " " << __LINE__ ;
+		  mf::LogWarning("Track3DKalmanSPS") << "Track3DKalmanSPS.cxx: Original plane:";
 		  if(fGenfPRINT) planeG.Print();
-		  mf::LogDebug("Track3DKalmanSPS: ") << "Current (fit) reference Plane:";
+		  mf::LogWarning("Track3DKalmanSPS") << "Current (fit) reference Plane:";
 		  if(fGenfPRINT) rep->getReferencePlane().Print();
-		  mf::LogDebug("Track3DKalmanSPS: ") << "Track3DKalmanSPS.cxx: Last reference Plane:";
+		  mf::LogInfo("Track3DKalmanSPS") << "Track3DKalmanSPS.cxx: Last reference Plane:";
 		  if(fGenfPRINT) rep->getLastPlane().Print();
 		  if(fGenfPRINT) 
 		    {
 		      if(planeG!=rep->getReferencePlane()) 
-			mf::LogDebug("Track3DKalmanSPS: ")	<<"Track3DKalmanSPS: Original hit plane (not surprisingly) not current reference Plane!"<<std::endl;
+			mf::LogWarning("Track3DKalmanSPS")	<<"Track3DKalmanSPS: Original hit plane (not surprisingly) not current reference Plane!"<<std::endl;
 		    }
 	      
 		  if (!skipFill)
@@ -1063,7 +1063,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 			}
 		      if(fGenfPRINT)
 			{
-			  mf::LogInfo("Track3DKalmanSPS: ") << " First State and Cov:";
+			  mf::LogWarning("Track3DKalmanSPS") << " First State and Cov:";
 			  stREC->Print();
 			  covREC->Print();
 			}
@@ -1075,7 +1075,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		      chi2ndf = (Float_t)(chi2/ndf);
 		  
 		      nTrks++;
-		      mf::LogInfo("Track3DKalmanSPS: ") << "Track3DKalmanSPS about to do tree->Fill(). Chi2/ndf is " << chi2/ndf << ".";
+		      mf::LogWarning("Track3DKalmanSPS") << "Track3DKalmanSPS about to do tree->Fill(). Chi2/ndf is " << chi2/ndf << ".";
 		      fpMCMom[3] = MCMomentum.Mag();
 		      for (int ii=0;ii<3;++ii)
 			{
@@ -1197,10 +1197,10 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		{
 		  if (fpREC[3]<fMomHigh && fpREC[3]>fMomLow)
 		    {
-		      double kick(0.8); //Try to get away with a smaller start
+		      double kick(0.9); //Try to get away with a smaller start
 		      // for contained tracks. While for uncontained tracks
 		      // let's start up at a higher momentum and come down.
-		      if  (uncontained) kick = 1.0;
+		      if  (uncontained) kick = 1.2;
 		      for (int ii=0;ii<3;++ii)
 			{
 			  mom[ii] = fpREC[ii]*fpREC[3]*kick;
