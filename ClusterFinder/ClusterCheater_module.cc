@@ -24,6 +24,10 @@
 #include "Utilities/AssociationUtil.h"
 #include "Simulation/EmEveIdCalculator.h"
 #include "ClusterFinder/HoughBaseAlg.h"
+#include "Utilities/DetectorProperties.h"
+#include "Utilities/LArProperties.h"
+#include "Utilities/GeometryUtilities.h"
+
 
 // Framework includes
 #include "art/Framework/Principal/Event.h"
@@ -47,7 +51,8 @@ namespace cluster {
     void reconfigure(fhicl::ParameterSet const& pset);
 
  private:
-
+    
+    std::string fMCGeneratorLabel;  ///< label for module to get MC truth information
     std::string fHitModuleLabel;    ///< label for module creating recob::Hit objects	   
     std::string fG4ModuleLabel;     ///< label for module running G4 and making particles, etc
 
@@ -76,6 +81,7 @@ namespace cluster{
   //--------------------------------------------------------------------
   void ClusterCheater::reconfigure(fhicl::ParameterSet const& pset)
   {
+    fMCGeneratorLabel  = pset.get< std::string >("MCGeneratorLabel",  "generator");
     fHitModuleLabel    = pset.get< std::string >("HitModuleLabel",    "hit"     );
     fG4ModuleLabel     = pset.get< std::string >("G4ModuleLabel",     "largeant");
     fHLAlg.reconfigure(pset.get< fhicl::ParameterSet >("HoughBaseAlg"));
@@ -88,7 +94,52 @@ namespace cluster{
   {
     art::ServiceHandle<geo::Geometry>      geo;
     art::ServiceHandle<cheat::BackTracker> bt;
-
+    
+    // ========================== EDIT JASAADI =====================================
+    
+    // ###################################
+    // ### Getting Detector Properties ###
+    // ###################################
+    art::ServiceHandle<util::DetectorProperties> detp;
+    art::ServiceHandle<util::LArProperties> larp;
+    util::GeometryUtilities geoUtil;
+    
+    // #######################################
+    // ### Getting MC Truth Info from simb ###
+    // #######################################
+    art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
+    evt.getByLabel(fMCGeneratorLabel,mctruthListHandle);
+    
+    // ##################################
+    // ### Getting MC Truth simb Info ###
+    // ##################################
+    art::PtrVector<simb::MCTruth> mclist;
+    for (unsigned int ii = 0; ii <  mctruthListHandle->size(); ++ii)
+  	{
+       	art::Ptr<simb::MCTruth> mctparticle(mctruthListHandle,ii);
+       	mclist.push_back(mctparticle);
+     	} 
+    float vertex[5];
+    
+    // ###################################
+    // ### Finding the MC truth vertex ###
+    // ###################################
+    for( unsigned int i = 0; i < mclist.size(); ++i )
+  	{
+     	art::Ptr<simb::MCTruth> mc(mclist[i]);
+	simb::MCParticle neut(mc->GetParticle(i)); 
+	
+	vertex[0] =neut.Vx();
+	vertex[1] =neut.Vy();
+     	vertex[2] =neut.Vz();
+	std::cout<<"Vertex X = "<<vertex[0]<<std::endl;
+	std::cout<<"Vertex Y = "<<vertex[1]<<std::endl;
+	std::cout<<"Vertex Z = "<<vertex[2]<<std::endl;
+	
+	}//<---end MC Truth Vertex
+    
+    // ===================== END EDIT JASAADI ======================================
+    
     // grab the hits that have been reconstructed
     art::Handle< std::vector<recob::Hit> > hitcol;
     evt.getByLabel(fHitModuleLabel, hitcol);
@@ -148,7 +199,8 @@ namespace cluster{
     std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
     for(hitMapItr = eveHitMap.begin(); hitMapItr != eveHitMap.end(); hitMapItr++){
-
+    unsigned int 	vtx_wire = 0;
+    double		vtx_tick = 0;
       // separate out the hits for each particle into the different views
       std::vector< art::Ptr<recob::Hit> > eveHits( (*hitMapItr).second );
 
@@ -164,7 +216,9 @@ namespace cluster{
 	    double dQdW      = 0.;
 	    double totalQ    = 0.;
 	    geo::View_t view = geo->Cryostat(c).TPC(t).Plane(pl).View();
-
+            
+	   
+	    
 	    for(size_t h = 0; h < eveHits.size(); ++h){
 	      
 	      geo::WireID wid = eveHits[h]->WireID();
@@ -172,6 +226,12 @@ namespace cluster{
 	      if(wid.Plane    != pl || 
 		 wid.TPC      != t  || 
 		 wid.Cryostat != c) continue;
+	      // ================================================================================
+	      // === Only keeping clusters with 5 or more hits to help cut down on the number ===
+	      // ===                   of clusters found by the algorithm                     ===
+	      // ================================================================================
+	      if(eveHits.size() < 5){continue;}
+	      
 	      
 	      ptrvs.push_back(eveHits[h]);
 	      totalQ += eveHits[h]->Charge();
@@ -202,6 +262,41 @@ namespace cluster{
 	    // use the HoughLineAlg to get dTdW for these hits
 	    double intercept = 0.;
 	    fHLAlg.Transform(eveHits, dTdW, intercept);
+	    
+	     // ==============================================================================
+    	    // Translating the truth vertex xyz information into truth wire and time position
+            // ===============================================================================
+	    unsigned int vtx_channel = geo->NearestChannel(vertex, pl, t, c);
+     	    std::vector<geo::WireID> vtxwire = geo->ChannelToWire(vtx_channel);
+	    geo::WireID wgeom = vtxwire[0];
+				
+	    vtx_wire = wgeom.Wire;
+	    vtx_tick = detp->ConvertXToTicks(vertex[0], pl, t, c);
+	     
+	    // === If the cluster is to the downstream of the vertex the positions are switched ===
+	    if(startWire - vtx_wire < 0 && endWire - vtx_wire < 0)
+	    	{
+		float tempstartWire = endWire;
+		float tempendWire = startWire;
+		
+		startWire = tempstartWire;
+		endWire = tempendWire;
+		
+		float tempstartTime = endTime;
+		float tempendTime = startTime;
+		
+		startTime = tempstartTime;
+		endTime = tempendTime;
+		
+		
+		}
+	    
+	    if(startTime - vtx_tick < 0 && endTime - vtx_tick < 0)
+	    	{
+		
+		
+		
+		}
 	    
 	    ///\todo now figure out the dQdW
 	    

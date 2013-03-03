@@ -117,10 +117,11 @@ standard_showeranglecluster:
 
 standard_clustercheater:
 {
- module_type:    "ClusterCheater"
- HitModuleLabel: "hit"
- G4ModuleLabel:  "largeant"
- HoughBaseAlg:   @local::standard_houghbasealg
+ module_type:    	"ClusterCheater"
+ MCGeneratorLabel:      "generator"    #needed for MC vertex extraction
+ HitModuleLabel: 	"hit"
+ G4ModuleLabel:  	"largeant"
+ HoughBaseAlg:   	@local::standard_houghbasealg
 }
 
 jp250L_dbcluster:                    @local::standard_dbcluster      
