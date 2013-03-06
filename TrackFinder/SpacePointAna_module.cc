@@ -281,10 +281,11 @@ namespace trkf {
 	  ihit != hits.end(); ++ihit) {
 	const recob::Hit& hit = **ihit;
 
-	assert(geom->View(hit.Channel()) == hit.View());
+	//unsigned int channel = hit.Channel();
+	//geo::View_t geo_view = geom->View(channel);
+	//geo::View_t hit_view = hit.View();
+	//assert(geo_view == hit_view);
 	double tpeak = hit.PeakTime();
-	//double tstart = hit.StartTime();
-	//double tend = hit.EndTime();
 	double terr = hit.SigmaPeakTime();
 
 	//assert(channel == hit.Channel());
