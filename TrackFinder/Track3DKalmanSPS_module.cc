@@ -163,6 +163,7 @@ namespace trkf {
     Float_t *feu;
     Float_t *fev;
     Float_t *fsep;
+    Float_t *fdQdx;
     unsigned int fDimSize; // if necessary will get this from pset in constructor.
     Float_t *fPCmeans;
     Float_t *fPCevals;
@@ -322,7 +323,7 @@ namespace trkf {
     rot[1][1] = TMath::Cos(angle);
     rot[1][2] = TMath::Sin(angle);
     rot[2][1] = -TMath::Sin(angle);
-    rot[1][2] = TMath::Cos(angle);
+    rot[2][2] = TMath::Cos(angle);
     rot[3][3] = TMath::Cos(angle);
     rot[3][4] = TMath::Sin(angle);
     rot[4][3] = -TMath::Sin(angle);
@@ -429,6 +430,7 @@ namespace trkf {
     feu = new Float_t[fDimSize];
     fev = new Float_t[fDimSize];
     fsep = new Float_t[fDimSize];
+    fdQdx = new Float_t[fDimSize];
   
     fPC1 = new Float_t[3];
     fPC2 = new Float_t[3];
@@ -467,6 +469,7 @@ namespace trkf {
     tree->Branch("shy",fshy,"shy[ptsNo]/F");
     tree->Branch("shz",fshz,"shz[ptsNo]/F");
     tree->Branch("sep",fsep,"sep[ptsNo]/F");
+    tree->Branch("dQdx",fdQdx,"dQdx[ptsNo]/F");
     tree->Branch("eshx",feshx,"eshx[ptsNo]/F");
     tree->Branch("eshy",feshy,"eshy[ptsNo]/F");
     tree->Branch("eshz",feshz,"eshz[ptsNo]/F");
@@ -536,6 +539,7 @@ namespace trkf {
     delete[] feu;
     delete[] fev;
     delete[] fsep;
+    delete[] fdQdx;
 
     delete[] fPCmeans;
     delete[] fPCsigmas;
@@ -827,9 +831,9 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	    {
 
 	      TVector3 momM(mom);
-	      TVector3 momErrFit(momM[0]/10.0,
-				 momM[1]/10.0,
-				 momM[2]/10.0);   // GeV
+	      TVector3 momErrFit(momM[0]/3.0,
+				 momM[1]/3.0,
+				 momM[2]/3.0);   // GeV
 	  
 	      genf::GFFieldManager::getInstance()->init(new genf::GFConstField(0.0,0.0,0.0));
 	      genf::GFDetPlane planeG((TVector3)(spacepointss[0]->XYZ()),momM);
@@ -877,8 +881,14 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		  TVector3 two((TVector3)(spacepointss[ppoint]->XYZ()));
 		  if (rePass==2 && uncontained) 
 		    {
-		      epsMag = 10.0;
+		      epsMag = 20.0; // cm
 		      fNumIt = 2;
+		      fErrScaleMHere = 0.1; 
+		      // Above allows us to pretend as though measurements 
+		      // are perfect, which we can ostensibly do now with 
+		      // clean set of sppts. This creates larger gains, bigger
+		      // updates: bigger sensitivity to multiple scattering.
+
 		      //		      std::cout << "Spacepoint " << point << " ?DROPPED? magnitude and TV3 diff to ppoint is :" << (((TVector3)(spacepointss[point]->XYZ()-spacepointss[ppoint]->XYZ())).Mag()) << " and " << one[0] << ", " << one[1] << ", " << one[2] << two[0] << ", " << two[1] << ", " << two[2] << ". " << std::endl;
 		    }
 		  else if (rePass==2 && !uncontained) 
@@ -928,6 +938,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		      feshz[fptsNo] = err3[3];
 		      feshyz[fptsNo] = err3[2];
 		      fsep[fptsNo] = sep;
+
 		      if (fptsNo>1)
 			{
 			  TVector3 pointer(fshx[fptsNo]-fshx[fptsNo-1],fshy[fptsNo]-fshy[fptsNo-1],fshz[fptsNo]-fshz[fptsNo-1]);
@@ -1126,6 +1137,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 						  hitPlaneXYZLFP.back()
 						  )
 					 );
+			  fdQdx[ii] = dQdx.back().back();
 
 			}
 		      fpREC[3]  = rep->getMom(rep->getReferencePlane()).Mag();
@@ -1197,18 +1209,19 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		{
 		  if (fpREC[3]<fMomHigh && fpREC[3]>fMomLow)
 		    {
-		      double kick(0.9); //Try to get away with a smaller start
+		      double kick(1.0); //Try to get away with a smaller start
 		      // for contained tracks. While for uncontained tracks
 		      // let's start up at a higher momentum and come down.
-		      if  (uncontained) kick = 1.2;
+		      if  (uncontained) kick = 1.0;
 		      for (int ii=0;ii<3;++ii)
 			{
-			  mom[ii] = fpREC[ii]*fpREC[3]*kick;
+			  //mom[ii] = fpREC[ii]*fpREC[3]*kick;
+			  mom[ii] = momM[ii]*kick;
 			}
 		    }
 		  else if (uncontained)
 		    {
-		      double unstick(0.5);
+		      double unstick(1.0);
 		      if  (fpREC[3]>=fMomHigh) unstick = 0.3;
 		      for (int ii=0;ii<3;++ii)
 			{
