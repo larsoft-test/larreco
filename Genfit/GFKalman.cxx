@@ -293,7 +293,7 @@ genf::GFKalman::getChi2Hit(GFAbsRecoHit* hit, GFAbsTrackRep* rep)
 
   // get hit covariances  
   TMatrixT<Double_t> V=hit->getHitCov(pl);
-  //  V[0][0] *= fErrScaleMTh;
+  V[0][0] *= fErrScaleMTh;
   TMatrixT<Double_t> r=hit->residualVector(rep,state,pl);
   assert(r.GetNrows()>0);
 
