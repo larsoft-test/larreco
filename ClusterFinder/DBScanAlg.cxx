@@ -317,7 +317,7 @@ void cluster::DBScanAlg::InitScan(art::PtrVector<recob::Hit>& allhits,
   const geo::WireGeo& wire1 = geom->Plane(0).Wire(1);
   wire1.LocalToWorld(pos, posWorld1);
   
-  double wire_dist = posWorld0[1]- posWorld1[1];
+  double wire_dist = std::abs(posWorld0[1]- posWorld1[1]);
 
   // Collect the bad wire list into a useful form
   if (fClusterMethod) { // Using the R*-tree
