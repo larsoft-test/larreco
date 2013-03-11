@@ -72,7 +72,6 @@ namespace trkf {
     bool fUseClusterHits;              ///< Use cluster hits or all hits?
     std::string fHitModuleLabel;       ///< Unclustered Hits.
     std::string fClusterModuleLabel;   ///< Clustered Hits.
-    std::string fG4ModuleLabel;        ///< For SimChannel.
     double fMaxTcut;                   ///< Maximum delta ray energy in MeV for restricted dE/dx.
 
     /// Propagator.
