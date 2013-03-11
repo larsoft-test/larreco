@@ -94,6 +94,7 @@ physics.producers.trackkal.ErrScaleMeas: 1.0 //scales angle error, V[0][0].
 physics.producers.trackkal.DecimateC: 1 // 20-40 !!!!!
 physics.producers.trackkal.MaxUpdateC: 0.01 // !!!!!
 physics.producers.trackkal.DecimateU: 1 // 20 or 30-40!!!!!
+physics.producers.trackkal.DistanceU: 10.0 // 
 physics.producers.trackkal.MaxUpdateU: 0.1 // !!!!!
 physics.producers.trackkal.Chi2HitThresh: 1000.0 // !!!!!
 

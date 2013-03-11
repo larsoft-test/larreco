@@ -183,6 +183,7 @@ namespace trkf {
     int fDecimate;
     double fMaxUpdate;
     int fDecimateU;
+    double fDistanceU;
     double fMaxUpdateU;
     double fMomLow;
     double fMomHigh;
@@ -210,6 +211,7 @@ namespace trkf {
     , fDecimate(1)
     , fMaxUpdate(0.10)
     , fDecimateU(1)
+    , fDistanceU(1.)
     , fMaxUpdateU(0.10)
     , fMomLow(0.001)
     , fMomHigh(100.)
@@ -251,6 +253,7 @@ namespace trkf {
     fDecimate              = pset.get< int  >("DecimateC", 40); // Sparsify data.
     fMaxUpdate             = pset.get< double >("MaxUpdateC", 0.1); // 0-out. 
     fDecimateU             = pset.get< int  >("DecimateU", 100);// Sparsify data.
+    fDistanceU             = pset.get< double >("DistanceU", 10.0);// Require this separation on uncontained 2nd pass.
     fMaxUpdateU            = pset.get< double >("MaxUpdateU", 0.02); // 0-out. 
     fMomLow                = pset.get< double >("MomLow", 0.01); // Fit Range. 
     fMomHigh               = pset.get< double >("MomHigh", 20.); // Fit Range. 
@@ -386,8 +389,8 @@ namespace trkf {
       
       double cosgamma = TMath::Abs(TMath::Sin(angleToVert)*dir.Y() +
 				   TMath::Cos(angleToVert)*dir.Z());      
-      if(cosgamma < 1.e-5)
-	throw cet::exception("Track") << "cosgamma is basically 0, that can't bassne right";
+      // if(cosgamma < 1.e-5)
+	//	throw cet::exception("Track") << "cosgamma is basically 0, that can't be right";
 
       v.push_back(charge/wirePitch/cosgamma);
       return v;
@@ -881,8 +884,8 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		  TVector3 two((TVector3)(spacepointss[ppoint]->XYZ()));
 		  if (rePass==2 && uncontained) 
 		    {
-		      epsMag = 20.0; // cm
-		      fNumIt = 2;
+		      epsMag = fDistanceU; // cm
+		      fNumIt = 4;
 		      fErrScaleMHere = 0.1; 
 		      // Above allows us to pretend as though measurements 
 		      // are perfect, which we can ostensibly do now with 
@@ -1209,10 +1212,13 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		{
 		  if (fpREC[3]<fMomHigh && fpREC[3]>fMomLow)
 		    {
-		      double kick(1.0); //Try to get away with a smaller start
+		      double kick(0.9); //Try to get away with a smaller start
 		      // for contained tracks. While for uncontained tracks
 		      // let's start up at a higher momentum and come down.
-		      if  (uncontained) kick = 1.0;
+		      // Though, 2 (1) GeV/c tracks are too low (high), so
+		      // instead let's actually lower starting value on
+		      // this second pass. -- EC 7-Mar-2013
+		      if  (uncontained) kick = 0.5;
 		      for (int ii=0;ii<3;++ii)
 			{
 			  //mom[ii] = fpREC[ii]*fpREC[3]*kick;
