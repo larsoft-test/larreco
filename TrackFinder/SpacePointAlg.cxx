@@ -507,7 +507,7 @@ namespace  trkf{
 	ihit != hits.end(); ++ihit) {
 
       const recob::Hit& hit = **ihit;
-	  geo::WireID hitWireID = hit.WireID();
+      geo::WireID hitWireID = hit.WireID();
       //unsigned int channel = hit.Channel();
       //unsigned int tpc, plane, wire, cstat;
       //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
@@ -567,13 +567,13 @@ namespace  trkf{
 	// Calculate angle and wire coordinate in this view.
     
 	double hl = wgeom.HalfL();
-	double xyz[3];
-	double xyz1[3];
-	wgeom.GetCenter(xyz);
-	wgeom.GetCenter(xyz1, hl);
-	double s  = (xyz1[1] - xyz[1]) / hl;
-	double c = (xyz1[2] - xyz[2]) / hl;
-	double u = xyz[2] * s - xyz[1] * c;
+	double cen[3];
+	double cen1[3];
+	wgeom.GetCenter(cen);
+	wgeom.GetCenter(cen1, hl);
+	double s  = (cen1[1] - cen[1]) / hl;
+	double c = (cen1[2] - cen[2]) / hl;
+	double u = cen[2] * s - cen[1] * c;
 	double eu = geom->WirePitch(0, 1, hitWireID.Plane, hitWireID.TPC) / std::sqrt(12.);
 	double w = 1. / (eu * eu);
 
@@ -655,7 +655,7 @@ namespace  trkf{
 	ihit != hits.end(); ++ihit) {
 
       const recob::Hit& hit = **ihit;
-	  geo::WireID hitWireID = hit.WireID();
+      geo::WireID hitWireID = hit.WireID();
       //unsigned int channel = hit.Channel();
       //unsigned int tpc, plane, wire, cstat;
       //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
@@ -690,7 +690,7 @@ namespace  trkf{
 	ihit != hits.end(); ++ihit) {
 
       const recob::Hit& hit = **ihit;
-	  geo::WireID hitWireID = hit.WireID();
+      geo::WireID hitWireID = hit.WireID();
       //unsigned int channel = hit.Channel();
       //unsigned int tpc, plane, wire, cstat;
       //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
@@ -749,13 +749,13 @@ namespace  trkf{
 	// Calculate angle and wire coordinate in this view.
     
 	double hl = wgeom.HalfL();
-	double xyz[3];
-	double xyz1[3];
-	wgeom.GetCenter(xyz);
-	wgeom.GetCenter(xyz1, hl);
-	double s  = (xyz1[1] - xyz[1]) / hl;
-	double c = (xyz1[2] - xyz[2]) / hl;
-	double u = xyz[2] * s - xyz[1] * c;
+	double cen[3];
+	double cen1[3];
+	wgeom.GetCenter(cen);
+	wgeom.GetCenter(cen1, hl);
+	double s  = (cen1[1] - cen[1]) / hl;
+	double c = (cen1[2] - cen[2]) / hl;
+	double u = cen[2] * s - cen[1] * c;
 	double eu = geom->WirePitch(0, 1, hitWireID.Plane, hitWireID.TPC) / std::sqrt(12.);
 	double w = weight[hitWireID.Plane] / (eu * eu);
 
@@ -1460,7 +1460,7 @@ namespace  trkf{
       fSptHitMap.find(spt.ID());
     if(it == fSptHitMap.end())
       {
-	std::cout<<"Looking for ID " << spt.ID()<< " from " << fSptHitMap.size()<<std::endl;
+	mf::LogWarning("SpacePointAlg") <<"Looking for ID " << spt.ID()<< " from " << fSptHitMap.size()<<std::endl;
 	throw cet::exception("SpacePointAlg") << "No Hits associated with space point.\n";
       }
     return (*it).second;
