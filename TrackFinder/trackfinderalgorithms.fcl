@@ -43,9 +43,13 @@ microboone_spacepointalg:          @local::standard_spacepointalg
 microboone_spacepointalg.MinViews: 3
 microboone_spacepointalg.EnableW:  true
 
-lbne_spacepointalg:          @local::standard_spacepointalg
-lbne_spacepointalg.MinViews: 3
-lbne_spacepointalg.EnableW:  true
+lbne35t_spacepointalg:          @local::standard_spacepointalg
+lbne35t_spacepointalg.MinViews: 3
+lbne35t_spacepointalg.EnableW:  true
+
+lbne10kt_spacepointalg:          @local::standard_spacepointalg
+lbne10kt_spacepointalg.MinViews: 3
+lbne10kt_spacepointalg.EnableW:  true
 
 standard_kalmanfilteralg:
 {
@@ -71,7 +75,8 @@ standard_kalmanfilteralg:
 bo_kalmanfilteralg:          @local::standard_kalmanfilteralg
 argoneut_kalmanfilteralg:    @local::standard_kalmanfilteralg
 microboone_kalmanfilteralg:  @local::standard_kalmanfilteralg
-lbne_kalmanfilteralg:        @local::standard_kalmanfilteralg
+lbne10kt_kalmanfilteralg:    @local::standard_kalmanfilteralg
+lbne35t_kalmanfilteralg:     @local::standard_kalmanfilteralg
 
 microboone_seedfinderalgorithm:                          @local::standard_seedfinderalgorithm
 microboone_seedfinderalgorithm.SpacePointAlg :           @local::microboone_spacepointalg
