@@ -409,10 +409,10 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
     float fXieBeniIndex = fXieBeniNumer/fXieBeniDenom; 
     fXieBeniIndices[k-1]=fXieBeniIndex;
     fpsMembershipStore[k-1]=fpsMembership;
-    mf::LogVerbatim("fuzzyCluster") << "Number of clusters: " << k ;
-    mf::LogVerbatim("fuzzyCluster") << "Xie-Beni numerator: " << fXieBeniNumer ;
-    mf::LogVerbatim("fuzzyCluster") << "Xie-Beni denominator: " << fXieBeniDenom ;
-    mf::LogVerbatim("fuzzyCluster") << "Xie-Beni index: " << fXieBeniIndex ;
+    //mf::LogVerbatim("fuzzyCluster") << "Number of clusters: " << k ;
+    //mf::LogVerbatim("fuzzyCluster") << "Xie-Beni numerator: " << fXieBeniNumer ;
+    //mf::LogVerbatim("fuzzyCluster") << "Xie-Beni denominator: " << fXieBeniDenom ;
+    //mf::LogVerbatim("fuzzyCluster") << "Xie-Beni index: " << fXieBeniIndex ;
   }
 
 
@@ -429,7 +429,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   }
 
 
-  mf::LogInfo("fuzzyCluster") << "Number of clusters initially found: " << iMinXBClusterNum   ;
+  //mf::LogInfo("fuzzyCluster") << "Number of clusters initially found: " << iMinXBClusterNum   ;
 
 
   if(iMinXBClusterNum != 0){
@@ -462,7 +462,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   unsigned int cid = fpsMembershipFinal.GetNrows();
   //int nClusters = iMinXBClusterNum;
   //unsigned int cid = iMinXBClusterNum;
-  mf::LogInfo("fuzzyCluster") << "Number of clusters found after merging: " << nClusters   ;
+  //mf::LogInfo("fuzzyCluster") << "Number of clusters found after merging: " << nClusters   ;
   //int nClusters = 2;
   //unsigned int cid = 2;
 
