@@ -15,19 +15,22 @@ standard_houghbasealg:
   ThetaZeroOutRange:        0
   HitsPerCluster:           1
   MissedHits:               1    # Was set to 0
+  HitsMissingSearched:      0.1  # Used for fake veto, ratio of hits missing to hits searched
+  MinSlopeVetoCheck  :      5    # Minimum slope for which to perform the fake veto check
   DoHoughLineMerge:         1    # Turns on Hough line merging (0-off, 1-on)
-  HoughLineMergeAngle:      15   # The maximum angle between slopes of Hough lines to be merged, 
+  HoughLineMergeAngle:      45   # The maximum angle between slopes of Hough lines to be merged, 
                                  # 30 was working, 20 might be better
-  HoughLineMergeCutoff:     5    # The maximum distance between Hough line endpoints before they can be merged, 
+  HoughLineMergeCutoff:    10    # The maximum distance between Hough line endpoints before they can be merged, 
                                  # 2 was working, a larger value is likely necessary though, like 5
-  DoParaHoughLineMerge:     0    # Turns on parallel Hough line merging (0-off, 1-on)
-  ParaHoughLineMergeAngle:  5    # The maximum angle between slopes of Hough lines to be merged, 
+  DoParaHoughLineMerge:     1    # Turns on parallel Hough line merging (0-off, 1-on)
+  ParaHoughLineMergeAngle: 10    # The maximum angle between slopes of Hough lines to be merged, 
                                  # 30 was working, 20 might be better
-  ParaHoughLineMergeCutoff: 10   # The maximum distance between Hough line endpoints before 
+  ParaHoughLineMergeCutoff: 100  # The maximum distance between Hough line endpoints before 
                                  # they can be merged, 
                                  # 2 was working, a larger value is likely necessary though, like 5 or 10
   LineIsolationCut:         0.1  # The cut on the Hough lines isolation
-  EndPointCutoff:           0
+  ChargeAsymmetryCut:       0.5  # Cut on the asymmetry from the average charge of the four hits from each line closest to each other
+  SigmaChargeAsymmetryCut:  0.5  # Cut on the asymmetry from the average charge sigma of the four hits from each line closest to each other
 }
 
 
