@@ -145,7 +145,8 @@ namespace cluster{
         
 	    if(hit->WireID().Plane    == plane && 
 	       hit->WireID().TPC      == tpc   && 
-	       hit->WireID().Cryostat == cstat) allhits.push_back(hit);  	
+	       hit->WireID().Cryostat == cstat) allhits.push_back(hit);  
+            
 	  }  
         
           //Begin clustering with fuzzy
