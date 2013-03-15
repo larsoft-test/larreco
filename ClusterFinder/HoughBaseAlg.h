@@ -33,6 +33,8 @@ namespace recob {
       double pMax1;
       double isolation;
       bool merged;
+      std::vector<std::pair<double,double> > pHit;
+      std::vector<std::pair<double,double> > pHitChargeSigma;
       lineSlope(unsigned int num, 
           double slope, 
           double intercept, 
@@ -40,7 +42,10 @@ namespace recob {
           double Min1, 
           double Max0, 
           double Max1,
-          double signalToBkg)
+          double signalToBkg,
+          std::vector<std::pair<double,double> > pHitTemp,
+          std::vector<std::pair<double,double> > pHitChargeSigmaTemp
+          )
       {
         clusterNumber = num;
         oldClusterNumber = num;
@@ -52,9 +57,10 @@ namespace recob {
         pMax1 = Max1;
         merged = false;
         isolation = signalToBkg;
+        pHit = pHitTemp;
+        pHitChargeSigma = pHitChargeSigmaTemp;
       }
     };
-
 
 
 namespace cluster {
@@ -94,11 +100,6 @@ namespace cluster {
     int m_dy;
     // Note, m_accum is a vector of associative containers, the vector elements are called by rho, theta is the container key, the number of hits is the value corresponding to the key
     std::vector<std::map<int,int> > m_accum;  // column=rho, row=theta
-    //int distCenter;// \todo Why is this here? Only used locally by DoAddPoint
-    //int lastDist;
-    //int dist;
-    //int stepDir; 
-    //int cell;
     int m_rowLength;
     int m_numAccumulated;
     int m_rhoResolutionFactor;
@@ -172,36 +173,30 @@ namespace cluster {
                                            ///< at once
     int    fMissedHits;                    ///< Number of wires that are allowed to be missed before a line is broken up into
                                            ///< segments
+    double fHitsMissingSearched;           ///< Used for fake veto, ratio of hits missing to hits searched
+    double fMinSlopeVetoCheck;             ///< Minimum slope for which to perform the fake veto check
     double fDoHoughLineMerge;              ///< Turns on Hough line merging (0-off, 1-on)
     double fHoughLineMergeAngle;           ///< Max angle between slopes before two lines are merged (muon tracks), only for fuzzy clustering
     double fParaHoughLineMergeAngle;       ///< Max angle between slopes before two lines are merged, they should 
     double fDoParaHoughLineMerge;          ///< Turns on parallel Hough line merging (0-off, 1-on)
                                            ///< be close to parallel (electron showers), only for fuzzy clustering
     double fLineIsolationCut;              ///< Cut on the Hough line isolation, only for fuzzy clustering
-    double fHoughLineMergeCutoff;          ///< Max distance between Hough lines before two lines are merged (muon tracks), only for fuzzy clustering
+    double fHoughLineMergeCutoff;          ///< Max distance between Hough lines before two lines are merged (muon tracks), 
+                                           ///< only for fuzzy clustering
     double fParaHoughLineMergeCutoff;      ///< Max distance between Hough lines before two lines are merged (electron showers),
                                            ///< they are generally farther apart from each other, only for fuzzy clustering
-     
+    double fChargeAsymmetryCut;            ///< Cut on the asymmetry from the average charge of the four hits from each line closest to each other
+    double fSigmaChargeAsymmetryCut;       ///< Cut on the asymmetry from the average charge sigma of the four hits from each 
+                                           ///< line closest to each other
+
     void mergeHoughLines(unsigned int k,
         std::vector<lineSlope> *linesFound, 
-        std::vector<int> *newClusNum, 
-        std::vector<double> *newClusDist, 
         double xyScale);
     void mergeHoughLinesBySegment(unsigned int k,
         std::vector<lineSlope> *linesFound, 
-        std::vector<int> *newClusNum, 
-        std::vector<double> *newClusDist, 
-        double xyScale);
-    int mergeParaHoughLines(unsigned int k,
-        std::vector<lineSlope> *linesFound, 
-        std::vector<int> *newClusNum, 
-        std::vector<double> *newClusDist, 
-        double xyScale);
-    void mergeParaHoughLinesBySegment(unsigned int k,
-        std::vector<lineSlope> *linesFound, 
-        std::vector<int> *newClusNum, 
-        std::vector<double> *newClusDist, 
-        double xyScale);
+        double xyScale,
+        int mergeStyle,
+        std::map<int,int> *mNLineMerges);
      
 
     //std::vector<lineSlope> linesFound;
