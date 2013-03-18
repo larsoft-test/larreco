@@ -95,14 +95,10 @@ namespace cluster{
     art::ServiceHandle<geo::Geometry>      geo;
     art::ServiceHandle<cheat::BackTracker> bt;
     
-    // ========================== EDIT JASAADI =====================================
-    
     // ###################################
     // ### Getting Detector Properties ###
     // ###################################
     art::ServiceHandle<util::DetectorProperties> detp;
-    art::ServiceHandle<util::LArProperties> larp;
-    util::GeometryUtilities geoUtil;
     
     // #######################################
     // ### Getting MC Truth Info from simb ###
@@ -113,32 +109,21 @@ namespace cluster{
     // ##################################
     // ### Getting MC Truth simb Info ###
     // ##################################
-    art::PtrVector<simb::MCTruth> mclist;
-    for (unsigned int ii = 0; ii <  mctruthListHandle->size(); ++ii)
-  	{
-       	art::Ptr<simb::MCTruth> mctparticle(mctruthListHandle,ii);
-       	mclist.push_back(mctparticle);
-     	} 
-    float vertex[5];
-    
-    // ###################################
-    // ### Finding the MC truth vertex ###
-    // ###################################
-    for( unsigned int i = 0; i < mclist.size(); ++i )
-  	{
-     	art::Ptr<simb::MCTruth> mc(mclist[i]);
-	simb::MCParticle neut(mc->GetParticle(i)); 
+    ///\todo: Fix the following loop to work properly in case of multiple MCTruths per Event 
+    ///\todo: and in case of multiple particles per interaction
+    float vertex[5] = {0.};
+    for (size_t ii = 0; ii <  mctruthListHandle->size(); ++ii){
+      for(int i = 0; i < mctruthListHandle->at(ii).NParticles(); ++i){
+	simb::MCParticle const& p = mctruthListHandle->at(ii).GetParticle(i); 
 	
-	vertex[0] =neut.Vx();
-	vertex[1] =neut.Vy();
-     	vertex[2] =neut.Vz();
+	vertex[0] = p.Vx();
+	vertex[1] = p.Vy();
+	vertex[2] = p.Vz();
 	std::cout<<"Vertex X = "<<vertex[0]<<std::endl;
 	std::cout<<"Vertex Y = "<<vertex[1]<<std::endl;
 	std::cout<<"Vertex Z = "<<vertex[2]<<std::endl;
-	
-	}//<---end MC Truth Vertex
-    
-    // ===================== END EDIT JASAADI ======================================
+      }
+    }//<---end MC Truth Vertex
     
     // grab the hits that have been reconstructed
     art::Handle< std::vector<recob::Hit> > hitcol;
@@ -157,7 +142,7 @@ namespace cluster{
     // a responsible particle for an EM process
     bt->SetEveIdCalculator(new sim::EmEveIdCalculator);
 
-    mf::LogVerbatim("ClusterCheater") << bt->ParticleList();
+    LOG_DEBUG("ClusterCheater") << bt->ParticleList();
 
     // make a map of vectors of art::Ptrs keyed by eveID values
     std::map< int, std::vector< art::Ptr<recob::Hit> > > eveHitMap;
@@ -199,8 +184,8 @@ namespace cluster{
     std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
     for(hitMapItr = eveHitMap.begin(); hitMapItr != eveHitMap.end(); hitMapItr++){
-    unsigned int 	vtx_wire = 0;
-    double		vtx_tick = 0;
+      unsigned int 	vtx_wire = 0;
+
       // separate out the hits for each particle into the different views
       std::vector< art::Ptr<recob::Hit> > eveHits( (*hitMapItr).second );
 
@@ -254,8 +239,7 @@ namespace cluster{
 	    } // end loop over hits for this particle	
 
 	    // do not create clusters with zero size hit arrays, Andrzej
-	    if(ptrvs.size()==0)
-	      continue;
+	    if(ptrvs.size() == 0) continue;
 	    
 	    // figure out the rest of the cluster information using these hits
 	    
@@ -271,32 +255,21 @@ namespace cluster{
 	    geo::WireID wgeom = vtxwire[0];
 				
 	    vtx_wire = wgeom.Wire;
-	    vtx_tick = detp->ConvertXToTicks(vertex[0], pl, t, c);
 	     
 	    // === If the cluster is to the downstream of the vertex the positions are switched ===
-	    if(startWire - vtx_wire < 0 && endWire - vtx_wire < 0)
-	    	{
-		float tempstartWire = endWire;
-		float tempendWire = startWire;
-		
-		startWire = tempstartWire;
-		endWire = tempendWire;
-		
-		float tempstartTime = endTime;
-		float tempendTime = startTime;
-		
-		startTime = tempstartTime;
-		endTime = tempendTime;
-		
-		
-		}
-	    
-	    if(startTime - vtx_tick < 0 && endTime - vtx_tick < 0)
-	    	{
-		
-		
-		
-		}
+	    if(startWire - vtx_wire < 0 && endWire - vtx_wire < 0){
+	      float tempstartWire = endWire;
+	      float tempendWire = startWire;
+	      
+	      startWire = tempstartWire;
+	      endWire = tempendWire;
+	      
+	      float tempstartTime = endTime;
+	      float tempendTime = startTime;
+	      
+	      startTime = tempstartTime;
+	      endTime = tempendTime;
+	    }
 	    
 	    ///\todo now figure out the dQdW
 	    
