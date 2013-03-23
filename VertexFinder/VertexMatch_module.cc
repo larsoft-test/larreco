@@ -232,10 +232,10 @@ void vertex::VertexMatch::produce(art::Event& evt)
 		 &&((TMath::Abs(vertexhit[i]->PeakTime()-starttime)<fMaxDistance)
 		    ||(TMath::Abs(vertexhit[i]->PeakTime()-endtime)<fMaxDistance)
 		    ))          		  
-		distance=(TMath::Abs(vertexhit[i]->PeakTime()-slope*(double)wire-intercept)/(sqrt(pow(.0743*slope,2)+1))); 
+		distance=(TMath::Abs(vertexhit[i]->PeakTime()-slope*(double)wire-intercept)/(std::sqrt(pow(.0743*slope,2)+1))); 
 	      
 	      if(distance<(fMaxDistance+((vertexhit[i]->EndTime()-vertexhit[i]->StartTime())/2.))&&distance>-1)
-		matchedvertex.push_back(std::pair<art::Ptr<recob::Hit>,double>(vertexhit[i], weakvertexstrength[i]*sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
+		matchedvertex.push_back(std::pair<art::Ptr<recob::Hit>,double>(vertexhit[i], weakvertexstrength[i]*std::sqrt(pow(TMath::Abs(endwire-startwire)*.0743,2)+pow(TMath::Abs(endtime-starttime),2))));
 	      //ala strongestvertex.push_back(std::pair<art::PtrVector<recob::Hit>,double>(matchedvertex[i].first,strength));
 	    }
 	  }

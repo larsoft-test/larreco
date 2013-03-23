@@ -252,7 +252,7 @@ namespace vertex{
 	    double lclu1 = -999;
 	    double lclu2 = -999;
 	    for (unsigned j = 0; j<Cls[i].size(); ++j){
-	      double lclu = sqrt(pow((clusters[Cls[i][j]]->StartPos()[0]-clusters[Cls[i][j]]->EndPos()[0])*13.5,2)
+	      double lclu = std::sqrt(pow((clusters[Cls[i][j]]->StartPos()[0]-clusters[Cls[i][j]]->EndPos()[0])*13.5,2)
 				 +pow(clusters[Cls[i][j]]->StartPos()[1]-clusters[Cls[i][j]]->EndPos()[1],2));
 	      bool rev = false;
 	      bool deltaraylike = false;

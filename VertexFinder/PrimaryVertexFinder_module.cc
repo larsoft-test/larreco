@@ -417,7 +417,7 @@ double vertex::PrimaryVertexFinder::StartPointSeperation(recob::SpacePoint sp1, 
   double x= (sp2.XYZ()[0])-(sp1.XYZ()[0]);
   double y= (sp2.XYZ()[1])-(sp1.XYZ()[1]);
   double z= (sp2.XYZ()[2])-(sp1.XYZ()[2]);
-  double distance = sqrt(pow(x,2)+pow(y,2)+pow(z,2));
+  double distance = std::sqrt(pow(x,2)+pow(y,2)+pow(z,2));
   return distance;
 }
 // //---------------------------------------------------------------------------------

@@ -119,7 +119,7 @@ void vertex::HarrisVertexFinder::beginJob(){
 //-----------------------------------------------------------------------------
 double vertex::HarrisVertexFinder::Gaussian(int x, int y, double sigma)
 {
-  double Norm  = 1./sqrt(2*TMath::Pi()*pow(sigma,2));
+  double Norm  = 1./std::sqrt(2*TMath::Pi()*pow(sigma,2));
   double value = Norm*exp(-(pow(x,2)+pow(y,2))/(2*pow(sigma,2)));
   return value;
 }
@@ -127,7 +127,7 @@ double vertex::HarrisVertexFinder::Gaussian(int x, int y, double sigma)
 //-----------------------------------------------------------------------------
 double vertex::HarrisVertexFinder::GaussianDerivativeX(int x,int y)
 {
-  double Norm  = 1./(sqrt(2*TMath::Pi())*pow(fGsigma,3));
+  double Norm  = 1./(std::sqrt(2*TMath::Pi())*pow(fGsigma,3));
   double value = Norm*(-x)*exp(-(pow(x,2)+pow(y,2))/(2*pow(fGsigma,2)));
   return value;
 }
@@ -135,7 +135,7 @@ double vertex::HarrisVertexFinder::GaussianDerivativeX(int x,int y)
 //-----------------------------------------------------------------------------
 double vertex::HarrisVertexFinder::GaussianDerivativeY(int x,int y)
 {
-  double Norm  = 1./(sqrt(2*TMath::Pi())*pow(fGsigma,3));
+  double Norm  = 1./(std::sqrt(2*TMath::Pi())*pow(fGsigma,3));
   double value = Norm*(-y)*exp(-(pow(x,2)+pow(y,2))/(2*pow(fGsigma,2)));
   return value;
 }
@@ -340,7 +340,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 		  for(unsigned int wireout=wire-(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5);
 		      wireout <= wire+(int)((fWindow*(numbertimesamples/fTimeBins)*.0743)+.5) ; wireout++)
 		    for(int timebinout=timebin-fWindow;timebinout <= timebin+fWindow; timebinout++)
-		      if(sqrt(pow(wire-wireout,2)+pow(timebin-timebinout,2))<fWindow)//circular window 
+		      if(std::sqrt(pow(wire-wireout,2)+pow(timebin-timebinout,2))<fWindow)//circular window 
 			Cornerness[wireout][timebinout]=0;	  
 		}
 	    }// end loop over time bins     
