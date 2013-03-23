@@ -52,11 +52,11 @@ public:
 
 BoundingBox dbsPoint::bounds()const{
   BoundingBox bb;
-  bb.edges[0].first  = x - fabs(dx);
-  bb.edges[0].second = x + fabs(dx);
+  bb.edges[0].first  = x - std::abs(dx);
+  bb.edges[0].second = x + std::abs(dx);
   
-  bb.edges[1].first  = y - fabs(dy);
-  bb.edges[1].second = y + fabs(dy);
+  bb.edges[1].first  = y - std::abs(dy);
+  bb.edges[1].second = y + std::abs(dy);
   return bb;
 }
 
@@ -170,8 +170,8 @@ struct AcceptFindNeighbors {
     double tCenter0 = center().edges[0].first; // "t" is for test-point
     double tCenter1 = center().edges[1].first;
     // widths in the time direction
-    double bWidth = fabs(     b.edges[1].second -      b.edges[1].first);
-    double tWidth = fabs(fBound.edges[1].second - fBound.edges[1].first);
+    double bWidth = std::abs(     b.edges[1].second -      b.edges[1].first);
+    double tWidth = std::abs(fBound.edges[1].second - fBound.edges[1].first);
     // bad channel counting
     unsigned int wire1 = (unsigned int) (tCenter0/fWireDist + 0.5);
     unsigned int wire2 = (unsigned int) (bCenter0/fWireDist + 0.5);
@@ -186,14 +186,14 @@ struct AcceptFindNeighbors {
     double cmtobridge = wirestobridge*fWireDist;
 
     // getSimilarity()
-    double sim = fabs(tCenter0 - bCenter0) - cmtobridge;
+    double sim = std::abs(tCenter0 - bCenter0) - cmtobridge;
     sim*=sim; // square it
 
     // getSimilarity2()
-    if ( fabs(tCenter0 - bCenter0) > 1e-10 ) { 
-      cmtobridge *= fabs((tCenter1-bCenter1)/(tCenter0-bCenter0));
+    if ( std::abs(tCenter0 - bCenter0) > 1e-10 ) { 
+      cmtobridge *= std::abs((tCenter1-bCenter1)/(tCenter0-bCenter0));
     }
-    double sim2 = fabs(tCenter1 - bCenter1) - cmtobridge;
+    double sim2 = std::abs(tCenter1 - bCenter1) - cmtobridge;
     sim2 *= sim2; // square it
 
     // getWidthFactor() 
@@ -378,10 +378,10 @@ double cluster::DBScanAlg::getSimilarity(const std::vector<double> v1, const std
   //for Euclidean distance comment everything out except this-->>>
   // return sqrt((v2[1]-v1[1])*(v2[1]-v1[1])+(v2[0]-v1[0])*(v2[0]-v1[0]));
   //------------------------------------------------------------------------
-  // return fabs( v2[0]-v1[0]); //for rectangle
+  // return std::abs( v2[0]-v1[0]); //for rectangle
   //---------------------------------------------------------------------- 
   //Manhattan distance:
-  //return fabs(v1[0]-v2[0])+fabs(v1[1]-v2[1]);
+  //return std::abs(v1[0]-v2[0])+std::abs(v1[1]-v2[1]);
   
   /// \todo this code assumes that all planes have the same wire pitch
   double wire_dist = fWirePitch[0];
@@ -403,14 +403,14 @@ double cluster::DBScanAlg::getSimilarity(const std::vector<double> v1, const std
   
   double cmtobridge=wirestobridge*wire_dist;  
   //---------------------------------------------------------------------
-  return (( fabs(v2[0]-v1[0])-cmtobridge)*( fabs(v2[0]-v1[0])-cmtobridge)); //for ellipse
+  return (( std::abs(v2[0]-v1[0])-cmtobridge)*( std::abs(v2[0]-v1[0])-cmtobridge)); //for ellipse
 }
 
 //----------------------------------------------------------------
 double cluster::DBScanAlg::getSimilarity2(const std::vector<double> v1, const std::vector<double> v2){
 
   //-------------------------------------------
-  //return fabs( v2[1]-v1[1]);//for rectangle
+  //return std::abs( v2[1]-v1[1]);//for rectangle
   //------------------------------------------
 
   /// \todo this code assumes all planes have the same wire pitch
@@ -433,12 +433,12 @@ double cluster::DBScanAlg::getSimilarity2(const std::vector<double> v1, const st
   
   double cmtobridge=wirestobridge*wire_dist;  
   
-  if (fabs(v2[0]-v1[0])>1e-10){
-    cmtobridge *= fabs((v2[1]-v1[1])/(v2[0]-v1[0]));
+  if (std::abs(v2[0]-v1[0])>1e-10){
+    cmtobridge *= std::abs((v2[1]-v1[1])/(v2[0]-v1[0]));
   }
   else cmtobridge = 0;
 
-  return (( fabs(v2[1]-v1[1])-cmtobridge)*( fabs(v2[1]-v1[1])-cmtobridge));//for ellipse
+  return (( std::abs(v2[1]-v1[1])-cmtobridge)*( std::abs(v2[1]-v1[1])-cmtobridge));//for ellipse
   
   
 }

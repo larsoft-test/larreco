@@ -237,7 +237,7 @@ namespace cluster{
     double sl2 = atan(slope2);
 
     //the units of fSlope are radians
-    bool comp  = fabs(sl1-sl2) < fSlope ? true : false;
+    bool comp  = std::abs(sl1-sl2) < fSlope ? true : false;
 
     return comp;
   }

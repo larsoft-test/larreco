@@ -255,7 +255,7 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
       // For each dimension
       for ( int f = 0; f < 2; f++)
         // x_i - c_j                      x_i               c_j
-        //mNormOneXiMinusCj(i,j) += fabs( fpsMat(i,f) - fpsCentroids(j,f));
+        //mNormOneXiMinusCj(i,j) += std::abs( fpsMat(i,f) - fpsCentroids(j,f));
         mNormOneXiMinusCj(i,j) += pow( fpsMat(i,f) - fpsCentroids(j,f),2);
         // This really should be squard to find the real norm, now the square
         // root of the matrix must be taken, the commented out is what was originally 

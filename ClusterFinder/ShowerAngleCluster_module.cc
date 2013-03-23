@@ -946,7 +946,7 @@ void cluster::ShowerAngleCluster::Find2DAxisRough(unsigned int nClust,std::vecto
 //       if(BC<0)  // for the time being. Will check if it works for AC<0
 // 	  { 
 // 	  if(AC!=0)
-// 	  omega= AC/fabs(AC)*TMath::Pi()-omega;  //subtract when negative, add when positive
+// 	  omega= AC/std::abs(AC)*TMath::Pi()-omega;  //subtract when negative, add when positive
 // 	  else    
 // 	  omega=TMath::Pi();
 // 	  } 
@@ -1337,12 +1337,12 @@ void   cluster::ShowerAngleCluster::CalculateAxisParameters(unsigned nClust, std
 // 
 //   //sort the best planes in order of correlation factor
 //   //first sort
-//   if(fabs(tgx[best_planes[0]]->GetCorrelationFactor())<fabs(tgx[best_planes[1]]->GetCorrelationFactor()))
+//   if(std::abs(tgx[best_planes[0]]->GetCorrelationFactor())<std::abs(tgx[best_planes[1]]->GetCorrelationFactor()))
 //     std::swap(best_planes[0],best_planes[1]);
 // 
 //   //second sort
 //   if(best_planes.size()>2 && 
-//     (fabs(tgx[best_planes[1]]->GetCorrelationFactor())<fabs(tgx[best_planes[2]]->GetCorrelationFactor())))
+//     (std::abs(tgx[best_planes[1]]->GetCorrelationFactor())<std::abs(tgx[best_planes[2]]->GetCorrelationFactor())))
 // 	std::swap(best_planes[1],best_planes[2]);
 // 
 //   // sanity check - see if times of the points found are close enough.
@@ -1370,10 +1370,10 @@ void   cluster::ShowerAngleCluster::CalculateAxisParameters(unsigned nClust, std
 //   //loop to check time discrepancies between points found
 //   for(unsigned int xx=0;xx<bestplanes.size()-1;xx++){  // best_planes.size()-1 because we want to always find a next plane
 //     for(unsigned int yy=xx+1;yy<best_planes.size();yy++){
-// 	mf::LogVerbatim("ShowerAngleCluster")  << "**** difference between planes X position, planes: "<< best_planes[xx] << " "<< best_planes[yy] << " "<< position[best_planes[xx]][0] << " " << position[best_planes[yy]][0] << " " << fabs(position[best_planes[xx]][0]-position[best_planes[yy]][0]) << " " << " " << time_start[best_planes[xx]] << " " << time_start[best_planes[yy]] << " " << fabs(time_start[best_planes[xx]]-time_start[best_planes[yy]]) << std::endl;
+// 	mf::LogVerbatim("ShowerAngleCluster")  << "**** difference between planes X position, planes: "<< best_planes[xx] << " "<< best_planes[yy] << " "<< position[best_planes[xx]][0] << " " << position[best_planes[yy]][0] << " " << std::abs(position[best_planes[xx]][0]-position[best_planes[yy]][0]) << " " << " " << time_start[best_planes[xx]] << " " << time_start[best_planes[yy]] << " " << std::abs(time_start[best_planes[xx]]-time_start[best_planes[yy]]) << std::endl;
 // 			
-// 	if(fabs(time_start[best_planes[xx]]-time_start[best_planes[yy]]) > 1.5*fabs(position[best_planes[xx]][0]-position[best_planes[yy]][0])){
-// 		mf::LogVerbatim("ShowerAngleCluster")  << " !!!! Something's wrong in the wire determination " << fabs(time_start[best_planes[xx]]-time_start[best_planes[yy]]) << " " << 1.5*fabs(position[xx][0]-position[yy][0]) << std::endl;
+// 	if(std::abs(time_start[best_planes[xx]]-time_start[best_planes[yy]]) > 1.5*std::abs(position[best_planes[xx]][0]-position[best_planes[yy]][0])){
+// 		mf::LogVerbatim("ShowerAngleCluster")  << " !!!! Something's wrong in the wire determination " << std::abs(time_start[best_planes[xx]]-time_start[best_planes[yy]]) << " " << 1.5*std::abs(position[xx][0]-position[yy][0]) << std::endl;
 // 	}	
 //     } // end inner yy loop
 //   } // end outer xx loop
@@ -1381,9 +1381,9 @@ void   cluster::ShowerAngleCluster::CalculateAxisParameters(unsigned nClust, std
 // 	
 // 	
 // 
-// 	if((fabs(time_start[best_planes[0]]-time_start[best_planes[1]]) > 1.5*fabs(position[0][0]-position[1][0])) && best_planes.size() > 2) //time discrepancy of best correlation factor pair and we have a choice.
+// 	if((std::abs(time_start[best_planes[0]]-time_start[best_planes[1]]) > 1.5*std::abs(position[0][0]-position[1][0])) && best_planes.size() > 2) //time discrepancy of best correlation factor pair and we have a choice.
 // 		{mf::LogVerbatim("ShowerAngleCluster")  << " time discrepancy of best correlation factor pair 0 and 1 " << time_start[best_planes[0]] << " " << time_start[best_planes[1]] << " "<< position[0][0] << " " << position[1][0] << std::endl;
-// 		if(!(fabs(time_start[best_planes[0]]-time_start[best_planes[2]]) > 2.5*fabs(position[0][0]-position[2][0]))) //0,1 is bad but 0,2 is ok:
+// 		if(!(std::abs(time_start[best_planes[0]]-time_start[best_planes[2]]) > 2.5*std::abs(position[0][0]-position[2][0]))) //0,1 is bad but 0,2 is ok:
 // 			{
 // 			mf::LogVerbatim("ShowerAngleCluster")  << " but 0,2 is ok " << time_start[best_planes[0]] << " " << time_start[best_planes[2]] << " "<< position[0][0] << " " << position[2][0] << std::endl;
 // 			std::swap(best_planes[1],best_planes[2]);
@@ -1391,7 +1391,7 @@ void   cluster::ShowerAngleCluster::CalculateAxisParameters(unsigned nClust, std
 // 		else   //0,1 is not ok and 0,2 is not ok
 // 			{
 // 			mf::LogVerbatim("ShowerAngleCluster")  << " 0,1 and 0,2 is not ok " << std::endl;
-// 			if(!(fabs(time_start[best_planes[1]]-time_start[best_planes[2]]) > 2.5*fabs(position[1][0]-position[2][0]))) //0,1 and 0,2 is bad but 1,2 is ok.
+// 			if(!(std::abs(time_start[best_planes[1]]-time_start[best_planes[2]]) > 2.5*std::abs(position[1][0]-position[2][0]))) //0,1 and 0,2 is bad but 1,2 is ok.
 // 				{
 // 				mf::LogVerbatim("ShowerAngleCluster")  << " but 1,2 is ok " << time_start[best_planes[1]] << " " << time_start[best_planes[2]] << " "<< position[1][0] << " " << position[2][0] << std::endl;
 // 				std::swap(best_planes[0],best_planes[1]);
@@ -1659,7 +1659,7 @@ void cluster::ShowerAngleCluster::Find2DBestPlanes(std::vector<int> &best_planes
    
   // first loop: select planes where the shower has a large enough correlation factor
   for (unsigned int iplane=0;iplane<fNPlanes;iplane++){
-    if(fabs(tgx[iplane]->GetCorrelationFactor()) > 0.6 )	
+    if(std::abs(tgx[iplane]->GetCorrelationFactor()) > 0.6 )	
       best_planes.push_back(iplane);
     //  mf::LogVerbatim("ShowerAngleCluster")  << " correlation factors in 0.6 search" << tgx[iplane]->GetCorrelationFactor() << std::endl;
   }
@@ -1667,8 +1667,8 @@ void cluster::ShowerAngleCluster::Find2DBestPlanes(std::vector<int> &best_planes
  
   //second loop: select planes where the shower in the plane is near horizontal (based on RMS ratio)
   for (unsigned int iplane=0;iplane<fNPlanes;iplane++){
-    if(fabs(tgx[iplane]->GetCorrelationFactor()) <= 0.6 
-       && fabs(tgx[iplane]->GetCorrelationFactor()) > 0.5 
+    if(std::abs(tgx[iplane]->GetCorrelationFactor()) <= 0.6 
+       && std::abs(tgx[iplane]->GetCorrelationFactor()) > 0.5 
        && tgx[iplane]->GetRMS(2) > 0. 
        && tgx[iplane]->GetRMS(1) /tgx[iplane]->GetRMS(2)>2. )	
       best_planes.push_back(iplane);
@@ -1682,11 +1682,11 @@ void cluster::ShowerAngleCluster::Find2DBestPlanes(std::vector<int> &best_planes
       double mincorr=0;
       int maxplane=0;
       for (unsigned int iplane=0;iplane<fNPlanes;iplane++){
-	if(fabs(tgx[iplane]->GetCorrelationFactor()) <= 0.6 
-	   && fabs(tgx[iplane]->GetCorrelationFactor()) > mincorr 
+	if(std::abs(tgx[iplane]->GetCorrelationFactor()) <= 0.6 
+	   && std::abs(tgx[iplane]->GetCorrelationFactor()) > mincorr 
 	   && iplane!=used_plane ){
 	  maxplane=iplane;
-	  mincorr=fabs(tgx[iplane]->GetCorrelationFactor());
+	  mincorr=std::abs(tgx[iplane]->GetCorrelationFactor());
 	}
       } // end for loop on planes
 
@@ -1784,7 +1784,7 @@ void cluster::ShowerAngleCluster::RefineStartPoints(unsigned int nClust,std::vec
 	    
       double pitchdist=gser.Get2DPitchDistance(angle,inwire,wire);
 	    
-      distdiff+=fabs(pitchdist-stdist);
+      distdiff+=std::abs(pitchdist-stdist);
 	     
       // if(wire==wire_start[bestplanes[xx]])
 	
@@ -1849,7 +1849,7 @@ void cluster::ShowerAngleCluster::RefineStartPoints(unsigned int nClust,std::vec
       art::Ptr<recob::Hit> HitBefore = (*(hitIter-1));
       GetPlaneAndTPC(HitBefore,plane2,cstat2,tpc2,wire2);
 	
-      // mf::LogVerbatim("ShowerAngleCluster")  << "wires " << wire2 << " " << wire << " " << fabs((double)wire2-(double)wire) << std::endl;
+      // mf::LogVerbatim("ShowerAngleCluster")  << "wires " << wire2 << " " << wire << " " << std::abs((double)wire2-(double)wire) << std::endl;
 	
 	
       sizecounter++;
@@ -1862,7 +1862,7 @@ void cluster::ShowerAngleCluster::RefineStartPoints(unsigned int nClust,std::vec
 	  lsublclustsize=sizecounter;  
 	}
 	  
-      if((fabs((double)wire2-(double)wire)>1)) //presumably end of shower start, and following are comptons somewhere.
+      if((std::abs((double)wire2-(double)wire)>1)) //presumably end of shower start, and following are comptons somewhere.
 	{
 	  sizecounter=0;
 	}

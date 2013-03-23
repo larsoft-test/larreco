@@ -491,7 +491,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
       unsigned int numHitsMissing = 0;
       unsigned int numHitsSearched = 0;
       ///\todo change 5 to a tunable parameter
-      if( fabs(slope) > fMinSlopeVetoCheck) {      
+      if( std::abs(slope) > fMinSlopeVetoCheck) {      
 	//mf::LogVerbatim("HoughBaseAlg") << "peakMax: " << peakMax 
 					//<< " fMinPeak: " << fMinPeak 
 					//<< " fMaxPeak: " << fMaxPeak;
@@ -828,7 +828,7 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
   // Find the angle between the slopes
   for(std::vector<double>::iterator mergeThetaItr = mergeTheta.begin(); mergeThetaItr != mergeTheta.end(); mergeThetaItr++){
     double toMergeSlope =  linesFound->at(toMerge[mergeThetaItr-mergeTheta.begin()]).clusterSlope*xyScale;
-    mergeTheta[mergeThetaItr-mergeTheta.begin()] = atan(fabs(( toMergeSlope - mergeSlope[mergeThetaItr-mergeTheta.begin()])/(1 + toMergeSlope*mergeSlope[mergeThetaItr-mergeTheta.begin()] )))*(180/TMath::Pi());
+    mergeTheta[mergeThetaItr-mergeTheta.begin()] = atan(std::abs(( toMergeSlope - mergeSlope[mergeThetaItr-mergeTheta.begin()])/(1 + toMergeSlope*mergeSlope[mergeThetaItr-mergeTheta.begin()] )))*(180/TMath::Pi());
   }
 
   // Perform the merge
@@ -959,8 +959,8 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
         linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart3].second;
       clusIndexStartAveSigmaCharge/=4;
 
-      double chargeAsymmetry = fabs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
-      double sigmaChargeAsymmetry = fabs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
+      double chargeAsymmetry = std::abs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
+      double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
 
       //std::cout << "toMergeAveCharge: " << toMergeAveCharge << std::endl;
       //std::cout << "clusIndexStartAveCharge: " << clusIndexStartAveCharge << std::endl;
@@ -1085,7 +1085,7 @@ void cluster::HoughBaseAlg::mergeHoughLines(unsigned int clusIndexStart,
 
   // Find the angle between the slopes
   for(unsigned int i = 0; i < minTheta.size(); i++){
-    minTheta[i] = atan(fabs((linesFound->at(minMerge[i]).clusterSlope*xyScale-minSlope[i]*xyScale)/(1 + linesFound->at(minMerge[i]).clusterSlope*xyScale*minSlope[i]*xyScale)))*(180/TMath::Pi());
+    minTheta[i] = atan(std::abs((linesFound->at(minMerge[i]).clusterSlope*xyScale-minSlope[i]*xyScale)/(1 + linesFound->at(minMerge[i]).clusterSlope*xyScale*minSlope[i]*xyScale)))*(180/TMath::Pi());
     //mf::LogVerbatim("HoughBaseAlg") << "minTheta: " << minTheta[i] << std::endl; 
     //mf::LogInfo("HoughBaseAlg") << "minTheta: " << minTheta[i]; 
   }
@@ -1138,7 +1138,7 @@ void cluster::HoughBaseAlg::mergeHoughLines(unsigned int clusIndexStart,
 
   // Find the angle between the slopes
   for(unsigned int i = 0; i < maxTheta.size(); i++){
-    maxTheta[i] = atan(fabs((linesFound->at(maxMerge[i]).clusterSlope*xyScale-maxSlope[i]*xyScale)/(1 + linesFound->at(maxMerge[i]).clusterSlope*xyScale*maxSlope[i]*xyScale)))*(180/TMath::Pi());
+    maxTheta[i] = atan(std::abs((linesFound->at(maxMerge[i]).clusterSlope*xyScale-maxSlope[i]*xyScale)/(1 + linesFound->at(maxMerge[i]).clusterSlope*xyScale*maxSlope[i]*xyScale)))*(180/TMath::Pi());
     //mf::LogVerbatim("HoughBaseAlg") << "maxTheta: " << maxTheta[i] << std::endl; 
     //mf::LogVerbatim("HoughBaseAlg") << "maxTheta: " << maxTheta[i] << std::endl; 
     mf::LogInfo("HoughBaseAlg") << "maxTheta: " << maxTheta[i]; 
@@ -2099,7 +2099,7 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
               unsigned int numHitsMissing = 0;
               unsigned int numHitsSearched = 0;
 	      ///\todo: why is this hard coded????
-              if( fabs(slope) > 5 ) {      
+              if( std::abs(slope) > 5 ) {      
                 tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
                 mf::LogVerbatim("HoughBaseAlg") << "peakMax: " << peakMax 
 						<< " fMinPeak: " << fMinPeak 

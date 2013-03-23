@@ -518,7 +518,7 @@ namespace cluster{
       a_polar = (allhits[i]->PeakTime() - ftime_vertex_reco[plane])* ftimetick *fdriftvelocity; /** in cm*/
        
        
-      theta_polar = fabs(asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2)))); /**in rad*/
+      theta_polar = std::abs(asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2)))); /**in rad*/
       theta_polar = 180*theta_polar/fpi; /** in deg*/
        
        
@@ -1956,7 +1956,7 @@ namespace cluster{
       b_polar = diff_w*0.4; /**in cm*/
       //b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
       a_polar = (allhits[i]->PeakTime() - ftime_vertex_reco[plane])* ftimetick *fdriftvelocity; /** in cm*/
-      theta_polar = fabs(asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2)))); /**in rad*/
+      theta_polar = std::abs(asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2)))); /**in rad*/
       theta_polar = 180*theta_polar/fpi; /** in deg*/
      
       if     (b_polar == 0 && a_polar == 0) theta_polar =  90; /** in deg*/
@@ -1981,7 +1981,7 @@ namespace cluster{
   	//decide where noise hits go
        
   	for(unsigned int peakNo=0;peakNo<FinalPeaks.size();peakNo++){
-  	  DiffAngles.push_back(fabs(-180+2*FinalPeaks[peakNo]-theta_polar));
+  	  DiffAngles.push_back(std::abs(-180+2*FinalPeaks[peakNo]-theta_polar));
   	}
   	// now take minimum of DiffAngles and find at which position 
   	// it is at, this position corresponds to clusterNo +1 , 
