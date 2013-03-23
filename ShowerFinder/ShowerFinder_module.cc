@@ -180,7 +180,7 @@ namespace shwf{
     double y2_cone = 0; // y coordinate of the cone's top left point  (drift time)
     
     //The length of the side of the cone
-    double fScone = sqrt( (fRcone*fRcone) + (fLcone*fLcone)); 
+    double fScone = std::sqrt( (fRcone*fRcone) + (fLcone*fLcone)); 
     
     // Opening angle of the cone (defined from input parameters)
     double cone_angle = (TMath::ATan(fRcone / fLcone)) / 2.0; 

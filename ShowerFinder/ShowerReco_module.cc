@@ -940,7 +940,7 @@ namespace shwf {
   //     // moving to polar coordinates
   //     BC = (wire_cm - fWire_vertex[plane]* fMean_wire_pitch)+fMean_wire_pitch; //in cm
   //     AC = (time_cm - fTime_vertex[plane]*ftimetick*fdriftvelocity); // in cm 
-  //     omega = asin(AC/sqrt(pow(AC,2)+pow(BC,2)));
+  //     omega = asin(AC/std::sqrt(pow(AC,2)+pow(BC,2)));
   //     omega = 180*omega/3.14; // in deg
   //     //std::cout << " WireI1=" << wireI1 << " BI= " << BI << "    ThetaI = " << thetaI <<std::endl;
   //        
@@ -1055,7 +1055,7 @@ namespace shwf {
  
     // Direction angles
     fPhiN.push_back( atan(n/l));
-    fThetaN.push_back( acos(m/(sqrt(pow(l,2)+pow(m,2)+pow(n,2)))) );
+    fThetaN.push_back( std::acos(m/(std::sqrt(pow(l,2)+pow(m,2)+pow(n,2)))) );
  
  
     //std::cout << "+++++ new calc first test angles tests, Phi, Thet: " 
@@ -1229,7 +1229,7 @@ namespace shwf {
   // 
   //   // Director angles
   //   fPhi   = atan(n/l);
-  //   fTheta = acos(m/(sqrt(pow(l,2)+pow(m,2)+pow(n,2))));
+  //   fTheta = acos(m/(std::sqrt(pow(l,2)+pow(m,2)+pow(n,2))));
   // 
   //   float Phi = fPhi>0. ? (TMath::Pi()/2)-fPhi : std::abs(fPhi)-(TMath::Pi()/2) ; // solve the ambiguities due to tangent periodicity
   //   float Theta=0;
