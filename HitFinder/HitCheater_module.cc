@@ -240,8 +240,8 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
 				startTime, 1.,
 				endTime,   1.,
 				peakTime,  1.,
-				totCharge, sqrt(totCharge),
-				maxCharge, sqrt(maxCharge),
+				totCharge, std::sqrt(totCharge),
+				maxCharge, std::sqrt(maxCharge),
 				multiplicity,
 				1.)
 		     );

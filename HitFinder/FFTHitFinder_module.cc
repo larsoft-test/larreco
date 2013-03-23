@@ -309,7 +309,7 @@ namespace hit{
             goodnessOfFit = gSum.GetChisquare()/(double)gSum.GetNDF();
 
 	    //estimate error from area of Gaussian
-            chargeErr = TMath::Sqrt(TMath::Pi())*(amplitudeErr*width+widthErr*amplitude);   
+            chargeErr = std::sqrt(TMath::Pi())*(amplitudeErr*width+widthErr*amplitude);   
 
 	    hitSig.resize(size);
 
@@ -319,7 +319,7 @@ namespace hit{
 	    }              	    
 
             if(fAreaMethod) 
-              totSig = sqrt(2*TMath::Pi())*amplitude*width/fAreaNorms[(size_t)sigType];              
+              totSig = std::sqrt(2*TMath::Pi())*amplitude*width/fAreaNorms[(size_t)sigType];              
 
 	    // get the WireID for this hit
 	    std::vector<geo::WireID> wids = geom->ChannelToWire(channel);

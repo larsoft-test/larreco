@@ -505,7 +505,7 @@ void GausHitFinder::produce(art::Event& evt)
 	      
 	  // --- Getting the total charge using the area method ---
 	  if(fAreaMethod) {
-	    totSig = sqrt(2*TMath::Pi())*Gaus.GetParameter(3*hitNumber)*Gaus.GetParameter(3*hitNumber+2)/fAreaNorms[(size_t)sigType];
+	    totSig = std::sqrt(2*TMath::Pi())*Gaus.GetParameter(3*hitNumber)*Gaus.GetParameter(3*hitNumber+2)/fAreaNorms[(size_t)sigType];
 		
 	  }//<---End Area Method
 	  Charge				= totSig;

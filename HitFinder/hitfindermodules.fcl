@@ -78,7 +78,10 @@ microboone_hitfinder.ColMinWidth: 1.0
 microboone_gaushitfinder.IndMinWidth: 1.0
 microboone_gaushitfinder.ColMinWidth: 1.0
 
-lbne_hitfinder:       @local::standard_hitfinder
-lbne_gaushitfinder:   @local::gaus_hitfinder
+lbne10kt_hitfinder:       @local::standard_hitfinder
+lbne10kt_gaushitfinder:   @local::gaus_hitfinder
+
+lbne35t_hitfinder:       @local::standard_hitfinder
+lbne35t_gaushitfinder:   @local::gaus_hitfinder
 
 END_PROLOG
