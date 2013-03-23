@@ -741,7 +741,7 @@ namespace shwf {
       //  std::cout << "^^^^^^cross-check xphi and xtheta: " << xphi << " " << xtheta << std::endl;
       
      
-      if(fabs(xphi) < 2 )
+      if(std::abs(xphi) < 2 )
 	xtheta= gser.Get3DSpecialCaseTheta(bp1,bp2,fWire_last[bp1]-fWire_vertex[bp1], fWire_last[bp2]-fWire_vertex[bp2]);
 	
       //	std::cout << "xphi, xtheta1:" << xphi << " " << xtheta << " new th: "<< xtheta2 <<std::endl;
@@ -801,7 +801,7 @@ namespace shwf {
 
 
       //for(unsigned int set=0;set<fNAngles;set++)
-      if(!(fabs(xphi) >89 && fabs(xphi)<91)) // do not calculate pitch for extreme angles
+      if(!(std::abs(xphi) >89 && std::abs(xphi)<91)) // do not calculate pitch for extreme angles
 	LongTransEnergy(0,hitlist_all[fNPlanes-1]); //temporary only plane 2. Do not use for ArgoneuT
   
       // LongTransEnergy(hitlistCol); //Longitudinal and Transverse energy profile of the Shower induction
@@ -1063,7 +1063,7 @@ namespace shwf {
     //			   << fThetaN[fThetaN.size()-1]*180/pi<< std::endl;
 
     // solve the ambiguities due to tangent periodicity
-    float Phi = fPhiN[fPhiN.size()-1]>0. ? (TMath::Pi()/2)-fPhiN[fPhiN.size()-1] : fabs(fPhiN[fPhiN.size()-1])-(TMath::Pi()/2) ; 
+    float Phi = fPhiN[fPhiN.size()-1]>0. ? (TMath::Pi()/2)-fPhiN[fPhiN.size()-1] : std::abs(fPhiN[fPhiN.size()-1])-(TMath::Pi()/2) ; 
     float Theta = 0;
     if(Phi < 0)Theta = (TMath::Pi()/2)-fThetaN[fThetaN.size()-1];
     if(Phi > 0)Theta = fThetaN[fThetaN.size()-1]-(TMath::Pi()/2);
@@ -1231,7 +1231,7 @@ namespace shwf {
   //   fPhi   = atan(n/l);
   //   fTheta = acos(m/(sqrt(pow(l,2)+pow(m,2)+pow(n,2))));
   // 
-  //   float Phi = fPhi>0. ? (TMath::Pi()/2)-fPhi : fabs(fPhi)-(TMath::Pi()/2) ; // solve the ambiguities due to tangent periodicity
+  //   float Phi = fPhi>0. ? (TMath::Pi()/2)-fPhi : std::abs(fPhi)-(TMath::Pi()/2) ; // solve the ambiguities due to tangent periodicity
   //   float Theta=0;
   //   if(Phi>0)Theta = fTheta-(TMath::Pi()/2);
   //   if(Phi<0)Theta = (TMath::Pi()/2)-fTheta;
@@ -1334,10 +1334,10 @@ namespace shwf {
     
   
     
-      if( (fabs(wdist)<8.)&&(fabs(wdist)>0.2)){  
+      if( (std::abs(wdist)<8.)&&(std::abs(wdist)>0.2)){  
     
 	vdEdx.push_back(dEdx);
-	vresRange.push_back(fabs(wdist));
+	vresRange.push_back(std::abs(wdist));
 	vdQdx.push_back((*hitIter)->Charge(true)/fNPitch[set][plane]);
 	Trk_Length=wdist;
 	fTrkPitchC=fNPitch[set][plane];
