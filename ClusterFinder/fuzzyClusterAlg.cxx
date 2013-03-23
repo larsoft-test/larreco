@@ -264,7 +264,7 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
   // Find the square roots of the elements of the norm matrix
   for ( int i = 0; i < fpsMat.GetNrows(); i++)
     for ( int j = 0; j < iNumClusters; j++)
-      mNormOneXiMinusCj(i,j) = sqrt(mNormOneXiMinusCj(i,j));
+      mNormOneXiMinusCj(i,j) = std::sqrt(mNormOneXiMinusCj(i,j));
 
   // Determine the new elements of u_ij
   double fCoeff;
@@ -384,7 +384,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
     // Find the square roots of the elements of the norm matrix
     for ( int i = 0; i < fpsMat.GetNrows(); i++)
       for ( int j = 0; j < k; j++)
-        mNormOneXiMinusCj(i,j) = sqrt(mNormOneXiMinusCj(i,j));
+        mNormOneXiMinusCj(i,j) = std::sqrt(mNormOneXiMinusCj(i,j));
 
 
     for ( int l = 0; l < fpsMat.GetNrows(); l++) 
@@ -398,7 +398,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
     for ( int j = 0; j < k - 1; j++)
       for ( int l = j + 1; l < k; l++){
         //mf::LogInfo("fuzzyCluster") << fpsCentroids(j,0)  << fpsCentroids(l,0)  <<fpsCentroids(j,1)<<" "<<fpsCentroids(l,1);
-        float fCentDist = sqrt( pow(fpsCentroids(j,0)-fpsCentroids(l,0),2)+pow(fpsCentroids(j,1)-fpsCentroids(l,1),2));
+        float fCentDist = std::sqrt( pow(fpsCentroids(j,0)-fpsCentroids(l,0),2)+pow(fpsCentroids(j,1)-fpsCentroids(l,1),2));
         if(fCentDist < fMinCentDist)
           fMinCentDist = fCentDist;
       }
@@ -616,9 +616,9 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
     //for(int k = 0; k < fpsMat.GetNrows(); k++){
       //if ( i != fpsMembershipCrisp[k])
         //continue;
-      //if ( sqrt( pow(fpsMat(k,0)-centroidj0,2) + pow(fpsMat(k,1)-centroidj1 ,2)) < xiDistanceToCj){
+      //if ( std::sqrt( pow(fpsMat(k,0)-centroidj0,2) + pow(fpsMat(k,1)-centroidj1 ,2)) < xiDistanceToCj){
         //xiClosest = k;
-        //xiDistanceToCj = sqrt( pow(fpsMat(k,0)-centroidj0 ,2) + pow(fpsMat(k,1)-centroidj1 ,2));
+        //xiDistanceToCj = std::sqrt( pow(fpsMat(k,0)-centroidj0 ,2) + pow(fpsMat(k,1)-centroidj1 ,2));
       //}
     //}
     //// Find point in cluster j closest to cluster i
@@ -627,9 +627,9 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
     //for( int k = 0; k < fpsMat.GetNrows(); k++){
       //if ( j != fpsMembershipCrisp[k])
         //continue;
-      //if ( sqrt( pow(fpsMat(k,0)-centroidi0 ,2) + pow(fpsMat(k,1)-centroidi1 ,2)) < xjDistanceToCi){
+      //if ( std::sqrt( pow(fpsMat(k,0)-centroidi0 ,2) + pow(fpsMat(k,1)-centroidi1 ,2)) < xjDistanceToCi){
         //xjClosest = k;
-        //xjDistanceToCi = sqrt( pow(fpsMat(k,0)-centroidi0 ,2) + pow(fpsMat(k,1)-centroidi1 ,2));
+        //xjDistanceToCi = std::sqrt( pow(fpsMat(k,0)-centroidi0 ,2) + pow(fpsMat(k,1)-centroidi1 ,2));
       //}
     //}
   
@@ -647,10 +647,10 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
       for(int l = 0; l < fpsMat.GetNrows(); l++){
         if ( j != fpsMembershipCrisp[l])
           continue;
-        if ( sqrt( pow(fpsMat(k,0)-fpsMat(l,0),2) + pow(fpsMat(k,1)-fpsMat(l,1),2)) < xiDistanceToXj){
+        if ( std::sqrt( pow(fpsMat(k,0)-fpsMat(l,0),2) + pow(fpsMat(k,1)-fpsMat(l,1),2)) < xiDistanceToXj){
           xiClosest = k;
           xjClosest = l;
-          xiDistanceToXj = sqrt(pow(fpsMat(k,0)-fpsMat(l,0),2) + pow(fpsMat(k,1)-fpsMat(l,1),2));
+          xiDistanceToXj = std::sqrt(pow(fpsMat(k,0)-fpsMat(l,0),2) + pow(fpsMat(k,1)-fpsMat(l,1),2));
         }
       } 
     }
@@ -663,8 +663,8 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
     //mf::LogInfo("fuzzyCluster") << j  << centroidj0  << centroidj1 ;
     //mf::LogInfo("fuzzyCluster") << "xiClosest " << fpsMat(xiClosest,0)  << fpsMat(xiClosest,1) ;
     //mf::LogInfo("fuzzyCluster") << "xjClosest " << fpsMat(xjClosest,0)  << fpsMat(xjClosest,1) ;
-    //mf::LogInfo("fuzzyCluster") << sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) ;
-    if (sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) < fMergeCutoff){
+    //mf::LogInfo("fuzzyCluster") << std::sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) ;
+    if (std::sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) < fMergeCutoff){
       // Perform the merging and deletion of the closest cluster
       mf::LogVerbatim("fuzzyCluster") << "You're going to Merge!"  ;
       clusToMerge = j;
@@ -752,9 +752,9 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
       //for(int k = 0; k < fpsMat.GetNrows(); k++){
         //if ( i != fpsMembershipCrisp[k])
           //continue;
-        //if ( sqrt( pow(fpsMat(k,0)-centroidj0,2) + pow(fpsMat(k,1)-centroidj1 ,2)) < xiDistanceToCj){
+        //if ( std::sqrt( pow(fpsMat(k,0)-centroidj0,2) + pow(fpsMat(k,1)-centroidj1 ,2)) < xiDistanceToCj){
           //xiClosest = k;
-          //xiDistanceToCj = sqrt( pow(fpsMat(k,0)-centroidj0 ,2) + pow(fpsMat(k,1)-centroidj1 ,2));
+          //xiDistanceToCj = std::sqrt( pow(fpsMat(k,0)-centroidj0 ,2) + pow(fpsMat(k,1)-centroidj1 ,2));
         //}
       //}
       //// Find point in cluster j closest to cluster i
@@ -763,9 +763,9 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
       //for( int k = 0; k < fpsMat.GetNrows(); k++){
         //if ( j != fpsMembershipCrisp[k])
           //continue;
-        //if ( sqrt( pow(fpsMat(k,0)-centroidi0 ,2) + pow(fpsMat(k,1)-centroidi1 ,2)) < xjDistanceToCi){
+        //if ( std::sqrt( pow(fpsMat(k,0)-centroidi0 ,2) + pow(fpsMat(k,1)-centroidi1 ,2)) < xjDistanceToCi){
           //xjClosest = k;
-          //xjDistanceToCi = sqrt( pow(fpsMat(k,0)-centroidi0 ,2) + pow(fpsMat(k,1)-centroidi1 ,2));
+          //xjDistanceToCi = std::sqrt( pow(fpsMat(k,0)-centroidi0 ,2) + pow(fpsMat(k,1)-centroidi1 ,2));
         //}
       //}
       
@@ -776,8 +776,8 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
       //mf::LogInfo("fuzzyCluster") << j  << centroidj0  << centroidj1 ;
       //mf::LogInfo("fuzzyCluster") << "xiClosest " << fpsMat(xiClosest,0)  << fpsMat(xiClosest,1) ;
       //mf::LogInfo("fuzzyCluster") << "xjClosest " << fpsMat(xjClosest,0)  << fpsMat(xjClosest,1) ;
-      //mf::LogInfo("fuzzyCluster") << sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) ;
-      //if (sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) < fMergeCutoff){
+      //mf::LogInfo("fuzzyCluster") << std::sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) ;
+      //if (std::sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) < fMergeCutoff){
 
         //// Perform the merging and deletion of the closest cluster
         //mf::LogInfo("fuzzyCluster") << "Yo Dawg! You Can Merge!"  ;

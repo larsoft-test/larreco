@@ -258,10 +258,10 @@ namespace cluster{
     double cl2endtime   = cl2end[1];
 
     // \todo 13.5 ticks/wire. need to make this detector agnostic--spitz
-    double distance = sqrt((pow(sclendwire-cl2startwire,2)*13.5) + pow(sclendtime-cl2starttime,2));
+    double distance = std::sqrt((pow(sclendwire-cl2startwire,2)*13.5) + pow(sclendtime-cl2starttime,2));
 
     //not sure if this line is necessary--spitz
-    double distance2 = sqrt((pow(sclstartwire-cl2endwire,2)*13.5) + pow(sclstarttime-cl2endtime,2));
+    double distance2 = std::sqrt((pow(sclstartwire-cl2endwire,2)*13.5) + pow(sclstarttime-cl2endtime,2));
     
 //    bool comp = (distance  < fEndpointWindow ||
 //		 distance2 < fEndpointWindow) ? true : false;

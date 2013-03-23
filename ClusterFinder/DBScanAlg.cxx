@@ -376,7 +376,7 @@ double cluster::DBScanAlg::getSimilarity(const std::vector<double> v1, const std
   
    
   //for Euclidean distance comment everything out except this-->>>
-  // return sqrt((v2[1]-v1[1])*(v2[1]-v1[1])+(v2[0]-v1[0])*(v2[0]-v1[0]));
+  // return std::sqrt((v2[1]-v1[1])*(v2[1]-v1[1])+(v2[0]-v1[0])*(v2[0]-v1[0]));
   //------------------------------------------------------------------------
   // return std::abs( v2[0]-v1[0]); //for rectangle
   //---------------------------------------------------------------------- 
@@ -462,7 +462,7 @@ double cluster::DBScanAlg::getWidthFactor(const std::vector<double> v1, const st
   // double WFactor=(( v1[2]*v1[2])+( v2[2]*v2[2]))*k;
   if(WFactor > 1){
     if(WFactor < 6.25) return WFactor;  //remember that we are increasing the distance in 
-                                        //eps2 as sqrt of this number (i.e sqrt(6.25))
+                                        //eps2 as std::sqrt of this number (i.e std::sqrt(6.25))
     else return 6.25;
    
   }

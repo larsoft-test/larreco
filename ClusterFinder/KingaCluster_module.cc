@@ -518,7 +518,7 @@ namespace cluster{
       a_polar = (allhits[i]->PeakTime() - ftime_vertex_reco[plane])* ftimetick *fdriftvelocity; /** in cm*/
        
        
-      theta_polar = std::abs(asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2)))); /**in rad*/
+      theta_polar = std::abs(std::asin(a_polar/std::sqrt(pow(a_polar,2)+pow(b_polar,2)))); /**in rad*/
       theta_polar = 180*theta_polar/fpi; /** in deg*/
        
        
@@ -1204,7 +1204,7 @@ namespace cluster{
     // First, let's look at 2-hit peaks and a case in which 
     // there are TWO 2-hit peaks right next to each other. 
     // If this is the case make one peak out of them by 
-    // increasing the range of the peak, make the peak be 
+    // increstd::asing the range of the peak, make the peak be 
     // in the middle of the range.
   
     //.......2-hit peaks START................................
@@ -1956,7 +1956,7 @@ namespace cluster{
       b_polar = diff_w*0.4; /**in cm*/
       //b_polar = (w - fwire_vertex[plane])* 0.4; /**in cm*/
       a_polar = (allhits[i]->PeakTime() - ftime_vertex_reco[plane])* ftimetick *fdriftvelocity; /** in cm*/
-      theta_polar = std::abs(asin(a_polar/sqrt(pow(a_polar,2)+pow(b_polar,2)))); /**in rad*/
+      theta_polar = std::abs(std::asin(a_polar/std::sqrt(pow(a_polar,2)+pow(b_polar,2)))); /**in rad*/
       theta_polar = 180*theta_polar/fpi; /** in deg*/
      
       if     (b_polar == 0 && a_polar == 0) theta_polar =  90; /** in deg*/

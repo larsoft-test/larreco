@@ -72,7 +72,7 @@ void cluster::EndPointAlg::reconfigure(fhicl::ParameterSet const& p)
 //-----------------------------------------------------------------------------
 double cluster::EndPointAlg::Gaussian(int x, int y, double sigma)
 {
-  double Norm=1./sqrt(2*TMath::Pi()*pow(sigma,2));
+  double Norm=1./std::sqrt(2*TMath::Pi()*pow(sigma,2));
   double value=Norm*exp(-(pow(x,2)+pow(y,2))/(2*pow(sigma,2)));
   return value;
 }
@@ -80,7 +80,7 @@ double cluster::EndPointAlg::Gaussian(int x, int y, double sigma)
 //-----------------------------------------------------------------------------
 double cluster::EndPointAlg::GaussianDerivativeX(int x,int y)
 {
-  double Norm=1./(sqrt(2*TMath::Pi())*pow(fGsigma,3));
+  double Norm=1./(std::sqrt(2*TMath::Pi())*pow(fGsigma,3));
   double value=Norm*(-x)*exp(-(pow(x,2)+pow(y,2))/(2*pow(fGsigma,2)));
   return value;
 }
@@ -88,7 +88,7 @@ double cluster::EndPointAlg::GaussianDerivativeX(int x,int y)
 //-----------------------------------------------------------------------------
 double cluster::EndPointAlg::GaussianDerivativeY(int x,int y)
 {
-  double Norm=1./(sqrt(2*TMath::Pi())*pow(fGsigma,3));
+  double Norm=1./(std::sqrt(2*TMath::Pi())*pow(fGsigma,3));
   double value=Norm*(-y)*exp(-(pow(x,2)+pow(y,2))/(2*pow(fGsigma,2)));
   return value;
 }
@@ -346,7 +346,7 @@ size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>            
 		  for(int wireout=(int)wire-(int)((fWindow*(numbertimesamples/fTimeBins)*corrfactor)+.5);
 		      wireout <= (int)wire+(int)((fWindow*(numbertimesamples/fTimeBins)*corrfactor)+.5); ++wireout){
 		    for(int timebinout=timebin-fWindow;timebinout <= timebin+fWindow; timebinout++){
-		      if(sqrt(pow(wire-wireout,2)+pow(timebin-timebinout,2))<fWindow)//circular window 
+		      if(std::sqrt(pow(wire-wireout,2)+pow(timebin-timebinout,2))<fWindow)//circular window 
 			Cornerness[wireout][timebinout]=0;	  
 		    }
 		  }

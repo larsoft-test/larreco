@@ -938,7 +938,7 @@ void cluster::ShowerAngleCluster::Find2DAxisRough(unsigned int nClust,std::vecto
 //   
 //       BC = ((double)wire - fWireVertex[plane])*fWiretoCm; // in cm
 //       AC = ((double)time - fTimeVertex[plane])*fTimetoCm; //in cm 
-//       omega = asin(  AC/sqrt(pow(AC,2)+pow(BC,2)) );
+//       omega = asin(  AC/std::sqrt(pow(AC,2)+pow(BC,2)) );
 //  
 //      double omx=gser.Get2Dangle(((double)wire - fWireVertex[plane]),((double)time - fTimeVertex[plane]));
 //       
@@ -1073,7 +1073,7 @@ void cluster::ShowerAngleCluster::GetVertexN(art::Event& evt){
     
     
     mcphi=  (lep_dcosx_truth == 0.0 && lep_dcosz_truth == 0.0) ? 0.0 : TMath::ATan2(lep_dcosx_truth,lep_dcosz_truth);
-    mctheta= (lep_dcosx_truth == 0.0 && lep_dcosy_truth == 0.0 && lep_dcosz_truth == 0.0) ? 0.0 : TMath::Pi()*0.5-TMath::ATan2(sqrt(lep_dcosx_truth*lep_dcosx_truth + lep_dcosz_truth*lep_dcosz_truth),lep_dcosy_truth);
+    mctheta= (lep_dcosx_truth == 0.0 && lep_dcosy_truth == 0.0 && lep_dcosz_truth == 0.0) ? 0.0 : TMath::Pi()*0.5-TMath::ATan2(std::sqrt(lep_dcosx_truth*lep_dcosx_truth + lep_dcosz_truth*lep_dcosz_truth),lep_dcosy_truth);
     
     
     mcphi=180*mcphi/TMath::Pi();
@@ -1510,7 +1510,7 @@ void   cluster::ShowerAngleCluster::CalculateAxisParameters(unsigned nClust, std
 // 		
 // 	
 //     		double dist_begin=gser.Get2DDistance(wirevertex,timestart,wire,time);
-//     		//TMath::Sqrt( pow((double)((int)wirevertex-(int)wire)*fWirePitch,2)+pow((timestart-time)*fDriftVelocity*fTimeTick,2) );	
+//     		//TMath::Std::Sqrt( pow((double)((int)wirevertex-(int)wire)*fWirePitch,2)+pow((timestart-time)*fDriftVelocity*fTimeTick,2) );	
 // 
 // 		//mf::LogVerbatim("ShowerAngleCluster")  << "=== min_dist " << wire << " " << time <<" " << dist_begin << " " << pow((double)((int)wirevertex-(int)wire)*fWirePitch,2) << " " << ((int)wirevertex-(int)wire)*fWirePitch << " " << min_dist << std::endl; 
 // 		
@@ -1940,7 +1940,7 @@ art::Ptr<recob::Hit> cluster::ShowerAngleCluster::FindClosestHit(std::vector < a
     GetPlaneAndTPC(theHit,plane,cstat,tpc,wire);
     
     double dist_mod=gser.Get2DDistance(wire_online,time_online,wire,time);
-    //TMath::Sqrt( pow(((double)wire_online-(double)wire*fWirePitch),2)+pow((time_online-time*fDriftVelocity*fTimeTick),2) );	
+    //TMath::Std::Sqrt( pow(((double)wire_online-(double)wire*fWirePitch),2)+pow((time_online-time*fDriftVelocity*fTimeTick),2) );	
 
     if(dist_mod<min_length_from_start){
       //wire_start[plane]=wire;
