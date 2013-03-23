@@ -264,7 +264,7 @@ namespace vertex{
 		double dtdw = dtdwstart[Cls[i][j]];
 		int nhits = fmh.at(Cls[i][j]).size();
 		ww0 = (tt-tt1+dtdw1*wb1-dtdw*wb)/(dtdw1-dtdw);
-		if (fabs(wb1-ww0) > fabs(we1-ww0)) rev = true;//reverse cluster dir
+		if (std::abs(wb1-ww0) > std::abs(we1-ww0)) rev = true;//reverse cluster dir
 		if ((!rev && ww0 > wb1+15)||(rev && ww0 < we1-15)) deltaraylike = true;
 		if (((!rev && ww0 > wb1+10)||(rev && ww0 < we1-10)) && nhits < 5) deltaraylike = true;
 		if (wb > wb1+20 && nhits < 10) deltaraylike = true;
@@ -330,7 +330,7 @@ namespace vertex{
 	      double k2 = dtdwstart[c2];
 	      
 	      //calculate the vertex
-	      if (fabs(k1-k2) < 1e-10) continue;
+	      if (std::abs(k1-k2) < 1e-10) continue;
 	      double t0 = (k1*k2*(w1-w2)+k1*t2-k2*t1)/(k1-k2);
 	      double w0 = (t2-t1+k1*w1-k2*w2)/(k1-k2);
 	      vtx_w.push_back(w0);
