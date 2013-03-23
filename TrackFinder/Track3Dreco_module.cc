@@ -330,10 +330,10 @@ void Track3Dreco::produce(art::Event& evt)
        
        double indLength = TMath::Sqrt( TMath::Power(It1_line - It0_line,2) + TMath::Power(Iw1 - Iw0,2)); 
        
-       bool forward_match = ((fabs(Ct0_line-It0_line)<ftmatch*timepitch) && 
-			     (fabs(Ct1_line-It1_line)<ftmatch*timepitch));
-       bool backward_match = ((fabs(Ct0_line-It1_line)<ftmatch*timepitch) && 
-			      (fabs(Ct1_line-It0_line)<ftmatch*timepitch));
+       bool forward_match = ((std::abs(Ct0_line-It0_line)<ftmatch*timepitch) && 
+			     (std::abs(Ct1_line-It1_line)<ftmatch*timepitch));
+       bool backward_match = ((std::abs(Ct0_line-It1_line)<ftmatch*timepitch) && 
+			      (std::abs(Ct1_line-It0_line)<ftmatch*timepitch));
        
          
 
@@ -474,12 +474,12 @@ void Track3Dreco::produce(art::Event& evt)
 	       else t2 = temptime2*driftvelocity_SI*timetick;
 	      
 	       
-	       bool timematch = (fabs(t1-t2)<ftmatch*timepitch);
-	       bool wirematch = (fabs(w1-w2)<wireShift*wire_pitch);
+	       bool timematch = (std::abs(t1-t2)<ftmatch*timepitch);
+	       bool wirematch = (std::abs(w1-w2)<wireShift*wire_pitch);
 	       
 	       double maxDistance = TMath::Sqrt(TMath::Power(t2-maxVtx2D.X(),2)+TMath::Power(w2-maxVtx2D.Y(),2));
-	       if (wirematch && timematch && fabs(maxDistance-minDistance)<difference) {
-		 difference = fabs(maxDistance-minDistance);
+	       if (wirematch && timematch && std::abs(maxDistance-minDistance)<difference) {
+		 difference = std::abs(maxDistance-minDistance);
 		 imaximum = imax;
 	       }
 	     }

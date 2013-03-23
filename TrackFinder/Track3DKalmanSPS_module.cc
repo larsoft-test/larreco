@@ -872,7 +872,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		  double tmp[3];
 		  principal->X2P((Double_t *)(spacepointss[point]->XYZ()),tmp);
 		  sep = sqrt(tmp[1]*tmp[1]/fPCevals[1]+tmp[2]*tmp[2]/fPCevals[2]);
-		  if ((fabs(sep) > fPerpLim) && (point<(spacepointss.size()-nTailPoints)) && rePass<=1)
+		  if ((std::abs(sep) > fPerpLim) && (point<(spacepointss.size()-nTailPoints)) && rePass<=1)
 		    {
 		      //		      std::cout << "Spacepoint " << point << " DROPPED, cuz it's sufficiently far from the PCA major axis!!!:" << spacepointss[point]->XYZ()[0]<< ", " << spacepointss[point]->XYZ()[1]<< ", " << spacepointss[point]->XYZ()[2]<< ". " << std::endl;
 		      spptSkippedIndex.push_back(point);
@@ -904,8 +904,8 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		      (
 		       (one-two).Mag()<epsMag || // too close
 		       ((one-two).Mag()>8.0&&rePass==1) || // too far
-		       fabs(spacepointss[point]->XYZ()[2]-spacepointss[ppoint]->XYZ()[2])<epsZ || 
-		       fabs(spacepointss[point]->XYZ()[0]-spacepointss[ppoint]->XYZ()[0])>epsX  
+		       std::abs(spacepointss[point]->XYZ()[2]-spacepointss[ppoint]->XYZ()[2])<epsZ || 
+		       std::abs(spacepointss[point]->XYZ()[0]-spacepointss[ppoint]->XYZ()[0])>epsX  
 		       )
 		      )
 		    {

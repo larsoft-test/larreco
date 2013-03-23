@@ -199,8 +199,8 @@ namespace trkf{
 	  double eLoss = 0.;
 	  double dx    = 0.;
 	  if(t > 0){
-	    eLoss = fabs(part->E(t)  - part->E(t-1))*util::kGeVToElectrons*detp->ElectronsToADC();
-	    dx    = fabs(part->Vx(t) - part->Vx(t-1));
+	    eLoss = std::abs(part->E(t)  - part->E(t-1))*util::kGeVToElectrons*detp->ElectronsToADC();
+	    dx    = std::abs(part->Vx(t) - part->Vx(t-1));
 	  }
 	  dQdx[0].push_back(eLoss/dx);
 	  dQdx[1].push_back(eLoss/dx);

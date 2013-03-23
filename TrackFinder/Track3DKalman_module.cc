@@ -449,7 +449,7 @@ void Track3DKalman::produce(art::Event& evt)
 		  //continue;
 		  // Icarus paper suggests we may wanna decimate our data in order to give
 		  // trackfitter a better idea of multiple-scattering. EC, 7-Jan-2011.
-		  //if (fabs(spt3[0]-spacepoints.at(point-1).XYZ()[0]) < 2) continue;
+		  //if (std::abs(spt3[0]-spacepoints.at(point-1).XYZ()[0]) < 2) continue;
 		}
 	      if (fptsNo<fDimSize)
 		{
