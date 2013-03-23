@@ -274,7 +274,7 @@ namespace trkf {
 	
     float sigtheta    = pow((costheta2 / NPoints - pow( costheta/NPoints, 2 )), 0.5);
     float sigphi      = pow((phi2      / NPoints - pow( phi/NPoints,   2 )),    0.5);
-    float meantheta   = acos(costheta      / NPoints);
+    float meantheta   = std::acos(costheta / NPoints);
     float meanphi     = phi                / NPoints;
     
     // Total angular deviation (spherical polars)
