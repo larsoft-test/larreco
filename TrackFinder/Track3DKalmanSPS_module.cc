@@ -282,13 +282,13 @@ namespace trkf {
     const double matDensity(1.4);
     const double me(0.000511);
     
-    double beta = p/sqrt(mass*mass+p*p);
+    double beta = p/std::sqrt(mass*mass+p*p);
     double gammaSquare = 1./(1.0 - beta*beta);
     // 4pi.r_e^2.N.me = 0.307075, I think.
     double dedx = 0.307075*matDensity*matZ/matA/(beta*beta)*charge*charge;
     double massRatio = me/mass;
     // me=0.000511 here is in GeV. So mEE comes in here in eV.
-    double argument = gammaSquare*beta*beta*me*1.E3*2./((1.E-6*mEE) * sqrt(1+2*sqrt(gammaSquare)*massRatio + massRatio*massRatio));
+    double argument = gammaSquare*beta*beta*me*1.E3*2./((1.E-6*mEE) * std::sqrt(1+2*std::sqrt(gammaSquare)*massRatio + massRatio*massRatio));
     
     if (mass==0.0) return(0.0);
     if (argument <= exp(beta*beta))
@@ -777,7 +777,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	  // mom is really KE. 
 	  TVector3 mom(dEdx*fMomStart[0],dEdx*fMomStart[1],dEdx*fMomStart[2]);
 	  double pmag2 = pow(mom.Mag()+mass, 2. - mass*mass);
-	  mom.SetMag(sqrt(pmag2));
+	  mom.SetMag(std::sqrt(pmag2));
 	  // Over-estimate by just enough for contained particles (5%).
 	  mom.SetMag(1.0 * mom.Mag()); 
 	  // My true 0.5 GeV/c muons need a yet bigger over-estimate.
@@ -868,10 +868,10 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		  double sep;
 		  // Calculate the distance in 2nd and 3rd PCs and
 		  // reject spt if it's too far out. Remember, the 
-		  // sigmas are sqrt(eigenvals).
+		  // sigmas are std::sqrt(eigenvals).
 		  double tmp[3];
 		  principal->X2P((Double_t *)(spacepointss[point]->XYZ()),tmp);
-		  sep = sqrt(tmp[1]*tmp[1]/fPCevals[1]+tmp[2]*tmp[2]/fPCevals[2]);
+		  sep = std::sqrt(tmp[1]*tmp[1]/fPCevals[1]+tmp[2]*tmp[2]/fPCevals[2]);
 		  if ((std::abs(sep) > fPerpLim) && (point<(spacepointss.size()-nTailPoints)) && rePass<=1)
 		    {
 		      //		      std::cout << "Spacepoint " << point << " DROPPED, cuz it's sufficiently far from the PCA major axis!!!:" << spacepointss[point]->XYZ()[0]<< ", " << spacepointss[point]->XYZ()[1]<< ", " << spacepointss[point]->XYZ()[2]<< ". " << std::endl;
