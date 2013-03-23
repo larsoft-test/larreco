@@ -74,11 +74,11 @@ namespace {
     double derivk2 = 0.5 * trkf::trace(temp2) - inner_prod(defl, vtemp3);
 
     // We expect the log-likelihood to be most nearly Gaussian
-    // with respect to variable q = k^(-1/2) = sqrt(beta*p).
+    // with respect to variable q = k^(-1/2) = std::sqrt(beta*p).
     // Therefore, transform the original variables and log-likelihood
     // derivatives to q-space.
 
-    double q = 1./sqrt(k);
+    double q = 1./std::sqrt(k);
     double varq = vark / (4.*k*k*k);
     double derivq1 = (-2.*k/q) * derivk1;
     double derivq2 = 6.*k*k * derivk1 + 4.*k*k*k * derivk2;
