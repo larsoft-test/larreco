@@ -134,9 +134,6 @@ namespace cluster{
     std::vector< art::Ptr<recob::Hit> > hits;
     art::fill_ptr_vector(hits, hitcol);
     
-    // loop over the hits and figure out which particle contributed to each one
-    std::vector< art::Ptr<recob::Hit> >::iterator itr = hits.begin();
-
     // adopt an EmEveIdCalculator to find the eve ID.  
     // will return a primary particle if it doesn't find 
     // a responsible particle for an EM process
@@ -146,12 +143,11 @@ namespace cluster{
 
     // make a map of vectors of art::Ptrs keyed by eveID values
     std::map< int, std::vector< art::Ptr<recob::Hit> > > eveHitMap;
-    std::map< int, std::vector< art::Ptr<recob::Hit> > >::iterator hitMapItr = eveHitMap.begin();
 
     // loop over all hits and fill in the map
-    while( itr != hits.end() ){
+    for( auto const& itr : hits ){
 
-      std::vector<cheat::TrackIDE> eveides = bt->HitToEveID(*itr);
+      std::vector<cheat::TrackIDE> eveides = bt->HitToEveID(itr);
 
       // loop over all eveides for this hit
       for(size_t e = 0; e < eveides.size(); ++e){
@@ -160,34 +156,21 @@ namespace cluster{
 	// energy in the current hit
 	if( eveides[e].energyFrac < 0.1) continue;
 
-	hitMapItr = eveHitMap.find( eveides[e].trackID );
-	
-	// is this id already in the map, if so extend the collection 
-	// by one hit, otherwise make a new collection and put it in
-	// the map
-	if( hitMapItr != eveHitMap.end() ){
-	  ((*hitMapItr).second).push_back((*itr));
-	}
-	else{
-	  std::vector< art::Ptr<recob::Hit> > hitvec;
-	  hitvec.push_back(*itr);
-	  eveHitMap[eveides[e].trackID] = hitvec;
-	}
+	eveHitMap[eveides[e].trackID].push_back(itr);
 
       } // end loop over eve IDs for this hit
 
-      itr++;
     }// end loop over hits
 
     // loop over the map and make clusters
     std::unique_ptr< std::vector<recob::Cluster> > clustercol(new std::vector<recob::Cluster>);
     std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
-    for(hitMapItr = eveHitMap.begin(); hitMapItr != eveHitMap.end(); hitMapItr++){
-      unsigned int 	vtx_wire = 0;
+    for(auto const& hitMapItr : eveHitMap){
+      unsigned int vtx_wire = 0;
 
       // separate out the hits for each particle into the different views
-      std::vector< art::Ptr<recob::Hit> > eveHits( (*hitMapItr).second );
+      std::vector< art::Ptr<recob::Hit> > eveHits( hitMapItr.second );
 
       for(size_t c = 0; c < geo->Ncryostats(); ++c){
 	for(size_t t = 0; t < geo->Cryostat(c).NTPC(); ++t){
@@ -201,12 +184,10 @@ namespace cluster{
 	    double dQdW      = 0.;
 	    double totalQ    = 0.;
 	    geo::View_t view = geo->Cryostat(c).TPC(t).Plane(pl).View();
-            
-	   
-	    
-	    for(size_t h = 0; h < eveHits.size(); ++h){
+            	    
+	    for(auto const& h : eveHits){
 	      
-	      geo::WireID wid = eveHits[h]->WireID();
+	      geo::WireID wid = h->WireID();
 
 	      if(wid.Plane    != pl || 
 		 wid.TPC      != t  || 
@@ -218,8 +199,8 @@ namespace cluster{
 	      if(eveHits.size() < 5){continue;}
 	      
 	      
-	      ptrvs.push_back(eveHits[h]);
-	      totalQ += eveHits[h]->Charge();
+	      ptrvs.push_back(h);
+	      totalQ += h->Charge();
 	      
 	      if(wid.Wire < startWire){
 		startWire = wid.Wire;
@@ -230,11 +211,11 @@ namespace cluster{
 		endTime = -1.e-6;
 	      }
 	      
-	      if(wid.Wire == startWire && eveHits[h]->StartTime() < startTime) 
-		startTime = eveHits[h]->StartTime();
+	      if(wid.Wire == startWire && h->StartTime() < startTime) 
+		startTime = h->StartTime();
 	      
-	      if(wid.Wire == endWire   && eveHits[h]->EndTime()   > endTime  ) 
-		endTime   = eveHits[h]->EndTime();
+	      if(wid.Wire == endWire   && h->EndTime()   > endTime  ) 
+		endTime   = h->EndTime();
 	      
 	    } // end loop over hits for this particle	
 
@@ -284,7 +265,7 @@ namespace cluster{
 						 dQdW,      0.,
 						 totalQ,
 						 view,
-						 ((*hitMapItr).first * 1000) + pl*100 + t*10 + c));
+						 (hitMapItr.first * 1000) + pl*100 + t*10 + c));
 	    
 	    // association the hits to this cluster
 	    util::CreateAssn(*this, evt, *(clustercol.get()), ptrvs, *(assn.get()));
