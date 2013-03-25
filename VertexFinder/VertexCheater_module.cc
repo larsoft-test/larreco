@@ -45,8 +45,8 @@ namespace vertex {
 
  private:
 
-    std::string fCheatedTrackLabel;  ///< label for module creating recob::Prong objects
-    std::string fCheatedShowerLabel; ///< label for module creating recob::Prong objects
+    std::string fCheatedTrackLabel;  ///< label for module creating recob::Track objects
+    std::string fCheatedShowerLabel; ///< label for module creating recob::Shower objects
     std::string fG4ModuleLabel;      ///< label for module running G4 and making particles, etc
 
   };
