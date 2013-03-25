@@ -54,19 +54,20 @@ public:
 private:
 
   void FindHitsOnChannel(std::map<unsigned short, std::vector<sim::IDE> > const& idemap,
-			 std::vector<recob::Hit>& hits,
-  			 art::Ptr<recob::Wire>&   wire, int spill);
+			 std::vector<recob::Hit>&                                hits,
+  			 art::Ptr<recob::Wire>&                                  wire, 
+			 int                                                     spill);
 
 
-  std::string         fG4ModuleLabel;        ///< label name for module making sim::SimChannels
-  std::string         fWireModuleLabel;      ///< label name for module making recob::Wires
-  std::vector<TH1D *> fChannelEnergyDepsInd; ///< Energy depositions vs time for each induction channel
-  std::vector<TH1D *> fChannelEnergyDepsCol; ///< Energy depositions vs time for each collection channel
-  double              fMinCharge;            ///< Minimum charge required to make a hit
-  double              fElectronsToADC;       ///< Conversion factor of electrons to ADC counts
-  std::string         fCalDataProductInstanceName;      ///< label name for module making recob::Wires
-  int                 fReadOutWindowSize;        ///< Number of samples in a readout window; NOT #total samples
-  int                 fNumberTimeSamples;        ///< Number of total time samples (N*readoutwindowsize)
+  std::string         fG4ModuleLabel;              ///< label name for module making sim::SimChannels		
+  std::string         fWireModuleLabel;      	   ///< label name for module making recob::Wires		
+  std::vector<TH1D *> fChannelEnergyDepsInd; 	   ///< Energy depositions vs time for each induction channel	
+  std::vector<TH1D *> fChannelEnergyDepsCol; 	   ///< Energy depositions vs time for each collection channel
+  double              fMinCharge;            	   ///< Minimum charge required to make a hit                 
+  double              fElectronsToADC;             ///< Conversion factor of electrons to ADC counts
+  std::string         fCalDataProductInstanceName; ///< label name for module making recob::Wires
+  int                 fReadOutWindowSize;          ///< Number of samples in a readout window; NOT #total samples
+  int                 fNumberTimeSamples;          ///< Number of total time samples (N*readoutwindowsize)
 };
 
 //-------------------------------------------------------------------
@@ -130,8 +131,9 @@ void hit::HitCheater::produce(art::Event & e)
 
 //-------------------------------------------------------------------
 void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim::IDE> > const& idemap,
-					std::vector<recob::Hit>& hits,
-					art::Ptr<recob::Wire>&   wire, int spill)
+					std::vector<recob::Hit>&                                hits,
+					art::Ptr<recob::Wire>&                                  wire, 
+					int                                                     spill)
 {
   art::ServiceHandle<geo::Geometry> geo;
 
@@ -144,18 +146,15 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
   std::map<unsigned short, std::vector<double> > tdcVsPos;
   std::vector<unsigned short> tdcEnds;
 
-  std::map<unsigned short, std::vector<sim::IDE> >::const_iterator mapitr = idemap.begin();
-  unsigned short prev = mapitr->first;
-  for(mapitr = idemap.begin(); mapitr != idemap.end(); mapitr++){
-    unsigned short tdc = mapitr->first;
-
+  unsigned short prev = idemap.begin()->first;
+  for(auto const& mapitr : idemap){
+    unsigned short tdc = mapitr.first;
 
     if( fReadOutWindowSize != fNumberTimeSamples ) {
-      if( tdc<spill*fReadOutWindowSize || tdc>(spill+1)*fReadOutWindowSize )  continue;
+      if( tdc < spill*fReadOutWindowSize || 
+	  tdc > (spill+1)*fReadOutWindowSize )  continue;
     }
     
-
-
     // more than a one tdc gap between times with 
     // signal, start a new hit
     if(tdc - prev > 1) tdcEnds.push_back(prev);
@@ -165,12 +164,11 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
     double y = 0.;
     double z = 0.;
     // loop over the ides
-    std::vector<sim::IDE>::const_iterator ideitr = mapitr->second.begin();
-    for(ideitr = mapitr->second.begin(); ideitr != mapitr->second.end(); ideitr++){
-      total += ideitr->numElectrons;
-      x += ideitr->numElectrons*ideitr->x;
-      y += ideitr->numElectrons*ideitr->y;
-      z += ideitr->numElectrons*ideitr->z;
+    for(auto const& ideitr : mapitr.second){
+      total += ideitr.numElectrons;
+      x += ideitr.numElectrons*ideitr.x;
+      y += ideitr.numElectrons*ideitr.y;
+      z += ideitr.numElectrons*ideitr.z;
     }
     
     std::vector<double> pos(3,0.);
