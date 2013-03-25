@@ -18,7 +18,7 @@
 #include "RecoBase/Seed.h"
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Track.h"
-#include "RecoBase/Prong.h"
+#include "RecoBase/SpacePoint.h"
 #include "Utilities/AssociationUtil.h"
 #include "Utilities/DetectorProperties.h"
 #include "TMatrixD.h"
