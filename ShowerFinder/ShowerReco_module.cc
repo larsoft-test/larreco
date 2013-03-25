@@ -13,10 +13,8 @@
 // 
 ///////////////////////////////////////////////////////////////////////
 
-
-
-//#ifndef SHOWERRECO_H
-//#define SHOWERRECO_H
+#ifndef SHOWERRECO_H
+#define SHOWERRECO_H
 
 // ### Generic C++ includes ###
 #include <vector>
@@ -1635,8 +1633,8 @@ namespace shwf {
     art::ServiceHandle<geo::Geometry> geo;
     double pitch = -1.;
     if(geo->Plane(plane).View() == geo::kUnknown || geo->Plane(plane).View() == geo::k3D){
-      mf::LogWarning("RecoBaseProng")<< "Warning Prong::ProjectedLength :  no Pitch foreseen for view "
-				     <<geo->Plane(plane).View();
+      mf::LogWarning("ShowerReco")<< "no Pitch foreseen for view "
+				  <<geo->Plane(plane).View();
       return pitch;
     }
     else{
@@ -1690,7 +1688,7 @@ namespace shwf {
   
 }
 
-//#endif // SHOWERRECO_H
+#endif // SHOWERRECO_H
 
 
 
