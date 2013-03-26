@@ -1,0 +1,11 @@
+#include "job/trackfinderalgorithms.fcl"
+
+BEGIN_PROLOG
+
+lbne35t_spacepointalg:          @local::standard_spacepointalg
+lbne35t_spacepointalg.MinViews: 3
+lbne35t_spacepointalg.EnableW:  true
+
+lbne35t_kalmanfilteralg:     @local::standard_kalmanfilteralg
+
+END_PROLOG
