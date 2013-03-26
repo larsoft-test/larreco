@@ -10,6 +10,7 @@
 #define CLUSTER_CLUSTERCHEATER_H
 #include <string>
 #include <vector>
+#include <algorithm>
 
 // ROOT includes
 #include "TStopwatch.h"
@@ -24,7 +25,6 @@
 #include "RecoBase/Hit.h"
 #include "Utilities/AssociationUtil.h"
 #include "Simulation/EmEveIdCalculator.h"
-#include "ClusterFinder/HoughBaseAlg.h"
 #include "Utilities/DetectorProperties.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/GeometryUtilities.h"
@@ -53,11 +53,10 @@ namespace cluster {
 
  private:
     
-    std::string fMCGeneratorLabel;  ///< label for module to get MC truth information
-    std::string fHitModuleLabel;    ///< label for module creating recob::Hit objects	   
-    std::string fG4ModuleLabel;     ///< label for module running G4 and making particles, etc
-
-    HoughBaseAlg fHLAlg;            ///< object holding algorithm to do Hough transforms
+    std::string  fMCGeneratorLabel;  ///< label for module to get MC truth information
+    std::string  fHitModuleLabel;    ///< label for module creating recob::Hit objects	   
+    std::string  fG4ModuleLabel;     ///< label for module running G4 and making particles, etc
+    unsigned int fMinHits;           ///< minimum number of hits to make a cluster
 
   };
 }
@@ -73,7 +72,15 @@ namespace cluster{
       , plane(p)
     {}
 
-    friend bool operator < (eveLoc const& a, eveLoc const& b) { return a.eveID < b.eveID; }
+    friend bool operator < (eveLoc const& a, eveLoc const& b)
+    { 
+      if(a.eveID    != b.eveID)    return a.eveID    < b.eveID;
+      if(a.cryostat != b.cryostat) return a.cryostat < b.cryostat; 
+      if(a.tpc      != b.tpc)      return a.tpc      < b.tpc; 
+      if(a.plane    != b.plane)    return a.plane    < b.plane;
+
+      return false;
+    }
     
     int    eveID;
     size_t cryostat;
@@ -81,9 +88,13 @@ namespace cluster{
     size_t plane;
   };
 
+  bool sortHitsByWire(art::Ptr<recob::Hit> a, art::Ptr<recob::Hit> b)
+  {
+    return a->WireID().Wire < b->WireID().Wire;
+  }
+
   //--------------------------------------------------------------------
   ClusterCheater::ClusterCheater(fhicl::ParameterSet const& pset)
-    : fHLAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg"))
   {
     this->reconfigure(pset);
 
@@ -99,10 +110,10 @@ namespace cluster{
   //--------------------------------------------------------------------
   void ClusterCheater::reconfigure(fhicl::ParameterSet const& pset)
   {
-    fMCGeneratorLabel  = pset.get< std::string >("MCGeneratorLabel",  "generator");
-    fHitModuleLabel    = pset.get< std::string >("HitModuleLabel",    "hit"     );
-    fG4ModuleLabel     = pset.get< std::string >("G4ModuleLabel",     "largeant");
-    fHLAlg.reconfigure(pset.get< fhicl::ParameterSet >("HoughBaseAlg"));
+    fMCGeneratorLabel  = pset.get< std::string  >("MCGeneratorLabel",  "generator");
+    fHitModuleLabel    = pset.get< std::string  >("HitModuleLabel",    "hit"      );
+    fG4ModuleLabel     = pset.get< std::string  >("G4ModuleLabel",     "largeant" );
+    fMinHits           = pset.get< unsigned int >("MinHits",           1          );
 
     return;
   }
@@ -112,36 +123,6 @@ namespace cluster{
   {
     art::ServiceHandle<geo::Geometry>      geo;
     art::ServiceHandle<cheat::BackTracker> bt;
-    
-    // ###################################
-    // ### Getting Detector Properties ###
-    // ###################################
-    art::ServiceHandle<util::DetectorProperties> detp;
-    
-    // #######################################
-    // ### Getting MC Truth Info from simb ###
-    // #######################################
-    art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
-    evt.getByLabel(fMCGeneratorLabel,mctruthListHandle);
-    
-    // ##################################
-    // ### Getting MC Truth simb Info ###
-    // ##################################
-    ///\todo: Fix the following loop to work properly in case of multiple MCTruths per Event 
-    ///\todo: and in case of multiple particles per interaction
-    float vertex[5] = {0.};
-    for (size_t ii = 0; ii <  mctruthListHandle->size(); ++ii){
-      for(int i = 0; i < mctruthListHandle->at(ii).NParticles(); ++i){
-	simb::MCParticle const& p = mctruthListHandle->at(ii).GetParticle(i); 
-	
-	vertex[0] = p.Vx();
-	vertex[1] = p.Vy();
-	vertex[2] = p.Vz();
-	std::cout<<"Vertex X = "<<vertex[0]<<std::endl;
-	std::cout<<"Vertex Y = "<<vertex[1]<<std::endl;
-	std::cout<<"Vertex Z = "<<vertex[2]<<std::endl;
-      }
-    }//<---end MC Truth Vertex
     
     // grab the hits that have been reconstructed
     art::Handle< std::vector<recob::Hit> > hitcol;
@@ -162,8 +143,6 @@ namespace cluster{
     // make a map of vectors of art::Ptrs keyed by eveID values and 
     // location in cryostat, TPC, plane coordinates of where the hit originated
     std::map< eveLoc, std::vector< art::Ptr<recob::Hit> > > eveHitMap;
-
-    TStopwatch ts;
 
     // loop over all hits and fill in the map
     for( auto const& itr : hits ){
@@ -192,90 +171,83 @@ namespace cluster{
     std::unique_ptr< std::vector<recob::Cluster> > clustercol(new std::vector<recob::Cluster>);
     std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
-    for(auto const& hitMapItr : eveHitMap){
+    for(auto hitMapItr : eveHitMap){
+
+      // ================================================================================
+      // === Only keeping clusters with fMinHits 
+      // ================================================================================
+      if(hitMapItr.second.size() < fMinHits) continue;
+	            
+      // get the center of this plane in world coordinates
+      double xyz[3]   = {0.};
+      double xyz2[3]  = {0.};
+      double local[3] = {0.};
+      unsigned int cryostat = hitMapItr.first.cryostat;
+      unsigned int tpc      = hitMapItr.first.tpc;
+      unsigned int plane    = hitMapItr.first.plane;
+      geo->Cryostat(cryostat).TPC(tpc).Plane(plane).LocalToWorld(local, xyz);
 
       LOG_DEBUG("ClusterCheater") << "make cluster for eveID: " << hitMapItr.first.eveID
-				  << " in cryostat: "           << hitMapItr.first.cryostat
-				  << " tpc: "         	        << hitMapItr.first.tpc     
-				  << " plane: "       	        << hitMapItr.first.plane;   
+				  << " in cryostat: "           << cryostat
+				  << " tpc: "         	        << tpc     
+				  << " plane: "       	        << plane
+				  << " view: "                  << hitMapItr.second.at(0)->View();
 
-      double startWire =  1.e6;
-      double startTime =  1.e6;
-      double endWire   = -1.e6;
-      double endTime   = -1.e6;
-      double dTdW      =  0.;
-      double dQdW      =  0.;
-      double totalQ    =  0.;
+      // get the direction of this particle in the current cryostat, tpc and plane
+      const simb::MCParticle *part = bt->TrackIDToParticle(hitMapItr.first.eveID);
 
-      // ==============================================================================
-      // Translating the truth vertex xyz information into truth wire and time position
-      // ===============================================================================
-      unsigned int vtx_channel = geo->NearestChannel(vertex, 
-						     hitMapItr.first.plane, 
-						     hitMapItr.first.tpc, 
-						     hitMapItr.first.cryostat);
-      unsigned int vtx_wire = geo->ChannelToWire(vtx_channel)[0].Wire;
-      ts.Stop();
-      ts.Print();
+      // now set the y and z coordinates of xyz to be the first point on the particle
+      // trajectory and use the initial directions to determine the dT/dW
+      // multiply the direction cosine by 10 to give a decent lever arm for determining 
+      // dW
+      xyz[1]  = part->Vy();
+      xyz[2]  = part->Vz();
+      xyz2[0] = xyz[0];
+      xyz2[1] = xyz[1] + 10.*part->Py()/part->P();
+      xyz2[2] = xyz[2] + 10.*part->Pz()/part->P();
 
-      // ================================================================================
-      // === Only keeping clusters with 5 or more hits to help cut down on the number ===
-      // ===                   of clusters found by the algorithm                     ===
-      // ================================================================================
-      if(hitMapItr.second.size() < 5) continue;
-	            
-      for(auto const& h : hitMapItr.second){
-	      
-	geo::WireID wid = h->WireID();
-
-	totalQ += h->Charge();
-	      
-	if(wid.Wire < startWire){
-	  startWire = wid.Wire;
-	  startTime = 1.e6;
-	}
-	if(wid.Wire > endWire  ){
-	  endWire = wid.Wire;
-	  endTime = -1.e-6;
-	}
-	
-	if(wid.Wire == startWire && h->StartTime() < startTime) startTime = h->StartTime();
-	
-	if(wid.Wire == endWire   && h->EndTime()   > endTime  ) endTime   = h->EndTime();
-
-      } // end loop over hits for this particle	
-
-      mf::LogVerbatim("ClusterCheater") << "run the hough transform";
-      ts.Reset();
-      ts.Start();
-
-      // remove need to use hough algorithm and instead use MCTruth info
-      // to convert from world coordinates to time and wire number in order
-      // to get dTdW
-      double intercept = 0.;
-      fHLAlg.Transform(hitMapItr.second, dTdW, intercept);
-      ts.Stop();
-      ts.Print();
-      
-      // === If the cluster is to the downstream of the vertex the positions are switched ===
-      if(startWire - vtx_wire < 0 && endWire - vtx_wire < 0){
-	float tempstartWire = endWire;
-	float tempendWire = startWire;
-	
-	startWire = tempstartWire;
-	endWire = tempendWire;
-	
-	float tempstartTime = endTime;
-	float tempendTime = startTime;
-	
-	startTime = tempstartTime;
-	endTime = tempendTime;
+      // convert positions to wire and time
+      unsigned int w1 = 0;
+      unsigned int w2 = 0;
+			
+      try{
+	w1 = geo->NearestWire(xyz, plane, tpc, cryostat); 
       }
+      catch(cet::exception& e){
+	w1 = atoi(e.explain_self().substr(e.explain_self().find("#")+1,5).c_str());
+      }
+      try{
+	w2 = geo->NearestWire(xyz2, plane, tpc, cryostat); 
+      }
+      catch(cet::exception& e){
+	w2 = atoi(e.explain_self().substr(e.explain_self().find("#")+1,5).c_str());
+      }
+
+      // sort the vector of hits with respect to the directionality of the wires determined by 
+      if(w2 < w1) 
+	std::sort(hitMapItr.second.rbegin(), hitMapItr.second.rend(), sortHitsByWire);
+      else
+	std::sort(hitMapItr.second.begin(),  hitMapItr.second.end(),  sortHitsByWire);
+
+      // set the start and end wires and times
+      double startWire = hitMapItr.second.front()->WireID().Wire;
+      double startTime = hitMapItr.second.front()->StartTime();
+      double endWire   = hitMapItr.second.back()->WireID().Wire;
+      double endTime   = hitMapItr.second.back()->EndTime();
+      double totalQ    =  0.;
+      double dTdW      =  1.e6;
+      double dQdW      =  1.e6;
       
-      ///\todo now figure out the dQdW
-      
+      if(startWire != endWire){
+	dTdW = (endTime - startTime)/(endWire - startWire);
+	///\todo now figure out the dQdW      
+      }
+
+      for(auto const& h : hitMapItr.second) totalQ += h->Charge();
+
       // add a cluster to the collection.  Make the ID be the eve particle
-      // trackID*1000 + plane number*100 + tpc that the current hits are from
+      // trackID*1000 + plane number*100 + tpc*10 + cryostat that the current hits are from
+      ///\todo: The above encoding of the ID probably won't work for LBNE and should be revisited
       
       clustercol->push_back(recob::Cluster(startWire, 0.,
 					   startTime, 0.,
