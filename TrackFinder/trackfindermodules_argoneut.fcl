@@ -1,0 +1,20 @@
+#include "job/trackfindermodules.fcl"
+
+BEGIN_PROLOG
+
+argoneut_track:                               @local::standard_track3Dreco  
+argoneut_kalman:                              @local::standard_track3Dkalman
+argoneut_spacepts:                            @local::standard_spacepts     
+argoneut_spacepoint:                          @local::standard_spacepointana
+argoneut_spacepoint.SpacePointAlgTime:        @local::argoneut_spacepointalg
+argoneut_spacepoint.SpacePointAlgTime.MaxDT:  50.
+argoneut_spacepoint.SpacePointAlgSep:         @local::argoneut_spacepointalg
+argoneut_spacepoint.SpacePointAlgSep.MaxS:    10.
+argoneut_spacepoint.SpacePointAlgDefault:     @local::argoneut_spacepointalg
+argoneut_spacepoint_finder:                   @local::standard_spacepointalg    
+argoneut_spacepoint_finder.SpacePointAlg:     @local::argoneut_spacepointalg    
+argoneut_spacepointcheater:                   @local::standard_spacepointcheater
+argoneut_spacepointcheater.SpacePointAlg:     @local::argoneut_spacepointalg    
+
+
+END_PROLOG
