@@ -618,8 +618,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
         totalQ += clusterHits.back()->Charge();
         wire = hits[hitsTemp[(*lastHitsItr)]]->WireID().Wire;
 
-        pHit.push_back(std::make_pair((hits[iMaxWire]->Wire()->RawDigit()->Channel())*wire_dist,
-              ((hits[iMaxWire]->StartTime()+hits[iMaxWire]->EndTime())/2.)*tickToDist));
+        pHit.push_back(std::make_pair((hits[hitsTemp[(*lastHitsItr)]]->Wire()->RawDigit()->Channel())*wire_dist,
+              ((hits[hitsTemp[(*lastHitsItr)]]->StartTime()+hits[hitsTemp[(*lastHitsItr)]]->EndTime())/2.)*tickToDist));
         pHitChargeSigma.push_back(std::make_pair(clusterHits.back()->Charge(),
               clusterHits.back()->SigmaCharge()));
         skip[hitsTemp[(*lastHitsItr)]]=1;
