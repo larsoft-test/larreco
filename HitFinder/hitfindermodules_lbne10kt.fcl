@@ -1,0 +1,8 @@
+#include "job/hitfindermodules.fcl"
+
+BEGIN_PROLOG
+
+lbne10kt_hitfinder:       @local::standard_hitfinder
+lbne10kt_gaushitfinder:   @local::gaus_hitfinder
+
+END_PROLOG
