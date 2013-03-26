@@ -124,29 +124,29 @@ namespace cluster {
     HoughBaseAlg(fhicl::ParameterSet const& pset); 
     virtual ~HoughBaseAlg();
         
-    size_t Transform(std::vector<art::Ptr<recob::Cluster> >           & clusIn,
-     	             std::vector<recob::Cluster>                      & ccol,  
+    size_t Transform(std::vector<art::Ptr<recob::Cluster> >         & clusIn,
+     	             std::vector<recob::Cluster>                    & ccol,  
 		     std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
 		     art::Event                                const& evt,
 		     std::string                               const& label);
 
-    size_t FastTransform(std::vector<art::Ptr<recob::Cluster> >           & clusIn,
-     	             std::vector<recob::Cluster>                      & ccol,  
-		     std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
-		     art::Event                                const& evt,
-		     std::string                               const& label);
+    size_t FastTransform(std::vector<art::Ptr<recob::Cluster> >         & clusIn,
+			 std::vector<recob::Cluster>                    & ccol,  
+			 std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
+			 art::Event                                const& evt,
+			 std::string                               const& label);
 
-    size_t Transform(std::vector<art::Ptr<recob::Hit> >& hits,
+    size_t Transform(std::vector<art::Ptr<recob::Hit> > const& hits,
                      std::vector<unsigned int>     *fpointId_to_clusterId,
                      unsigned int clusterId, // The id of the cluster we are examining
                      int *nClusters,
                      std::vector<unsigned int> corners);
 
-    size_t Transform(std::vector<art::Ptr<recob::Hit> >& hits);
+    size_t Transform(std::vector<art::Ptr<recob::Hit> > const& hits);
 
-    size_t Transform(std::vector< art::Ptr<recob::Hit> >& hits,
-		     double                             & slope,
-		     double                             & intercept);
+    size_t Transform(std::vector< art::Ptr<recob::Hit> > const& hits,
+		     double                                   & slope,
+		     double                                   & intercept);
 
     virtual void reconfigure(fhicl::ParameterSet const& pset);
          

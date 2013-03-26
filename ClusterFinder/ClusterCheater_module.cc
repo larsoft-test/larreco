@@ -12,6 +12,7 @@
 #include <vector>
 
 // ROOT includes
+#include "TStopwatch.h"
 
 // LArSoft includes
 #include "Geometry/Geometry.h"
@@ -62,6 +63,23 @@ namespace cluster {
 }
 
 namespace cluster{
+
+  struct eveLoc{
+
+    eveLoc(int id, size_t c, size_t t, size_t p)
+      : eveID(id)
+      , cryostat(c)
+      , tpc(t)
+      , plane(p)
+    {}
+
+    friend bool operator < (eveLoc const& a, eveLoc const& b) { return a.eveID < b.eveID; }
+    
+    int    eveID;
+    size_t cryostat;
+    size_t tpc;
+    size_t plane;
+  };
 
   //--------------------------------------------------------------------
   ClusterCheater::ClusterCheater(fhicl::ParameterSet const& pset)
@@ -141,8 +159,11 @@ namespace cluster{
 
     LOG_DEBUG("ClusterCheater") << bt->ParticleList();
 
-    // make a map of vectors of art::Ptrs keyed by eveID values
-    std::map< int, std::vector< art::Ptr<recob::Hit> > > eveHitMap;
+    // make a map of vectors of art::Ptrs keyed by eveID values and 
+    // location in cryostat, TPC, plane coordinates of where the hit originated
+    std::map< eveLoc, std::vector< art::Ptr<recob::Hit> > > eveHitMap;
+
+    TStopwatch ts;
 
     // loop over all hits and fill in the map
     for( auto const& itr : hits ){
@@ -156,7 +177,12 @@ namespace cluster{
 	// energy in the current hit
 	if( eveides[e].energyFrac < 0.1) continue;
 
-	eveHitMap[eveides[e].trackID].push_back(itr);
+	eveLoc el(eveides[e].trackID, 
+		  itr->WireID().Cryostat,
+		  itr->WireID().TPC,
+		  itr->WireID().Plane);
+
+	eveHitMap[el].push_back(itr);
 
       } // end loop over eve IDs for this hit
 
@@ -167,116 +193,112 @@ namespace cluster{
     std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
 
     for(auto const& hitMapItr : eveHitMap){
-      unsigned int vtx_wire = 0;
 
-      // separate out the hits for each particle into the different views
-      std::vector< art::Ptr<recob::Hit> > eveHits( hitMapItr.second );
+      LOG_DEBUG("ClusterCheater") << "make cluster for eveID: " << hitMapItr.first.eveID
+				  << " in cryostat: "           << hitMapItr.first.cryostat
+				  << " tpc: "         	        << hitMapItr.first.tpc     
+				  << " plane: "       	        << hitMapItr.first.plane;   
 
-      for(size_t c = 0; c < geo->Ncryostats(); ++c){
-	for(size_t t = 0; t < geo->Cryostat(c).NTPC(); ++t){
-	  for(size_t pl = 0; pl < geo->Cryostat(c).TPC(t).Nplanes(); ++pl){
-	    art::PtrVector<recob::Hit> ptrvs;
-	    double startWire = 1.e6;
-	    double startTime = 1.e6;
-	    double endWire   = -1.e6;
-	    double endTime   = -1.e6;
-	    double dTdW      = 0.;
-	    double dQdW      = 0.;
-	    double totalQ    = 0.;
-	    geo::View_t view = geo->Cryostat(c).TPC(t).Plane(pl).View();
-            	    
-	    for(auto const& h : eveHits){
-	      
-	      geo::WireID wid = h->WireID();
+      double startWire =  1.e6;
+      double startTime =  1.e6;
+      double endWire   = -1.e6;
+      double endTime   = -1.e6;
+      double dTdW      =  0.;
+      double dQdW      =  0.;
+      double totalQ    =  0.;
 
-	      if(wid.Plane    != pl || 
-		 wid.TPC      != t  || 
-		 wid.Cryostat != c) continue;
-	      // ================================================================================
-	      // === Only keeping clusters with 5 or more hits to help cut down on the number ===
-	      // ===                   of clusters found by the algorithm                     ===
-	      // ================================================================================
-	      if(eveHits.size() < 5){continue;}
-	      
-	      
-	      ptrvs.push_back(h);
-	      totalQ += h->Charge();
-	      
-	      if(wid.Wire < startWire){
-		startWire = wid.Wire;
-		startTime = 1.e6;
-	      }
-	      if(wid.Wire > endWire  ){
-		endWire = wid.Wire;
-		endTime = -1.e-6;
-	      }
-	      
-	      if(wid.Wire == startWire && h->StartTime() < startTime) 
-		startTime = h->StartTime();
-	      
-	      if(wid.Wire == endWire   && h->EndTime()   > endTime  ) 
-		endTime   = h->EndTime();
-	      
-	    } // end loop over hits for this particle	
+      // ==============================================================================
+      // Translating the truth vertex xyz information into truth wire and time position
+      // ===============================================================================
+      unsigned int vtx_channel = geo->NearestChannel(vertex, 
+						     hitMapItr.first.plane, 
+						     hitMapItr.first.tpc, 
+						     hitMapItr.first.cryostat);
+      unsigned int vtx_wire = geo->ChannelToWire(vtx_channel)[0].Wire;
+      ts.Stop();
+      ts.Print();
 
-	    // do not create clusters with zero size hit arrays, Andrzej
-	    if(ptrvs.size() == 0) continue;
-	    
-	    // figure out the rest of the cluster information using these hits
-	    
-	    // use the HoughLineAlg to get dTdW for these hits
-	    double intercept = 0.;
-	    fHLAlg.Transform(eveHits, dTdW, intercept);
-	    
-	     // ==============================================================================
-    	    // Translating the truth vertex xyz information into truth wire and time position
-            // ===============================================================================
-	    unsigned int vtx_channel = geo->NearestChannel(vertex, pl, t, c);
-     	    std::vector<geo::WireID> vtxwire = geo->ChannelToWire(vtx_channel);
-	    geo::WireID wgeom = vtxwire[0];
-				
-	    vtx_wire = wgeom.Wire;
-	     
-	    // === If the cluster is to the downstream of the vertex the positions are switched ===
-	    if(startWire - vtx_wire < 0 && endWire - vtx_wire < 0){
-	      float tempstartWire = endWire;
-	      float tempendWire = startWire;
+      // ================================================================================
+      // === Only keeping clusters with 5 or more hits to help cut down on the number ===
+      // ===                   of clusters found by the algorithm                     ===
+      // ================================================================================
+      if(hitMapItr.second.size() < 5) continue;
+	            
+      for(auto const& h : hitMapItr.second){
 	      
-	      startWire = tempstartWire;
-	      endWire = tempendWire;
-	      
-	      float tempstartTime = endTime;
-	      float tempendTime = startTime;
-	      
-	      startTime = tempstartTime;
-	      endTime = tempendTime;
-	    }
-	    
-	    ///\todo now figure out the dQdW
-	    
-	    // add a cluster to the collection.  Make the ID be the eve particle
-	    // trackID*1000 + plane number*100 + tpc that the current hits are from
-	    
-	    clustercol->push_back(recob::Cluster(startWire, 0.,
-						 startTime, 0.,
-						 endWire,   0.,
-						 endTime,   0.,
-						 dTdW,      0.,
-						 dQdW,      0.,
-						 totalQ,
-						 view,
-						 (hitMapItr.first * 1000) + pl*100 + t*10 + c));
-	    
-	    // association the hits to this cluster
-	    util::CreateAssn(*this, evt, *(clustercol.get()), ptrvs, *(assn.get()));
-	    
-	    mf::LogInfo("ClusterCheater") << "adding cluster: \n" 
-					  << clustercol->back()
-					  << "\nto collection.";
+	geo::WireID wid = h->WireID();
 
-	  } // end loop over the number of planes
-	} // end loop over the tpcs
-      } // end loop over the cryostats
+	totalQ += h->Charge();
+	      
+	if(wid.Wire < startWire){
+	  startWire = wid.Wire;
+	  startTime = 1.e6;
+	}
+	if(wid.Wire > endWire  ){
+	  endWire = wid.Wire;
+	  endTime = -1.e-6;
+	}
+	
+	if(wid.Wire == startWire && h->StartTime() < startTime) startTime = h->StartTime();
+	
+	if(wid.Wire == endWire   && h->EndTime()   > endTime  ) endTime   = h->EndTime();
+
+      } // end loop over hits for this particle	
+
+      mf::LogVerbatim("ClusterCheater") << "run the hough transform";
+      ts.Reset();
+      ts.Start();
+
+      // remove need to use hough algorithm and instead use MCTruth info
+      // to convert from world coordinates to time and wire number in order
+      // to get dTdW
+      double intercept = 0.;
+      fHLAlg.Transform(hitMapItr.second, dTdW, intercept);
+      ts.Stop();
+      ts.Print();
+      
+      // === If the cluster is to the downstream of the vertex the positions are switched ===
+      if(startWire - vtx_wire < 0 && endWire - vtx_wire < 0){
+	float tempstartWire = endWire;
+	float tempendWire = startWire;
+	
+	startWire = tempstartWire;
+	endWire = tempendWire;
+	
+	float tempstartTime = endTime;
+	float tempendTime = startTime;
+	
+	startTime = tempstartTime;
+	endTime = tempendTime;
+      }
+      
+      ///\todo now figure out the dQdW
+      
+      // add a cluster to the collection.  Make the ID be the eve particle
+      // trackID*1000 + plane number*100 + tpc that the current hits are from
+      
+      clustercol->push_back(recob::Cluster(startWire, 0.,
+					   startTime, 0.,
+					   endWire,   0.,
+					   endTime,   0.,
+					   dTdW,      0.,
+					   dQdW,      0.,
+					   totalQ,
+					   hitMapItr.second.at(0)->View(),
+					   (hitMapItr.first.eveID*1000 + 
+					    hitMapItr.first.plane*100  + 
+					    hitMapItr.first.tpc*10     + 
+					    hitMapItr.first.cryostat)
+					   )
+			    );
+      
+      // association the hits to this cluster
+      util::CreateAssn(*this, evt, *clustercol, hitMapItr.second, *assn);
+      
+      mf::LogInfo("ClusterCheater") << "adding cluster: \n" 
+				    << clustercol->back()
+				    << "\nto collection.";
+      
     } // end loop over the map
 
     evt.put(std::move(clustercol));

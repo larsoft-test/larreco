@@ -106,11 +106,11 @@ cluster::HoughTransform::HoughTransform()
 
 
 //------------------------------------------------------------------------------
-size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits,
-					std::vector<unsigned int>     *fpointId_to_clusterId,
-					unsigned int clusterId, // The id of the cluster we are examining
-					int *nClusters,
-					std::vector<unsigned int> corners
+size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const& hits,
+					std::vector<unsigned int>                 *fpointId_to_clusterId,
+					unsigned int                               clusterId, // The id of the cluster we are examining
+					int                                       *nClusters,
+					std::vector<unsigned int>                  corners
 					)
 {
   
@@ -368,8 +368,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
       double fMinPeak = 99999999;
       int iMinWire = -1;
       float background = 0;
-      for(std::vector<art::Ptr<recob::Hit> >::iterator hitsItr = hits.begin(); hitsItr != hits.end(); ++hitsItr){
-        if(fpointId_to_clusterId->at(hitsItr-hits.begin()) != clusterId)
+      for(auto hitsItr = hits.cbegin(); hitsItr != hits.cend(); ++hitsItr){
+        if(fpointId_to_clusterId->at(hitsItr - hits.begin()) != clusterId)
           continue;
         channel = (*hitsItr)->Wire()->RawDigit()->Channel();
         distance = (TMath::Abs((*hitsItr)->PeakTime()-slope*(double)((*hitsItr)->WireID().Wire)-intercept)/(std::sqrt(pow(xyScale*slope,2)+1)));
@@ -441,7 +441,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
       unsigned int plane = hits[0]->WireID().Plane;
 
       // Loop over hits to sum up background around prospective Hough line
-      for(std::vector<art::Ptr<recob::Hit> >::iterator hitsItr = hits.begin(); hitsItr != hits.end(); ++hitsItr){
+      for(auto hitsItr = hits.cbegin(); hitsItr != hits.cend(); ++hitsItr){
         distance = (TMath::Abs((*hitsItr)->PeakTime()-slope*(double)((*hitsItr)->WireID().Wire)-intercept)/(std::sqrt(pow(xyScale*slope,2)+1)));
 
         // Sum up background hits, use smart distance
@@ -727,7 +727,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> >& hits
   double wire_dist = posWorld0[1]- posWorld1[1];
   double tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
   tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
-  for(std::vector<art::Ptr<recob::Hit> >::iterator hitsItr = hits.begin(); hitsItr != hits.end(); ++hitsItr){
+  for(auto hitsItr = hits.cbegin(); hitsItr != hits.cend(); ++hitsItr){
     if(fpointId_to_clusterId->at(hitsItr-hits.begin()) != clusterId)
       continue;
       double p0 = ((*hitsItr)->Wire()->RawDigit()->Channel())*wire_dist;
@@ -1527,8 +1527,8 @@ void cluster::HoughBaseAlg::HLSSaveBMPFile(const char *fileName, unsigned char *
  
 
 //------------------------------------------------------------------------------
-size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Cluster> >           & clusIn,
-					std::vector<recob::Cluster>                      & ccol,  
+size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Cluster> >         & clusIn,
+					std::vector<recob::Cluster>                    & ccol,  
 					std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
 					art::Event                                const& evt,
 					std::string                               const& label)
@@ -1811,8 +1811,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Cluster> >  
 
 
 //------------------------------------------------------------------------------
-size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster> >           & clusIn,
-					    std::vector<recob::Cluster>                      & ccol,  
+size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster> >         & clusIn,
+					    std::vector<recob::Cluster>                    & ccol,  
 					    std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
 					    art::Event                                const& evt,
 					    std::string                               const& label)
@@ -2305,9 +2305,9 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 
 
 //------------------------------------------------------------------------------
-size_t cluster::HoughBaseAlg::Transform(std::vector< art::Ptr<recob::Hit> >& hits,
-					double                              &slope,
-					double                              &intercept)
+size_t cluster::HoughBaseAlg::Transform(std::vector< art::Ptr<recob::Hit> > const& hits,
+					double                                   & slope,
+					double                                   & intercept)
 {
   HoughTransform c;
 
