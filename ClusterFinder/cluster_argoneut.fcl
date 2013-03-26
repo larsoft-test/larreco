@@ -1,0 +1,30 @@
+#include "job/clustermodules.fcl"
+
+BEGIN_PROLOG
+
+argoneut_dbscanalg:                  @local::standard_dbscanalg       
+argoneut_fuzzyclusteralg:            @local::standard_fuzzyclusteralg
+argoneut_houghbasealg:               @local::standard_houghbasealg   
+argoneut_houghbasealg.MaxLines:      15                              
+argoneut_houghbasealg.MinHits:       3                               
+argoneut_houghbasealg.NumAngleCells: 5000
+argoneut_houghbasealg.MaxDistance:   5.0
+argoneut_endpointalg:                @local::standard_endpointalg
+
+argoneut_dbcluster:                    @local::standard_dbcluster      
+argoneut_dbcluster.DBScanAlg:          @local::argoneut_dbscanalg    
+argoneut_dbclusterana:                 @local::standard_dbclusterana   
+argoneut_fuzzycluster:                 @local::standard_fuzzycluster      
+argoneut_fuzzycluster.fuzzyClusterAlg: @local::argoneut_fuzzyclusteralg      
+argoneut_kingacluster:                 @local::standard_kingacluster   
+argoneut_kingaclusterana:              @local::standard_kingaclusterana
+argoneut_houghlinefinder:              @local::standard_houghlinefinder
+argoneut_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
+argoneut_houghlinefinder.HoughBaseAlg: @local::argoneut_houghbasealg
+argoneut_houghlinefinderana:           @local::standard_houghlinefinderana
+argoneut_linemerger:                   @local::standard_linemerger        
+argoneut_endpointmod:                  @local::standard_endpointmod       
+argoneut_endpointmod.EndPointAlg:      @local::argoneut_endpointalg
+argoneut_showeranglecluster:           @local::standard_showeranglecluster
+
+END_PROLOG

@@ -1,0 +1,23 @@
+#include "job/clustermodules.fcl"
+
+BEGIN_PROLOG
+
+lbne35t_dbscanalg:    @local::standard_dbscanalg_fast
+lbne35t_houghbasealg: @local::standard_houghbasealg
+lbne35t_endpointalg:  @local::standard_endpointalg 
+
+lbne35t_dbcluster:                    @local::standard_dbcluster      
+lbne35t_dbcluster.DBScanAlg:          @local::lbne35t_dbscanalg          
+lbne35t_dbclusterana:                 @local::standard_dbclusterana   
+lbne35t_kingacluster:                 @local::standard_kingacluster   
+lbne35t_kingaclusterana:              @local::standard_kingaclusterana
+lbne35t_houghlinefinder:              @local::standard_houghlinefinder
+lbne35t_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
+lbne35t_houghlinefinder.HoughBaseAlg: @local::lbne35t_houghbasealg
+lbne35t_houghlinefinderana:           @local::standard_houghlinefinderana
+lbne35t_linemerger:                   @local::standard_linemerger        
+lbne35t_endpointmod:                  @local::standard_endpointmod       
+lbne35t_endpointmod.EndPointAlg:      @local::lbne35t_endpointalg
+lbne35t_showeranglecluster:           @local::standard_showeranglecluster
+
+END_PROLOG
