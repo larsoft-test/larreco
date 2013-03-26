@@ -845,7 +845,7 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
           double distance = std::sqrt(pow(clusIndStPHitItr->first-(*toMergePHitItr).first,2)+
                     pow(clusIndStPHitItr->second-toMergePHitItr->second,2));
           if(distance < closestDistance){
-            distance = closestDistance;
+            closestDistance = distance;
             closestToMerge=toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin();
             closestClusIndexStart=clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
           }
