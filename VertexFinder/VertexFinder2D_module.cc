@@ -191,7 +191,7 @@ namespace vertex{
 	  case geo::kV :
 	    Cls[1].push_back(iclu);
 	    break;
-	  case geo::kW :
+	  case geo::kZ :
 	    Cls[2].push_back(iclu);
 	    break;
 	  default :
