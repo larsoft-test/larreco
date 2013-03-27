@@ -129,7 +129,7 @@ namespace cluster{
 	Cls[1].push_back(cl);
 	Cls_matches[1].push_back(0);
 	break;
-      case geo::kW :
+      case geo::kZ :
 	Cls[2].push_back(cl);
 	Cls_matches[2].push_back(0);
 	break;
