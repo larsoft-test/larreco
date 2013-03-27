@@ -176,21 +176,12 @@ void trkf::SpacePts::produce(art::Event& evt)
       art::Ptr<recob::Cluster> cl(clusterListHandle, ii);
       
       // Figure out which View the cluster belongs to 
-      /*
-      int clPlane = cl->View()-1;
-      std::cout << "SpacePts: Plane/View/SignalType ..." << clPlane <<" "<<cl->View()<<" "<<geom->Plane(clPlane).SignalType() << std::endl; 
-      */
-      // Gaaaaaah! Change me soon!!! But, for now, 
-      // let's just chuck one plane's worth of info. EC, 30-Mar-2011.
-      ///\todo This is really horrendous code.  Never, Never, Never test on Detector name!!!!
-      if (cl->View() == geo::kW && !geom->GetDetectorName().Contains(geo::kArgoNeuT)) continue; 
-      mf::LogWarning("SpacePts:") << "!!! 3 Plane detectors only using kV and kW Views for now!!!!";
-       //only consider merged-lines that are associated with the vertex.
-       //this helps get rid of through-going muon background -spitz                  
-       int vtx2d_w = -99999;
-       double vtx2d_t = -99999;
-       bool found2dvtx = false;
-       
+      //only consider merged-lines that are associated with the vertex.
+      //this helps get rid of through-going muon background -spitz                  
+      int vtx2d_w = -99999;
+      double vtx2d_t = -99999;
+      bool found2dvtx = false;
+      
       for (unsigned int j = 0; j<endpointlist.size();j++){
 	if (endpointlist[j]->View() == cl->View()){
 	  vtx2d_w = endpointlist[j]->WireNum();

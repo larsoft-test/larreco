@@ -98,7 +98,6 @@ namespace trkf {
 #include "RecoBase/Hit.h"
 #include "RecoBase/Seed.h"
 #include "RecoBase/Track.h"
-#include "RecoBase/Prong.h"
 #include "RecoBase/Vertex.h"
 #include "TrackFinder/BezierTrack.h"
 #include "Utilities/AssociationUtil.h"

@@ -336,7 +336,7 @@ namespace trkf {
 	    fHDTVE->Fill(tpeak - tav);
 	    fHDTVPull->Fill((tpeak - tav) / terr);
 	  }
-	  else if((*ihit)->View() == geo::kW) {
+	  else if((*ihit)->View() == geo::kZ) {
 	    fHDTWE->Fill(tpeak - tav);
 	    fHDTWPull->Fill((tpeak - tav) / terr);
 	  }
@@ -437,16 +437,16 @@ namespace trkf {
 	      if(view1 == geo::kU) {
 		if(view2 == geo::kV)
 		  fHDTUV->Fill(t1-t2);
-		if(view2 == geo::kW)
+		if(view2 == geo::kZ)
 		  fHDTWU->Fill(t2-t1);
 	      }
 	      if(view1 == geo::kV) {
-		if(view2 == geo::kW)
+		if(view2 == geo::kZ)
 		  fHDTVW->Fill(t1-t2);
 		if(view2 == geo::kU)
 		  fHDTUV->Fill(t2-t1);
 	      }
-	      if(view1 == geo::kW) {
+	      if(view1 == geo::kZ) {
 		if(view2 == geo::kU)
 		  fHDTWU->Fill(t1-t2);
 		if(view2 == geo::kV)

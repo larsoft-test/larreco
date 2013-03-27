@@ -203,7 +203,7 @@ void Track3Dreco::produce(art::Event& evt)
      // Gaaaaaah! Change me soon!!! But, for now, 
      // let's just chuck one plane's worth of info. EC, 30-Mar-2011.
      ///\todo: This is very bad practice and should be changed ASAP
-     if (cl->View() == geo::kW) continue;      
+     if (cl->View() == geo::kZ) continue;      
      
      std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(ii);
 

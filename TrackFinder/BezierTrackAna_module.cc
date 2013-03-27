@@ -254,7 +254,7 @@ namespace trkf {
 	    fNHits++;
 	    if((*it)->View()==geo::kU) fNHitsU++;
 	    if((*it)->View()==geo::kV) fNHitsV++;
-	    if((*it)->View()==geo::kW) fNHitsW++;
+	    if((*it)->View()==geo::kZ) fNHitsW++;
 	    double HitDistance, S;
 	    
 	    
@@ -268,8 +268,8 @@ namespace trkf {
 	    std::cout<<"btrkana" << Point<< " " << BTracks.at(i).GetCurvature(float(j)/jDivs)<<std::endl;
 	    //	    fhdQdxU->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kU));
 	    //	    fhdQdxV->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kV));
-	    //	    fhdQdxW->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kW));
-	    //	    fhdQdxVW->Fill( BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kW), BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kV));
+	    //	    fhdQdxW->Fill( Point, BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kZ));
+	    //	    fhdQdxVW->Fill( BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kZ), BTracks.at(i).GetdQdx(float(j)/jDivs, geo::kV));
 	    fhCurv->Fill(  Point, BTracks.at(i).GetCurvature(float(j)/jDivs));
 			 
 	  }
@@ -279,11 +279,11 @@ namespace trkf {
 	
 	//	fdQdxU = BTracks.at(i).GetViewdQdx(geo::kU);
 	// 	fdQdxV = BTracks.at(i).GetViewdQdx(geo::kV);
-	// 	fdQdxW = BTracks.at(i).GetViewdQdx(geo::kW);
+	// 	fdQdxW = BTracks.at(i).GetViewdQdx(geo::kZ);
 
 	//  	fChargeU = BTracks.at(i).GetTotalCharge(geo::kU);
 	//	fChargeV = BTracks.at(i).GetTotalCharge(geo::kV);
-	//	fChargeW = BTracks.at(i).GetTotalCharge(geo::kW);
+	//	fChargeW = BTracks.at(i).GetTotalCharge(geo::kZ);
 	
   	fSegments = BTracks.at(i).NSegments();
 	

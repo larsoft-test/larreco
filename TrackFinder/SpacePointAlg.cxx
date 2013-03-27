@@ -147,8 +147,8 @@ namespace  trkf{
 	  else if(view == geo::kV) {
 	    viewname = "V";
 	  }
-	  else if(view == geo::kW) {
-	    viewname = "W";
+	  else if(view == geo::kZ) {
+	    viewname = "Z";
 	  }
 	  else
 	    throw cet::exception("SpacePointAlg") << "Bad view = " 
@@ -864,7 +864,7 @@ namespace  trkf{
       geo::View_t view = phit->View();
       if((view == geo::kU && fEnableU) ||
 	 (view == geo::kV && fEnableV) ||
-	 (view == geo::kW && fEnableW)) {
+	 (view == geo::kZ && fEnableW)) {
       
 	geo::WireID phitWireID = phit->WireID();
 	//unsigned int channel = phit->Channel();

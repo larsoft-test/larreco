@@ -266,7 +266,7 @@ namespace trkf {
 
       if((iview == geo::kU && Sptalg->enableU()) ||
          (iview == geo::kV && Sptalg->enableV()) ||
-         (iview == geo::kW && Sptalg->enableW())) {
+         (iview == geo::kZ && Sptalg->enableW())) {
 
         // Store hits from first view into hit vector.
 
@@ -289,7 +289,7 @@ namespace trkf {
 
 	  if(((jview == geo::kU && Sptalg->enableU()) ||
 	      (jview == geo::kV && Sptalg->enableV()) ||
-	      (jview == geo::kW && Sptalg->enableW()))
+	      (jview == geo::kZ && Sptalg->enableW()))
 	     && jview != iview) {
 
 	    // Store hits from second view into hit vector.
@@ -315,7 +315,7 @@ namespace trkf {
 
 	      if(((kview == geo::kU && Sptalg->enableU()) ||
 		  (kview == geo::kV && Sptalg->enableV()) ||
-		  (kview == geo::kW && Sptalg->enableW()))
+		  (kview == geo::kZ && Sptalg->enableW()))
 		 && kview != iview && kview != jview) {
 
 		// Store hits from third view into hit vector.
@@ -411,7 +411,7 @@ namespace trkf {
 
       if((iview == geo::kU && Sptalg->enableU()) ||
          (iview == geo::kV && Sptalg->enableV()) ||
-         (iview == geo::kW && Sptalg->enableW())) {
+         (iview == geo::kZ && Sptalg->enableW())) {
 
         // Store hits from first view into hit vector.
 
@@ -434,7 +434,7 @@ namespace trkf {
 
 	  if(((jview == geo::kU && Sptalg->enableU()) ||
 	      (jview == geo::kV && Sptalg->enableV()) ||
-	      (jview == geo::kW && Sptalg->enableW()))
+	      (jview == geo::kZ && Sptalg->enableW()))
 	     && jview != iview) {
 
 	    // Store hits from second view into hit vector.
@@ -460,7 +460,7 @@ namespace trkf {
 
 	      if(((kview == geo::kU && Sptalg->enableU()) ||
 		  (kview == geo::kV && Sptalg->enableV()) ||
-		  (kview == geo::kW && Sptalg->enableW()))
+		  (kview == geo::kZ && Sptalg->enableW()))
 		 && kview != iview && kview != jview) {
 
 		// Store hits from third view into hit vector.

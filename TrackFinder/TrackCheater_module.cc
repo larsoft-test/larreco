@@ -114,7 +114,7 @@ namespace trkf{
     while( itr != clusters.end() ){
 
       // in the ClusterCheater module we set the cluster ID to be 
-      // the eve particle track ID*1000 + plane*100 + tpc number.  The
+      // the eve particle track ID*1000 + plane*100 + tpc*10 + cryostat number.  The
       // floor function on the cluster ID / 1000 will give us
       // the eve track ID
       int eveID = floor((*itr)->ID()/1000.);

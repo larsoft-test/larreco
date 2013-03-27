@@ -339,7 +339,6 @@ namespace trkf {
     {
       // For now just Collection plane.
       // We should loop over all views, more generally.
-      //geo::View_t view(geo::kW);
       geo::SigType_t sig(geo::kCollection);
       art::ServiceHandle<geo::Geometry> geom;
       static art::PtrVector<recob::SpacePoint>::const_iterator sstart(s.begin());
