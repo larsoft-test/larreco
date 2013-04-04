@@ -50,6 +50,15 @@ standard_track3Dreco:
  Chi2DOFmax:         10.0
 }
 
+standard_cosmictracker:
+{
+ module_type:        "CosmicTracker"
+ ClusterModuleLabel: "linemerger"
+ KScut:              0.9
+ TMatch:             35
+ SMatch:             1.0
+}
+
 standard_track3Dkalman:
 {
  module_type:         "Track3DKalman"
