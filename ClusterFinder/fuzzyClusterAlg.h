@@ -7,6 +7,7 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
+#include <stdint.h>
 
 #include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Ptr.h"
@@ -31,7 +32,7 @@ namespace cluster{
     virtual ~fuzzyClusterAlg();
     
     void reconfigure(fhicl::ParameterSet const& p);
-    void InitFuzzy(std::vector<art::Ptr<recob::Hit> >& allhits, std::set<unsigned int> badChannels);
+    void InitFuzzy(std::vector<art::Ptr<recob::Hit> >& allhits, std::set<uint32_t> badChannels);
     // Three differnt version of the clustering code
     void run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit> >& allhits);     
    
@@ -84,8 +85,8 @@ namespace cluster{
     std::vector<bool>      fnoise;	
     std::vector<bool>      fvisited;					     
     std::vector<double>    fWirePitch;     ///< the pitch of the wires in each plane
-    std::set<unsigned int> fBadChannels;   ///< set of bad channels in this detector
-    std::vector<unsigned int> fBadWireSum; ///< running total of bad channels. Used for fast intervening 
+    std::set<uint32_t>     fBadChannels;   ///< set of bad channels in this detector
+    std::vector<uint32_t>  fBadWireSum;    ///< running total of bad channels. Used for fast intervening 
                                            ///< dead wire counting ala fBadChannelSum[m]-fBadChannelSum[n]. 
 
     //Matrices for Ben's fuzzy cluster

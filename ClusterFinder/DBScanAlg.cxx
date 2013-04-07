@@ -276,7 +276,7 @@ void cluster::DBScanAlg::reconfigure(fhicl::ParameterSet const& p)
 
 //----------------------------------------------------------
 void cluster::DBScanAlg::InitScan(art::PtrVector<recob::Hit>& allhits, 
-			       std::set<unsigned int> badChannels)
+				  std::set<uint32_t>          badChannels)
 {
   // clear all the data member vectors for the new set of hits
   fps.clear();

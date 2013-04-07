@@ -71,7 +71,7 @@ void cluster::fuzzyClusterAlg::reconfigure(fhicl::ParameterSet const& p)
 
 //----------------------------------------------------------
 void cluster::fuzzyClusterAlg::InitFuzzy(std::vector<art::Ptr<recob::Hit> >& allhits, 
-			       std::set<unsigned int> badChannels)
+					 std::set<uint32_t>                  badChannels)
 {
   // clear all the data member vectors for the new set of hits
   fps.clear();

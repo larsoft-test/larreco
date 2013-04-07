@@ -26,6 +26,7 @@ extern "C" {
 #include <math.h>
 #include <algorithm>
 #include <vector>
+#include <stdint.h>
 
 #include <TF1.h>
 
@@ -122,7 +123,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
   art::ServiceHandle<util::DetectorProperties> detprop;
   filter::ChannelFilter chanFilt;
 
-  unsigned int channel = hits[0]->Wire()->RawDigit()->Channel();
+  uint32_t     channel = hits[0]->Wire()->RawDigit()->Channel();
   unsigned int wire    = 0;
   unsigned int wireMax = 0;
   std::vector<lineSlope> linesFound;
@@ -258,7 +259,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     int maxCell = 0;
     xMax = 0;
     yMax = 0;
-    unsigned short channel = hits[randInd]->Wire()->RawDigit()->Channel();
+    uint32_t channel = hits[randInd]->Wire()->RawDigit()->Channel();
     wireMax = hits[randInd]->WireID().Wire;
     double peakMax = hits[randInd]->PeakTime();
 
@@ -519,7 +520,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
             negativeiWireMin = true;
             break;
           };
-          unsigned int lineChannel = geom->PlaneWireToChannel(plane,(unsigned int)iWire,tpc,cstat);
+          uint32_t lineChannel = geom->PlaneWireToChannel(plane,(unsigned int)iWire,tpc,cstat);
           double pLineHit[2];
           pLineHit[0] = lineChannel*wire_dist;
           pLineHit[1] = i*tickToDist;
@@ -561,7 +562,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
             negativeiWireMax = true;
             break;
           };
-          unsigned int lineChannel = geom->PlaneWireToChannel(plane,(unsigned int)iWire,tpc,cstat);
+          uint32_t lineChannel = geom->PlaneWireToChannel(plane,(unsigned int)iWire,tpc,cstat);
           double pLineHit[2];
           pLineHit[0] = lineChannel*wire_dist;
           pLineHit[1] = i*tickToDist;
@@ -1732,8 +1733,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Cluster> >  
 		skip[hitTemp[lastHits[i]]]=1;
 	      } 
 	      //protection against very steep uncorrelated hits
-	      if(TMath::Abs(slope)>fMaxSlope 
-		 && TMath::Abs((*clusterHits.begin())->Wire()->RawDigit()->Channel()-
+	      if(std::abs(slope)>fMaxSlope 
+		 && std::abs((*clusterHits.begin())->Wire()->RawDigit()->Channel()-
 			       clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel())>=0
 		 )
 		continue;
@@ -2088,8 +2089,8 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 		skip[hitTemp[lastHits[i]]]=1;
 	      } 
 	      //protection against very steep uncorrelated hits
-	      if(TMath::Abs(slope)>fMaxSlope 
-		 && TMath::Abs((*clusterHits.begin())->Wire()->RawDigit()->Channel()-
+	      if(std::abs(slope)>fMaxSlope 
+		 && std::abs((*clusterHits.begin())->Wire()->RawDigit()->Channel()-
 			       clusterHits[clusterHits.size()-1]->Wire()->RawDigit()->Channel())>=0
 		 )
 		continue;
@@ -2137,7 +2138,7 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
                   //mf::LogVerbatim("HoughBaseAlg") << "i: " << i 
 						  //<< " iWire: " << iWire 
 						  //<< " (unsigned int)iWire: " << (unsigned int)iWire;
-                  unsigned int lineChannel = geom->PlaneWireToChannel(p,(unsigned int)iWire,t,cs);
+                  uint32_t lineChannel = geom->PlaneWireToChannel(p,(unsigned int)iWire,t,cs);
                   double pLineHit[2];
                   pLineHit[0] = lineChannel*wire_dist;
                   pLineHit[1] = i*tickToDist;
@@ -2177,7 +2178,7 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
                   mf::LogVerbatim("HoughBaseAlg") << "i: " << i 
 						  << " iWire: " << iWire 
 						  << " (unsigned int)iWire: " << (unsigned int)iWire;
-                  unsigned int lineChannel = geom->PlaneWireToChannel(p,(unsigned int)iWire,t,cs);
+                  uint32_t lineChannel = geom->PlaneWireToChannel(p,(unsigned int)iWire,t,cs);
                   double pLineHit[2];
                   pLineHit[0] = lineChannel*wire_dist;
                   pLineHit[1] = i*tickToDist;

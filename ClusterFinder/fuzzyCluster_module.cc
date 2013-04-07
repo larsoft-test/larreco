@@ -219,7 +219,7 @@ namespace cluster{
   
     mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
     mf::LogVerbatim("Summary") << "fuzzyCluster Summary:";
-    for(unsigned int i = 0; i<ccol->size(); ++i) mf::LogVerbatim("Summary") << ccol->at(i) ;
+    for(size_t i = 0; i<ccol->size(); ++i) mf::LogVerbatim("Summary") << ccol->at(i) ;
   
     evt.put(std::move(ccol));
     evt.put(std::move(assn));

@@ -4,9 +4,11 @@
 ////////////////////////////////////////////////////////////////////
 #ifndef DBSCANALG_H
 #define DBSCANALG_H
+
 #include <vector>
 #include <cmath>
 #include <iostream>
+#include <stdint.h>
 
 #include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Ptr.h"
@@ -23,7 +25,7 @@ namespace recob { class Hit; }
 // Our core objects have a physical extent (I.e. there are not
 // points), but a R*-tree should be able to deal with that.
 class dbsPoint; // forward declaration
-typedef RStarTree< unsigned int, 2, 32, 64 > RTree; // payload is just an index
+typedef RStarTree< uint32_t, 2, 32, 64 > RTree; // payload is just an index
 typedef RTree::BoundingBox BoundingBox;
 
 namespace cluster{
@@ -37,7 +39,7 @@ namespace cluster{
     virtual ~DBScanAlg();
     
     void reconfigure(fhicl::ParameterSet const& p);
-    void InitScan(art::PtrVector<recob::Hit>& allhits, std::set<unsigned int> badChannels);
+    void InitScan(art::PtrVector<recob::Hit>& allhits, std::set<uint32_t> badChannels);
     double getSimilarity(const std::vector<double> v1, const std::vector<double> v2); 
     std::vector<unsigned int> findNeighbors( unsigned int pid, double threshold, double threshold2);
     void computeSimilarity();
@@ -76,8 +78,8 @@ namespace cluster{
     std::vector<bool>      fnoise;	
     std::vector<bool>      fvisited;					     
     std::vector<double>    fWirePitch;     ///< the pitch of the wires in each plane
-    std::set<unsigned int> fBadChannels;   ///< set of bad channels in this detector
-    std::vector<unsigned int> fBadWireSum; ///< running total of bad channels. Used for fast intervening 
+    std::set<uint32_t>     fBadChannels;   ///< set of bad channels in this detector
+    std::vector<uint32_t>  fBadWireSum;    ///< running total of bad channels. Used for fast intervening 
                                            ///< dead wire counting ala fBadChannelSum[m]-fBadChannelSum[n]. 
     
     // Three differnt version of the clustering code
