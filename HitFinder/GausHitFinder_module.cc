@@ -30,6 +30,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 }
+#include <stdint.h>
 
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h" 
@@ -183,7 +184,7 @@ void GausHitFinder::produce(art::Event& evt)
   double threshold              = 0.;               // minimum signal size for id'ing a hit
   double fitWidth               = 0.;               //hit fit width initial value
   double minWidth               = 0.;               //minimum hit width
-  unsigned int channel          = 0;                // channel number
+  uint32_t channel              = 0;                // channel number
   geo::SigType_t sigType;                           // Signal Type (Collection or Induction)
   std::vector<int> startTimes;             	    // stores time of 1st local minimum
   std::vector<int> maxTimes;    	   	    // stores time of local maximum    

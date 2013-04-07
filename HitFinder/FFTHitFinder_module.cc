@@ -9,10 +9,12 @@
 //  This algorithm is designed to find hits on wires after deconvolution
 //  with an average shape used as the input response.
 ////////////////////////////////////////////////////////////////////////
+#include <string>
+#include <stdint.h>
+
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h" 
 #include "art/Framework/Principal/Event.h" 
-#include <string>
 #include "art/Framework/Core/EDProducer.h" 
 
 // LArSoft Includes
@@ -116,7 +118,7 @@ namespace hit{
     std::vector<int> endTimes;    	     // stores time of 2nd local minimum
     int time               = 0;              // current time bin
     int minTimeHolder      = 0;              // current start time
-    unsigned int channel   = 0;              // channel number
+    uint32_t channel       = 0;              // channel number
     bool maxFound          = false;          // Flag for whether a peak > threshold has been found
     double threshold       = 0.;             // minimum signal size for id'ing a hit
     double fitWidth        = 0.;             // hit fit width initial value
