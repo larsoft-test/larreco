@@ -114,9 +114,9 @@ void event::EventMaker::produce(art::Event &e)
       // get the xyz location of the vertex to compare to the current vertex
       double nextxyz[3] = {0.};
       nexvtx->XYZ(nextxyz);
-      if( sqrt((curxyz[0]-nextxyz[0])*(curxyz[0]-nextxyz[0]) +
-	       (curxyz[1]-nextxyz[1])*(curxyz[1]-nextxyz[1]) +
-	       (curxyz[2]-nextxyz[2])*(curxyz[2]-nextxyz[2]) ) <= fProximity){
+      if( std::sqrt((curxyz[0]-nextxyz[0])*(curxyz[0]-nextxyz[0]) +
+		    (curxyz[1]-nextxyz[1])*(curxyz[1]-nextxyz[1]) +
+		    (curxyz[2]-nextxyz[2])*(curxyz[2]-nextxyz[2]) ) <= fProximity){
 	
 	// add this one to the vector and remove it from the list as it is being used
 	vtxVec.push_back(nexvtx);
