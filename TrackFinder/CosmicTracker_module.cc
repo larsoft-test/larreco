@@ -301,32 +301,77 @@ void CosmicTracker::produce(art::Event& evt){
 
   std::vector< std::vector<int> > matchedclusters;
 
-  for (int i = 0; i<nplanes-1; ++i){
-    for (int j = i+1; j<nplanes; ++j){
+//  for (int i = 0; i<nplanes-1; ++i){
+//    for (int j = i+1; j<nplanes; ++j){
+  for (int i = 0; i<nplanes; ++i){
+    for (int j = 0; j<nplanes; ++j){
       for (size_t c1 = 0; c1<Cls[i].size(); ++c1){
 	for (size_t c2 = 0; c2<Cls[j].size(); ++c2){
-
+	  // check if both are the same view
+	  if (clusterlist[Cls[i][c1]]->View()==
+	      clusterlist[Cls[j][c2]]->View()) continue;
+	  // check if both are already in the matched list
 	  if (matched[Cls[i][c1]]==1&&matched[Cls[j][c2]]==1) continue;
 	  // KS test between two views in time
 	  double ks = signals[i][c1]->KolmogorovTest(signals[j][c2]);
-	  int imatch = -1;
-	  int iadd = -1;
+	  int imatch = -1; //track candidate index
+	  int iadd = -1; //cluster index to be inserted
 	  if (ks>fKScut){//pass KS test
+	    // check both clusters with all matched clusters
+	    // if one is already matched, 
+	    // check if need to add the other to the same track candidate
 	    for (size_t l = 0; l<matchedclusters.size(); ++l){
 	      for (size_t m = 0; m<matchedclusters[l].size(); ++m){
 		if (matchedclusters[l][m]==Cls[i][c1]){
-		  imatch = l;
-		  iadd = j;
+		  imatch = l; //track candidate
+		  iadd = j; //consider the other cluster
 		}
 		else if (matchedclusters[l][m]==Cls[j][c2]){
-		  imatch = l;
-		  iadd = i;
+		  imatch = l; //track candidate
+		  iadd = i; //consider the other cluster
 		}
 	      }
 	    }
 	    if (imatch>=0){
-	      if (iadd == i) matchedclusters[imatch].push_back(Cls[i][c1]);
-	      else matchedclusters[imatch].push_back(Cls[j][c2]);
+	      if (iadd == i){
+		bool matchview = false;
+		// check if one matched cluster has the same view
+		for (size_t ii = 0; ii<matchedclusters[imatch].size(); ++ii){
+		  if (clusterlist[matchedclusters[imatch][ii]]->View()==
+		      clusterlist[Cls[i][c1]]->View()){
+		    matchview = true;
+		    //replace if the new cluster has more hits
+		    if (fm.at(Cls[i][c1])>fm.at(matchedclusters[imatch][ii])){
+		      matched[matchedclusters[imatch][ii]] = 0;
+		      matchedclusters[imatch][ii] = Cls[i][c1];
+		      matched[Cls[i][c1]] = 1;
+		    }
+		  }
+		}
+		if (!matchview){//not matched view found, just add
+		  matchedclusters[imatch].push_back(Cls[i][c1]);
+		  matched[Cls[i][c1]] = 1;
+		}
+	      }
+	      else {
+		bool matchview = false;
+		for (size_t jj = 0; jj<matchedclusters[imatch].size(); ++jj){
+		  if (clusterlist[matchedclusters[imatch][jj]]->View()==
+		      clusterlist[Cls[j][c2]]->View()){
+		    matchview = true;
+		    //replace if it has more hits
+		    if (fm.at(Cls[j][c2])>fm.at(matchedclusters[imatch][jj])){
+		      matched[matchedclusters[imatch][jj]] = 0;
+		      matchedclusters[imatch][jj] = Cls[j][c2];
+		      matched[Cls[j][c2]] = 1;
+		    }
+		  }
+		}
+		if (!matchview){
+		  matchedclusters[imatch].push_back(Cls[j][c2]);
+		  matched[Cls[j][c2]] = 1;
+		}		
+	      }
 	    }
 	    else{
 	      std::vector<int> tmp;
