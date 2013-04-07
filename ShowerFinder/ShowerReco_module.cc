@@ -25,6 +25,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <stdint.h>
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -213,8 +214,8 @@ namespace shwf {
     std::vector<unsigned int> fWire_last;  // wire coordinate of last point for each plane
     std::vector<double> fTime_last;  // time coordinate of last point for each plane
 
-    std::vector<unsigned int> fChannel_vertex;  // channel coordinate of vertex for each plane
-    std::vector<unsigned int> fChannel_last;  // channel coordinate of vertex for each plane
+    std::vector<uint32_t> fChannel_vertex;  // channel coordinate of vertex for each plane
+    std::vector<uint32_t> fChannel_last;  // channel coordinate of vertex for each plane
 
     std::vector< double > fThetaN, fPhiN; // 3d angles calculated using a new "det independent" method
     std::vector< double > fThetaN_ang, fPhiN_ang; // 3d angles calculated using a new "det"// independent method degrees
