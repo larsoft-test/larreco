@@ -16,7 +16,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 }
-
+#include <stdint.h>
 #include <sstream>
 #include <fstream>
 #include <math.h>
@@ -151,7 +151,8 @@ void vertex::VertexMatch::produce(art::Event& evt)
 
   art::FindManyP<recob::Hit> fmhh(houghListHandle, evt, fHoughModuleLabel);
 
-  unsigned int channel,plane,wire,tpc,cstat;
+  uint32_t channel = 0;
+  unsigned int plane,wire,tpc,cstat;
   double slope,intercept,distance;
   double starttime, endtime;
   int startwire, endwire;
