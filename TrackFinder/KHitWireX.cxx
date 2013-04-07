@@ -7,6 +7,7 @@
 /// \author H. Greenlee
 ///
 ////////////////////////////////////////////////////////////////////////
+#include <stdint.h>
 
 #include "TrackFinder/KHitWireX.h"
 #include "TrackFinder/SurfWireX.h"
@@ -36,7 +37,7 @@ namespace trkf {
     art::ServiceHandle<util::DetectorProperties> detprop;
 
     // Extract channel number.
-    unsigned int channel = hit->Channel();
+    uint32_t channel = hit->Channel();
 
     // Check the surface (determined by channel number).  If the
     // surface pointer is null, make a new SurfWireX surface and

@@ -9,6 +9,8 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <map>
+#include <stdint.h>
+
 #include "TrackFinder/KHitContainerWireX.h"
 #include "TrackFinder/KHitWireX.h"
 #include "Utilities/LArProperties.h"
@@ -59,9 +61,9 @@ namespace trkf {
       const recob::Hit& hit = **ihit;
 
       // Extract the channel number from the Hit.
-	  geo::WireID hitWireID = hit.WireID();
+      geo::WireID hitWireID = hit.WireID();
 		
-      unsigned int channel = hit.Channel();
+      uint32_t channel = hit.Channel();
 
       // Extract the cryostat, tpc, and plane.
       // We only care about the plane.

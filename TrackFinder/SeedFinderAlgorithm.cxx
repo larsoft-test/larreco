@@ -7,6 +7,8 @@
 //
 
 #include <vector>
+#include <stdint.h>
+
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "TrackFinder/SeedFinderAlgorithm.h"
 #include "Geometry/Geometry.h"
@@ -592,7 +594,7 @@ namespace trkf {
     unsigned int c=0, t=0;
 
     std::map<int,art::PtrVector<recob::Hit> > HitMap;
-    std::map<unsigned short, bool>            HitsClaimed;
+    std::map<uint32_t, bool>                  HitsClaimed;
     size_t Planes = geom->TPC(0).Nplanes();
 
     // for each spacepoint
@@ -707,7 +709,7 @@ namespace trkf {
     // Get this hits in each view that made this seed
 
     std::map<int,art::PtrVector<recob::Hit> > HitMap;
-    std::map<unsigned short, bool>            HitsClaimed;
+    std::map<uint32_t, bool>                  HitsClaimed;
 
 
     // for each spacepoint
@@ -930,7 +932,7 @@ namespace trkf {
     art::ServiceHandle<geo::Geometry>            geom;
 
     // A map of HitID to true/false whether it has been counted already
-    std::map<unsigned short, bool>            HitsClaimed;
+    std::map<uint32_t, bool>            HitsClaimed;
     HitsClaimed.clear();
     
     // For each spacepoint, check hit contents
