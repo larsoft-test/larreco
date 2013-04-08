@@ -654,7 +654,6 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
         }
       } 
     }
-   
 
 
     // Compare distance between the two points and merge if they are close enough
@@ -664,7 +663,9 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
     //mf::LogInfo("fuzzyCluster") << "xiClosest " << fpsMat(xiClosest,0)  << fpsMat(xiClosest,1) ;
     //mf::LogInfo("fuzzyCluster") << "xjClosest " << fpsMat(xjClosest,0)  << fpsMat(xjClosest,1) ;
     //mf::LogInfo("fuzzyCluster") << std::sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) ;
-    if (std::sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) < fMergeCutoff){
+    if (xiClosest > -1 
+        && xjClosest > -1 
+        && std::sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) < fMergeCutoff){
       // Perform the merging and deletion of the closest cluster
       mf::LogVerbatim("fuzzyCluster") << "You're going to Merge!"  ;
       clusToMerge = j;
