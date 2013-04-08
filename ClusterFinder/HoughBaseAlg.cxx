@@ -261,7 +261,6 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     yMax = 0;
     uint32_t channel = hits[randInd]->Wire()->RawDigit()->Channel();
     wireMax = hits[randInd]->WireID().Wire;
-    double peakMax = hits[randInd]->PeakTime();
 
     // Add the randomly selected point to the accumulator
     maxCell = c.AddPointReturnMax(wireMax, (int)(hits[randInd]->PeakTime()), &yMax, &xMax, fMinHits);
@@ -434,12 +433,6 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
           iMaxWire = hitsTemp[(*lastHitsItr)];
         }
       }
-
-      // grab the plane, tpc and cryostat for these hits
-      // this assumes all hits are coming from the same plane/tpc/cryostat
-      unsigned int tpc = hits[0]->WireID().TPC;
-      unsigned int cstat = hits[0]->WireID().Cryostat;
-      unsigned int plane = hits[0]->WireID().Plane;
 
       // Loop over hits to sum up background around prospective Hough line
       for(auto hitsItr = hits.cbegin(); hitsItr != hits.cend(); ++hitsItr){
@@ -1835,7 +1828,6 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
             unsigned int wireMax = hit[randInd]->WireID().Wire;
             xMax = 0;
             yMax = 0;
-            double peakMax = hit[randInd]->PeakTime();
 
             // Add the randomly selected point to the accumulator
             maxCell = c.AddPointReturnMax(wireMax, (int)(hit[randInd]->PeakTime()), &yMax, &xMax, fMinHits);
@@ -1890,12 +1882,6 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 
 
 	    if(!isinf(slope) && !isnan(slope)){
-              unsigned int fMaxWire = 0;
-              double fMaxPeak = 0;
-              int iMaxWire = 0;
-              unsigned int fMinWire = 99999999;
-              double fMinPeak = 99999999;
-              int iMinWire = -1;
 	      sequenceHolder.clear();
 	      hitTemp.clear();
 	      for(size_t i = 0; i < hit.size(); ++i){
@@ -1934,34 +1920,10 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
               const geo::WireGeo& wire1Geom = geom->Plane(0).Wire(1);
               wireGeom.LocalToWorld(pos, posWorld0);
               wire1Geom.LocalToWorld(pos, posWorld1);
-              double wire_dist = posWorld0[1]- posWorld1[1];
               double tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
               tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
 
               if(lastHits.size() < 5) continue;
-
-              // Find minimum and maximum wires in the Hough line
-              //fMaxWire = 0;
-              fMaxPeak = 0;
-              fMaxWire = 0;
-              iMaxWire = 0;
-              fMinPeak = 99999999;
-              fMinWire = 99999999;
-              iMinWire = -1;
-              for(size_t k = 0; k < lastHits.size(); ++k) {
-                unsigned int wire = hit[hitTemp[lastHits[k]]]->WireID().Wire;
-                if(wire < fMinWire){
-                  fMinWire = wire;
-                  fMinPeak = hit[hitTemp[lastHits[k]]]->PeakTime();
-                  iMinWire = hitTemp[lastHits[k]];
-                }
-                if(wire > fMaxWire){
-                  fMaxWire = wire;
-                  fMaxPeak = hit[hitTemp[lastHits[k]]]->PeakTime();
-                  iMaxWire = hitTemp[lastHits[k]];
-                }
-              }
-
 
 
 	      for(size_t i = 0; i < lastHits.size(); ++i) {
@@ -1977,128 +1939,6 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 		continue;
 	     
 
-              // If the slope is really high, check if it's a fake
-              unsigned int numHitsMissing = 0;
-              unsigned int numHitsSearched = 0;
-	      ///\todo: why is this hard coded????
-              if( std::abs(slope) > 5 ) {      
-                tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
-                mf::LogVerbatim("HoughBaseAlg") << "peakMax: " << peakMax 
-						<< " fMinPeak: " << fMinPeak 
-						<< " fMaxPeak: " << fMaxPeak;
-                if( peakMax < fMinPeak || peakMax > fMaxPeak){
-                  //peakMax = 0.5*(fMinPeak+fMaxPeak);
-                  peakMax = fMinPeak;
-                }
-
-                if(fMinPeak > fMaxPeak){
-                  double fMaxPeakTemp = fMaxPeak;
-                  fMaxPeak = fMinPeak;
-                  fMinPeak = fMaxPeakTemp;
-                }
-
-                mf::LogVerbatim("HoughBaseAlg") << "Found line!" << std::endl
-						<< "Slope: " << slope << std::endl
-						<< "Number of hits: " << lastHits.size() << std::endl
-						<< "Wire: " << fMinWire << " Peak time: " << hit[iMinWire]->PeakTime() << std::endl
-						<< "Wire: " << fMaxWire << " Peak time: " << hit[iMaxWire]->PeakTime(); 
-
-
-                // Determine step distance
-                //double step = (fMaxPeak-fMinPeak)/((double)lastHits.size()-1);
-                double step = (fMaxPeak-fMinPeak)/(double)lastHits.size();
-                //mf::LogVerbatim("HoughBaseAlg") << "Step size: " << step << std::endl;
-
-                // Step backward
-                std::vector<unsigned int> foundHits;
-                double i = peakMax;
-                while(i >= fMinPeak) {
-                  numHitsSearched++;
-                  double iWire = (i-intercept)*(1/slope);
-                  if(iWire < 0) continue;
-                  //mf::LogVerbatim("HoughBaseAlg") << "i: " << i 
-						  //<< " iWire: " << iWire 
-						  //<< " (unsigned int)iWire: " << (unsigned int)iWire;
-                  uint32_t lineChannel = geom->PlaneWireToChannel(p,(unsigned int)iWire,t,cs);
-                  double pLineHit[2];
-                  pLineHit[0] = lineChannel*wire_dist;
-                  pLineHit[1] = i*tickToDist;
-                  bool foundHit = false;
-                  for(size_t k = 0; k < lastHits.size(); ++k) {
-                    double pRealHit[2];
-                    pRealHit[0] = (hit[hitTemp[lastHits[k]]]->Wire()->RawDigit()->Channel())*wire_dist;
-                    pRealHit[1] = ((hit[hitTemp[lastHits[k]]]->StartTime()+hit[hitTemp[lastHits[k]]]->EndTime())/2.)*tickToDist;
-                    bool usedhit = false;
-                    if( std::sqrt( pow(pLineHit[0]-pRealHit[0],2) + pow(pLineHit[1]-pRealHit[1],2)) < 1.0){
-                      for( size_t l = 0; l < foundHits.size(); l++){
-                        if(foundHits[l] == k){
-                          usedhit = true; 
-                          break;
-                        }
-                      }
-                      if (usedhit)
-                        continue;
-                      foundHits.push_back(k);
-                      foundHit = true;
-                      i = ((hit[hitTemp[lastHits[k]]]->StartTime()+hit[hitTemp[lastHits[k]]]->EndTime())/2.); 
-                      i = i - step;
-                      break;
-                    }
-                  }
-                  if(!foundHit) numHitsMissing++;
-                  if(!foundHit) i = i - step;
-                }
-                foundHits.clear();
-
-                // Step foreward
-                i = peakMax + step;
-                while(i <= fMaxPeak) {
-                  numHitsSearched++;
-                  double iWire = (i-intercept)*(1/slope);
-                  if(iWire < 0) continue;
-                  mf::LogVerbatim("HoughBaseAlg") << "i: " << i 
-						  << " iWire: " << iWire 
-						  << " (unsigned int)iWire: " << (unsigned int)iWire;
-                  uint32_t lineChannel = geom->PlaneWireToChannel(p,(unsigned int)iWire,t,cs);
-                  double pLineHit[2];
-                  pLineHit[0] = lineChannel*wire_dist;
-                  pLineHit[1] = i*tickToDist;
-                  bool foundHit = false;
-                  for(size_t k = 0; k < lastHits.size(); ++k) {
-                    double pRealHit[2];
-                    pRealHit[0] = (hit[hitTemp[lastHits[k]]]->Wire()->RawDigit()->Channel())*wire_dist;
-                    pRealHit[1] = ((hit[hitTemp[lastHits[k]]]->StartTime()+hit[hitTemp[lastHits[k]]]->EndTime())/2.)*tickToDist;
-                    bool usedhit = false;
-                    if( std::sqrt( pow(pLineHit[0]-pRealHit[0],2) + pow(pLineHit[1]-pRealHit[1],2)) < 1.0){
-                      for( size_t l = 0; l < foundHits.size(); l++){
-                        if(foundHits[l] == k){
-                          usedhit = true; 
-                          break;
-                        }
-                      }
-                      if (usedhit)
-                        continue;
-                      foundHits.push_back(k);
-                      foundHit = true;
-                      i = ((hit[hitTemp[lastHits[k]]]->StartTime()+hit[hitTemp[lastHits[k]]]->EndTime())/2.); 
-                      i = i + step;
-                      break;
-                    }
-                  }
-                  if(!foundHit) numHitsMissing++;
-                  if(!foundHit) i = i + step;
-                }
-		mf::LogVerbatim("HoughBaseAlg") << "numHitsMissing: " 
-						<< numHitsMissing 
-						<< " numHitsSearched: " 
-						<< numHitsSearched;
-                if(numHitsSearched > 0) 
-		  mf::LogVerbatim("HoughBaseAlg") << "numHitsMissing/numHitsSearched: " 
-						  << (double)numHitsMissing/(double)numHitsSearched;
-                if(numHitsSearched > 0) 
-                  if((double)numHitsMissing/(double)numHitsSearched > 0.1)
-                    continue;
-              }
 
 	      unsigned int sw = (*clusterHits.begin())->WireID().Wire;
 	      unsigned int ew = (*(clusterHits.end()-1))->WireID().Wire;
