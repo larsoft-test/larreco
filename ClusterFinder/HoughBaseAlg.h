@@ -31,7 +31,10 @@ namespace recob {
       double pMin1;
       double pMax0;
       double pMax1;
+      double iMinWire;
+      double iMaxWire;
       double isolation;
+      double showerLikeness;
       bool merged;
       std::vector<std::pair<double,double> > pHit;
       std::vector<std::pair<double,double> > pHitChargeSigma;
@@ -42,7 +45,8 @@ namespace recob {
           double Min1, 
           double Max0, 
           double Max1,
-          double signalToBkg,
+          int    wireMin,
+          int    wireMax,
           std::vector<std::pair<double,double> > pHitTemp,
           std::vector<std::pair<double,double> > pHitChargeSigmaTemp
           )
@@ -55,8 +59,10 @@ namespace recob {
         pMin1 = Min1;
         pMax0 = Max0;
         pMax1 = Max1;
+        iMinWire = wireMin;
+        iMaxWire = wireMax;
         merged = false;
-        isolation = signalToBkg;
+        showerLikeness = 0;
         pHit = pHitTemp;
         pHitChargeSigma = pHitChargeSigmaTemp;
       }
@@ -173,25 +179,26 @@ namespace cluster {
                                            ///< at once
     int    fMissedHits;                    ///< Number of wires that are allowed to be missed before a line is broken up into
                                            ///< segments
-    double fHitsMissingSearched;           ///< Used for fake veto, ratio of hits missing to hits searched
-    double fMinSlopeVetoCheck;             ///< Minimum slope for which to perform the fake veto check
     double fDoHoughLineMerge;              ///< Turns on Hough line merging (0-off, 1-on)
     double fHoughLineMergeAngle;           ///< Max angle between slopes before two lines are merged (muon tracks), only for fuzzy clustering
-    double fParaHoughLineMergeAngle;       ///< Max angle between slopes before two lines are merged, they should 
-    double fDoParaHoughLineMerge;          ///< Turns on parallel Hough line merging (0-off, 1-on)
-                                           ///< be close to parallel (electron showers), only for fuzzy clustering
+    double fShowerHoughLineMergeAngle;     ///< Max angle between slopes before two lines are merged, for lines in shower line regions
+    double fDoShowerHoughLineMerge;        ///< Turns on shower Hough line merging (0-off, 1-on)
+                                           ///< for (electron showers), only for fuzzy clustering
+    double fShowerPartHoughLineMergeAngle; ///< Max angle between slopes before two lines are merged, for lines in shower line regions
+    double fDoShowerPartHoughLineMerge;    ///< Turns on shower Hough line merging (0-off, 1-on)
+                                           ///< for (electron showers), only for fuzzy clustering
     double fLineIsolationCut;              ///< Cut on the Hough line isolation, only for fuzzy clustering
     double fHoughLineMergeCutoff;          ///< Max distance between Hough lines before two lines are merged (muon tracks), 
                                            ///< only for fuzzy clustering
-    double fParaHoughLineMergeCutoff;      ///< Max distance between Hough lines before two lines are merged (electron showers),
+    double fShowerHoughLineMergeCutoff;    ///< Max distance between Hough lines before two lines are merged (electron showers),
+                                           ///< they are generally farther apart from each other, only for fuzzy clustering
+    double fShowerPartHoughLineMergeCutoff;///< Max distance between Hough lines before two lines are merged (electron showers),
                                            ///< they are generally farther apart from each other, only for fuzzy clustering
     double fChargeAsymmetryCut;            ///< Cut on the asymmetry from the average charge of the four hits from each line closest to each other
     double fSigmaChargeAsymmetryCut;       ///< Cut on the asymmetry from the average charge sigma of the four hits from each 
                                            ///< line closest to each other
+    double fMergeShowerLikenessCut;        ///< Cut on shower likeness (larger the more shower like, smaller the less shower like)
 
-    void mergeHoughLines(unsigned int k,
-        std::vector<lineSlope> *linesFound, 
-        double xyScale);
     void mergeHoughLinesBySegment(unsigned int k,
         std::vector<lineSlope> *linesFound, 
         double xyScale,
