@@ -2,31 +2,35 @@ BEGIN_PROLOG
 
 standard_houghbasealg:
 {
-  MaxLines:                 20   # The maximum number of Hough lines to look for, 20 had been working!
-  MinHits:                  5     
+  MaxLines:                 50   # The maximum number of Hough lines to look for, 20 had been working!
+  MinHits:                  5    # 10 was working, 5 may be a little bit better (okay, a lot better!)
   SaveAccumulator:          0
   NumAngleCells:            20000 # The number of angle cells to create for the Hough transform, 
                                  # was set to 20000
   RhoResolutionFactor:      5    # Was set to 5
   MaxDistance:              1.0  # 0.1 was working (okay, not really, larger is probably better, 
+                                 # e.g. 5, or 1, 1 is probably best)
   MaxSlope:                 80.0 # 80 was working fine previously
   RhoZeroOutRange:          0
   ThetaZeroOutRange:        0
   HitsPerCluster:           1
   MissedHits:               1    # Was set to 0
+  HitsMissingSearched:      0.1  # Used for fake veto, ratio of hits missing to hits searched
+  MinSlopeVetoCheck  :      5    # Minimum slope for which to perform the fake veto check
   DoHoughLineMerge:         1    # Turns on Hough line merging (0-off, 1-on)
-  HoughLineMergeAngle:      10   # The maximum angle between slopes of Hough lines to be merged, 
-  HoughLineMergeCutoff:     10   # The maximum distance between Hough line endpoints before they can be merged, 
-  DoShowerHoughLineMerge:     1  # Turns on parallel Hough line merging (0-off, 1-on)
-  ShowerHoughLineMergeAngle: 90  # The maximum angle between slopes of Hough lines to be merged, 
-  ShowerHoughLineMergeCutoff: 10 # The maximum distance between Hough line endpoints before they can be merged, 
-  DoShowerPartHoughLineMerge:     0    # Turns on parallel Hough line merging (0-off, 1-on)
-  ShowerPartHoughLineMergeAngle: 10    # The maximum angle between slopes of Hough lines to be merged, 
-  ShowerPartHoughLineMergeCutoff: 100  # The maximum distance between Hough line endpoints before they can be merged, 
+  HoughLineMergeAngle:      45   # The maximum angle between slopes of Hough lines to be merged, 
+                                 # 30 was working, 20 might be better
+  HoughLineMergeCutoff:    10    # The maximum distance between Hough line endpoints before they can be merged, 
+                                 # 2 was working, a larger value is likely necessary though, like 5
+  DoParaHoughLineMerge:     1    # Turns on parallel Hough line merging (0-off, 1-on)
+  ParaHoughLineMergeAngle: 10    # The maximum angle between slopes of Hough lines to be merged, 
+                                 # 30 was working, 20 might be better
+  ParaHoughLineMergeCutoff: 100  # The maximum distance between Hough line endpoints before 
+                                 # they can be merged, 
+                                 # 2 was working, a larger value is likely necessary though, like 5 or 10
   LineIsolationCut:         0.1  # The cut on the Hough lines isolation
-  ChargeAsymmetryCut:       1.0  # Cut on the asymmetry from the average charge of the four hits from each line closest to each other
-  SigmaChargeAsymmetryCut:  1.0  # Cut on the asymmetry from the average charge sigma of the four hits from each line closest to each other
-  MergeShowerLikenessCut:     5  # Cut on shower likeness (the larger the more shower like, the smaller the less shower like)
+  ChargeAsymmetryCut:       0.5  # Cut on the asymmetry from the average charge of the four hits from each line closest to each other
+  SigmaChargeAsymmetryCut:  0.5  # Cut on the asymmetry from the average charge sigma of the four hits from each line closest to each other
 }
 
 
@@ -90,5 +94,53 @@ standard_dbscanalg_fast:        @local::standard_dbscanalg
 standard_dbscanalg_fast.eps:    1.25
 standard_dbscanalg_fast.epstwo: 1.75
 standard_dbscanalg_fast.Method: 2
+
+jp250L_dbscanalg:                  @local::standard_dbscanalg      
+jp250L_fuzzyclusteralg:            @local::standard_fuzzyclusteralg
+jp250L_houghbasealg:               @local::standard_houghbasealg   
+jp250L_houghbasealg.MaxLines:      15
+jp250L_houghbasealg.MinHits:       3
+jp250L_houghbasealg.NumAngleCells: 5000
+jp250L_houghbasealg.MaxDistance:   5.0
+jp250L_endpointalg:                @local::standard_endpointalg
+
+bo_dbscanalg:                   @local::standard_dbscanalg      
+bo_fuzzyclusteralg:             @local::standard_fuzzyclusteralg
+bo_houghbasealg:                @local::standard_houghbasealg   
+bo_houghbasealg.MaxLines:       15
+bo_houghbasealg.MinHits:        3
+bo_houghbasealg.NumAngleCells:  5000
+bo_houghbasealg.MaxDistance:    5.0
+bo_endpointalg:                 @local::standard_endpointalg
+
+argoneut_dbscanalg:                  @local::standard_dbscanalg       
+argoneut_fuzzyclusteralg:            @local::standard_fuzzyclusteralg
+argoneut_houghbasealg:               @local::standard_houghbasealg   
+argoneut_houghbasealg.MaxLines:      15                              
+argoneut_houghbasealg.MinHits:       3                               
+argoneut_houghbasealg.NumAngleCells: 5000
+argoneut_houghbasealg.MaxDistance:   5.0
+argoneut_endpointalg:                @local::standard_endpointalg
+
+microboone_dbscanalg:                         @local::standard_dbscanalg_fast 
+microboone_endpointalg:                       @local::standard_endpointalg    
+microboone_houghbasealg:                      @local::standard_houghbasealg   
+microboone_houghbasealg.MaxLines:             20
+microboone_houghbasealg.MaxDistance:          1.0
+microboone_houghbasealg.MinHits:              5
+microboone_houghbasealg.NumAngleCells:        20000
+microboone_houghbasealg.DoHoughLineMerge:     1
+microboone_houghbasealg.HoughLineMergeAngle:  15
+microboone_houghbasealg.HoughLineMergeCutoff: 5
+microboone_fuzzyclusteralg:                   @local::standard_fuzzyclusteralg 
+microboone_fuzzyclusteralg.HoughBaseAlg:      @local::microboone_houghbasealg 
+
+lbne10kt_dbscanalg:    @local::standard_dbscanalg_fast
+lbne10kt_houghbasealg: @local::standard_houghbasealg
+lbne10kt_endpointalg:  @local::standard_endpointalg 
+
+lbne35t_dbscanalg:    @local::standard_dbscanalg_fast
+lbne35t_houghbasealg: @local::standard_houghbasealg
+lbne35t_endpointalg:  @local::standard_endpointalg 
 
 END_PROLOG
