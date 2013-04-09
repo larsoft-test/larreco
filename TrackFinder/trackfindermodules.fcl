@@ -189,6 +189,18 @@ standard_track3Dkalmanhit:
   SpacePointAlg:      @local::standard_spacepointalg
 }
 
+standard_cosmictagger:
+{
+    module_type: "CosmicTagger"
+    SpacePointAlg:       @local::standard_spacepointalg
+    TPCBoundaryLimit: 15
+    SpillDistance: 12
+    SpillVetoCounter: 2
+    dTLimit: 8
+    dWLimit: 8
+}
+
+
 bo_track:                               @local::standard_track3Dreco  
 bo_kalman:                              @local::standard_track3Dkalman
 bo_spacepts:                            @local::standard_spacepts     
