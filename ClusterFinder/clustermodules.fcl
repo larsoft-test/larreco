@@ -41,25 +41,6 @@ standard_houghlinefinder:
  RhoZeroOutRange:      0
  ThetaZeroOutRange:    0
  HitsPerCluster:       1
- UseFastAlgorithm:     0
- HoughBaseAlg:         @local::standard_houghbasealg
-}
-
-standard_fasthoughlinefinder:
-{
- module_type:          "HoughLineFinder"
- DBScanModuleLabel:    "dbcluster"
- MaxLines:             5
- MinHits:              3
- SaveAccumulator:      0
- NumAngleCells:        5000
- RhoResolutionFactor:  5
- SmootherSigma:        0.
- MaxDistance:          5.
- RhoZeroOutRange:      0
- ThetaZeroOutRange:    0
- HitsPerCluster:       1
- UseFastAlgorithm:     1
  HoughBaseAlg:         @local::standard_houghbasealg
 }
 
@@ -132,7 +113,6 @@ jp250L_dbclusterana:                 @local::standard_dbclusterana
 jp250L_kingacluster:                 @local::standard_kingacluster   
 jp250L_kingaclusterana:              @local::standard_kingaclusterana
 jp250L_houghlinefinder:              @local::standard_houghlinefinder
-jp250L_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
 jp250L_houghlinefinder.HoughBaseAlg: @local::jp250L_houghbasealg
 jp250L_houghlinefinderana:           @local::standard_houghlinefinderana 
 jp250L_linemerger:                   @local::standard_linemerger         
@@ -148,7 +128,6 @@ bo_dbclusterana:                 @local::standard_dbclusterana
 bo_kingacluster:                 @local::standard_kingacluster   
 bo_kingaclusterana:              @local::standard_kingaclusterana
 bo_houghlinefinder:              @local::standard_houghlinefinder
-bo_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
 bo_houghlinefinder.HoughBaseAlg: @local::bo_houghbasealg
 bo_houghlinefinderana:           @local::standard_houghlinefinderana 
 bo_linemerger:                   @local::standard_linemerger         
@@ -164,7 +143,6 @@ argoneut_dbclusterana:                 @local::standard_dbclusterana
 argoneut_kingacluster:                 @local::standard_kingacluster   
 argoneut_kingaclusterana:              @local::standard_kingaclusterana
 argoneut_houghlinefinder:              @local::standard_houghlinefinder
-argoneut_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
 argoneut_houghlinefinder.HoughBaseAlg: @local::argoneut_houghbasealg
 argoneut_houghlinefinderana:           @local::standard_houghlinefinderana 
 argoneut_linemerger:                   @local::standard_linemerger         
@@ -180,7 +158,6 @@ microboone_fuzzycluster.fuzzyClusterAlg: @local::microboone_fuzzyclusteralg
 microboone_kingacluster:                 @local::standard_kingacluster   
 microboone_kingaclusterana:              @local::standard_kingaclusterana
 microboone_houghlinefinder:              @local::standard_houghlinefinder
-microboone_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
 microboone_houghlinefinder.HoughBaseAlg: @local::microboone_houghbasealg
 microboone_houghlinefinderana:           @local::standard_houghlinefinderana
 microboone_linemerger:                   @local::standard_linemerger        
@@ -195,7 +172,6 @@ lbne10kt_dbclusterana:                 @local::standard_dbclusterana
 lbne10kt_kingacluster:                 @local::standard_kingacluster   
 lbne10kt_kingaclusterana:              @local::standard_kingaclusterana
 lbne10kt_houghlinefinder:              @local::standard_houghlinefinder
-lbne10kt_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
 lbne10kt_houghlinefinder.HoughBaseAlg: @local::lbne10kt_houghbasealg
 lbne10kt_houghlinefinderana:           @local::standard_houghlinefinderana
 lbne10kt_linemerger:                   @local::standard_linemerger        
@@ -209,7 +185,6 @@ lbne35t_dbclusterana:                 @local::standard_dbclusterana
 lbne35t_kingacluster:                 @local::standard_kingacluster   
 lbne35t_kingaclusterana:              @local::standard_kingaclusterana
 lbne35t_houghlinefinder:              @local::standard_houghlinefinder
-lbne35t_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
 lbne35t_houghlinefinder.HoughBaseAlg: @local::lbne35t_houghbasealg
 lbne35t_houghlinefinderana:           @local::standard_houghlinefinderana
 lbne35t_linemerger:                   @local::standard_linemerger        

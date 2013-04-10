@@ -6,7 +6,6 @@ standard_houghbasealg:
   MinHits:                  5
   SaveAccumulator:          0
   NumAngleCells:            20000 # The number of angle cells to create for the Hough transform,
-  # was set to 20000
   RhoResolutionFactor:      5    # Was set to 5
   MaxDistance:              1.0  # 0.1 was working (okay, not really, larger is probably better,
   MaxSlope:                 80.0 # 80 was working fine previously

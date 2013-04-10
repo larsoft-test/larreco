@@ -81,7 +81,6 @@ namespace cluster {
   private:
 
     std::string fDBScanModuleLabel;    
-    int         fUseFastAlgorithm;
 
     HoughBaseAlg fHLAlg;            ///< object that does the Hough Transform
   
@@ -117,7 +116,6 @@ namespace cluster {
   void HoughLineFinder::reconfigure(fhicl::ParameterSet const& p)
   {
     fDBScanModuleLabel = p.get< std::string >("DBScanModuleLabel");
-    fUseFastAlgorithm  = p.get< int >("UseFastAlgorithm");
     fHLAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughBaseAlg"));
   }
   
@@ -148,8 +146,7 @@ namespace cluster {
     
     size_t numclus = 0;
       
-    if(fUseFastAlgorithm) numclus = fHLAlg.FastTransform(clusIn, clusOut, clusHitsOut, evt, fDBScanModuleLabel);
-    else numclus = fHLAlg.Transform(clusIn, clusOut, clusHitsOut, evt, fDBScanModuleLabel); 
+    numclus = fHLAlg.FastTransform(clusIn, clusOut, clusHitsOut, evt, fDBScanModuleLabel);
 
 
     //size_t Transform(std::vector<art::Ptr<recob::Cluster> >           & clusIn,
