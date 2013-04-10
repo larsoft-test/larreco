@@ -19,7 +19,6 @@ argoneut_fuzzycluster.fuzzyClusterAlg: @local::argoneut_fuzzyclusteralg
 argoneut_kingacluster:                 @local::standard_kingacluster   
 argoneut_kingaclusterana:              @local::standard_kingaclusterana
 argoneut_houghlinefinder:              @local::standard_houghlinefinder
-argoneut_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
 argoneut_houghlinefinder.HoughBaseAlg: @local::argoneut_houghbasealg
 argoneut_houghlinefinderana:           @local::standard_houghlinefinderana
 argoneut_linemerger:                   @local::standard_linemerger        
