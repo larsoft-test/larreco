@@ -19,7 +19,6 @@ bo_dbclusterana:                 @local::standard_dbclusterana
 bo_kingacluster:                 @local::standard_kingacluster   
 bo_kingaclusterana:              @local::standard_kingaclusterana
 bo_houghlinefinder:              @local::standard_houghlinefinder
-bo_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
 bo_houghlinefinder.HoughBaseAlg: @local::bo_houghbasealg
 bo_houghlinefinderana:           @local::standard_houghlinefinderana 
 bo_linemerger:                   @local::standard_linemerger         

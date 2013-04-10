@@ -23,7 +23,6 @@ microboone_fuzzycluster.fuzzyClusterAlg: @local::microboone_fuzzyclusteralg
 microboone_kingacluster:                 @local::standard_kingacluster   
 microboone_kingaclusterana:              @local::standard_kingaclusterana
 microboone_houghlinefinder:              @local::standard_houghlinefinder
-microboone_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
 microboone_houghlinefinder.HoughBaseAlg: @local::microboone_houghbasealg
 microboone_houghlinefinderana:           @local::standard_houghlinefinderana
 microboone_linemerger:                   @local::standard_linemerger        

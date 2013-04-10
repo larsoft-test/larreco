@@ -12,7 +12,6 @@ lbne35t_dbclusterana:                 @local::standard_dbclusterana
 lbne35t_kingacluster:                 @local::standard_kingacluster   
 lbne35t_kingaclusterana:              @local::standard_kingaclusterana
 lbne35t_houghlinefinder:              @local::standard_houghlinefinder
-lbne35t_fasthoughlinefinder:          @local::standard_fasthoughlinefinder
 lbne35t_houghlinefinder.HoughBaseAlg: @local::lbne35t_houghbasealg
 lbne35t_houghlinefinderana:           @local::standard_houghlinefinderana
 lbne35t_linemerger:                   @local::standard_linemerger        
