@@ -173,32 +173,31 @@ namespace cluster {
                                            ///< at once
     int    fMissedHits;                    ///< Number of wires that are allowed to be missed before a line is broken up into
                                            ///< segments
+    int    fDoFuzzyRemnantMerge;           ///< Tell the algorithm to merge fuzzy cluster remnants into showers or tracks (0-off, 1-on)
     double fDoHoughLineMerge;              ///< Turns on Hough line merging (0-off, 1-on)
     double fHoughLineMergeAngle;           ///< Max angle between slopes before two lines are merged (muon tracks), only for fuzzy clustering
     double fShowerHoughLineMergeAngle;     ///< Max angle between slopes before two lines are merged, for lines in shower line regions
     double fDoShowerHoughLineMerge;        ///< Turns on shower Hough line merging (0-off, 1-on)
                                            ///< for (electron showers), only for fuzzy clustering
-    double fShowerPartHoughLineMergeAngle; ///< Max angle between slopes before two lines are merged, for lines in shower line regions
-    double fDoShowerPartHoughLineMerge;    ///< Turns on shower Hough line merging (0-off, 1-on)
-                                           ///< for (electron showers), only for fuzzy clustering
+    double fWideHoughLineMergeAngle;       ///< Max angle between slopes before two lines are merged, for lines in curvy muon tracks
+    double fDoWideHoughLineMerge;          ///< Turns on track Hough line merging (0-off, 1-on)
+                                           ///< for muon tracks, only for fuzzy clustering
     double fLineIsolationCut;              ///< Cut on the Hough line isolation, only for fuzzy clustering
     double fHoughLineMergeCutoff;          ///< Max distance between Hough lines before two lines are merged (muon tracks), 
                                            ///< only for fuzzy clustering
     double fShowerHoughLineMergeCutoff;    ///< Max distance between Hough lines before two lines are merged (electron showers),
                                            ///< they are generally farther apart from each other, only for fuzzy clustering
-    double fShowerPartHoughLineMergeCutoff;///< Max distance between Hough lines before two lines are merged (electron showers),
+    double fWideHoughLineMergeCutoff;      ///< Max distance between Hough lines before two lines are merged (electron showers),
                                            ///< they are generally farther apart from each other, only for fuzzy clustering
     double fChargeAsymmetryCut;            ///< Cut on the asymmetry from the average charge of the four hits from each line closest to each other
     double fSigmaChargeAsymmetryCut;       ///< Cut on the asymmetry from the average charge sigma of the four hits from each 
                                            ///< line closest to each other
-    double fMergeShowerLikenessCut;        ///< Cut on shower likeness (larger the more shower like, smaller the less shower like)
+    double fShowerLikenessCut;             ///< Cut on shower likeness (larger the more shower like, smaller the less shower like)
 
     void mergeHoughLinesBySegment(unsigned int k,
         std::vector<lineSlope> *linesFound, 
         double xyScale,
-        int mergeStyle,
-        std::map<int,int> *mNLineMerges);
-     
+        int mergeStyle);
 
     //std::vector<lineSlope> linesFound;
     double HoughLineDistance(double p0MinLine1, 
