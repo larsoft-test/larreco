@@ -13,21 +13,21 @@ standard_houghbasealg:
   ThetaZeroOutRange:        0
   HitsPerCluster:           1
   MissedHits:               1    # Was set to 0
+  DoFuzzyRemnantMerge:      1    # Tell the algorithm to merge fuzzy cluster remnants into showers or tracks (0-off, 1-on)
   DoHoughLineMerge:         1    # Turns on Hough line merging (0-off, 1-on)
   HoughLineMergeAngle:      10   # The maximum angle between slopes of Hough lines to be merged,
   HoughLineMergeCutoff:     10   # The maximum distance between Hough line endpoints before they can be merged,
   DoShowerHoughLineMerge:     1  # Turns on parallel Hough line merging (0-off, 1-on)
   ShowerHoughLineMergeAngle: 90  # The maximum angle between slopes of Hough lines to be merged,
   ShowerHoughLineMergeCutoff: 10 # The maximum distance between Hough line endpoints before they can be merged,
-  DoShowerPartHoughLineMerge:     0    # Turns on parallel Hough line merging (0-off, 1-on)
-  ShowerPartHoughLineMergeAngle: 10    # The maximum angle between slopes of Hough lines to be merged,
-  ShowerPartHoughLineMergeCutoff: 100  # The maximum distance between Hough line endpoints before they can be merged,
+  DoWideHoughLineMerge:     1    # Turns on parallel Hough line merging (0-off, 1-on)
+  WideHoughLineMergeAngle: 30    # The maximum angle between slopes of Hough lines to be merged,
+  WideHoughLineMergeCutoff: 10   # The maximum distance between Hough line endpoints before they can be merged,
   LineIsolationCut:         0.1  # The cut on the Hough lines isolation
-  ChargeAsymmetryCut:       1.0  # Cut on the asymmetry from the average charge of the four hits from each line closest to each other
+  ChargeAsymmetryCut:       0.2  # Cut on the asymmetry from the average charge of the four hits from each line closest to each other
   SigmaChargeAsymmetryCut:  1.0  # Cut on the asymmetry from the average charge sigma of the four hits from each line closest to each other
-  MergeShowerLikenessCut:     5  # Cut on shower likeness (the larger the more shower like, the smaller the less shower like)
+  ShowerLikenessCut:        100  # Cut on shower likeness (the larger the more shower like, the smaller the less shower like)
 }
-
 
 standard_endpointalg:
 {
