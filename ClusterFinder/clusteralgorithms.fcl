@@ -39,6 +39,23 @@ standard_endpointalg:
   SaveVertexMap:       -1
 }
 
+
+standard_cornerfinderalg:
+{
+  Conversion_threshold:		0
+  Conversion_bins_per_input_x:	1
+  Conversion_bins_per_input_y:	6
+  Derivative_method: 		"Sobel" #Noble
+  Derivative_neighborhood:	1 
+  CornerScore_neighborhood:	1
+  CornerScore_algorithm:	"Nobel" #Harris
+  MaxSuppress_neighborhood:	3
+  MaxSuppress_threshold:		1e5
+
+
+
+}
+
 standard_dbscanalg:
 {
   eps:    1.0
@@ -116,6 +133,9 @@ argoneut_houghbasealg.MinHits:       3
 argoneut_houghbasealg.NumAngleCells: 5000
 argoneut_houghbasealg.MaxDistance:   5.0
 argoneut_endpointalg:                @local::standard_endpointalg
+argoneut_cornerfinderalg:		      @local::standard_cornerfinderalg
+
+
 
 microboone_dbscanalg:                         @local::standard_dbscanalg_fast 
 microboone_endpointalg:                       @local::standard_endpointalg    
@@ -129,6 +149,7 @@ microboone_houghbasealg.HoughLineMergeAngle:  15
 microboone_houghbasealg.HoughLineMergeCutoff: 5
 microboone_fuzzyclusteralg:                   @local::standard_fuzzyclusteralg 
 microboone_fuzzyclusteralg.HoughBaseAlg:      @local::microboone_houghbasealg 
+microboone_cornerfinderalg:		      @local::standard_cornerfinderalg
 
 lbne10kt_dbscanalg:    @local::standard_dbscanalg_fast
 lbne10kt_houghbasealg: @local::standard_houghbasealg
