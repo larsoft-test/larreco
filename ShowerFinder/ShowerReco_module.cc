@@ -105,7 +105,7 @@ namespace shwf {
     /*** Asaadi: Need to define what this routine does ***/
     void   FitAngularDistributions(int plane);
     /*** Asaadi: Need to define what this routine does ***/
-    void   LongTransEnergy(unsigned int set, std::vector< art::Ptr<recob::Hit> > hitlist, bool isData=false); //Longtudinal and transverse enegry of the shower (Collection plane)
+    void   LongTransEnergy(unsigned int set, std::vector< art::Ptr<recob::Hit> > hitlist); //Longtudinal and transverse enegry of the shower (Collection plane)
     /*** Asaadi: Need to define what this routine does ***/
     double ProjectedLength(unsigned int set,unsigned int plane )    const;
 
@@ -1263,7 +1263,7 @@ namespace shwf {
   // }
 
   //------------------------------------------------------------------------------
-  void  ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob::Hit> > hitlist, bool isData)
+  void  ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob::Hit> > hitlist)
   {
     // alogorithm for energy vs dx of the shower (roto-translation) COLLECTION VIEW
     // double  wire_cm, time_cm;
@@ -1305,9 +1305,9 @@ namespace shwf {
       wire  = theHit->WireID().Wire;
 
       double newpitch=gser.PitchInView(plane,xphi,xtheta);
-      double dEdx = calalg.dEdx_AMP((*hitIter), fNPitch[set][plane], isData );
-      double dEdx_new = calalg.dEdx_AMP((*hitIter), newpitch, isData ); 
-      double dEdx_half = 2*calalg.dEdx_AMP((*hitIter)->Charge(true)/2/fNPitch[set][plane],time,plane , isData);
+      double dEdx = calalg.dEdx_AMP((*hitIter), fNPitch[set][plane]);
+      double dEdx_new = calalg.dEdx_AMP((*hitIter), newpitch); 
+      double dEdx_half = 2*calalg.dEdx_AMP((*hitIter)->Charge(true)/2/fNPitch[set][plane],time,plane);
       //double dQdx,double time, unsigned int plane, bool isReal=true
       //double dEdx_half = 2*larp->BirksCorrection(dQdx_e/2);
       /////////////////////end from Calorimetry
@@ -1441,7 +1441,7 @@ namespace shwf {
 	 double dQdx_e = dQdx/fElectronsToADC;  // Conversion from ADC/cm to e/cm
 	 dQdx_e *= LifetimeCorrection(time);   // Lifetime Correction (dQdx_e in e/c
       */ //double dEdx = larp->BirksCorrection(dQdx_e);   // Correction f  
-      double dEdx=calalg.dEdx_AMP((*hitIter), fNPitch[set][plane], isData );
+      double dEdx=calalg.dEdx_AMP((*hitIter), fNPitch[set][plane]);
       /////////////////////end from Calorimetry
     
     
@@ -1512,7 +1512,7 @@ namespace shwf {
       //     dQdx_e *= LifetimeCorrection(time);   // Lifetime Correction (dQdx_e in e/c
       //     double dEdx = larp->BirksCorrection(dQdx_e);   // Correction f  
       /////////////////////end from Calorimetry
-      double dEdx=calalg.dEdx_AMP((*hitIter), fNPitch[set][plane], isData );
+      double dEdx=calalg.dEdx_AMP((*hitIter), fNPitch[set][plane]);
     
     
       double hlimit=30.4;  //arbitrary value to get first ~30 cm of the shower.    
