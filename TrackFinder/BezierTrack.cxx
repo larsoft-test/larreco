@@ -171,7 +171,7 @@ namespace trkf {
       TrkPitch.push_back(ThisPitch);
       resRange.push_back(Range - s*Range);
       dQdx.push_back(Hits.at(i)->Charge()/ThisPitch);
-      dEdx.push_back( calalg.dEdx_AMP(Hits.at(i), ThisPitch, false) );
+      dEdx.push_back( calalg.dEdx_AMP(Hits.at(i), ThisPitch) );
       std::cout<<Hits.at(i)->Charge()<< " " << ThisPitch<< " " << dEdx.at(dEdx.size()-1)<<std::endl;
     }
 
