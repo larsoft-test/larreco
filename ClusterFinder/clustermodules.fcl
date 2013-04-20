@@ -13,7 +13,9 @@ standard_fuzzycluster:
 {
  module_type:     "fuzzyCluster"
  HitsModuleLabel: "ffthit"
+ CalDataModuleLabel: "caldata"
  fuzzyClusterAlg: @local::standard_fuzzyclusteralg
+ CornerFinderAlg: @local::standard_cornerfinderalg
 }
 
 standard_dbclusterana:

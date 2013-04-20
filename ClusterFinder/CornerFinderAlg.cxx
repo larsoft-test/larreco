@@ -81,6 +81,7 @@ void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
 {
   // ### These are all the tuneable .fcl file parameters from the event ###
   fRawDataModuleLabel			 = p.get< std::string	 >("RawDataModuleLabel");
+  fCalDataModuleLabel  			 = p.get< std::string 	 >("CalDataModuleLabel");
   fConversion_threshold     		 = p.get< float    	 >("Conversion_threshold");
   fConversion_bins_per_input_x  	 = p.get< int      	 >("Conversion_bins_per_input_x");
   fConversion_bins_per_input_y       	 = p.get< int      	 >("Conversion_bins_per_input_y");
