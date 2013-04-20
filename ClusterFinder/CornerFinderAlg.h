@@ -42,7 +42,7 @@ namespace cluster { //<---Not sure if this is the right namespace
 
 
 
-      TH2F* TakeInRaw(art::PtrVector<raw::RawDigit>	        & rawhits,
+      void TakeInRaw(art::PtrVector<raw::RawDigit>	        & rawhits,
 		       art::Event				const&evt);    
     
     private:

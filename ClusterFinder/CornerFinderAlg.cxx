@@ -89,8 +89,8 @@ void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
 
 
 //-----------------------------------------------------------------------------
-TH2F* cluster::CornerFinderAlg::TakeInRaw(art::PtrVector<raw::RawDigit>	& rawhits,
-					   art::Event				const&evt)
+void cluster::CornerFinderAlg::TakeInRaw(art::PtrVector<raw::RawDigit>	& rawhits,
+					 art::Event				const&evt)
 
 {
   // Use the TFile service in art
@@ -169,27 +169,12 @@ TH2F* cluster::CornerFinderAlg::TakeInRaw(art::PtrVector<raw::RawDigit>	& rawhit
 // Convert to pixel
 void cluster::CornerFinderAlg::create_image_histo(TH2F *h_wire_data, TH2F *h_conversion) {
   
-  const int x_bins = h_wire_data->GetNbinsX();
-  const float x_min = h_wire_data->GetXaxis()->GetBinLowEdge(1);
-  const float x_max = h_wire_data->GetXaxis()->GetBinUpEdge(x_bins);
-
-  const int y_bins = h_wire_data->GetNbinsY();
-  const float y_min = h_wire_data->GetYaxis()->GetBinLowEdge(1);
-  const float y_max = h_wire_data->GetYaxis()->GetBinUpEdge(y_bins);
-
-  const int converted_y_bins = y_bins/fConversion_bins_per_input_y;
-  const int converted_x_bins = x_bins/fConversion_bins_per_input_x;
-
-  h_conversion = new TH2F("h_conversion","Image Conversion Histogram",
-			  converted_x_bins,x_min,x_max,
-			  converted_y_bins,y_min,y_max);
-
   int counter_ybin=1;
   int counter_xbin=1;
   float temp_sum=0;
 
-  for(int iy=1; iy<=converted_y_bins; iy++){
-    for(int ix=1; ix<=converted_x_bins; ix++){
+  for(int iy=1; iy<=h_conversion->GetNbinsY(); iy++){
+    for(int ix=1; ix<=h_conversion->GetNbinsX(); ix++){
 
       temp_sum=0;
       for(int jy=counter_ybin; jy<counter_ybin+fConversion_bins_per_input_y; jy++){
@@ -217,19 +202,7 @@ void cluster::CornerFinderAlg::create_image_histo(TH2F *h_wire_data, TH2F *h_con
 void cluster::CornerFinderAlg::create_derivative_histograms(TH2F *h_conversion, TH2F *h_derivative_x, TH2F *h_derivative_y){
 
   const int x_bins = h_conversion->GetNbinsX();
-  const float x_min = h_conversion->GetXaxis()->GetBinLowEdge(1);
-  const float x_max = h_conversion->GetXaxis()->GetBinUpEdge(x_bins);
-
   const int y_bins = h_conversion->GetNbinsY();
-  const float y_min = h_conversion->GetYaxis()->GetBinLowEdge(1);
-  const float y_max = h_conversion->GetYaxis()->GetBinUpEdge(y_bins);
-
-  h_derivative_x = new TH2F("h_derivative_x","Partial Derivatives (x)",
-			    x_bins,x_min,x_max,
-			    y_bins,y_min,y_max);
-  h_derivative_y = new TH2F("h_derivative_y","Partial Derivatives (y)",
-			    x_bins,x_min,x_max,
-			    y_bins,y_min,y_max);
 
   for(int iy=1; iy<=y_bins; iy++){
     for(int ix=1; ix<=x_bins; ix++){
@@ -269,19 +242,10 @@ void cluster::CornerFinderAlg::create_derivative_histograms(TH2F *h_conversion, 
 void cluster::CornerFinderAlg::create_cornerScore_histogram(TH2F *h_derivative_x, TH2F *h_derivative_y, TH2D *h_cornerScore){
 
   const int x_bins = h_derivative_x->GetNbinsX();
-  const float x_min = h_derivative_x->GetXaxis()->GetBinLowEdge(1);
-  const float x_max = h_derivative_x->GetXaxis()->GetBinUpEdge(x_bins);
-
   const int y_bins = h_derivative_y->GetNbinsY();
-  const float y_min = h_derivative_y->GetYaxis()->GetBinLowEdge(1);
-  const float y_max = h_derivative_y->GetYaxis()->GetBinUpEdge(y_bins);
 
   const double noble_epsilon = 1e-5;
   const double harris_kappa = 0.05;
-
-  h_cornerScore = new TH2D("h_cornerScore","Feature Point Corner Score",
-			   x_bins,x_min,x_max,
-			   y_bins,y_min,y_max);
   
   //the structure tensor elements
   float st_xx, st_xy, st_yy;
@@ -333,18 +297,7 @@ size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore
 				   TH2D *h_maxSuppress=NULL){
 
   const int x_bins = h_cornerScore->GetNbinsX();
-  const float x_min = h_cornerScore->GetXaxis()->GetBinLowEdge(1);
-  const float x_max = h_cornerScore->GetXaxis()->GetBinUpEdge(x_bins);
-
   const int y_bins = h_cornerScore->GetNbinsY();
-  const float y_min = h_cornerScore->GetYaxis()->GetBinLowEdge(1);
-  const float y_max = h_cornerScore->GetYaxis()->GetBinUpEdge(y_bins);
-
-  if(h_maxSuppress) {
-    h_maxSuppress = new TH2D("h_maxSuppress","Corner Points (Maximum Suppressed)",
-			     x_bins,x_min,x_max,
-			     y_bins,y_min,y_max);
-  }
 
   double temp_max;
   bool temp_center_bin;
@@ -406,17 +359,41 @@ size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore
 void cluster::CornerFinderAlg::run(TH2F *h_wire_data, geo::View_t view){
 
 
-  TH2F *h_conversion=NULL;
-  create_image_histo(h_wire_data,h_conversion);
-  
-  TH2F *h_derivative_x=NULL, *h_derivative_y=NULL;
+  // Use the TFile service in art
+  art::ServiceHandle<art::TFileService> tfs;
+
+  const int x_bins = h_wire_data->GetNbinsX();
+  const float x_min = h_wire_data->GetXaxis()->GetBinLowEdge(1);
+  const float x_max = h_wire_data->GetXaxis()->GetBinUpEdge(x_bins);
+
+  const int y_bins = h_wire_data->GetNbinsY();
+  const float y_min = h_wire_data->GetYaxis()->GetBinLowEdge(1);
+  const float y_max = h_wire_data->GetYaxis()->GetBinUpEdge(y_bins);
+
+  const int converted_y_bins = y_bins/fConversion_bins_per_input_y;
+  const int converted_x_bins = x_bins/fConversion_bins_per_input_x;
+
+  TH2F *h_conversion = tfs->make<TH2F>("h_conversion","Image Conversion Histogram",
+				       converted_x_bins,x_min,x_max,
+				       converted_y_bins,y_min,y_max);
+  TH2F *h_derivative_x = tfs->make<TH2F>("h_derivative_x","Partial Derivatives (x)",
+					 converted_x_bins,x_min,x_max,
+					 converted_y_bins,y_min,y_max);
+  TH2F *h_derivative_y = tfs->make<TH2F>("h_derivative_y","Partial Derivatives (y)",
+					 converted_x_bins,x_min,x_max,
+					 converted_y_bins,y_min,y_max);
+  TH2D *h_cornerScore = tfs->make<TH2D>("h_cornerScore","Feature Point Corner Score",
+					converted_x_bins,x_min,x_max,
+					converted_y_bins,y_min,y_max);
+  TH2D *h_maxSuppress = tfs->make<TH2D>("h_maxSuppress","Corner Points (Maximum Suppressed)",
+					converted_x_bins,x_min,x_max,
+					converted_y_bins,y_min,y_max);
+
+  create_image_histo(h_wire_data,h_conversion);  
   create_derivative_histograms(h_conversion,h_derivative_x,h_derivative_y);
-  
-  TH2D *h_cornerScore=NULL;
   create_cornerScore_histogram(h_derivative_x,h_derivative_y,h_cornerScore);
   
   std::vector<recob::EndPoint2D> corner_vector;
-  TH2D *h_maxSuppress=NULL;
   perform_maximum_suppression(h_cornerScore,corner_vector,view,h_maxSuppress);
 
   //std::vector<recob::Corner> corner_pathIntegralScore_vector;
