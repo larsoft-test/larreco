@@ -84,7 +84,7 @@ void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
   fCornerScore_neighborhood     	 = p.get< int		 >("CornerScore_neighborhood");
   fCornerScore_algorithm		 = p.get< std::string    >("CornerScore_algorithm");
   fMaxSuppress_neighborhood		 = p.get< int		 >("MaxSupress_neighborhood");
-  fMaxSuppress_threshold			 = p.get< int		 >("MaxSupress_threshold");
+  fMaxSuppress_threshold		 = p.get< int		 >("MaxSupress_threshold");
 }
 
 
@@ -328,7 +328,7 @@ void cluster::CornerFinderAlg::create_cornerScore_histogram(TH2F *h_derivative_x
 //-----------------------------------------------------------------------------
 // Max Supress
 size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore, 
-				   std::vector<recob::Corner> & corner_vector,
+				   std::vector<recob::EndPoint2D> & corner_vector,
 				   geo::View_t view, 
 				   TH2D *h_maxSuppress=NULL){
 
@@ -374,10 +374,20 @@ size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore
 	
 	float time_tick = fConversion_bins_per_input_y*(0.5 * (float)iy);
 	int wire_number = fConversion_bins_per_input_x*(0.5 * ix);
-	recob::Corner corner(time_tick,
+	double totalQ = 0;
+	int id = 0;
+	recob::EndPoint2D corner(time_tick,
 			     wire_number,
 			     h_cornerScore->GetBinContent(ix,iy),
-			     view);
+			     id,
+			     view,
+			     totalQ);
+  //EndPoint2D::EndPoint2D(double driftTime,
+       //int wireNum,
+       //int strength,
+       //int id,
+       //geo::View_t view,
+       //double totalQ)
 	corner_vector.push_back(corner);
 
 	if(h_maxSuppress)
@@ -405,7 +415,7 @@ void cluster::CornerFinderAlg::run(TH2F *h_wire_data, geo::View_t view){
   TH2D *h_cornerScore;
   create_cornerScore_histogram(h_derivative_x,h_derivative_y,h_cornerScore);
   
-  std::vector<recob::Corner> corner_vector;
+  std::vector<recob::EndPoint2D> corner_vector;
   TH2D *h_maxSuppress;
   perform_maximum_suppression(h_cornerScore,corner_vector,view,h_maxSuppress);
 
