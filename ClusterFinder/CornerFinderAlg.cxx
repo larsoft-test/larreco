@@ -64,7 +64,7 @@ extern "C" {
 //-----------------------------------------------------------------------------
 cluster::CornerFinderAlg::CornerFinderAlg(fhicl::ParameterSet const& pset) 
 // ### This is where we take in the RawData from the .fcl file
-  //:fRawDataLabel (pset.get<std::string>("RawDataLabel"))
+  :fRawDataLabel (pset.get<std::string>("RawDataLabel"))
   
 // ### Reading in CaldataModule ###
   :fCalDataModuleLabel (pset.get<std::string>("CalDataModuleLabel")) 
