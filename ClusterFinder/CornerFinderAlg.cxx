@@ -261,19 +261,25 @@ void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data, geo::Vie
   const int converted_y_bins = y_bins/fConversion_bins_per_input_y;
   const int converted_x_bins = x_bins/fConversion_bins_per_input_x;
 
-  TH2F *h_conversion = tfs->make<TH2F>("h_conversion","Image Conversion Histogram",
+  std::stringstream conversion_name; conversion_name << "h_conversion_" << view;
+  std::stringstream dx_name; dx_name << "h_derivative_x_" << view;
+  std::stringstream dy_name; dy_name << "h_derivative_x_" << view;
+  std::stringstream cornerScore_name; cornerScore_name << "h_cornerScore_" << view;
+  std::stringstream maxSuppress_name; maxSuppress_name << "h_maxSuppress_" << view;
+
+  TH2F *h_conversion = tfs->make<TH2F>((conversion_name.str()).c_str(),"Image Conversion Histogram",
 				       converted_x_bins,x_min,x_max,
 				       converted_y_bins,y_min,y_max);
-  TH2F *h_derivative_x = tfs->make<TH2F>("h_derivative_x","Partial Derivatives (x)",
+  TH2F *h_derivative_x = tfs->make<TH2F>((dx_name.str()).c_str(),"Partial Derivatives (x)",
 					 converted_x_bins,x_min,x_max,
 					 converted_y_bins,y_min,y_max);
-  TH2F *h_derivative_y = tfs->make<TH2F>("h_derivative_y","Partial Derivatives (y)",
+  TH2F *h_derivative_y = tfs->make<TH2F>((dy_name.str()).c_str(),"Partial Derivatives (y)",
 					 converted_x_bins,x_min,x_max,
 					 converted_y_bins,y_min,y_max);
-  TH2D *h_cornerScore = tfs->make<TH2D>("h_cornerScore","Feature Point Corner Score",
+  TH2D *h_cornerScore = tfs->make<TH2D>((cornerScore_name.str()).c_str(),"Feature Point Corner Score",
 					converted_x_bins,x_min,x_max,
 					converted_y_bins,y_min,y_max);
-  TH2D *h_maxSuppress = tfs->make<TH2D>("h_maxSuppress","Corner Points (Maximum Suppressed)",
+  TH2D *h_maxSuppress = tfs->make<TH2D>((maxSuppress_name.str()).c_str(),"Corner Points (Maximum Suppressed)",
 					converted_x_bins,x_min,x_max,
 					converted_y_bins,y_min,y_max);
 
@@ -302,19 +308,25 @@ void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_w
   const int converted_y_bins = y_bins/fConversion_bins_per_input_y;
   const int converted_x_bins = x_bins/fConversion_bins_per_input_x;
 
-  TH2F *h_conversion = tfs->make<TH2F>("h_conversion","Image Conversion Histogram",
+  std::stringstream conversion_name; conversion_name << "h_conversion_" << view;
+  std::stringstream dx_name; dx_name << "h_derivative_x_" << view;
+  std::stringstream dy_name; dy_name << "h_derivative_x_" << view;
+  std::stringstream cornerScore_name; cornerScore_name << "h_cornerScore_" << view;
+  std::stringstream maxSuppress_name; maxSuppress_name << "h_maxSuppress_" << view;
+
+  TH2F *h_conversion = tfs->make<TH2F>((conversion_name.str()).c_str(),"Image Conversion Histogram",
 				       converted_x_bins,x_min,x_max,
 				       converted_y_bins,y_min,y_max);
-  TH2F *h_derivative_x = tfs->make<TH2F>("h_derivative_x","Partial Derivatives (x)",
+  TH2F *h_derivative_x = tfs->make<TH2F>((dx_name.str()).c_str(),"Partial Derivatives (x)",
 					 converted_x_bins,x_min,x_max,
 					 converted_y_bins,y_min,y_max);
-  TH2F *h_derivative_y = tfs->make<TH2F>("h_derivative_y","Partial Derivatives (y)",
+  TH2F *h_derivative_y = tfs->make<TH2F>((dy_name.str()).c_str(),"Partial Derivatives (y)",
 					 converted_x_bins,x_min,x_max,
 					 converted_y_bins,y_min,y_max);
-  TH2D *h_cornerScore = tfs->make<TH2D>("h_cornerScore","Feature Point Corner Score",
+  TH2D *h_cornerScore = tfs->make<TH2D>((cornerScore_name.str()).c_str(),"Feature Point Corner Score",
 					converted_x_bins,x_min,x_max,
 					converted_y_bins,y_min,y_max);
-  TH2D *h_maxSuppress = tfs->make<TH2D>("h_maxSuppress","Corner Points (Maximum Suppressed)",
+  TH2D *h_maxSuppress = tfs->make<TH2D>((maxSuppress_name.str()).c_str(),"Corner Points (Maximum Suppressed)",
 					converted_x_bins,x_min,x_max,
 					converted_y_bins,y_min,y_max);
 
@@ -325,7 +337,8 @@ void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_w
   std::vector<recob::EndPoint2D> corner_vector_tmp;
   perform_maximum_suppression(h_cornerScore,corner_vector_tmp,view,h_maxSuppress);
 
-  TH2F *h_lineIntegralScore =  tfs->make<TH2F>("h_lineIntegralScore","Line Integral Score",
+  std::stringstream LI_name; conversion_name << "h_lineIntegralScore_" << view;
+  TH2F *h_lineIntegralScore =  tfs->make<TH2F>((LI_name.str()).c_str(),"Line Integral Score",
 					       x_bins,x_min,x_max,
 					       y_bins,y_min,y_max);
   calculate_line_integral_score(h_wire_data,corner_vector_tmp,corner_vector,h_lineIntegralScore);
