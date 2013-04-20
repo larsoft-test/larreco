@@ -30,7 +30,10 @@
 #include "CLHEP/Random/JamesRandom.h"
 
 // LArSoft includes
+#include "RawData/raw.h"
+#include "RawData/RawDigit.h"
 #include "ClusterFinder/fuzzyClusterAlg.h"
+#include "ClusterFinder/CornerFinderAlg.h"
 #include "Filters/ChannelFilter.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
@@ -63,8 +66,10 @@ namespace cluster{
     TH1F *fhitwidth_coll_test;  
   
     std::string fhitsModuleLabel;
+    std::string fCalDataModuleLabel;
    
     fuzzyClusterAlg ffuzzyCluster; ///< object that implements the fuzzy cluster algorithm
+    CornerFinderAlg fcornerfinder; ///< object that implements the corner finder algorithm
   };
 
 }
@@ -74,7 +79,8 @@ namespace cluster{
 
   //-------------------------------------------------
   fuzzyCluster::fuzzyCluster(fhicl::ParameterSet const& pset) :
-    ffuzzyCluster(pset.get< fhicl::ParameterSet >("fuzzyClusterAlg")) 
+    ffuzzyCluster(pset.get< fhicl::ParameterSet >("fuzzyClusterAlg")),
+    fcornerfinder(pset.get< fhicl::ParameterSet >("CornerFinderAlg"))
   {  
     this->reconfigure(pset);
     produces< std::vector<recob::Cluster> >();  
@@ -93,6 +99,7 @@ namespace cluster{
   void fuzzyCluster::reconfigure(fhicl::ParameterSet const& p)
   {
     fhitsModuleLabel  = p.get< std::string >("HitsModuleLabel");
+    fCalDataModuleLabel  = p.get< std::string >("CalDataModuleLabel");
     ffuzzyCluster.reconfigure(p.get< fhicl::ParameterSet >("fuzzyClusterAlg"));
   }
   
@@ -119,19 +126,30 @@ namespace cluster{
   
     art::Handle< std::vector<recob::Hit> > hitcol;
     evt.getByLabel(fhitsModuleLabel,hitcol);
-    
+
+    art::Handle< std::vector<recob::Wire> > wirecol;
+    evt.getByLabel(fCalDataModuleLabel,wirecol);
+   
     // loop over all hits in the event and look for clusters (for each plane)
     std::vector<art::Ptr<recob::Hit> > allhits;
-  
+
+    // loop over all end points in the event to help look for clusters (for each plane)
+    std::vector<art::Ptr<recob::EndPoint2D> > allends;
+
     // Set event number as the random number seed needed for PPHT
     //std::cout << "Event number check: " << evt.event() << std::endl;
     //art::ServiceHandle<art::RandomNumberGenerator> rng;
     //CLHEP::HepRandomEngine &engine = rng->getEngine();
     //engine.setSeed((long int)evt.event(),0);
   
-    //srand((unsigned)evt.event()); 
-    
-    
+    std::vector<recob::EndPoint2D> endcol; 
+
+    // Pass information into CornerFinder
+    //fcornerfinder.TakeInRaw(rawcol,&evt);
+    fcornerfinder.TakeInRaw(evt);
+
+    endcol = fcornerfinder.get_feature_points_LineIntegralScore();
+
     // get the ChannelFilter
     filter::ChannelFilter chanFilt;
         
@@ -140,22 +158,29 @@ namespace cluster{
         for(unsigned int plane = 0; plane < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
 	  geo::SigType_t sigType = geom->Cryostat(cstat).TPC(tpc).Plane(plane).SignalType();
 	  for(size_t i = 0; i< hitcol->size(); ++i){
-        
 	    art::Ptr<recob::Hit> hit(hitcol, i);
-        
 	    if(hit->WireID().Plane    == plane && 
 	       hit->WireID().TPC      == tpc   && 
 	       hit->WireID().Cryostat == cstat) allhits.push_back(hit);  
-            
 	  }  
-        
+
+
+	  //for(size_t i = 0; i< endcol->size(); ++i){
+	    //if(endcol[i].Plane    == plane && 
+	       //endcol[i].TPC      == tpc   && 
+	       //endcol[i].Cryostat == cstat) allends.push_back(endcol[i]);  
+	  //}  
+
+
           //Begin clustering with fuzzy
           
           //Attempt to get number of clusters
           //std::cout << "Number of clusters: " << fHCAlg.Transform(allhits) << std::endl; 
-  
+
+
 	  ffuzzyCluster.InitFuzzy(allhits, chanFilt.SetOfBadChannels());
-  
+ 
+
 	  //----------------------------------------------------------------
 	  for(unsigned int j = 0; j < ffuzzyCluster.fps.size(); ++j){
   	  
