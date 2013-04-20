@@ -94,6 +94,7 @@ void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
 
 //-----------------------------------------------------------------------------
 void cluster::CornerFinderAlg::TakeInRaw(art::PtrVector<raw::RawDigit>	& rawhits,
+				         art::PtrVector<recob::Wire>    & wires,
 					 art::Event				const&evt)
 
 {
