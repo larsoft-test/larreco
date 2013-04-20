@@ -145,7 +145,7 @@ TH2F* cluster::CornerFinderAlg::TakeInRaw(art::PtrVector<raw::RawDigit>	& rawhit
       
       unsigned int plane = wid.Plane;
       unsigned int wire = wid.Wire;
-      for(int time = 0; time < nTimeTicks; time++)
+      for(int time = 0; (unsigned) time < nTimeTicks; time++)
 	RawData_histos[plane]->SetBinContent(wire,time,(uncompressed.at(time)) - hit->GetPedestal());
 
     } // end loop over wires
@@ -406,17 +406,17 @@ size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore
 void cluster::CornerFinderAlg::run(TH2F *h_wire_data, geo::View_t view){
 
 
-  TH2F *h_conversion;
+  TH2F *h_conversion=NULL;
   create_image_histo(h_wire_data,h_conversion);
   
-  TH2F *h_derivative_x, *h_derivative_y;
+  TH2F *h_derivative_x=NULL, *h_derivative_y=NULL;
   create_derivative_histograms(h_conversion,h_derivative_x,h_derivative_y);
   
-  TH2D *h_cornerScore;
+  TH2D *h_cornerScore=NULL;
   create_cornerScore_histogram(h_derivative_x,h_derivative_y,h_cornerScore);
   
   std::vector<recob::EndPoint2D> corner_vector;
-  TH2D *h_maxSuppress;
+  TH2D *h_maxSuppress=NULL;
   perform_maximum_suppression(h_cornerScore,corner_vector,view,h_maxSuppress);
 
   //std::vector<recob::Corner> corner_pathIntegralScore_vector;
