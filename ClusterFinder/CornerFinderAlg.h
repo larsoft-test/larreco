@@ -45,9 +45,9 @@ namespace cluster { //<---Not sure if this is the right namespace
     void TakeInRaw(art::PtrVector<raw::RawDigit>	        & rawhits,
                    //art::PtrVector<recob::Wire>    & wires,
 		   art::Event				const&evt);    
-    void 
-      attach_feature_points(TH2F *h_wire_data, geo::View_t view, std::vector<recob::EndPoint2D>&);
     std::vector<recob::EndPoint2D> get_feature_points();
+    std::vector<recob::EndPoint2D> get_feature_points_LineIntegralScore();
+
     
 
     private:
@@ -70,10 +70,12 @@ namespace cluster { //<---Not sure if this is the right namespace
     std::string    fCornerScore_algorithm;
     int            fMaxSuppress_neighborhood;
     int            fMaxSuppress_threshold;
+    float          fIntegral_bin_threshold;
+    float          fIntegral_fraction_threshold;
     
-     // Making a vector of histograms
-     TH2F* RawData_histos[3];
-     
+    // Making a vector of histograms
+    TH2F* RawData_histos[3];
+    
      
     void create_image_histo(TH2F *h_wire_data, TH2F *h_conversion);
     void create_derivative_histograms(TH2F *h_conversion, TH2F *h_derivative_x, TH2F *h_derivative_y);
@@ -83,13 +85,20 @@ namespace cluster { //<---Not sure if this is the right namespace
 				   geo::View_t view, 
 				   TH2D *h_maxSuppress);
 				   
-    float path_integral(TH2F *hist, int x1, float y1, int x2, float y2, float threshold);				   
+    float line_integral(TH2F *hist, int x1, float y1, int x2, float y2, float threshold);				   
     
-    size_t calculate_path_integral_score(TH2F* h_wire_data, 
-		      std::vector<recob::EndPoint2D> const & corner_vector, 
-		      std::vector<recob::EndPoint2D> & corner_pathIntegralScore_vector,
-		      TH2F *h_pathIntegralScore=NULL);
+    size_t calculate_line_integral_score( TH2F* h_wire_data, 
+					  std::vector<recob::EndPoint2D> const & corner_vector, 
+					  std::vector<recob::EndPoint2D> & corner_lineIntegralScore_vector,
+					  TH2F* h_lineIntegralScore);
 
+    void attach_feature_points(TH2F *h_wire_data, 
+			       geo::View_t view, 
+			       std::vector<recob::EndPoint2D>&);
+    void attach_feature_points_LineIntegralScore(TH2F *h_wire_data, 
+						 geo::View_t view, 
+						 std::vector<recob::EndPoint2D>&);
+    
 
      };//<---End of class CornerFinderAlg
 

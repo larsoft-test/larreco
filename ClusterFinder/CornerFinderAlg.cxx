@@ -89,6 +89,8 @@ void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
   fCornerScore_algorithm		 = p.get< std::string    >("CornerScore_algorithm");
   fMaxSuppress_neighborhood		 = p.get< int		 >("MaxSupress_neighborhood");
   fMaxSuppress_threshold		 = p.get< int		 >("MaxSupress_threshold");
+  fIntegral_bin_threshold                = p.get< float          >("Integral_bin_threshold");
+  fIntegral_fraction_threshold           = p.get< float          >("Integral_fraction_threshold");
 }
 
 
@@ -216,6 +218,24 @@ std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points(){
   return corner_vector;
 }
 
+//-----------------------------------------------------------------------------------
+// This gives us a vecotr of EndPoint2D objects that correspond to possible corners
+// Uses line integral score as corner strength
+std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points_LineIntegralScore(){
+
+  std::vector<recob::EndPoint2D> corner_vector;
+
+  art::ServiceHandle<geo::Geometry> geom;
+  const unsigned int nPlanes = geom->Nplanes();
+
+  for(int i=0; (unsigned) i < nPlanes; i++){
+    geo::PlaneGeo pg = geom->Plane(nPlanes);
+    attach_feature_points_LineIntegralScore(RawData_histos[i],pg.View(),corner_vector);
+  }
+
+  return corner_vector;
+}
+
 //-----------------------------------------------------------------------------
 // This makes our data histogram from a collection of wires
 //TH2F* cluster::CornerFinderAlg::make_data_histogram(std::vector<recob::Wire> wires, geo::View_t view){
@@ -258,12 +278,56 @@ void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data, geo::Vie
 
   create_image_histo(h_wire_data,h_conversion);  
   create_derivative_histograms(h_conversion,h_derivative_x,h_derivative_y);
-  create_cornerScore_histogram(h_derivative_x,h_derivative_y,h_cornerScore);  
+  create_cornerScore_histogram(h_derivative_x,h_derivative_y,h_cornerScore);
   perform_maximum_suppression(h_cornerScore,corner_vector,view,h_maxSuppress);
 
-  //std::vector<recob::Corner> corner_pathIntegralScore_vector;
-  //TH2F *h_pathIntegralScore;
-  //calculate_path_integral_score(h_wire_data,corner_vector,corner_pathIntegralScore_vector,h_pathIntegralScore)
+}
+
+//-----------------------------------------------------------------------------
+// This puts on all the feature points in a given view, using a given data histogram
+void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_wire_data, geo::View_t view, std::vector<recob::EndPoint2D> & corner_vector){
+
+  // Use the TFile service in art
+  art::ServiceHandle<art::TFileService> tfs;
+
+  const int x_bins = h_wire_data->GetNbinsX();
+  const float x_min = h_wire_data->GetXaxis()->GetBinLowEdge(1);
+  const float x_max = h_wire_data->GetXaxis()->GetBinUpEdge(x_bins);
+
+  const int y_bins = h_wire_data->GetNbinsY();
+  const float y_min = h_wire_data->GetYaxis()->GetBinLowEdge(1);
+  const float y_max = h_wire_data->GetYaxis()->GetBinUpEdge(y_bins);
+
+  const int converted_y_bins = y_bins/fConversion_bins_per_input_y;
+  const int converted_x_bins = x_bins/fConversion_bins_per_input_x;
+
+  TH2F *h_conversion = tfs->make<TH2F>("h_conversion","Image Conversion Histogram",
+				       converted_x_bins,x_min,x_max,
+				       converted_y_bins,y_min,y_max);
+  TH2F *h_derivative_x = tfs->make<TH2F>("h_derivative_x","Partial Derivatives (x)",
+					 converted_x_bins,x_min,x_max,
+					 converted_y_bins,y_min,y_max);
+  TH2F *h_derivative_y = tfs->make<TH2F>("h_derivative_y","Partial Derivatives (y)",
+					 converted_x_bins,x_min,x_max,
+					 converted_y_bins,y_min,y_max);
+  TH2D *h_cornerScore = tfs->make<TH2D>("h_cornerScore","Feature Point Corner Score",
+					converted_x_bins,x_min,x_max,
+					converted_y_bins,y_min,y_max);
+  TH2D *h_maxSuppress = tfs->make<TH2D>("h_maxSuppress","Corner Points (Maximum Suppressed)",
+					converted_x_bins,x_min,x_max,
+					converted_y_bins,y_min,y_max);
+
+  create_image_histo(h_wire_data,h_conversion);  
+  create_derivative_histograms(h_conversion,h_derivative_x,h_derivative_y);
+  create_cornerScore_histogram(h_derivative_x,h_derivative_y,h_cornerScore);
+
+  std::vector<recob::EndPoint2D> corner_vector_tmp;
+  perform_maximum_suppression(h_cornerScore,corner_vector_tmp,view,h_maxSuppress);
+
+  TH2F *h_lineIntegralScore =  tfs->make<TH2F>("h_lineIntegralScore","Line Integral Score",
+					       x_bins,x_min,x_max,
+					       y_bins,y_min,y_max);
+  calculate_line_integral_score(h_wire_data,corner_vector_tmp,corner_vector,h_lineIntegralScore);
     
 }
 
@@ -451,6 +515,120 @@ size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore
 
 }
 
+/* Silly little function for doing a line integral type thing. Needs improvement. */
+float cluster::CornerFinderAlg::line_integral(TH2F *hist, int begin_x, float begin_y, int end_x, float end_y, float threshold){
+
+  int x1 = hist->GetXaxis()->FindBin( begin_x );
+  int y1 = hist->GetYaxis()->FindBin( begin_y );
+  int x2 = hist->GetXaxis()->FindBin( end_x );
+  int y2 = hist->GetYaxis()->FindBin( end_y );
+
+  if(x1==x2 && abs(y1-y2)<1e-5)
+    return 0;
+
+  if(x2<x1){
+    int tmp = x2;
+    x2 = x1;
+    x1 = tmp;
+
+    int tmp_y = y2;
+    y2 = y1;
+    y1 = tmp_y;
+  }
+
+  float fraction = 0;
+  int bin_counter = 0;
+
+  if(x2!=x1){
+
+    float slope = (y2-y1)/((float)(x2-x1));
+
+    for(int ix=x1; ix<=x2; ix++){
+
+      int y_min,y_max;
+      
+      if(slope>=0){
+	y_min = y1 + slope*(ix-x1);
+	y_max = y1 + slope*(ix+1-x1);
+      }
+      else {
+	y_max = (y1+1) + slope*(ix-x1);
+	y_min = (y1+1) + slope*(ix+1-x1);
+      }
+
+      for(int iy=y_min; iy<=y_max; iy++){
+	bin_counter++;
+
+	if( hist->GetBinContent(ix,iy) > threshold )
+	  fraction += 1.;
+      }
+
+    }
+  }
+  else{
+    
+    int y_min,y_max;
+    if(y1<y2){
+      y_min=y1; y_max=y2;
+    }
+    else{
+      y_min=y2; y_max=y1;
+    }
+    for(int iy=y_min; iy<=y_max; iy++){
+	bin_counter++;
+	if( hist->GetBinContent(x1,iy) > threshold)
+	  fraction += 1.;
+      }
+
+  }
+
+  return fraction/bin_counter;
+}
+
+//-----------------------------------------------------------------------------
+// Do the silly little line integral score thing
+size_t cluster::CornerFinderAlg::calculate_line_integral_score( TH2F* h_wire_data, 
+								std::vector<recob::EndPoint2D> const & corner_vector, 
+								std::vector<recob::EndPoint2D> & corner_lineIntegralScore_vector,
+								TH2F* h_lineIntegralScore){
+
+  float score;
+
+  for(auto const i_corner : corner_vector){
+
+    score=0;
+    
+    for(auto const j_corner : corner_vector){
+
+
+      if( line_integral(h_wire_data,
+			i_corner.WireNum(),i_corner.DriftTime(),
+			j_corner.WireNum(),j_corner.DriftTime(),
+			fIntegral_bin_threshold) > fIntegral_fraction_threshold)
+	{
+	  score+=1.;
+	}
+
+    }
+
+    recob::EndPoint2D corner(i_corner.DriftTime(),
+			     i_corner.WireNum(),
+			     score,
+			     i_corner.ID(),
+			     i_corner.View(),
+			     i_corner.Charge());
+
+    corner_lineIntegralScore_vector.push_back(corner);
+    
+
+    h_lineIntegralScore->SetBinContent(h_wire_data->GetXaxis()->FindBin(i_corner.WireNum()),
+				       h_wire_data->GetYaxis()->FindBin(i_corner.DriftTime()),
+				       score);
+    
+  }
+  
+  return corner_lineIntegralScore_vector.size();
+}
 
 
 
