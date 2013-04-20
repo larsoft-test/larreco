@@ -42,9 +42,12 @@ namespace cluster { //<---Not sure if this is the right namespace
 
 
 
-      void TakeInRaw(art::PtrVector<raw::RawDigit>	        & rawhits,
-		       art::Event				const&evt);    
+    void TakeInRaw(art::PtrVector<raw::RawDigit>	        & rawhits,
+		   art::Event				const&evt);    
+    std::vector<recob::EndPoint2D> 
+      get_feature_points(TH2F *h_wire_data, geo::View_t view);
     
+
     private:
     
     
@@ -83,7 +86,6 @@ namespace cluster { //<---Not sure if this is the right namespace
 		      std::vector<recob::EndPoint2D> const & corner_vector, 
 		      std::vector<recob::EndPoint2D> & corner_pathIntegralScore_vector,
 		      TH2F *h_pathIntegralScore=NULL);
-    void run(TH2F *h_wire_data, geo::View_t view);
 
 
      };//<---End of class CornerFinderAlg

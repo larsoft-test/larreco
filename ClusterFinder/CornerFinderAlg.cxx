@@ -157,7 +157,7 @@ void cluster::CornerFinderAlg::TakeInRaw(art::PtrVector<raw::RawDigit>	& rawhits
  // Wacky hard coded things....fix me
  
  
- run(RawData_histos[0], geom->View(0) );
+ //run(RawData_histos[0], geom->View(0) );
 
 }//<---End TakeInRaw
 
@@ -356,7 +356,7 @@ size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore
 
 
 
-void cluster::CornerFinderAlg::run(TH2F *h_wire_data, geo::View_t view){
+std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points(TH2F *h_wire_data, geo::View_t view){
 
 
   // Use the TFile service in art
@@ -395,6 +395,8 @@ void cluster::CornerFinderAlg::run(TH2F *h_wire_data, geo::View_t view){
   
   std::vector<recob::EndPoint2D> corner_vector;
   perform_maximum_suppression(h_cornerScore,corner_vector,view,h_maxSuppress);
+
+  return corner_vector;
 
   //std::vector<recob::Corner> corner_pathIntegralScore_vector;
   //TH2F *h_pathIntegralScore;
