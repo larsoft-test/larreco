@@ -15,7 +15,7 @@
 #include "TH2.h"
 #include <vector>
 #include <string>
-#include "RecoBase/Corner.h"
+#include "RecoBase/EndPoint2D.h"
 
 
 
@@ -73,15 +73,15 @@ namespace cluster { //<---Not sure if this is the right namespace
     void create_derivative_histograms(TH2F *h_conversion, TH2F *h_derivative_x, TH2F *h_derivative_y);
     void create_cornerScore_histogram(TH2F *h_derivative_x, TH2F *h_derivative_y, TH2D *h_cornerScore);
     size_t perform_maximum_suppression(TH2D *h_cornerScore, 
-				   std::vector<recob::Corner> & corner_vector,
+				   std::vector<recob::EndPoint2D> & corner_vector,
 				   geo::View_t view, 
 				   TH2D *h_maxSuppress);
 				   
     float path_integral(TH2F *hist, int x1, float y1, int x2, float y2, float threshold);				   
     
     size_t calculate_path_integral_score(TH2F* h_wire_data, 
-		      std::vector<recob::Corner> const & corner_vector, 
-		      std::vector<recob::Corner> & corner_pathIntegralScore_vector,
+		      std::vector<recob::EndPoint2D> const & corner_vector, 
+		      std::vector<recob::EndPoint2D> & corner_pathIntegralScore_vector,
 		      TH2F *h_pathIntegralScore=NULL);
     void run(TH2F *h_wire_data, geo::View_t view);
 
