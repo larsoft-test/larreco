@@ -63,11 +63,6 @@ extern "C" {
 
 //-----------------------------------------------------------------------------
 cluster::CornerFinderAlg::CornerFinderAlg(fhicl::ParameterSet const& pset) 
-// ### This is where we take in the RawData from the .fcl file
-  :fRawDataLabel (pset.get<std::string>("RawDataLabel"))
-  
-// ### Reading in CaldataModule ###
-  :fCalDataModuleLabel (pset.get<std::string>("CalDataModuleLabel")) 
 {
   this->reconfigure(pset);
 }
@@ -81,16 +76,21 @@ cluster::CornerFinderAlg::~CornerFinderAlg()
 void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
 {
   // ### These are all the tuneable .fcl file parameters from the event ###
-  fConversion_threshold     		 = p.get< float    	 >("Conversion_threshold");
-  fConversion_bins_per_input_x  	 = p.get< int      	 >("Conversion_bins_per_input_x");
-  fConversion_bins_per_input_y       	 = p.get< int      	 >("Conversion_bins_per_input_y");
-  fDerivative_method        		 = p.get< std::string    >("Derivative_method");
-  fCornerScore_neighborhood     	 = p.get< int		 >("CornerScore_neighborhood");
-  fCornerScore_algorithm		 = p.get< std::string    >("CornerScore_algorithm");
-  fMaxSuppress_neighborhood		 = p.get< int		 >("MaxSupress_neighborhood");
-  fMaxSuppress_threshold		 = p.get< int		 >("MaxSupress_threshold");
-  fIntegral_bin_threshold                = p.get< float          >("Integral_bin_threshold");
-  fIntegral_fraction_threshold           = p.get< float          >("Integral_fraction_threshold");
+
+  // ### This is where we take in the RawData from the .fcl file
+  fRawDataLabel                          = p.get<std::string >("RawDataLabel");
+  // ### Reading in CaldataModule ###
+  fCalDataModuleLabel                    = p.get<std::string >("CalDataModuleLabel"); 
+  fConversion_threshold     		 = p.get< float      >("Conversion_threshold");
+  fConversion_bins_per_input_x  	 = p.get< int        >("Conversion_bins_per_input_x");
+  fConversion_bins_per_input_y       	 = p.get< int        >("Conversion_bins_per_input_y");
+  fDerivative_method        		 = p.get< std::string>("Derivative_method");
+  fCornerScore_neighborhood     	 = p.get< int	     >("CornerScore_neighborhood");
+  fCornerScore_algorithm		 = p.get< std::string>("CornerScore_algorithm");
+  fMaxSuppress_neighborhood		 = p.get< int	     >("MaxSupress_neighborhood");
+  fMaxSuppress_threshold		 = p.get< int	     >("MaxSupress_threshold");
+  fIntegral_bin_threshold                = p.get< float      >("Integral_bin_threshold");
+  fIntegral_fraction_threshold           = p.get< float      >("Integral_fraction_threshold");
 }
 
 
