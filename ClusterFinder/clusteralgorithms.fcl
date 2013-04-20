@@ -42,6 +42,7 @@ standard_endpointalg:
 
 standard_cornerfinderalg:
 {
+  RawDataModuleLabel:           "daq"
   Conversion_threshold:		0
   Conversion_bins_per_input_x:	1
   Conversion_bins_per_input_y:	6
