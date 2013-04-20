@@ -63,6 +63,10 @@ extern "C" {
 
 //-----------------------------------------------------------------------------
 cluster::CornerFinderAlg::CornerFinderAlg(fhicl::ParameterSet const& pset) 
+// ### This is where we take in the RawData from the .fcl file
+  //:fRawDataLabel (pset.get<std::string>("RawDataModuleLabel"))
+// ### Reading in CaldataModule ###
+  //:fCalDataModuleLabel (pset.get<std::string>("CalDataModuleLabel")) 
 {
   this->reconfigure(pset);
 }
@@ -76,26 +80,22 @@ cluster::CornerFinderAlg::~CornerFinderAlg()
 void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
 {
   // ### These are all the tuneable .fcl file parameters from the event ###
-
-  // ### This is where we take in the RawData from the .fcl file
-  fRawDataLabel                          = p.get<std::string >("RawDataLabel");
-  // ### Reading in CaldataModule ###
-  fCalDataModuleLabel                    = p.get<std::string >("CalDataModuleLabel"); 
-  fConversion_threshold     		 = p.get< float      >("Conversion_threshold");
-  fConversion_bins_per_input_x  	 = p.get< int        >("Conversion_bins_per_input_x");
-  fConversion_bins_per_input_y       	 = p.get< int        >("Conversion_bins_per_input_y");
-  fDerivative_method        		 = p.get< std::string>("Derivative_method");
-  fCornerScore_neighborhood     	 = p.get< int	     >("CornerScore_neighborhood");
-  fCornerScore_algorithm		 = p.get< std::string>("CornerScore_algorithm");
-  fMaxSuppress_neighborhood		 = p.get< int	     >("MaxSupress_neighborhood");
-  fMaxSuppress_threshold		 = p.get< int	     >("MaxSupress_threshold");
-  fIntegral_bin_threshold                = p.get< float      >("Integral_bin_threshold");
-  fIntegral_fraction_threshold           = p.get< float      >("Integral_fraction_threshold");
+  fRawDataModuleLabel			 = p.get< std::string	 >("RawDataModuleLabel");
+  fConversion_threshold     		 = p.get< float    	 >("Conversion_threshold");
+  fConversion_bins_per_input_x  	 = p.get< int      	 >("Conversion_bins_per_input_x");
+  fConversion_bins_per_input_y       	 = p.get< int      	 >("Conversion_bins_per_input_y");
+  fDerivative_method        		 = p.get< std::string    >("Derivative_method");
+  fCornerScore_neighborhood     	 = p.get< int		 >("CornerScore_neighborhood");
+  fCornerScore_algorithm		 = p.get< std::string    >("CornerScore_algorithm");
+  fMaxSuppress_neighborhood		 = p.get< int		 >("MaxSuppress_neighborhood");
+  fMaxSuppress_threshold		 = p.get< int		 >("MaxSuppress_threshold");
+  fIntegral_bin_threshold                = p.get< float          >("Integral_bin_threshold");
+  fIntegral_fraction_threshold           = p.get< float          >("Integral_fraction_threshold");
 }
 
 
 //-----------------------------------------------------------------------------
-void cluster::CornerFinderAlg::TakeInRaw(art::PtrVector<raw::RawDigit>	& rawhits,
+void cluster::CornerFinderAlg::TakeInRaw(//art::PtrVector<raw::RawDigit>	& rawhits,
 				         //art::PtrVector<recob::Wire>    & wires,
 					 art::Event				const&evt)
 
@@ -109,8 +109,9 @@ void cluster::CornerFinderAlg::TakeInRaw(art::PtrVector<raw::RawDigit>	& rawhits
     
   // Push the raw hits into the vector
   art::Handle< std::vector<raw::RawDigit> >  rawdigitcol;
+  //evt.getByLabel(fRawDataModuleLabel,wirecol);
   try{
-    evt.getByLabel(fRawDataLabel, rawdigitcol);
+    evt.getByLabel(fRawDataModuleLabel, rawdigitcol);
     for(unsigned int i = 0; i < rawdigitcol->size(); ++i){
       art::Ptr<raw::RawDigit> rawdigit(rawdigitcol, i);
       RawHits.push_back(rawdigit);
@@ -161,8 +162,8 @@ void cluster::CornerFinderAlg::TakeInRaw(art::PtrVector<raw::RawDigit>	& rawhits
   
   /// \ todo: Add in a loop over planes to fill this correctly
   RawData_histos[0] = tfs->make<TH2F>("RawData_Plane_0","Raw Data for plane 0",geom->Nwires(0),0,geom->Nwires(0),nTimeTicks,0,nTimeTicks);
-  RawData_histos[1] = tfs->make<TH2F>("RawData_Plane_0","Raw Data for plane 0",geom->Nwires(1),0,geom->Nwires(1),nTimeTicks,0,nTimeTicks);
-  RawData_histos[2] = tfs->make<TH2F>("RawData_Plane_0","Raw Data for plane 0",geom->Nwires(2),0,geom->Nwires(2),nTimeTicks,0,nTimeTicks);
+  RawData_histos[1] = tfs->make<TH2F>("RawData_Plane_1","Raw Data for plane 1",geom->Nwires(1),0,geom->Nwires(1),nTimeTicks,0,nTimeTicks);
+  RawData_histos[2] = tfs->make<TH2F>("RawData_Plane_2","Raw Data for plane 2",geom->Nwires(2),0,geom->Nwires(2),nTimeTicks,0,nTimeTicks);
   
   
   // ### Declaring variables for Wires 
