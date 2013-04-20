@@ -43,10 +43,11 @@ namespace cluster { //<---Not sure if this is the right namespace
 
 
     void TakeInRaw(art::PtrVector<raw::RawDigit>	        & rawhits,
-                   art::PtrVector<recob::Wire>    & wires,
+                   //art::PtrVector<recob::Wire>    & wires,
 		   art::Event				const&evt);    
-    std::vector<recob::EndPoint2D> 
-      get_feature_points(TH2F *h_wire_data, geo::View_t view);
+    void 
+      attach_feature_points(TH2F *h_wire_data, geo::View_t view, std::vector<recob::EndPoint2D>&);
+    std::vector<recob::EndPoint2D> get_feature_points();
     
 
     private:
