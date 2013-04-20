@@ -39,6 +39,7 @@ extern "C" {
 #include "Geometry/PlaneGeo.h"
 #include "Geometry/Geometry.h"
 #include "RecoBase/Cluster.h"
+#include "RecoBase/Wire.h"
 #include "ClusterFinder/CornerFinderAlg.h"
 
 
@@ -63,7 +64,10 @@ extern "C" {
 //-----------------------------------------------------------------------------
 cluster::CornerFinderAlg::CornerFinderAlg(fhicl::ParameterSet const& pset) 
 // ### This is where we take in the RawData from the .fcl file
-  :fRawDataLabel (pset.get<std::string>("RawDataLabel"))
+  //:fRawDataLabel (pset.get<std::string>("RawDataLabel"))
+  
+// ### Reading in CaldataModule ###
+  :fCalDataModuleLabel (pset.get<std::string>("CalDataModuleLabel")) 
 {
   this->reconfigure(pset);
 }
@@ -96,6 +100,9 @@ void cluster::CornerFinderAlg::TakeInRaw(art::PtrVector<raw::RawDigit>	& rawhits
   // Use the TFile service in art
   art::ServiceHandle<art::TFileService> tfs;
   
+  
+
+  
   // Make a vector for the raw hits
   art::PtrVector<raw::RawDigit> RawHits;
   RawHits.clear();
@@ -110,27 +117,89 @@ void cluster::CornerFinderAlg::TakeInRaw(art::PtrVector<raw::RawDigit>	& rawhits
       RawHits.push_back(rawdigit);
     }
   }
+  
+    // Catch if things go badly
+  catch(cet::exception& excep){
+   std::cout<<"Bail out!"<<std::endl;;
+  }
+  
+  // Getting the bins for the histograms in terms of number of wires and number of time ticks
+  art::ServiceHandle<geo::Geometry> geom;
+  const unsigned int nPlanes = geom->Nplanes();
+  //const unsigned int nWires = geom->Nwires(0);
+  const unsigned int nTimeTicks = (RawHits.at(0))->Samples();
+  
+  // ##########################################
+  // ### Reading in the Wire List object(s) ###
+  // ##########################################
+  
+  art::PtrVector<recob::Wire> WireObj;
+  
+  art::Handle< std::vector<recob::Wire> > wireVecHandle;
+  try{
+  evt.getByLabel(fCalDataModuleLabel,wireVecHandle);
+  
+  //########################################################
+  //### Looping over the wires and pushing into a vector ###
+  //########################################################
+  for(size_t wireIter = 0; wireIter < wireVecHandle->size(); wireIter++){
+    art::Ptr<recob::Wire> wire(wireVecHandle, wireIter);
+    WireObj.push_back(wire);
+    
+    }//<---End Looping over wires
+  
+  }//<---End try
+  
+  
+  
+  
   // Catch if things go badly
   catch(cet::exception& excep){
    std::cout<<"Bail out!"<<std::endl;;
   }
-   
-  // Getting the bins for the histograms in terms of number of wires and number of time ticks
-  art::ServiceHandle<geo::Geometry> geom;
-  const unsigned int nPlanes = geom->Nplanes();
-  const unsigned int nWires = geom->Nwires(0);
-  const unsigned int nTimeTicks = (RawHits.at(0))->Samples();
-  
   
   // Initializing the histograms
   
   /// \ todo: Add in a loop over planes to fill this correctly
-  RawData_histos[0] = tfs->make<TH2F>("RawData_Plane_0","Raw Data for plane 0",nWires,0,nWires,nTimeTicks,0,nTimeTicks);
-  RawData_histos[1] = tfs->make<TH2F>("RawData_Plane_0","Raw Data for plane 0",nWires,0,nWires,nTimeTicks,0,nTimeTicks);
-  RawData_histos[2] = tfs->make<TH2F>("RawData_Plane_0","Raw Data for plane 0",nWires,0,nWires,nTimeTicks,0,nTimeTicks);
+  RawData_histos[0] = tfs->make<TH2F>("RawData_Plane_0","Raw Data for plane 0",geom->Nwires(0),0,geom->Nwires(0),nTimeTicks,0,nTimeTicks);
+  RawData_histos[1] = tfs->make<TH2F>("RawData_Plane_0","Raw Data for plane 0",geom->Nwires(1),0,geom->Nwires(1),nTimeTicks,0,nTimeTicks);
+  RawData_histos[2] = tfs->make<TH2F>("RawData_Plane_0","Raw Data for plane 0",geom->Nwires(2),0,geom->Nwires(2),nTimeTicks,0,nTimeTicks);
+  
+  
+  // ### Declaring variables for Wires 
+  uint32_t channel = 0;    // channel number
+  
+  
+  // #######################
+  // ### Loop over Wires ###
+  // #######################
+  for (auto const& wires : WireObj) {
+  
+     // --- Setting Channel Number  ---
+     channel = wires->RawDigit()->Channel();
+     std::vector<float> signal(wires->Signal());
+     
+     // Loop over the planes 
+     for(int NPLANES = 0; NPLANES < nPlanes; NPLANES ++)
+     	{
+	
+	for(int nWires = 0; nWires < geom->Nwires(NPLANES) ; nWires++)
+	   {
+           for(int time = 0; time < nTimeTicks; time++){
+              RawData_histos[NPLANES]->SetBinContent(nWires,time,signal[time]);
+	   
+	      }//<---End time loop
+  
+           }//<---End NWires
+	}//<---End loop over planes
+  
+  }//<-- End loop over wires
+  
+  
+  
   
   // Loop over the RawHits
-  for (auto const& hit : RawHits) {
+  /*for (auto const& hit : RawHits) {
     // Adding a protection in case we don't have enough RawHits
     if(RawHits.size()<1) continue;
     
@@ -149,7 +218,7 @@ void cluster::CornerFinderAlg::TakeInRaw(art::PtrVector<raw::RawDigit>	& rawhits
 	RawData_histos[plane]->SetBinContent(wire,time,(uncompressed.at(time)) - hit->GetPedestal());
 
     } // end loop over wires
-  } // end loop over rawhits
+  } // end loop over rawhits*/
    
  
  // Give me pointer to get out the TH2D here!

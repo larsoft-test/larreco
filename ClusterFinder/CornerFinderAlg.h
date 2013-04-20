@@ -56,6 +56,7 @@ namespace cluster { //<---Not sure if this is the right namespace
     // Taking in RawData from the event
     
     std::string  fRawDataLabel;
+    std::string  fCalDataModuleLabel;
     
     
     float          fConversion_threshold;
