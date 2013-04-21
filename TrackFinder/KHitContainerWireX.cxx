@@ -65,14 +65,7 @@ namespace trkf {
 		
       uint32_t channel = hit.Channel();
 
-      // Extract the cryostat, tpc, and plane.
-      // We only care about the plane.
-
-	  //unsigned int cstat, tpc, plane, wire;
-      //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-
-		// Choose plane.
-
+      // Choose plane.
       if(only_plane >= 0 && hitWireID.Plane != (unsigned int)(only_plane))
 	continue;
 

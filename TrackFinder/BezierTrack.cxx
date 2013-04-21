@@ -37,37 +37,37 @@ namespace trkf {
   {
     if(SeedCol.size()>0)
       {
-  double Pt[3], Dir[3], PtErr[3], DirErr[3];
-  double FirstPt[3];
-  double FirstDir[3];
-  SeedCol.at(0)->GetPoint(     Pt,  PtErr  );
-  SeedCol.at(0)->GetDirection( Dir, DirErr );
-  for(int i=0; i!=3; ++i)
-    {
-      double BigN=10000;
-      FirstPt[i]=Pt[i]-((1.+1/BigN) * Dir[i]);
-      FirstDir[i]=Dir[i]/BigN;
-    }
-  fSeedCollection.push_back(new recob::Seed(FirstPt, FirstDir, PtErr, DirErr));
+	double Pt[3], Dir[3], PtErr[3], DirErr[3];
+	double FirstPt[3];
+	double FirstDir[3];
+	SeedCol.at(0)->GetPoint(     Pt,  PtErr  );
+	SeedCol.at(0)->GetDirection( Dir, DirErr );
+	for(int i=0; i!=3; ++i)
+	  {
+	    double BigN=10000;
+	    FirstPt[i]=Pt[i]-((1.+1/BigN) * Dir[i]);
+	    FirstDir[i]=Dir[i]/BigN;
+	  }
+	fSeedCollection.push_back(new recob::Seed(FirstPt, FirstDir, PtErr, DirErr));
 
       }
     for(size_t i=0; i!=SeedCol.size(); ++i)
       {
-  fSeedCollection.push_back(new recob::Seed(*SeedCol.at(i)));
+	fSeedCollection.push_back(new recob::Seed(*SeedCol.at(i)));
       }
     if(SeedCol.size()>0)
       {
-  double Pt[3], Dir[3], PtErr[3], DirErr[3];
-  double LastPt[3], LastDir[3];
-  SeedCol.at(SeedCol.size()-1)->GetPoint(     Pt,  PtErr  );
-  SeedCol.at(SeedCol.size()-1)->GetDirection( Dir, DirErr );
-  for(int i=0; i!=3; ++i)
-    {
-      double BigN=10000;
-      LastPt[i]=Pt[i]+((1.+1/BigN) * Dir[i]);
-      LastDir[i]=Dir[i]/BigN;
-    }
-  fSeedCollection.push_back(new recob::Seed(LastPt, LastDir, PtErr, DirErr));
+	double Pt[3], Dir[3], PtErr[3], DirErr[3];
+	double LastPt[3], LastDir[3];
+	SeedCol.at(SeedCol.size()-1)->GetPoint(     Pt,  PtErr  );
+	SeedCol.at(SeedCol.size()-1)->GetDirection( Dir, DirErr );
+	for(int i=0; i!=3; ++i)
+	  {
+	    double BigN=10000;
+	    LastPt[i]=Pt[i]+((1.+1/BigN) * Dir[i]);
+	    LastDir[i]=Dir[i]/BigN;
+	  }
+	fSeedCollection.push_back(new recob::Seed(LastPt, LastDir, PtErr, DirErr));
       }
     std::cout<<"Constructing BTrack from " << fSeedCollection.size()<<" seeds."<<std::endl;
     CalculateSegments();
@@ -79,9 +79,9 @@ namespace trkf {
   // Constructor from track coordinates
   //
   BezierTrack::BezierTrack(std::vector<TVector3> Pos,
-         std::vector<TVector3> Dir,
-         std::vector<std::vector<double> > dQdx,
-         int const& id)
+			   std::vector<TVector3> Dir,
+			   std::vector<std::vector<double> > dQdx,
+			   int const& id)
     : recob::Track(Pos, Dir, dQdx, std::vector<double>(2, util::kBogusD), id)
   {
     fBezierResolution=1000;
@@ -109,27 +109,27 @@ namespace trkf {
 
     if(!(DoneCalc[view]))
       {
-  unsigned int p;
-  unsigned int pTop;
+	unsigned int p;
+	unsigned int pTop;
 
-  art::ServiceHandle<geo::Geometry> geom;
+	art::ServiceHandle<geo::Geometry> geom;
 
-  pTop=geom->Cryostat(c).TPC(t).Nplanes();
-  for(p=0; p!=pTop; ++p)
-    if(geom->Cryostat(c).TPC(t).Plane(p).View() == view) break;
+	pTop=geom->Cryostat(c).TPC(t).Nplanes();
+	for(p=0; p!=pTop; ++p)
+	  if(geom->Cryostat(c).TPC(t).Plane(p).View() == view) break;
 
-  double WireEnd1[3], WireEnd2[3];
+	double WireEnd1[3], WireEnd2[3];
 
-  geom->WireEndPoints(c, t, p, 0, WireEnd1, WireEnd2);
+	geom->WireEndPoints(c, t, p, 0, WireEnd1, WireEnd2);
 
-  double WirePitch = geom->WirePitch(view);
+	double WirePitch = geom->WirePitch(view);
 
-  TVector3 WireVec;
-  for(size_t i=0; i!=3; ++i)
-    WireVec[i]= WireEnd2[i] -WireEnd1[i];
-  PitchVecs[view] = (1.0 / WirePitch) * WireVec.Cross(TVector3(1,0,0)).Unit();
+	TVector3 WireVec;
+	for(size_t i=0; i!=3; ++i)
+	  WireVec[i]= WireEnd2[i] -WireEnd1[i];
+	PitchVecs[view] = (1.0 / WirePitch) * WireVec.Cross(TVector3(1,0,0)).Unit();
 
-  DoneCalc[view]=true;
+	DoneCalc[view]=true;
       }
 
     TVector3 TrackDir = GetTrackDirectionV(s).Unit();
@@ -162,18 +162,18 @@ namespace trkf {
 
     for(size_t i=0; i!=Hits.size(); ++i)
       {
-  if(Hits.at(i)->SignalType()==sigtype)
-    {
-      geo::View_t view = Hits.at(i)->View();
-      double WirePitch = geom->WirePitch(view);
-      GetClosestApproach(Hits.at(i),s,d);
-      double ThisPitch = GetTrackPitch( view, s, WirePitch );
-      TrkPitch.push_back(ThisPitch);
-      resRange.push_back(Range - s*Range);
-      dQdx.push_back(Hits.at(i)->Charge()/ThisPitch);
-      dEdx.push_back( calalg.dEdx_AMP(Hits.at(i), ThisPitch) );
-      std::cout<<Hits.at(i)->Charge()<< " " << ThisPitch<< " " << dEdx.at(dEdx.size()-1)<<std::endl;
-    }
+	if(Hits.at(i)->SignalType()==sigtype)
+	  {
+	    geo::View_t view = Hits.at(i)->View();
+	    double WirePitch = geom->WirePitch(view);
+	    GetClosestApproach(Hits.at(i),s,d);
+	    double ThisPitch = GetTrackPitch( view, s, WirePitch );
+	    TrkPitch.push_back(ThisPitch);
+	    resRange.push_back(Range - s*Range);
+	    dQdx.push_back(Hits.at(i)->Charge()/ThisPitch);
+	    dEdx.push_back( calalg.dEdx_AMP(Hits.at(i), ThisPitch) );
+	    std::cout<<Hits.at(i)->Charge()<< " " << ThisPitch<< " " << dEdx.at(dEdx.size()-1)<<std::endl;
+	  }
 
 
       }
@@ -206,15 +206,15 @@ namespace trkf {
       {
 
 
-  Pt[0]=(fXYZ.at(i))[0];
-  Pt[1]=(fXYZ.at(i))[1];
-  Pt[2]=(fXYZ.at(i))[2];
+	Pt[0]=(fXYZ.at(i))[0];
+	Pt[1]=(fXYZ.at(i))[1];
+	Pt[2]=(fXYZ.at(i))[2];
 
-  Dir[0]=(fDir.at(i))[0];
-  Dir[1]=(fDir.at(i))[1];
-  Dir[2]=(fDir.at(i))[2];
+	Dir[0]=(fDir.at(i))[0];
+	Dir[1]=(fDir.at(i))[1];
+	Dir[2]=(fDir.at(i))[2];
 
-  fSeedCollection.push_back(new recob::Seed(Pt,Dir));
+	fSeedCollection.push_back(new recob::Seed(Pt,Dir));
       }
 
   }
@@ -230,18 +230,18 @@ namespace trkf {
     fdQdx.resize(NPlanes) ;
     double Pt[3], Dir[3], ErrPt[3], ErrDir[3];
     for(std::vector<recob::Seed*>::const_iterator it=fSeedCollection.begin();
-  it!=fSeedCollection.end(); ++it)
+	it!=fSeedCollection.end(); ++it)
       {
 
-  (*it)->GetPoint(Pt,ErrPt);
-  (*it)->GetDirection(Dir, ErrDir);
-  TVector3 Point(Pt[0],Pt[1],Pt[2]);
-  TVector3 Direction(Dir[0],Dir[1],Dir[2]);
+	(*it)->GetPoint(Pt,ErrPt);
+	(*it)->GetDirection(Dir, ErrDir);
+	TVector3 Point(Pt[0],Pt[1],Pt[2]);
+	TVector3 Direction(Dir[0],Dir[1],Dir[2]);
 
-  for(int i=0; i!=NPlanes; ++i)
-    fdQdx.at(i).push_back(0);
-  fXYZ.push_back(Point);
-  fDir.push_back(Direction);
+	for(int i=0; i!=NPlanes; ++i)
+	  fdQdx.at(i).push_back(0);
+	fXYZ.push_back(Point);
+	fDir.push_back(Direction);
       }
   }
 
@@ -256,22 +256,22 @@ namespace trkf {
     std::cout<<"Entering calculatesegments method"<<std::endl;
     if(fSeedCollection.size()==0)
       {
-  if(NSegments()!=0) FillSeedVector();
-  else
-    {
-      throw cet::exception("no points in track")
-        <<"CalculateSegments method of Bezier track called with no"
-        <<" track information loaded.  You must fill track with "
-        <<"poisition and direction data before calling this method."
-        <<std::endl;
-      return;
-    }
+	if(NSegments()!=0) FillSeedVector();
+	else
+	  {
+	    throw cet::exception("no points in track")
+	      <<"CalculateSegments method of Bezier track called with no"
+	      <<" track information loaded.  You must fill track with "
+	      <<"poisition and direction data before calling this method."
+	      <<std::endl;
+	    return;
+	  }
       }
     if(NSegments()==0)
       {
-  std::cout<<"Filling traj vectors             "<<std::endl;
-  if(fSeedCollection.size()!=0)  FillTrajectoryVectors();
-  std::cout<<"Filed traj vectors               "<<std::endl;
+	std::cout<<"Filling traj vectors             "<<std::endl;
+	if(fSeedCollection.size()!=0)  FillTrajectoryVectors();
+	std::cout<<"Filed traj vectors               "<<std::endl;
       }
 
     std::cout<<"Loading bezier track with ID "<<  ID()<<std::endl;
@@ -283,15 +283,15 @@ namespace trkf {
     bool FirstSeg=true;
     for(int i=0; i!=Segments; ++i)
       {
-  if(!FirstSeg)
-    {
-      float SegmentLength=bhlp.GetSegmentLength(fSeedCollection.at(i-1),fSeedCollection.at(i));
+	if(!FirstSeg)
+	  {
+	    float SegmentLength=bhlp.GetSegmentLength(fSeedCollection.at(i-1),fSeedCollection.at(i));
 
-      fTrackLength+=SegmentLength;
-      fSegmentLength.push_back(SegmentLength);
-    }
-  FirstSeg=false;
-  fCumulativeLength.push_back(fTrackLength);
+	    fTrackLength+=SegmentLength;
+	    fSegmentLength.push_back(SegmentLength);
+	  }
+	FirstSeg=false;
+	fCumulativeLength.push_back(fTrackLength);
       }
     std::cout<<"Total track length : " <<fTrackLength<< ", N = " << NSegments()<<std::endl;
   }
@@ -305,33 +305,33 @@ namespace trkf {
   {
     if((s>=1)||(s<=0))
       {
-  // catch these easy floating point errors
-  if((s>0.9999)&&(s<1.00001))
-    {
-      TVector3 End1 = fXYZ.at(fXYZ.size()-1);
-      xyz[0]=End1[0];
-      xyz[1]=End1[1];
-      xyz[2]=End1[2];
+	// catch these easy floating point errors
+	if((s>0.9999)&&(s<1.00001))
+	  {
+	    TVector3 End1 = fXYZ.at(fXYZ.size()-1);
+	    xyz[0]=End1[0];
+	    xyz[1]=End1[1];
+	    xyz[2]=End1[2];
 
-      return;
-    }
-  else if((s<0.0001)&&(s>-0.00001))
-    {
-      TVector3 End0 = fXYZ.at(0);
-      xyz[0]=End0[0];
-      xyz[1]=End0[1];
-      xyz[2]=End0[2];
+	    return;
+	  }
+	else if((s<0.0001)&&(s>-0.00001))
+	  {
+	    TVector3 End0 = fXYZ.at(0);
+	    xyz[0]=End0[0];
+	    xyz[1]=End0[1];
+	    xyz[2]=End0[2];
 
-      return;
-    }
+	    return;
+	  }
 
-  // otherwise complain about the mistake
-  else
-    throw cet::exception("track point out of range")<<" s = "<<s <<" out of range \n";
+	// otherwise complain about the mistake
+	else
+	  throw cet::exception("track point out of range")<<" s = "<<s <<" out of range \n";
       }
     else
       {
-  BezierCurveHelper bhlp;
+	BezierCurveHelper bhlp;
         for(unsigned int i=1; i!=fCumulativeLength.size(); i++)
           {
             if(  (   (fCumulativeLength.at(i-1) / fTrackLength) <=  s)
@@ -339,7 +339,7 @@ namespace trkf {
               {
 
                 double locals = (s * fTrackLength - fCumulativeLength[i-1])/fSegmentLength[i-1];
-    bhlp.GetBezierPointXYZ(fSeedCollection.at(i-1),fSeedCollection.at(i),locals, xyz);
+		bhlp.GetBezierPointXYZ(fSeedCollection.at(i-1),fSeedCollection.at(i),locals, xyz);
               }
 
           }
@@ -368,9 +368,9 @@ namespace trkf {
     int NPlanes=geo->Cryostat(c).TPC(t).Nplanes();
 
     for(int p=0; p!=NPlanes; p++)
-	{	
-		uvw[p]= geo->NearestWire(xyz,p,t,c);
-	}
+      {	
+	uvw[p]= geo->NearestWire(xyz,p,t,c);
+      }
     x[0]=xyz[0];
   }
 
@@ -398,8 +398,8 @@ namespace trkf {
 
     for(int p=0; p!=NPlanes; p++)
       {
-		  uvw[p]= geo->NearestWire(xyz,p,t,c);
-		  ticks[p]=det->ConvertXToTicks(xyz[0],p,t,c);
+	uvw[p]= geo->NearestWire(xyz,p,t,c);
+	ticks[p]=det->ConvertXToTicks(xyz[0],p,t,c);
       }
   }
 
@@ -436,29 +436,27 @@ namespace trkf {
     HitEnd2s.resize(hits.size());
     WireLengths.resize(hits.size());
 
-	//unsigned int c1, t1, p1, w1;
+    //unsigned int c1, t1, p1, w1;
     double End1[3], End2[3];
 
     size_t NHits = hits.size();
 
     for(size_t i=0; i!=NHits; i++)
       {
-  Distances.push_back(10000);
-  s.push_back(-1);
+	Distances.push_back(10000);
+	s.push_back(-1);
 
-  //geo->ChannelToWire(hits.at(i)->Channel(),c1,t1,p1,w1);
- 
-  geo::WireID hitWireID = hits.at(i)->WireID();
+	geo::WireID hitWireID = hits.at(i)->WireID();
 
-  geo->WireEndPoints(hitWireID.Cryostat,hitWireID.TPC,hitWireID.Plane,hitWireID.Wire,End1,End2);
+	geo->WireEndPoints(hitWireID.Cryostat,hitWireID.TPC,hitWireID.Plane,hitWireID.Wire,End1,End2);
 
-  HitEnd1s.at(i)[0]= HitEnd2s.at(i)[0]= det->ConvertTicksToX(hits.at(i)->PeakTime(),hitWireID.Plane,hitWireID.TPC,hitWireID.Cryostat);
-  HitEnd1s.at(i)[1]= End1[1];
-  HitEnd2s.at(i)[1]= End2[1];
-  HitEnd1s.at(i)[2]= End1[2];
-  HitEnd2s.at(i)[2]= End2[2];
+	HitEnd1s.at(i)[0]= HitEnd2s.at(i)[0]= det->ConvertTicksToX(hits.at(i)->PeakTime(),hitWireID.Plane,hitWireID.TPC,hitWireID.Cryostat);
+	HitEnd1s.at(i)[1]= End1[1];
+	HitEnd2s.at(i)[1]= End2[1];
+	HitEnd1s.at(i)[2]= End1[2];
+	HitEnd2s.at(i)[2]= End2[2];
 
-  WireLengths.at(i)=((HitEnd1s.at(i)-HitEnd2s.at(i)).Mag());
+	WireLengths.at(i)=((HitEnd1s.at(i)-HitEnd2s.at(i)).Mag());
       }
 
 
@@ -466,19 +464,19 @@ namespace trkf {
 
     for(int ipt=0; ipt!=fBezierResolution; ++ipt)
       {
-  iS=float(ipt)/fBezierResolution;
-  TVector3 trackpt = GetTrackPointV(iS);
+	iS=float(ipt)/fBezierResolution;
+	TVector3 trackpt = GetTrackPointV(iS);
 
-  for(size_t ihit=0; ihit!=NHits; ++ihit)
-    {
-      float d = ((trackpt-HitEnd1s.at(ihit)).Cross(trackpt-HitEnd2s.at(ihit))).Mag()/WireLengths.at(ihit);
+	for(size_t ihit=0; ihit!=NHits; ++ihit)
+	  {
+	    float d = ((trackpt-HitEnd1s.at(ihit)).Cross(trackpt-HitEnd2s.at(ihit))).Mag()/WireLengths.at(ihit);
 
-      if(d<Distances.at(ihit))
-        {
-    Distances.at(ihit)=d;
-    s.at(ihit)=iS;
-        }
-    }
+	    if(d<Distances.at(ihit))
+	      {
+		Distances.at(ihit)=d;
+		s.at(ihit)=iS;
+	      }
+	  }
       }
 
   }
@@ -500,32 +498,29 @@ namespace trkf {
 
     double xyzend1[3], xyzend2[3];
 
-    //double channel = hit->Channel();
-    //geo->ChannelToWire(channel,c1,t1,p1,w1);
-    //geo->WireEndPoints(c1,t1,p1,w1,xyzend1,xyzend2);
-	geo::WireID hitWireID = hit->WireID();
-	geo->WireEndPoints(hitWireID.Cryostat,hitWireID.TPC,hitWireID.Plane,hitWireID.Wire,xyzend1,xyzend2);
-
-	  xyzend1[0] = xyzend2[0] = det->ConvertTicksToX(hit->PeakTime(),hitWireID.Plane,hitWireID.TPC,hitWireID.Cryostat);
-
+    geo::WireID hitWireID = hit->WireID();
+    geo->WireEndPoints(hitWireID.Cryostat,hitWireID.TPC,hitWireID.Plane,hitWireID.Wire,xyzend1,xyzend2);
+    
+    xyzend1[0] = xyzend2[0] = det->ConvertTicksToX(hit->PeakTime(),hitWireID.Plane,hitWireID.TPC,hitWireID.Cryostat);
+    
     double iS, xyz[3], MinDistanceToPoint=10000, MinS=0;
 
     for(int i=0; i!=fBezierResolution; ++i)
       {
-  iS=float(i)/fBezierResolution;
-  GetTrackPoint(iS, xyz);
-  // calculate line to point distance in 3D
-  TVector3 end1(xyzend1[0],xyzend1[1],xyzend1[2]);
-  TVector3 end2(xyzend2[0],xyzend2[1],xyzend2[2]);
-  TVector3 trackpt(xyz[0],xyz[1],xyz[2]);
+	iS=float(i)/fBezierResolution;
+	GetTrackPoint(iS, xyz);
+	// calculate line to point distance in 3D
+	TVector3 end1(xyzend1[0],xyzend1[1],xyzend1[2]);
+	TVector3 end2(xyzend2[0],xyzend2[1],xyzend2[2]);
+	TVector3 trackpt(xyz[0],xyz[1],xyz[2]);
 
-  float d = ((trackpt-end1).Cross(trackpt-end2)).Mag()/(end2-end1).Mag();
+	float d = ((trackpt-end1).Cross(trackpt-end2)).Mag()/(end2-end1).Mag();
 
-  if(d<MinDistanceToPoint)
-    {
-      MinDistanceToPoint=d;
-      MinS=iS;
-    }
+	if(d<MinDistanceToPoint)
+	  {
+	    MinDistanceToPoint=d;
+	    MinS=iS;
+	  }
       }
 
     s = MinS;
@@ -550,31 +545,29 @@ namespace trkf {
 
     double xyzend1[3], xyzend2[3];
 
-	//double channel = hit->Channel();
-    //geo->ChannelToWire(channel,c1,t1,p1,w1);
-	geo::WireID hitWireID = hit->WireID();
+    geo::WireID hitWireID = hit->WireID();
     geo->WireEndPoints(hitWireID.Cryostat,hitWireID.TPC,hitWireID.Plane,hitWireID.Wire,xyzend1,xyzend2);
 
-	  xyzend1[0] = xyzend2[0] = det->ConvertTicksToX(hit->PeakTime(),hitWireID.Plane,hitWireID.TPC,hitWireID.Cryostat);
+    xyzend1[0] = xyzend2[0] = det->ConvertTicksToX(hit->PeakTime(),hitWireID.Plane,hitWireID.TPC,hitWireID.Cryostat);
 
     double iS, xyz[3], MinDistanceToPoint=10000, MinS=0;
 
     for(int i=0; i!=fBezierResolution; ++i)
       {
-  iS=float(i)/fBezierResolution;
-  GetTrackPoint(iS, xyz);
-  // calculate line to point distance in 3D
-  TVector3 end1(xyzend1[0],xyzend1[1],xyzend1[2]);
-  TVector3 end2(xyzend2[0],xyzend2[1],xyzend2[2]);
-  TVector3 trackpt(xyz[0],xyz[1],xyz[2]);
+	iS=float(i)/fBezierResolution;
+	GetTrackPoint(iS, xyz);
+	// calculate line to point distance in 3D
+	TVector3 end1(xyzend1[0],xyzend1[1],xyzend1[2]);
+	TVector3 end2(xyzend2[0],xyzend2[1],xyzend2[2]);
+	TVector3 trackpt(xyz[0],xyz[1],xyz[2]);
 
-  float d = ((trackpt-end1).Cross(trackpt-end2)).Mag()/(end2-end1).Mag();
+	float d = ((trackpt-end1).Cross(trackpt-end2)).Mag()/(end2-end1).Mag();
 
-  if(d<MinDistanceToPoint)
-    {
-      MinDistanceToPoint=d;
-      MinS=iS;
-    }
+	if(d<MinDistanceToPoint)
+	  {
+	    MinDistanceToPoint=d;
+	    MinS=iS;
+	  }
       }
 
     s = MinS;
@@ -606,21 +599,21 @@ namespace trkf {
     art::ServiceHandle<util::DetectorProperties> det;
     art::ServiceHandle<geo::Geometry>            geo;
 
-     double iS, xyz[3], MinDistanceToPoint=10000, MinS=0;
+    double iS, xyz[3], MinDistanceToPoint=10000, MinS=0;
 
     for(int i=0; i!=fBezierResolution; ++i)
       {
-  iS=float(i)/fBezierResolution;
-  GetTrackPoint(iS, xyz);
-  TVector3 trackpt(xyz[0],xyz[1],xyz[2]);
+	iS=float(i)/fBezierResolution;
+	GetTrackPoint(iS, xyz);
+	TVector3 trackpt(xyz[0],xyz[1],xyz[2]);
 
-  float d = (vec-trackpt).Mag();
+	float d = (vec-trackpt).Mag();
 
-  if(d<MinDistanceToPoint)
-    {
-      MinDistanceToPoint=d;
-      MinS=iS;
-    }
+	if(d<MinDistanceToPoint)
+	  {
+	    MinDistanceToPoint=d;
+	    MinS=iS;
+	  }
       }
 
     s = MinS;
@@ -641,26 +634,26 @@ namespace trkf {
 
     if((s<0.5/fBezierResolution)||(s>(1.-0.5/fBezierResolution)))
       {
-  if     (( s < 0.5 / fBezierResolution ) && ( s > -0.00001 ) )
-    s = 0.5 / fBezierResolution;
-  else if((s>(1.-0.5/fBezierResolution)) && ( s < 1.00001)) s = 1.-0.5/fBezierResolution;
-  else
-    throw cet::exception("BezierTrack error: s out of range")<<
-      " cannot query gradient within "<< 0.5/fBezierResolution<<
-      " of track end.  You asked for s = "<<s <<
-      ", which is out of range \n";
+	if     (( s < 0.5 / fBezierResolution ) && ( s > -0.00001 ) )
+	  s = 0.5 / fBezierResolution;
+	else if((s>(1.-0.5/fBezierResolution)) && ( s < 1.00001)) s = 1.-0.5/fBezierResolution;
+	else
+	  throw cet::exception("BezierTrack error: s out of range")<<
+	    " cannot query gradient within "<< 0.5/fBezierResolution<<
+	    " of track end.  You asked for s = "<<s <<
+	    ", which is out of range \n";
       }
     double xyz1[3], xyz2[3];
     GetTrackPoint(s - 0.5/fBezierResolution, xyz1);
     GetTrackPoint(s + 0.5/fBezierResolution, xyz2);
 
     double dx = pow(pow(xyz1[0]-xyz2[0],2)+
-        pow(xyz1[1]-xyz2[1],2)+
-        pow(xyz1[2]-xyz2[2],2),0.5);
+		    pow(xyz1[1]-xyz2[1],2)+
+		    pow(xyz1[2]-xyz2[2],2),0.5);
 
     for(int i=0; i!=3; ++i)
       {
-  xyz[i] = (xyz1[i]-xyz2[i])/dx;
+	xyz[i] = (xyz1[i]-xyz2[i])/dx;
       }
 
   }
@@ -699,10 +692,10 @@ namespace trkf {
   {
     if((s<1./fBezierResolution)||(s>(1.-1./fBezierResolution)))
       {
-  throw cet::exception("BezierTrack error: s out of range")<<
-    " cannot query curvature within "<< 1./fBezierResolution<<
-    " of track end.  You asked for s = "<<s <<
-    ", which is out of range \n";
+	throw cet::exception("BezierTrack error: s out of range")<<
+	  " cannot query curvature within "<< 1./fBezierResolution<<
+	  " of track end.  You asked for s = "<<s <<
+	  ", which is out of range \n";
       }
 
     TVector3 Pos1 = GetTrackPointV(s - 0.5/fBezierResolution);
@@ -725,7 +718,7 @@ namespace trkf {
     double RMS;
     for(int i=1; i!=(fBezierResolution-1); ++i)
       {
-  RMS += pow(GetCurvature( float(i)/fBezierResolution),2);
+	RMS += pow(GetCurvature( float(i)/fBezierResolution),2);
       }
     return (pow(RMS/(fBezierResolution-2),0.5));
   }
@@ -757,32 +750,32 @@ namespace trkf {
 
     for(size_t i=0; i!=Hits.size(); ++i)
       {
-  double Distance, S;
-  GetClosestApproach(Hits.at(i), S, Distance);
-  //  std::cout<<"hit " << i <<"  " <<  S << " " << WhichSegment(S) << " " << Hits.at(i)->View()<<std::endl;
+	double Distance, S;
+	GetClosestApproach(Hits.at(i), S, Distance);
+	//  std::cout<<"hit " << i <<"  " <<  S << " " << WhichSegment(S) << " " << Hits.at(i)->View()<<std::endl;
 
-  (hitmap[Hits.at(i)->View()])[WhichSegment(S)] += Hits.at(i)->Charge();
+	(hitmap[Hits.at(i)->View()])[WhichSegment(S)] += Hits.at(i)->Charge();
       }
 
     int NSeg = NSegments();
 
     for(std::map<int,std::map<int,double> >::const_iterator itview=hitmap.begin();
-  itview!=hitmap.end(); ++itview)
+	itview!=hitmap.end(); ++itview)
       {
-  std::vector<double> ThisViewdQdx;
-  ThisViewdQdx.resize(NSeg);
-  for(std::map<int,double>::const_iterator itseg=itview->second.begin();
-      itseg!=itview->second.end(); ++itseg)
-    {
-      //   std::cout << itview->first<<" " <<itseg->first << " " <<itseg->second<<std::endl;
-      int seg = itseg->first;
+	std::vector<double> ThisViewdQdx;
+	ThisViewdQdx.resize(NSeg);
+	for(std::map<int,double>::const_iterator itseg=itview->second.begin();
+	    itseg!=itview->second.end(); ++itseg)
+	  {
+	    //   std::cout << itview->first<<" " <<itseg->first << " " <<itseg->second<<std::endl;
+	    int seg = itseg->first;
 
-      // need to nudge hits which fell outside the track
+	    // need to nudge hits which fell outside the track
 
-      if((seg>-1) && (seg<NSeg))
-        ThisViewdQdx[seg] = (itseg->second / fSegmentLength[seg]);
-    }
-  fdQdx.push_back(ThisViewdQdx);
+	    if((seg>-1) && (seg<NSeg))
+	      ThisViewdQdx[seg] = (itseg->second / fSegmentLength[seg]);
+	  }
+	fdQdx.push_back(ThisViewdQdx);
       }
     std::cout<<"Size of dQdx structure :" <<fdQdx.size()<<" : ";
     for(size_t i=0; i!=fdQdx.size(); i++)
@@ -808,28 +801,28 @@ namespace trkf {
     for(size_t i=0; i!=Hits.size(); ++i)
       {
 
-  (hitmap[Hits.at(i)->View()])[WhichSegment(SValues.at(i))] += Hits.at(i)->Charge();
+	(hitmap[Hits.at(i)->View()])[WhichSegment(SValues.at(i))] += Hits.at(i)->Charge();
       }
 
     int NSeg = NSegments();
 
     for(std::map<int,std::map<int,double> >::const_iterator itview=hitmap.begin();
-  itview!=hitmap.end(); ++itview)
+	itview!=hitmap.end(); ++itview)
       {
-  std::vector<double> ThisViewdQdx;
-  ThisViewdQdx.resize(NSeg);
-  for(std::map<int,double>::const_iterator itseg=itview->second.begin();
-      itseg!=itview->second.end(); ++itseg)
-    {
-      //   std::cout << itview->first<<" " <<itseg->first << " " <<itseg->second<<std::endl;
-      int seg = itseg->first;
+	std::vector<double> ThisViewdQdx;
+	ThisViewdQdx.resize(NSeg);
+	for(std::map<int,double>::const_iterator itseg=itview->second.begin();
+	    itseg!=itview->second.end(); ++itseg)
+	  {
+	    //   std::cout << itview->first<<" " <<itseg->first << " " <<itseg->second<<std::endl;
+	    int seg = itseg->first;
 
-      // need to nudge hits which fell outside the track
+	    // need to nudge hits which fell outside the track
 
-      if((seg>-1) && (seg<NSeg))
-        ThisViewdQdx[seg] = (itseg->second / fSegmentLength[seg]);
-    }
-  fdQdx.push_back(ThisViewdQdx);
+	    if((seg>-1) && (seg<NSeg))
+	      ThisViewdQdx[seg] = (itseg->second / fSegmentLength[seg]);
+	  }
+	fdQdx.push_back(ThisViewdQdx);
       }
     std::cout<<"Size of dQdx structure :" <<fdQdx.size()<<" : ";
     for(size_t i=0; i!=fdQdx.size(); i++)
@@ -848,16 +841,16 @@ namespace trkf {
     view++;
     if((s<0)||(s>1))
       {
-  throw cet::exception("Bezier dQdx: S out of range")
-    <<"Bezier track S value of " << s <<" is not in the range 0<S<1"
-    <<std::endl;
+	throw cet::exception("Bezier dQdx: S out of range")
+	  <<"Bezier track S value of " << s <<" is not in the range 0<S<1"
+	  <<std::endl;
       }
     if((view<0)||view>(fdQdx.size()-1))
       {
-  throw cet::exception("Bezier dQdx: view out of range")
-    <<"Bezier track view value of " << view <<" is not in the range "
-    <<"of stored views, 0 < view < " << fdQdx.size()
-    <<std::endl;
+	throw cet::exception("Bezier dQdx: view out of range")
+	  <<"Bezier track view value of " << view <<" is not in the range "
+	  <<"of stored views, 0 < view < " << fdQdx.size()
+	  <<std::endl;
       }
     int Segment = WhichSegment(s);
     //    if((Segment>=fdQdx[view].size())||(Segment<0))
@@ -871,8 +864,8 @@ namespace trkf {
       return fdQdx[view][Segment];
     else
       {
-  std::cout<<"GetdQdx : Bad s  " <<s<<", " <<Segment<<std::endl;
-  return 0;
+	std::cout<<"GetdQdx : Bad s  " <<s<<", " <<Segment<<std::endl;
+	return 0;
       }
   }
 
@@ -886,17 +879,17 @@ namespace trkf {
     view++;
     if((view<0)||view>fdQdx.size()-1)
       {
-  throw cet::exception("view out of range")
-    <<"Bezier track view value of " << view <<" is not in the range "
-    <<"of stored views, 0 < view < " << fdQdx.size()
-    <<std::endl;
+	throw cet::exception("view out of range")
+	  <<"Bezier track view value of " << view <<" is not in the range "
+	  <<"of stored views, 0 < view < " << fdQdx.size()
+	  <<std::endl;
       }
 
     size_t NSeg = NSegments();
     double TotaldQdx;
     for(size_t i=0; i!=NSeg; ++i)
       {
-  TotaldQdx+=fdQdx.at(view).at(i)*fSegmentLength[i];
+	TotaldQdx+=fdQdx.at(view).at(i)*fSegmentLength[i];
       }
     return TotaldQdx / fTrackLength;
   }
@@ -923,9 +916,9 @@ namespace trkf {
     int ReturnVal=-1;
     for(size_t i=0; i!=fCumulativeLength.size()-1; i++)
       {
-  if( (fCumulativeLength.at(i)/fTrackLength <= s)
-      &&(fCumulativeLength.at(i+1)/fTrackLength >= s))
-    ReturnVal=i;
+	if( (fCumulativeLength.at(i)/fTrackLength <= s)
+	    &&(fCumulativeLength.at(i+1)/fTrackLength >= s))
+	  ReturnVal=i;
       }
     if( ( s<(fCumulativeLength.at(0)/fTrackLength)) && (s>-0.0001)) ReturnVal=0;
     return ReturnVal;
@@ -959,12 +952,12 @@ namespace trkf {
     std::vector<recob::SpacePoint> spts(N);
     for(int i=0; i!=N; ++i)
       {
-  double xyz[3];
-  double ErrXYZ[3]={0.1,0.1,0.1};
-  GetTrackPoint(float(i)/N,xyz);
-  recob::SpacePoint TheSP(xyz, ErrXYZ, util::kBogusD, i);
+	double xyz[3];
+	double ErrXYZ[3]={0.1,0.1,0.1};
+	GetTrackPoint(float(i)/N,xyz);
+	recob::SpacePoint TheSP(xyz, ErrXYZ, util::kBogusD, i);
 
-  spts[i] = TheSP;
+	spts[i] = TheSP;
 
       }
 
@@ -981,9 +974,9 @@ namespace trkf {
 
     if((dQdx.size()!=Other->fdQdx.size()))
       {
-  throw cet::exception("BezierTrack combination error ")<<
-    "Two vectors do not share the same dQdx vector size" <<
-    dQdx.size()<<", "<< Other->fdQdx.size()<<std::endl;
+	throw cet::exception("BezierTrack combination error ")<<
+	  "Two vectors do not share the same dQdx vector size" <<
+	  dQdx.size()<<", "<< Other->fdQdx.size()<<std::endl;
       }
 
     XYZ.insert(XYZ.end(), Other->fXYZ.begin(), Other->fXYZ.end());
@@ -1007,9 +1000,9 @@ namespace trkf {
 
     if((dQdx.size()!=Other->fdQdx.size()))
       {
-  throw cet::exception("BezierTrack combination error ")<<
-    "Two vectors do not share the same dQdx vector size" <<
-    dQdx.size()<<", "<< Other->fdQdx.size()<<std::endl;
+	throw cet::exception("BezierTrack combination error ")<<
+	  "Two vectors do not share the same dQdx vector size" <<
+	  dQdx.size()<<", "<< Other->fdQdx.size()<<std::endl;
       }
 
 

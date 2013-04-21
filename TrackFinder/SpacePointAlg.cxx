@@ -207,12 +207,6 @@ namespace  trkf{
     art::ServiceHandle<geo::Geometry> geom;
     art::ServiceHandle<util::DetectorProperties> detprop;
 
-    // Get tpc, plane.
-
-	//unsigned int channel = hit.Channel();
-    //unsigned int tpc, plane, wire, cstat;
-    //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
-
     // Correct time for trigger offset and plane-dependent time offsets.
 
     double t = hit.PeakTime() - detprop->GetXTicksOffset(hit.WireID().Plane,hit.WireID().TPC,hit.WireID().Cryostat);
@@ -258,12 +252,10 @@ namespace  trkf{
       // Get tpc, plane, wire.
 
       const recob::Hit& hit = *(hits[i]);
-      //unsigned int channel = hit.Channel();
-      //unsigned int tpc, plane, wire, cstat;
-	  const geo::WireGeo& wgeom = geom->WireIDToWireGeo(hit.WireID());
-	  cstats[i] = hit.WireID().Cryostat;
-	  tpcs[i] = hit.WireID().TPC;
-	  planes[i] = hit.WireID().Plane;
+      const geo::WireGeo& wgeom = geom->WireIDToWireGeo(hit.WireID());
+      cstats[i] = hit.WireID().Cryostat;
+      tpcs[i] = hit.WireID().TPC;
+      planes[i] = hit.WireID().Plane;
 
       // Check tpc and plane errors.
 
@@ -334,9 +326,6 @@ namespace  trkf{
       for(int ihit1 = 0; result && ihit1 < nhits-1; ++ihit1) {
 	const recob::Hit& hit1 = *(hits[ihit1]);
 	geo::WireID hit1WireID = hit1.WireID();
-	//unsigned int channel1 = hit1.Channel();
-	//unsigned int tpc1, plane1, wire1, cstat1;
-	//geom->ChannelToWire(channel1, cstat1, tpc1, plane1, wire1);
 	geo::View_t view1 = hit1.View();
 
 	double t1 = hit1.PeakTime() - detprop->GetXTicksOffset(hit1WireID.Plane,hit1WireID.TPC,hit1WireID.Cryostat);
@@ -353,9 +342,6 @@ namespace  trkf{
 
 	for(int ihit2 = ihit1+1; result && ihit2 < nhits; ++ihit2) {
 	  const recob::Hit& hit2 = *(hits[ihit2]);
-	  //unsigned int channel2 = hit2.Channel();
-	  //unsigned int tpc2, plane2, wire2, cstat2;
-	  //geom->ChannelToWire(channel2, cstat2, tpc2, plane2, wire2);
 	  geo::WireID hit2WireID = hit2.WireID();
 	  geo::View_t view2 = hit2.View();
 
@@ -430,8 +416,6 @@ namespace  trkf{
 	  const recob::Hit& hit = *(hits[i]);
 	  geo::WireID hitWireID = hit.WireID();
 		
-	  //unsigned int channel = hit.Channel();
-	  //unsigned int tpc0, plane, wire, cstat0;
 	  const geo::WireGeo& wgeom = geom->WireIDToWireGeo(hit.WireID());
 	  assert(hitWireID.TPC == tpc && hitWireID.Cryostat == cstat);
 
@@ -508,9 +492,6 @@ namespace  trkf{
 
       const recob::Hit& hit = **ihit;
       geo::WireID hitWireID = hit.WireID();
-      //unsigned int channel = hit.Channel();
-      //unsigned int tpc, plane, wire, cstat;
-      //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
 
       // Correct time for trigger offset and view-dependent time offsets.
 
@@ -560,8 +541,6 @@ namespace  trkf{
 
 	const recob::Hit& hit = **ihit;
 	geo::WireID hitWireID = hit.WireID();
-	//unsigned int channel = hit.Channel();
-	//unsigned int tpc, plane, wire, cstat;
 	const geo::WireGeo& wgeom = geom->WireIDToWireGeo(hit.WireID());
 
 	// Calculate angle and wire coordinate in this view.
@@ -631,12 +610,10 @@ namespace  trkf{
 
     unsigned int tpc0 = 0;
     unsigned int cstat0 = 0;
-	int nhits = hits.size();
+    int nhits = hits.size();
     if(nhits > 0) {
       tpc0 = hits.front()->WireID().TPC;
-	  cstat0=hits.front()->WireID().Cryostat;
-	  //unsigned int plane, wire;
-      //geom->ChannelToWire(channel, cstat0, tpc0, plane, wire);
+      cstat0=hits.front()->WireID().Cryostat;
     }
 
     // Remember associated hits internally.
@@ -656,9 +633,6 @@ namespace  trkf{
 
       const recob::Hit& hit = **ihit;
       geo::WireID hitWireID = hit.WireID();
-      //unsigned int channel = hit.Channel();
-      //unsigned int tpc, plane, wire, cstat;
-      //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
       assert(hitWireID.Cryostat == cstat0);
       assert(hitWireID.TPC == tpc0);
       assert(hitWireID.Plane < nplanes);
@@ -691,9 +665,6 @@ namespace  trkf{
 
       const recob::Hit& hit = **ihit;
       geo::WireID hitWireID = hit.WireID();
-      //unsigned int channel = hit.Channel();
-      //unsigned int tpc, plane, wire, cstat;
-      //geom->ChannelToWire(channel, cstat, tpc, plane, wire);
 
       // Correct time for trigger offset and view-dependent time offsets.
 
@@ -742,8 +713,6 @@ namespace  trkf{
 
 	const recob::Hit& hit = **ihit;
 	geo::WireID hitWireID = hit.WireID();
-	//unsigned int channel = hit.Channel();
-	//unsigned int tpc, plane, wire, cstat;
 	const geo::WireGeo& wgeom = geom->WireIDToWireGeo(hit.WireID());
 
 	// Calculate angle and wire coordinate in this view.
@@ -867,9 +836,6 @@ namespace  trkf{
 	 (view == geo::kZ && fEnableW)) {
       
 	geo::WireID phitWireID = phit->WireID();
-	//unsigned int channel = phit->Channel();
-	//unsigned int tpc, plane, wire, cstat;
-	//geom->ChannelToWire(channel, cstat, tpc, plane, wire);
 	hitmap[phitWireID.Cryostat][phitWireID.TPC][phitWireID.Plane].insert(std::make_pair(phitWireID.Wire, phit));
       }
     }
@@ -1066,12 +1032,7 @@ namespace  trkf{
 		geo::WireID phit1WireID = phit1->WireID();
 		const geo::WireGeo& wgeo = geom->WireIDToWireGeo(phit1WireID);
 
-	    //unsigned int channel1 = phit1->Channel();
-	      
 		// Get endpoint coordinates of this wire.
-	      
-		//unsigned int tpc1a, plane1a, wire1, cstat1a;
-		//const geo::WireGeo& wgeo = geom->ChannelToWire(channel1, cstat1a, tpc1a, plane1a, wire1);
 		assert(phit1WireID.Cryostat == cstat);
 		assert(phit1WireID.TPC == tpc);
 		assert(phit1WireID.Plane == plane1);
@@ -1195,15 +1156,11 @@ namespace  trkf{
 	  
 	    unsigned int wire1 = ihit1->first;
 	    const art::Ptr<recob::Hit>& phit1 = ihit1->second;
-		geo::WireID phit1WireID = phit1->WireID();
-		const geo::WireGeo& wgeo = geom->WireIDToWireGeo(phit1WireID);
+	    geo::WireID phit1WireID = phit1->WireID();
+	    const geo::WireGeo& wgeo = geom->WireIDToWireGeo(phit1WireID);
 
-	    //unsigned int channel1 = phit1->Channel();
-	  
 	    // Get endpoint coordinates of this wire from plane1.
 	  
-	    //unsigned int tpc1a, plane1a, wire1a, cstat1a;
-	    //const geo::WireGeo& wgeo = geom->ChannelToWire(channel1, cstat1a, tpc1a, plane1a, wire1a);
 	    assert(phit1WireID.Cryostat == cstat);
 	    assert(phit1WireID.TPC == tpc);
 	    assert(phit1WireID.Plane == plane1);
