@@ -8,6 +8,7 @@
 #ifndef ENDPOINTALG_H
 #define ENDPOINTALG_H
 
+#include "art/Framework/Principal/Event.h"
 #include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 

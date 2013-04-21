@@ -18,6 +18,7 @@
 #include "art/Framework/Services/Optional/TFileService.h"
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#include "art/Framework/Core/EDProducer.h"
 
 //LArSoft includes
 #include "Geometry/Geometry.h"
@@ -28,6 +29,7 @@
 #include "RecoBase/Hit.h"
 #include "Utilities/AssociationUtil.h"
 #include "Filters/ChannelFilter.h"
+#include "ClusterFinder/DBScanAlg.h"
 
 #include <fstream>
 #include <cstdlib>
@@ -36,8 +38,7 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
-#include "art/Framework/Core/EDProducer.h"
-#include "ClusterFinder/DBScanAlg.h"
+#include <iomanip>
 
 class TH1F;
 
