@@ -168,7 +168,7 @@ void cluster::CornerFinderAlg::TakeInRaw(//art::PtrVector<raw::RawDigit>	& rawhi
   
   
   // ### Declaring variables for Wires 
-  uint32_t channel = 0;    // channel number
+  //uint32_t channel = 0;    // channel number
   
   
   // #######################
@@ -177,14 +177,14 @@ void cluster::CornerFinderAlg::TakeInRaw(//art::PtrVector<raw::RawDigit>	& rawhi
   for (auto const& wires : WireObj) {
   
      // --- Setting Channel Number  ---
-     channel = wires->RawDigit()->Channel();
+     //channel = wires->RawDigit()->Channel();
      std::vector<float> signal(wires->Signal());
      
      // Loop over the planes 
-     for(int NPLANES = 0; NPLANES < nPlanes; NPLANES ++)
+     for(int NPLANES = 0; (unsigned) NPLANES < nPlanes; NPLANES ++)
      	{
 	
-	for(int nWires = 0; nWires < geom->Nwires(NPLANES) ; nWires++)
+	for(int nWires = 0; (unsigned) nWires < geom->Nwires(NPLANES) ; nWires++)
 	   {
 	     for(int time = 0; (unsigned) time < nTimeTicks; time++){
               RawData_histos[NPLANES]->SetBinContent(nWires,time,signal[time]);
@@ -427,7 +427,7 @@ void cluster::CornerFinderAlg::create_cornerScore_histogram(TH2F *h_derivative_x
   const int y_bins = h_derivative_y->GetNbinsY();
 
   const double noble_epsilon = 1e-5;
-  const double harris_kappa = 0.05;
+  //const double harris_kappa = 0.05;
   
   //the structure tensor elements
   float st_xx, st_xy, st_yy;
