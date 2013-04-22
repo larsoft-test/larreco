@@ -185,7 +185,7 @@ void trkf::SpacePts::produce(art::Event& evt)
       
     for (unsigned int j = 0; j<endpointlist.size();j++){
       if (endpointlist[j]->View() == cl->View()){
-	vtx2d_w = endpointlist[j]->WireNum();
+	vtx2d_w = endpointlist[j]->WireID().Wire;  //for update to EndPoint2D ... WK 4/22/13
 	vtx2d_t = endpointlist[j]->DriftTime();
 	found2dvtx = true;
 	break;
