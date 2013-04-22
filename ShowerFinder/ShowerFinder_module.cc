@@ -208,7 +208,7 @@ namespace shwf{
 	    mf::LogInfo("ShowerFinder") << "Number of STRONG vertices = " << vertSel.size();
 
 	    //get the coordinates of the vertex for the summit of the cone
-	    xa_cone = vertSel[ivert]->WireNum();
+	    xa_cone = vertSel[ivert]->WireID().Wire;   //for update to EndPoint2D ... WK 4/22/13
 	    ya_cone = vertSel[ivert]->DriftTime();
 
 	    mf::LogInfo("ShowerFinder") << "Vertex at: (" << xa_cone << ", " << ya_cone << ")";
@@ -247,7 +247,7 @@ namespace shwf{
 		for(size_t ihits = 0; ihits < clusterhits.size(); ++ihits){
 
 		  
-		  x_hit = clusterhits[ihits]->WireID().Wire;
+		  x_hit = clusterhits[ihits]->WireID().Wire;   //for update to EndPoint2D ... WK 4/22/13
 		  y_hit = clusterhits[ihits]->PeakTime();
 	      
 		  // Check in hits is INSIDE cone
