@@ -324,7 +324,7 @@ size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>            
 		  for(size_t vh = 0; vh < vHits.size(); ++vh) totalQ += vHits[vh]->Charge();
 
 		  recob::EndPoint2D endpoint(hit[hit_loc[wire][timebin]]->PeakTime(),
-					     wire,
+					     hit[hit_loc[wire][timebin]]->WireID(),
 					     Cornerness[wire][timebin],
 					     vtxcol.size(),
 					     view,
@@ -389,15 +389,15 @@ size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>            
 	  for(unsigned int ii = 0; ii < vtxcol.size(); ++ii){
 	    if(vtxcol[ii].View() == (unsigned int)view){
 	      pix = (int)(255);
-	      outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireNum()] = pix;
-	      outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireNum()-1] = pix;
-	      outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireNum()+1] = pix;
-	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireNum()] = pix;
-	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireNum()] = pix;
-	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireNum()-1] = pix;
-	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireNum()-2] = pix;
-	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireNum()+1] = pix;
-	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireNum()+2] = pix;
+	      outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireID().Wire] = pix;
+	      outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireID().Wire-1] = pix;
+	      outPix[(int)(vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))*numberwires + vtxcol[ii].WireID().Wire+1] = pix;
+	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireID().Wire] = pix;
+	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireID().Wire] = pix;
+	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireID().Wire-1] = pix;
+	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))-1)*numberwires + vtxcol[ii].WireID().Wire-2] = pix;
+	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireID().Wire+1] = pix;
+	      outPix[(int)((vtxcol[ii].DriftTime()*(fTimeBins/numbertimesamples))+1)*numberwires + vtxcol[ii].WireID().Wire+2] = pix;
 	    }
 	  }
 	  

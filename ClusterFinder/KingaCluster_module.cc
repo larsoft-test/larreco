@@ -238,10 +238,10 @@ namespace cluster{
     for (size_t j = 0; j < endpointlist.size(); ++j){
   
       ftime_vertex_reco.push_back(endpointlist[j]->DriftTime());
-      fwire_vertex_reco.push_back(endpointlist[j]->WireNum());
+      fwire_vertex_reco.push_back(endpointlist[j]->WireID().Wire);
             
       mf::LogInfo("KingaCluster") << "j=" << j 
-  				<< " vtx2d_w=" <<endpointlist[j]->WireNum()
+  				<< " vtx2d_w=" <<endpointlist[j]->WireID().Wire
   				<< " vtx2d_t=" <<endpointlist[j]->DriftTime();
             
     }

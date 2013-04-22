@@ -74,6 +74,8 @@ cluster::CornerFinderAlg::CornerFinderAlg(fhicl::ParameterSet const& pset)
 //-----------------------------------------------------------------------------
 cluster::CornerFinderAlg::~CornerFinderAlg()
 {
+  delete WireData_histos;
+  delete WireData_IDs;
 }
 
 //-----------------------------------------------------------------------------
@@ -96,107 +98,80 @@ void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
 
 
 //-----------------------------------------------------------------------------
-void cluster::CornerFinderAlg::TakeInRaw(//art::PtrVector<raw::RawDigit>	& rawhits,
-				         //art::PtrVector<recob::Wire>    & wires,
-					 art::Event				const&evt)
+void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
 
 {
   // Use the TFile service in art
   art::ServiceHandle<art::TFileService> tfs;
   
-  // Make a vector for the raw hits
-  art::PtrVector<raw::RawDigit> RawHits;
-  RawHits.clear();
-    
-  // Push the raw hits into the vector
-  art::Handle< std::vector<raw::RawDigit> >  rawdigitcol;
-  //evt.getByLabel(fRawDataModuleLabel,wirecol);
-  try{
-    evt.getByLabel(fRawDataModuleLabel, rawdigitcol);
-    for(unsigned int i = 0; i < rawdigitcol->size(); ++i){
-      art::Ptr<raw::RawDigit> rawdigit(rawdigitcol, i);
-      RawHits.push_back(rawdigit);
-    }
-  }
+  /* Get the list of wires.*/
+  art::PtrVector<recob::Wire> WireObj;
   
-    // Catch if things go badly
+  art::Handle< std::vector<recob::Wire> > wireVecHandle;
+  try{
+
+    evt.getByLabel(fCalDataModuleLabel,wireVecHandle);
+    
+    for(size_t wireIter = 0; wireIter < wireVecHandle->size(); wireIter++){
+      art::Ptr<recob::Wire> wire(wireVecHandle, wireIter);
+      WireObj.push_back(wire);
+      
+    }//<---End Looping over wires
+    
+  }//<---End try
+
+  // Catch if things go badly
   catch(cet::exception& excep){
-   std::cout<<"Bail out!"<<std::endl;;
+    std::cout<<"Bail out!"<<std::endl;;
   }
   
   // Getting the bins for the histograms in terms of number of wires and number of time ticks
   art::ServiceHandle<geo::Geometry> geom;
   const unsigned int nPlanes = geom->Nplanes();
-  const unsigned int nTimeTicks = (RawHits.at(0))->Samples();
-  
+  const unsigned int nTimeTicks = (WireObj.at(0))->NSignal();
 
-  // ##########################################
-  // ### Reading in the Wire List object(s) ###
-  // ##########################################
   
-  art::PtrVector<recob::Wire> WireObj;
-  
-  art::Handle< std::vector<recob::Wire> > wireVecHandle;
-  try{
-  evt.getByLabel(fCalDataModuleLabel,wireVecHandle);
-  
-  //########################################################
-  //### Looping over the wires and pushing into a vector ###
-  //########################################################
-  for(size_t wireIter = 0; wireIter < wireVecHandle->size(); wireIter++){
-    art::Ptr<recob::Wire> wire(wireVecHandle, wireIter);
-    WireObj.push_back(wire);
+  // Creating the histograms
+  WireData_histos = new TH2F*[nPlanes];
+  for (uint i_plane=0; i_plane < nPlanes; i_plane++){
     
-    }//<---End Looping over wires
-  
-  }//<---End try
-  
-  
-  
-  
-  // Catch if things go badly
-  catch(cet::exception& excep){
-   std::cout<<"Bail out!"<<std::endl;;
+    std::stringstream ss_tmp_name,ss_tmp_title;
+    ss_tmp_name << "h_WireData_" << i_plane;
+    ss_tmp_title << fCalDataModuleLabel << " wire data for plane " << i_plane << ";Wire Number;Time Tick";
+    WireData_histos[i_plane] = tfs->make<TH2F>(ss_tmp_name.str().c_str(),ss_tmp_title.str().c_str(),
+					       geom->Nwires(i_plane),0,geom->Nwires(i_plane),nTimeTicks,0,nTimeTicks);
+
   }
   
-  // Initializing the histograms
   
-  /// \ todo: Add in a loop over planes to fill this correctly
-  RawData_histos[0] = tfs->make<TH2F>("RawData_Plane_0","Raw Data for plane 0",geom->Nwires(0),0,geom->Nwires(0),nTimeTicks,0,nTimeTicks);
-  RawData_histos[1] = tfs->make<TH2F>("RawData_Plane_1","Raw Data for plane 1",geom->Nwires(1),0,geom->Nwires(1),nTimeTicks,0,nTimeTicks);
-  RawData_histos[2] = tfs->make<TH2F>("RawData_Plane_2","Raw Data for plane 2",geom->Nwires(2),0,geom->Nwires(2),nTimeTicks,0,nTimeTicks);
+  /* For now, we need something to associate each wire in the histogram with a wire_id.
+     This is not a beautiful way of handling this, but for now it should work. */
+  WireData_IDs = new geo::WireID*[nPlanes];
+  for(uint i_plane=0; i_plane < nPlanes; i_plane++)
+    WireData_IDs[i_plane] = new geo::WireID[geom->Nwires(i_plane)];
   
-  
-  // ### Declaring variables for Wires 
-  //uint32_t channel = 0;    // channel number
-  
-  
-  // #######################
-  // ### Loop over Wires ###
-  // #######################
-  for (auto const& wires : WireObj) {
-  
-     // --- Setting Channel Number  ---
-     //channel = wires->RawDigit()->Channel();
-     std::vector<float> signal(wires->Signal());
-     
-     // Loop over the planes 
-     for(int NPLANES = 0; (unsigned) NPLANES < nPlanes; NPLANES ++)
-     	{
-	
-	for(int nWires = 0; (unsigned) nWires < geom->Nwires(NPLANES) ; nWires++)
-	   {
-	     for(int time = 0; (unsigned) time < nTimeTicks; time++){
-              RawData_histos[NPLANES]->SetBinContent(nWires,time,signal[time]);
-	   
-	      }//<---End time loop
-  
-           }//<---End NWires
-	}//<---End loop over planes
-  
+  /* Now do the loop over the wires. */
+  for (auto const& wire : WireObj) {
+    
+    
+    std::vector<geo::WireID> possible_wireIDs = geom->ChannelToWire(wire->Channel());
+    geo::WireID this_wireID;
+    try { this_wireID = possible_wireIDs.at(0);}
+    catch(cet::exception& excep) { std::cout << "Bail out! No Possible Wires!"<< std::endl; }
+    
+    uint i_plane = this_wireID.Plane;
+    uint i_wire = this_wireID.Wire;
+
+    WireData_IDs[i_plane][i_wire] = this_wireID;
+    
+    std::vector<float> signal(wire->Signal());
+    for(uint i_time = 0; i_time < nTimeTicks; i_time++){
+      WireData_histos[i_plane]->SetBinContent(i_wire,i_time,signal[i_time]);  
+    }//<---End time loop
+    
   }//<-- End loop over wires
-   
- 
+  
+  
 }//<---End TakeInRaw
 
 
@@ -212,9 +187,9 @@ std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points(){
   art::ServiceHandle<geo::Geometry> geom;
   const unsigned int nPlanes = geom->Nplanes();
 
-  for(int i=0; (unsigned) i < nPlanes; i++){
+  for(uint i=0; i < nPlanes; i++){
     geo::PlaneGeo pg = geom->Plane(nPlanes);
-    attach_feature_points(RawData_histos[i],pg.View(),corner_vector);
+    attach_feature_points(WireData_histos[i],WireData_IDs[i],pg.View(),corner_vector);
   }
 
   return corner_vector;
@@ -232,7 +207,7 @@ std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points_Line
 
   for(int i=0; (unsigned) i < nPlanes; i++){
     geo::PlaneGeo pg = geom->Plane(nPlanes);
-    attach_feature_points_LineIntegralScore(RawData_histos[i],pg.View(),corner_vector);
+    attach_feature_points_LineIntegralScore(WireData_histos[i],WireData_IDs[i],pg.View(),corner_vector);
   }
 
   return corner_vector;
@@ -246,7 +221,8 @@ std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points_Line
 
 //-----------------------------------------------------------------------------
 // This puts on all the feature points in a given view, using a given data histogram
-void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data, geo::View_t view, std::vector<recob::EndPoint2D> & corner_vector){
+void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data, geo::WireID *wireIDs, geo::View_t view, 
+						     std::vector<recob::EndPoint2D> & corner_vector){
 
   // Use the TFile service in art
   art::ServiceHandle<art::TFileService> tfs;
@@ -287,13 +263,14 @@ void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data, geo::Vie
   create_image_histo(h_wire_data,h_conversion);  
   create_derivative_histograms(h_conversion,h_derivative_x,h_derivative_y);
   create_cornerScore_histogram(h_derivative_x,h_derivative_y,h_cornerScore);
-  perform_maximum_suppression(h_cornerScore,corner_vector,view,h_maxSuppress);
+  perform_maximum_suppression(h_cornerScore,corner_vector,wireIDs,view,h_maxSuppress);
 
 }
 
 //-----------------------------------------------------------------------------
 // This puts on all the feature points in a given view, using a given data histogram
-void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_wire_data, geo::View_t view, std::vector<recob::EndPoint2D> & corner_vector){
+void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_wire_data, geo::WireID *wireIDs, geo::View_t view, 
+								       std::vector<recob::EndPoint2D> & corner_vector){
 
   // Use the TFile service in art
   art::ServiceHandle<art::TFileService> tfs;
@@ -336,7 +313,7 @@ void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_w
   create_cornerScore_histogram(h_derivative_x,h_derivative_y,h_cornerScore);
 
   std::vector<recob::EndPoint2D> corner_vector_tmp;
-  perform_maximum_suppression(h_cornerScore,corner_vector_tmp,view,h_maxSuppress);
+  perform_maximum_suppression(h_cornerScore,corner_vector_tmp,wireIDs,view,h_maxSuppress);
 
   std::stringstream LI_name; conversion_name << "h_lineIntegralScore_" << view;
   TH2F *h_lineIntegralScore =  tfs->make<TH2F>((LI_name.str()).c_str(),"Line Integral Score",
@@ -474,9 +451,10 @@ void cluster::CornerFinderAlg::create_cornerScore_histogram(TH2F *h_derivative_x
 //-----------------------------------------------------------------------------
 // Max Supress
 size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore, 
-				   std::vector<recob::EndPoint2D> & corner_vector,
-				   geo::View_t view, 
-				   TH2D *h_maxSuppress=NULL){
+							     std::vector<recob::EndPoint2D> & corner_vector,
+							     geo::WireID *wireIDs, 
+							     geo::View_t view, 
+							     TH2D *h_maxSuppress=NULL){
 
   const int x_bins = h_cornerScore->GetNbinsX();
   const int y_bins = h_cornerScore->GetNbinsY();
@@ -512,11 +490,11 @@ size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore
 	double totalQ = 0;
 	int id = 0;
 	recob::EndPoint2D corner(time_tick,
-			     wire_number,
-			     h_cornerScore->GetBinContent(ix,iy),
-			     id,
-			     view,
-			     totalQ);
+				 wireIDs[wire_number],
+				 h_cornerScore->GetBinContent(ix,iy),
+				 id,
+				 view,
+				 totalQ);
 	corner_vector.push_back(corner);
 
 	if(h_maxSuppress)
@@ -617,8 +595,8 @@ size_t cluster::CornerFinderAlg::calculate_line_integral_score( TH2F* h_wire_dat
 
 
       if( line_integral(h_wire_data,
-			i_corner.WireNum(),i_corner.DriftTime(),
-			j_corner.WireNum(),j_corner.DriftTime(),
+			i_corner.WireID().Wire,i_corner.DriftTime(),
+			j_corner.WireID().Wire,j_corner.DriftTime(),
 			fIntegral_bin_threshold) > fIntegral_fraction_threshold)
 	{
 	  score+=1.;
@@ -627,7 +605,7 @@ size_t cluster::CornerFinderAlg::calculate_line_integral_score( TH2F* h_wire_dat
     }
 
     recob::EndPoint2D corner(i_corner.DriftTime(),
-			     i_corner.WireNum(),
+			     i_corner.WireID(),
 			     score,
 			     i_corner.ID(),
 			     i_corner.View(),
@@ -636,7 +614,7 @@ size_t cluster::CornerFinderAlg::calculate_line_integral_score( TH2F* h_wire_dat
     corner_lineIntegralScore_vector.push_back(corner);
     
 
-    h_lineIntegralScore->SetBinContent(h_wire_data->GetXaxis()->FindBin(i_corner.WireNum()),
+    h_lineIntegralScore->SetBinContent(h_wire_data->GetXaxis()->FindBin(i_corner.WireID().Wire),
 				       h_wire_data->GetYaxis()->FindBin(i_corner.DriftTime()),
 				       score);
     

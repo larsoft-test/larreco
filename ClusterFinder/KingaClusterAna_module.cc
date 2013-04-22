@@ -549,14 +549,14 @@ namespace cluster{
     for (size_t j = 0; j < endpointlist.size(); ++j){
   
       mf::LogInfo("KingaClusterAna") << "j=" << j 
-  				   << " W_VERTEX_RECO "   << endpointlist[j]->WireNum()
+  				   << " W_VERTEX_RECO "   << endpointlist[j]->WireID().Wire
   				   << " T_VERTEX_RECO = " << endpointlist[j]->DriftTime();
             
-      fTTree_wire_vertex_reco[j]=endpointlist[j]->WireNum();
+      fTTree_wire_vertex_reco[j]=endpointlist[j]->WireID().Wire;
       fTTree_time_vertex_reco[j]=endpointlist[j]->DriftTime();
         
       ftime_vertex_reco.push_back(endpointlist[j]->DriftTime());
-      fwire_vertex_reco.push_back(endpointlist[j]->WireNum());
+      fwire_vertex_reco.push_back(endpointlist[j]->WireID().Wire);
         
     }
     

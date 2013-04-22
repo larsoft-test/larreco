@@ -30,23 +30,11 @@ namespace cluster { //<---Not sure if this is the right namespace
 
     void   reconfigure(fhicl::ParameterSet const& pset);
     
-    /// \ put the output of the algorithm here
-    /// \ for now I am putting the example of EndPoint
-    /// \ but this is wrong and should be changed
+
+    void TakeInRaw( art::Event const&evt); //this one creates the histograms we want to use
     
-//    size_t EndPoint(art::PtrVector<recob::Cluster>                 & clusIn, 
-//		    std::vector<recob::EndPoint2D>                 & vtxcol,
-//		    std::vector< art::PtrVector<recob::Hit> >      & vtxHitsOut,
-//		    art::Event                                const& evt,
-//		    std::string                               const& label);
-
-
-
-    void TakeInRaw(//art::PtrVector<raw::RawDigit>	        & rawhits,
-                   //art::PtrVector<recob::Wire>    & wires,
-		   art::Event				const&evt);    
-    std::vector<recob::EndPoint2D> get_feature_points();
-    std::vector<recob::EndPoint2D> get_feature_points_LineIntegralScore();
+    std::vector<recob::EndPoint2D> get_feature_points(); //here we get feature points with corner score
+    std::vector<recob::EndPoint2D> get_feature_points_LineIntegralScore(); //here we get feature points with LineIntegral score
 
     
 
@@ -74,16 +62,18 @@ namespace cluster { //<---Not sure if this is the right namespace
     float          fIntegral_fraction_threshold;
     
     // Making a vector of histograms
-    TH2F* RawData_histos[3];
+    TH2F** WireData_histos;
+    geo::WireID** WireData_IDs;
     
      
     void create_image_histo(TH2F *h_wire_data, TH2F *h_conversion);
     void create_derivative_histograms(TH2F *h_conversion, TH2F *h_derivative_x, TH2F *h_derivative_y);
     void create_cornerScore_histogram(TH2F *h_derivative_x, TH2F *h_derivative_y, TH2D *h_cornerScore);
     size_t perform_maximum_suppression(TH2D *h_cornerScore, 
-				   std::vector<recob::EndPoint2D> & corner_vector,
-				   geo::View_t view, 
-				   TH2D *h_maxSuppress);
+				       std::vector<recob::EndPoint2D> & corner_vector,
+				       geo::WireID *wireIDs, 
+				       geo::View_t view,
+				       TH2D *h_maxSuppress);
 				   
     float line_integral(TH2F *hist, int x1, float y1, int x2, float y2, float threshold);				   
     
@@ -93,14 +83,16 @@ namespace cluster { //<---Not sure if this is the right namespace
 					  TH2F* h_lineIntegralScore);
 
     void attach_feature_points(TH2F *h_wire_data, 
-			       geo::View_t view, 
+			       geo::WireID *wireIDs, 
+			       geo::View_t view,
 			       std::vector<recob::EndPoint2D>&);
     void attach_feature_points_LineIntegralScore(TH2F *h_wire_data, 
-						 geo::View_t view, 
+						 geo::WireID *wireIDs, 
+						 geo::View_t view,
 						 std::vector<recob::EndPoint2D>&);
     
 
-     };//<---End of class CornerFinderAlg
+   };//<---End of class CornerFinderAlg
 
 
 }
