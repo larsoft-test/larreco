@@ -153,6 +153,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
 
   uint32_t channel = 0;
   unsigned int plane,wire,tpc,cstat;
+  geo::WireID wireID;
   double slope,intercept,distance;
   double starttime, endtime;
   int startwire, endwire;
@@ -211,6 +212,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	    tpc   = houghhit[0]->WireID().TPC;
 	    plane = houghhit[0]->WireID().Plane;
 	    wire  = houghhit[0]->WireID().Wire;
+	    wireID = houghhit[0]->WireID(); //for update to EndPoint2D ... WK 4/22/13
 	  }
 	  if(p==plane && t == tpc && cs == cstat){
 	    slope=(*houghIter)->dTdW();
@@ -219,6 +221,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	      
 	      distance=-1;
 	      wire  = vertexhit[i]->WireID().Wire;
+	      wireID = vertexhit[i]->WireID(); //for update to EndPoint2D ... WK 4/22/13
 	      
 	      starttime=(*houghIter)->StartPos()[1];
 	      endtime=(*houghIter)->EndPos()[1];
@@ -308,7 +311,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
 	  for(size_t h = 0; h < strongvertex.size(); ++h) totalQ += strongvertex[h]->Charge();
 
 	  recob::EndPoint2D vertex((matchedvertex[i].first)->PeakTime(),
-				   wire,
+				   wireID,
 				   strongvertexstrength[i],   
 				   id,
 				   geom->View(channel),

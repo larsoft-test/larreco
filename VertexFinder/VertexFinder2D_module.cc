@@ -356,8 +356,10 @@ namespace vertex{
 	    double totalQ = 0.;
 	    for(size_t h = 0; h < hits.size(); ++h) totalQ += hits[h]->Charge();
 
+	    geo::WireID wireID(cstat,tpc,i,(uint)vtx_w.back());  //for update to EndPoint2D ... WK 4/22/13
+
 	    recob::EndPoint2D vertex(vtx_t.back(),
-				     int(vtx_w.back()),
+				     wireID, //for update to EndPoint2D ... WK 4/22/13
 				     1,
 				     epcol->size(),
 				     clusters[Cls[i][0]]->View(),

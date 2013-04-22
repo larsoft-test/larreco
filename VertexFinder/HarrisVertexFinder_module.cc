@@ -320,7 +320,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 		  for(size_t vh = 0; vh < vHits.size(); ++vh) totalQ += vHits[vh]->Charge();
 
 		  recob::EndPoint2D vertex(hit[hit_loc[wire][timebin]]->PeakTime(),
-					   wire,
+					   hit[hit_loc[wire][timebin]]->WireID(),  //for update to EndPoint2D ... WK 4/22/13
 					   Cornerness[wire][timebin],
 					   vtxcol->size(),
 					   view,
