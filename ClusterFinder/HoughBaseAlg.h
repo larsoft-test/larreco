@@ -23,34 +23,34 @@ namespace recob {
 
     struct lineSlope
     {
-      unsigned int clusterNumber;
-      unsigned int oldClusterNumber;
-      double clusterSlope;
-      double clusterIntercept;
-      double pMin0;
-      double pMin1;
-      double pMax0;
-      double pMax1;
-      double iMinWire;
-      double iMaxWire;
-      double minWire;
-      double maxWire;
-      double isolation;
-      double showerLikeness;
-      bool merged;
+      unsigned int clusterNumber=999999;
+      unsigned int oldClusterNumber=999999;
+      double clusterSlope=999999;
+      double clusterIntercept=999999;
+      double pMin0=999999;
+      double pMin1=999999;
+      double pMax0=-999999;
+      double pMax1=-999999;
+      double iMinWire=999999;
+      double iMaxWire=-999999;
+      double minWire=999999;
+      double maxWire=-999999;
+      double isolation=-999999;
+      double showerLikeness=-999999;
+      bool merged=false;
       std::vector<std::pair<double,double> > pHit;
       std::vector<std::pair<double,double> > pHitChargeSigma;
-      lineSlope(unsigned int num, 
-          double slope, 
-          double intercept, 
-          double Min0, 
-          double Min1, 
-          double Max0, 
-          double Max1,
-          int    wireMin,
-          int    wireMax,
-          std::vector<std::pair<double,double> > pHitTemp,
-          std::vector<std::pair<double,double> > pHitChargeSigmaTemp
+      lineSlope(unsigned int num=999999, 
+          double slope=999999, 
+          double intercept=999999, 
+          double Min0=999999, 
+          double Min1=999999, 
+          double Max0=-999999, 
+          double Max1=-999999,
+          int    wireMin=999999,
+          int    wireMax=-999999,
+          std::vector<std::pair<double,double> > pHitTemp=NULL,
+          std::vector<std::pair<double,double> > pHitChargeSigmaTemp=NULL
           )
       {
         clusterNumber = num;
