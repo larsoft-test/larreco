@@ -15,8 +15,8 @@ standard_houghbasealg:
   MissedHits:               1    # Was set to 0
   DoFuzzyRemnantMerge:      1    # Tell the algorithm to merge fuzzy cluster remnants into showers or tracks (0-off, 1-on)
   DoHoughLineMerge:         1    # Turns on Hough line merging (0-off, 1-on)
-  HoughLineMergeAngle:      10   # The maximum angle between slopes of Hough lines to be merged,
-  HoughLineMergeCutoff:     10   # The maximum distance between Hough line endpoints before they can be merged,
+  HoughLineMergeAngle:      5    # The maximum angle between slopes of Hough lines to be merged,
+  HoughLineMergeCutoff:     5    # The maximum distance between Hough line endpoints before they can be merged,
   DoShowerHoughLineMerge:     1  # Turns on parallel Hough line merging (0-off, 1-on)
   ShowerHoughLineMergeAngle: 90  # The maximum angle between slopes of Hough lines to be merged,
   ShowerHoughLineMergeCutoff: 10 # The maximum distance between Hough line endpoints before they can be merged,
@@ -148,8 +148,6 @@ microboone_houghbasealg.MaxDistance:          1.0
 microboone_houghbasealg.MinHits:              5
 microboone_houghbasealg.NumAngleCells:        20000
 microboone_houghbasealg.DoHoughLineMerge:     1
-microboone_houghbasealg.HoughLineMergeAngle:  15
-microboone_houghbasealg.HoughLineMergeCutoff: 5
 microboone_fuzzyclusteralg:                   @local::standard_fuzzyclusteralg 
 microboone_fuzzyclusteralg.HoughBaseAlg:      @local::microboone_houghbasealg 
 microboone_cornerfinderalg:		      @local::standard_cornerfinderalg
