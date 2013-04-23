@@ -536,10 +536,10 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
 
   
   // Loop over clusters with the Hough line finder to break the clusters up further
-  //if(nClustersTemp > 0)
-    //for (unsigned int i = 0; i <= (unsigned int)nClustersTemp-1; i++){
-      //fHBAlg.Transform(allhits, &fpointId_to_clusterId, i, &nClusters, corners);
-    //}
+  if(nClustersTemp > 0)
+    for (unsigned int i = 0; i <= (unsigned int)nClustersTemp-1; i++){
+      fHBAlg.Transform(allhits, &fpointId_to_clusterId, i, &nClusters, corners);
+    }
   cid = nClusters;
   
   mf::LogInfo("fuzzyCluster") << "cid: " << cid ;
