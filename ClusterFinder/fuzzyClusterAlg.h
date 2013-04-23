@@ -15,6 +15,7 @@
 #include "ClusterFinder/HoughBaseAlg.h"
 
 #include "TMatrixD.h"
+#include "TVectorD.h"
 
 
 class TH1F;
