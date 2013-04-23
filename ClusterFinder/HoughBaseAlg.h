@@ -33,6 +33,8 @@ namespace recob {
       double pMax1;
       double iMinWire;
       double iMaxWire;
+      double minWire;
+      double maxWire;
       double isolation;
       double showerLikeness;
       bool merged;
@@ -186,7 +188,6 @@ namespace cluster {
     double fHoughLineMergeCutoff;          ///< Max distance between Hough lines before two lines are merged (muon tracks), 
                                            ///< only for fuzzy clustering
     double fShowerHoughLineMergeCutoff;    ///< Max distance between Hough lines before two lines are merged (electron showers),
-                                           ///< they are generally farther apart from each other, only for fuzzy clustering
     double fWideHoughLineMergeCutoff;      ///< Max distance between Hough lines before two lines are merged (electron showers),
                                            ///< they are generally farther apart from each other, only for fuzzy clustering
     double fChargeAsymmetryCut;            ///< Cut on the asymmetry from the average charge of the four hits from each line closest to each other
@@ -196,7 +197,7 @@ namespace cluster {
 
     void mergeHoughLinesBySegment(unsigned int k,
         std::vector<lineSlope> *linesFound, 
-        double xyScale,
+        double tickToDist,
         int mergeStyle);
 
     //std::vector<lineSlope> linesFound;
