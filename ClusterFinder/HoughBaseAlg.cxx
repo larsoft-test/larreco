@@ -1003,12 +1003,12 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
       double chargeAsymmetry = std::abs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
       double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
 
-      std::cout << "toMergeAveCharge: " << toMergeAveCharge << std::endl;
-      std::cout << "clusIndexStartAveCharge: " << clusIndexStartAveCharge << std::endl;
-      std::cout << "toMergeAveSigmaCharge: " << toMergeAveSigmaCharge << std::endl;
-      std::cout << "clusIndexStartAveSigmaCharge: " << clusIndexStartAveSigmaCharge << std::endl;
-      std::cout << "charge asymmetry: " << chargeAsymmetry << std::endl;
-      std::cout << "sigma charge asymmetry: " << sigmaChargeAsymmetry << std::endl;
+      //std::cout << "toMergeAveCharge: " << toMergeAveCharge << std::endl;
+      //std::cout << "clusIndexStartAveCharge: " << clusIndexStartAveCharge << std::endl;
+      //std::cout << "toMergeAveSigmaCharge: " << toMergeAveSigmaCharge << std::endl;
+      //std::cout << "clusIndexStartAveSigmaCharge: " << clusIndexStartAveSigmaCharge << std::endl;
+      //std::cout << "charge asymmetry: " << chargeAsymmetry << std::endl;
+      //std::cout << "sigma charge asymmetry: " << sigmaChargeAsymmetry << std::endl;
 
       //if(chargeAsymmetry > fChargeAsymmetryCut &&
           //mergeStyle == iMergeNormal)
@@ -1037,10 +1037,10 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
 
       // Check if both lines is in region that looks showerlike
       // Or merge if the distance between the lines is zero and one looks showerlike
-      double segmentDistance = HoughLineDistance(linesFound->at(clusIndexStart).pMin0,linesFound->at(clusIndexStart).pMin1,
-                                                 linesFound->at(clusIndexStart).pMax0,linesFound->at(clusIndexStart).pMax1, 
-						 linesFound->at(*toMergeItr).pMin0,linesFound->at(*toMergeItr).pMin1,
-                                                 linesFound->at(*toMergeItr).pMax0,linesFound->at(*toMergeItr).pMax1);
+      //double segmentDistance = HoughLineDistance(linesFound->at(clusIndexStart).pMin0,linesFound->at(clusIndexStart).pMin1,
+                                                 //linesFound->at(clusIndexStart).pMax0,linesFound->at(clusIndexStart).pMax1, 
+						 //linesFound->at(*toMergeItr).pMin0,linesFound->at(*toMergeItr).pMin1,
+                                                 //linesFound->at(*toMergeItr).pMax0,linesFound->at(*toMergeItr).pMax1);
       //std::cout << "segmentDistance: " << segmentDistance << std::endl;
       //std::cout << linesFound->at(*toMergeItr).showerLikeness << " " << linesFound->at(clusIndexStart).showerLikeness << std::endl;
       if(mergeStyle == iMergeShower){
