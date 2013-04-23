@@ -580,6 +580,45 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     linesFoundItr->isolation = background/linesFoundItr->pHit.size();
   }/// end loop over lines found
 
+
+
+
+
+  ///// Loop over hits to get a rough primary vertex
+  //double wireVertex = 0;
+  //double timeVertex = 0;
+  //double interceptCount = 0;
+  //for(auto linesFoundItr = linesFound.begin(); linesFoundItr < linesFound.end()-1; linesFoundItr++){
+    //std::cout << std::endl << "line 1 " << linesFoundItr->clusterSlope << " " << linesFoundItr->clusterIntercept << std::endl;
+    //for(auto linesFoundItr2 = linesFoundItr+1; linesFoundItr2 < linesFound.end(); linesFoundItr2++){
+      ////double weight = std::min(linesFoundItr->pHit.size(),linesFoundItr2->pHit.size());
+      //double angle = atan(std::abs((linesFoundItr->clusterSlope - linesFoundItr2->clusterSlope)/(1 + linesFoundItr->clusterSlope*linesFoundItr2->clusterSlope)));
+      ////double weight = 1-pow(cos(angle),2);
+      //double weight = (1-pow(cos(angle),2))*std::min(linesFoundItr->pHit.size(),linesFoundItr2->pHit.size());
+      //std::cout << "angle: " << angle << " weight: " << weight << std::endl;
+      //std::cout << "line 2 " << linesFoundItr2->clusterSlope << " " << linesFoundItr2->clusterIntercept  << std::endl;
+      //interceptCount+=weight;
+      //std::cout << "interceptCount: " << interceptCount << std::endl;
+      ////y = mx + b
+      ////y = m2x+b2
+      ////b - b2 = (m2 - m)x
+      //wireVertex+=(linesFoundItr->clusterIntercept-linesFoundItr2->clusterIntercept)/(linesFoundItr2->clusterSlope-linesFoundItr->clusterSlope)*weight;
+      //timeVertex+=(linesFoundItr->clusterSlope*(linesFoundItr->clusterIntercept-linesFoundItr2->clusterIntercept)/(linesFoundItr2->clusterSlope-linesFoundItr->clusterSlope) + linesFoundItr->clusterIntercept)*weight;
+      //std::cout << (linesFoundItr->clusterIntercept-linesFoundItr2->clusterIntercept)/(linesFoundItr2->clusterSlope-linesFoundItr->clusterSlope) << " " << (linesFoundItr->clusterSlope*(linesFoundItr->clusterIntercept-linesFoundItr2->clusterIntercept)/(linesFoundItr2->clusterSlope-linesFoundItr->clusterSlope) + linesFoundItr->clusterIntercept) << std::endl;
+    //}
+  //}
+  //std::cout << "interceptCount: " << interceptCount << std::endl;
+  //wireVertex/=interceptCount;
+  //timeVertex/=interceptCount;
+  //std::cout << "Cheap vertex is: " << wireVertex << " " << timeVertex << std::endl;
+
+
+
+
+
+
+
+
   /// Do a merge based on distances between line segments instead of endpoints
   if(fDoShowerHoughLineMerge)     mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeShower);
   if(fDoWideHoughLineMerge)       mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeWide);
