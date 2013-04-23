@@ -434,8 +434,8 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
       for ( int j = 0; j < k; j++)
         fXieBeniNumer += Uji_m(j,l)*mNormOneXiMinusCj(l,j);
 
-    std::cout << "centroids!" << std::endl;
-    fpsCentroids.Print();
+    //std::cout << "centroids!" << std::endl;
+    //fpsCentroids.Print();
     //fpsMembership.Print();
 
     // Continue with denominator
@@ -510,7 +510,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   //unsigned int cid = 2;
 
   //mf::LogInfo("fuzzyCluster") << iMinXBClusterNum  << nClusters ;
-  std::cout << "nClusters: " << nClusters  << std::endl;
+  //std::cout << "nClusters: " << nClusters  << std::endl;
   for (size_t pid = 0; pid < fps.size(); pid++){
     //mf::LogInfo("fuzzyCluster") << pid ;
     int iCluster = kNO_CLUSTER;
@@ -662,7 +662,7 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
       sumUjk += fpsMembershipFinal(j,k);
     }
     double Sij = sumMinUikUjk/std::min(sumUik,sumUjk);
-    std::cout << "Sij: " << Sij << std::endl;
+    //std::cout << "Sij: " << Sij << std::endl;
     //if( sqrt( pow(centroidi0-centroidj0,2)+pow(centroidi1-centroidj1,2)) < fMergeCutoff){
     if( Sij < fMergeCutoff){
       mf::LogVerbatim("fuzzyCluster") << "You're going to Merge!";
