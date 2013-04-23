@@ -4,13 +4,13 @@
 //
 // Ben Carls, bcarls@fnal.gov
 //
-// This code looks for clusters using a fuzzy c-means algorithm. The
+// This code looks for clusters using a Gustafson-Kessel variant on fuzzy c-means algorithm. The
 // clusters are then examined by the HoughBaseAlg to identify Hough lines
 // which can then be split off into their own clusters. See the webpage below
 // for more information on the fuzzy clustering algorithm.
 //
-// http://home.dei.polimi.it/matteucc/Clustering/tutorial_html/cmeans.html
-//
+//http://homes.di.unimi.it/~valenti/SlideCorsi/Bioinformatica05/Fuzzy-Clustering-lecture-Babuska.pdf
+//http://biosoft.kaist.ac.kr/BISL_homepage/publication/p20050006.pdf
 ////////////////////////////////////////////////////////////////////////
 
 
@@ -241,32 +241,74 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
 
   int iNumClusters = k;
   TMatrixT<double> mNormOneXiMinusCj(fpsMat.GetNrows(),iNumClusters);
+  std::vector<TMatrixT<double> > clusterCovarianceMats;
 
-  // Zero the matrix that will store all the norm values
-  for ( int i = 0; i < fpsMat.GetNrows(); i++)
-    for ( int j = 0; j < iNumClusters; j++)
-      mNormOneXiMinusCj(i,j) = 0;
 
-  // Calculate the norm matrix x_i - c_j
-  // For each clusters
+  // Determine the elements of u^m_ij
+  TMatrixT<double> Uji_m(iNumClusters, fpsMat.GetNrows());
+  // For each cluster
   for ( int j = 0; j < iNumClusters; j++)
     // For each hit
     for ( int i = 0; i < fpsMat.GetNrows(); i++)
-      // For each dimension
-      for ( int f = 0; f < 2; f++)
-        // x_i - c_j                      x_i               c_j
-        //mNormOneXiMinusCj(i,j) += std::abs( fpsMat(i,f) - fpsCentroids(j,f));
-        mNormOneXiMinusCj(i,j) += pow( fpsMat(i,f) - fpsCentroids(j,f),2);
-        // This really should be squard to find the real norm, now the square
-        // root of the matrix must be taken, the commented out is what was originally 
-        // there
-        
-  // Find the square roots of the elements of the norm matrix
-  for ( int i = 0; i < fpsMat.GetNrows(); i++)
-    for ( int j = 0; j < iNumClusters; j++)
-      mNormOneXiMinusCj(i,j) = std::sqrt(mNormOneXiMinusCj(i,j));
+      // Determine Uji_m
+      Uji_m(j,i) = pow ( fpsMembership(j,i), fFuzzifier); 
 
-  // Determine the new elements of u_ij
+
+  TVectorD fpsMat_row(2);
+  TVectorD fpsCentroids_row(2);
+  TVectorD fpsMat_col(2);
+  TVectorD fpsCentroids_col(2);
+  TVectorD fpsMat_row_t(2);
+  TVectorD fpsCentroids_row_t(2);
+  TMatrixT<double> fpsDistances(iNumClusters,fpsMat.GetNrows());
+  // Calculate the covariance matrix
+  // For each clusters
+  for ( int j = 0; j < iNumClusters; j++){
+    fpsCentroids_row = TMatrixDRow(fpsCentroids,j);
+    TMatrixT<double> clusCovarianceMat(2,2);
+    double Uji_m_sum = 0;
+    //For each hit
+    for ( int i = 0; i < fpsMat.GetNrows(); i++){
+      fpsMat_row = TMatrixDRow(fpsMat,i);
+      TMatrixT<double> fpsMatMinusCent_col(1,2);
+      TMatrixT<double> fpsMatMinusCent_row(2,1);
+      fpsMatMinusCent_col(0,0)=fpsMat_row(0)-fpsCentroids_row(0);
+      fpsMatMinusCent_col(0,1)=fpsMat_row(1)-fpsCentroids_row(1);
+      fpsMatMinusCent_row(0,0)=fpsMat_row(0)-fpsCentroids_row(0);
+      fpsMatMinusCent_row(1,0)=fpsMat_row(1)-fpsCentroids_row(1);
+      clusCovarianceMat += Uji_m(j,i)*fpsMatMinusCent_row*fpsMatMinusCent_col;
+      Uji_m_sum+=Uji_m(j,i);
+    }
+    clusCovarianceMat=clusCovarianceMat*(1/Uji_m_sum);
+    //clusCovarianceMat.Print();
+    clusterCovarianceMats.push_back(clusCovarianceMat);
+  }
+
+  double rho = 1;
+  for ( int j = 0; j < iNumClusters; j++){
+    fpsCentroids_row = TMatrixDRow(fpsCentroids,j);
+    for ( int i = 0; i < fpsMat.GetNrows(); i++){
+      fpsMat_row = TMatrixDRow(fpsMat,i);
+      TMatrixT<double> fpsMatMinusCent_col(1,2);
+      TMatrixT<double> fpsMatMinusCent_row(2,1);
+      fpsMatMinusCent_col(0,0)=fpsMat_row(0)-fpsCentroids_row(0);
+      fpsMatMinusCent_col(0,1)=fpsMat_row(1)-fpsCentroids_row(1);
+      fpsMatMinusCent_row(0,0)=fpsMat_row(0)-fpsCentroids_row(0);
+      fpsMatMinusCent_row(1,0)=fpsMat_row(1)-fpsCentroids_row(1);
+      //TMatrixT<double> clusCovarianceMatInv = clusterCovarianceMats.at(j).Invert();
+      TMatrixT<double> clusCovarianceMatInv = clusterCovarianceMats.at(j);
+      //clusCovarianceMatInv.Print();
+      clusCovarianceMatInv.Invert();
+      //clusCovarianceMatInv.Print();
+      //TMatrixT<double> tempDistanceSquared = rho*std::sqrt(clusterCovarianceMats.at(j).Determinant())*(fpsMatMinusCent_col*(clusCovarianceMatInv*fpsMatMinusCent_row));
+      TMatrixT<double> tempDistanceSquared = rho*pow(clusterCovarianceMats.at(j).Determinant(),0.75)*(fpsMatMinusCent_col*(clusCovarianceMatInv*fpsMatMinusCent_row));
+      fpsDistances(j,i) = std::sqrt(tempDistanceSquared(0,0));
+      //tempDistanceSquared.Print();
+    }
+  }
+  //fpsDistances.Print();
+
+  //Determine the new elements of u_ij
   double fCoeff;
   // For each hit
   for ( int i = 0; i < fpsMat.GetNrows(); i++)
@@ -275,11 +317,11 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
       fCoeff = 0;
       // For each cluster
       for ( int k = 0; k < iNumClusters; k++)
-        fCoeff += pow (( mNormOneXiMinusCj(i,j)/
-              mNormOneXiMinusCj(i,k)),
-            2 / (fFuzzifier - 1));
+        fCoeff += pow (( fpsDistances(j,i)/fpsDistances(k,i)),2/(fFuzzifier - 1));
       fpsNewMembership(j,i) = 1/fCoeff;
     }
+
+
 
   if(!canStop()){
     fpsMembership = fpsNewMembership;
@@ -310,6 +352,8 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   fpointId_to_clusterId.resize(fps.size(), kNO_CLUSTER); // Not zero as before!
   fnoise.resize(fps.size(), false);
   fvisited.resize(fps.size(), false);
+
+  //fpsMat.Print();
 
   for( int k = 2; k <= nMaxClusters; k++){ 
 
@@ -352,10 +396,9 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
     //} 
 
 
-    // Determine Xie-Beni index to quantify how well clustering worked
+    //// Determine Xie-Beni index to quantify how well clustering worked
     float fXieBeniNumer = 0; 
     float fXieBeniDenom; 
-
 
     // Begin with numerator
     TMatrixT<double> Uji_m(k, fpsMat.GetNrows());
@@ -391,13 +434,16 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
       for ( int j = 0; j < k; j++)
         fXieBeniNumer += Uji_m(j,l)*mNormOneXiMinusCj(l,j);
 
+    std::cout << "centroids!" << std::endl;
+    fpsCentroids.Print();
+    //fpsMembership.Print();
 
     // Continue with denominator
     float fMinCentDist = 999999999;
     //float fMinCentDist = 100;
     for ( int j = 0; j < k - 1; j++)
       for ( int l = j + 1; l < k; l++){
-        //mf::LogInfo("fuzzyCluster") << fpsCentroids(j,0)  << fpsCentroids(l,0)  <<fpsCentroids(j,1)<<" "<<fpsCentroids(l,1);
+        //mf::LogInfo("fuzzyCluster") << fpsCentroids(j,0) << fpsCentroids(l,0) <<fpsCentroids(j,1)<<" "<<fpsCentroids(l,1);
         float fCentDist = std::sqrt( pow(fpsCentroids(j,0)-fpsCentroids(l,0),2)+pow(fpsCentroids(j,1)-fpsCentroids(l,1),2));
         if(fCentDist < fMinCentDist)
           fMinCentDist = fCentDist;
@@ -409,10 +455,10 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
     float fXieBeniIndex = fXieBeniNumer/fXieBeniDenom; 
     fXieBeniIndices[k-1]=fXieBeniIndex;
     fpsMembershipStore[k-1]=fpsMembership;
-    //mf::LogVerbatim("fuzzyCluster") << "Number of clusters: " << k ;
-    //mf::LogVerbatim("fuzzyCluster") << "Xie-Beni numerator: " << fXieBeniNumer ;
-    //mf::LogVerbatim("fuzzyCluster") << "Xie-Beni denominator: " << fXieBeniDenom ;
-    //mf::LogVerbatim("fuzzyCluster") << "Xie-Beni index: " << fXieBeniIndex ;
+    mf::LogVerbatim("fuzzyCluster") << "Number of clusters: " << k ;
+    mf::LogVerbatim("fuzzyCluster") << "Xie-Beni numerator: " << fXieBeniNumer ;
+    mf::LogVerbatim("fuzzyCluster") << "Xie-Beni denominator: " << fXieBeniDenom ;
+    mf::LogVerbatim("fuzzyCluster") << "Xie-Beni index: " << fXieBeniIndex ;
   }
 
 
@@ -431,14 +477,11 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
 
   //mf::LogInfo("fuzzyCluster") << "Number of clusters initially found: " << iMinXBClusterNum   ;
 
-
+  //iMinXBClusterNum = nMaxClusters;
   if(iMinXBClusterNum != 0){
-    //iMinXBClusterNum = 20;
     // Check if any clusters can be merged, most likely yes
     fpsMembershipFinal.ResizeTo(iMinXBClusterNum, fps.size());
     fpsMembershipFinal = fpsMembershipStore[iMinXBClusterNum-1]; 
-    //fpsMembershipFinal.ResizeTo(fXieBeniIndices.size(), fps.size());
-    //fpsMembershipFinal = fpsMembershipStore[fXieBeniIndices.size()-1]; 
     mergeClusters(0); 
   }
 
@@ -467,6 +510,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   //unsigned int cid = 2;
 
   //mf::LogInfo("fuzzyCluster") << iMinXBClusterNum  << nClusters ;
+  std::cout << "nClusters: " << nClusters  << std::endl;
   for (size_t pid = 0; pid < fps.size(); pid++){
     //mf::LogInfo("fuzzyCluster") << pid ;
     int iCluster = kNO_CLUSTER;
@@ -492,10 +536,10 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
 
   
   // Loop over clusters with the Hough line finder to break the clusters up further
-  if(nClustersTemp > 0)
-    for (unsigned int i = 0; i <= (unsigned int)nClustersTemp-1; i++){
-      fHBAlg.Transform(allhits, &fpointId_to_clusterId, i, &nClusters, corners);
-    }
+  //if(nClustersTemp > 0)
+    //for (unsigned int i = 0; i <= (unsigned int)nClustersTemp-1; i++){
+      //fHBAlg.Transform(allhits, &fpointId_to_clusterId, i, &nClusters, corners);
+    //}
   cid = nClusters;
   
   mf::LogInfo("fuzzyCluster") << "cid: " << cid ;
@@ -608,8 +652,27 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
     centroidi1/=nCentroidi;
     centroidj0/=nCentroidj;
     centroidj1/=nCentroidj;
-    
-    
+   
+    double sumMinUikUjk = 0;
+    double sumUik = 0;
+    double sumUjk = 0;
+    for( int k = 0; k < fpsMembershipFinal.GetNcols(); k++){
+      sumMinUikUjk+=std::min(fpsMembershipFinal(i,k),fpsMembershipFinal(i,k));
+      sumUik += fpsMembershipFinal(i,k);
+      sumUjk += fpsMembershipFinal(j,k);
+    }
+    double Sij = sumMinUikUjk/std::min(sumUik,sumUjk);
+    std::cout << "Sij: " << Sij << std::endl;
+    //if( sqrt( pow(centroidi0-centroidj0,2)+pow(centroidi1-centroidj1,2)) < fMergeCutoff){
+    if( Sij < fMergeCutoff){
+      mf::LogVerbatim("fuzzyCluster") << "You're going to Merge!";
+      clusToMerge = j;
+      break;
+    }
+
+
+
+
     // Find point in cluster i closest to cluster j
     //int xiClosest  = -1;
     //float xiDistanceToCj = 9999999;
@@ -638,22 +701,22 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
     
     // Find point in cluster i closest to cluster j and vice versa, we are comparing points and not centroids in 
     // this case now
-    int xiClosest  = -1;
-    int xjClosest  = -1;
-    float xiDistanceToXj = 9999999;
-    for(int k = 0; k < fpsMat.GetNrows(); k++){
-      if ( i != fpsMembershipCrisp[k])
-        continue;
-      for(int l = 0; l < fpsMat.GetNrows(); l++){
-        if ( j != fpsMembershipCrisp[l])
-          continue;
-        if ( std::sqrt( pow(fpsMat(k,0)-fpsMat(l,0),2) + pow(fpsMat(k,1)-fpsMat(l,1),2)) < xiDistanceToXj){
-          xiClosest = k;
-          xjClosest = l;
-          xiDistanceToXj = std::sqrt(pow(fpsMat(k,0)-fpsMat(l,0),2) + pow(fpsMat(k,1)-fpsMat(l,1),2));
-        }
-      } 
-    }
+    //int xiClosest  = -1;
+    //int xjClosest  = -1;
+    //float xiDistanceToXj = 9999999;
+    //for(int k = 0; k < fpsMat.GetNrows(); k++){
+      //if ( i != fpsMembershipCrisp[k])
+        //continue;
+      //for(int l = 0; l < fpsMat.GetNrows(); l++){
+        //if ( j != fpsMembershipCrisp[l])
+          //continue;
+        //if ( std::sqrt( pow(fpsMat(k,0)-fpsMat(l,0),2) + pow(fpsMat(k,1)-fpsMat(l,1),2)) < xiDistanceToXj){
+          //xiClosest = k;
+          //xjClosest = l;
+          //xiDistanceToXj = std::sqrt(pow(fpsMat(k,0)-fpsMat(l,0),2) + pow(fpsMat(k,1)-fpsMat(l,1),2));
+        //}
+      //} 
+    //}
 
 
     // Compare distance between the two points and merge if they are close enough
@@ -663,14 +726,17 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
     //mf::LogInfo("fuzzyCluster") << "xiClosest " << fpsMat(xiClosest,0)  << fpsMat(xiClosest,1) ;
     //mf::LogInfo("fuzzyCluster") << "xjClosest " << fpsMat(xjClosest,0)  << fpsMat(xjClosest,1) ;
     //mf::LogInfo("fuzzyCluster") << std::sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) ;
-    if (xiClosest > -1 
-        && xjClosest > -1 
-        && std::sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) < fMergeCutoff){
-      // Perform the merging and deletion of the closest cluster
-      mf::LogVerbatim("fuzzyCluster") << "You're going to Merge!"  ;
-      clusToMerge = j;
-      break;
-    }
+    //if (xiClosest > -1 
+        //&& xjClosest > -1 
+        //&& std::sqrt( pow(fpsMat(xiClosest,0)-fpsMat(xjClosest,0) ,2) + pow(fpsMat(xiClosest,1)-fpsMat(xjClosest,1) ,2)) < fMergeCutoff){
+      //// Perform the merging and deletion of the closest cluster
+      //mf::LogVerbatim("fuzzyCluster") << "You're going to Merge!"  ;
+      //clusToMerge = j;
+      //break;
+    //}
+   
+
+
   } 
 
   if(clusToMerge > 0){
