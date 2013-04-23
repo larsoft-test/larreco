@@ -7,7 +7,7 @@ standard_shower:
  module_type:              "ShowerReco"
  ClusterModuleLabel:       "showeranglecluster"
  VertexClusterModuleLabel: "linemerger" 
- CaloAlg:            	   @local::standard_calorimetryalg
+ CaloAlg:            	   @local::standard_calorimetryalgmc
 }
 
 
