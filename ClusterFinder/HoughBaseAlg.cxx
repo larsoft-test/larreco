@@ -165,6 +165,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 
 
   mf::LogInfo("HoughBaseAlg") << "xyScale: " << xyScale;
+  mf::LogInfo("HoughBaseAlg") << "tickToDist: " << tickToDist;
   
   int x, y;
   //unsigned int channel, plane, wire, tpc, cstat;
@@ -580,49 +581,10 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     linesFoundItr->isolation = background/linesFoundItr->pHit.size();
   }/// end loop over lines found
 
-
-
-
-
-  ///// Loop over hits to get a rough primary vertex
-  //double wireVertex = 0;
-  //double timeVertex = 0;
-  //double interceptCount = 0;
-  //for(auto linesFoundItr = linesFound.begin(); linesFoundItr < linesFound.end()-1; linesFoundItr++){
-    //std::cout << std::endl << "line 1 " << linesFoundItr->clusterSlope << " " << linesFoundItr->clusterIntercept << std::endl;
-    //for(auto linesFoundItr2 = linesFoundItr+1; linesFoundItr2 < linesFound.end(); linesFoundItr2++){
-      ////double weight = std::min(linesFoundItr->pHit.size(),linesFoundItr2->pHit.size());
-      //double angle = atan(std::abs((linesFoundItr->clusterSlope - linesFoundItr2->clusterSlope)/(1 + linesFoundItr->clusterSlope*linesFoundItr2->clusterSlope)));
-      ////double weight = 1-pow(cos(angle),2);
-      //double weight = (1-pow(cos(angle),2))*std::min(linesFoundItr->pHit.size(),linesFoundItr2->pHit.size());
-      //std::cout << "angle: " << angle << " weight: " << weight << std::endl;
-      //std::cout << "line 2 " << linesFoundItr2->clusterSlope << " " << linesFoundItr2->clusterIntercept  << std::endl;
-      //interceptCount+=weight;
-      //std::cout << "interceptCount: " << interceptCount << std::endl;
-      ////y = mx + b
-      ////y = m2x+b2
-      ////b - b2 = (m2 - m)x
-      //wireVertex+=(linesFoundItr->clusterIntercept-linesFoundItr2->clusterIntercept)/(linesFoundItr2->clusterSlope-linesFoundItr->clusterSlope)*weight;
-      //timeVertex+=(linesFoundItr->clusterSlope*(linesFoundItr->clusterIntercept-linesFoundItr2->clusterIntercept)/(linesFoundItr2->clusterSlope-linesFoundItr->clusterSlope) + linesFoundItr->clusterIntercept)*weight;
-      //std::cout << (linesFoundItr->clusterIntercept-linesFoundItr2->clusterIntercept)/(linesFoundItr2->clusterSlope-linesFoundItr->clusterSlope) << " " << (linesFoundItr->clusterSlope*(linesFoundItr->clusterIntercept-linesFoundItr2->clusterIntercept)/(linesFoundItr2->clusterSlope-linesFoundItr->clusterSlope) + linesFoundItr->clusterIntercept) << std::endl;
-    //}
-  //}
-  //std::cout << "interceptCount: " << interceptCount << std::endl;
-  //wireVertex/=interceptCount;
-  //timeVertex/=interceptCount;
-  //std::cout << "Cheap vertex is: " << wireVertex << " " << timeVertex << std::endl;
-
-
-
-
-
-
-
-
   /// Do a merge based on distances between line segments instead of endpoints
-  if(fDoShowerHoughLineMerge)     mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeShower);
-  if(fDoWideHoughLineMerge)       mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeWide);
-  if(fDoHoughLineMerge)           mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeNormal);
+  if(fDoShowerHoughLineMerge)     mergeHoughLinesBySegment(0,&linesFound,tickToDist,iMergeShower);
+  if(fDoWideHoughLineMerge)       mergeHoughLinesBySegment(0,&linesFound,tickToDist,iMergeWide);
+  if(fDoHoughLineMerge)           mergeHoughLinesBySegment(0,&linesFound,tickToDist,iMergeNormal);
 
   /// Average the slopes and y-intercepts of Hough lines in shower like regions
   /// map (cluster number ( slope, y-int))
@@ -717,14 +679,16 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
       //std::cout << std::endl;
       if(showerDirection > 0)
         if(hits[linesFoundItr->iMinWire]->WireID().Wire > 
-            //(hits[showerMinMaxWires.at(linesCountItr->first).first]->WireID().Wire + 
-             //hits[showerMinMaxWires.at(linesCountItr->first).second]->WireID().Wire)/2)
+            ////(hits[showerMinMaxWires.at(linesCountItr->first).first]->WireID().Wire + 
+             ////hits[showerMinMaxWires.at(linesCountItr->first).second]->WireID().Wire)/2)
+            //hits[showerMinMaxWires.at(linesCountItr->first).first]->WireID().Wire)
             hits[showerMinMaxWires.at(linesCountItr->first).first]->WireID().Wire)
           linesFoundItr->clusterNumber = linesCountItr->first;
       if(showerDirection < 0)
         if(hits[linesFoundItr->iMaxWire]->WireID().Wire <=
-            //(hits[showerMinMaxWires.at(linesCountItr->first).first]->WireID().Wire + 
-             //hits[showerMinMaxWires.at(linesCountItr->first).second]->WireID().Wire)/2)
+            ////(hits[showerMinMaxWires.at(linesCountItr->first).first]->WireID().Wire + 
+             ////hits[showerMinMaxWires.at(linesCountItr->first).second]->WireID().Wire)/2)
+            //hits[showerMinMaxWires.at(linesCountItr->first).second]->WireID().Wire)
             hits[showerMinMaxWires.at(linesCountItr->first).second]->WireID().Wire)
           linesFoundItr->clusterNumber = linesCountItr->first;
     }
@@ -826,7 +790,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 // Merges based on the distance between line segments
 void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart,
 						     std::vector<lineSlope> *linesFound,
-						     double xyScale,
+						     double tickToDist,
                                                      int mergeStyle)
 {
 
@@ -862,7 +826,7 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
           || (segmentDistance<fWideHoughLineMergeCutoff && mergeStyle == iMergeWide))
 	{
 	  toMerge.push_back(linesFoundToMergeItr-linesFound->begin());
-	  mergeSlope.push_back(linesFoundClusIndStItr->clusterSlope*xyScale);
+	  mergeSlope.push_back(linesFoundClusIndStItr->clusterSlope*tickToDist);
 	}
     }
   }
@@ -871,8 +835,11 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
 
   // Find the angle between the slopes
   for(auto mergeThetaItr = mergeTheta.begin(); mergeThetaItr != mergeTheta.end(); mergeThetaItr++){
-    double toMergeSlope =  linesFound->at(toMerge[mergeThetaItr-mergeTheta.begin()]).clusterSlope*xyScale;
+    double toMergeSlope =  linesFound->at(toMerge[mergeThetaItr-mergeTheta.begin()]).clusterSlope*tickToDist;
     mergeTheta[mergeThetaItr-mergeTheta.begin()] = atan(std::abs(( toMergeSlope - mergeSlope[mergeThetaItr-mergeTheta.begin()])/(1 + toMergeSlope*mergeSlope[mergeThetaItr-mergeTheta.begin()] )))*(180/TMath::Pi());
+    //std::cout << std::endl;
+    //std::cout << "toMergeSlope: " << toMergeSlope/tickToDist << " mergeSlope[clusIndexStart]: " << mergeSlope[mergeThetaItr-mergeTheta.begin()]/tickToDist << std::endl;
+    //std::cout << "mergeTheta: " << mergeTheta[mergeThetaItr-mergeTheta.begin()] << std::endl;
   }
 
   // Perform the merge
@@ -1036,14 +1003,20 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
       double chargeAsymmetry = std::abs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
       double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
 
-      //std::cout << "toMergeAveCharge: " << toMergeAveCharge << std::endl;
-      //std::cout << "clusIndexStartAveCharge: " << clusIndexStartAveCharge << std::endl;
-      //std::cout << "toMergeAveSigmaCharge: " << toMergeAveSigmaCharge << std::endl;
-      //std::cout << "clusIndexStartAveSigmaCharge: " << clusIndexStartAveSigmaCharge << std::endl;
-      //std::cout << "charge asymmetry: " << chargeAsymmetry << std::endl;
-      //std::cout << "sigma charge asymmetry: " << sigmaChargeAsymmetry << std::endl;
+      std::cout << "toMergeAveCharge: " << toMergeAveCharge << std::endl;
+      std::cout << "clusIndexStartAveCharge: " << clusIndexStartAveCharge << std::endl;
+      std::cout << "toMergeAveSigmaCharge: " << toMergeAveSigmaCharge << std::endl;
+      std::cout << "clusIndexStartAveSigmaCharge: " << clusIndexStartAveSigmaCharge << std::endl;
+      std::cout << "charge asymmetry: " << chargeAsymmetry << std::endl;
+      std::cout << "sigma charge asymmetry: " << sigmaChargeAsymmetry << std::endl;
 
+      //if(chargeAsymmetry > fChargeAsymmetryCut &&
+          //mergeStyle == iMergeNormal)
+        //continue;
 
+      //if(sigmaChargeAsymmetry > fSigmaChargeAsymmetryCut &&
+          //mergeStyle == iMergeNormal)
+        //continue;
 
       //if(chargeAsymmetry > fChargeAsymmetryCut &&
           //mergeStyle == iMergeNormal)
@@ -1063,10 +1036,18 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
 
 
       // Check if both lines is in region that looks showerlike
+      // Or merge if the distance between the lines is zero and one looks showerlike
+      double segmentDistance = HoughLineDistance(linesFound->at(clusIndexStart).pMin0,linesFound->at(clusIndexStart).pMin1,
+                                                 linesFound->at(clusIndexStart).pMax0,linesFound->at(clusIndexStart).pMax1, 
+						 linesFound->at(*toMergeItr).pMin0,linesFound->at(*toMergeItr).pMin1,
+                                                 linesFound->at(*toMergeItr).pMax0,linesFound->at(*toMergeItr).pMax1);
+      //std::cout << "segmentDistance: " << segmentDistance << std::endl;
+      //std::cout << linesFound->at(*toMergeItr).showerLikeness << " " << linesFound->at(clusIndexStart).showerLikeness << std::endl;
       if(mergeStyle == iMergeShower){
         if(!(linesFound->at(*toMergeItr).showerLikeness>fShowerLikenessCut) || !(linesFound->at(clusIndexStart).showerLikeness>fShowerLikenessCut))
           continue;
       }
+      //std::cout << "Did not continue" << std::endl;
 
 
 
@@ -1074,13 +1055,16 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
       linesFound->at(clusIndexStart).merged = true;
       linesFound->at(*toMergeItr).merged = true;
 
-      //for(unsigned int j = 0; j < linesFound->size(); j++){
+      // For loop over all lines found to reassign lines to clusIndexStart that already belonged to toMerge 
       for(auto linesFoundItr = linesFound->begin(); linesFoundItr != linesFound->end(); linesFoundItr++){
         if((unsigned int)(*toMergeItr) == linesFoundItr-linesFound->begin())
           continue;
 
-        if(linesFoundItr->clusterNumber == linesFound->at(*toMergeItr).clusterNumber)
+        if(linesFoundItr->clusterNumber == linesFound->at(*toMergeItr).clusterNumber){
           linesFoundItr->clusterNumber = linesFound->at(clusIndexStart).clusterNumber;
+          //std::cout << "linesFoundItr slope: " << linesFoundItr->clusterSlope << " clusIndexStart slope: " << linesFound->at(clusIndexStart).clusterSlope << std::endl;
+
+        }
       }
       linesFound->at(*toMergeItr).clusterNumber = linesFound->at(clusIndexStart).clusterNumber;
      
@@ -1088,9 +1072,9 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
   }
 
   if(lineMerged)
-    mergeHoughLinesBySegment(clusIndexStart,linesFound,xyScale,mergeStyle);
+    mergeHoughLinesBySegment(clusIndexStart,linesFound,tickToDist,mergeStyle);
   else
-    mergeHoughLinesBySegment(clusIndexStart+1,linesFound,xyScale,mergeStyle);
+    mergeHoughLinesBySegment(clusIndexStart+1,linesFound,tickToDist,mergeStyle);
   
   return;
 
