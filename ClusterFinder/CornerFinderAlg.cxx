@@ -205,8 +205,8 @@ std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points_Line
   art::ServiceHandle<geo::Geometry> geom;
   const unsigned int nPlanes = geom->Nplanes();
 
-  for(int i=0; (unsigned) i < nPlanes; i++){
-    geo::PlaneGeo pg = geom->Plane(nPlanes);
+  for(unsigned int i=0; i < nPlanes; ++i){
+    geo::PlaneGeo pg = geom->Plane(i);
     attach_feature_points_LineIntegralScore(WireData_histos[i],WireData_IDs[i],pg.View(),corner_vector);
   }
 
