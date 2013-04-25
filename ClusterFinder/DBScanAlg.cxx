@@ -308,17 +308,7 @@ void cluster::DBScanAlg::InitScan(art::PtrVector<recob::Hit>& allhits,
   for(size_t p = 0; p < geom->Nplanes(); ++p)
     fWirePitch.push_back(geom->WirePitch(0,1,p));
 
-  const geo::WireGeo& wire = geom->Plane(0).Wire(0);
-  const double pos[3] = {0., 0.0, 0.};
-  double posWorld0[3] = {0.};
-  double posWorld1[3] = {0.};
-  wire.LocalToWorld(pos, posWorld0);
   
-  const geo::WireGeo& wire1 = geom->Plane(0).Wire(1);
-  wire1.LocalToWorld(pos, posWorld1);
-  
-  double wire_dist = std::abs(posWorld0[1]- posWorld1[1]);
-
   // Collect the bad wire list into a useful form
   if (fClusterMethod) { // Using the R*-tree
     fBadWireSum.resize(geom->Nchannels());
@@ -338,7 +328,7 @@ void cluster::DBScanAlg::InitScan(art::PtrVector<recob::Hit>& allhits,
         
     double tickToDist = larp->DriftVelocity(larp->Efield(),larp->Temperature());
     tickToDist *= 1.e-3 * detp->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
-    p[0] = (allhits[j]->Wire()->RawDigit()->Channel())*wire_dist;
+    p[0] = (allhits[j]->Channel())*fWirePitch[allhits[j]->WireID().Plane];
     p[1] = ((allhits[j]->StartTime()+allhits[j]->EndTime()  )/2.)*tickToDist;
     p[2] =  (allhits[j]->EndTime()  -allhits[j]->StartTime())*tickToDist;   //width of a hit in cm
 
