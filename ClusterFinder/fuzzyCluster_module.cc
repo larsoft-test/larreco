@@ -145,10 +145,8 @@ namespace cluster{
     std::vector<recob::EndPoint2D> endcol; 
 
     // Pass information into CornerFinder
-    //fcornerfinder.TakeInRaw(rawcol,&evt);
-    fcornerfinder.TakeInRaw(evt);
-
-    endcol = fcornerfinder.get_feature_points_LineIntegralScore();
+    fcornerfinder.TakeInRaw(evt); //this makes the histograms
+    fcornerfinder.get_feature_points_LineIntegralScore(endcol); //this fills our vector with feature points
 
     // get the ChannelFilter
     filter::ChannelFilter chanFilt;
@@ -177,9 +175,7 @@ namespace cluster{
           //Attempt to get number of clusters
           //std::cout << "Number of clusters: " << fHCAlg.Transform(allhits) << std::endl; 
 
-
 	  ffuzzyCluster.InitFuzzy(allhits, chanFilt.SetOfBadChannels());
- 
 
 	  //----------------------------------------------------------------
 	  for(unsigned int j = 0; j < ffuzzyCluster.fps.size(); ++j){
@@ -194,7 +190,7 @@ namespace cluster{
    
 	  //*******************************************************************
 	  ffuzzyCluster.run_fuzzy_cluster(allhits);
-  
+
 	  //End clustering with fuzzy
   
   

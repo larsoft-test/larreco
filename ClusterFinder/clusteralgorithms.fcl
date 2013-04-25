@@ -52,9 +52,9 @@ standard_cornerfinderalg:
   CornerScore_neighborhood:	1
   CornerScore_algorithm:	"Nobel" #Harris
   MaxSuppress_neighborhood:	3
-  MaxSuppress_threshold:		1e5
-  Integral_bin_threshold:       5
-  Integral_fraction_threshold:  0.9
+  MaxSuppress_threshold:		0
+  Integral_bin_threshold:       1
+  Integral_fraction_threshold:  0.2
 
 
 }

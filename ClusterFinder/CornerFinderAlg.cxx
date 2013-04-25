@@ -139,7 +139,6 @@ void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
   const unsigned int nPlanes = fGeom->Nplanes();
   const unsigned int nTimeTicks = (WireObj.at(0))->NSignal();
 
-  
   // Creating the histograms
   for (uint i_plane=0; i_plane < nPlanes; i_plane++){
     
@@ -171,7 +170,7 @@ void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
     for(uint i_time = 0; i_time < nTimeTicks; i_time++){
       WireData_histos[i_plane]->SetBinContent(i_wire,i_time,signal[i_time]);  
     }//<---End time loop
-    
+        
   }//<-- End loop over wires
   
   
@@ -183,9 +182,7 @@ void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
 
 //-----------------------------------------------------------------------------------
 // This gives us a vecotr of EndPoint2D objects that correspond to possible corners
-std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points(){
-
-  std::vector<recob::EndPoint2D> corner_vector;
+void cluster::CornerFinderAlg::get_feature_points(std::vector<recob::EndPoint2D> & corner_vector){
 
   const unsigned int nPlanes = fGeom->Nplanes();
 
@@ -194,15 +191,12 @@ std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points(){
     attach_feature_points(WireData_histos[i],WireData_IDs[i],pg.View(),corner_vector);
   }
 
-  return corner_vector;
 }
 
 //-----------------------------------------------------------------------------------
 // This gives us a vecotr of EndPoint2D objects that correspond to possible corners
 // Uses line integral score as corner strength
-std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points_LineIntegralScore(){
-
-  std::vector<recob::EndPoint2D> corner_vector;
+void cluster::CornerFinderAlg::get_feature_points_LineIntegralScore(std::vector<recob::EndPoint2D> & corner_vector){
 
   const unsigned int nPlanes = fGeom->Nplanes();
 
@@ -211,7 +205,6 @@ std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points_Line
     attach_feature_points_LineIntegralScore(WireData_histos[i],WireData_IDs[i],pg.View(),corner_vector);
   }
 
-  return corner_vector;
 }
 
 //-----------------------------------------------------------------------------

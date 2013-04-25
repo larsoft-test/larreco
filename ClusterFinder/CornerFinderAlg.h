@@ -35,8 +35,8 @@ namespace cluster { //<---Not sure if this is the right namespace
 
     void TakeInRaw( art::Event const&evt); //this one creates the histograms we want to use
     
-    std::vector<recob::EndPoint2D> get_feature_points(); //here we get feature points with corner score
-    std::vector<recob::EndPoint2D> get_feature_points_LineIntegralScore(); //here we get feature points with LineIntegral score
+    void get_feature_points(std::vector<recob::EndPoint2D> &); //here we get feature points with corner score
+    void get_feature_points_LineIntegralScore(std::vector<recob::EndPoint2D> &); //here we get feature points with LineIntegral score
 
     
 
