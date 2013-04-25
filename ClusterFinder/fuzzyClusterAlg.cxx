@@ -17,7 +17,6 @@
 //Framework includes:
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Handle.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Framework/Services/Optional/TFileService.h"
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
@@ -26,7 +25,6 @@
 #include "Utilities/DetectorProperties.h"
 #include "ClusterFinder/fuzzyClusterAlg.h"
 #include "RecoBase/Hit.h"
-#include "Geometry/Geometry.h"
 #include "Geometry/PlaneGeo.h"
 #include "Geometry/WireGeo.h"
 
@@ -43,8 +41,8 @@ namespace cluster{
 //----------------------------------------------------------
 // fuzzyClusterAlg stuff
 //----------------------------------------------------------
-cluster::fuzzyClusterAlg::fuzzyClusterAlg(fhicl::ParameterSet const& pset) :
-   fHBAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg"))
+cluster::fuzzyClusterAlg::fuzzyClusterAlg(fhicl::ParameterSet const& pset) 
+   : fHBAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg"))
 {
  this->reconfigure(pset); 
 }
@@ -99,23 +97,10 @@ void cluster::fuzzyClusterAlg::InitFuzzy(std::vector<art::Ptr<recob::Hit> >& all
 
   art::ServiceHandle<util::LArProperties> larp;
   art::ServiceHandle<util::DetectorProperties> detp;
-  art::ServiceHandle<geo::Geometry> geom;
-
-  ///\todo: Commented out following for loop as fWirePitch does not appear to be used
-  //for(size_t p = 0; p < geom->Nplanes(); ++p)
-  //  fWirePitch.push_back(geom->WirePitch(0,1,p));
-
-  const double pos[3] = {0., 0.0, 0.};
-  double posWorld0[3] = {0.};
-  double posWorld1[3] = {0.};
-  geom->Plane(0).Wire(0).LocalToWorld(pos, posWorld0);  
-  geom->Plane(0).Wire(1).LocalToWorld(pos, posWorld1);
   
-  double wire_dist = posWorld0[1]- posWorld1[1];
-
   // Collect the bad wire list into a useful form
   if (fClusterMethod) { // Using the R*-tree
-    fBadWireSum.resize(geom->Nchannels());
+    fBadWireSum.resize(fGeom->Nchannels());
     unsigned int count=0;
     for (unsigned int i=0; i<fBadWireSum.size(); ++i) {
       count += fBadChannels.count(i);
@@ -135,7 +120,7 @@ void cluster::fuzzyClusterAlg::InitFuzzy(std::vector<art::Ptr<recob::Hit> >& all
         
     double tickToDist = larp->DriftVelocity(larp->Efield(),larp->Temperature());
     tickToDist *= 1.e-3 * detp->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
-    p[0] = (allhits[j]->Wire()->RawDigit()->Channel())*wire_dist;
+    p[0] = (allhits[j]->Channel())*fGeom->WirePitch(fGeom->View(allhits[j]->Channel()));
     p[1] = ((allhits[j]->StartTime()+allhits[j]->EndTime()  )/2.)*tickToDist;
     p[2] = (allhits[j]->EndTime()  -allhits[j]->StartTime())*tickToDist;   //width of a hit in cm
 

@@ -146,20 +146,11 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
   hit.clear();
   
   //factor to make x and y scale the same units
+  double wirePitch = geom->WirePitch(geom->View(channel));
   double xyScale  = .001*larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
-  xyScale        *= detprop->SamplingRate()/geom->WirePitch(0, 1, 
-							    hits[0]->WireID().Plane,
-							    hits[0]->WireID().TPC,
-							    hits[0]->WireID().Cryostat);
+  xyScale        *= detprop->SamplingRate()/wirePitch;
 
-  const double pos[3] = {0., 0.0, 0.};
-  double posWorld0[3] = {0.};
-  double posWorld1[3] = {0.};
-  const geo::WireGeo& wireGeom = geom->Plane(0).Wire(0);
-  const geo::WireGeo& wire1Geom = geom->Plane(0).Wire(1);
-  wireGeom.LocalToWorld(pos, posWorld0);
-  wire1Geom.LocalToWorld(pos, posWorld1);
-  double wire_dist = posWorld0[1]- posWorld1[1];
+  double wire_dist = wirePitch;
   double tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
   tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
 
@@ -452,14 +443,6 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
         }
       }// end loop over hits
 
-      const double pos[3] = {0., 0.0, 0.};
-      double posWorld0[3] = {0.};
-      double posWorld1[3] = {0.};
-      const geo::WireGeo& wireGeom = geom->Plane(0).Wire(0);
-      const geo::WireGeo& wire1Geom = geom->Plane(0).Wire(1);
-      wireGeom.LocalToWorld(pos, posWorld0);
-      wire1Geom.LocalToWorld(pos, posWorld1);
-      double wire_dist = posWorld0[1]- posWorld1[1];
       double tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
       tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
       if(std::abs(slope)>fMaxSlope ){
@@ -1668,13 +1651,6 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 	      if(currentHits.size() > lastHits.size()) lastHits = currentHits;
 	      clusterHits.clear();    
 	      double totalQ = 0.;
-              const double pos[3] = {0., 0.0, 0.};
-              double posWorld0[3] = {0.};
-              double posWorld1[3] = {0.};
-              const geo::WireGeo& wireGeom = geom->Plane(0).Wire(0);
-              const geo::WireGeo& wire1Geom = geom->Plane(0).Wire(1);
-              wireGeom.LocalToWorld(pos, posWorld0);
-              wire1Geom.LocalToWorld(pos, posWorld1);
               double tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
               tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
 

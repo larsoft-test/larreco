@@ -9,10 +9,13 @@
 #include <iostream>
 #include <stdint.h>
 
+#include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Ptr.h"
 #include "art/Persistency/Common/PtrVector.h"
+
 #include "ClusterFinder/HoughBaseAlg.h"
+#include "Geometry/Geometry.h"
 
 #include "TMatrixD.h"
 #include "TVectorD.h"
@@ -99,7 +102,7 @@ namespace cluster{
     // Object used for Hough transforms
     HoughBaseAlg fHBAlg;        
 
-
+    art::ServiceHandle<geo::Geometry> fGeom; ///< handle to geometry service
 
   }; // class fuzzyClusterAlg
 
