@@ -101,17 +101,15 @@ void cluster::fuzzyClusterAlg::InitFuzzy(std::vector<art::Ptr<recob::Hit> >& all
   art::ServiceHandle<util::DetectorProperties> detp;
   art::ServiceHandle<geo::Geometry> geom;
 
-  for(size_t p = 0; p < geom->Nplanes(); ++p)
-    fWirePitch.push_back(geom->WirePitch(0,1,p));
+  ///\todo: Commented out following for loop as fWirePitch does not appear to be used
+  //for(size_t p = 0; p < geom->Nplanes(); ++p)
+  //  fWirePitch.push_back(geom->WirePitch(0,1,p));
 
-  const geo::WireGeo& wire = geom->Plane(0).Wire(0);
   const double pos[3] = {0., 0.0, 0.};
   double posWorld0[3] = {0.};
   double posWorld1[3] = {0.};
-  wire.LocalToWorld(pos, posWorld0);
-  
-  const geo::WireGeo& wire1 = geom->Plane(0).Wire(1);
-  wire1.LocalToWorld(pos, posWorld1);
+  geom->Plane(0).Wire(0).LocalToWorld(pos, posWorld0);  
+  geom->Plane(0).Wire(1).LocalToWorld(pos, posWorld1);
   
   double wire_dist = posWorld0[1]- posWorld1[1];
 
