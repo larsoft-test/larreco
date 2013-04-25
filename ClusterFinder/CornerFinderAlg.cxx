@@ -26,7 +26,6 @@ extern "C" {
 #include "TMath.h"
 
 // Framework includes
-#include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Framework/Services/Optional/TFileService.h"
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
@@ -37,7 +36,6 @@ extern "C" {
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"
 #include "Geometry/PlaneGeo.h"
-#include "Geometry/Geometry.h"
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Wire.h"
 #include "ClusterFinder/CornerFinderAlg.h"
@@ -69,13 +67,25 @@ cluster::CornerFinderAlg::CornerFinderAlg(fhicl::ParameterSet const& pset)
   //:fCalDataModuleLabel (pset.get<std::string>("CalDataModuleLabel")) 
 {
   this->reconfigure(pset);
+
+  // set the sizes of the WireData_histos and WireData_IDs
+  unsigned int nPlanes = fGeom->Nplanes();
+  WireData_histos.resize(nPlanes);
+
+  /* For now, we need something to associate each wire in the histogram with a wire_id.
+     This is not a beautiful way of handling this, but for now it should work. */
+  WireData_IDs.resize(nPlanes);
+    for(uint i_plane=0; i_plane < nPlanes; ++i_plane)
+      WireData_IDs[i_plane].resize(fGeom->Nwires(i_plane));
+
+
 }
 
 //-----------------------------------------------------------------------------
 cluster::CornerFinderAlg::~CornerFinderAlg()
 {
-  delete WireData_histos;
-  delete WireData_IDs;
+  WireData_histos.clear();
+  WireData_IDs.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -126,35 +136,28 @@ void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
   }
   
   // Getting the bins for the histograms in terms of number of wires and number of time ticks
-  art::ServiceHandle<geo::Geometry> geom;
-  const unsigned int nPlanes = geom->Nplanes();
+  const unsigned int nPlanes = fGeom->Nplanes();
   const unsigned int nTimeTicks = (WireObj.at(0))->NSignal();
 
   
   // Creating the histograms
-  WireData_histos = new TH2F*[nPlanes];
   for (uint i_plane=0; i_plane < nPlanes; i_plane++){
     
     std::stringstream ss_tmp_name,ss_tmp_title;
     ss_tmp_name << "h_WireData_" << i_plane;
     ss_tmp_title << fCalDataModuleLabel << " wire data for plane " << i_plane << ";Wire Number;Time Tick";
     WireData_histos[i_plane] = tfs->make<TH2F>(ss_tmp_name.str().c_str(),ss_tmp_title.str().c_str(),
-					       geom->Nwires(i_plane),0,geom->Nwires(i_plane),nTimeTicks,0,nTimeTicks);
+					       fGeom->Nwires(i_plane),0,fGeom->Nwires(i_plane),nTimeTicks,0,nTimeTicks);
 
   }
   
   
-  /* For now, we need something to associate each wire in the histogram with a wire_id.
-     This is not a beautiful way of handling this, but for now it should work. */
-  WireData_IDs = new geo::WireID*[nPlanes];
-  for(uint i_plane=0; i_plane < nPlanes; i_plane++)
-    WireData_IDs[i_plane] = new geo::WireID[geom->Nwires(i_plane)];
-  
+
   /* Now do the loop over the wires. */
   for (auto const& wire : WireObj) {
     
     
-    std::vector<geo::WireID> possible_wireIDs = geom->ChannelToWire(wire->Channel());
+    std::vector<geo::WireID> possible_wireIDs = fGeom->ChannelToWire(wire->Channel());
     geo::WireID this_wireID;
     try { this_wireID = possible_wireIDs.at(0);}
     catch(cet::exception& excep) { std::cout << "Bail out! No Possible Wires!"<< std::endl; }
@@ -184,11 +187,10 @@ std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points(){
 
   std::vector<recob::EndPoint2D> corner_vector;
 
-  art::ServiceHandle<geo::Geometry> geom;
-  const unsigned int nPlanes = geom->Nplanes();
+  const unsigned int nPlanes = fGeom->Nplanes();
 
   for(uint i=0; i < nPlanes; ++i){
-    geo::PlaneGeo pg = geom->Plane(i);
+    geo::PlaneGeo pg = fGeom->Plane(i);
     attach_feature_points(WireData_histos[i],WireData_IDs[i],pg.View(),corner_vector);
   }
 
@@ -202,11 +204,10 @@ std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points_Line
 
   std::vector<recob::EndPoint2D> corner_vector;
 
-  art::ServiceHandle<geo::Geometry> geom;
-  const unsigned int nPlanes = geom->Nplanes();
+  const unsigned int nPlanes = fGeom->Nplanes();
 
   for(unsigned int i=0; i < nPlanes; ++i){
-    geo::PlaneGeo pg = geom->Plane(i);
+    geo::PlaneGeo pg = fGeom->Plane(i);
     attach_feature_points_LineIntegralScore(WireData_histos[i],WireData_IDs[i],pg.View(),corner_vector);
   }
 
@@ -221,7 +222,9 @@ std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points_Line
 
 //-----------------------------------------------------------------------------
 // This puts on all the feature points in a given view, using a given data histogram
-void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data, geo::WireID *wireIDs, geo::View_t view, 
+void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data, 
+						     std::vector<geo::WireID> wireIDs, 
+						     geo::View_t view, 
 						     std::vector<recob::EndPoint2D> & corner_vector){
 
   // Use the TFile service in art
@@ -269,7 +272,9 @@ void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data, geo::Wir
 
 //-----------------------------------------------------------------------------
 // This puts on all the feature points in a given view, using a given data histogram
-void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_wire_data, geo::WireID *wireIDs, geo::View_t view, 
+void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_wire_data, 
+								       std::vector<geo::WireID> wireIDs, 
+								       geo::View_t view, 
 								       std::vector<recob::EndPoint2D> & corner_vector){
 
   // Use the TFile service in art
@@ -452,7 +457,7 @@ void cluster::CornerFinderAlg::create_cornerScore_histogram(TH2F *h_derivative_x
 // Max Supress
 size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore, 
 							     std::vector<recob::EndPoint2D> & corner_vector,
-							     geo::WireID *wireIDs, 
+							     std::vector<geo::WireID> wireIDs, 
 							     geo::View_t view, 
 							     TH2D *h_maxSuppress=NULL){
 

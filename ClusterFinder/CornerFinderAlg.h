@@ -11,12 +11,14 @@
 #include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 
+#include "art/Framework/Services/Registry/ServiceHandle.h"
+
 #include "TMath.h"
 #include "TH2.h"
 #include <vector>
 #include <string>
 #include "RecoBase/EndPoint2D.h"
-
+#include "Geometry/Geometry.h"
 
 
 namespace cluster { //<---Not sure if this is the right namespace
@@ -40,7 +42,9 @@ namespace cluster { //<---Not sure if this is the right namespace
 
     private:
     
-    
+
+    art::ServiceHandle<geo::Geometry> fGeom; ///< handle to the geometry service
+
     // Need to list the things we will take in from the .fcl file
     
     // Taking in RawData from the event
@@ -62,8 +66,8 @@ namespace cluster { //<---Not sure if this is the right namespace
     float          fIntegral_fraction_threshold;
     
     // Making a vector of histograms
-    TH2F** WireData_histos;
-    geo::WireID** WireData_IDs;
+    std::vector<TH2F*> WireData_histos;
+    std::vector< std::vector<geo::WireID> > WireData_IDs;
     
      
     void create_image_histo(TH2F *h_wire_data, TH2F *h_conversion);
@@ -71,7 +75,7 @@ namespace cluster { //<---Not sure if this is the right namespace
     void create_cornerScore_histogram(TH2F *h_derivative_x, TH2F *h_derivative_y, TH2D *h_cornerScore);
     size_t perform_maximum_suppression(TH2D *h_cornerScore, 
 				       std::vector<recob::EndPoint2D> & corner_vector,
-				       geo::WireID *wireIDs, 
+				       std::vector<geo::WireID> wireIDs, 
 				       geo::View_t view,
 				       TH2D *h_maxSuppress);
 				   
@@ -83,11 +87,11 @@ namespace cluster { //<---Not sure if this is the right namespace
 					  TH2F* h_lineIntegralScore);
 
     void attach_feature_points(TH2F *h_wire_data, 
-			       geo::WireID *wireIDs, 
+			       std::vector<geo::WireID> wireIDs, 
 			       geo::View_t view,
 			       std::vector<recob::EndPoint2D>&);
     void attach_feature_points_LineIntegralScore(TH2F *h_wire_data, 
-						 geo::WireID *wireIDs, 
+						 std::vector<geo::WireID> wireIDs, 
 						 geo::View_t view,
 						 std::vector<recob::EndPoint2D>&);
     
