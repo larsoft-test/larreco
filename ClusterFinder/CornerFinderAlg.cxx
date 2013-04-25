@@ -186,11 +186,15 @@ void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
 // This gives us a vecotr of EndPoint2D objects that correspond to possible corners
 void cluster::CornerFinderAlg::get_feature_points(std::vector<recob::EndPoint2D> & corner_vector){
 
-  const unsigned int nPlanes = fGeom->Nplanes();
+  art::ServiceHandle<geo::Geometry> geom;
 
-  for(uint i=0; i < nPlanes; ++i){
-    geo::PlaneGeo pg = fGeom->Plane(i);
-    attach_feature_points(WireData_histos[i],WireData_IDs[i],pg.View(),corner_vector);
+  for(unsigned int cstat = 0; cstat < geom->Ncryostats(); ++cstat){
+    for(unsigned int tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
+      for(unsigned int plane = 0; plane < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
+	geo::PlaneGeo pg = geom->Cryostat(cstat).TPC(tpc).Plane(plane);
+	attach_feature_points(WireData_histos[plane],WireData_IDs[plane],pg.View(),corner_vector);
+      }
+    }
   }
 
 }
@@ -200,11 +204,15 @@ void cluster::CornerFinderAlg::get_feature_points(std::vector<recob::EndPoint2D>
 // Uses line integral score as corner strength
 void cluster::CornerFinderAlg::get_feature_points_LineIntegralScore(std::vector<recob::EndPoint2D> & corner_vector){
 
-  const unsigned int nPlanes = fGeom->Nplanes();
+  art::ServiceHandle<geo::Geometry> geom;
 
-  for(unsigned int i=0; i < nPlanes; ++i){
-    geo::PlaneGeo pg = fGeom->Plane(i);
-    attach_feature_points_LineIntegralScore(WireData_histos[i],WireData_IDs[i],pg.View(),corner_vector);
+  for(unsigned int cstat = 0; cstat < geom->Ncryostats(); ++cstat){
+    for(unsigned int tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
+      for(unsigned int plane = 0; plane < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
+	//geo::PlaneGeo pg = geom->Cryostat(cstat).TPC(tpc).Plane(plane);
+	attach_feature_points_LineIntegralScore(WireData_histos[plane],WireData_IDs[plane],geom->Cryostat(cstat).TPC(tpc).Plane(plane).View(),corner_vector);
+      }
+    }
   }
 
 }
