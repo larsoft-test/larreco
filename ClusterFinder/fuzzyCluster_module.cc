@@ -134,7 +134,8 @@ namespace cluster{
     std::vector<art::Ptr<recob::Hit> > allhits;
 
     // loop over all end points in the event to help look for clusters (for each plane)
-    std::vector<art::Ptr<recob::EndPoint2D> > allends;
+    //std::vector<art::Ptr<recob::EndPoint2D> > allends;
+    std::vector<recob::EndPoint2D> allends;
 
     // Set event number as the random number seed needed for PPHT
     //std::cout << "Event number check: " << evt.event() << std::endl;
@@ -147,6 +148,8 @@ namespace cluster{
     // Pass information into CornerFinder
     fcornerfinder.TakeInRaw(evt); //this makes the histograms
     fcornerfinder.get_feature_points_LineIntegralScore(endcol); //this fills our vector with feature points
+
+    std::cout << "asdf;asdf" << std::endl;
 
     // get the ChannelFilter
     filter::ChannelFilter chanFilt;
@@ -163,18 +166,17 @@ namespace cluster{
 	  }  
 
 
-	  //for(size_t i = 0; i< endcol->size(); ++i){
-	    //if(endcol[i].Plane    == plane && 
-	       //endcol[i].TPC      == tpc   && 
-	       //endcol[i].Cryostat == cstat) allends.push_back(endcol[i]);  
+	  //for(size_t i = 0; i< endcol.size(); ++i){
+	    //if(endcol[i].WireID().Plane    == plane && 
+	       //endcol[i].WireID().TPC      == tpc   && 
+	       //endcol[i].WireID().Cryostat == cstat){allends.push_back(endcol[i]);  
+	      //std::cout << "wire: " << endcol[i].WireID().Wire << " time: " << endcol[i].DriftTime() << std::endl;
+	    //}
 	  //}  
 
 
           //Begin clustering with fuzzy
           
-          //Attempt to get number of clusters
-          //std::cout << "Number of clusters: " << fHCAlg.Transform(allhits) << std::endl; 
-
 	  ffuzzyCluster.InitFuzzy(allhits, chanFilt.SetOfBadChannels());
 
 	  //----------------------------------------------------------------
