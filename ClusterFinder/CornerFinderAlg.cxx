@@ -187,8 +187,8 @@ std::vector<recob::EndPoint2D> cluster::CornerFinderAlg::get_feature_points(){
   art::ServiceHandle<geo::Geometry> geom;
   const unsigned int nPlanes = geom->Nplanes();
 
-  for(uint i=0; i < nPlanes; i++){
-    geo::PlaneGeo pg = geom->Plane(nPlanes);
+  for(uint i=0; i < nPlanes; ++i){
+    geo::PlaneGeo pg = geom->Plane(i);
     attach_feature_points(WireData_histos[i],WireData_IDs[i],pg.View(),corner_vector);
   }
 
@@ -238,11 +238,11 @@ void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data, geo::Wir
   const int converted_y_bins = y_bins/fConversion_bins_per_input_y;
   const int converted_x_bins = x_bins/fConversion_bins_per_input_x;
 
-  std::stringstream conversion_name; conversion_name << "h_conversion_" << view;
-  std::stringstream dx_name; dx_name << "h_derivative_x_" << view;
-  std::stringstream dy_name; dy_name << "h_derivative_x_" << view;
-  std::stringstream cornerScore_name; cornerScore_name << "h_cornerScore_" << view;
-  std::stringstream maxSuppress_name; maxSuppress_name << "h_maxSuppress_" << view;
+  std::stringstream conversion_name;  conversion_name  << "h_conversion_"   << view;
+  std::stringstream dx_name;          dx_name          << "h_derivative_x_" << view;
+  std::stringstream dy_name;          dy_name          << "h_derivative_y_" << view;
+  std::stringstream cornerScore_name; cornerScore_name << "h_cornerScore_"  << view;
+  std::stringstream maxSuppress_name; maxSuppress_name << "h_maxSuppress_"  << view;
 
   TH2F *h_conversion = tfs->make<TH2F>((conversion_name.str()).c_str(),"Image Conversion Histogram",
 				       converted_x_bins,x_min,x_max,
@@ -286,9 +286,9 @@ void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_w
   const int converted_y_bins = y_bins/fConversion_bins_per_input_y;
   const int converted_x_bins = x_bins/fConversion_bins_per_input_x;
 
-  std::stringstream conversion_name; conversion_name << "h_conversion_" << view;
-  std::stringstream dx_name; dx_name << "h_derivative_x_" << view;
-  std::stringstream dy_name; dy_name << "h_derivative_x_" << view;
+  std::stringstream conversion_name;  conversion_name  << "h_conversion_" << view;
+  std::stringstream dx_name;          dx_name          << "h_derivative_x_" << view;
+  std::stringstream dy_name;          dy_name          << "h_derivative_y_" << view;
   std::stringstream cornerScore_name; cornerScore_name << "h_cornerScore_" << view;
   std::stringstream maxSuppress_name; maxSuppress_name << "h_maxSuppress_" << view;
 
