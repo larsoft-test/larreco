@@ -204,7 +204,7 @@ namespace trkf {
 	    const recob::Hit& arthit = *parthit;
 	    geo::View_t view = arthit.View();
 	    double pitch = geom->WirePitch(view);
-	    double charge = arthit.Charge();
+	    double charge = arthit.Charge(true);
 	    double dudw = trh.getVector()[2];
 	    double dvdw = trh.getVector()[3];
 	    double dist = pitch * std::sqrt(1. + dudw * dudw + dvdw * dvdw);
