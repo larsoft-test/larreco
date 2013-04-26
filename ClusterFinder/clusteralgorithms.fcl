@@ -46,15 +46,15 @@ standard_cornerfinderalg:
   CalDataModuleLabel:		"caldata"
   Conversion_threshold:		0
   Conversion_bins_per_input_x:	1
-  Conversion_bins_per_input_y:	6
+  Conversion_bins_per_input_y:	1
   Derivative_method: 		"Sobel" #Noble
   Derivative_neighborhood:	1 
   CornerScore_neighborhood:	1
   CornerScore_algorithm:	"Nobel" #Harris
   MaxSuppress_neighborhood:	3
-  MaxSuppress_threshold:		0
-  Integral_bin_threshold:       1
-  Integral_fraction_threshold:  0.2
+  MaxSuppress_threshold:	1000
+  Integral_bin_threshold:       5
+  Integral_fraction_threshold:  0.95
 
 
 }

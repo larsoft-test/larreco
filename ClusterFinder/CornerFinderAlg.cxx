@@ -75,9 +75,9 @@ cluster::CornerFinderAlg::CornerFinderAlg(fhicl::ParameterSet const& pset)
   /* For now, we need something to associate each wire in the histogram with a wire_id.
      This is not a beautiful way of handling this, but for now it should work. */
   WireData_IDs.resize(nPlanes);
-    for(uint i_plane=0; i_plane < nPlanes; ++i_plane)
-      WireData_IDs[i_plane].resize(fGeom->Nwires(i_plane));
-
+  for(uint i_plane=0; i_plane < nPlanes; ++i_plane)
+    WireData_IDs[i_plane].resize(fGeom->Nwires(i_plane));
+  
 
 }
 
@@ -109,11 +109,10 @@ void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
 
 //-----------------------------------------------------------------------------
 void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
-
 {
   // Use the TFile service in art
   art::ServiceHandle<art::TFileService> tfs;
-  
+
   /* Get the list of wires.*/
   art::PtrVector<recob::Wire> WireObj;
   
@@ -136,11 +135,10 @@ void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
   }
   
   // Getting the bins for the histograms in terms of number of wires and number of time ticks
-  const unsigned int nPlanes = fGeom->Nplanes();
   const unsigned int nTimeTicks = (WireObj.at(0))->NSignal();
 
   // Creating the histograms
-  for (uint i_plane=0; i_plane < nPlanes; i_plane++){
+  for (uint i_plane=0; i_plane < fGeom->Nplanes(); i_plane++){
     
     std::stringstream ss_tmp_name,ss_tmp_title;
     ss_tmp_name << "h_WireData_" << i_plane;
@@ -150,8 +148,6 @@ void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
 
   }
   
-  
-
   /* Now do the loop over the wires. */
   for (auto const& wire : WireObj) {
     
@@ -222,6 +218,7 @@ void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data,
 						     geo::View_t view, 
 						     std::vector<recob::EndPoint2D> & corner_vector){
 
+
   // Use the TFile service in art
   art::ServiceHandle<art::TFileService> tfs;
 
@@ -262,7 +259,6 @@ void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data,
   create_derivative_histograms(h_conversion,h_derivative_x,h_derivative_y);
   create_cornerScore_histogram(h_derivative_x,h_derivative_y,h_cornerScore);
   perform_maximum_suppression(h_cornerScore,corner_vector,wireIDs,view,h_maxSuppress);
-
 }
 
 //-----------------------------------------------------------------------------
@@ -271,6 +267,7 @@ void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_w
 								       std::vector<geo::WireID> wireIDs, 
 								       geo::View_t view, 
 								       std::vector<recob::EndPoint2D> & corner_vector){
+
 
   // Use the TFile service in art
   art::ServiceHandle<art::TFileService> tfs;
@@ -315,7 +312,7 @@ void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_w
   std::vector<recob::EndPoint2D> corner_vector_tmp;
   perform_maximum_suppression(h_cornerScore,corner_vector_tmp,wireIDs,view,h_maxSuppress);
 
-  std::stringstream LI_name; conversion_name << "h_lineIntegralScore_" << view;
+  std::stringstream LI_name; LI_name << "h_lineIntegralScore_" << view;
   TH2F *h_lineIntegralScore =  tfs->make<TH2F>((LI_name.str()).c_str(),"Line Integral Score",
 					       x_bins,x_min,x_max,
 					       y_bins,y_min,y_max);
@@ -328,26 +325,21 @@ void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_w
 // Convert to pixel
 void cluster::CornerFinderAlg::create_image_histo(TH2F *h_wire_data, TH2F *h_conversion) {
   
-  int counter_ybin=1;
-  int counter_xbin=1;
-  float temp_sum=0;
+  float temp_integral=0;
 
-  for(int iy=1; iy<=h_conversion->GetNbinsY(); iy++){
-    for(int ix=1; ix<=h_conversion->GetNbinsX(); ix++){
-
-      temp_sum=0;
-      for(int jy=counter_ybin; jy<counter_ybin+fConversion_bins_per_input_y; jy++){
-	for(int jx=counter_xbin; jx<counter_xbin+fConversion_bins_per_input_x; jx++){
-	  temp_sum += h_wire_data->GetBinContent(jx,jy);
-	}
-      }
+  for(int ix=1; ix<=h_conversion->GetNbinsX(); ix++){
+    for(int iy=1; iy<=h_conversion->GetNbinsY(); iy++){
       
-      counter_ybin += fConversion_bins_per_input_y;
-      counter_xbin += fConversion_bins_per_input_x;
+      temp_integral = h_wire_data->Integral( (ix-1)*fConversion_bins_per_input_x + 1,
+					     ix * fConversion_bins_per_input_x,
+					     (iy-1)*fConversion_bins_per_input_y + 1,
+					     iy * fConversion_bins_per_input_y);
 
-
-      if( temp_sum > fConversion_threshold)
-	h_conversion->SetBinContent(ix,iy,temp_sum);
+      if( temp_integral > fConversion_threshold)
+	h_conversion->SetBinContent(ix,iy,h_wire_data->GetBinContent(ix,iy));
+      else{
+	h_conversion->SetBinContent(ix,iy,fConversion_threshold);
+      }
     }
   }
 
@@ -485,8 +477,8 @@ size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore
 
       if(temp_center_bin){
 	
-	float time_tick = fConversion_bins_per_input_y*(0.5 * (float)iy);
-	int wire_number = fConversion_bins_per_input_x*(0.5 * ix);
+	float time_tick = 0.5 * (float)((2*iy-1) * fConversion_bins_per_input_y);
+	int wire_number = ( (2*ix-1)*fConversion_bins_per_input_x ) / 2;
 	double totalQ = 0;
 	int id = 0;
 	recob::EndPoint2D corner(time_tick,
