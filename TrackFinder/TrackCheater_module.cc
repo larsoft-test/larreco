@@ -158,61 +158,69 @@ namespace trkf{
 	  abs(part->PdgCode()) != 22  &&
 	  abs(part->PdgCode()) != 111 ){
 
-	mf::LogInfo("TrackCheater") << "prong of " << (*clusterMapItr).first 
+	// vectors to hold the positions and directions of the track
+	std::vector<TVector3> points;
+	std::vector<TVector3> dirs;
+
+	size_t nviews = geo->Nviews();
+	std::vector< std::vector<double> > dQdx(nviews);
+
+	mf::LogInfo("TrackCheater") << "G4 id " << (*clusterMapItr).first 
 				    << " is a track with pdg code "
 				    << part->PdgCode();
 
 	for(size_t c = 0; c < eveClusters.size(); ++c) ptrvs.push_back(eveClusters[c]);
 
-	// get the particle for this track ID
-	size_t numtraj = part->NumberTrajectoryPoints();
-	std::vector<TVector3> points(numtraj);
-	std::vector<TVector3> dirs(numtraj);
+	// grab the hits associated with the collection plane
+	art::FindManyP<recob::Hit> fmh(ptrvs, evt, fCheatedClusterLabel);
+	std::vector< art::Ptr<recob::Hit> > hits;
+	for(size_t p = 0; p < ptrvs.size(); ++p){
+	  hits = fmh.at(p);
+	  if(hits.size() < 2) continue;
+	  if(hits.at(0)->SignalType() == geo::kCollection) break; 
+	}
 
-	size_t nviews = geo->Nviews();
-	std::vector< std::vector<double> > dQdx(nviews);
+	// need at least 2 hits to make a track
+	if(hits.size() < 2) continue;
 
-	// loop over the particle trajectory
+	// loop over the hits to get the positions and directions
 	size_t spStart = spcol->size();
-	for(size_t t = 0; t < numtraj; ++t){
-	  try{
-	    // check if the particle is inside a TPC
-	    double pos[3] = {part->Vx(t), part->Vy(t), part->Vz(t)};
-	    unsigned int tpc   = 0;
-	    unsigned int cstat = 0;
-	    geo->PositionToTPC(pos, tpc, cstat);
-	  }
-	  catch(cet::exception &e){
-	    continue;
-	  }
+	for(size_t t = 0; t < hits.size(); ++t){
 	  
-	  LOG_DEBUG("TrackCheater") << "pos: [" << part->Vx(t) << ", " << part->Vy(t) 
-				    << ", "<< part->Vz(t) << "]\n"
-				    << "dir: [" << part->Px(t) << ", " << part->Py(t) 
-				    << ", "<< part->Pz(t) << "]\n"
-				    << "tot P: " << part->P();
+	  std::vector<double> xyz = bt->HitToXYZ(hits.at(t));
+	  points.push_back(TVector3(xyz[0], xyz[1], xyz[2]));
 
-	  points[t].SetXYZ(part->Vx(t), part->Vy(t), part->Vz(t));
-	  dirs[t].SetXYZ(part->Px(t)/part->P(), part->Py(t)/part->P(), part->Pz(t)/part->P());
+	  std::vector<double> xyz1;
+	  double charge = hits.at(t)->Charge();
+	  double dx     = 0.;
+	  double sign   = 1.;
 
-	  // use the same dQdx in each view and just make it direct energy -> charge conversion
-	  double eLoss = 0.;
-	  double dx    = 0.;
-	  if(t > 0){
-	    eLoss = std::abs(part->E(t)  - part->E(t-1))*util::kGeVToElectrons*detp->ElectronsToADC();
-	    dx    = std::sqrt(std::pow(part->Vx(t) - part->Vx(t-1), 2) + 
-			      std::pow(part->Vy(t) - part->Vy(t-1), 2) + 
-			      std::pow(part->Vz(t) - part->Vz(t-1), 2));
+	  if(t < hits.size()-1){
+	    xyz1 = bt->HitToXYZ(hits.at(t+1));
 	  }
-	  dQdx[0].push_back(eLoss/dx);
-	  dQdx[1].push_back(eLoss/dx);
-	  dQdx[2].push_back(eLoss/dx);
+	  else{
+	    xyz1 = bt->HitToXYZ(hits.at(t-1));
+	    sign = -1.;
+	  }
 
-	  double xyz[3]    = {part->Vx(t), part->Vy(t), part->Vz(t)};
-	  double xyzerr[6] = {1.e-3};
-	  double chisqr    = 0.9;
+	  // dx is always positive
+	  dx = std::sqrt(std::pow(xyz1[0] - xyz[0], 2) + 
+			 std::pow(xyz1[1] - xyz[1], 2) + 
+			 std::pow(xyz1[2] - xyz[2], 2));
+	  
+	  // direction is always from the previous point along track to
+	  // the next point, that is why sign is there
+	  dirs.push_back(TVector3(sign*(xyz1[0] - xyz[0])/dx, 
+				  sign*(xyz1[1] - xyz[1])/dx, 
+				  sign*(xyz1[2] - xyz[2])/dx));
+
+	  dQdx[0].push_back(charge/dx);
+	  dQdx[1].push_back(charge/dx);
+	  dQdx[2].push_back(charge/dx);
 
 	  // make the space point and set its ID and XYZ
+	  double xyzerr[6] = {1.e-3};
+	  double chisqr    = 0.9;
 	  recob::SpacePoint sp(&xyz[0], xyzerr, chisqr, eveClusters[0]->ID()*10000 + t);
 	  spcol->push_back(sp);
 	}
@@ -223,17 +231,16 @@ namespace trkf{
 	// ID be the same as the track ID for the eve particle
 	std::vector<double> momentum(2);
 	momentum[0] = part->P();
-	momentum[1] = part->P(numtraj-1);
+	momentum[1] = part->P(part->NumberTrajectoryPoints()-1);
 	trackcol->push_back(recob::Track(points, dirs, dQdx, momentum, (*clusterMapItr).first));
 
 	// associate the track with its clusters
 	util::CreateAssn(*this, evt, *trackcol, ptrvs, *tcassn);
 
-	art::FindManyP<recob::Hit> fmh(ptrvs, evt, fCheatedClusterLabel);
-
 	// assume the input tracks were previously associated with hits
+	hits.clear();
 	for(size_t p = 0; p < ptrvs.size(); ++p){
-	  std::vector< art::Ptr<recob::Hit> > hits = fmh.at(p);
+	  hits  = fmh.at(p);
 	  util::CreateAssn(*this, evt, *trackcol, hits, *thassn);
 	}
 
