@@ -99,7 +99,13 @@ namespace trkf {
     
     double          fsmatch;             ///< tolerance for distance matching (in cm)
 
+    double          ftoler1;             ///< tolerance for using hits in fit
+
+    double          ftoler2;             ///< tolerance for using hits in fit
+
     std::string     fClusterModuleLabel; ///< label for input cluster collection
+    
+    bool             fdebug;
 
     //testing histograms
     TH1D *dt[3];
@@ -136,6 +142,9 @@ void CosmicTracker::reconfigure(fhicl::ParameterSet const& pset)
   fKScut                  = pset.get< double >("KScut");
   ftmatch                 = pset.get< double >("TMatch");
   fsmatch                 = pset.get< double >("SMatch");
+  ftoler1                 = pset.get< double >("Toler1");
+  ftoler2                 = pset.get< double >("Toler2");
+  fdebug                  = pset.get< bool   >("Debug");
 }
 
 //-------------------------------------------------
@@ -470,7 +479,7 @@ void CosmicTracker::produce(art::Event& evt){
 	double y = fitter->GetParameter(0)+
 	  fitter->GetParameter(1)*(*iw)+
 	  fitter->GetParameter(2)*(*iw)*(*iw);
-	if (std::abs(*it-y)>30){
+	if (std::abs(*it-y)>ftoler1){
 	  iw = vwire.erase(iw);
 	  it = vtime.erase(it);
 	  iph = vph.erase(iph);
@@ -504,7 +513,7 @@ void CosmicTracker::produce(art::Event& evt){
 	  double y = fitter->GetParameter(0)+
 	    fitter->GetParameter(1)*w+
 	    fitter->GetParameter(2)*w*w;
-	  if (std::abs(time-y)<20){
+	  if (std::abs(time-y)<ftoler2){
 	    phmap[w] = ph;
 	    timemap[w] = time;
 	    hitmap[w] = hits[ihit];
@@ -773,20 +782,21 @@ void CosmicTracker::produce(art::Event& evt){
 	util::CreateAssn(*this, evt, *tcol, clustersPerTrack, *tcassn);
 	
 	// and the hits and track
-	art::FindManyP<recob::Hit> fmh(clustersPerTrack, evt, fClusterModuleLabel);
-	for(size_t cpt = 0; cpt < clustersPerTrack.size(); ++cpt)
-	  util::CreateAssn(*this, evt, *tcol, fmh.at(cpt), *thassn);
-	
-	/*
-	std::vector<art::Ptr<recob::Hit> > trkhits;
-	for(auto ihit = vhitmap[iclu1].begin(); ihit!=vhitmap[iclu1].end();++ihit){
-	  trkhits.push_back(ihit->second);
+	if (!fdebug){
+	  art::FindManyP<recob::Hit> fmh(clustersPerTrack, evt, fClusterModuleLabel);
+	  for(size_t cpt = 0; cpt < clustersPerTrack.size(); ++cpt)
+	    util::CreateAssn(*this, evt, *tcol, fmh.at(cpt), *thassn);
 	}
-	for(auto ihit = vhitmap[iclu2].begin(); ihit!=vhitmap[iclu2].end();++ihit){
-	  trkhits.push_back(ihit->second);
+	else{
+	  std::vector<art::Ptr<recob::Hit> > trkhits;
+	  for(auto ihit = vhitmap[iclu1].begin(); ihit!=vhitmap[iclu1].end();++ihit){
+	    trkhits.push_back(ihit->second);
+	  }
+	  for(auto ihit = vhitmap[iclu2].begin(); ihit!=vhitmap[iclu2].end();++ihit){
+	    trkhits.push_back(ihit->second);
+	  }
+	  util::CreateAssn(*this, evt, *tcol, trkhits, *thassn);
 	}
-	util::CreateAssn(*this, evt, *tcol, trkhits, *thassn);
-	*/
       }
     }//if iclu1&&iclu2
   }//itrk		 

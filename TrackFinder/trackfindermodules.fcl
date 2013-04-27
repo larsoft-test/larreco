@@ -57,6 +57,9 @@ standard_cosmictracker:
  KScut:              0.9
  TMatch:             35
  SMatch:             1.0
+ Toler1:             30    #tolerance in fit, 1st iteration
+ Toler2:             20    #tolerance in fit, 2nd iteration
+ Debug:              false
 }
 
 standard_track3Dkalman:
