@@ -25,11 +25,6 @@ extern "C" {
 
 #include "TMath.h"
 
-// Framework includes
-#include "art/Framework/Services/Optional/TFileService.h"
-#include "art/Framework/Services/Optional/TFileDirectory.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
-
 #include "RawData/raw.h"
 #include "RawData/RawDigit.h"
 #include "Filters/ChannelFilter.h"
@@ -39,8 +34,6 @@ extern "C" {
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Wire.h"
 #include "ClusterFinder/CornerFinderAlg.h"
-
-
 
 #include "art/Framework/Core/ModuleMacros.h" 
 #include "art/Framework/Core/EDProducer.h"
@@ -61,10 +54,6 @@ extern "C" {
 
 //-----------------------------------------------------------------------------
 cluster::CornerFinderAlg::CornerFinderAlg(fhicl::ParameterSet const& pset) 
-// ### This is where we take in the RawData from the .fcl file
-  //:fRawDataLabel (pset.get<std::string>("RawDataModuleLabel"))
-// ### Reading in CaldataModule ###
-  //:fCalDataModuleLabel (pset.get<std::string>("CalDataModuleLabel")) 
 {
   this->reconfigure(pset);
 
@@ -143,9 +132,18 @@ void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
     std::stringstream ss_tmp_name,ss_tmp_title;
     ss_tmp_name << "h_WireData_" << i_plane;
     ss_tmp_title << fCalDataModuleLabel << " wire data for plane " << i_plane << ";Wire Number;Time Tick";
-    WireData_histos[i_plane] = tfs->make<TH2F>(ss_tmp_name.str().c_str(),ss_tmp_title.str().c_str(),
-					       fGeom->Nwires(i_plane),0,fGeom->Nwires(i_plane),nTimeTicks,0,nTimeTicks);
 
+    if(WireData_histos[i_plane]) WireData_histos[i_plane]->Reset();
+    else
+      WireData_histos[i_plane] = tfs->make<TH2F>(ss_tmp_name.str().c_str(),
+						 ss_tmp_title.str().c_str(),
+						 fGeom->Nwires(i_plane),
+						 0,
+						 fGeom->Nwires(i_plane),
+						 nTimeTicks,
+						 0,
+						 nTimeTicks);
+    
   }
   
   /* Now do the loop over the wires. */
@@ -206,21 +204,12 @@ void cluster::CornerFinderAlg::get_feature_points_LineIntegralScore(std::vector<
 }
 
 //-----------------------------------------------------------------------------
-// This makes our data histogram from a collection of wires
-//TH2F* cluster::CornerFinderAlg::make_data_histogram(std::vector<recob::Wire> wires, geo::View_t view){
-//}
-
-
-//-----------------------------------------------------------------------------
 // This puts on all the feature points in a given view, using a given data histogram
 void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data, 
 						     std::vector<geo::WireID> wireIDs, 
 						     geo::View_t view, 
 						     std::vector<recob::EndPoint2D> & corner_vector){
 
-
-  // Use the TFile service in art
-  art::ServiceHandle<art::TFileService> tfs;
 
   const int x_bins = h_wire_data->GetNbinsX();
   const float x_min = h_wire_data->GetXaxis()->GetBinLowEdge(1);
@@ -239,26 +228,31 @@ void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data,
   std::stringstream cornerScore_name; cornerScore_name << "h_cornerScore_"  << view;
   std::stringstream maxSuppress_name; maxSuppress_name << "h_maxSuppress_"  << view;
 
-  TH2F *h_conversion = tfs->make<TH2F>((conversion_name.str()).c_str(),"Image Conversion Histogram",
-				       converted_x_bins,x_min,x_max,
-				       converted_y_bins,y_min,y_max);
-  TH2F *h_derivative_x = tfs->make<TH2F>((dx_name.str()).c_str(),"Partial Derivatives (x)",
-					 converted_x_bins,x_min,x_max,
-					 converted_y_bins,y_min,y_max);
-  TH2F *h_derivative_y = tfs->make<TH2F>((dy_name.str()).c_str(),"Partial Derivatives (y)",
-					 converted_x_bins,x_min,x_max,
-					 converted_y_bins,y_min,y_max);
-  TH2D *h_cornerScore = tfs->make<TH2D>((cornerScore_name.str()).c_str(),"Feature Point Corner Score",
-					converted_x_bins,x_min,x_max,
-					converted_y_bins,y_min,y_max);
-  TH2D *h_maxSuppress = tfs->make<TH2D>((maxSuppress_name.str()).c_str(),"Corner Points (Maximum Suppressed)",
-					converted_x_bins,x_min,x_max,
-					converted_y_bins,y_min,y_max);
-
-  create_image_histo(h_wire_data,h_conversion);  
-  create_derivative_histograms(h_conversion,h_derivative_x,h_derivative_y);
-  create_cornerScore_histogram(h_derivative_x,h_derivative_y,h_cornerScore);
-  perform_maximum_suppression(h_cornerScore,corner_vector,wireIDs,view,h_maxSuppress);
+  TH2F h_conversion  ((conversion_name.str()).c_str(),
+		      "Image Conversion Histogram",
+		      converted_x_bins,x_min,x_max,
+		      converted_y_bins,y_min,y_max);
+  TH2F h_derivative_x((dx_name.str()).c_str(),
+		      "Partial Derivatives (x)",
+		      converted_x_bins,x_min,x_max,
+		      converted_y_bins,y_min,y_max);
+  TH2F h_derivative_y((dy_name.str()).c_str(),
+		      "Partial Derivatives (y)",
+		      converted_x_bins,x_min,x_max,
+		      converted_y_bins,y_min,y_max);
+  TH2D h_cornerScore ((cornerScore_name.str()).c_str(),
+		      "Feature Point Corner Score",
+		      converted_x_bins,x_min,x_max,
+		      converted_y_bins,y_min,y_max);
+  TH2D h_maxSuppress ((maxSuppress_name.str()).c_str(),
+		      "Corner Points (Maximum Suppressed)",
+		      converted_x_bins,x_min,x_max,
+		      converted_y_bins,y_min,y_max);
+  
+  create_image_histo(h_wire_data,&h_conversion);  
+  create_derivative_histograms(&h_conversion,&h_derivative_x,&h_derivative_y);
+  create_cornerScore_histogram(&h_derivative_x,&h_derivative_y,&h_cornerScore);
+  perform_maximum_suppression(&h_cornerScore,corner_vector,wireIDs,view,&h_maxSuppress);
 }
 
 //-----------------------------------------------------------------------------
@@ -269,16 +263,13 @@ void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_w
 								       std::vector<recob::EndPoint2D> & corner_vector){
 
 
-  // Use the TFile service in art
-  art::ServiceHandle<art::TFileService> tfs;
+  const int   x_bins = h_wire_data->GetNbinsX();
+  const float x_min  = h_wire_data->GetXaxis()->GetBinLowEdge(1);
+  const float x_max  = h_wire_data->GetXaxis()->GetBinUpEdge(x_bins);
 
-  const int x_bins = h_wire_data->GetNbinsX();
-  const float x_min = h_wire_data->GetXaxis()->GetBinLowEdge(1);
-  const float x_max = h_wire_data->GetXaxis()->GetBinUpEdge(x_bins);
-
-  const int y_bins = h_wire_data->GetNbinsY();
-  const float y_min = h_wire_data->GetYaxis()->GetBinLowEdge(1);
-  const float y_max = h_wire_data->GetYaxis()->GetBinUpEdge(y_bins);
+  const int   y_bins = h_wire_data->GetNbinsY();
+  const float y_min  = h_wire_data->GetYaxis()->GetBinLowEdge(1);
+  const float y_max  = h_wire_data->GetYaxis()->GetBinUpEdge(y_bins);
 
   const int converted_y_bins = y_bins/fConversion_bins_per_input_y;
   const int converted_x_bins = x_bins/fConversion_bins_per_input_x;
@@ -289,34 +280,40 @@ void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_w
   std::stringstream cornerScore_name; cornerScore_name << "h_cornerScore_" << view;
   std::stringstream maxSuppress_name; maxSuppress_name << "h_maxSuppress_" << view;
 
-  TH2F *h_conversion = tfs->make<TH2F>((conversion_name.str()).c_str(),"Image Conversion Histogram",
-				       converted_x_bins,x_min,x_max,
-				       converted_y_bins,y_min,y_max);
-  TH2F *h_derivative_x = tfs->make<TH2F>((dx_name.str()).c_str(),"Partial Derivatives (x)",
-					 converted_x_bins,x_min,x_max,
-					 converted_y_bins,y_min,y_max);
-  TH2F *h_derivative_y = tfs->make<TH2F>((dy_name.str()).c_str(),"Partial Derivatives (y)",
-					 converted_x_bins,x_min,x_max,
-					 converted_y_bins,y_min,y_max);
-  TH2D *h_cornerScore = tfs->make<TH2D>((cornerScore_name.str()).c_str(),"Feature Point Corner Score",
-					converted_x_bins,x_min,x_max,
-					converted_y_bins,y_min,y_max);
-  TH2D *h_maxSuppress = tfs->make<TH2D>((maxSuppress_name.str()).c_str(),"Corner Points (Maximum Suppressed)",
-					converted_x_bins,x_min,x_max,
-					converted_y_bins,y_min,y_max);
-
-  create_image_histo(h_wire_data,h_conversion);  
-  create_derivative_histograms(h_conversion,h_derivative_x,h_derivative_y);
-  create_cornerScore_histogram(h_derivative_x,h_derivative_y,h_cornerScore);
+  TH2F h_conversion  ((conversion_name.str()).c_str(),
+		      "Image Conversion Histogram",
+		      converted_x_bins,x_min,x_max,
+		      converted_y_bins,y_min,y_max);
+  TH2F h_derivative_x((dx_name.str()).c_str(),
+		      "Partial Derivatives (x)",
+		      converted_x_bins,x_min,x_max,
+		      converted_y_bins,y_min,y_max);
+  TH2F h_derivative_y((dy_name.str()).c_str(),
+		      "Partial Derivatives (y)",
+		      converted_x_bins,x_min,x_max,
+		      converted_y_bins,y_min,y_max);
+  TH2D h_cornerScore ((cornerScore_name.str()).c_str(),
+		      "Feature Point Corner Score",
+		      converted_x_bins,x_min,x_max,
+		      converted_y_bins,y_min,y_max);
+  TH2D h_maxSuppress ((maxSuppress_name.str()).c_str(),
+		      "Corner Points (Maximum Suppressed)",
+		      converted_x_bins,x_min,x_max,
+		      converted_y_bins,y_min,y_max);
+  
+  create_image_histo(h_wire_data,&h_conversion);  
+  create_derivative_histograms(&h_conversion,&h_derivative_x,&h_derivative_y);
+  create_cornerScore_histogram(&h_derivative_x,&h_derivative_y,&h_cornerScore);
 
   std::vector<recob::EndPoint2D> corner_vector_tmp;
-  perform_maximum_suppression(h_cornerScore,corner_vector_tmp,wireIDs,view,h_maxSuppress);
+  perform_maximum_suppression(&h_cornerScore,corner_vector_tmp,wireIDs,view,&h_maxSuppress);
 
   std::stringstream LI_name; LI_name << "h_lineIntegralScore_" << view;
-  TH2F *h_lineIntegralScore =  tfs->make<TH2F>((LI_name.str()).c_str(),"Line Integral Score",
-					       x_bins,x_min,x_max,
-					       y_bins,y_min,y_max);
-  calculate_line_integral_score(h_wire_data,corner_vector_tmp,corner_vector,h_lineIntegralScore);
+  TH2F h_lineIntegralScore((LI_name.str()).c_str(),
+			   "Line Integral Score",
+			   x_bins,x_min,x_max,
+			   y_bins,y_min,y_max);
+  calculate_line_integral_score(h_wire_data,corner_vector_tmp,corner_vector,&h_lineIntegralScore);
     
 }
 
