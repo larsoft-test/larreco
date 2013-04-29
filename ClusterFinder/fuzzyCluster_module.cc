@@ -146,8 +146,8 @@ namespace cluster{
     std::vector<recob::EndPoint2D> endcol; 
 
     // Pass information into CornerFinder
-    fcornerfinder.TakeInRaw(evt); //this makes the histograms
-    fcornerfinder.get_feature_points_LineIntegralScore(endcol); //this fills our vector with feature points
+    //fcornerfinder.TakeInRaw(evt); //this makes the histograms
+    //fcornerfinder.get_feature_points_LineIntegralScore(endcol); //this fills our vector with feature points
 
     // get the ChannelFilter
     filter::ChannelFilter chanFilt;
