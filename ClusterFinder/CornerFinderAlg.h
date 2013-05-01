@@ -69,6 +69,7 @@ namespace cluster { //<---Not sure if this is the right namespace
     std::vector<TH2F*> WireData_histos;
     std::vector< std::vector<geo::WireID> > WireData_IDs;
     
+    unsigned int event_number;
      
     void create_image_histo(TH2F *h_wire_data, TH2F *h_conversion);
     void create_derivative_histograms(TH2F *h_conversion, TH2F *h_derivative_x, TH2F *h_derivative_y);

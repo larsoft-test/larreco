@@ -126,6 +126,8 @@ void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
   // Getting the bins for the histograms in terms of number of wires and number of time ticks
   const unsigned int nTimeTicks = (WireObj.at(0))->NSignal();
 
+  event_number = evt.event();
+
   // Creating the histograms
   for (uint i_plane=0; i_plane < fGeom->Nplanes(); i_plane++){
     
@@ -222,11 +224,11 @@ void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data,
   const int converted_y_bins = y_bins/fConversion_bins_per_input_y;
   const int converted_x_bins = x_bins/fConversion_bins_per_input_x;
 
-  std::stringstream conversion_name;  conversion_name  << "h_conversion_"   << view;
-  std::stringstream dx_name;          dx_name          << "h_derivative_x_" << view;
-  std::stringstream dy_name;          dy_name          << "h_derivative_y_" << view;
-  std::stringstream cornerScore_name; cornerScore_name << "h_cornerScore_"  << view;
-  std::stringstream maxSuppress_name; maxSuppress_name << "h_maxSuppress_"  << view;
+  std::stringstream conversion_name;  conversion_name  << "h_conversion_"   << view << "_" << event_number;
+  std::stringstream dx_name;          dx_name          << "h_derivative_x_" << view << "_" << event_number;
+  std::stringstream dy_name;          dy_name          << "h_derivative_y_" << view << "_" << event_number;
+  std::stringstream cornerScore_name; cornerScore_name << "h_cornerScore_"  << view << "_" << event_number;
+  std::stringstream maxSuppress_name; maxSuppress_name << "h_maxSuppress_"  << view << "_" << event_number;
 
   TH2F h_conversion  ((conversion_name.str()).c_str(),
 		      "Image Conversion Histogram",
@@ -274,11 +276,11 @@ void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_w
   const int converted_y_bins = y_bins/fConversion_bins_per_input_y;
   const int converted_x_bins = x_bins/fConversion_bins_per_input_x;
 
-  std::stringstream conversion_name;  conversion_name  << "h_conversion_" << view;
-  std::stringstream dx_name;          dx_name          << "h_derivative_x_" << view;
-  std::stringstream dy_name;          dy_name          << "h_derivative_y_" << view;
-  std::stringstream cornerScore_name; cornerScore_name << "h_cornerScore_" << view;
-  std::stringstream maxSuppress_name; maxSuppress_name << "h_maxSuppress_" << view;
+  std::stringstream conversion_name;  conversion_name  << "h_conversion_"   << view << "_" << event_number;
+  std::stringstream dx_name;          dx_name          << "h_derivative_x_" << view << "_" << event_number;
+  std::stringstream dy_name;          dy_name          << "h_derivative_y_" << view << "_" << event_number;
+  std::stringstream cornerScore_name; cornerScore_name << "h_cornerScore_"  << view << "_" << event_number;
+  std::stringstream maxSuppress_name; maxSuppress_name << "h_maxSuppress_"  << view << "_" << event_number;
 
   TH2F h_conversion  ((conversion_name.str()).c_str(),
 		      "Image Conversion Histogram",
@@ -308,7 +310,7 @@ void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_w
   std::vector<recob::EndPoint2D> corner_vector_tmp;
   perform_maximum_suppression(&h_cornerScore,corner_vector_tmp,wireIDs,view,&h_maxSuppress);
 
-  std::stringstream LI_name; LI_name << "h_lineIntegralScore_" << view;
+  std::stringstream LI_name; LI_name << "h_lineIntegralScore_" << view << "_" << event_number;
   TH2F h_lineIntegralScore((LI_name.str()).c_str(),
 			   "Line Integral Score",
 			   x_bins,x_min,x_max,
