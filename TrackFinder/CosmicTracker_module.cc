@@ -107,11 +107,14 @@ namespace trkf {
     
     bool             fdebug;
 
+    int             fisohitcut;
+
     //testing histograms
     TH1D *dt[3];
     TH1D *dtime[3];
     TH1D *testsig[3];
     TH1D *hsig[3];
+    TH1D *hks;
   
   }; // class CosmicTracker
 
@@ -145,6 +148,7 @@ void CosmicTracker::reconfigure(fhicl::ParameterSet const& pset)
   ftoler1                 = pset.get< double >("Toler1");
   ftoler2                 = pset.get< double >("Toler2");
   fdebug                  = pset.get< bool   >("Debug");
+  fisohitcut              = pset.get< int    >("IsoHitCut");
 }
 
 //-------------------------------------------------
@@ -166,6 +170,8 @@ void CosmicTracker::beginJob()
   hsig[0] = tfs->make<TH1D>("hsig0","hsig0",4096,0,4096);
   hsig[1] = tfs->make<TH1D>("hsig1","hsig1",4096,0,4096);
   hsig[2] = tfs->make<TH1D>("hsig2","hsig2",4096,0,4096);
+
+  hks = tfs->make<TH1D>("hks","hks",100,0,1);
 
   for (int i = 0; i<3; ++i) dtime[i]->Sumw2();
 
@@ -324,6 +330,7 @@ void CosmicTracker::produce(art::Event& evt){
 	  if (matched[Cls[i][c1]]==1&&matched[Cls[j][c2]]==1) continue;
 	  // KS test between two views in time
 	  double ks = signals[i][c1]->KolmogorovTest(signals[j][c2]);
+	  hks->Fill(ks);
 	  int imatch = -1; //track candidate index
 	  int iadd = -1; //cluster index to be inserted
 	  if (ks>fKScut){//pass KS test
@@ -524,7 +531,35 @@ void CosmicTracker::produce(art::Event& evt){
       vhitmap.push_back(hitmap);
     }//iclu
     
-     /// Find two clusters with the most numbers of hits, and time ranges
+
+    // Remove isolated hits
+    for (size_t iclu = 0; iclu<vtimemap.size(); ++iclu){
+      auto ihit = vhitmap[iclu].begin();
+      for (auto itime = vtimemap[iclu].begin(); itime!=vtimemap[iclu].end();){
+	int diffw0 = 0;
+	int diffw1 = 0;
+	if (itime!=vtimemap[iclu].begin()){
+	  auto itime0 = std::prev(itime,1);
+	  diffw0 = std::abs(itime->first - itime0->first);
+	}
+	else diffw0 = 99999;
+	auto itime1 = std::next(itime,1);
+	if (itime1!=vtimemap[iclu].end()){
+	  diffw1 = abs(itime->first - itime1->first);
+	}
+	else diffw1 = 99999;
+	if (diffw0>fisohitcut&&diffw1>fisohitcut){
+	  vtimemap[iclu].erase(itime++);
+	  vhitmap[iclu].erase(ihit++);
+	}
+	else{
+	  ++itime;
+	  ++ihit;
+	}
+      }
+    }
+
+    // Find two clusters with the most numbers of hits, and time ranges
     int iclu1 = -1;
     int iclu2 = -1;
     int iclu3 = -1;
@@ -685,7 +720,7 @@ void CosmicTracker::produce(art::Event& evt){
 	      w0 = iw->first;
 	      t0 = iw->second;	     
 	    }
-	    hsig[iclu]->Fill(iw->second);
+	    //hsig[iclu]->Fill(iw->second);
 	  }
 	}
 	vtracklength.push_back(tracklength);

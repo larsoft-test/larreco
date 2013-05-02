@@ -60,6 +60,7 @@ standard_cosmictracker:
  Toler1:             30    #tolerance in fit, 1st iteration
  Toler2:             20    #tolerance in fit, 2nd iteration
  Debug:              false
+ IsoHitCut:          0
 }
 
 standard_track3Dkalman:
