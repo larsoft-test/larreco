@@ -127,8 +127,10 @@ namespace hit{
     geo::SigType_t sigType = geo::kInduction;// type of plane we are looking at
     std::stringstream numConv;
 
+
     //loop over wires
     for(unsigned int wireIter = 0; wireIter < wireVecHandle->size(); wireIter++) {
+
       art::Ptr<recob::Wire> wire(wireVecHandle, wireIter);
       startTimes.clear();
       maxTimes.clear();
@@ -176,6 +178,7 @@ namespace hit{
 	}
 	time++;
       }//end loop over signal vec
+
       
       //if no inflection found before end, but peak found add end point
       if(maxTimes.size()>endTimes.size()) 
@@ -350,7 +353,7 @@ namespace hit{
 	}//end loop over hits
 	hitIndex += numHits;	
       } // end while on hitIndex<(signed)startTimes.size()
-      
+
     } // while on Wires
     
     evt.put(std::move(hcol));

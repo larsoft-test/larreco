@@ -1,8 +1,0 @@
-#include "job/hitfindermodules.fcl"
-
-BEGIN_PROLOG
-
-lbne35t_hitfinder:       @local::standard_hitfinder
-lbne35t_gaushitfinder:   @local::gaus_hitfinder
-
-END_PROLOG

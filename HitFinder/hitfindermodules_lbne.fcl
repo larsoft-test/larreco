@@ -1,0 +1,27 @@
+#include "job/hitfindermodules.fcl"
+
+BEGIN_PROLOG
+
+
+
+lbne10kt_hitfinder:       @local::standard_hitfinder
+lbne10kt_gaushitfinder:   @local::gaus_hitfinder
+lbne10kt_apahitfinder:    @local::apa_hitfinder
+lbne10kt_hitcheater:	  @local::standard_hitcheater
+
+
+lbne34kt_hitfinder:       @local::standard_hitfinder
+lbne34kt_gaushitfinder:   @local::gaus_hitfinder
+lbne34kt_apahitfinder:    @local::apa_hitfinder
+lbne34kt_hitcheater:	  @local::standard_hitcheater
+
+
+lbne35t_hitfinder:        @local::standard_hitfinder
+lbne35t_gaushitfinder:    @local::gaus_hitfinder
+lbne35t_apahitfinder:     @local::apa_hitfinder
+lbne35t_hitcheater:	  @local::standard_hitcheater
+
+
+
+
+END_PROLOG

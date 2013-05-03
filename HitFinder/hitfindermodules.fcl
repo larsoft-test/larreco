@@ -46,6 +46,12 @@ gaus_hitfinder:
  Chi2NDF:              15               # maximum Chisquared / NDF allowed for a hit to be saved
 }
 
+
+#For now, keep the APAHitFinder configured just like the GausHitFinder
+apa_hitfinder:               @local::gaus_hitfinder
+apa_hitfinder.module_type:   "APAHitFinder"
+
+
 standard_hitfinderana:
 {
  module_type:          "HitFinderAna"
@@ -78,10 +84,5 @@ microboone_hitfinder.ColMinWidth: 1.0
 microboone_gaushitfinder.IndMinWidth: 1.0
 microboone_gaushitfinder.ColMinWidth: 1.0
 
-lbne10kt_hitfinder:       @local::standard_hitfinder
-lbne10kt_gaushitfinder:   @local::gaus_hitfinder
-
-lbne35t_hitfinder:       @local::standard_hitfinder
-lbne35t_gaushitfinder:   @local::gaus_hitfinder
 
 END_PROLOG
