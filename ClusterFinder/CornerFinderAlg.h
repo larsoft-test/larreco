@@ -39,6 +39,9 @@ namespace cluster { //<---Not sure if this is the right namespace
     void get_feature_points_LineIntegralScore(std::vector<recob::EndPoint2D> &); //here we get feature points with LineIntegral score
 
     
+    float line_integral(TH2F *hist, int x1, float y1, int x2, float y2, float threshold);				   
+    
+    TH2F * GetHist(int i) {return WireData_histos.at(i);}
 
     private:
     
@@ -81,8 +84,6 @@ namespace cluster { //<---Not sure if this is the right namespace
 				       geo::View_t view,
 				       TH2D *h_maxSuppress);
 				   
-    float line_integral(TH2F *hist, int x1, float y1, int x2, float y2, float threshold);				   
-    
     size_t calculate_line_integral_score( TH2F* h_wire_data, 
 					  std::vector<recob::EndPoint2D> const & corner_vector, 
 					  std::vector<recob::EndPoint2D> & corner_lineIntegralScore_vector,
