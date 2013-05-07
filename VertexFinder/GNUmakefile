@@ -10,11 +10,12 @@ LIB         := lib$(PACKAGE)
 LIBCXXFILES := $(wildcard *.cxx)
 JOBFILES    := $(wildcard *.fcl)
 
-LIBLINK    := -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -l$(PACKAGE)
+LIBLINK    := -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(LARSOFT)/lib/$(SRT_SUBDIR) -l$(PACKAGE)
 
 
 ########################################################################
 include SoftRelTools/standard.mk
 include SoftRelTools/arch_spec_art.mk
+include SoftRelTools/arch_spec_nutools.mk
 
-override LIBLIBS += $(LOADLIBES) -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR) -lFilters -lUtilities -lGeometry -lRecoBase -lMCCheater
+override LIBLIBS += $(LOADLIBES) -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(LARSOFT)/lib/$(SRT_SUBDIR) -lFilters -lUtilities -lGeometry -lRecoBase -lMCCheater
