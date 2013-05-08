@@ -515,7 +515,6 @@ void CosmicTracker::produce(art::Event& evt){
 					 hits[ihit]->WireID().TPC,
 					 hits[ihit]->WireID().Cryostat);
 	double ph = hits[ihit]->Charge();
-	
 	if (ph>(phmap[w])){
 	  double y = fitter->GetParameter(0)+
 	    fitter->GetParameter(1)*w+
@@ -771,7 +770,7 @@ void CosmicTracker::produce(art::Event& evt){
 	    matchedhit = ihit2;
 	  }
 	}//loop over hits2
-	if (difference<1){
+	if (difference<fsmatch){
 	  hitcoord[0] = matchedtime->second*detprop->GetXTicksCoefficient();
 	  hitcoord[1] = -1e10;
 	  hitcoord[2] = -1e10;
