@@ -50,9 +50,8 @@ extern "C" {
 #include "RecoBase/EndPoint2D.h"
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Hit.h"
-#include "ClusterFinder/EndPointAlg.h"
 #include "Utilities/AssociationUtil.h"
-#include "ClusterFinder/EndPointAlg.h"
+#include "RecoAlg/EndPointAlg.h"
 
 //#ifndef EndPointModule_H
 //#define EndPointModule_H
