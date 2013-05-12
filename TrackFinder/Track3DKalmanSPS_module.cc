@@ -35,10 +35,11 @@
 #include "RecoBase/Track.h"
 #include "RecoBase/SpacePoint.h"
 #include "Utilities/LArProperties.h"
-#include "SimulationBase/MCTruth.h"
+//\todo Reconstruction Producers should never include SimulationBase objects
 #include "Simulation/sim.h"
+#include "SimulationBase/MCTruth.h"
 #include "Utilities/AssociationUtil.h"
-#include "TrackFinder/SpacePointAlg.h"
+#include "RecoAlg/SpacePointAlg.h"
 
 #include "art/Framework/Core/ModuleMacros.h" 
 #include "art/Framework/Core/EDProducer.h"

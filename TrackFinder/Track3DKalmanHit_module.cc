@@ -37,12 +37,12 @@
 #include "RecoBase/SpacePoint.h"
 #include "RecoBase/Track.h"
 #include "RecoBase/Seed.h"
-#include "TrackFinder/KalmanFilterAlg.h"
-#include "TrackFinder/SeedFinderAlgorithm.h"
-#include "TrackFinder/KHitContainerWireX.h"
-#include "TrackFinder/SurfXYZPlane.h"
-#include "TrackFinder/PropXYZPlane.h"
-#include "TrackFinder/KHit.h"
+#include "RecoAlg/KalmanFilterAlg.h"
+#include "RecoAlg/SeedFinderAlgorithm.h"
+#include "RecoObjects/KHitContainerWireX.h"
+#include "RecoObjects/SurfXYZPlane.h"
+#include "RecoObjects/PropXYZPlane.h"
+#include "RecoObjects/KHit.h"
 #include "Utilities/AssociationUtil.h"
 
 #include "TH1F.h"
@@ -655,7 +655,7 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
     // Make space points from this track.
 
     int nspt = spts->size();
-    kalman_track.fillSpacePoints(*spts, fSpacePointAlg);
+    fSpacePointAlg.fillSpacePoints(*spts, kalman_track.TrackMap());
 
     // Associate newly created space points with hits.
     // Also associate track with newly created space points.

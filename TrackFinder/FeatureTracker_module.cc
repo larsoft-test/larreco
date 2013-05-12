@@ -13,14 +13,14 @@
 //
 // Ben Jones, MIT
 //
+#include "TVector3.h"
 
 #include "art/Framework/Core/EDProducer.h"
-#include "TrackFinder/SeedFinderAlgorithm.h"
-#include "TVector3.h"
-#include "RecoBase/EndPoint2D.h"
 
-#include "ClusterFinder/CornerFinderAlg.h"
-#include "TrackFinder/SpacePointAlg.h"
+#include "RecoAlg/SeedFinderAlgorithm.h"
+#include "RecoBase/EndPoint2D.h"
+#include "RecoAlg/CornerFinderAlg.h"
+#include "RecoAlg/SpacePointAlg.h"
 
 namespace recob
 {

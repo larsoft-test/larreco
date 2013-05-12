@@ -106,7 +106,7 @@ namespace trkf {
 #include <algorithm>
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "Utilities/DetectorProperties.h"
-#include "TrackFinder/BezierTrack.h"
+#include "RecoObjects/BezierTrack.h"
 #include "Geometry/Geometry.h"
 #include "Utilities/LArProperties.h"
 #include "art/Framework/Principal/Event.h"

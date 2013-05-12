@@ -33,11 +33,12 @@
 #include "RecoBase/SpacePoint.h"
 #include "RecoBase/Hit.h"
 #include "MCCheater/BackTracker.h"
-#include "TrackFinder/KalmanFilterAlg.h"
-#include "TrackFinder/KHitContainerWireX.h"
-#include "TrackFinder/SurfYZPlane.h"
-#include "TrackFinder/PropYZPlane.h"
-#include "TrackFinder/KHit.h"
+#include "RecoAlg/KalmanFilterAlg.h"
+#include "RecoObjects/KHitContainerWireX.h"
+#include "RecoObjects/SurfYZPlane.h"
+#include "RecoObjects/PropYZPlane.h"
+#include "RecoObjects/KHit.h"
+#include "RecoAlg/SpacePointAlg.h"
 #include "Utilities/AssociationUtil.h"
 #include "SimulationBase/MCParticle.h"
 
@@ -443,7 +444,7 @@ void trkf::TrackKalmanCheater::produce(art::Event & evt)
     // Make space points from this track.
 
     int nspt = spts->size();
-    kalman_track.fillSpacePoints(*spts, fSpacePointAlg);
+    fSpacePointAlg.fillSpacePoints(*spts, kalman_track.TrackMap());
 
     // Associate newly created space points with hits.
     // Also associate track with newly created space points.

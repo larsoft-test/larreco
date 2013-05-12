@@ -30,10 +30,10 @@
 #include "RecoBase/SpacePoint.h"
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Track.h"
-#include "Simulation/SimListUtils.h"
+//\todo Reconstruction Producers should never include Simulation headers
 #include "SimulationBase/MCTruth.h"
 #include "SimulationBase/MCParticle.h"
-#include "TrackFinder/SpacePointAlg.h"
+#include "RecoAlg/SpacePointAlg.h"
 #include "Utilities/AssociationUtil.h"
 #include "Utilities/DetectorProperties.h"
 

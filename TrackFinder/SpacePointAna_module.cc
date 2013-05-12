@@ -29,7 +29,7 @@
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "TrackFinder/SpacePointAlg.h"
+#include "RecoAlg/SpacePointAlg.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/TPCGeo.h"
 #include "Geometry/PlaneGeo.h"

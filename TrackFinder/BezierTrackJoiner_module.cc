@@ -99,7 +99,7 @@ namespace trkf {
 #include "RecoBase/Seed.h"
 #include "RecoBase/Track.h"
 #include "RecoBase/Vertex.h"
-#include "TrackFinder/BezierTrack.h"
+#include "RecoObjects/BezierTrack.h"
 #include "Utilities/AssociationUtil.h"
 
 

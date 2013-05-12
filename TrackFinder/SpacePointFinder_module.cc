@@ -21,7 +21,7 @@
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "TrackFinder/SpacePointAlg.h"
+#include "RecoAlg/SpacePointAlg.h"
 #include "Geometry/Geometry.h"
 #include "RecoBase/Hit.h"
 #include "RecoBase/Cluster.h"

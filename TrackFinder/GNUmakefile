@@ -12,7 +12,6 @@ LIB_TYPE    := shared
 LIB         := lib$(PACKAGE)
 LIBCXXFILES := $(wildcard *.cxx)
 JOBFILES    := $(wildcard *.fcl)
-SUBDIRS     := test
 
 LIBLINK    := -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(LARSOFT)/lib/$(SRT_SUBDIR) -l$(PACKAGE)
 
@@ -22,4 +21,4 @@ include SoftRelTools/arch_spec_art.mk
 include SoftRelTools/arch_spec_nutools.mk
 
 override CXXFLAGS += -Wno-overloaded-virtual
-override LIBLIBS += $(LOADLIBES) -L$(ART_LIB) -lart_Framework_Services_Optional_TFileService_service -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(LARSOFT)/lib/$(SRT_SUBDIR) -lSimulation -lRecoBase -lGenfit -lUtilities -lGeometry -lRawData -lMCCheater -L$(CLHEP_BASE)/lib -lCLHEP -lClusterFinder
+override LIBLIBS += $(LOADLIBES) -L$(ART_LIB) -lart_Framework_Services_Optional_TFileService_service -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(LARSOFT)/lib/$(SRT_SUBDIR) -lSimulation -lRecoBase -lRecoObjects -lRecoAlg -lGenfit -lUtilities -lGeometry -lRawData -lMCCheater -L$(CLHEP_BASE)/lib -lCLHEP 

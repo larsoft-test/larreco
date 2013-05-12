@@ -18,7 +18,7 @@
 //
 
 #include "art/Framework/Core/EDProducer.h"
-#include "TrackFinder/SeedFinderAlgorithm.h"
+#include "RecoAlg/SeedFinderAlgorithm.h"
 
 namespace recob
 {
@@ -94,7 +94,6 @@ namespace trkf {
 
 #include <vector>
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "TrackFinder/SeedFinderAlgorithm.h"
 #include "Geometry/Geometry.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
@@ -103,9 +102,9 @@ namespace trkf {
 #include "RecoBase/SpacePoint.h"
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Track.h"
-#include "TrackFinder/BezierTrack.h"
+#include "RecoObjects/BezierTrack.h"
 #include "Utilities/AssociationUtil.h"
-#include "TrackFinder/BezierTrackerAlgorithm.h"
+#include "RecoAlg/BezierTrackerAlgorithm.h"
 
 namespace trkf {
 

@@ -10,8 +10,8 @@
 //
 
 #include "art/Framework/Core/EDProducer.h"
-#include "TrackFinder/SpacePointAlg.h"
-#include "TrackFinder/SeedFinderAlgorithm.h"
+#include "RecoAlg/SpacePointAlg.h"
+#include "RecoAlg/SeedFinderAlgorithm.h"
 
 namespace recob
 {
