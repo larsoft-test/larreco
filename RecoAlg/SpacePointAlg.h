@@ -60,6 +60,9 @@ class TH1F;
 namespace sim {
   class IDE;
 }
+namespace trkf{
+  class KHitTrack;
+}
 namespace recob{
   class Hit;
   class SpacePoint;
@@ -109,6 +112,10 @@ namespace trkf {
     void fillSpacePoint(const art::PtrVector<recob::Hit>& hits,
 			std::vector<recob::SpacePoint>& sptv,
 			int sptid) const;
+
+    /// Fill a collection of space points.
+    void fillSpacePoints(std::vector<recob::SpacePoint>& spts,
+			 std::multimap<double, KHitTrack> const& trackMap) const;
 
     // Fill a single complex space point using the specified hits.
     // Complex space points allow multiple hits in one plane.

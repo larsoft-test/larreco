@@ -13,7 +13,7 @@
 #include "RecoBase/Seed.h"
 #include "RecoBase/Track.h"
 #include "RecoBase/SpacePoint.h"
-#include "RecoAlg/BezierTrack.h"
+#include "RecoObjects/BezierTrack.h"
 #include "Utilities/AssociationUtil.h"
 
 #include "art/Framework/Principal/Event.h"

@@ -30,6 +30,8 @@
 #include "MCCheater/BackTracker.h"
 #include "RecoBase/Hit.h"
 #include "RecoBase/SpacePoint.h"
+#include "RecoObjects/KHitTrack.h"
+#include "RecoObjects/KHitWireX.h"
 
 #include "TH1F.h"
 
@@ -583,6 +585,76 @@ namespace  trkf{
       sptv.push_back(spt);
     }
     return;
+  }
+
+  /// Fill a collection of space points.
+  ///
+  /// Arguments:
+  ///
+  /// spts   - Collection of space points to fill.
+  /// sptalg - Space point algorithm object.
+  ///
+  /// This method uses the hits contained in this track to construct
+  /// space points.
+  ///
+  /// This method does not have any knowledge of what constitutes a
+  /// good space point, except that Hits are required to be
+  /// consecutive when sorted by path distance, and space points are
+  /// required to pass compatibility tests used by the space point
+  /// algorithm object.  This method will make space points from
+  /// either two or three Hits (even for three-plane detectors), if
+  /// the space point algorithm is configured to allow it.
+  ///
+  void SpacePointAlg::fillSpacePoints(std::vector<recob::SpacePoint>& spts,
+				      std::multimap<double, KHitTrack> const& trackMap) const
+  {
+    // Loop over KHitTracks.
+
+    art::PtrVector<recob::Hit> hits;
+    art::PtrVector<recob::Hit> compatible_hits;
+    for(std::multimap<double, KHitTrack>::const_iterator it = trackMap.begin();
+	it != trackMap.end(); ++it) {
+      const KHitTrack& track = (*it).second;
+
+      // Extrack Hit from track.
+
+      const std::shared_ptr<const KHitBase>& hit = track.getHit();
+      const KHitWireX* phit = dynamic_cast<const KHitWireX*>(&*hit);
+      if(phit != 0) {
+	const art::Ptr<recob::Hit> prhit = phit->getHit();
+
+	// Test this hit for compatibility.
+
+	hits.push_back(prhit);
+	bool ok = this->compatible(hits);
+	if(!ok) {
+
+	  // The new hit is not compatible.  Make a space point out of
+	  // the last known compatible hits, provided there are at least
+	  // two.
+
+	  if(compatible_hits.size() >= 2) {
+	    this->fillSpacePoint(compatible_hits, spts, this->numHitMap());
+	    compatible_hits.clear();
+	  }
+
+	  // Forget about any previous hits.
+
+	  hits.clear();
+	  hits.push_back(prhit);
+	}
+
+	// Update the list of known compatible hits.
+
+	compatible_hits = hits;
+      }
+    }
+
+    // Maybe make one final space point.
+
+    if(compatible_hits.size() >= 2) {
+      this->fillSpacePoint(compatible_hits, spts, this->numHitMap());
+    }
   }
 
   //----------------------------------------------------------------------
