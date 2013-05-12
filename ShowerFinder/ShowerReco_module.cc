@@ -71,7 +71,7 @@ extern "C" {
 #include "Utilities/LArProperties.h"
 #include "Utilities/GeometryUtilities.h"
 #include "Utilities/DetectorProperties.h"
-#include "Calorimetry/CalorimetryAlg.h"
+#include "AnalysisAlg/CalorimetryAlg.h"
 
 namespace shwf {
 
