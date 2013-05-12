@@ -10,7 +10,7 @@
 //
 
 #include "art/Framework/Core/EDProducer.h"
-#include "TrackFinder/SpacePointAlg.h"
+#include "RecoAlg/SpacePointAlg.h"
 
 namespace recob
 {

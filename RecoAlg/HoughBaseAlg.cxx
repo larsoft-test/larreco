@@ -44,7 +44,7 @@ extern "C" {
 #include "messagefacility/MessageLogger/MessageLogger.h" 
  
 #include "Filters/ChannelFilter.h"
-#include "ClusterFinder/HoughBaseAlg.h"
+#include "RecoAlg/HoughBaseAlg.h"
 #include "RecoBase/Hit.h"
 #include "RecoBase/Cluster.h"
 #include "Geometry/Geometry.h"

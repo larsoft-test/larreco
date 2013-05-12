@@ -35,7 +35,7 @@ extern "C" {
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "ClusterFinder/EndPointAlg.h"
+#include "RecoAlg/EndPointAlg.h"
 #include "Utilities/LArProperties.h"
 #include "Utilities/DetectorProperties.h"
 #include "Utilities/AssociationUtil.h"

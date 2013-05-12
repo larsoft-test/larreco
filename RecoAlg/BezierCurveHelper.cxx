@@ -15,7 +15,7 @@
 #include <sstream>
 
 #include "RecoBase/Hit.h"
-#include "TrackFinder/BezierCurveHelper.h"
+#include "RecoAlg/BezierCurveHelper.h"
 
 #include "art/Persistency/Common/PtrVector.h"
 #include "art/Framework/Services/Optional/TFileService.h"

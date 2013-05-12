@@ -24,7 +24,7 @@
 
 #include "Utilities/LArProperties.h"
 #include "Utilities/DetectorProperties.h"
-#include "ClusterFinder/DBScanAlg.h"
+#include "RecoAlg/DBScanAlg.h"
 #include "RecoBase/Hit.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/PlaneGeo.h"

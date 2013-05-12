@@ -31,9 +31,9 @@
 #ifndef KALMANFILTERALG_H
 #define KALMANFILTERALG_H
 
-#include "TrackFinder/KGTrack.h"
-#include "TrackFinder/Propagator.h"
-#include "TrackFinder/KHitContainer.h"
+#include "RecoObjects/KGTrack.h"
+#include "RecoObjects/Propagator.h"
+#include "RecoObjects/KHitContainer.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "art/Persistency/Common/PtrVector.h"
 

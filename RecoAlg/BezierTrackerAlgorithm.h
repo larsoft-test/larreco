@@ -18,7 +18,7 @@
 //
 
 #include "art/Framework/Core/EDProducer.h"
-#include "TrackFinder/SeedFinderAlgorithm.h"
+#include "RecoAlg/SeedFinderAlgorithm.h"
 
 namespace recob
 {

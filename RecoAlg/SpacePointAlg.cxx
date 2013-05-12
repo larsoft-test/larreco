@@ -15,7 +15,7 @@
 #include <algorithm>
 #include "cetlib/exception.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "TrackFinder/SpacePointAlg.h"
+#include "RecoAlg/SpacePointAlg.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"
@@ -24,9 +24,9 @@
 #include "Utilities/LArProperties.h"
 #include "art/Persistency/Common/PtrVector.h"
 #include "art/Framework/Services/Optional/TFileService.h" 
-#include "Simulation/SimChannel.h"
 #include "art/Framework/Principal/View.h"
 #include "Utilities/DetectorProperties.h"
+//\todo Remove include of BackTracker.h once this algorithm is stripped of test for MC
 #include "MCCheater/BackTracker.h"
 #include "RecoBase/Hit.h"
 #include "RecoBase/SpacePoint.h"
@@ -633,6 +633,7 @@ namespace  trkf{
 
       const recob::Hit& hit = **ihit;
       geo::WireID hitWireID = hit.WireID();
+      //\todo change asserts to throwing cet::exceptions
       assert(hitWireID.Cryostat == cstat0);
       assert(hitWireID.TPC == tpc0);
       assert(hitWireID.Plane < nplanes);

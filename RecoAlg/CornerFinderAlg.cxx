@@ -27,13 +27,12 @@ extern "C" {
 
 #include "RawData/raw.h"
 #include "RawData/RawDigit.h"
-#include "Filters/ChannelFilter.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/TPCGeo.h"
 #include "Geometry/PlaneGeo.h"
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Wire.h"
-#include "ClusterFinder/CornerFinderAlg.h"
+#include "RecoAlg/CornerFinderAlg.h"
 
 #include "art/Framework/Core/ModuleMacros.h" 
 #include "art/Framework/Core/EDProducer.h"

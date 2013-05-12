@@ -14,7 +14,7 @@
 #include "art/Persistency/Common/Ptr.h"
 #include "art/Persistency/Common/PtrVector.h"
 
-#include "ClusterFinder/HoughBaseAlg.h"
+#include "RecoAlg/HoughBaseAlg.h"
 #include "Geometry/Geometry.h"
 
 #include "TMatrixD.h"

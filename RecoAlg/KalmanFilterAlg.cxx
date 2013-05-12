@@ -8,7 +8,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "TrackFinder/KalmanFilterAlg.h"
+#include "RecoAlg/KalmanFilterAlg.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "cetlib/exception.h"
 #include "boost/numeric/ublas/vector_proxy.hpp"

@@ -8,16 +8,16 @@
 
 #include <vector>
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "TrackFinder/BezierTrackerAlgorithm.h"
-#include "TrackFinder/SeedFinderAlgorithm.h"
-#include "art/Framework/Principal/Event.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "RecoAlg/BezierTrackerAlgorithm.h"
 #include "RecoBase/Hit.h"
 #include "RecoBase/Seed.h"
 #include "RecoBase/Track.h"
 #include "RecoBase/SpacePoint.h"
-#include "TrackFinder/BezierTrack.h"
+#include "RecoAlg/BezierTrack.h"
 #include "Utilities/AssociationUtil.h"
+
+#include "art/Framework/Principal/Event.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
 
 
 namespace trkf {
