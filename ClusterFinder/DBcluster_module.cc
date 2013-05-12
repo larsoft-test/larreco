@@ -29,7 +29,7 @@
 #include "RecoBase/Hit.h"
 #include "Utilities/AssociationUtil.h"
 #include "Filters/ChannelFilter.h"
-#include "ClusterFinder/DBScanAlg.h"
+#include "RecoAlg/DBScanAlg.h"
 
 #include <fstream>
 #include <cstdlib>

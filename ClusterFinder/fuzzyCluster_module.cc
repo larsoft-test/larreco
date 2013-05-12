@@ -32,8 +32,8 @@
 // LArSoft includes
 #include "RawData/raw.h"
 #include "RawData/RawDigit.h"
-#include "ClusterFinder/fuzzyClusterAlg.h"
-#include "ClusterFinder/CornerFinderAlg.h"
+#include "RecoAlg/fuzzyClusterAlg.h"
+#include "RecoAlg/CornerFinderAlg.h"
 #include "Filters/ChannelFilter.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"

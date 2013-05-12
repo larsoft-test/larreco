@@ -54,7 +54,7 @@ extern "C" {
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Hit.h"
 #include "Utilities/AssociationUtil.h"
-#include "ClusterFinder/HoughBaseAlg.h"
+#include "RecoAlg/HoughBaseAlg.h"
 #include "art/Framework/Core/EDProducer.h"
 #include "Utilities/SeedCreator.h"
 
