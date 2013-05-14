@@ -1173,8 +1173,9 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		  // Stricter to chuck sppts from uncontained then contained trks.
 		  if ((uncontained&&fchi2hit[ind] >fChi2Thresh)     || 
 		      (!uncontained&&fchi2hit[ind]>1.e9) || 
-		      fchi2hit[ind]<=0.0 
-		      // =0 eliminates ruled-out large updates
+		      fchi2hit[ind]<0.0 
+		      // =0 eliminates ruled-out large updates. Not obviously
+		      // helpful.
 		      // add a restriction on dQdx here ...
 		      ) 
 		    {
