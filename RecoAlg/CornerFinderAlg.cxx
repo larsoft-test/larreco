@@ -34,6 +34,8 @@ extern "C" {
 #include "RecoBase/Wire.h"
 #include "RecoAlg/CornerFinderAlg.h"
 
+#include "RecoObjects/BezierTrack.h"
+
 #include "art/Framework/Core/ModuleMacros.h" 
 #include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Principal/Event.h"
@@ -568,6 +570,34 @@ float cluster::CornerFinderAlg::line_integral(TH2F *hist, int begin_x, float beg
 
   return fraction/bin_counter;
 }
+
+
+std::vector<float> cluster::CornerFinderAlg::line_integrals(trkf::BezierTrack& TheTrack, size_t Steps, float threshold){
+
+  std::vector<float> fractions(3);
+
+  for(size_t i=0; i!=Steps; ++i)
+    {
+      double s = float(i)/float(Steps);
+      double uvw[3], ticks[3];
+      int c=0, t=0;
+      TheTrack.GetProjectedPointUVWT(s, uvw, ticks, c, t);
+
+      for(size_t j=0; j!=WireData_histos.size(); ++j)
+        {
+          int x = WireData_histos.at(j)->GetXaxis()->FindBin(uvw[j]);
+          int y = WireData_histos.at(j)->GetYaxis()->FindBin(ticks[j]);
+
+          if( WireData_histos.at(j)->GetBinContent(x,y) > threshold )
+            fractions.at(j) += 1.;
+        }
+    }
+  for(size_t j=0; j!=fractions.size(); ++j)
+    fractions.at(j) /= float(Steps);
+
+  return fractions;
+}
+
 
 //-----------------------------------------------------------------------------
 // Do the silly little line integral score thing
