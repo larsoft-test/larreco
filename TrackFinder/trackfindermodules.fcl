@@ -3,6 +3,19 @@
 
 BEGIN_PROLOG
 
+standard_featuretracker:
+{
+ module_type:         "FeatureTracker"
+ HitModuleLabel:      "ffthit"
+ LineIntFraction:     0.90
+ LineIntThreshold:    3
+ CornerPset:          @local::standard_cornerfinderalg
+ SpacepointPset:      @local::microboone_spacepointalg
+}
+
+standard_featuretracker.SpacepointPset.MinViews: 2
+
+
 standard_seedfindermodule:
 {
  module_type:         "SeedFinderModule"
@@ -268,6 +281,8 @@ microboone_seedfindermodule.SpacePointAlg:              @local::microboone_space
 microboone_seedfindermodule.SeedAlg:                    @local::microboone_seedfinderalgorithm
 microboone_beziertrackermodule:                         @local::standard_beziertrackermodule
 microboone_beziertrackermodule.BezierTrackerAlgorithm:  @local::microboone_beziertrackeralgorithm
+
+microboone_featuretracker: @local::standard_featuretracker
 
 microboone_2stg_kalman:
 {
