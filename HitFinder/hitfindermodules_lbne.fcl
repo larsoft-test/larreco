@@ -2,6 +2,27 @@
 
 BEGIN_PROLOG
 
+standard_disambigalg:
+{
+}
+
+apa_hitfinder:
+{
+ module_type:         "APAHitFinder"
+ APAHitFinderAlg:     @local::standard_disambigalg
+ CalDataModuleLabel:  "caldata"
+ MinSigInd:            6.0              # Induction signal height threshold
+ MinSigCol:            11.0             # Collection signal height threshold
+ IndWidth:             6.0              # Initial width for induction fit
+ ColWidth:             7.8              # Initial width for collection fit
+ IndMinWidth:          1.0              # Induction Hit width threshold
+ ColMinWidth:          1.0              # Collection hit width threshold
+ MaxMultiHit:          3                # maximum hits for multi fit
+ AreaMethod:           0                # 0 = area by integral, 1 = area by gaussian area formula
+ AreaNorms:            [ 13.25, 26.31 ] # normalizations that put signal area in
+                                        # same scale as peak height.
+ Chi2NDF:              15               # maximum Chisquared / NDF allowed for a hit to be saved
+}
 
 
 lbne10kt_hitfinder:       @local::standard_hitfinder
@@ -9,17 +30,28 @@ lbne10kt_gaushitfinder:   @local::gaus_hitfinder
 lbne10kt_apahitfinder:    @local::apa_hitfinder
 lbne10kt_hitcheater:	  @local::standard_hitcheater
 
+lbne10kt_gaushitfinder.IndMinWidth: 1.0
+lbne10kt_gaushitfinder.ColMinWidth: 1.0
+
+
 
 lbne34kt_hitfinder:       @local::standard_hitfinder
 lbne34kt_gaushitfinder:   @local::gaus_hitfinder
 lbne34kt_apahitfinder:    @local::apa_hitfinder
 lbne34kt_hitcheater:	  @local::standard_hitcheater
 
+lbne34kt_gaushitfinder.IndMinWidth: 1.0
+lbne34kt_gaushitfinder.ColMinWidth: 1.0
+
+
 
 lbne35t_hitfinder:        @local::standard_hitfinder
 lbne35t_gaushitfinder:    @local::gaus_hitfinder
 lbne35t_apahitfinder:     @local::apa_hitfinder
 lbne35t_hitcheater:	  @local::standard_hitcheater
+
+lbne35t_gaushitfinder.IndMinWidth: 1.0
+lbne35t_gaushitfinder.ColMinWidth: 1.0
 
 
 
