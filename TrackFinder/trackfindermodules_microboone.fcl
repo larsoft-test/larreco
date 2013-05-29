@@ -49,6 +49,6 @@ microboone_2stg_kalman:
  GenfPRINT:           true
 }
 
-microboone_cosmicfinder: @local::standard_cosmicfinder
+#microboone_cosmicfinder: @local::standard_cosmicfinder
 
 END_PROLOG
