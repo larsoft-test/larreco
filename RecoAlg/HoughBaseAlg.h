@@ -175,6 +175,8 @@ namespace cluster {
                                            ///< at once
     int    fMissedHits;                    ///< Number of wires that are allowed to be missed before a line is broken up into
                                            ///< segments
+    double fMissedHitsDistance;            ///< Distance between hits in a hough line before a hit is considered missed
+    double fMissedHitsToLineSize;          ///< Ratio of missed hits to line size for a line to be considered a fake
     int    fDoFuzzyRemnantMerge;           ///< Tell the algorithm to merge fuzzy cluster remnants into showers or tracks (0-off, 1-on)
     double fDoHoughLineMerge;              ///< Turns on Hough line merging (0-off, 1-on)
     double fHoughLineMergeAngle;           ///< Max angle between slopes before two lines are merged (muon tracks), only for fuzzy clustering
