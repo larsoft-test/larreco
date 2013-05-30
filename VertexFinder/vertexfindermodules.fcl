@@ -41,11 +41,19 @@ standard_vertexfinder2d:
  ClusterModuleLabel: "linemerger"
 }
 
+standard_featurevertexfinder:
+{
+ module_type:        "FeatureVertexFinder"		# module name
+ ClusterModuleLabel: "linemerger"			# clusters the module takes in
+ CornerPset:          @local::standard_cornerfinderalg	# using the cornerfinder alg
+}
 
-argoneut_harris:        @local::standard_harrisvertexfinder
-argoneut_vertexmatch:   @local::standard_vertexmatch
-argoneut_primaryvertex: @local::standard_primaryvertexfinder
-argoneut_vertex2d:      @local::standard_vertexfinder2d
+
+argoneut_harris:        	@local::standard_harrisvertexfinder
+argoneut_vertexmatch:   	@local::standard_vertexmatch
+argoneut_primaryvertex: 	@local::standard_primaryvertexfinder
+argoneut_vertex2d:     	 	@local::standard_vertexfinder2d
+argoneut_featruevertexfinder:	@local::standard_featurevertexfinder
 
 
 END_PROLOG
