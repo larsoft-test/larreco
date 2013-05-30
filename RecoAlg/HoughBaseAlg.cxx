@@ -87,6 +87,8 @@ void cluster::HoughBaseAlg::reconfigure(fhicl::ParameterSet const& pset)
   fRhoResolutionFactor            = pset.get< int    >("RhoResolutionFactor"           );
   fPerCluster                     = pset.get< int    >("HitsPerCluster"                );
   fMissedHits                     = pset.get< int    >("MissedHits"                    );
+  fMissedHitsDistance             = pset.get< double >("MissedHitsDistance"            );
+  fMissedHitsToLineSize           = pset.get< double >("MissedHitsToLineSize"          );
   fDoFuzzyRemnantMerge            = pset.get< int    >("DoFuzzyRemnantMerge"           );
   fDoHoughLineMerge               = pset.get< double >("DoHoughLineMerge"              );
   fHoughLineMergeAngle            = pset.get< double >("HoughLineMergeAngle"           );
@@ -1646,14 +1648,46 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 		  currentHits.clear();
 		}
 		else currentHits.clear();
-	      } 
-	      
+	      }
+
+
 	      if(currentHits.size() > lastHits.size()) lastHits = currentHits;
-	      clusterHits.clear();    
-	      double totalQ = 0.;
+
+
+
+
+              // Check if lastHits has hits with big gaps in it
+              uint32_t     channel = hit[0]->Wire()->RawDigit()->Channel();
+              double wirePitch = geom->WirePitch(geom->View(channel));
+              double wire_dist = wirePitch;
               double tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
               tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
+              //std::cout << "New line" << std::endl;
+              int missedHits=0;
+	      for(size_t i = 0; i < lastHits.size()-1; ++i) {
+                //std::cout << hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel() << std::endl;
+                double pCorner0[2];
+                pCorner0[0] = (hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel())*wire_dist;
+                pCorner0[1] = ((hit[hitTemp[lastHits[i]]]->StartTime()+hit[hitTemp[lastHits[i]]]->EndTime())/2.)*tickToDist;
+                double pCorner1[2];
+                pCorner1[0] = (hit[hitTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel())*wire_dist;
+                pCorner1[1] = ((hit[hitTemp[lastHits[i+1]]]->StartTime()+hit[hitTemp[lastHits[i+1]]]->EndTime())/2.)*tickToDist;
+                //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
+                if(std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance             )
+                  missedHits++;
+              }
+              //std::cout << "missedHits " << missedHits << std::endl;
+              //std::cout << "lastHits.size() " << lastHits.size() << std::endl;
+              //std::cout << "missedHits/lastHits.size() " << (double)missedHits/(double)lastHits.size() << std::endl;
+              if((double)missedHits/(double)lastHits.size() > fMissedHitsToLineSize)
+                continue;
 
+
+
+
+
+	      clusterHits.clear();    
+	      double totalQ = 0.;
               if(lastHits.size() < 5) continue;
 
 
