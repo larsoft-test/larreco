@@ -99,14 +99,14 @@ void cluster::fuzzyClusterAlg::InitFuzzy(std::vector<art::Ptr<recob::Hit> >& all
   art::ServiceHandle<util::DetectorProperties> detp;
   
   // Collect the bad wire list into a useful form
-  if (fClusterMethod) { // Using the R*-tree
-    fBadWireSum.resize(fGeom->Nchannels());
-    unsigned int count=0;
-    for (unsigned int i=0; i<fBadWireSum.size(); ++i) {
-      count += fBadChannels.count(i);
-      fBadWireSum[i] = count;
-    }
-  }
+  //if (fClusterMethod) { // Using the R*-tree
+    //fBadWireSum.resize(fGeom->Nchannels());
+    //unsigned int count=0;
+    //for (unsigned int i=0; i<fBadWireSum.size(); ++i) {
+      //count += fBadChannels.count(i);
+      //fBadWireSum[i] = count;
+    //}
+  //}
 
   // Collect the hits in a useful form,
   // and take note of the maximum time width
@@ -278,15 +278,12 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
       fpsMatMinusCent_col(0,1)=fpsMat_row(1)-fpsCentroids_row(1);
       fpsMatMinusCent_row(0,0)=fpsMat_row(0)-fpsCentroids_row(0);
       fpsMatMinusCent_row(1,0)=fpsMat_row(1)-fpsCentroids_row(1);
+      //TMatrixT<double> clusCovarianceMatInv = clusterCovarianceMats.at(j).Invert();
       TMatrixT<double> clusCovarianceMatInv = clusterCovarianceMats.at(j);
-      try
-      {
-        clusCovarianceMatInv.Invert();
-      }
-      catch(...){
-        mf::LogVerbatim("fuzzyCluster") << "updateMembership: Covariance matrix is singular";
-        continue;
-      }
+      //clusCovarianceMatInv.Print();
+      clusCovarianceMatInv.Invert();
+      //clusCovarianceMatInv.Print();
+      //TMatrixT<double> tempDistanceSquared = rho*std::sqrt(clusterCovarianceMats.at(j).Determinant())*(fpsMatMinusCent_col*(clusCovarianceMatInv*fpsMatMinusCent_row));
       TMatrixT<double> tempDistanceSquared = rho*pow(clusterCovarianceMats.at(j).Determinant(),0.75)*(fpsMatMinusCent_col*(clusCovarianceMatInv*fpsMatMinusCent_row));
       fpsDistances(j,i) = std::sqrt(tempDistanceSquared(0,0));
       //tempDistanceSquared.Print();
@@ -341,7 +338,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
 
   //fpsMat.Print();
 
-  for( int k = 2; k <= nMaxClusters; k++){ 
+  for( int k = nMaxClusters; k <= nMaxClusters; k++){ 
 
     if (k > fpsMat.GetNrows())
       break;
@@ -463,8 +460,8 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
 
   //mf::LogInfo("fuzzyCluster") << "Number of clusters initially found: " << iMinXBClusterNum   ;
 
-  //iMinXBClusterNum = nMaxClusters;
-  if(iMinXBClusterNum != 0){
+  iMinXBClusterNum = nMaxClusters;
+  if(iMinXBClusterNum != 0 && iMinXBClusterNum <= fpsMat.GetNrows()){
     // Check if any clusters can be merged, most likely yes
     fpsMembershipFinal.ResizeTo(iMinXBClusterNum, fps.size());
     fpsMembershipFinal = fpsMembershipStore[iMinXBClusterNum-1]; 
