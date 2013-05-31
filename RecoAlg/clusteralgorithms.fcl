@@ -23,7 +23,11 @@ standard_houghbasealg:
   ShowerHoughLineMergeAngle: 90  # The maximum angle between slopes of Hough lines to be merged,
   ShowerHoughLineMergeCutoff: 10 # The maximum distance between Hough line endpoints before they can be merged,
   DoShowerHoughLineInterceptMerge: 0 
+  DoChargeAsymAngleMerge:    1    # Turn on cut on product of charge asymmetry and sin of angle between slopes of lines
+  ChargeAsymAngleCut:        0.05 # Cut on product of charge asymmetry and sin of angle between slopes of lines
+  ChargeAsymAngleCutoff:     10   # Distance between lines before cut on product of charge asymmetry and sin of angle between slopes of lines
   ShowerLikenessCut:        0.1  # Cut on shower likeness (the larger the more shower like, the smaller the less shower like)
+  ShowerWidthAngle:         15   # Half of the angle defining how wide a shower is 
 }
 
 standard_endpointalg:
