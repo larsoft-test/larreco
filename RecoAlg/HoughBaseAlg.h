@@ -235,6 +235,18 @@ namespace cluster {
                      unsigned int clusterId, // The id of the cluster we are examining
                      int *nClusters,
                      std::vector<unsigned int> corners);
+    
+    // interface to look for lines only on a set of hits,without slope and totalQ arrays
+    size_t FastTransform(std::vector < art::Ptr < recob::Hit > >                 & clusIn,
+     	             std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut
+		     );
+    
+    // interface to look for lines only on a set of hits
+    size_t FastTransform(std::vector < art::Ptr < recob::Hit > >                 & clusIn,
+     	             std::vector< art::PtrVector<recob::Hit> >      & clusHitsOut,
+		     std::vector<double> &slope, std::vector<double> &totalQ
+		     );
+    
 
     size_t Transform(std::vector<art::Ptr<recob::Hit> > const& hits);
 
