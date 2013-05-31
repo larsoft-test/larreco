@@ -58,9 +58,11 @@ extern "C" {
 
 // Define parameters that will tell us if we are doing a normal Hough line merge
 // or a shower Hough line merge
-static const int iMergeShower     = 0;
-static const int iMergeNormal     = 1;
-static const int iMergeWide       = 2;
+static const int iMergeShower          = 0;
+static const int iMergeNormal          = 1;
+static const int iMergeWide            = 2;
+static const int iMergeShowerIntercept = 3;
+static const int iMergeChargeAsymAngle = 4;
 
 //------------------------------------------------------------------------------
 cluster::HoughBaseAlg::HoughBaseAlg(fhicl::ParameterSet const& pset)
@@ -76,33 +78,32 @@ cluster::HoughBaseAlg::~HoughBaseAlg()
 //------------------------------------------------------------------------------
 void cluster::HoughBaseAlg::reconfigure(fhicl::ParameterSet const& pset)
 { 
-  fMaxLines                       = pset.get< int    >("MaxLines"                      );
-  fMinHits                        = pset.get< int    >("MinHits"                       );
-  fSaveAccumulator                = pset.get< int    >("SaveAccumulator"               );
-  fNumAngleCells                  = pset.get< int    >("NumAngleCells"                 );
-  fMaxDistance                    = pset.get< double >("MaxDistance"                   );
-  fMaxSlope                       = pset.get< double >("MaxSlope"                      );
-  fRhoZeroOutRange                = pset.get< int    >("RhoZeroOutRange"               );
-  fThetaZeroOutRange              = pset.get< int    >("ThetaZeroOutRange"             );
-  fRhoResolutionFactor            = pset.get< int    >("RhoResolutionFactor"           );
-  fPerCluster                     = pset.get< int    >("HitsPerCluster"                );
-  fMissedHits                     = pset.get< int    >("MissedHits"                    );
-  fMissedHitsDistance             = pset.get< double >("MissedHitsDistance"            );
-  fMissedHitsToLineSize           = pset.get< double >("MissedHitsToLineSize"          );
-  fDoFuzzyRemnantMerge            = pset.get< int    >("DoFuzzyRemnantMerge"           );
-  fDoHoughLineMerge               = pset.get< double >("DoHoughLineMerge"              );
-  fHoughLineMergeAngle            = pset.get< double >("HoughLineMergeAngle"           );
-  fHoughLineMergeCutoff           = pset.get< double >("HoughLineMergeCutoff"          );
-  fDoWideHoughLineMerge           = pset.get< double >("DoWideHoughLineMerge"        );
-  fWideHoughLineMergeAngle        = pset.get< double >("WideHoughLineMergeAngle"     );
-  fWideHoughLineMergeCutoff       = pset.get< double >("WideHoughLineMergeCutoff"    );
-  fDoShowerHoughLineMerge         = pset.get< double >("DoShowerHoughLineMerge"        );
-  fShowerHoughLineMergeAngle      = pset.get< double >("ShowerHoughLineMergeAngle"     );
-  fShowerHoughLineMergeCutoff     = pset.get< double >("ShowerHoughLineMergeCutoff"    );
-  fLineIsolationCut               = pset.get< double >("LineIsolationCut"              );
-  fChargeAsymmetryCut             = pset.get< double >("ChargeAsymmetryCut"            );
-  fSigmaChargeAsymmetryCut        = pset.get< double >("SigmaChargeAsymmetryCut"       );
-  fShowerLikenessCut              = pset.get< double >("ShowerLikenessCut"             );
+  fMaxLines                       = pset.get< int    >("MaxLines"                       );
+  fMinHits                        = pset.get< int    >("MinHits"                        );
+  fSaveAccumulator                = pset.get< int    >("SaveAccumulator"                );
+  fNumAngleCells                  = pset.get< int    >("NumAngleCells"                  );
+  fMaxDistance                    = pset.get< double >("MaxDistance"                    );
+  fMaxSlope                       = pset.get< double >("MaxSlope"                       );
+  fRhoZeroOutRange                = pset.get< int    >("RhoZeroOutRange"                );
+  fThetaZeroOutRange              = pset.get< int    >("ThetaZeroOutRange"              );
+  fRhoResolutionFactor            = pset.get< int    >("RhoResolutionFactor"            );
+  fPerCluster                     = pset.get< int    >("HitsPerCluster"                 );
+  fMissedHits                     = pset.get< int    >("MissedHits"                     );
+  fMissedHitsDistance             = pset.get< double >("MissedHitsDistance"             );
+  fMissedHitsToLineSize           = pset.get< double >("MissedHitsToLineSize"           );
+  fDoFuzzyRemnantMerge            = pset.get< int    >("DoFuzzyRemnantMerge"            );
+  fDoHoughLineMerge               = pset.get< int    >("DoHoughLineMerge"               );
+  fHoughLineMergeAngle            = pset.get< double >("HoughLineMergeAngle"            );
+  fHoughLineMergeCutoff           = pset.get< double >("HoughLineMergeCutoff"           );
+  fDoChargeAsymAngleMerge         = pset.get< int    >("DoChargeAsymAngleMerge"         );
+  fChargeAsymAngleCut             = pset.get< double >("ChargeAsymAngleCut"             );
+  fChargeAsymAngleCutoff          = pset.get< double >("ChargeAsymAngleCutoff"          );
+  fDoShowerHoughLineMerge         = pset.get< int    >("DoShowerHoughLineMerge"         );
+  fShowerHoughLineMergeAngle      = pset.get< double >("ShowerHoughLineMergeAngle"      );
+  fShowerHoughLineMergeCutoff     = pset.get< double >("ShowerHoughLineMergeCutoff"     );
+  fDoShowerHoughLineInterceptMerge= pset.get< int    >("DoShowerHoughLineInterceptMerge");
+  fShowerLikenessCut              = pset.get< double >("ShowerLikenessCut"              );
+  fShowerWidthAngle               = pset.get< double >("ShowerWidthAngle"               );
   return;
 }
 
@@ -405,9 +406,36 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
         else currentHits.clear();
       } 
       if(currentHits.size() > lastHits.size()) lastHits = currentHits;
+
       clusterHits.clear();    
 
       if(lastHits.size() < 5) continue;
+
+      // Check if lastHits has hits with big gaps in it
+      //std::cout << "New line" << std::endl;
+      int missedHits=0;
+      for(size_t i = 0; i < lastHits.size()-1; ++i) {
+        //std::cout << hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel() << std::endl;
+        double pCorner0[2];
+        pCorner0[0] = (hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel())*wire_dist;
+        pCorner0[1] = ((hits[hitsTemp[lastHits[i]]]->StartTime()+hits[hitsTemp[lastHits[i]]]->EndTime())/2.)*tickToDist;
+        double pCorner1[2];
+        pCorner1[0] = (hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel())*wire_dist;
+        pCorner1[1] = ((hits[hitsTemp[lastHits[i+1]]]->StartTime()+hits[hitsTemp[lastHits[i+1]]]->EndTime())/2.)*tickToDist;
+        //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
+        if(std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance             )
+          missedHits++;
+      }
+      //std::cout << "missedHits " << missedHits << std::endl;
+      //std::cout << "lastHits.size() " << lastHits.size() << std::endl;
+      //std::cout << "missedHits/lastHits.size() " << (double)missedHits/(double)lastHits.size() << std::endl;
+      if((double)missedHits/(double)lastHits.size() > fMissedHitsToLineSize)
+        continue;
+
+
+
+
+
 
       // Find minimum and maximum wires in the Hough line
       fMaxWire = 0;
@@ -506,15 +534,17 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
       linesFound.push_back(lineSlope(nClustersTemp-1,
             slope,
             intercept,
+            totalQ,
             pCornerMin[0],
             pCornerMin[1],
             pCornerMax[0],
             pCornerMax[1],
             iMinWire,
             iMaxWire,
+            fMinWire,
+            fMaxWire,
             pHit,
             pHitChargeSigma));
-      ///std::cout << "isolation: " << background/lastHits.size() << std::endl;
        
     }/// end if !isnan
 
@@ -540,13 +570,13 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
       double peakTimePerpMin=-(1/linesFoundItr->clusterSlope)*(double)((*hitsItr)->WireID().Wire)+hits[linesFoundItr->iMinWire]->PeakTime()+(1/linesFoundItr->clusterSlope)*(hits[linesFoundItr->iMinWire]->WireID().Wire);
       double peakTimePerpMax=-(1/linesFoundItr->clusterSlope)*(double)((*hitsItr)->WireID().Wire)+hits[linesFoundItr->iMaxWire]->PeakTime()+(1/linesFoundItr->clusterSlope)*(hits[linesFoundItr->iMaxWire]->WireID().Wire);
       if(distance > 1*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling)
-         && distance < 50*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling)){
-        //if((slope < 0 && (*hitsItr)->PeakTime() < peakTimePerpMin && (*hitsItr)->PeakTime() > peakTimePerpMax)
-            //|| (slope > 0 && (*hitsItr)->PeakTime() > peakTimePerpMin && (*hitsItr)->PeakTime() < peakTimePerpMax)){
+         && distance < 10*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling)){
+        if((slope < 0 && (*hitsItr)->PeakTime() < peakTimePerpMin && (*hitsItr)->PeakTime() > peakTimePerpMax)
+            || (slope > 0 && (*hitsItr)->PeakTime() > peakTimePerpMin && (*hitsItr)->PeakTime() < peakTimePerpMax)){
           totalBkgDist+=distance;
           totalBkgDistCharge+=distance/(*hitsItr)->Charge();
           totalBkg++;
-        //}
+        }
       }
       if(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling < distance 
          && distance < 50*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling) 
@@ -560,124 +590,513 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
       }
     }/// end loop over hits
     //std::cout << std::endl << "total BkgDist: " << totalBkgDist << std::endl;
-    //std::cout << "total BkgDistCharge: " << totalBkgDistCharge << std::endl;
-    linesFoundItr->showerLikeness = totalBkgDistCharge;
+    //std::cout << "total BkgDistCharge: " << totalBkgDistCharge/linesFoundItr->pHit.size() << std::endl;
+    linesFoundItr->showerLikeness = totalBkgDistCharge/linesFoundItr->pHit.size();
     //linesFoundItr->showerLikeness = totalBkgDist;
     linesFoundItr->isolation = background/linesFoundItr->pHit.size();
   }/// end loop over lines found
 
+
+
+
+
+
   /// Do a merge based on distances between line segments instead of endpoints
-  if(fDoShowerHoughLineMerge)     mergeHoughLinesBySegment(0,&linesFound,tickToDist,iMergeShower);
-  if(fDoWideHoughLineMerge)       mergeHoughLinesBySegment(0,&linesFound,tickToDist,iMergeWide);
-  if(fDoHoughLineMerge)           mergeHoughLinesBySegment(0,&linesFound,tickToDist,iMergeNormal);
+  if(fDoShowerHoughLineMerge)              mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeShower);
+  if(fDoShowerHoughLineInterceptMerge)     mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeShowerIntercept);
+  if(fDoChargeAsymAngleMerge)              mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeChargeAsymAngle);
+  if(fDoHoughLineMerge)                    mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeNormal);
+
+
+
+
+  // Accumulate the merged lines to be used to find a vertex
+  std::map<int,mergedLines> mergedLinesMap; 
+  for(auto linesFoundItr = linesFound.begin(); linesFoundItr != linesFound.end(); linesFoundItr++){
+    if(!linesFoundItr->merged)
+      continue;
+    if(!mergedLinesMap.count(linesFoundItr->clusterNumber))
+      mergedLinesMap.insert(std::make_pair(linesFoundItr->clusterNumber,mergedLines(linesFoundItr->totalQ,linesFoundItr->pMin0,linesFoundItr->pMin1,linesFoundItr->pMax0,linesFoundItr->pMax1,linesFoundItr->clusterNumber,linesFoundItr->showerLikeness)));
+    else {
+      // Check if new line has minimum that is lower
+      if(linesFoundItr->pMin0 < mergedLinesMap.at(linesFoundItr->clusterNumber).pMin0){
+        mergedLinesMap.at(linesFoundItr->clusterNumber).pMin0=linesFoundItr->pMin0;
+        mergedLinesMap.at(linesFoundItr->clusterNumber).pMin1=linesFoundItr->pMin1;
+      }
+      if(linesFoundItr->pMax0 > mergedLinesMap.at(linesFoundItr->clusterNumber).pMax0){
+        mergedLinesMap.at(linesFoundItr->clusterNumber).pMax0=linesFoundItr->pMax0;
+        mergedLinesMap.at(linesFoundItr->clusterNumber).pMax1=linesFoundItr->pMax1;
+      }
+      mergedLinesMap.at(linesFoundItr->clusterNumber).totalQ+=linesFoundItr->totalQ;
+      //mergedLinesMap.at(linesFoundItr->clusterNumber).showerLikeness+=linesFoundItr->showerLikeness;
+      if(linesFoundItr->showerLikeness > mergedLinesMap.at(linesFoundItr->clusterNumber).showerLikeness){
+        mergedLinesMap.at(linesFoundItr->clusterNumber).showerLikeness=linesFoundItr->showerLikeness;
+      }
+    }
+  }
+
+
+  // Another cheap vertex finder
+  // Loop over lines, collect interest points (end points) 
+  // Start with unmerged lines
+  std::vector<houghCorner> houghCorners;
+  bool firstRun = true;
+  for(auto linesFoundItr = linesFound.begin(); linesFoundItr != linesFound.end(); linesFoundItr++){
+    if(linesFoundItr->merged)
+      continue;
+    houghCorner houghCornerMinTemp;
+    houghCorner houghCornerMaxTemp;
+    // Check line's min and max
+    bool foundMin=false;
+    bool foundMax=false;
+    for(unsigned int i = 0; i < houghCorners.size(); i++){
+      firstRun=false;
+      // Check at min
+      double distanceMin = sqrt(pow(linesFoundItr->pMin0-houghCorners[i].p0,2) + pow(linesFoundItr->pMin1-houghCorners[i].p1,2));
+      if(distanceMin < 10){
+        houghCorners[i].strength+=linesFoundItr->totalQ;
+        foundMin=true;
+      }
+      else
+        houghCornerMinTemp=houghCorner(linesFoundItr->totalQ, linesFoundItr->pMin0, linesFoundItr->pMin1);
+      // Check at max
+      double distanceMax = sqrt(pow(linesFoundItr->pMax0-houghCorners[i].p0,2) + pow(linesFoundItr->pMax1-houghCorners[i].p1,2));
+      if(distanceMax < 10){
+        houghCorners[i].strength+=linesFoundItr->totalQ;
+        foundMax=true;
+      }
+      else
+        houghCornerMaxTemp=houghCorner(linesFoundItr->totalQ, linesFoundItr->pMax0, linesFoundItr->pMax1);
+    }
+    if(firstRun){
+      houghCorners.push_back(houghCorner(linesFoundItr->totalQ, linesFoundItr->pMin0, linesFoundItr->pMin1));
+      houghCorners.push_back(houghCorner(linesFoundItr->totalQ, linesFoundItr->pMax0, linesFoundItr->pMax1));
+    }
+    if(!foundMin && !firstRun)
+      houghCorners.push_back(houghCornerMinTemp);
+    if(!foundMax && !firstRun)
+      houghCorners.push_back(houghCornerMaxTemp);
+  }
+  // Continue with merged lines
+  firstRun = true;
+  for(auto mergedLinesMapItr = mergedLinesMap.begin(); mergedLinesMapItr != mergedLinesMap.end(); mergedLinesMapItr++){
+    houghCorner houghCornerMinTemp;
+    houghCorner houghCornerMaxTemp;
+    // Check line's min and max
+    bool foundMin=false;
+    bool foundMax=false;
+    for(unsigned int i = 0; i < houghCorners.size(); i++){
+      firstRun=false;
+      // Check at min
+      double distanceMin = sqrt(pow(mergedLinesMapItr->second.pMin0-houghCorners[i].p0,2) + pow(mergedLinesMapItr->second.pMin1-houghCorners[i].p1,2));
+      if(distanceMin < 10){
+        houghCorners[i].strength+=mergedLinesMapItr->second.totalQ;
+        foundMin=true;
+      }
+      else
+        houghCornerMinTemp=houghCorner(mergedLinesMapItr->second.totalQ, mergedLinesMapItr->second.pMin0, mergedLinesMapItr->second.pMin1);
+      // Check at max
+      double distanceMax = sqrt(pow(mergedLinesMapItr->second.pMax0-houghCorners[i].p0,2) + pow(mergedLinesMapItr->second.pMax1-houghCorners[i].p1,2));
+      if(distanceMax < 10){
+        houghCorners[i].strength+=mergedLinesMapItr->second.totalQ;
+        foundMax=true;
+      }
+      else
+        houghCornerMaxTemp=houghCorner(mergedLinesMapItr->second.totalQ, mergedLinesMapItr->second.pMax0, mergedLinesMapItr->second.pMax1);
+    }
+    if(firstRun){
+      houghCorners.push_back(houghCorner(mergedLinesMapItr->second.totalQ, mergedLinesMapItr->second.pMin0, mergedLinesMapItr->second.pMin1));
+      houghCorners.push_back(houghCorner(mergedLinesMapItr->second.totalQ, mergedLinesMapItr->second.pMax0, mergedLinesMapItr->second.pMax1));
+    }
+    if(!foundMin && !firstRun)
+      houghCorners.push_back(houghCornerMinTemp);
+    if(!foundMax && !firstRun)
+      houghCorners.push_back(houghCornerMaxTemp);
+  }
+
+
+  std::sort(houghCorners.begin(),houghCorners.end());
+  std::reverse(houghCorners.begin(),houghCorners.end());
+
+  for(auto houghCornersItr = houghCorners.begin(); houghCornersItr != houghCorners.end(); houghCornersItr++) {
+    std::vector<geo::WireID> wireCornerList = geom->ChannelToWire((uint32_t) houghCornersItr->p0/wire_dist);
+
+    //for (auto wireCornerListItr = wireCornerList.begin(); wireCornerListItr != wireCornerList.end(); wireCornerListItr++) {
+      //std::cout << houghCornersItr->strength << " " << wireCornerListItr->Wire << " " << houghCornersItr->p1/tickToDist << std::endl;
+    //}
+  }
+  //std::cout << std::endl;
+  
+  // Merge houghCorners if they are close
+  //for(auto houghCornersItr1 = houghCorners.begin(); houghCornersItr1 != houghCorners.end()-1; houghCornersItr1++) {
+    //for(auto houghCornersItr2 = houghCornersItr1+1; houghCornersItr2 != houghCorners.end(); ) {
+      //double houghCornerDistance = std::sqrt(pow(houghCornersItr1->p0-houghCornersItr2->p0,2)+pow(houghCornersItr1->p1-houghCornersItr2->p1,2));
+      //if(houghCornerDistance < fHoughLineMergeCutoff){
+        //houghCornersItr1->p0=(houghCornersItr1->p0*houghCornersItr1->strength+houghCornersItr2->p0*houghCornersItr2->strength)/(houghCornersItr1->strength+houghCornersItr2->strength);
+        //houghCornersItr1->p1=(houghCornersItr1->p1*houghCornersItr1->strength+houghCornersItr2->p1*houghCornersItr2->strength)/(houghCornersItr1->strength+houghCornersItr2->strength);
+        //houghCornersItr1->strength+=houghCornersItr2->strength;
+        //houghCornersItr2 = houghCorners.erase(houghCornersItr2);
+        //houghCornersItr1 = houghCorners.begin();
+      //}
+      //else
+        //++houghCornersItr2;
+    //}
+  //}
+
+
+  //for(auto houghCornersItr = houghCorners.begin(); houghCornersItr != houghCorners.end(); houghCornersItr++){
+    //double totalBkgDistCharge=0;
+    //for(auto hitsItr = hits.cbegin(); hitsItr != hits.cend(); ++hitsItr){
+      ///// Veto the hit if it already belongs to a line
+      ////if(fpointId_to_clusterId->at(hitsItr-hits.cbegin()) != clusterId)
+        ////continue;
+      //double p0Hit = ((*hitsItr)->Wire()->RawDigit()->Channel())*wire_dist;
+      //double p1Hit = (((*hitsItr)->StartTime()+(*hitsItr)->EndTime())/2.)*tickToDist;
+      //double distance = std::sqrt(pow(p0Hit-houghCornersItr->p0,2)+pow(p1Hit-houghCornersItr->p1,2));
+      ////totalBkgDistCharge+=distance/(*hitsItr)->Charge();
+      //if(distance > 1)
+        //totalBkgDistCharge+=(*hitsItr)->Charge()/distance;
+    //}
+    //std::cout << "Corner totalBkgDistCharge: " << totalBkgDistCharge << std::endl;
+  //}
+
+
+
+  //std::sort(houghCorners.begin(),houghCorners.end());
+  //std::reverse(houghCorners.begin(),houghCorners.end());
+
+  //for(auto houghCornersItr = houghCorners.begin(); houghCornersItr != houghCorners.end(); houghCornersItr++) {
+    //std::vector<geo::WireID> wireCornerList = geom->ChannelToWire((uint32_t) houghCornersItr->p0/wire_dist);
+    //std::cout << "New corner" << std::endl;
+    //for (auto wireCornerListItr = wireCornerList.begin(); wireCornerListItr != wireCornerList.end(); wireCornerListItr++) {
+      //std::cout << houghCornersItr->strength << " " << wireCornerListItr->Wire << " " << houghCornersItr->p1/tickToDist << std::endl;
+    //}
+  //}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   /// Average the slopes and y-intercepts of Hough lines in shower like regions
-  /// map (cluster number ( slope, y-int))
-  std::map<int,std::pair<double,double> > showerLines; /// map (cluster number ( slope, y-int))
-  std::map<int,std::pair<int,int> > showerMinMaxWires; /// map (cluster number ( iMinWire, iMaxWire))
-  std::map<unsigned int,int> linesCount; /// map (cluster number, number of lines)
+  std::vector<showerLine> showerLines; 
   for(auto linesFoundItr = linesFound.begin(); linesFoundItr != linesFound.end(); linesFoundItr++){
-    if(linesFoundItr->showerLikeness<fShowerLikenessCut)
+    if(linesFoundItr->showerLikeness<fShowerLikenessCut && !linesFoundItr->merged)
       continue;
+    if(linesFoundItr->merged)
+      if(mergedLinesMap.at(linesFoundItr->clusterNumber).showerLikeness < fShowerLikenessCut)
+        continue;
     int lineSize = linesFoundItr->pHit.size();
     double lineSlope = linesFoundItr->clusterSlope;
     double lineIntercept = linesFoundItr->clusterIntercept;
-    if(!linesCount.count(linesFoundItr->clusterNumber)){
-      showerLines.insert(std::make_pair(linesFoundItr->clusterNumber,std::make_pair(lineSlope*lineSize,lineIntercept*lineSize)));
-      showerMinMaxWires.insert(std::make_pair(linesFoundItr->clusterNumber,std::make_pair(linesFoundItr->iMinWire,linesFoundItr->iMaxWire)));
-      linesCount.insert(std::make_pair(linesFoundItr->clusterNumber,lineSize));
+    //std::cout << "line slopey: " << lineSlope << " intercepty: " << linesFoundItr->clusterIntercept << " line size: " << lineSize  << std::endl;
+    // Check if showerLines contains a line with this cluster number already
+    bool alreadyInserted=false;
+    int insertedIndex=-999999;
+    for(auto showerLinesItr = showerLines.begin(); showerLinesItr!=showerLines.end();showerLinesItr++){
+      if(showerLinesItr->clusterNumber == linesFoundItr->clusterNumber){
+        alreadyInserted=true;
+        insertedIndex=showerLinesItr-showerLines.begin();
+        break;
+      }
+    }
+    if(!alreadyInserted){
+      showerLines.push_back(showerLine(linesFoundItr->clusterSlope*lineSize,
+              linesFoundItr->clusterIntercept*lineSize,
+              linesFoundItr->clusterNumber,
+              linesFoundItr->clusterNumber,
+              linesFoundItr->pHit.size(),
+              linesFoundItr->iMinWire,
+              linesFoundItr->iMaxWire));
+      //std::cout << "min wire: " << hits[linesFoundItr->iMinWire]->WireID().Wire << std::endl;
+      //std::cout << "max wire: " << hits[linesFoundItr->iMaxWire]->WireID().Wire << std::endl;
       continue;
     }
-    if(linesFoundItr->iMinWire < showerMinMaxWires.at(linesFoundItr->clusterNumber).first)
-      showerMinMaxWires.at(linesFoundItr->clusterNumber).first=linesFoundItr->iMinWire;
-    if(linesFoundItr->iMaxWire > showerMinMaxWires.at(linesFoundItr->clusterNumber).second)
-      showerMinMaxWires.at(linesFoundItr->clusterNumber).second=linesFoundItr->iMaxWire;
-    showerLines.at(linesFoundItr->clusterNumber).first+=lineSlope*lineSize;
-    showerLines.at(linesFoundItr->clusterNumber).second+=lineIntercept*lineSize;
-    linesCount.at(linesFoundItr->clusterNumber)+=lineSize;
+    if(hits[linesFoundItr->iMinWire]->WireID().Wire < hits[showerLines.at(insertedIndex).iMinWire]->WireID().Wire)
+      showerLines.at(insertedIndex).iMinWire=linesFoundItr->iMinWire;
+    if(hits[linesFoundItr->iMaxWire]->WireID().Wire > hits[showerLines.at(insertedIndex).iMaxWire]->WireID().Wire)
+      showerLines.at(insertedIndex).iMaxWire=linesFoundItr->iMaxWire;
+    showerLines.at(insertedIndex).slope+=lineSlope*lineSize;
+    showerLines.at(insertedIndex).intercept+=lineIntercept*lineSize;
+    showerLines.at(insertedIndex).lineSize+=lineSize;
+    //std::cout << "min wire: " << hits[showerLines[insertedIndex].iMinWire]->WireID().Wire << std::endl;
+    //std::cout << "max wire: " << hits[showerLines[insertedIndex].iMaxWire]->WireID().Wire << std::endl;
   }
+  // Sort the averaged lines by size
+  std::sort(showerLines.begin(),showerLines.end());
+  std::reverse(showerLines.begin(),showerLines.end());
+
+
   /// Now actually do the averaging and find line direction
-  std::map<int,std::pair<double,double> > showerLinesAverage; // map (cluster number ( slope, y-int))
-  for(auto linesCountItr = linesCount.cbegin(); linesCountItr != linesCount.cend(); linesCountItr++){
-    showerLines.at(linesCountItr->first).first/=(linesCountItr->second);
-    showerLines.at(linesCountItr->first).second/=(linesCountItr->second);
-    //double averageSlope = showerLines.at(linesCountItr->first).first;
-    //double averageInt = showerLines.at(linesCountItr->first).second;
-    //int midWire = hits[(showerMinMaxWires.at(linesCountItr->first).first)]->WireID().Wire/2 + 
-      //hits[(showerMinMaxWires.at(linesCountItr->first).second)]->WireID().Wire/2 + 
-      //(hits[(showerMinMaxWires.at(linesCountItr->first).first)]->WireID().Wire & hits[showerMinMaxWires.at(linesCountItr->first).second]->WireID().Wire & 1);
-    //double midPeakTime = averageSlope*midWire+averageInt;
-    showerLinesAverage.insert(std::make_pair(linesCountItr->first,std::make_pair(showerLines.at(linesCountItr->first).first,showerLines.at(linesCountItr->first).second)));
-    //std::cout << "slope: " << showerLines.at(linesCountItr->first).first <<
-      //" intercept: " << showerLines.at(linesCountItr->first).second 
-      //<< " min wire: " << hits[showerMinMaxWires.at(linesCountItr->first).first]->WireID().Wire
-      //<< " max wire: " << hits[showerMinMaxWires.at(linesCountItr->first).second]->WireID().Wire
+  std::vector<showerLine> showerLinesAverage; // 
+  for(auto showerLinesItr = showerLines.begin(); showerLinesItr!= showerLines.end(); showerLinesItr++){
+
+    if(showerLinesItr->showerMerged)
+      continue;
+
+    // If the line was already merged, skip it to prevent showers from splintering off
+    if(showerLinesItr->clusterNumber != showerLinesItr->oldClusterNumber)
+      continue;
+
+    //showerLines.at(showerLinesItr->first).slope/=(showerLinesItr->second.lineSize);
+    //showerLines.at(showerLinesItr->first).intercept/=(showerLinesItr->second.lineSize);
+    std::cout << showerLines.at(showerLinesItr-showerLines.begin()).slope << std::endl;
+    std::cout << showerLines.at(showerLinesItr-showerLines.begin()).intercept << std::endl;
+    double averageSlope = showerLines.at(showerLinesItr-showerLines.begin()).slope/showerLinesItr->lineSize;
+    double averageInt = showerLines.at(showerLinesItr-showerLines.begin()).intercept/showerLinesItr->lineSize;
+    int midWire = hits[showerLinesItr->iMinWire]->WireID().Wire/2 + 
+      hits[showerLinesItr->iMaxWire]->WireID().Wire/2 + 
+      (hits[showerLinesItr->iMinWire]->WireID().Wire & hits[showerLinesItr->iMaxWire]->WireID().Wire & 1);
+    double midPeakTime = averageSlope*midWire+averageInt;
+    showerLinesAverage.push_back(showerLine(averageSlope,
+              averageInt,
+              showerLinesItr->clusterNumber,
+              showerLinesItr->clusterNumber,
+              showerLinesItr->lineSize,
+              showerLinesItr->iMinWire,
+              showerLinesItr->iMaxWire));
+    //std::cout << "slope: " << averageSlope <<
+      //" intercept: " << averageInt
+      //<< " min wire: " << hits[showerLinesItr->iMinWire]->WireID().Wire
+      //<< " max wire: " << hits[showerLinesItr->iMaxWire]->WireID().Wire
       //<< " mid wire: " << midWire
       //<< " midPeakTime: " << midPeakTime
+      //<< " line size: " << showerLinesItr->lineSize
       //<< std::endl;
 
-    // Find size of houghlines at min and max wires
-    unsigned int minLineSize = 0;
-    unsigned int maxLineSize = 0;
-    unsigned int iMinLine = 99999999;
-    unsigned int iMaxLine = 0;
+    // Find closest vertext to end points
+    double pMin0Ave = hits[showerLinesItr->iMinWire]->Wire()->RawDigit()->Channel()*wire_dist;
+    double pMax0Ave = hits[showerLinesItr->iMaxWire]->Wire()->RawDigit()->Channel()*wire_dist;
+    double pMin1Ave = ((hits[showerLinesItr->iMinWire]->StartTime()+hits[showerLinesItr->iMinWire]->EndTime())/2.)*tickToDist;
+    double pMax1Ave = ((hits[showerLinesItr->iMaxWire]->StartTime()+hits[showerLinesItr->iMaxWire]->EndTime())/2.)*tickToDist;
+    //std::cout << "pMin0Ave: " << pMin0Ave << " pMin1Ave: " << pMin1Ave << std::endl;
+    //std::cout << "pMax0Ave: " << pMax0Ave << " pMax1Ave: " << pMax1Ave << std::endl;
+
+
+
+    // Take the strongest houghCorner as the primary vertex, determine if the min or max of the shower is closest
+    double cornerDistToMin = sqrt(pow(pMin0Ave-houghCorners[0].p0,2)+pow(pMin1Ave-houghCorners[0].p1,2));
+    double cornerDistToMax = sqrt(pow(pMax0Ave-houghCorners[0].p0,2)+pow(pMax1Ave-houghCorners[0].p1,2));
     int showerDirection = 0; // +1 is to the right, -1 is to the left
-    for(auto linesFoundItr = linesFound.begin(); linesFoundItr != linesFound.end(); linesFoundItr++){
-      if(linesFoundItr->showerLikeness<fShowerLikenessCut)
-        continue;
-      if(linesFoundItr->clusterNumber != linesCountItr->first)
-        continue;
-      if(hits[linesFoundItr->iMinWire]->WireID().Wire < iMinLine){
-        minLineSize = linesFoundItr->pHit.size();
-        iMinLine = hits[linesFoundItr->iMinWire]->WireID().Wire;
-      }
-      if(hits[linesFoundItr->iMaxWire]->WireID().Wire > iMaxLine){
-        maxLineSize = linesFoundItr->pHit.size();
-        iMaxLine = hits[linesFoundItr->iMaxWire]->WireID().Wire;
-      }
-    }
-    //std::cout << std::endl;
-    //std::cout << "min end size: " << minLineSize << " max end size: " << maxLineSize << std::endl;
-    if(minLineSize > maxLineSize){
+    if(cornerDistToMin < cornerDistToMax && houghCorners[0].strength != houghCorners[1].strength){
       //std::cout << "For the new, new, new metric, I'm probably going right" << std::endl;
       showerDirection = 1;
     }
-    else if (maxLineSize > minLineSize){
+    else if (cornerDistToMin > cornerDistToMax && houghCorners[0].strength != houghCorners[1].strength){
       //std::cout << "For the new, new, new metric, I'm probably going left" << std::endl;
       showerDirection = -1;
     }
-    if(minLineSize < 10 && maxLineSize < 10)
-      showerDirection = 0;
+    //else if (houghCorners[0].strength == houghCorners[1].strength)
+      //std::cout << "For the new, new, new metric, direction is ambiguous" << std::endl;
+     
+
+
+
+    //double pMin0Corner=0;
+    //double pMin1Corner=0;
+    //double minCornerQ=0;
+    //double minCornerDistMin=999999;
+    //double pMax0Corner=0;
+    //double pMax1Corner=0;
+    //double maxCornerQ=0;
+    //double minCornerDistMax=999999;
+    //for(auto houghCornersItr = houghCorners.begin(); houghCornersItr != houghCorners.end(); houghCornersItr++) {
+      ////Check at min
+      //double distToCorner = std::sqrt(pow(houghCornersItr->p0-pMin0Ave,2)+pow(houghCornersItr->p1-pMin1Ave,2));
+      ////if(distToCorner < minCornerDistMin){
+      //if(distToCorner < fHoughLineMergeCutoff && houghCornersItr->strength > minCornerQ){
+        //minCornerDistMin=distToCorner;
+        //minCornerQ=houghCornersItr->strength;
+        //pMin0Corner=houghCornersItr->p0;
+        //pMin1Corner=houghCornersItr->p1;
+        ////std::cout << "minCornerDistMin: " << minCornerDistMin << std::endl;
+        ////std::cout << "pMin0Corner: " << pMin0Corner << " pMin1Corner: " << pMin1Corner << std::endl;
+      //}
+      ////Check at max
+      //distToCorner = std::sqrt(pow(houghCornersItr->p0-pMax0Ave,2)+pow(houghCornersItr->p1-pMax1Ave,2));
+      ////if(distToCorner < minCornerDistMax){
+      //if(distToCorner < fHoughLineMergeCutoff  && houghCornersItr->strength > maxCornerQ){
+        //minCornerDistMax=distToCorner;
+        //maxCornerQ=houghCornersItr->strength;
+        //pMax0Corner=houghCornersItr->p0;
+        //pMax1Corner=houghCornersItr->p1;
+        ////std::cout << "minCornerDistMax: " << minCornerDistMax << std::endl;
+        ////std::cout << "pMax0Corner: " << pMax0Corner << " pMax1Corner: " << pMax1Corner << std::endl;
+      //}
+      ////std::vector<geo::WireID> wireCornerList = geom->ChannelToWire((uint32_t) houghCornersItr->p0/wire_dist);
+      ////for (auto wireCornerListItr = wireCornerList.begin(); wireCornerListItr != wireCornerList.end(); wireCornerListItr++) {
+        ////std::cout << houghCornersItr->strength << " " << wireCornerListItr->Wire << " " << houghCornersItr->p1/tickToDist << std::endl;
+      ////}
+    //}
+    //// Check if pMin0Corner > pMax0Corner, if it is, swap them (this only happens if the averaging of the lines in a shower fails)
+    //if(pMin0Corner > pMax0Corner){
+      //double pMin0CornerTemp = pMin0Corner;
+      //double pMin1CornerTemp = pMin1Corner;
+      //double minCornerQTemp = minCornerQ;
+      //pMin0Corner = pMax0Corner;
+      //pMin1Corner = pMax1Corner;
+      //minCornerQ = maxCornerQ;
+      //pMax0Corner = pMin0CornerTemp;
+      //pMax1Corner = pMin1CornerTemp;
+      //maxCornerQ = minCornerQTemp;
+    //}
+    //std::cout << "pMin0Corner: " << pMin0Corner << " pMin1Corner: " << pMin1Corner << std::endl;
+    //std::cout << "pMax0Corner: " << pMax0Corner << " pMax1Corner: " << pMax1Corner << std::endl;
+    //std::cout << "Size: " << showerLinesItr->second.lineSize << std::endl;
+    //std::cout << "minCornerQ: " << minCornerQ << " maxCornerQ: "<< maxCornerQ << std::endl;
+    //int showerDirection = 0; // +1 is to the right, -1 is to the left
+    //if(minCornerQ > maxCornerQ){
+      //std::cout << "For the new, new, new metric, I'm probably going right" << std::endl;
+      //showerDirection = 1;
+    //}
+    //else if (maxCornerQ > minCornerQ){
+      //std::cout << "For the new, new, new metric, I'm probably going left" << std::endl;
+      //showerDirection = -1;
+    //}
+    //std::cout << std::endl;
+
+
+
+
+
+
+
+    double directionBin1=0;
+    double directionBin2=0;
+    for(auto hitsItr = hits.cbegin(); hitsItr != hits.cend(); ++hitsItr){
+      // Veto the hit if it already belongs to a line
+      //if(fpointId_to_clusterId->at(hitsItr-hits.cbegin()) != clusterId)
+          //continue;
+      float distance = (TMath::Abs((*hitsItr)->PeakTime()-averageSlope*(double)((*hitsItr)->WireID().Wire)-averageInt)/(std::sqrt(pow(xyScale*averageSlope,2)+1)));
+      //if(distance > 1*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling)
+          //&& distance < 10000*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling) 
+                                                             //){
+      if(distance < 10000*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling)){
+        double peakTimePerpMid=-(1/averageSlope)*(double)((*hitsItr)->WireID().Wire)+midPeakTime+(1/averageSlope)*(midWire);
+        if((-1/slope) < 0 && (*hitsItr)->PeakTime() < peakTimePerpMid)
+          //directionBin1+=(*hitsItr)->Charge()*distance;
+          directionBin1+=distance;
+        if((-1/slope) > 0 && (*hitsItr)->PeakTime() > peakTimePerpMid)
+          //directionBin1+=(*hitsItr)->Charge()*distance;
+          directionBin1+=distance;
+        if((-1/slope) > 0 && (*hitsItr)->PeakTime() < peakTimePerpMid)
+          //directionBin2+=(*hitsItr)->Charge()*distance;
+          directionBin2+=distance;
+        if((-1/slope) < 0 && (*hitsItr)->PeakTime() > peakTimePerpMid)
+          //directionBin2+=(*hitsItr)->Charge()*distance;
+          directionBin2+=distance;
+      }
+    }
+    //std::cout << "directionBin1: " << directionBin1 << " directionBin2: " << directionBin2 << std::endl;
+    if(directionBin1<directionBin2 && houghCorners[0].strength == houghCorners[1].strength){
+      //std::cout << "I'm probably moving right" << std::endl;
+      showerDirection = 1;
+    }
+    else if(directionBin1>directionBin2 && houghCorners[0].strength == houghCorners[1].strength){
+      //std::cout << "I'm probably moving left" << std::endl;
+      showerDirection = -1;
+    }
+
+
     
     // Merge lines following the shower into the shower
+    double slopeUp   = (1/xyScale)*(sin(fShowerWidthAngle*TMath::Pi()/180) + xyScale*averageSlope*cos(fShowerWidthAngle*TMath::Pi()/180))/(cos(fShowerWidthAngle*TMath::Pi()/180) - xyScale*averageSlope*sin(fShowerWidthAngle*TMath::Pi()/180));
+    double slopeDown = (1/xyScale)*(sin(-fShowerWidthAngle*TMath::Pi()/180) + xyScale*averageSlope*cos(-fShowerWidthAngle*TMath::Pi()/180))/(cos(-fShowerWidthAngle*TMath::Pi()/180) - xyScale*averageSlope*sin(-fShowerWidthAngle*TMath::Pi()/180));
+    //std::cout << "slopeUp: " << slopeUp << " slopeDown: " << slopeDown << std::endl;
     for(auto linesFoundItr = linesFound.begin(); linesFoundItr < linesFound.end(); linesFoundItr++){
-      //if(linesFoundItr->merged)
-        //continue;
-      if(linesFoundItr->clusterNumber == linesCountItr->first)
+      if(linesFoundItr->clusterNumber == showerLinesItr->clusterNumber)
         continue;
-      double segmentDistance = std::min(std::abs(hits[linesFoundItr->iMaxWire]->PeakTime()-(showerLines.at(linesCountItr->first).first*hits[linesFoundItr->iMaxWire]->WireID().Wire+showerLines.at(linesCountItr->first).second)),std::abs(hits[linesFoundItr->iMaxWire]->PeakTime()-(showerLines.at(linesCountItr->first).first*hits[linesFoundItr->iMaxWire]->WireID().Wire+showerLines.at(linesCountItr->first).second)));
+      double segmentDistance = std::min(std::abs(hits[linesFoundItr->iMaxWire]->PeakTime()-(averageSlope*hits[linesFoundItr->iMaxWire]->WireID().Wire+averageInt)),std::abs(hits[linesFoundItr->iMaxWire]->PeakTime()-(averageSlope*hits[linesFoundItr->iMaxWire]->WireID().Wire+averageInt)));
       //std::cout << "segmentDistance: " << segmentDistance << std::endl;
-      if(segmentDistance > 500)
+      if(segmentDistance > 1500)
         continue;
       //std::cout << std::endl;
-      //std::cout << "Performing shower merge" << std::endl;
-      //std::cout << std::endl;
-      if(showerDirection > 0)
+      if(showerDirection > 0){
         if(hits[linesFoundItr->iMinWire]->WireID().Wire > 
-            ////(hits[showerMinMaxWires.at(linesCountItr->first).first]->WireID().Wire + 
-             ////hits[showerMinMaxWires.at(linesCountItr->first).second]->WireID().Wire)/2)
-            //hits[showerMinMaxWires.at(linesCountItr->first).first]->WireID().Wire)
-            hits[showerMinMaxWires.at(linesCountItr->first).first]->WireID().Wire)
-          linesFoundItr->clusterNumber = linesCountItr->first;
-      if(showerDirection < 0)
+            hits[showerLinesItr->iMinWire]->WireID().Wire){
+          //if(std::sqrt(pow(pMin0Corner-linesFoundItr->pMin0,2)+pow(pMin1Corner-linesFoundItr->pMin1,2)) > 10 
+              //&& std::sqrt(pow(pMin0Corner-linesFoundItr->pMax0,2)+pow(pMin1Corner-linesFoundItr->pMax1,2)) > 10){
+            double interceptUp = (averageSlope*hits[showerLinesItr->iMinWire]->WireID().Wire + averageInt) - slopeUp*hits[showerLinesItr->iMinWire]->WireID().Wire;
+            double interceptDown = (averageSlope*hits[showerLinesItr->iMinWire]->WireID().Wire + averageInt) - slopeDown*hits[showerLinesItr->iMinWire]->WireID().Wire;
+            double showerLineUpPointMin   = slopeUp*hits[linesFoundItr->iMinWire]->WireID().Wire + interceptUp;
+            double showerLineDownPointMin = slopeDown*hits[linesFoundItr->iMinWire]->WireID().Wire + interceptDown;
+            double showerLineUpPointMax   = slopeUp*hits[linesFoundItr->iMaxWire]->WireID().Wire + interceptUp;
+            double showerLineDownPointMax = slopeDown*hits[linesFoundItr->iMaxWire]->WireID().Wire + interceptDown;
+            //std::cout << "interceptUp " << interceptUp << " interceptDown " << interceptDown << std::endl;
+            //std::cout << "average peak min: " << hits[linesFoundItr->iMinWire]->WireID().Wire*averageSlope + averageInt;
+            //std::cout << " average peak max: " << hits[linesFoundItr->iMaxWire]->WireID().Wire*averageSlope + averageInt << std::endl;;
+            //std::cout << showerLineUpPointMin << " " << showerLineDownPointMin << " " << showerLineUpPointMax << " " << showerLineDownPointMax << std::endl;
+            //std::cout << hits[linesFoundItr->iMinWire]->WireID().Wire << " " << hits[linesFoundItr->iMaxWire]->WireID().Wire << std::endl;
+            //std::cout << hits[linesFoundItr->iMinWire]->PeakTime() << " " <<hits[linesFoundItr->iMaxWire]->PeakTime() << std::endl;
+            if((hits[linesFoundItr->iMinWire]->PeakTime() < showerLineUpPointMin && hits[linesFoundItr->iMinWire]->PeakTime() > showerLineDownPointMin)
+              || (hits[linesFoundItr->iMaxWire]->PeakTime() < showerLineUpPointMax && hits[linesFoundItr->iMaxWire]->PeakTime() > showerLineDownPointMax)){
+              for(auto showerLinesItr2 = showerLines.begin(); showerLinesItr2!= showerLines.end(); showerLinesItr2++){
+                if(showerLinesItr2->clusterNumber == linesFoundItr->clusterNumber)
+                  showerLinesItr2->showerMerged=true;
+              }
+              linesFoundItr->clusterNumber = showerLinesItr->clusterNumber;
+              //std::cout << "Merged right" << std::endl;
+            }
+          //}
+          }
+      }
+      if(showerDirection < 0){
         if(hits[linesFoundItr->iMaxWire]->WireID().Wire <=
-            ////(hits[showerMinMaxWires.at(linesCountItr->first).first]->WireID().Wire + 
-             ////hits[showerMinMaxWires.at(linesCountItr->first).second]->WireID().Wire)/2)
-            //hits[showerMinMaxWires.at(linesCountItr->first).second]->WireID().Wire)
-            hits[showerMinMaxWires.at(linesCountItr->first).second]->WireID().Wire)
-          linesFoundItr->clusterNumber = linesCountItr->first;
+            hits[showerLinesItr->iMaxWire]->WireID().Wire){
+          //if(std::sqrt(pow(pMax0Corner-linesFoundItr->pMin0,2)+pow(pMax1Corner-linesFoundItr->pMin1,2)) > 10 
+              //&& std::sqrt(pow(pMax0Corner-linesFoundItr->pMax0,2)+pow(pMax1Corner-linesFoundItr->pMax1,2)) > 10){
+            double interceptUp = (averageSlope*hits[showerLinesItr->iMaxWire]->WireID().Wire + averageInt) - slopeUp*hits[showerLinesItr->iMaxWire]->WireID().Wire;
+            double interceptDown = (averageSlope*hits[showerLinesItr->iMaxWire]->WireID().Wire + averageInt) - slopeDown*hits[showerLinesItr->iMaxWire]->WireID().Wire;
+            double showerLineUpPointMin   = slopeUp*hits[linesFoundItr->iMinWire]->WireID().Wire + interceptUp;
+            double showerLineDownPointMin = slopeDown*hits[linesFoundItr->iMinWire]->WireID().Wire + interceptDown;
+            double showerLineUpPointMax   = slopeUp*hits[linesFoundItr->iMaxWire]->WireID().Wire + interceptUp;
+            double showerLineDownPointMax = slopeDown*hits[linesFoundItr->iMaxWire]->WireID().Wire + interceptDown;
+            //std::cout << "interceptUp " << interceptUp << " interceptDown " << interceptDown << std::endl;
+            //std::cout << "average peak min: " << hits[linesFoundItr->iMinWire]->WireID().Wire*averageSlope + averageInt;
+            //std::cout << " average peak max: " << hits[linesFoundItr->iMaxWire]->WireID().Wire*averageSlope + averageInt << std::endl;;
+            //std::cout << showerLineUpPointMin << " " << showerLineDownPointMin << " " << showerLineUpPointMax << " " << showerLineDownPointMax << std::endl;;
+            //std::cout << hits[linesFoundItr->iMinWire]->WireID().Wire << " " << hits[linesFoundItr->iMaxWire]->WireID().Wire << std::endl;
+            //std::cout << hits[linesFoundItr->iMinWire]->PeakTime() << " " <<hits[linesFoundItr->iMaxWire]->PeakTime() << std::endl;
+            if((hits[linesFoundItr->iMinWire]->PeakTime() > showerLineUpPointMin && hits[linesFoundItr->iMinWire]->PeakTime() < showerLineDownPointMin)
+              || (hits[linesFoundItr->iMaxWire]->PeakTime() > showerLineUpPointMax && hits[linesFoundItr->iMaxWire]->PeakTime() < showerLineDownPointMax)){
+              for(auto showerLinesItr2 = showerLines.begin(); showerLinesItr2!= showerLines.end(); showerLinesItr2++){
+                if(showerLinesItr2->clusterNumber == linesFoundItr->clusterNumber)
+                  showerLinesItr2->showerMerged=true;
+              }
+              linesFoundItr->clusterNumber = showerLinesItr->clusterNumber;
+              //std::cout << "Merged left" << std::endl;
+            }
+          //}
+          }
+      }
     }
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -689,20 +1108,20 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     if(*fpointId_to_clusterIdItr == clusterId)
       continue;
     for(auto linesFoundItr = linesFound.begin(); linesFoundItr < linesFound.end(); linesFoundItr++){
-      if(*fpointId_to_clusterIdItr == linesFoundItr->oldClusterNumber)
+      if(*fpointId_to_clusterIdItr == (unsigned int)linesFoundItr->oldClusterNumber)
         *fpointId_to_clusterIdItr = linesFoundItr->clusterNumber;
     }
   }
 
   // Find sizes of all merged lines combined
   // For linesFoundSizes, key is cluster number and size is the mapped value
-  //std::map<int,float> linesFoundSizes;
-  //for(unsigned int i = 0; i < linesFound.size(); i++){
-    ////if(linesFoundSizes.find(linesFound[i].clusterNumber) == linesFoundSizes.end())
-    //if(!linesFoundSizes.count(linesFound[i].clusterNumber))
-      //linesFoundSizes[linesFound[i].clusterNumber] = std::sqrt( pow(linesFound[i].pMin0-linesFound[i].pMax0,2)+pow(linesFound[i].pMin1-linesFound[i].pMax1,2));
-    //else 
-      //linesFoundSizes[linesFound[i].clusterNumber]+= std::sqrt( pow(linesFound[i].pMin0-linesFound[i].pMax0,2)+pow(linesFound[i].pMin1-linesFound[i].pMax1,2));
+  std::map<int,float> linesFoundSizes;
+  for(unsigned int i = 0; i < linesFound.size(); i++){
+    //if(linesFoundSizes.find(linesFound[i].clusterNumber) == linesFoundSizes.end())
+    if(!linesFoundSizes.count(linesFound[i].clusterNumber))
+      linesFoundSizes[linesFound[i].clusterNumber] = std::sqrt( pow(linesFound[i].pMin0-linesFound[i].pMax0,2)+pow(linesFound[i].pMin1-linesFound[i].pMax1,2));
+    else 
+      linesFoundSizes[linesFound[i].clusterNumber]+= std::sqrt( pow(linesFound[i].pMin0-linesFound[i].pMax0,2)+pow(linesFound[i].pMin1-linesFound[i].pMax1,2));
     //mf::LogInfo("HoughBaseAlg") << "i: " << i 
                                 //<< " linesFound[i].clusterNumber: " 
                                 //<<  linesFound[i].clusterNumber 
@@ -711,7 +1130,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
                                          //+pow(linesFound[i].pMin1-linesFound[i].pMax1,2)) 
                                 //<< " size: " 
                                 //<< linesFoundSizes[linesFound[i].clusterNumber];
-  //}
+  }
 
   
   //Merge remains of original fuzzy cluster into nearest Hough line, 
@@ -725,8 +1144,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
         double minDistance = 999999;
       for(std::vector<lineSlope>::iterator linesFoundItr = linesFound.begin(); linesFoundItr < linesFound.end(); linesFoundItr++){
         double distance = PointSegmentDistance( p0, p1, linesFoundItr->pMin0, linesFoundItr->pMin1, linesFoundItr->pMax0, linesFoundItr->pMax1);
-        //distance/=std::sqrt( pow(linesFound[k].pMin0-linesFound[k].pMax0,2)+pow(linesFound[k].pMin1-linesFound[k].pMax1,2));
-        //distance/=linesFoundSizes[linesFound[k].clusterNumber];
+        distance/=linesFoundSizes[linesFoundItr->clusterNumber];
         if(distance < minDistance){
           fpointId_to_clusterId->at(hitsItr-hits.begin()) = linesFoundItr->clusterNumber;
           minDistance = distance;
@@ -775,7 +1193,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 // Merges based on the distance between line segments
 void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart,
 						     std::vector<lineSlope> *linesFound,
-						     double tickToDist,
+						     double xyScale,
                                                      int mergeStyle)
 {
 
@@ -796,23 +1214,23 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
   std::vector<double> mergeTheta;
 
   // Check if segments are close enough
-  for(auto linesFoundClusIndStItr = linesFound->begin(); linesFoundClusIndStItr != linesFound->end(); linesFoundClusIndStItr++){
-    if(linesFound->at(clusIndexStart).clusterNumber != linesFoundClusIndStItr->clusterNumber)
+  for(auto linesFoundToMergeItr = linesFound->begin(); linesFoundToMergeItr != linesFound->end(); linesFoundToMergeItr++){
+    if(linesFound->at(clusIndexStart).clusterNumber == linesFoundToMergeItr->clusterNumber)
       continue;
-    for(auto linesFoundToMergeItr = linesFound->begin(); linesFoundToMergeItr != linesFound->end(); linesFoundToMergeItr++){
-      if(linesFound->at(clusIndexStart).clusterNumber == linesFoundToMergeItr->clusterNumber)
-        continue;
-      double segmentDistance = HoughLineDistance(linesFoundClusIndStItr->pMin0,linesFoundClusIndStItr->pMin1,
-                                                 linesFoundClusIndStItr->pMax0,linesFoundClusIndStItr->pMax1, 
-						 linesFoundToMergeItr->pMin0,linesFoundToMergeItr->pMin1,
-                                                 linesFoundToMergeItr->pMax0,linesFoundToMergeItr->pMax1);
-      if( (segmentDistance<fHoughLineMergeCutoff && mergeStyle == iMergeNormal) 
-          || (segmentDistance<fShowerHoughLineMergeCutoff && mergeStyle == iMergeShower)
-          || (segmentDistance<fWideHoughLineMergeCutoff && mergeStyle == iMergeWide))
-	{
-	  toMerge.push_back(linesFoundToMergeItr-linesFound->begin());
-	  mergeSlope.push_back(linesFoundClusIndStItr->clusterSlope*tickToDist);
-	}
+    double segmentDistance = HoughLineDistance(linesFound->at(clusIndexStart).pMin0,linesFound->at(clusIndexStart).pMin1,
+                                               linesFound->at(clusIndexStart).pMax0,linesFound->at(clusIndexStart).pMax1, 
+      					       linesFoundToMergeItr->pMin0,linesFoundToMergeItr->pMin1,
+                                               linesFoundToMergeItr->pMax0,linesFoundToMergeItr->pMax1);
+    if( (segmentDistance<fHoughLineMergeCutoff && mergeStyle == iMergeNormal) 
+        || (segmentDistance<fShowerHoughLineMergeCutoff && (mergeStyle == iMergeShower || mergeStyle == iMergeShowerIntercept))
+        || (segmentDistance<fChargeAsymAngleCutoff && mergeStyle == iMergeChargeAsymAngle))
+    {
+      //std::cout << std::endl;
+      //std::cout << linesFoundClusIndStItr->minWire << " " << linesFoundClusIndStItr->maxWire << std::endl;
+      //std::cout << linesFoundToMergeItr->minWire << " " << linesFoundToMergeItr->maxWire << std::endl;
+      //std::cout << segmentDistance << std::endl;
+      toMerge.push_back(linesFoundToMergeItr-linesFound->begin());
+      mergeSlope.push_back(linesFound->at(clusIndexStart).clusterSlope*xyScale);
     }
   }
 
@@ -820,19 +1238,20 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
 
   // Find the angle between the slopes
   for(auto mergeThetaItr = mergeTheta.begin(); mergeThetaItr != mergeTheta.end(); mergeThetaItr++){
-    double toMergeSlope =  linesFound->at(toMerge[mergeThetaItr-mergeTheta.begin()]).clusterSlope*tickToDist;
+    double toMergeSlope = linesFound->at(toMerge[mergeThetaItr-mergeTheta.begin()]).clusterSlope*xyScale;
     mergeTheta[mergeThetaItr-mergeTheta.begin()] = atan(std::abs(( toMergeSlope - mergeSlope[mergeThetaItr-mergeTheta.begin()])/(1 + toMergeSlope*mergeSlope[mergeThetaItr-mergeTheta.begin()] )))*(180/TMath::Pi());
     //std::cout << std::endl;
-    //std::cout << "toMergeSlope: " << toMergeSlope/tickToDist << " mergeSlope[clusIndexStart]: " << mergeSlope[mergeThetaItr-mergeTheta.begin()]/tickToDist << std::endl;
+    //std::cout << "toMergeSlope: " << toMergeSlope/xyScale<< " mergeSlope[clusIndexStart]: " << mergeSlope[mergeThetaItr-mergeTheta.begin()]/tickToDist << std::endl;
     //std::cout << "mergeTheta: " << mergeTheta[mergeThetaItr-mergeTheta.begin()] << std::endl;
   }
 
   // Perform the merge
   for(auto toMergeItr = toMerge.begin(); toMergeItr != toMerge.end(); toMergeItr++){
     if( (mergeTheta[toMergeItr-toMerge.begin()] < fHoughLineMergeAngle && mergeStyle == iMergeNormal) 
-        || (mergeTheta[toMergeItr-toMerge.begin()] < fShowerHoughLineMergeAngle && mergeStyle == iMergeShower)
-        || (mergeTheta[toMergeItr-toMerge.begin()] < fWideHoughLineMergeAngle && mergeStyle == iMergeWide)){
-      
+        || (mergeTheta[toMergeItr-toMerge.begin()] < fShowerHoughLineMergeAngle && (mergeStyle == iMergeShower || mergeStyle == iMergeShowerIntercept))
+        || mergeStyle == iMergeChargeAsymAngle){
+     
+
       // First check averages of charge and sigma charge for hits in lines closest to each other
       int closestToMerge=-1;
       int closestClusIndexStart=-1;
@@ -947,6 +1366,9 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
           closestClusIndexStartDist4 = distance;
           closestClusIndexStart4 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
         }
+      
+      
+      
       }
       //std::cout << "first clusIndex: " << linesFound->at(clusIndexStart).pHit[closestClusIndexStart].first << " " << linesFound->at(clusIndexStart).pHit[closestClusIndexStart].second << std::endl;
       //std::cout << "second clusIndex: " << linesFound->at(clusIndexStart).pHit[closestClusIndexStart1].first << " " << linesFound->at(clusIndexStart).pHit[closestClusIndexStart1].second << std::endl;
@@ -986,45 +1408,71 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
       clusIndexStartAveSigmaCharge/=5;
 
       double chargeAsymmetry = std::abs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
-      double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
+      //double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
+      double chargeAsymmetrySinAngle = chargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180);
+      //double sigmaChargeAsymmetrySinAngle = chargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180);
 
-      //std::cout << "toMergeAveCharge: " << toMergeAveCharge << std::endl;
-      //std::cout << "clusIndexStartAveCharge: " << clusIndexStartAveCharge << std::endl;
-      //std::cout << "toMergeAveSigmaCharge: " << toMergeAveSigmaCharge << std::endl;
-      //std::cout << "clusIndexStartAveSigmaCharge: " << clusIndexStartAveSigmaCharge << std::endl;
-      //std::cout << "charge asymmetry: " << chargeAsymmetry << std::endl;
-      //std::cout << "sigma charge asymmetry: " << sigmaChargeAsymmetry << std::endl;
+      //std::cout << std::endl;
+      //std::cout << chargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180) << std::endl;
+      //std::cout << sigmaChargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180) << std::endl;
 
-      //if(chargeAsymmetry > fChargeAsymmetryCut &&
-          //mergeStyle == iMergeNormal)
-        //continue;
-
-      //if(sigmaChargeAsymmetry > fSigmaChargeAsymmetryCut &&
-          //mergeStyle == iMergeNormal)
-        //continue;
-
-      //if(chargeAsymmetry > fChargeAsymmetryCut &&
-          //mergeStyle == iMergeNormal)
-        //continue;
-
-      //if(sigmaChargeAsymmetry > fSigmaChargeAsymmetryCut &&
-          //mergeStyle == iMergeNormal)
-        //continue;
-
-      if(chargeAsymmetry > fChargeAsymmetryCut &&
-          mergeStyle == iMergeWide)
+      if(chargeAsymmetrySinAngle > fChargeAsymAngleCut &&
+          mergeStyle == iMergeChargeAsymAngle)
         continue;
 
-      if(sigmaChargeAsymmetry > fSigmaChargeAsymmetryCut &&
-          mergeStyle == iMergeWide)
-        continue;
+      //if(sigmaChargeAsymmetrySinAngle > 0.0005 &&
+          //mergeStyle == iMergeChargeAsymAngle)
+        //continue;
+
+
+      //// Veto the merge if the lines are not colinear for the wide angle merge
+      if(mergeStyle == iMergeWide || mergeStyle == iMergeNormal || mergeStyle == iMergeChargeAsymAngle) {
+        // Find where the lines are closest
+  
+        //distance between two segments in the plane:
+        //  one segment is (x11, y11) to (x12, y12) or (p0MinLine1, p1MinLine1) to (p0MaxLine1, p1MaxLine1)
+        //  the other is   (x21, y21) to (x22, y22) or (p0MinLine2, p1MinLine2) to (p0MaxLine2, p1MaxLine2)
+        double x11 = linesFound->at(*toMergeItr).pMin0; 
+        double y11 = linesFound->at(*toMergeItr).pMin1; 
+        double x12 = linesFound->at(*toMergeItr).pMax0; 
+        double y12 = linesFound->at(*toMergeItr).pMax1; 
+        double x21 = linesFound->at(clusIndexStart).pMin0; 
+        double y21 = linesFound->at(clusIndexStart).pMin1; 
+        double x22 = linesFound->at(clusIndexStart).pMax0; 
+        double y22 = linesFound->at(clusIndexStart).pMax1; 
+        std::vector<double> distances;
+
+        // Compare toMergerItr min with clusIndexStart min, if this is the min distance, lines are not colinear, merge is vetoed
+        distances.push_back(std::sqrt(pow(x11-x21,2) + pow(y11-y21,2)));
+        // Compare toMergerItr min with clusIndexStart max
+        distances.push_back(std::sqrt(pow(x11-x22,2) + pow(y11-y22,2)));
+        // Compare toMergerItr max with clusIndexStart min
+        distances.push_back(std::sqrt(pow(x12-x21,2) + pow(y12-y21,2)));
+        // Compare toMergerItr max with clusIndexStart max, if this is the min distance, lines are not colinear, merge is vetoed
+        distances.push_back(std::sqrt(pow(x12-x22,2) + pow(y12-y22,2)));
+
+        double minDistance = 999999; 
+        int minDistanceIndex = -1;
+        for(unsigned int j = 0; j < distances.size(); j++){
+          if (distances[j] < minDistance){
+            minDistance = distances[j];
+            minDistanceIndex = j;
+          }
+        }
+
+        if(minDistanceIndex  == 0 || minDistanceIndex  == 3)
+          continue;
+
+      }
+      //std::cout << linesFound->at(*toMergeItr).clusterSlope << " " << linesFound->at(clusIndexStart).clusterSlope << std::endl;
+
 
 
       // Check if both lines is in region that looks showerlike
       // Or merge if the distance between the lines is zero and one looks showerlike
       //double segmentDistance = HoughLineDistance(linesFound->at(clusIndexStart).pMin0,linesFound->at(clusIndexStart).pMin1,
                                                  //linesFound->at(clusIndexStart).pMax0,linesFound->at(clusIndexStart).pMax1, 
-						 //linesFound->at(*toMergeItr).pMin0,linesFound->at(*toMergeItr).pMin1,
+                                                 //linesFound->at(*toMergeItr).pMin0,linesFound->at(*toMergeItr).pMin1,
                                                  //linesFound->at(*toMergeItr).pMax0,linesFound->at(*toMergeItr).pMax1);
       //std::cout << "segmentDistance: " << segmentDistance << std::endl;
       //std::cout << linesFound->at(*toMergeItr).showerLikeness << " " << linesFound->at(clusIndexStart).showerLikeness << std::endl;
@@ -1032,10 +1480,24 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
         if(!(linesFound->at(*toMergeItr).showerLikeness>fShowerLikenessCut) || !(linesFound->at(clusIndexStart).showerLikeness>fShowerLikenessCut))
           continue;
       }
-      //std::cout << "Did not continue" << std::endl;
 
+      
+      if(mergeStyle == iMergeShowerIntercept){
+        if((linesFound->at(*toMergeItr).showerLikeness>fShowerLikenessCut) && (linesFound->at(clusIndexStart).showerLikeness>fShowerLikenessCut))
+          continue;
+        double x11 = linesFound->at(*toMergeItr).pMin0; 
+        double y11 = linesFound->at(*toMergeItr).pMin1; 
+        double x12 = linesFound->at(*toMergeItr).pMax0; 
+        double y12 = linesFound->at(*toMergeItr).pMax1; 
+        double x21 = linesFound->at(clusIndexStart).pMin0; 
+        double y21 = linesFound->at(clusIndexStart).pMin1; 
+        double x22 = linesFound->at(clusIndexStart).pMax0; 
+        double y22 = linesFound->at(clusIndexStart).pMax1; 
+        if(HoughLineIntersect(x11, y11, x12, y12, x21, y21, x22, y22) == 0)
+          continue;
+      }
 
-
+      //std::cout << "Merging" << std::endl;
       lineMerged = true;
       linesFound->at(clusIndexStart).merged = true;
       linesFound->at(*toMergeItr).merged = true;
@@ -1052,14 +1514,15 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
         }
       }
       linesFound->at(*toMergeItr).clusterNumber = linesFound->at(clusIndexStart).clusterNumber;
+      //std::cout << "main linesFoundItr slope: " << linesFound->at(*toMergeItr).clusterSlope << " clusIndexStart slope: " << linesFound->at(clusIndexStart).clusterSlope << std::endl;
      
     }  
   }
 
   if(lineMerged)
-    mergeHoughLinesBySegment(clusIndexStart,linesFound,tickToDist,mergeStyle);
+    mergeHoughLinesBySegment(clusIndexStart,linesFound,xyScale,mergeStyle);
   else
-    mergeHoughLinesBySegment(clusIndexStart+1,linesFound,tickToDist,mergeStyle);
+    mergeHoughLinesBySegment(clusIndexStart+1,linesFound,xyScale,mergeStyle);
   
   return;
 
