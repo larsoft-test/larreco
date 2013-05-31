@@ -21,12 +21,98 @@ namespace recob {
   class Cluster; 
 }
 
+    struct houghCorner
+    {
+      double strength=0;
+      double p0=0;
+      double p1=0;
+      houghCorner(double strengthTemp=0,
+          double p0Temp=0,
+          double p1Temp=0)
+      {
+        strength=strengthTemp;
+        p0=p0Temp;
+        p1=p1Temp;
+      }
+
+      bool operator < (const houghCorner& houghCornerComp) const
+      {
+        return (strength < houghCornerComp.strength);
+      }
+    };
+
+
+    // This stores information about merged lines
+    struct mergedLines
+    {
+      double totalQ=0;
+      double pMin0=0;
+      double pMin1=0;
+      double pMax0=0;
+      double pMax1=0;
+      int clusterNumber=-999999;
+      double showerLikeness=0;
+      mergedLines (double totalQTemp=0,
+          double pMin0Temp=0,
+          double pMin1Temp=0,
+          double pMax0Temp=0,
+          double pMax1Temp=0,
+          double clusterNumberTemp=-999999,
+          double showerLikenessTemp=0)
+      {
+        totalQ=totalQTemp;
+        pMin0=pMin0Temp;
+        pMin1=pMin1Temp;
+        pMax0=pMax0Temp;
+        pMax1=pMax1Temp;
+        clusterNumber=clusterNumberTemp;
+        showerLikeness=showerLikenessTemp;
+      }
+    };
+
+
+    // This stores information about merged lines
+    struct showerLine
+    {
+      double slope=0;
+      double intercept=0;
+      int clusterNumber=-999999;
+      int oldClusterNumber=-999999;
+      int lineSize=0;
+      int iMinWire=0;
+      int iMaxWire=0;
+      bool showerMerged=false;
+      showerLine (double slopeTemp=0,
+          double interceptTemp=0,
+          int clusterNumberTemp=-999999,
+          int oldClusterNumberTemp=-999999,
+          int lineSizeTemp=0,
+          int iMinWireTemp=0,
+          int iMaxWireTemp=0)
+      {
+        slope=slopeTemp;
+        intercept=interceptTemp;
+        clusterNumber=clusterNumberTemp;
+        oldClusterNumber=oldClusterNumberTemp;
+        lineSize=lineSizeTemp;
+        iMinWire=iMinWireTemp;
+        iMaxWire=iMaxWireTemp;
+      }
+      bool operator < (const showerLine& showerLineComp) const
+      {
+        return (lineSize < showerLineComp.lineSize);
+      }
+    };
+
+
+
     struct lineSlope
     {
-      unsigned int clusterNumber=999999;
-      unsigned int oldClusterNumber=999999;
+      int clusterNumber=999999;
+      int oldClusterNumber=999999;
       double clusterSlope=999999;
       double clusterIntercept=999999;
+      double totalQ=-999999;
       double pMin0=999999;
       double pMin1=999999;
       double pMax0=-999999;
@@ -42,13 +128,16 @@ namespace recob {
       std::vector<std::pair<double,double> > pHitChargeSigma;
       lineSlope(unsigned int num=999999, 
           double slope=999999, 
-          double intercept=999999, 
+          double intercept=999999,
+          double totalQTemp=-999999,
           double Min0=999999, 
           double Min1=999999, 
           double Max0=-999999, 
           double Max1=-999999,
-          int    wireMin=999999,
-          int    wireMax=-999999,
+          int    iMinWireTemp=999999,
+          int    iMaxWireTemp=-999999,
+          int    minWireTemp=999999,
+          int    maxWireTemp=-999999,
           std::vector<std::pair<double,double> > pHitTemp=NULL,
           std::vector<std::pair<double,double> > pHitChargeSigmaTemp=NULL
           )
@@ -57,12 +146,15 @@ namespace recob {
         oldClusterNumber = num;
         clusterSlope = slope;
         clusterIntercept = intercept;
+        totalQ=totalQTemp;
         pMin0 = Min0;
         pMin1 = Min1;
         pMax0 = Max0;
         pMax1 = Max1;
-        iMinWire = wireMin;
-        iMaxWire = wireMax;
+        iMinWire = iMinWireTemp;
+        iMaxWire = iMaxWireTemp;
+        minWire = minWireTemp;
+        maxWire = maxWireTemp;
         merged = false;
         showerLikeness = 0;
         pHit = pHitTemp;
@@ -178,28 +270,26 @@ namespace cluster {
     double fMissedHitsDistance;            ///< Distance between hits in a hough line before a hit is considered missed
     double fMissedHitsToLineSize;          ///< Ratio of missed hits to line size for a line to be considered a fake
     int    fDoFuzzyRemnantMerge;           ///< Tell the algorithm to merge fuzzy cluster remnants into showers or tracks (0-off, 1-on)
-    double fDoHoughLineMerge;              ///< Turns on Hough line merging (0-off, 1-on)
+    int    fDoHoughLineMerge;              ///< Turns on Hough line merging (0-off, 1-on)
     double fHoughLineMergeAngle;           ///< Max angle between slopes before two lines are merged (muon tracks), only for fuzzy clustering
     double fShowerHoughLineMergeAngle;     ///< Max angle between slopes before two lines are merged, for lines in shower line regions
-    double fDoShowerHoughLineMerge;        ///< Turns on shower Hough line merging (0-off, 1-on)
+    int    fDoShowerHoughLineMerge;        ///< Turns on shower Hough line merging (0-off, 1-on)
                                            ///< for (electron showers), only for fuzzy clustering
-    double fWideHoughLineMergeAngle;       ///< Max angle between slopes before two lines are merged, for lines in curvy muon tracks
-    double fDoWideHoughLineMerge;          ///< Turns on track Hough line merging (0-off, 1-on)
-                                           ///< for muon tracks, only for fuzzy clustering
-    double fLineIsolationCut;              ///< Cut on the Hough line isolation, only for fuzzy clustering
+    int    fDoChargeAsymAngleMerge;        ///< Turn on cut on product of charge asymmetry and sin of angle between slopes of lines
+    double fChargeAsymAngleCut;            ///< Cut on product of charge asymmetry and sin of angle between slopes of lines
+    double fChargeAsymAngleCutoff;         ///< Distance between lines before cut on product of charge asymmetry and sin of angle between slopes of lines
+                                           ///< is applied
+    double fShowerWidthAngle;              ///< Half of the angle defining how wide a shower is 
     double fHoughLineMergeCutoff;          ///< Max distance between Hough lines before two lines are merged (muon tracks), 
                                            ///< only for fuzzy clustering
     double fShowerHoughLineMergeCutoff;    ///< Max distance between Hough lines before two lines are merged (electron showers),
-    double fWideHoughLineMergeCutoff;      ///< Max distance between Hough lines before two lines are merged (electron showers),
-                                           ///< they are generally farther apart from each other, only for fuzzy clustering
-    double fChargeAsymmetryCut;            ///< Cut on the asymmetry from the average charge of the four hits from each line closest to each other
-    double fSigmaChargeAsymmetryCut;       ///< Cut on the asymmetry from the average charge sigma of the four hits from each 
+    int    fDoShowerHoughLineInterceptMerge;///< Turns on Hough line merging for shower like lines, merging if they intercept (0-off, 1-on)
                                            ///< line closest to each other
     double fShowerLikenessCut;             ///< Cut on shower likeness (larger the more shower like, smaller the less shower like)
 
     void mergeHoughLinesBySegment(unsigned int k,
         std::vector<lineSlope> *linesFound, 
-        double tickToDist,
+        double xyScale,
         int mergeStyle);
 
     //std::vector<lineSlope> linesFound;
