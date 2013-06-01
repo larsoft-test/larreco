@@ -2207,27 +2207,28 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 	    
 	  }// end loop over hits*/
 	 
-	  std::vector<double> slopevec;std::vector<double> totalQvec;
-	 this->FastTransform(hit,clusHitsOut,slopevec,totalQvec );
+	 std::vector<double> slopevec;std::vector<double> totalQvec;
+	 std::vector< art::PtrVector<recob::Hit> >   planeClusHitsOut;
+	 this->FastTransform(hit,planeClusHitsOut,slopevec,totalQvec );
 	 
-	 for(unsigned int xx=0;xx<clusHitsOut.size();xx++)
+	 for(unsigned int xx=0;xx<planeClusHitsOut.size();xx++)
 	 {
-	  unsigned int sw = (*clusHitsOut[xx].begin())->WireID().Wire;
-	  unsigned int ew = (*(clusHitsOut[xx].end()-1))->WireID().Wire;
+	  unsigned int sw = (*planeClusHitsOut[xx].begin())->WireID().Wire;
+	  unsigned int ew = (*(planeClusHitsOut[xx].end()-1))->WireID().Wire;
 	      
 	  recob::Cluster cluster(sw, 0.,
-			     (*clusHitsOut[xx].begin())->PeakTime(), 0.,
+			     (*planeClusHitsOut[xx].begin())->PeakTime(), 0.,
 	 		     ew, 0., 
-			     (clusHitsOut[xx][clusHitsOut[xx].size()-1])->PeakTime(), 0.,
+			     (planeClusHitsOut[xx][planeClusHitsOut[xx].size()-1])->PeakTime(), 0.,
 			     slopevec[xx], 0., 
 			    -999., 0., 
 			     totalQvec[xx],
-		             geom->View((*clusHitsOut[xx].begin())->Channel()),
+		             geom->View((*planeClusHitsOut[xx].begin())->Channel()),
 			     clusterID);	      
 	      
 	      ++clusterID;
 	      ccol.push_back(cluster);
-	  //    clusHitsOut.push_back(clusterHits);
+	      clusHitsOut.push_back(planeClusHitsOut[xx]);
 	 }
 	  
 	  
