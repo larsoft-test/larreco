@@ -181,7 +181,7 @@ namespace hit{
 
       
       //if no inflection found before end, but peak found add end point
-      if(maxTimes.size()>endTimes.size()) 
+      while(maxTimes.size()>endTimes.size()) 
 	endTimes.push_back(signal.size()-1); 
       if(startTimes.size() == 0) continue;
       
