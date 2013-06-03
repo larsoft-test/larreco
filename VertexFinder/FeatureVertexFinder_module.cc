@@ -162,7 +162,7 @@ namespace vertex{
   {
   
   
-    std::cout<<"Top of FeatureVertexFinder Produce"<<std::endl;  
+    //std::cout<<"Top of FeatureVertexFinder Produce"<<std::endl;  
     // #########################
     // ### Geometry Services ###
     // #########################
@@ -177,6 +177,16 @@ namespace vertex{
     // ### Detector Properties Services ###
     // ####################################
     art::ServiceHandle<util::DetectorProperties> detprop;
+    
+    // ########################################
+    // ### cout Run Number and Event Number ###
+    // ########################################
+    std::cout<< std::endl;
+    std::cout << " ======================================================" << std::endl;
+    std::cout << "Run    : " << evt.run() <<" Event  : "<<evt.id().event() << std::endl;
+    std::cout << " ======================================================" << std::endl;
+    std::cout << std::endl;
+
     
     
     // ###############################
@@ -228,10 +238,11 @@ namespace vertex{
     std::vector<double>   feature_wire = {0.};
     std::vector<double>   feature_time = {0.};
     std::vector<double>   feature_plane = {0.};
-    std::vector<uint32_t> feature_channel =  {0.};
+    std::vector<double>	  feature_strength = {0.};
+    std::vector<uint32_t> feature_channel =  {0};
     int nFeatures = 0;
     
-    double x_feature[1000] = {0.}, y_feature[1000] = {0.}, z_feature[1000] = {0.};
+    float x_feature[1000] = {0.}, y_feature[1000] = {0.}, z_feature[1000] = {0.}, strength_feature[1000] = {0.};
     double yy = 0., zz = 0.;
     int n3dFeatures = 0;
     
@@ -256,13 +267,15 @@ namespace vertex{
 	feature_time.push_back(EndPoints.at(i).DriftTime());
 	feature_plane.push_back(EndPoints.at(i).WireID().Plane);
 	feature_channel.push_back(geom->PlaneWireToChannel(EndPoints.at(i).WireID().Plane, EndPoints.at(i).WireID().Wire, 0, 0));
+	feature_strength.push_back(EndPoints.at(i).Strength());
 	nFeatures++;
 	
+	//std::cout<<std::endl;
 	//std::cout<<"EndPoints View() = "<<EndPoints.at(i).WireID().Plane<<std::endl;
 	//std::cout<<"EndPoints DriftTime() = "<<EndPoints.at(i).DriftTime()<<std::endl;
 	//std::cout<<"EndPoints Wire = "<<EndPoints.at(i).WireID().Wire<<std::endl;
 	//std::cout<<"EndPoints Channel = "<<geom->PlaneWireToChannel(EndPoints.at(i).WireID().Plane, EndPoints.at(i).WireID().Wire, 0, 0)<<std::endl;
-        //EndPointTimesInPlane[EndPoints.at(i).View()].push_back(EndPoints.at(i).DriftTime());
+	//std::cout<<std::endl;
 	
 	
        	}//<---End i loop finding 2d Features
@@ -284,18 +297,22 @@ namespace vertex{
 			// ### Checking to see if these features have intersecting channels ###
 			// ####################################################################
 			if( geom->ChannelsIntersect( feature_channel[feature2], feature_channel[feature1], yy, zz) &&
-			    std::abs(feature_time[feature2] - feature_time[feature1]) < detprop->TimeOffsetV())
+			    std::abs(feature_time[feature2] - feature_time[feature1]) < detprop->TimeOffsetV()*2)
 			    	{
+				
 				x_feature[n3dFeatures] = detprop->ConvertTicksToX(feature_time[feature1], feature_plane[feature1], 0, 0); //<---Hardcoding tpc and cryostat for now.
 				y_feature[n3dFeatures] = yy;
 				z_feature[n3dFeatures] = zz;
-				n3dFeatures++;
+				strength_feature[n3dFeatures] = feature_strength[feature1] + feature_strength[feature1];
+				
 				
 				//std::cout<<std::endl;
+				//std::cout<<"feature_time[feature1] = "<<feature_time[feature1]<<std::endl;
 				//std::cout<<"### Found a 3d Feature ###"<<std::endl;
-				//std::cout<<"X = "<<x_feature<<" , Y = "<<y_feature<<" , Z = "<<z_feature<<std::endl;
+				//std::cout<<"X = "<<x_feature[n3dFeatures]<<" , Y = "<<y_feature[n3dFeatures]<<" , Z = "<<z_feature[n3dFeatures]<<std::endl;
+				//std::cout<<"Strength = "<<strength_feature[n3dFeatures]<<std::endl;
 				//std::cout<<std::endl;
-				
+				n3dFeatures++;
 	
 				}//<---End Checking if the feature matches in 3d
 			}//<---End Checking features are in different planes
@@ -439,6 +456,7 @@ namespace vertex{
 	}//<---End loop over clusters iclu
 	
 	
+//-------------------------------------------------------------------------------------------------------------------------------------------------    
     
     
     
@@ -446,7 +464,9 @@ namespace vertex{
     // ##########################################
     // ### Variables to save for each cluster ###
     // ##########################################
-    int   nClustersFound = 0;				//<---Number of clusters to be evaluated
+    int   nClustersFound = 0;				//<---Number of clusters to be evaluated in a single plane 
+    							//    (this gets zeroed after looping over all clusters in a plane)
+							
     int   n2dVertexCandidates = 0;			//<---Number of candidate 2d Vertices found
     float Clu_Plane[1000] = {0};         	     	//<---Plane of the current cluster
     float Clu_StartPos_Wire[1000]= {0};     		//<---Starting wire number of cluster
@@ -463,6 +483,14 @@ namespace vertex{
     float Clu_SlopeUncer[1000]= {0};        		//<---Slope Error
     float Clu_Yintercept[1000]= {0};			//<---Clusters Y Intercept
     float Clu_Length[1000]= {0};			//<---Calculated Length of the cluster
+    
+    int   AllCluster = 0;
+    float AllCluster_Plane[1000] = {0.};		//<---Storing the plane # for all clusters
+    float AllCluster_Length[1000] = {0.};		//<---Storing the length for all clusters
+    float AllCluster_StartWire[1000] = {0.};		//<---Storing the Start Wire for all clusters
+    float AllCluster_StartTime[1000] = {0.};		//<---Storing the Start Time for all clusters
+    float AllCluster_EndWire[1000] = {0.};		//<---Storing the End Wire for all clusters
+    float AllCluster_EndTime[1000] = {0.};		//<---Storing the End Time for all clusters
     
     
     // ##############################
@@ -501,18 +529,22 @@ namespace vertex{
 					
 					// === Current Clusters Plane ===
 					Clu_Plane[nClustersFound]  		  = clusters[Cls[i][j]]->View();
-					//std::cout<<"Clu_Plane[nClustersFound] = "<<Clu_Plane[nClustersFound]<<std::endl;
+					AllCluster_Plane[AllCluster]		  = Clu_Plane[nClustersFound];
 					
 					// === Current Clusters StartPos ===
 					Clu_StartPos_Wire[nClustersFound]	  = clusters[Cls[i][j]]->StartPos()[0];
+					AllCluster_StartWire[AllCluster]	  = Clu_StartPos_Wire[nClustersFound];
 					Clu_StartPosUncer_Wire[nClustersFound]	  = clusters[Cls[i][j]]->SigmaStartPos()[0];
 					Clu_StartPos_TimeTick[nClustersFound]	  = clusters[Cls[i][j]]->StartPos()[1];
+					AllCluster_StartTime[AllCluster]	  = Clu_StartPos_TimeTick[nClustersFound];
 					Clu_StartPosUncer_TimeTick[nClustersFound]= clusters[Cls[i][j]]->SigmaStartPos()[1];
 					
 					// === Current Clusters EndPos ===
 					Clu_EndPos_Wire[nClustersFound]		  = clusters[Cls[i][j]]->EndPos()[0];
+					AllCluster_EndWire[AllCluster]		  = Clu_EndPos_Wire[nClustersFound];
 					Clu_EndPosUncer_Wire[nClustersFound]	  = clusters[Cls[i][j]]->SigmaEndPos()[0];
 					Clu_EndPos_TimeTick[nClustersFound]	  = clusters[Cls[i][j]]->EndPos()[1];
+					AllCluster_EndTime[AllCluster]		  = Clu_EndPos_TimeTick[nClustersFound];
 					Clu_EndPosUncer_TimeTick[nClustersFound]  = clusters[Cls[i][j]]->SigmaEndPos()[1];
 					
 					// === Current Clusters Slope (In Wire and Time Tick)
@@ -520,9 +552,10 @@ namespace vertex{
 					Clu_SlopeUncer[nClustersFound]		  = dtdwstartError[Cls[i][j]];
 					
 					
-					Clu_Length[nClustersFound] 		  = std::sqrt(pow((clusters[Cls[i][j]]->StartPos()[0]-clusters[Cls[i][j]]->EndPos()[0])*13.5,2)
-					 						    +pow(clusters[Cls[i][j]]->StartPos()[1]-clusters[Cls[i][j]]->EndPos()[1],2));
-
+					Clu_Length[nClustersFound] 		  = std::sqrt(pow((clusters[Cls[i][j]]->StartPos()[0]-clusters[Cls[i][j]]->EndPos()[0])*13.5,2) //<---JA: Note this 13.5 is a hard coded
+					 						    +pow(clusters[Cls[i][j]]->StartPos()[1]-clusters[Cls[i][j]]->EndPos()[1],2));	// number that came from ArgoNeuT MC...fix me!
+					
+					AllCluster_Length[AllCluster]		  = Clu_Length[nClustersFound];
 					// ######################################################
 					// ### Given a slope and a point find the y-intercept ###
 					// ###                   c = y-mx                     ###
@@ -531,6 +564,7 @@ namespace vertex{
 					
 					
 					nClustersFound++;
+					AllCluster++;
     					}//<---End looping over clusters
 					
 					
@@ -772,6 +806,8 @@ namespace vertex{
 		double xyz2[3] = {x_3dVertex[0], y_3dVertex[0], z_3dVertex[0]};
 		recob::Vertex the3Dvertex(xyz2, vcol->size());
 		vcol->push_back(the3Dvertex);
+		
+		
 		}//<---End Case 1, only one 3d Vertex found
 
 //----------------------------------------------------------------------------------------------------------------------------- 
@@ -783,6 +819,7 @@ namespace vertex{
 	
 	int vertexNumber = -1;
 	double x_matched = 999, y_matched = 999, z_matched = 999;
+	bool FoundFeatureVtxMatch = false;
 	if (n3dVertex > 1)
 		{
 		// ##############################
@@ -809,12 +846,13 @@ namespace vertex{
 						x_matched = x_3dVertex[l];
 						y_matched = y_3dVertex[l];
 						z_matched = z_3dVertex[l];
-						std::cout<<std::endl;
-						std::cout<<" ###########################################"<<std::endl;
-						std::cout<<" ### 3d match between feature and vertex ###"<<std::endl;
-						std::cout<<std::endl;
-						std::cout<<"x_3dVertex[l] = "<<x_3dVertex[l]<<" , y_3dVertex[l] = "<<y_3dVertex[l]<<" , z_3dVertex[l] = "<<z_3dVertex[l]<<std::endl;
-						std::cout<<std::endl;
+						FoundFeatureVtxMatch = true;
+						//std::cout<<std::endl;
+						//std::cout<<" ###########################################"<<std::endl;
+						//std::cout<<" ### 3d match between feature and vertex ###"<<std::endl;
+						//std::cout<<std::endl;
+						//std::cout<<"x_3dVertex[l] = "<<x_3dVertex[l]<<" , y_3dVertex[l] = "<<y_3dVertex[l]<<" , z_3dVertex[l] = "<<z_3dVertex[l]<<std::endl;
+						//std::cout<<std::endl;
 						
 						}//<---End catch against multiple matches
 					
@@ -822,7 +860,77 @@ namespace vertex{
 					}//<---End finding a match between features and verticies 
 				}//<--- End f for loop
 			}//<--End l for loop
-			
+		
+		// ###################
+		// ### Match Found ###
+		// ###################
+		if(FoundFeatureVtxMatch)
+			{	
+			// ##############################
+    			// ### Looping over cryostats ###
+    			// ##############################
+    			for(size_t cstat = 0; cstat < geom->Ncryostats(); ++cstat)
+    				{
+    				// ##########################
+      				// ### Looping over TPC's ###
+      				// ##########################
+      				for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc)
+					{
+    					// #################################
+					// ### Loop over the wire planes ###
+					// #################################
+					for (int i = 0; i < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++i)
+						{
+						double xyz[3] = {x_matched, y_matched, z_matched};
+						double EndPoint2d_TimeTick = detprop->ConvertXToTicks(x_matched,i, tpc, cstat);
+						
+						int EndPoint2d_Wire 	   = geom->NearestWire(xyz , i, tpc, cstat);
+						int EndPoint2d_Channel     = geom->NearestChannel(xyz, i, tpc, cstat);
+						geo::View_t View	   = geom->View(EndPoint2d_Channel);
+						geo::WireID wireID(cstat,tpc,i,EndPoint2d_Wire);
+						
+						
+						// ### Saving the 2d Vertex found ###
+						recob::EndPoint2D vertex( EndPoint2d_TimeTick , //<---TimeTick
+									  wireID ,		//<---geo::WireID
+									  1 ,			//<---Vtx strength (JA: ?)
+									  epcol->size() ,	//<---Vtx ID (JA: ?)
+									  View ,		//<---Vtx View 	
+									  1 );			//<---Vtx Strength (JA: Need to figure this one?)
+						epcol->push_back(vertex);	
+					
+					
+							   
+						}//<---End loop over Planes
+					}//<---End loop over tpc's
+				}//<---End loop over cryostats
+			// ############################
+			// ### Saving the 3d vertex ###
+			// ############################
+			double xyz2[3] = {x_matched, y_matched, z_matched};
+			recob::Vertex the3Dvertex(xyz2, vcol->size());
+			vcol->push_back(the3Dvertex);	
+			}//<---End Found Match
+		}//<---End Case 2, many 3d Verticies found
+		
+		
+		
+//----------------------------------------------------------------------------------------------------------------------------- 
+	
+	// ### This is for the case where we didn't find a good match
+	// ### in 3d for a vertex...still need to figure out what to do here
+	
+	// Thing to try: Lets first try looping over the clusters and finding the longest cluster a
+	// view and try matching that to cluster to a 3d-feature point...if there is a match then record
+	// that as a vertex
+	
+	// Thing to also try: Taking the largest score 3d-feature point score and simply saving that...
+	// this shifts the problem to simply finding the feature point...not terribly helpful
+	
+	double x_featClusMatch = 0, y_featClusMatch = 0, z_featClusMatch = 0;
+	if (n3dVertex == 0)
+		{
+		std::cout<<" ### We are in case 3 ###"<<std::endl;
 		// ##############################
     		// ### Looping over cryostats ###
     		// ##############################
@@ -836,56 +944,218 @@ namespace vertex{
     				// #################################
 				// ### Loop over the wire planes ###
 				// #################################
-				for (int i = 0; i < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++i)
+				for (size_t plane = 0; plane < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane)
 					{
-					double xyz[3] = {x_matched, y_matched, z_matched};
-					double EndPoint2d_TimeTick = detprop->ConvertXToTicks(x_matched,i, tpc, cstat);
+					float Length_LongestClusterInPlane = 0;
+					float StartWire_LongestClusterInPlane = 0;
+					float StartTime_LongestClusterInPlane = 0;
+					float EndWire_LongestClusterInPlane = 0;
+					float EndTime_LongestClusterInPlane = 0;
+					float Plane_LongestClusterInPlane = 0;
+					std::cout<<" AllCluster = "<< AllCluster<<std::endl;
+					// #######################################################################
+					// ### Looping over clusters to find the longest cluster in each plane ###
+					// #######################################################################
+					for (int clus = 0; clus < AllCluster; clus++)
+						{
+						//std::cout<< "AllCluster_Plane[AllCluster] = "<<AllCluster_Plane[AllCluster]<<" , plane = "<<plane<<std::endl;
+						// ### Checking that the current cluster is in the current plane ###
+						if(AllCluster_Plane[clus] == plane)
+							{
+							
+							// Storing the current cluster length
+							float tempClusterLength = AllCluster_Length[clus];
+							
+							//std::cout<<std::endl;
+							//std::cout<<"tempClusterLength = "<<tempClusterLength<<std::endl;
+							//std::cout<<"Clu_Length[clus] = "<<AllCluster_Length[clus]<<std::endl;
+							//std::cout<<"plane = "<<plane<<std::endl;
+							//std::cout<<std::endl;
+							
+							// Is the current cluster the longest one found?
+							if( tempClusterLength > Length_LongestClusterInPlane)
+								{
+								// Save the longest clusters information in this view
+								Length_LongestClusterInPlane    = tempClusterLength;
+								StartWire_LongestClusterInPlane = AllCluster_StartWire[clus];
+								StartTime_LongestClusterInPlane = AllCluster_StartTime[clus];
+								EndWire_LongestClusterInPlane   = AllCluster_EndWire[clus];
+								EndTime_LongestClusterInPlane   = AllCluster_EndTime[clus];
+								Plane_LongestClusterInPlane     = AllCluster_Plane[clus];
+								}//<---End saving the longest cluster
+							}//<---Current cluster in current plane	
+						}///<---End clus for loop
+					std::cout<<"Longest Cluster = "<<Length_LongestClusterInPlane<< ", Plane = "<<Plane_LongestClusterInPlane<<std::endl;
+					std::cout<<"Start Wire = "<<StartWire_LongestClusterInPlane<<" , Start Time = "<<StartTime_LongestClusterInPlane<<std::endl;
 					
-					int EndPoint2d_Wire 	   = geom->NearestWire(xyz , i, tpc, cstat);
-					int EndPoint2d_Channel     = geom->NearestChannel(xyz, i, tpc, cstat);
-					geo::View_t View	   = geom->View(EndPoint2d_Channel);
-					geo::WireID wireID(cstat,tpc,i,EndPoint2d_Wire);
+					// #####################################################################################
+					// ###       Now that we have the longest cluster in this plane lets loop over       ###
+					// ### the 3d-Feature points found and see if any are consistant with this 2-d point ###
+					// #####################################################################################
 					
+					bool NothingFoundYet = true;
+					/// #### Get the 3d feature point, project it back down to the current plane...check to see if consistant
 					
-					// ### Saving the 2d Vertex found ###
-					recob::EndPoint2D vertex( EndPoint2d_TimeTick , //<---TimeTick
-								  wireID ,		//<---geo::WireID
-								  1 ,			//<---Vtx strength (JA: ?)
-								  epcol->size() ,	//<---Vtx ID (JA: ?)
-								  View ,		//<---Vtx View 	
-								  1 );			//<---Vtx Strength (JA: Need to figure this one?)
-					epcol->push_back(vertex);	
+					for (int feat = 0; feat < n3dFeatures; feat++)
+						{
+						// #########################################################
+						// ### Finding the nearest wire for this 3dfeature point ###
+						// #########################################################
+						float xyzfeat[3]   = {x_feature[feat],y_feature[feat],z_feature[feat]};
+						double feat_2dWire = geom->NearestWire(xyzfeat, plane, tpc, cstat);
+						double feat_TimeT  = detprop->ConvertXToTicks(x_feature[feat], plane, tpc, cstat);
+						
+						std::cout<<" Feat_2dWire = "<<feat_2dWire<<std::endl;
+						std::cout<<" Feat_timeT  = "<<feat_TimeT<<std::endl;
+						// ######################################################################################
+						// ###           Now check to see if this feature point is within 2 wires and         ###
+						// ###   5 time ticks of the start time of the longest cluster found in this plane    ###
+						// ######################################################################################
+						if( std::abs(feat_2dWire - StartWire_LongestClusterInPlane) <= 2 && std::abs(StartTime_LongestClusterInPlane - feat_TimeT ) <=5 )
+							{
+							
+							
+							// JA: Need to put in a catch to take the highest score feature instead of the first...which
+							// is what we do for now....
+							if(NothingFoundYet)
+								{
+								// ### Vertex found ###
+								std::cout<<std::endl;
+								std::cout<<" ##### Longest Cluster Feature Match Start Position #####"<<std::endl;
+								std::cout<<"X = "<<xyzfeat[0]<<" , Y = "<<xyzfeat[1]<<" , Z = "<<xyzfeat[2]<<std::endl;
+								std::cout<<"Plane = "<<plane<<" , Wire = "<<feat_2dWire<<" , Time = "<<feat_TimeT<<std::endl;
+								std::cout<<std::endl;
+								
+								x_featClusMatch = xyzfeat[0];
+								y_featClusMatch = xyzfeat[1];
+								z_featClusMatch = xyzfeat[2];
+								
+								double xyz[3] = {xyzfeat[0], xyzfeat[1], xyzfeat[2]};
+								double EndPoint2d_TimeTick = detprop->ConvertXToTicks(xyzfeat[0],plane, tpc, cstat);
+						
+								int EndPoint2d_Wire 	   = geom->NearestWire(xyz , plane, tpc, cstat);
+								int EndPoint2d_Channel     = geom->NearestChannel(xyz, plane, tpc, cstat);
+								geo::View_t View	   = geom->View(EndPoint2d_Channel);
+								geo::WireID wireID(cstat,tpc,plane,EndPoint2d_Wire);
+								
+								// ### Saving the 2d Vertex found ###
+								recob::EndPoint2D vertex( EndPoint2d_TimeTick , //<---TimeTick
+										  wireID ,		//<---geo::WireID
+										  1 ,			//<---Vtx strength (JA: ?)
+										  epcol->size() ,	//<---Vtx ID (JA: ?)
+										  View ,		//<---Vtx View 	
+										  1 );			//<---Vtx Strength (JA: Need to figure this one?)
+								epcol->push_back(vertex);
+								
+								
+								}//<---End saving this vertex found
+							
+							NothingFoundYet = false;
+							}//<---End finding a match between the 
+						}//<---End feat for loop
 					
+					// ##################################################################################
+					// ### After checking all the start times against the feature points, if we still ###
+					// ###    don't have a vertex found check the end times of the longest cluster    ###
+					// ###           (This should protect {some} against the clustering               ###
+					// ###               putting the start and end in the wrong spot)                 ###
+					// ##################################################################################
+					if (NothingFoundYet )
+						{
+						for (int feat2 = 0; feat2 < n3dFeatures; feat2++)
+							{
+							// #########################################################
+							// ### Finding the nearest wire for this 3dfeature point ###
+							// #########################################################
+							float xyzfeat2[3]   = {x_feature[feat2],y_feature[feat2],z_feature[feat2]};
+							double feat_2dWire = geom->NearestWire(xyzfeat2, plane, tpc, cstat);
+							double feat_TimeT  = detprop->ConvertXToTicks(x_feature[feat2], plane, tpc, cstat);
+						
+							std::cout<<" Feat_2dWire = "<<feat_2dWire<<std::endl;
+							std::cout<<" Feat_timeT  = "<<feat_TimeT<<std::endl;
+							// ######################################################################################
+							// ###           Now check to see if this feature point is within 2 wires and         ###
+							// ###   5 time ticks of the start time of the longest cluster found in this plane    ###
+							// ######################################################################################
+							if( std::abs(feat_2dWire - EndWire_LongestClusterInPlane) <= 2 && std::abs(EndTime_LongestClusterInPlane - feat_TimeT ) <=5 )
+								{
+								
+								
+								// JA: Need to put in a catch to take the highest score feature instead of the first...which
+								// is what we do for now....
+								if(NothingFoundYet)
+									{
+									// ### Vertex found ###
+									std::cout<<std::endl;
+									std::cout<<" ##### Longest Cluster Feature Match Start Position #####"<<std::endl;
+									std::cout<<"X = "<<xyzfeat2[0]<<" , Y = "<<xyzfeat2[1]<<" , Z = "<<xyzfeat2[2]<<std::endl;
+									std::cout<<"Plane = "<<plane<<" , Wire = "<<feat_2dWire<<" , Time = "<<feat_TimeT<<std::endl;
+									std::cout<<std::endl;
+								
+									x_featClusMatch = xyzfeat2[0];
+									y_featClusMatch = xyzfeat2[1];
+									z_featClusMatch = xyzfeat2[2];
+									
+									double xyz[3] = {xyzfeat2[0], xyzfeat2[1], xyzfeat2[2]};
+									double EndPoint2d_TimeTick = detprop->ConvertXToTicks(xyzfeat2[0],plane, tpc, cstat);
+						
+									int EndPoint2d_Wire 	   = geom->NearestWire(xyz , plane, tpc, cstat);
+									int EndPoint2d_Channel     = geom->NearestChannel(xyz, plane, tpc, cstat);
+									geo::View_t View	   = geom->View(EndPoint2d_Channel);
+									geo::WireID wireID(cstat,tpc,plane,EndPoint2d_Wire);
+									
+									// ### Saving the 2d Vertex found ###
+									recob::EndPoint2D vertex( EndPoint2d_TimeTick , //<---TimeTick
+											  wireID ,		//<---geo::WireID
+											  1 ,			//<---Vtx strength (JA: ?)
+											  epcol->size() ,	//<---Vtx ID (JA: ?)
+											  View ,		//<---Vtx View 	
+											  1 );			//<---Vtx Strength (JA: Need to figure this one?)
+									epcol->push_back(vertex);
+								
+								
+									}//<---End saving this vertex found
+								
+								
+								NothingFoundYet = false;
+								}//<---End finding a match between the 
+							}//<---End feat for loop
 					
-							   
-					}//<---End loop over Planes
-				}//<---End loop over tpc's
-			}//<---End loop over cryostats
-			
-		// ############################
-		// ### Saving the 3d vertex ###
-		// ############################
-		double xyz2[3] = {x_matched, y_matched, z_matched};
-		recob::Vertex the3Dvertex(xyz2, vcol->size());
-		vcol->push_back(the3Dvertex);	
-		
-		}//<---End Case 2, many 3d Verticies found
-		
-		
-		
-//----------------------------------------------------------------------------------------------------------------------------- 
-	
-	// ### This is for the case where we didn't find a good match
-	// ### in 3d for a vertex...still need to figure out what to do here
-	if (n3dVertex == 0)
-		{
-		
-		
-		
-		
-		
-		
-		}	
+						}//<---End Nothing Found Yet
+					
+					// ####################################################################################	
+					// ### After all that...if we still don't have a 2-d / 3d Vertex then we just take  ###
+					// ### the starting point of the longest cluster as out 2d vertex and in each plane ###
+					// ####################################################################################
+					if (NothingFoundYet)
+						{
+						
+						double EndPoint2d_TimeTick = StartTime_LongestClusterInPlane;
+						int EndPoint2d_Wire 	   = StartWire_LongestClusterInPlane;
+						int EndPoint2d_Channel     = geom->PlaneWireToChannel(plane,EndPoint2d_Wire,tpc,cstat);
+						geo::View_t View	   = geom->View(EndPoint2d_Channel);
+						geo::WireID wireID(cstat,tpc,plane,EndPoint2d_Wire);
+						
+						// ### Saving the 2d Vertex found ###
+						recob::EndPoint2D vertex( EndPoint2d_TimeTick , //<---TimeTick
+									  wireID ,		//<---geo::WireID
+									  1 ,			//<---Vtx strength (JA: ?)
+									  epcol->size() ,	//<---Vtx ID (JA: ?)
+									  View ,		//<---Vtx View 	
+									  1 );			//<---Vtx Strength (JA: Need to figure this one?)
+						epcol->push_back(vertex);
+						
+						
+						
+						}//<---End last check for something found
+					}//<--End looping over planes
+				}//<--End looping over TPC's
+			}//<---End looping over cryostats
+		double xyz2[3] = {x_featClusMatch, y_featClusMatch, z_featClusMatch};
+			recob::Vertex the3Dvertex(xyz2, vcol->size());
+			vcol->push_back(the3Dvertex);	
+
+		}//<---End case where there was no good match	
        	
     
 //----------------------------------------------------------------------------------------------------------------------------- 
@@ -895,6 +1165,12 @@ namespace vertex{
     mf::LogVerbatim("Summary") << "FeatureVertexFinder Summary:";
     for(size_t i = 0; i<epcol->size(); ++i) mf::LogVerbatim("Summary") << epcol->at(i) ;
     for(size_t i = 0; i<vcol->size(); ++i) mf::LogVerbatim("Summary") << vcol->at(i) ;
+    
+    
+    for(size_t j = 0; j<epcol->size(); ++j) std::cout<<" EndPoint2d = " << epcol->at(j) ;
+    std::cout<<std::endl;
+    for(size_t j = 0; j<vcol->size(); ++j) std::cout<< " Vertex 3d = " << vcol->at(j) ;
+    std::cout<<std::endl;
     
     evt.put(std::move(epcol));
     evt.put(std::move(vcol));
