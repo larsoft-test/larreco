@@ -278,15 +278,17 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
       fpsMatMinusCent_col(0,1)=fpsMat_row(1)-fpsCentroids_row(1);
       fpsMatMinusCent_row(0,0)=fpsMat_row(0)-fpsCentroids_row(0);
       fpsMatMinusCent_row(1,0)=fpsMat_row(1)-fpsCentroids_row(1);
-      //TMatrixT<double> clusCovarianceMatInv = clusterCovarianceMats.at(j).Invert();
       TMatrixT<double> clusCovarianceMatInv = clusterCovarianceMats.at(j);
-      //clusCovarianceMatInv.Print();
-      clusCovarianceMatInv.Invert();
-      //clusCovarianceMatInv.Print();
-      //TMatrixT<double> tempDistanceSquared = rho*std::sqrt(clusterCovarianceMats.at(j).Determinant())*(fpsMatMinusCent_col*(clusCovarianceMatInv*fpsMatMinusCent_row));
+      try
+      {
+        clusCovarianceMatInv.Invert();
+      }
+      catch(...){
+        mf::LogVerbatim("fuzzyCluster") << "updateMembership: Covariance matrix is singular";
+        continue;
+      }
       TMatrixT<double> tempDistanceSquared = rho*pow(clusterCovarianceMats.at(j).Determinant(),0.75)*(fpsMatMinusCent_col*(clusCovarianceMatInv*fpsMatMinusCent_row));
       fpsDistances(j,i) = std::sqrt(tempDistanceSquared(0,0));
-      //tempDistanceSquared.Print();
     }
   }
   //fpsDistances.Print();
