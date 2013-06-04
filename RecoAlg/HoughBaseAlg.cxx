@@ -890,15 +890,15 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     double cornerDistToMax = sqrt(pow(pMax0Ave-houghCorners[0].p0,2)+pow(pMax1Ave-houghCorners[0].p1,2));
     int showerDirection = 0; // +1 is to the right, -1 is to the left
     if(cornerDistToMin < cornerDistToMax && houghCorners[0].strength != houghCorners[1].strength){
-      //std::cout << "For the new, new, new metric, I'm probably going right" << std::endl;
+      std::cout << "For the new, new, new metric, I'm probably going right" << std::endl;
       showerDirection = 1;
     }
     else if (cornerDistToMin > cornerDistToMax && houghCorners[0].strength != houghCorners[1].strength){
-      //std::cout << "For the new, new, new metric, I'm probably going left" << std::endl;
+      std::cout << "For the new, new, new metric, I'm probably going left" << std::endl;
       showerDirection = -1;
     }
-    //else if (houghCorners[0].strength == houghCorners[1].strength)
-      //std::cout << "For the new, new, new metric, direction is ambiguous" << std::endl;
+    else if (houghCorners[0].strength == houghCorners[1].strength)
+      std::cout << "For the new, new, new metric, direction is ambiguous" << std::endl;
      
 
 
@@ -1273,16 +1273,36 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
       int closestToMerge2=-1;
       int closestToMerge3=-1;
       int closestToMerge4=-1;
+      int closestToMerge5=-1;
+      int closestToMerge6=-1;
+      int closestToMerge7=-1;
+      int closestToMerge8=-1;
+      int closestToMerge9=-1;
       double closestToMergeDist1=999999;
       double closestToMergeDist2=999999;
       double closestToMergeDist3=999999;
       double closestToMergeDist4=999999;
+      double closestToMergeDist5=999999;
+      double closestToMergeDist6=999999;
+      double closestToMergeDist7=999999;
+      double closestToMergeDist8=999999;
+      double closestToMergeDist9=999999;
       for (auto toMergePHitItr = linesFound->at(*toMergeItr).pHit.begin(); toMergePHitItr != linesFound->at(*toMergeItr).pHit.end(); toMergePHitItr++) {
         if(closestToMerge==toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin())
           continue;
         double distance = std::sqrt(pow(toMergePHitItr->first-linesFound->at(*toMergeItr).pHit[closestToMerge].first,2)+
                   pow(toMergePHitItr->second-linesFound->at(*toMergeItr).pHit[closestToMerge].second,2));
         if(closestToMergeDist1 > distance){
+          closestToMergeDist9 = closestToMergeDist8;
+          closestToMerge9 = closestToMerge8;
+          closestToMergeDist8 = closestToMergeDist7;
+          closestToMerge8 = closestToMerge7;
+          closestToMergeDist7 = closestToMergeDist6;
+          closestToMerge7 = closestToMerge6;
+          closestToMergeDist6 = closestToMergeDist5;
+          closestToMerge6 = closestToMerge5;
+          closestToMergeDist5 = closestToMergeDist4;
+          closestToMerge5 = closestToMerge4;
           closestToMergeDist4 = closestToMergeDist3;
           closestToMerge4 = closestToMerge3;
           closestToMergeDist3 = closestToMergeDist2;
@@ -1293,6 +1313,16 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
           closestToMerge1 = toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin();
         }
         else if(closestToMergeDist2 > distance){
+          closestToMergeDist9 = closestToMergeDist8;
+          closestToMerge9 = closestToMerge8;
+          closestToMergeDist8 = closestToMergeDist7;
+          closestToMerge8 = closestToMerge7;
+          closestToMergeDist7 = closestToMergeDist6;
+          closestToMerge7 = closestToMerge6;
+          closestToMergeDist6 = closestToMergeDist5;
+          closestToMerge6 = closestToMerge5;
+          closestToMergeDist5 = closestToMergeDist4;
+          closestToMerge5 = closestToMerge4;
           closestToMergeDist4 = closestToMergeDist3;
           closestToMerge4 = closestToMerge3;
           closestToMergeDist3 = closestToMergeDist2;
@@ -1301,27 +1331,76 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
           closestToMerge2 = toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin();
         }
         else if(closestToMergeDist3 > distance){
+          closestToMergeDist9 = closestToMergeDist8;
+          closestToMerge9 = closestToMerge8;
+          closestToMergeDist8 = closestToMergeDist7;
+          closestToMerge8 = closestToMerge7;
+          closestToMergeDist7 = closestToMergeDist6;
+          closestToMerge7 = closestToMerge6;
+          closestToMergeDist6 = closestToMergeDist5;
+          closestToMerge6 = closestToMerge5;
+          closestToMergeDist5 = closestToMergeDist4;
+          closestToMerge5 = closestToMerge4;
           closestToMergeDist4 = closestToMergeDist3;
           closestToMerge4 = closestToMerge3;
           closestToMergeDist3 = distance;
           closestToMerge3 = toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin();
         }
         else if(closestToMergeDist4 > distance){
+          closestToMergeDist9 = closestToMergeDist8;
+          closestToMerge9 = closestToMerge8;
+          closestToMergeDist8 = closestToMergeDist7;
+          closestToMerge8 = closestToMerge7;
+          closestToMergeDist7 = closestToMergeDist6;
+          closestToMerge7 = closestToMerge6;
+          closestToMergeDist6 = closestToMergeDist5;
+          closestToMerge6 = closestToMerge5;
+          closestToMergeDist5 = closestToMergeDist4;
+          closestToMerge5 = closestToMerge4;
           closestToMergeDist4 = distance;
           closestToMerge4 = toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin();
         }
+        else if(closestToMergeDist5 > distance){
+          closestToMergeDist9 = closestToMergeDist8;
+          closestToMerge9 = closestToMerge8;
+          closestToMergeDist8 = closestToMergeDist7;
+          closestToMerge8 = closestToMerge7;
+          closestToMergeDist7 = closestToMergeDist6;
+          closestToMerge7 = closestToMerge6;
+          closestToMergeDist6 = closestToMergeDist5;
+          closestToMerge6 = closestToMerge5;
+          closestToMergeDist5 = closestToMergeDist4;
+          closestToMerge5 = closestToMerge4;
+        }
+        else if(closestToMergeDist6 > distance){
+          closestToMergeDist9 = closestToMergeDist8;
+          closestToMerge9 = closestToMerge8;
+          closestToMergeDist8 = closestToMergeDist7;
+          closestToMerge8 = closestToMerge7;
+          closestToMergeDist7 = closestToMergeDist6;
+          closestToMerge7 = closestToMerge6;
+          closestToMergeDist6 = closestToMergeDist5;
+          closestToMerge6 = closestToMerge5;
+        }
+        else if(closestToMergeDist7 > distance){
+          closestToMergeDist9 = closestToMergeDist8;
+          closestToMerge9 = closestToMerge8;
+          closestToMergeDist8 = closestToMergeDist7;
+          closestToMerge8 = closestToMerge7;
+          closestToMergeDist7 = closestToMergeDist6;
+          closestToMerge7 = closestToMerge6;
+        }
+        else if(closestToMergeDist8 > distance){
+          closestToMergeDist9 = closestToMergeDist8;
+          closestToMerge9 = closestToMerge8;
+          closestToMergeDist8 = closestToMergeDist7;
+          closestToMerge8 = closestToMerge7;
+        }
+        else if(closestToMergeDist9 > distance){
+          closestToMergeDist9 = closestToMergeDist8;
+          closestToMerge9 = closestToMerge8;
+        }
       }
-      //std::cout << std::endl;
-      //std::cout << "first toMerge: " << linesFound->at(*toMergeItr).pHit[closestToMerge].first  << " " << linesFound->at(*toMergeItr).pHit[closestToMerge].second << std::endl;
-      //std::cout << "second toMerge: "<< linesFound->at(*toMergeItr).pHit[closestToMerge1].first << " " << linesFound->at(*toMergeItr).pHit[closestToMerge1].second << std::endl;
-      //std::cout << "third toMerge: " << linesFound->at(*toMergeItr).pHit[closestToMerge2].first << " " << linesFound->at(*toMergeItr).pHit[closestToMerge2].second << std::endl;
-      //std::cout << "fourth toMerge: "<< linesFound->at(*toMergeItr).pHit[closestToMerge3].first << " " << linesFound->at(*toMergeItr).pHit[closestToMerge3].second << std::endl;
-
-      //std::cout << "first toMerge charge: "  << linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge].first << std::endl;
-      //std::cout << "second toMerge charge: " << linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge1].first << std::endl;
-      //std::cout << "third toMerge charge: "  << linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge2].first << std::endl;
-      //std::cout << "fourth toMerge charge: " << linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge3].first << std::endl;
-      //std::cout << "fifth toMerge charge: "  << linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge4].first << std::endl;
 
 
       // Find three points closest to closestToMerge on the clusIndexStart line
@@ -1329,16 +1408,36 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
       int closestClusIndexStart2=-1;
       int closestClusIndexStart3=-1;
       int closestClusIndexStart4=-1;
+      int closestClusIndexStart5=-1;
+      int closestClusIndexStart6=-1;
+      int closestClusIndexStart7=-1;
+      int closestClusIndexStart8=-1;
+      int closestClusIndexStart9=-1;
       double closestClusIndexStartDist1=999999;
       double closestClusIndexStartDist2=999999;
       double closestClusIndexStartDist3=999999;
       double closestClusIndexStartDist4=999999;
+      double closestClusIndexStartDist5=999999;
+      double closestClusIndexStartDist6=999999;
+      double closestClusIndexStartDist7=999999;
+      double closestClusIndexStartDist8=999999;
+      double closestClusIndexStartDist9=999999;
       for (auto clusIndStPHitItr = linesFound->at(clusIndexStart).pHit.begin(); clusIndStPHitItr != linesFound->at(clusIndexStart).pHit.end(); clusIndStPHitItr++) {
         if(closestClusIndexStart==clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin())
           continue;
         double distance = std::sqrt(pow(clusIndStPHitItr->first-linesFound->at(clusIndexStart).pHit[closestClusIndexStart].first,2)+
                   pow(clusIndStPHitItr->second-linesFound->at(clusIndexStart).pHit[closestClusIndexStart].second,2));
         if(closestClusIndexStartDist1 > distance){
+          closestClusIndexStartDist9 = closestClusIndexStartDist8;
+          closestClusIndexStart9 = closestClusIndexStart8;
+          closestClusIndexStartDist8 = closestClusIndexStartDist7;
+          closestClusIndexStart8 = closestClusIndexStart7;
+          closestClusIndexStartDist7 = closestClusIndexStartDist6;
+          closestClusIndexStart7 = closestClusIndexStart6;
+          closestClusIndexStartDist6 = closestClusIndexStartDist5;
+          closestClusIndexStart6 = closestClusIndexStart5;
+          closestClusIndexStartDist5 = closestClusIndexStartDist4;
+          closestClusIndexStart5 = closestClusIndexStart4;
           closestClusIndexStartDist4 = closestClusIndexStartDist3;
           closestClusIndexStart4 = closestClusIndexStart3;
           closestClusIndexStartDist3 = closestClusIndexStartDist2;
@@ -1349,6 +1448,16 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
           closestClusIndexStart1 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
         }
         else if(closestClusIndexStartDist2 > distance){
+          closestClusIndexStartDist9 = closestClusIndexStartDist8;
+          closestClusIndexStart9 = closestClusIndexStart8;
+          closestClusIndexStartDist8 = closestClusIndexStartDist7;
+          closestClusIndexStart8 = closestClusIndexStart7;
+          closestClusIndexStartDist7 = closestClusIndexStartDist6;
+          closestClusIndexStart7 = closestClusIndexStart6;
+          closestClusIndexStartDist6 = closestClusIndexStartDist5;
+          closestClusIndexStart6 = closestClusIndexStart5;
+          closestClusIndexStartDist5 = closestClusIndexStartDist4;
+          closestClusIndexStart5 = closestClusIndexStart4;
           closestClusIndexStartDist4 = closestClusIndexStartDist3;
           closestClusIndexStart4 = closestClusIndexStart3;
           closestClusIndexStartDist3 = closestClusIndexStartDist2;
@@ -1357,29 +1466,77 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
           closestClusIndexStart2 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
         }
         else if(closestClusIndexStartDist3 > distance){
+          closestClusIndexStartDist9 = closestClusIndexStartDist8;
+          closestClusIndexStart9 = closestClusIndexStart8;
+          closestClusIndexStartDist8 = closestClusIndexStartDist7;
+          closestClusIndexStart8 = closestClusIndexStart7;
+          closestClusIndexStartDist7 = closestClusIndexStartDist6;
+          closestClusIndexStart7 = closestClusIndexStart6;
+          closestClusIndexStartDist6 = closestClusIndexStartDist5;
+          closestClusIndexStart6 = closestClusIndexStart5;
+          closestClusIndexStartDist5 = closestClusIndexStartDist4;
+          closestClusIndexStart5 = closestClusIndexStart4;
           closestClusIndexStartDist4 = closestClusIndexStartDist3;
           closestClusIndexStart4 = closestClusIndexStart3;
           closestClusIndexStartDist3 = distance;
           closestClusIndexStart3 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
         }
         else if(closestClusIndexStartDist4 > distance){
+          closestClusIndexStartDist9 = closestClusIndexStartDist8;
+          closestClusIndexStart9 = closestClusIndexStart8;
+          closestClusIndexStartDist8 = closestClusIndexStartDist7;
+          closestClusIndexStart8 = closestClusIndexStart7;
+          closestClusIndexStartDist7 = closestClusIndexStartDist6;
+          closestClusIndexStart7 = closestClusIndexStart6;
+          closestClusIndexStartDist6 = closestClusIndexStartDist5;
+          closestClusIndexStart6 = closestClusIndexStart5;
+          closestClusIndexStartDist5 = closestClusIndexStartDist4;
+          closestClusIndexStart5 = closestClusIndexStart4;
           closestClusIndexStartDist4 = distance;
           closestClusIndexStart4 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
         }
-      
-      
+        else if(closestClusIndexStartDist5 > distance){
+          closestClusIndexStartDist9 = closestClusIndexStartDist8;
+          closestClusIndexStart9 = closestClusIndexStart8;
+          closestClusIndexStartDist8 = closestClusIndexStartDist7;
+          closestClusIndexStart8 = closestClusIndexStart7;
+          closestClusIndexStartDist7 = closestClusIndexStartDist6;
+          closestClusIndexStart7 = closestClusIndexStart6;
+          closestClusIndexStartDist6 = closestClusIndexStartDist5;
+          closestClusIndexStart6 = closestClusIndexStart5;
+          closestClusIndexStartDist5 = closestClusIndexStartDist4;
+          closestClusIndexStart5 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
+        }
+        else if(closestClusIndexStartDist6 > distance){
+          closestClusIndexStartDist9 = closestClusIndexStartDist8;
+          closestClusIndexStart9 = closestClusIndexStart8;
+          closestClusIndexStartDist8 = closestClusIndexStartDist7;
+          closestClusIndexStart8 = closestClusIndexStart7;
+          closestClusIndexStartDist7 = closestClusIndexStartDist6;
+          closestClusIndexStart7 = closestClusIndexStart6;
+          closestClusIndexStartDist6 = closestClusIndexStartDist5;
+          closestClusIndexStart6 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
+        }
+        else if(closestClusIndexStartDist7 > distance){
+          closestClusIndexStartDist9 = closestClusIndexStartDist8;
+          closestClusIndexStart9 = closestClusIndexStart8;
+          closestClusIndexStartDist8 = closestClusIndexStartDist7;
+          closestClusIndexStart8 = closestClusIndexStart7;
+          closestClusIndexStartDist7 = closestClusIndexStartDist6;
+          closestClusIndexStart7 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
+        }
+        else if(closestClusIndexStartDist8 > distance){
+          closestClusIndexStartDist9 = closestClusIndexStartDist8;
+          closestClusIndexStart9 = closestClusIndexStart8;
+          closestClusIndexStartDist8 = closestClusIndexStartDist7;
+          closestClusIndexStart8 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
+        }
+        else if(closestClusIndexStartDist9 > distance){
+          closestClusIndexStartDist9 = closestClusIndexStartDist8;
+          closestClusIndexStart9 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
+        }
       
       }
-      //std::cout << "first clusIndex: " << linesFound->at(clusIndexStart).pHit[closestClusIndexStart].first << " " << linesFound->at(clusIndexStart).pHit[closestClusIndexStart].second << std::endl;
-      //std::cout << "second clusIndex: " << linesFound->at(clusIndexStart).pHit[closestClusIndexStart1].first << " " << linesFound->at(clusIndexStart).pHit[closestClusIndexStart1].second << std::endl;
-      //std::cout << "third clusIndex: " << linesFound->at(clusIndexStart).pHit[closestClusIndexStart2].first << " " << linesFound->at(clusIndexStart).pHit[closestClusIndexStart2].second << std::endl;
-      //std::cout << "fourth clusIndex: " << linesFound->at(clusIndexStart).pHit[closestClusIndexStart3].first << " " << linesFound->at(clusIndexStart).pHit[closestClusIndexStart3].second << std::endl;
-
-      //std::cout << "first clusIndex charge: "  << linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart].first << std::endl;
-      //std::cout << "second clusIndex charge: " << linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart1].first << std::endl;
-      //std::cout << "third clusIndex charge: "  << linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart2].first << std::endl;
-      //std::cout << "fourth clusIndex charge: " << linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart3].first << std::endl;
-      //std::cout << "fifth clusIndex charge: "  << linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart4].first << std::endl;
 
       //Determine average charge and average sigma charge for each line around closest hits
       double toMergeAveCharge = linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge].first+
@@ -1387,30 +1544,72 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
         linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge2].first+
         linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge3].first+
         linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge4].first;
-      toMergeAveCharge/=5;
+      //toMergeAveCharge/=5;
       double clusIndexStartAveCharge = linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart].first+
         linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart1].first+
         linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart2].first+
         linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart3].first+
         linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart4].first;
-      clusIndexStartAveCharge/=5;
+      //clusIndexStartAveCharge/=5;
       double toMergeAveSigmaCharge = linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge].second+
         linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge1].second+
         linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge2].second+
         linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge3].second+
         linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge4].second;
-      toMergeAveSigmaCharge/=5;
+      //toMergeAveSigmaCharge/=5;
       double clusIndexStartAveSigmaCharge = linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart].second+
         linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart1].second+
         linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart2].second+
         linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart3].second+
         linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart4].second;
-      clusIndexStartAveSigmaCharge/=5;
+      //clusIndexStartAveSigmaCharge/=5;
+
+      // Do we have 6 or more hits for each line?
+      if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 5 && 
+          linesFound->at(*toMergeItr).pHitChargeSigma.size() > 5){
+        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge5].first;
+        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart5].first;
+        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge5].first;
+        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart5].first;
+      }
+      // Do we have 7 or more hits for each line?
+      if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 6 && 
+          linesFound->at(*toMergeItr).pHitChargeSigma.size() > 6){
+        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge6].first;
+        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart6].first;
+        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge6].first;
+        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart6].first;
+      }
+      // Do we have 8 or more hits for each line?
+      if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 7 && 
+          linesFound->at(*toMergeItr).pHitChargeSigma.size() > 7){
+        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge7].first;
+        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart7].first;
+        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge7].first;
+        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart7].first;
+      }
+      // Do we have 9 or more hits for each line?
+      if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 8 && 
+          linesFound->at(*toMergeItr).pHitChargeSigma.size() > 8){
+        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge8].first;
+        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart8].first;
+        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge8].first;
+        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart8].first;
+      }
+      // Do we have 10 or more hits for each line?
+      if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 9 && 
+          linesFound->at(*toMergeItr).pHitChargeSigma.size() > 9){
+        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge9].first;
+        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart9].first;
+        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge9].first;
+        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart9].first;
+      }
+
 
       double chargeAsymmetry = std::abs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
-      //double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
+      double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
       double chargeAsymmetrySinAngle = chargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180);
-      //double sigmaChargeAsymmetrySinAngle = chargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180);
+      double sigmaChargeAsymmetrySinAngle = chargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180);
 
       //std::cout << std::endl;
       //std::cout << chargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180) << std::endl;
