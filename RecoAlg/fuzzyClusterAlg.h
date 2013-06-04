@@ -74,7 +74,7 @@ namespace cluster{
     // The fuzzyness factor needed for fuzzy clustering, commonly known as just m
     double fFuzzifier;
     // The maximum number of clusters to try, needed for fuzzy clustering
-    int nMaxClusters;
+    int fMaxNumClusters;
     // The maximum number of iterations to try, needed for fuzzy clustering
     int nIterations;
     // The maximum distance between clusters prior to merging, needed for fuzzy clustering
