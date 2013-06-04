@@ -61,7 +61,7 @@ void cluster::fuzzyClusterAlg::reconfigure(fhicl::ParameterSet const& p)
   fClusterMethod  = p.get< int    >("Method");
   fDistanceMetric = p.get< int    >("Metric");
   fFuzzifier      = p.get< double >("Fuzzifier");
-  nMaxClusters    = p.get< int    >("MaxClusters");
+  fMaxNumClusters = p.get< int    >("MaxNumClusters");
   nIterations     = p.get< int    >("Iterations");
   fMergeCutoff    = p.get< double >("MergeCutoff");
   fHBAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughBaseAlg"));
@@ -327,6 +327,10 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
 void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit> >& allhits) {
 
   int iMinXBClusterNum = 0;
+  int nMaxClusters = fMaxNumClusters;
+  if(fpsMat.GetNrows() < nMaxClusters)
+    nMaxClusters = fpsMat.GetNrows();
+
   std::vector<float> fXieBeniIndices;
   fXieBeniIndices.clear();
   fXieBeniIndices.resize(nMaxClusters);
@@ -340,9 +344,10 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
 
   //fpsMat.Print();
 
+
   for( int k = nMaxClusters; k <= nMaxClusters; k++){ 
 
-    if (k > fpsMat.GetNrows())
+    if (k > fpsMat.GetNrows() || k <= 0)
       break;
 
     int i = 0;
@@ -363,6 +368,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
 
     // Compute initial centroids
     computeCentroids(k);
+    
 
     //for (size_t pid = 0; pid < fps.size(); pid++){
       //mf::LogInfo("fuzzyCluster") << pid ;
