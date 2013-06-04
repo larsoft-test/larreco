@@ -923,6 +923,8 @@ namespace vertex{
 	int totalGood = 0;
 	int nMerges = 0;
 	double x_good[1000] = {0.}, y_good[1000] = {0.}, z_good[1000] = {0.};
+	
+	std::cout<<" n3dVertex = "<<n3dVertex<<std::endl;
 	if (n3dVertex > 1)
 		{
 		//std::cout<<" ### In case 2 ###"<<std::endl;
@@ -942,9 +944,9 @@ namespace vertex{
 				double temp2_z = z_3dVertex[merge2];
 				
 				// ### Merge the verticies if they are within 2 cm of each other ###
-				if (std::abs( temp1_x - temp2_x ) < 1 &&
-				    std::abs( temp1_y - temp2_y ) < 1 &&
-				    std::abs( temp1_z - temp2_z ) < 1 &&
+				if (std::abs( temp1_x - temp2_x ) < 2 &&
+				    std::abs( temp1_y - temp2_y ) < 2 &&
+				    std::abs( temp1_z - temp2_z ) < 2 &&
 				    nMerges < LimitMerge)
 				    	{
 					//std::cout<<"Merging"<<std::endl;
@@ -976,14 +978,36 @@ namespace vertex{
 			    y_3dVertex[goodvtx] != 0.0 &&
 			    z_3dVertex[goodvtx] != 0.0 )
 			    	{
-				x_good[totalGood] =  x_3dVertex[goodvtx];
-				y_good[totalGood] =  y_3dVertex[goodvtx];
-				z_good[totalGood] =  z_3dVertex[goodvtx];
-				totalGood++;
+				bool duplicate = false;
+				// ###############################################
+				// ### Check to make sure this isn't a copy of ###
+				// ###        a previously found vertex        ###
+				// ###############################################
+				for (int check = goodvtx; check > 0; check--)
+					{
+					
+					// ### check if this vertex exists in the list ###
+					if (x_3dVertex[goodvtx] == x_3dVertex[check] &&
+					    y_3dVertex[goodvtx] == y_3dVertex[check] &&
+					    z_3dVertex[goodvtx] == z_3dVertex[check] )
+					    {
+					    duplicate = true;
+					    
+					    }//<---End duplicate 
+					
+					
+					}//<---end check loop
+				if(!duplicate)
+					{	
+					x_good[totalGood] =  x_3dVertex[goodvtx];
+					y_good[totalGood] =  y_3dVertex[goodvtx];
+					z_good[totalGood] =  z_3dVertex[goodvtx];
+					totalGood++;
+					}//<---End removing duplicates
 			
 				}
 			}//<---End goodvtx loop
-		
+		std::cout<<"totalGood = "<<totalGood<<std::endl;
 		// ##############################
 		// ### Looping over verticies ###
 		// ##############################
