@@ -48,6 +48,16 @@ standard_featurevertexfinder:
  CornerPset:          @local::standard_cornerfinderalg	# using the cornerfinder alg
 }
 
+standard_featurevertexfinderana:
+{
+
+ module_type:		"FeatureVertexFinderAna"
+ LArGeantModuleLabel:  	"largeant"
+ GenieModuleLabel:      "generator"
+ VertexModuleLabel:	"featureVtx"
+ EndPoint2dModuleLabel: "featureVtx"
+}
+
 
 argoneut_harris:        	@local::standard_harrisvertexfinder
 argoneut_vertexmatch:   	@local::standard_vertexmatch
