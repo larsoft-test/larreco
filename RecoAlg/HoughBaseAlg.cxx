@@ -1551,17 +1551,17 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
         linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart3].first+
         linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart4].first;
       //clusIndexStartAveCharge/=5;
-      double toMergeAveSigmaCharge = linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge].second+
-        linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge1].second+
-        linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge2].second+
-        linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge3].second+
-        linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge4].second;
+      //double toMergeAveSigmaCharge = linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge].second+
+        //linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge1].second+
+        //linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge2].second+
+        //linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge3].second+
+        //linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge4].second;
       //toMergeAveSigmaCharge/=5;
-      double clusIndexStartAveSigmaCharge = linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart].second+
-        linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart1].second+
-        linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart2].second+
-        linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart3].second+
-        linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart4].second;
+      //double clusIndexStartAveSigmaCharge = linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart].second+
+        //linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart1].second+
+        //linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart2].second+
+        //linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart3].second+
+        //linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart4].second;
       //clusIndexStartAveSigmaCharge/=5;
 
       // Do we have 6 or more hits for each line?
@@ -1607,12 +1607,12 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
 
 
       double chargeAsymmetry = std::abs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
-      double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
-      double chargeAsymmetrySinAngle = chargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180);
-      double sigmaChargeAsymmetrySinAngle = chargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180);
+      //double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
+      double chargeAsymmetrySinAngle = chargeAsymmetry*pow(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180),2);
+      //double sigmaChargeAsymmetrySinAngle = chargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180);
 
       //std::cout << std::endl;
-      //std::cout << chargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180) << std::endl;
+      //std::cout << chargeAsymmetry*pow(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180),2) << std::endl;
       //std::cout << sigmaChargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180) << std::endl;
 
       if(chargeAsymmetrySinAngle > fChargeAsymAngleCut &&
