@@ -1105,6 +1105,7 @@ namespace vertex{
 	double x_featClusMatch = 0, y_featClusMatch = 0, z_featClusMatch = 0;
 	if (n3dVertex == 0)
 		{
+		bool NothingFoundYet = true;
 		//std::cout<<" ### We are in case 3 ###"<<std::endl;
 		// ##############################
     		// ### Looping over cryostats ###
@@ -1168,7 +1169,7 @@ namespace vertex{
 					// ### the 3d-Feature points found and see if any are consistant with this 2-d point ###
 					// #####################################################################################
 					
-					bool NothingFoundYet = true;
+					NothingFoundYet = true;
 					/// #### Get the 3d feature point, project it back down to the current plane...check to see if consistant
 					
 					for (int feat = 0; feat < n3dFeatures; feat++)
@@ -1301,6 +1302,8 @@ namespace vertex{
 					// ####################################################################################	
 					// ### After all that...if we still don't have a 2-d / 3d Vertex then we just take  ###
 					// ### the starting point of the longest cluster as out 2d vertex and in each plane ###
+					// ### For the 3d point lets take the Feature with the greates strength as the 3-d  ###
+					// ### and for now (JA: come back to) we won't enforce that these points match      ###
 					// ####################################################################################
 					if (NothingFoundYet)
 						{
@@ -1322,10 +1325,41 @@ namespace vertex{
 						
 						
 						
+						
+						
 						}//<---End last check for something found
 					}//<--End looping over planes
 				}//<--End looping over TPC's
 			}//<---End looping over cryostats
+		
+		// ########################################################
+		// ### Last Ditch attempt to get a 3d point (if needed) ###'
+		// ########################################################
+		if (NothingFoundYet)
+			{
+			
+			// ### Taking the highest scoring feature point ###
+			float tempFeatureScore = 0;
+			// ### Looping over features ###
+			for (int feat3 = 0; feat3 < n3dFeatures; feat3++)
+				{
+							
+				if( strength_feature[feat3]  >  tempFeatureScore)
+					{
+					tempFeatureScore = strength_feature[feat3];
+					x_featClusMatch = x_feature[feat3];
+					y_featClusMatch = y_feature[feat3];
+					z_featClusMatch = z_feature[feat3];
+								
+								
+								
+					}//<---End checking if the current feature is the strongest feature
+							
+				}//<---End feat3 loop
+			
+			
+			
+			}//<---Last ditch attempt to get a 3d vertex
 		double xyz2[3] = {x_featClusMatch, y_featClusMatch, z_featClusMatch};
 			recob::Vertex the3Dvertex(xyz2, vcol->size());
 			vcol->push_back(the3Dvertex);	
