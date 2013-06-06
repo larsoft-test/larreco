@@ -64,6 +64,7 @@
 // #####################
 #include "TMath.h"
 #include "TH1D.h"
+#include "TH2D.h"
 #include "TVectorD.h"
 #include "TGeoManager.h"
 #include "TMath.h"
@@ -151,6 +152,10 @@ private:
 	TH1F* fRecoCheck3dVtxX;
 	TH1F* fRecoCheck3dVtxY;
 	TH1F* fRecoCheck3dVtxZ;
+	
+	TH2D* fRecoCheck3dVtxXvsX;
+	TH2D* fRecoCheck3dVtxYvsY;
+	TH2D* fRecoCheck3dVtxZvsZ;
 
 }; // End class VertexFinderAna
 // ====================================================================================
@@ -234,13 +239,17 @@ void FeatureVertexFinderAna::beginJob()
 	fRecoCheck2dTimeInCmPlane2	= tfs->make<TH1F>("fRecoCheck2dTimeInCmPlane2", "Reco Time in CM - True Time in CM Plane 2", 100, -50, 50);
 	
 	
-	fRecoVtxXPos 		= tfs->make<TH1F>("fRecoVtxXPos", "Reco Vertex X Position", 400, 0, 200);
+	fRecoVtxXPos 		= tfs->make<TH1F>("fRecoVtxXPos", "Reco Vertex X Position", 400, -10, 200);
 	fRecoVtxYPos 		= tfs->make<TH1F>("fRecoVtxYPos", "Reco Vertex Y Position", 400, -100, 100);
-	fRecoVtxZPos 		= tfs->make<TH1F>("fRecoVtxZPos", "Reco Vertex Z Position", 2000, 0, 1000);
+	fRecoVtxZPos 		= tfs->make<TH1F>("fRecoVtxZPos", "Reco Vertex Z Position", 2000, -10, 1000);
 	
-	fRecoCheck3dVtxX	= tfs->make<TH1F>("fRecoCheck3dVtxX", "Reco X Position - True X Postion", 200, -100, 100);
-	fRecoCheck3dVtxY	= tfs->make<TH1F>("fRecoCheck3dVtxY", "Reco Y Position - True Y Postion", 200, -100, 100);
-	fRecoCheck3dVtxZ	= tfs->make<TH1F>("fRecoCheck3dVtxZ", "Reco Z Position - True Z Postion", 200, -100, 100);
+	fRecoCheck3dVtxX	= tfs->make<TH1F>("fRecoCheck3dVtxX", "Reco X Position - True X Postion", 800, -100, 100);
+	fRecoCheck3dVtxY	= tfs->make<TH1F>("fRecoCheck3dVtxY", "Reco Y Position - True Y Postion", 800, -100, 100);
+	fRecoCheck3dVtxZ	= tfs->make<TH1F>("fRecoCheck3dVtxZ", "Reco Z Position - True Z Postion", 800, -100, 100);
+	
+	fRecoCheck3dVtxXvsX	= tfs->make <TH2D>("fRecoCheck3dVtxXvsX", "(Reco X - True X)/True X vs True X", 400, -10, 200, 120, -20, 20);
+	fRecoCheck3dVtxYvsY	= tfs->make <TH2D>("fRecoCheck3dVtxYvsY", "(Reco Y - True Y)/True Y vs True Y", 400, -100, 100, 120, -20, 20);
+	fRecoCheck3dVtxZvsZ	= tfs->make <TH2D>("fRecoCheck3dVtxZvsZ", "(Reco Z - True Z)/True Z vs True Z", 1000, -10, 1000, 120, -20, 20);
 	
 	
 	return;
@@ -329,6 +338,7 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
 			{
 			//                              geom->WirePitch(Wire1, Wire2, Plane#, TPC#, Cyro#);
 			WirePitch_CurrentPlane[plane] = geom->WirePitch(0,1,plane,tpc,cstat);
+			
 			
 			}//<---End plane loop
 		}//<---End tpc loop
@@ -452,11 +462,11 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
    
    // Variables for Vertex2d
    
-   double Vertex2d_TimeTick[100] = {0.};	//<---Vertex2d Time Tick for the current plane ( TimeTick[#2d] )
-   double Vertex2d_Wire[100]	 = {0.};	//<---Veretx2d Wire # ( Wire[#2d] )
+   double Vertex2d_TimeTick[1000] = {0.};	//<---Vertex2d Time Tick for the current plane ( TimeTick[#2d] )
+   double Vertex2d_Wire[1000]	 = {0.};	//<---Veretx2d Wire # ( Wire[#2d] )
    
-   double Vertex2d_TimeTick_InCM[100] 	= {0.};	//<---Vertex 2d Time tick in CM ( TimeTick[#2d] )
-   double Vertex2d_Wire_InCM[100] 	= {0.};	//<---Veretx2d Wire in CM ( Wire[#2d] )
+   double Vertex2d_TimeTick_InCM[1000] 	= {0.};	//<---Vertex 2d Time tick in CM ( TimeTick[#2d] )
+   double Vertex2d_Wire_InCM[1000] 	= {0.};	//<---Veretx2d Wire in CM ( Wire[#2d] )
    int n2dVtx = 0;
    
    // ######################################
@@ -491,35 +501,43 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
 				
 				for(size_t ww = 0; ww<vert2d.size(); ww++)
 					{
+					//std::cout<<"plane = "<<plane<<std::endl;
+					//std::cout<<"vert2d[ww]->WireID().Plane = "<<vert2d[ww]->WireID().Plane<<std::endl;
 					// Only look at this 2d vertex if it is in the current plane
 					if (vert2d[ww]->WireID().Plane != plane){continue;}
+					
 					Vertex2d_TimeTick[n2dVtx] = vert2d[ww]->DriftTime();
 					Vertex2d_Wire[n2dVtx]     = vert2d[ww]->WireID().Wire;
 				
 					// ======================== Translating each of these in cm =====================
-					Vertex2d_Wire_InCM[n2dVtx]	   = Vertex2d_Wire[ww] * WirePitch_CurrentPlane[plane];	
-					Vertex2d_TimeTick_InCM[n2dVtx]     = Vertex2d_TimeTick[ww] * TimetoCm;
+					Vertex2d_Wire_InCM[n2dVtx]	   = Vertex2d_Wire[n2dVtx] * WirePitch_CurrentPlane[plane];	
+					//std::cout<<"Vertex2d_Wire[n2dVtx] = "<<Vertex2d_Wire[n2dVtx]<<" , WirePitch_CurrentPlane[plane] = "<<WirePitch_CurrentPlane[plane]<<std::endl;
+					//std::cout<<"Vertex2d_Wire_InCM[n2dVtx] = "<<Vertex2d_Wire_InCM[n2dVtx]<<std::endl;
+					Vertex2d_TimeTick_InCM[n2dVtx]     = Vertex2d_TimeTick[n2dVtx] * TimetoCm;
 					
 					// ###########################################################################
 					// ### Checking how well we did in reconstructing the vertex (Reco - True) ###
 					// ###########################################################################
 					
 					float RecoCheck_TimeTick = Vertex2d_TimeTick[n2dVtx] - VtxTimeTick[plane];
-					float RecoCheck_WireNum  = Vertex2d_Wire[n2dVtx] - VtxTimeTick[plane];
+					float RecoCheck_WireNum  = Vertex2d_Wire[n2dVtx] - VtxWireNum[plane];
 					
 					float RecoCheck_TimeInCm = Vertex2d_TimeTick_InCM[n2dVtx] - VtxTimeTick_InCM[plane];
 					float RecoCheck_WireInCm = Vertex2d_Wire_InCM[n2dVtx] - VtxWireNum_InCM[plane];
 					
 					
 					
-					n2dVtx++;
+					
 					
 					if(plane == 0)
 						{
+						//std::cout<<"Filling Plane 0 "<<std::endl;
+						//std::cout<<"Vertex2d_Wire[n2dVtx] = "<<Vertex2d_Wire[n2dVtx]<<std::endl;
+					
 						fTwoDWireNumberPlane0->Fill( Vertex2d_Wire[n2dVtx]  );
-   						fTwoDTimeTickPlane0->Fill( VtxTimeTick[0] );
-						fTwoDWireInCmPlane0->Fill( VtxWireNum_InCM[0] );
-   						fTwoDTimeInCmPlane0->Fill( VtxTimeTick_InCM[0] );
+   						fTwoDTimeTickPlane0->Fill( Vertex2d_TimeTick[n2dVtx] );
+						fTwoDWireInCmPlane0->Fill( Vertex2d_Wire_InCM[n2dVtx] );
+   						fTwoDTimeInCmPlane0->Fill( Vertex2d_TimeTick_InCM[n2dVtx] );
 						
 						fRecoCheck2dWireNumPlane0->Fill( RecoCheck_WireNum );
 						fRecoCheck2dTimeTickPlane0->Fill( RecoCheck_TimeTick );
@@ -530,10 +548,10 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
 				
 					if(plane == 1)
 						{
-						fTwoDWireNumberPlane1->Fill( Vertex2d_Wire[n2dVtx] );
-   						fTwoDTimeTickPlane1->Fill( VtxTimeTick[1] );
-						fTwoDWireInCmPlane1->Fill( VtxWireNum_InCM[1] );
-   						fTwoDTimeInCmPlane1->Fill( VtxTimeTick_InCM[1] );
+						fTwoDWireNumberPlane1->Fill( Vertex2d_Wire[n2dVtx]  );
+   						fTwoDTimeTickPlane1->Fill( Vertex2d_TimeTick[n2dVtx] );
+						fTwoDWireInCmPlane1->Fill( Vertex2d_Wire_InCM[n2dVtx] );
+   						fTwoDTimeInCmPlane1->Fill( Vertex2d_TimeTick_InCM[n2dVtx] );
 						
 						fRecoCheck2dWireNumPlane1->Fill( RecoCheck_WireNum );
 						fRecoCheck2dTimeTickPlane1->Fill( RecoCheck_TimeTick );
@@ -545,9 +563,9 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
 					if(plane == 2)
 						{
 						fTwoDWireNumberPlane2->Fill( Vertex2d_Wire[n2dVtx]  );
-   						fTwoDTimeTickPlane2->Fill( VtxTimeTick[2] );
-   						fTwoDWireInCmPlane2->Fill( VtxWireNum_InCM[2] );
-   						fTwoDTimeInCmPlane2->Fill( VtxTimeTick_InCM[2] );
+   						fTwoDTimeTickPlane2->Fill( Vertex2d_TimeTick[n2dVtx] );
+						fTwoDWireInCmPlane2->Fill( Vertex2d_Wire_InCM[n2dVtx] );
+   						fTwoDTimeInCmPlane2->Fill( Vertex2d_TimeTick_InCM[n2dVtx] );
 						
 						fRecoCheck2dWireNumPlane2->Fill( RecoCheck_WireNum );
 						fRecoCheck2dTimeTickPlane2->Fill( RecoCheck_TimeTick );
@@ -557,7 +575,7 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
 					
 						}//<---End Plane 2
 					
-   				
+   					n2dVtx++;
    					}//<--end ww loop
 				
 					
@@ -599,6 +617,10 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
    double DeltaY = truth_vertex[1] - xyz[1];
    double DeltaZ = truth_vertex[2] - xyz[2];
    
+   double DeltaXoverTrueX = DeltaX / xyz[0];
+   double DeltaYoverTrueY = DeltaY / xyz[1];
+   double DeltaZoverTrueZ = DeltaZ / xyz[2];
+   
    fRecoVtxXPos->Fill( xyz[0] );
    fRecoVtxYPos->Fill( xyz[1] );
    fRecoVtxZPos->Fill( xyz[2] );
@@ -606,7 +628,10 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
    fRecoCheck3dVtxX->Fill( DeltaX );
    fRecoCheck3dVtxY->Fill( DeltaY );
    fRecoCheck3dVtxZ->Fill( DeltaZ );
-  
+   
+   fRecoCheck3dVtxXvsX->Fill( xyz[0], DeltaXoverTrueX );
+   fRecoCheck3dVtxYvsY->Fill( xyz[1], DeltaYoverTrueY );
+   fRecoCheck3dVtxZvsZ->Fill( xyz[2], DeltaZoverTrueZ );
 return;  
 }//<---End access the event
 

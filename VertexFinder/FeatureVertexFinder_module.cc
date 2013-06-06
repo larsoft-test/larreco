@@ -793,7 +793,7 @@ namespace vertex{
 				// ### Now check if the matched channels are ###
 				// ###   within 2*TimeOffset between planes  ###
 				// #############################################
-				if(std::abs(vtx_time[vtx1] - vtx_time[vtx]) < 2*detprop->TimeOffsetV())
+				if(std::abs(vtx_time[vtx1] - vtx_time[vtx]) < 1.5*detprop->TimeOffsetV())
 					{
 					//        detprop->ConvertTicksToX(ticks, plane, tpc, cryostat)
 					x_3dVertex[n3dVertex] = detprop->ConvertTicksToX(vtx_time[vtx], vtx_plane[vtx], 0, 0); //<---Hardcoding tpc and cryostat for now.
@@ -836,11 +836,12 @@ namespace vertex{
        
 
 //-----------------------------------------------------------------------------------------------------------------------------       
+double TwoDvertexStrength = 1;
        	// ### Case 1...only one 3d vertex found ###
        	if (n3dVertex == 1)
 		{
 		//std::cout<<" ### In case 1 ###"<<std::endl;
-		double TwoDvertexStrength = 1;
+		
 		// ##############################
     		// ### Looping over cryostats ###
     		// ##############################
@@ -929,11 +930,11 @@ namespace vertex{
 		{
 		//std::cout<<" ### In case 2 ###"<<std::endl;
 		// ### Setting a limit to the number of merges ###
-		int LimitMerge = 2 * n3dVertex;
+		int LimitMerge = 3 * n3dVertex;
 		// ### Trying to merge nearby verticies found ###
 		for( int merge1 = 0; merge1 < n3dVertex; merge1++)
 			{  
-			for( int merge2 = merge1 + 1; merge2 < n3dVertex; merge2++)
+			for( int merge2 = n3dVertex ; merge2 > merge1; merge2--)
 				{
 				double temp1_x = x_3dVertex[merge1];
 				double temp1_y = y_3dVertex[merge1];
@@ -943,12 +944,23 @@ namespace vertex{
 				double temp2_y = y_3dVertex[merge2];
 				double temp2_z = z_3dVertex[merge2];
 				
-				// ### Merge the verticies if they are within 2 cm of each other ###
-				if (std::abs( temp1_x - temp2_x ) < 2 &&
-				    std::abs( temp1_y - temp2_y ) < 2 &&
-				    std::abs( temp1_z - temp2_z ) < 2 &&
-				    nMerges < LimitMerge)
+				if( temp1_x == 0 || temp1_y == 0|| temp1_z == 0 ||
+				    temp2_x == 0 || temp2_y == 0 || temp2_z == 0) {continue;}
+				    
+				/*std::cout<<std::endl;
+				std::cout<<" Should I merge these? "<<std::endl;
+				std::cout<<"temp1_x = "<<temp1_x<<" , temp1_y = "<<temp1_y<<" , temp1_z = "<<temp1_z<<std::endl;
+				std::cout<<"temp2_x = "<<temp2_x<<" , temp2_y = "<<temp2_y<<" , temp2_z = "<<temp2_z<<std::endl;
+				std::cout<<std::endl;*/
+				
+				// ### Merge the verticies if they are within 1.5 cm of each other ###
+				if ( (std::abs( temp1_x - temp2_x ) < 1.5 && temp1_x != 0 && temp2_x !=0) &&
+				     (std::abs( temp1_y - temp2_y ) < 1.5 && temp1_y != 0 && temp2_y !=0) &&
+				     (std::abs( temp1_z - temp2_z ) < 1.5 && temp1_z != 0 && temp2_z !=0) &&
+				      nMerges < LimitMerge)
 				    	{
+					//std::cout<<" Yup, I am going to merge these! "<<std::endl;
+					//std::cout<<" I've now performed a merge "<<nMerges<<" times"<<std::endl;
 					//std::cout<<"Merging"<<std::endl;
 					//std::cout<<"n3dVertex = "<<n3dVertex<<std::endl;
 					nMerges++;
@@ -959,10 +971,18 @@ namespace vertex{
 					
 					n3dVertex++;
 					
+					//std::cout<<"n3dVertex now equals = "<<n3dVertex<<std::endl;
 					// ### Add the merged vertex to the end of the vector ###
 					x_3dVertex[n3dVertex] = (temp1_x + temp2_x)/2;
 					y_3dVertex[n3dVertex] = (temp1_y + temp2_y)/2;
 					z_3dVertex[n3dVertex] = (temp1_z + temp2_z)/2;
+					
+					// ######################################################################
+					// ### If we merged the verticies then increase its relative strength ###
+					// ######################################################################
+					TwoDvertexStrength++;
+					
+					//std::cout<<" The new merged vertex = "<<x_3dVertex[n3dVertex]<<" , "<<y_3dVertex[n3dVertex]<<" , "<<z_3dVertex[n3dVertex]<<std::endl;
 					
 					
 					}//<---End merging verticies
@@ -983,18 +1003,22 @@ namespace vertex{
 				// ### Check to make sure this isn't a copy of ###
 				// ###        a previously found vertex        ###
 				// ###############################################
-				for (int check = goodvtx; check > 0; check--)
+				for (int check = goodvtx+1; check > 0; check--)
 					{
-					
-					// ### check if this vertex exists in the list ###
-					if (x_3dVertex[goodvtx] == x_3dVertex[check] &&
-					    y_3dVertex[goodvtx] == y_3dVertex[check] &&
-					    z_3dVertex[goodvtx] == z_3dVertex[check] )
-					    {
-					    duplicate = true;
+					// #########################################################################
+					// ### Adding a protection that we don't check the vertex against itself ###
+					// #########################################################################
+					if (check != goodvtx)
+						{
+						// ### check if this vertex exists in the list ###
+						if (x_3dVertex[goodvtx] == x_3dVertex[check] &&
+						    y_3dVertex[goodvtx] == y_3dVertex[check] &&
+						    z_3dVertex[goodvtx] == z_3dVertex[check] )
+						    {
+						    duplicate = true;
 					    
-					    }//<---End duplicate 
-					
+						    }//<---End duplicate 
+						}//<---Don't check the vertex against itself
 					
 					}//<---end check loop
 				if(!duplicate)
@@ -1013,7 +1037,6 @@ namespace vertex{
 		// ##############################
 		for(int l = 0; l < totalGood; l++)
 			{
-			double TwoDvertexStrength = 1;
 			// #############################
 			// ### Looping over features ###
 			// #############################
@@ -1026,6 +1049,11 @@ namespace vertex{
 				   std::abs(y_good[l] - y_feature[f]) <= 3 &&
 				   std::abs(z_good[l] - z_feature[f]) <= 3)
 				   	{
+					
+					// ##########################################################
+					// ### If there is also a 3d feature near this point then ###
+					// ###      increase the vertex strength again            ###
+					// ##########################################################
 					
 					TwoDvertexStrength++;
 					
@@ -1103,10 +1131,14 @@ namespace vertex{
 	// this shifts the problem to simply finding the feature point...not terribly helpful
 	
 	double x_featClusMatch = 0, y_featClusMatch = 0, z_featClusMatch = 0;
+	
+	double LongestClusterStartWire[10] = {0};
+	double LongestClusterStartTime[10] = {0};
 	if (n3dVertex == 0)
 		{
 		bool NothingFoundYet = true;
-		//std::cout<<" ### We are in case 3 ###"<<std::endl;
+		std::cout<<" ### We are in case 3 ###"<<std::endl;
+		std::cout<<" n3dFeatures = "<<n3dFeatures<<std::endl;
 		// ##############################
     		// ### Looping over cryostats ###
     		// ##############################
@@ -1190,6 +1222,10 @@ namespace vertex{
 						if( std::abs(feat_2dWire - StartWire_LongestClusterInPlane) <= 2 && std::abs(StartTime_LongestClusterInPlane - feat_TimeT ) <=5 )
 							{
 							
+							// ###########################################################
+							// ### If a feature matches the 2d point increase strength ###
+							// ###########################################################
+							TwoDvertexStrength++;
 							
 							// JA: Need to put in a catch to take the highest score feature instead of the first...which
 							// is what we do for now....
@@ -1217,17 +1253,17 @@ namespace vertex{
 								// ### Saving the 2d Vertex found ###
 								recob::EndPoint2D vertex( EndPoint2d_TimeTick , //<---TimeTick
 										  wireID ,		//<---geo::WireID
-										  1 ,			//<---Vtx strength (JA: ?)
+										  TwoDvertexStrength ,			//<---Vtx strength (JA: ?)
 										  epcol->size() ,	//<---Vtx ID (JA: ?)
 										  View ,		//<---Vtx View 	
-										  1 );			//<---Vtx Strength (JA: Need to figure this one?)
+										  1 );			//<---Vtx charge (JA: Need to figure this one?)
 								epcol->push_back(vertex);
 								
 								
 								}//<---End saving this vertex found
 							
 							NothingFoundYet = false;
-							}//<---End finding a match between the 
+							}//<---End finding a match between the start time and the feature
 						}//<---End feat for loop
 					
 					// ##################################################################################
@@ -1256,11 +1292,15 @@ namespace vertex{
 							if( std::abs(feat_2dWire - EndWire_LongestClusterInPlane) <= 2 && std::abs(EndTime_LongestClusterInPlane - feat_TimeT ) <=5 )
 								{
 								
-								
+								// ###########################################################
+								// ### If a feature matches the 2d point increase strength ###
+								// ###########################################################
+								TwoDvertexStrength++;
 								// JA: Need to put in a catch to take the highest score feature instead of the first...which
 								// is what we do for now....
 								if(NothingFoundYet)
 									{
+									
 									// ### Vertex found ###
 									//std::cout<<std::endl;
 									//std::cout<<" ##### Longest Cluster Feature Match Start Position #####"<<std::endl;
@@ -1283,10 +1323,10 @@ namespace vertex{
 									// ### Saving the 2d Vertex found ###
 									recob::EndPoint2D vertex( EndPoint2d_TimeTick , //<---TimeTick
 											  wireID ,		//<---geo::WireID
-											  1 ,			//<---Vtx strength (JA: ?)
+											  TwoDvertexStrength ,	//<---Vtx strength (JA: ?)
 											  epcol->size() ,	//<---Vtx ID (JA: ?)
 											  View ,		//<---Vtx View 	
-											  1 );			//<---Vtx Strength (JA: Need to figure this one?)
+											  1 );			//<---Vtx charge (JA: Need to figure this one?)
 									epcol->push_back(vertex);
 								
 								
@@ -1328,6 +1368,9 @@ namespace vertex{
 						
 						
 						}//<---End last check for something found
+						
+					LongestClusterStartWire[plane] = StartWire_LongestClusterInPlane;
+					LongestClusterStartTime[plane] = StartTime_LongestClusterInPlane;
 					}//<--End looping over planes
 				}//<--End looping over TPC's
 			}//<---End looping over cryostats
@@ -1358,8 +1401,29 @@ namespace vertex{
 				}//<---End feat3 loop
 			
 			
+			if (x_featClusMatch != 0) {NothingFoundYet = false;}
 			
 			}//<---Last ditch attempt to get a 3d vertex
+			
+		// ### In a last, last ditch effort we will take the start point
+		// ### of the two longest clusters we found in each plane and just compute
+		// ### an XYZ coordinate for them...regardless of how well they match
+		if (NothingFoundYet)
+			{
+			double temp_wire_pitch0 = geom->WirePitch(0,1,0,0,0);
+			double temp_wire_pitch1 = geom->WirePitch(0,1,1,0,0);
+			double Iw0 = (LongestClusterStartWire[0]+3.95)*temp_wire_pitch0;
+		        double Cw0 = (LongestClusterStartWire[0]+1.84)*temp_wire_pitch1;
+			double It0 = LongestClusterStartTime[0] - presamplings;
+			It0 *= TimetoCm;
+			double Ct0 = LongestClusterStartTime[1] - presamplings ;
+			Ct0 *= TimetoCm;
+			x_featClusMatch = Ct0;
+			y_featClusMatch = (Cw0-Iw0)/(2.*TMath::Sin(Angle));
+			z_featClusMatch = (Cw0+Iw0)/(2.*TMath::Cos(Angle))-DetectorLength/2.*TMath::Tan(Angle);
+			
+			}
+		
 		double xyz2[3] = {x_featClusMatch, y_featClusMatch, z_featClusMatch};
 			recob::Vertex the3Dvertex(xyz2, vcol->size());
 			vcol->push_back(the3Dvertex);	
@@ -1378,7 +1442,7 @@ namespace vertex{
     
     for(size_t j = 0; j<epcol->size(); ++j) std::cout<<" EndPoint2d = " << epcol->at(j) ;
     std::cout<<std::endl;
-    for(size_t j = 0; j<vcol->size(); ++j) std::cout<< " Vertex 3d = " << vcol->at(j) ;
+    for(size_t j = 0; j<vcol->size(); ++j) {std::cout<< " Vertex 3d = " << vcol->at(j) << std::endl;}
     std::cout<<std::endl;
     
     evt.put(std::move(epcol));
