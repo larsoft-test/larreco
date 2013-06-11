@@ -821,24 +821,89 @@ namespace vertex{
 
 
 
+
+
+
+
+
+//-----------------------------------------------------------------------------------------------------------------------------
+
+// ###################################################################
+// ### Now we need to make sure that we remove duplicate verticies ###
+// ###    just in case we have any in our list of n3dVertex        ###
+// ###################################################################
+
+double x_3dVertex_dupRemoved[100000] = {0.}, y_3dVertex_dupRemoved[100000] = {0.}, z_3dVertex_dupRemoved[100000] = {0.};
+int n3dVertex_dupRemoved = 0;
+
+for(size_t dup = 0; dup < n3dVertex; dup ++)
+	{
+	float tempX_dup = x_3dVertex[dup];
+	float tempY_dup = y_3dVertex[dup];
+	float tempZ_dup = z_3dVertex[dup];
+	
+	
+	bool duplicate_found = false;
+	
+	for(size_t check = dup+1; check < n3dVertex; check++)
+		{
+		
+		// #############################################################################
+		// ### I am going to call a duplicate vertex one that matches in x, y, and z ###
+		// ###        within 0.1 cm for all 3 coordinates simultaneously             ###
+		// #############################################################################
+		if(std::abs( x_3dVertex[check] - tempX_dup ) < 0.1 && std::abs( y_3dVertex[check] - tempY_dup ) < 0.1 &&
+		   std::abs( z_3dVertex[check] - tempZ_dup ) < 0.1 )
+		   	{
+			duplicate_found = true;
+			
+			}//<---End checking to see if this is a duplicate vertex
+	
+	
+	
+		}//<---End check for loop
+	
+	// ######################################################################
+	// ### If we didn't find a duplicate then lets save this 3d vertex as ###
+	// ###            a real candidate for consideration                  ###
+	// ######################################################################
+	if(!duplicate_found)
+		{
+		x_3dVertex_dupRemoved[n3dVertex_dupRemoved] = tempX_dup;
+		y_3dVertex_dupRemoved[n3dVertex_dupRemoved] = tempY_dup;
+		z_3dVertex_dupRemoved[n3dVertex_dupRemoved] = tempZ_dup;
+		
+		n3dVertex_dupRemoved++;
+		}	
+
+	}//<---End dup for loop
+
+
+
+
+
+
+//-----------------------------------------------------------------------------------------------------------------------------
+
        	// ######################################################################################################
        	// ##################### Now I am going to deal with the 3 cases for finding 3d verticies ###############
-       	// ### Case1) If n3dVertex == 1: Then I only found one intersection point using the clusters found,
+       	// ### Case1) If n3dVertex_dupRemoved == 1: Then I only found one intersection point using the clusters found,
        	// ###                           in this case I will simply save to the event a EndPoint2d and a 3d
        	// ###                           vertex (JA: Need to add relevant associations later)
-       	// ### Case2) If n3dVertex > 1: In this case I will attempt to find a 3d feature that is within 2cm
-       	// ###                          in x, y, and z. If there is more than one of these points that match
-       	// ###                          I will, for now (JA: Need to improve), take the one with the smaller 
-       	// ###                          z coordinate (more upstream)
+	// ###
+       	// ### Case2) If n3dVertex_dupRemoved > 1: In this case I will attempt to find a 3d feature that is within 2cm
+       	// ###                         		   in x, y, and z. If there is more than one of these points that match
+       	// ###                          	   I will, for now (JA: Need to improve), take the one with the smaller 
+       	// ###                          	   z coordinate (more upstream)
        	// ###
-       	// ### Case3) If n3dVertex = 0: Still trying to figure out what to do here....JA:(will come back to)
+       	// ### Case3) If n3dVertex_dupRemoved = 0: Still trying to figure out what to do here....JA:(will come back to)
        	// #######################################################################################################
        
 
-//-----------------------------------------------------------------------------------------------------------------------------       
-double TwoDvertexStrength = 1;
+       
+double TwoDvertexStrength = 0;
        	// ### Case 1...only one 3d vertex found ###
-       	if (n3dVertex == 1)
+       	if (n3dVertex_dupRemoved == 1)
 		{
 		//std::cout<<" ### In case 1 ###"<<std::endl;
 		
@@ -857,7 +922,14 @@ double TwoDvertexStrength = 1;
 				// #################################
 				for (size_t i = 0; i < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++i)
 					{
-					double xyz[3] = {x_3dVertex[0], y_3dVertex[0], z_3dVertex[0]};
+					double xyz[3] = {x_3dVertex_dupRemoved[0], y_3dVertex_dupRemoved[0], z_3dVertex_dupRemoved[0]};
+					
+					// ########################################################
+					// ### Give the current 3d vertex found a strength of 1 ###
+					// ### We will add +1 to it for each 3d feature that is ###
+					// ###              near by it in x, y, z space         ###
+					// ########################################################
+					TwoDvertexStrength = 1;
 					
 					// #########################################################
 					// ### Does this point correspond to a 3d-Feature Point? ###
@@ -881,7 +953,7 @@ double TwoDvertexStrength = 1;
 							}
 						}//<---End a for loop
 					
-					double EndPoint2d_TimeTick = detprop->ConvertXToTicks(x_3dVertex[0],i, tpc, cstat);
+					double EndPoint2d_TimeTick = detprop->ConvertXToTicks(xyz[0],i, tpc, cstat);
 					
 					int EndPoint2d_Wire 	   = geom->NearestWire(xyz , i, tpc, cstat);
 					int EndPoint2d_Channel     = geom->NearestChannel(xyz, i, tpc, cstat);
@@ -907,7 +979,7 @@ double TwoDvertexStrength = 1;
 		// ############################
 		// ### Saving the 3d vertex ###
 		// ############################
-		double xyz2[3] = {x_3dVertex[0], y_3dVertex[0], z_3dVertex[0]};
+		double xyz2[3] = {x_3dVertex_dupRemoved[0], y_3dVertex_dupRemoved[0], z_3dVertex_dupRemoved[0]};
 		recob::Vertex the3Dvertex(xyz2, vcol->size());
 		vcol->push_back(the3Dvertex);
 		
@@ -925,14 +997,18 @@ double TwoDvertexStrength = 1;
 	int nMerges = 0;
 	double x_good[1000] = {0.}, y_good[1000] = {0.}, z_good[1000] = {0.};
 	
-	std::cout<<" n3dVertex = "<<n3dVertex<<std::endl;
-	if (n3dVertex > 1)
+	//std::cout<<" n3dVertex = "<<n3dVertex<<std::endl;
+	if (n3dVertex_dupRemoved > 1)
 		{
+		TwoDvertexStrength = 1;
 		//std::cout<<" ### In case 2 ###"<<std::endl;
-		// ### Setting a limit to the number of merges ###
-		int LimitMerge = 3 * n3dVertex;
+		// ######################################################
+		// ###     Setting a limit to the number of merges    ###
+		// ### to be 3 times the number of 3d verticies found ###
+		// ######################################################
+		int LimitMerge = 3 * n3dVertex_dupRemoved;
 		// ### Trying to merge nearby verticies found ###
-		for( int merge1 = 0; merge1 < n3dVertex; merge1++)
+		for( int merge1 = 0; merge1 < n3dVertex_dupRemoved; merge1++)
 			{  
 			for( int merge2 = n3dVertex ; merge2 > merge1; merge2--)
 				{
@@ -969,13 +1045,13 @@ double TwoDvertexStrength = 1;
 					y_3dVertex[merge2] = 0.0;
 					z_3dVertex[merge2] = 0.0;
 					
-					n3dVertex++;
+					n3dVertex_dupRemoved++;
 					
 					//std::cout<<"n3dVertex now equals = "<<n3dVertex<<std::endl;
 					// ### Add the merged vertex to the end of the vector ###
-					x_3dVertex[n3dVertex] = (temp1_x + temp2_x)/2;
-					y_3dVertex[n3dVertex] = (temp1_y + temp2_y)/2;
-					z_3dVertex[n3dVertex] = (temp1_z + temp2_z)/2;
+					x_3dVertex[n3dVertex_dupRemoved] = (temp1_x + temp2_x)/2;
+					y_3dVertex[n3dVertex_dupRemoved] = (temp1_y + temp2_y)/2;
+					z_3dVertex[n3dVertex_dupRemoved] = (temp1_z + temp2_z)/2;
 					
 					// ######################################################################
 					// ### If we merged the verticies then increase its relative strength ###
@@ -1031,7 +1107,7 @@ double TwoDvertexStrength = 1;
 			
 				}
 			}//<---End goodvtx loop
-		std::cout<<"totalGood = "<<totalGood<<std::endl;
+		//std::cout<<"totalGood = "<<totalGood<<std::endl;
 		// ##############################
 		// ### Looping over verticies ###
 		// ##############################
@@ -1134,11 +1210,11 @@ double TwoDvertexStrength = 1;
 	
 	double LongestClusterStartWire[10] = {0};
 	double LongestClusterStartTime[10] = {0};
-	if (n3dVertex == 0)
+	if (n3dVertex_dupRemoved == 0)
 		{
 		bool NothingFoundYet = true;
-		std::cout<<" ### We are in case 3 ###"<<std::endl;
-		std::cout<<" n3dFeatures = "<<n3dFeatures<<std::endl;
+		//std::cout<<" ### We are in case 3 ###"<<std::endl;
+		//std::cout<<" n3dFeatures = "<<n3dFeatures<<std::endl;
 		// ##############################
     		// ### Looping over cryostats ###
     		// ##############################
@@ -1154,6 +1230,13 @@ double TwoDvertexStrength = 1;
 				// #################################
 				for (size_t plane = 0; plane < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane)
 					{
+					// ############################################################################
+					// ### We reinitialize the strength for each plane since we haven't checked ###
+					// ###  at the top of this loop if this has been matched to anything else   ###
+					// ############################################################################
+					TwoDvertexStrength = 0;
+					
+					// === Defining a bunch of temp variables ===
 					float Length_LongestClusterInPlane = 0;
 					float StartWire_LongestClusterInPlane = 0;
 					float StartTime_LongestClusterInPlane = 0;
@@ -1202,7 +1285,13 @@ double TwoDvertexStrength = 1;
 					// #####################################################################################
 					
 					NothingFoundYet = true;
+					
+					// ### Set the score for this 2d vertex in this plane to be = 0 ###
+					// ### This will increase for each feature it finds that matches ###
+					// ### down to it
+					
 					/// #### Get the 3d feature point, project it back down to the current plane...check to see if consistant
+					float temp_feat_score = 0;
 					
 					for (int feat = 0; feat < n3dFeatures; feat++)
 						{
@@ -1210,6 +1299,7 @@ double TwoDvertexStrength = 1;
 						// ### Finding the nearest wire for this 3dfeature point ###
 						// #########################################################
 						float xyzfeat[3]   = {x_feature[feat],y_feature[feat],z_feature[feat]};
+						float xyzfeat_score = strength_feature[feat];
 						double feat_2dWire = geom->NearestWire(xyzfeat, plane, tpc, cstat);
 						double feat_TimeT  = detprop->ConvertXToTicks(x_feature[feat], plane, tpc, cstat);
 						
@@ -1218,17 +1308,18 @@ double TwoDvertexStrength = 1;
 						// ######################################################################################
 						// ###           Now check to see if this feature point is within 2 wires and         ###
 						// ###   5 time ticks of the start time of the longest cluster found in this plane    ###
+						// ###                and is the strongest xyz feature in the list                    ###
 						// ######################################################################################
-						if( std::abs(feat_2dWire - StartWire_LongestClusterInPlane) <= 2 && std::abs(StartTime_LongestClusterInPlane - feat_TimeT ) <=5 )
+						if( std::abs(feat_2dWire - StartWire_LongestClusterInPlane) <= 2 && std::abs(StartTime_LongestClusterInPlane - feat_TimeT ) <=5 &&
+						    xyzfeat_score >= temp_feat_score  )
 							{
-							
+							temp_feat_score = xyzfeat_score;
 							// ###########################################################
 							// ### If a feature matches the 2d point increase strength ###
 							// ###########################################################
 							TwoDvertexStrength++;
+
 							
-							// JA: Need to put in a catch to take the highest score feature instead of the first...which
-							// is what we do for now....
 							if(NothingFoundYet)
 								{
 								// ### Vertex found ###
@@ -1280,6 +1371,7 @@ double TwoDvertexStrength = 1;
 							// ### Finding the nearest wire for this 3dfeature point ###
 							// #########################################################
 							float xyzfeat2[3]   = {x_feature[feat2],y_feature[feat2],z_feature[feat2]};
+							float xyzfeat_score2 = strength_feature[feat2];
 							double feat_2dWire = geom->NearestWire(xyzfeat2, plane, tpc, cstat);
 							double feat_TimeT  = detprop->ConvertXToTicks(x_feature[feat2], plane, tpc, cstat);
 						
@@ -1289,15 +1381,16 @@ double TwoDvertexStrength = 1;
 							// ###           Now check to see if this feature point is within 2 wires and         ###
 							// ###   5 time ticks of the start time of the longest cluster found in this plane    ###
 							// ######################################################################################
-							if( std::abs(feat_2dWire - EndWire_LongestClusterInPlane) <= 2 && std::abs(EndTime_LongestClusterInPlane - feat_TimeT ) <=5 )
+							if( std::abs(feat_2dWire - EndWire_LongestClusterInPlane) <= 2 && std::abs(EndTime_LongestClusterInPlane - feat_TimeT ) <=5 && 
+							    xyzfeat_score2 >= temp_feat_score )
 								{
 								
+								temp_feat_score = xyzfeat_score2;
 								// ###########################################################
 								// ### If a feature matches the 2d point increase strength ###
 								// ###########################################################
 								TwoDvertexStrength++;
-								// JA: Need to put in a catch to take the highest score feature instead of the first...which
-								// is what we do for now....
+								
 								if(NothingFoundYet)
 									{
 									
@@ -1357,7 +1450,7 @@ double TwoDvertexStrength = 1;
 						// ### Saving the 2d Vertex found ###
 						recob::EndPoint2D vertex( EndPoint2d_TimeTick , //<---TimeTick
 									  wireID ,		//<---geo::WireID
-									  1 ,			//<---Vtx strength (JA: ?)
+									  TwoDvertexStrength ,	//<---Vtx strength (JA: ?)
 									  epcol->size() ,	//<---Vtx ID (JA: ?)
 									  View ,		//<---Vtx View 	
 									  1 );			//<---Vtx Strength (JA: Need to figure this one?)
