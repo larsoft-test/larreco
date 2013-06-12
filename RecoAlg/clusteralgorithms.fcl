@@ -5,9 +5,9 @@ standard_houghbasealg:
   MaxLines:                 50   # The maximum number of Hough lines to look for, 20 had been working!
   MinHits:                  5
   SaveAccumulator:          0
-  NumAngleCells:            20000 # The number of angle cells to create for the Hough transform,
+  NumAngleCells:            10000 # The number of angle cells to create for the Hough transform,
   RhoResolutionFactor:      5    # Was set to 5
-  MaxDistance:              1.0  # 0.1 was working (okay, not really, larger is probably better,
+  MaxDistance:              0.1  # 
   MaxSlope:                 80.0 # 80 was working fine previously
   RhoZeroOutRange:          0
   ThetaZeroOutRange:        0
@@ -24,10 +24,10 @@ standard_houghbasealg:
   ShowerHoughLineMergeCutoff: 10 # The maximum distance between Hough line endpoints before they can be merged,
   DoShowerHoughLineInterceptMerge: 0 
   DoChargeAsymAngleMerge:    1    # Turn on cut on product of charge asymmetry and sin of angle between slopes of lines
-  ChargeAsymAngleCut:        0.01 # Cut on product of charge asymmetry and the square of the sin of angle between slopes of lines
+  ChargeAsymAngleCut:        0.01 # Cut on product of charge asymmetry and the sin of angle between slopes of lines
   ChargeAsymAngleCutoff:     10   # Distance between lines before cut on product of charge asymmetry and sin of angle between slopes of lines
   ShowerLikenessCut:        0.1  # Cut on shower likeness (the larger the more shower like, the smaller the less shower like)
-  ShowerWidthAngle:         15   # Half of the angle defining how wide a shower is 
+  ShowerWidthAngle:          0   # Half of the angle defining how wide a shower is 
 }
 
 standard_endpointalg:
