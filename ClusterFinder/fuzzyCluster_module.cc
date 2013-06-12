@@ -173,6 +173,7 @@ namespace cluster{
 	  //}  
 
 
+
           //Begin clustering with fuzzy
           
 	  ffuzzyCluster.InitFuzzy(allhits, chanFilt.SetOfBadChannels());
