@@ -446,10 +446,10 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
     float fXieBeniIndex = fXieBeniNumer/fXieBeniDenom; 
     fXieBeniIndices[k-1]=fXieBeniIndex;
     fpsMembershipStore[k-1]=fpsMembership;
-    mf::LogVerbatim("fuzzyCluster") << "Number of clusters: " << k ;
-    mf::LogVerbatim("fuzzyCluster") << "Xie-Beni numerator: " << fXieBeniNumer ;
-    mf::LogVerbatim("fuzzyCluster") << "Xie-Beni denominator: " << fXieBeniDenom ;
-    mf::LogVerbatim("fuzzyCluster") << "Xie-Beni index: " << fXieBeniIndex ;
+    //mf::LogVerbatim("fuzzyCluster") << "Number of clusters: " << k ;
+    //mf::LogVerbatim("fuzzyCluster") << "Xie-Beni numerator: " << fXieBeniNumer ;
+    //mf::LogVerbatim("fuzzyCluster") << "Xie-Beni denominator: " << fXieBeniDenom ;
+    //mf::LogVerbatim("fuzzyCluster") << "Xie-Beni index: " << fXieBeniIndex ;
   }
 
 
@@ -520,7 +520,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   } // for
 
   // Run EndPointAlg over hits to see if 
-  mf::LogVerbatim("fuzzyCluster") << "New plane: " ;
+  //mf::LogVerbatim("fuzzyCluster") << "New plane: " ;
   std::vector<unsigned int> corners;
   corners.clear();
   int nClustersTemp = nClusters;
@@ -533,7 +533,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
     }
   cid = nClusters;
   
-  mf::LogInfo("fuzzyCluster") << "cid: " << cid ;
+  //mf::LogInfo("fuzzyCluster") << "cid: " << cid ;
 
   //for(size_t j = 0; j < fpointId_to_clusterId.size(); ++j)
     //mf::LogInfo("fuzzyCluster") << "fpointId_to_clusterId[j]: " << fpointId_to_clusterId[j] << " j: " << j ;
