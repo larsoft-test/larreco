@@ -158,8 +158,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
   tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
 
 
-  mf::LogInfo("HoughBaseAlg") << "xyScale: " << xyScale;
-  mf::LogInfo("HoughBaseAlg") << "tickToDist: " << tickToDist;
+  //mf::LogInfo("HoughBaseAlg") << "xyScale: " << xyScale;
+  //mf::LogInfo("HoughBaseAlg") << "tickToDist: " << tickToDist;
   
   int x, y;
   //unsigned int channel, plane, wire, tpc, cstat;
@@ -220,7 +220,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
   ///(based on the arguments, number of wires and number of time samples). 
   c.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
   /// Adds all of the hits to the accumulator
-  mf::LogInfo("HoughBaseAlg") << "Beginning PPHT";
+  //mf::LogInfo("HoughBaseAlg") << "Beginning PPHT";
 
   c.GetAccumSize(accDy, accDx);
 
@@ -851,8 +851,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 
     //showerLines.at(showerLinesItr->first).slope/=(showerLinesItr->second.lineSize);
     //showerLines.at(showerLinesItr->first).intercept/=(showerLinesItr->second.lineSize);
-    std::cout << showerLines.at(showerLinesItr-showerLines.begin()).slope << std::endl;
-    std::cout << showerLines.at(showerLinesItr-showerLines.begin()).intercept << std::endl;
+    //std::cout << showerLines.at(showerLinesItr-showerLines.begin()).slope << std::endl;
+    //std::cout << showerLines.at(showerLinesItr-showerLines.begin()).intercept << std::endl;
     double averageSlope = showerLines.at(showerLinesItr-showerLines.begin()).slope/showerLinesItr->lineSize;
     double averageInt = showerLines.at(showerLinesItr-showerLines.begin()).intercept/showerLinesItr->lineSize;
     int midWire = hits[showerLinesItr->iMinWire]->WireID().Wire/2 + 
@@ -890,19 +890,17 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     double cornerDistToMax = sqrt(pow(pMax0Ave-houghCorners[0].p0,2)+pow(pMax1Ave-houghCorners[0].p1,2));
     int showerDirection = 0; // +1 is to the right, -1 is to the left
     if(cornerDistToMin < cornerDistToMax && houghCorners[0].strength != houghCorners[1].strength){
-      std::cout << "For the new, new, new metric, I'm probably going right" << std::endl;
+      //std::cout << "For the new, new, new metric, I'm probably going right" << std::endl;
       showerDirection = 1;
     }
     else if (cornerDistToMin > cornerDistToMax && houghCorners[0].strength != houghCorners[1].strength){
-      std::cout << "For the new, new, new metric, I'm probably going left" << std::endl;
+      //std::cout << "For the new, new, new metric, I'm probably going left" << std::endl;
       showerDirection = -1;
     }
-    else if (houghCorners[0].strength == houghCorners[1].strength)
-      std::cout << "For the new, new, new metric, direction is ambiguous" << std::endl;
+    //else if (houghCorners[0].strength == houghCorners[1].strength)
+      //std::cout << "For the new, new, new metric, direction is ambiguous" << std::endl;
      
 
-    asjd
-      f;alsdkjfs;a'dlkfjas;df
 
 
     //double pMin0Corner=0;
@@ -1002,11 +1000,11 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     }
     //std::cout << "directionBin1: " << directionBin1 << " directionBin2: " << directionBin2 << std::endl;
     if(directionBin1<directionBin2 && houghCorners[0].strength == houghCorners[1].strength){
-      //std::cout << "I'm probably moving right" << std::endl;
+      //std::cout << "But, I'm probably moving right" << std::endl;
       showerDirection = 1;
     }
     else if(directionBin1>directionBin2 && houghCorners[0].strength == houghCorners[1].strength){
-      //std::cout << "I'm probably moving left" << std::endl;
+      //std::cout << "But, I'm probably moving left" << std::endl;
       showerDirection = -1;
     }
 
@@ -1017,12 +1015,12 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     double slopeDown = (1/xyScale)*(sin(-fShowerWidthAngle*TMath::Pi()/180) + xyScale*averageSlope*cos(-fShowerWidthAngle*TMath::Pi()/180))/(cos(-fShowerWidthAngle*TMath::Pi()/180) - xyScale*averageSlope*sin(-fShowerWidthAngle*TMath::Pi()/180));
     //std::cout << "slopeUp: " << slopeUp << " slopeDown: " << slopeDown << std::endl;
     for(auto linesFoundItr = linesFound.begin(); linesFoundItr < linesFound.end(); linesFoundItr++){
-      if(linesFoundItr->clusterNumber == showerLinesItr->clusterNumber)
+      if(linesFoundItr->showerMerged)
         continue;
-      double segmentDistance = std::min(std::abs(hits[linesFoundItr->iMaxWire]->PeakTime()-(averageSlope*hits[linesFoundItr->iMaxWire]->WireID().Wire+averageInt)),std::abs(hits[linesFoundItr->iMaxWire]->PeakTime()-(averageSlope*hits[linesFoundItr->iMaxWire]->WireID().Wire+averageInt)));
+      //double segmentDistance = std::min(std::abs(hits[linesFoundItr->iMaxWire]->PeakTime()-(averageSlope*hits[linesFoundItr->iMaxWire]->WireID().Wire+averageInt)),std::abs(hits[linesFoundItr->iMaxWire]->PeakTime()-(averageSlope*hits[linesFoundItr->iMaxWire]->WireID().Wire+averageInt)));
       //std::cout << "segmentDistance: " << segmentDistance << std::endl;
-      if(segmentDistance > 1500)
-        continue;
+      //if(segmentDistance > 1500)
+        //continue;
       //std::cout << std::endl;
       if(showerDirection > 0){
         if(hits[linesFoundItr->iMinWire]->WireID().Wire > 
@@ -1048,6 +1046,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
                   showerLinesItr2->showerMerged=true;
               }
               linesFoundItr->clusterNumber = showerLinesItr->clusterNumber;
+              linesFoundItr->showerMerged = true;
               //std::cout << "Merged right" << std::endl;
             }
           //}
@@ -1077,6 +1076,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
                   showerLinesItr2->showerMerged=true;
               }
               linesFoundItr->clusterNumber = showerLinesItr->clusterNumber;
+              linesFoundItr->showerMerged = true;
               //std::cout << "Merged left" << std::endl;
             }
           //}
@@ -1570,43 +1570,42 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
       if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 5 && 
           linesFound->at(*toMergeItr).pHitChargeSigma.size() > 5){
         toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge5].first;
-        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart5].first;
-        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge5].first;
-        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart5].first;
+        clusIndexStartAveCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart5].first;
+        //toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge5].first;
+        //clusIndexStartAveSigmaCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart5].first;
       }
       // Do we have 7 or more hits for each line?
       if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 6 && 
           linesFound->at(*toMergeItr).pHitChargeSigma.size() > 6){
         toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge6].first;
-        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart6].first;
-        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge6].first;
-        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart6].first;
+        clusIndexStartAveCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart6].first;
+        //toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge6].first;
+        //clusIndexStartAveSigmaCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart6].first;
       }
       // Do we have 8 or more hits for each line?
       if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 7 && 
           linesFound->at(*toMergeItr).pHitChargeSigma.size() > 7){
         toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge7].first;
-        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart7].first;
-        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge7].first;
-        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart7].first;
+        clusIndexStartAveCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart7].first;
+        //toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge7].first;
+        //clusIndexStartAveSigmaCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart7].first;
       }
       // Do we have 9 or more hits for each line?
       if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 8 && 
           linesFound->at(*toMergeItr).pHitChargeSigma.size() > 8){
         toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge8].first;
-        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart8].first;
-        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge8].first;
-        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart8].first;
+        clusIndexStartAveCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart8].first;
+        //toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge8].first;
+        //clusIndexStartAveSigmaCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart8].first;
       }
       // Do we have 10 or more hits for each line?
       if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 9 && 
           linesFound->at(*toMergeItr).pHitChargeSigma.size() > 9){
         toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge9].first;
-        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart9].first;
-        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge9].first;
-        toMergeAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart9].first;
+        clusIndexStartAveCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart9].first;
+        //toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge9].first;
+        //clusIndexStartAveSigmaCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart9].first;
       }
-
 
       double chargeAsymmetry = std::abs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
       //double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
