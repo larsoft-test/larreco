@@ -124,6 +124,7 @@ namespace recob {
       double isolation=-999999;
       double showerLikeness=-999999;
       bool merged=false;
+      bool showerMerged=false;
       std::vector<std::pair<double,double> > pHit;
       std::vector<std::pair<double,double> > pHitChargeSigma;
       lineSlope(unsigned int num=999999, 
@@ -156,6 +157,7 @@ namespace recob {
         minWire = minWireTemp;
         maxWire = maxWireTemp;
         merged = false;
+        showerMerged = false;
         showerLikeness = 0;
         pHit = pHitTemp;
         pHitChargeSigma = pHitChargeSigmaTemp;
