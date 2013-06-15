@@ -14,7 +14,7 @@ standard_houghbasealg:
   HitsPerCluster:           1
   MissedHits:               1    # Was set to 0
   MissedHitsDistance:       1.0  # 
-  MissedHitsToLineSize:     0.5    # Was set to 0
+  MissedHitsToLineSize:     0.25 # Was set to 0
   DoFuzzyRemnantMerge:      1    # Tell the algorithm to merge fuzzy cluster remnants into showers or tracks (0-off, 1-on)
   DoHoughLineMerge:         0    # Turns on Hough line merging (0-off, 1-on)
   HoughLineMergeAngle:      5    # The maximum angle between slopes of Hough lines to be merged,
