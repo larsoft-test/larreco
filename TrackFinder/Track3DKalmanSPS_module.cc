@@ -179,6 +179,7 @@ namespace trkf {
     double fPerpLim;
     bool fDoFit;
     int fNumIt;
+    uint16_t fMinNumSppts;
     double fErrScaleS;
     double fErrScaleM;
     int fDecimate;
@@ -207,6 +208,7 @@ namespace trkf {
   Track3DKalmanSPS::Track3DKalmanSPS(fhicl::ParameterSet const& pset) 
     : fDoFit(true)
     , fNumIt(5)
+    , fMinNumSppts(5)
     , fErrScaleS(1.0)
     , fErrScaleM(1.0)
     , fDecimate(1)
@@ -248,7 +250,8 @@ namespace trkf {
     fMomStart              = pset.get< std::vector < double >  >("MomStart3"); // 
     fPerpLim               = pset.get< double  >("PerpLimit", 1.e6); // PCA cut.
     fDoFit                 = pset.get< bool  >("DoFit", true); // Der.
-    fNumIt                 = pset.get< int  >("NumIt", 5); // Number x2 passes.
+    fNumIt                 = pset.get< int  >("NumIt", 5); // Number x2 passes per fit.
+    fMinNumSppts            = pset.get< int  >("NumIt", 5); // Min number of sppts in vector to bother fitting
     fErrScaleS              = pset.get< double >("ErrScaleSim", 1.0); // error scale.
     fErrScaleM              = pset.get< double >("ErrScaleMeas", 1.0); // error scale.
     fDecimate              = pset.get< int  >("DecimateC", 40); // Sparsify data.
@@ -260,7 +263,7 @@ namespace trkf {
     fMomHigh               = pset.get< double >("MomHigh", 20.); // Fit Range. 
     fPdg                   = pset.get< int  >("PdgCode", -13); // mu+ Hypothesis.
     fChi2Thresh            = pset.get< double >("Chi2HitThresh", 12.0E12); //For Re-pass.
-    fGenfPRINT             = pset.get< bool >("GenfPRINT");
+    fGenfPRINT             = pset.get< bool >("GenfPRINT", false);
 
  
   }
@@ -641,11 +644,11 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	    for(int jj = 0; jj < mc->NParticles(); ++jj)
 	      {
 		simb::MCParticle part(mc->GetParticle(jj));
-		mf::LogWarning("Track3DKalmanSPS") << "FROM MC TRUTH, the particle's pdg code is: "<<part.PdgCode()<< " with energy = "<<part.E() <<", with energy = "<<part.E()<< " and vtx and momentum in Global (not volTPC) coords are " ;
+		if(fGenfPRINT) mf::LogWarning("Track3DKalmanSPS") << "FROM MC TRUTH, the particle's pdg code is: "<<part.PdgCode()<< " with energy = "<<part.E() <<", with energy = "<<part.E()<< " and vtx and momentum in Global (not volTPC) coords are " ;
 		MCOrigin.SetXYZ(part.Vx(),part.Vy(),part.Vz()); // V for Vertex
 		MCMomentum.SetXYZ(part.Px(),part.Py(),part.Pz());
-		MCOrigin.Print();
-		MCMomentum.Print();
+		if(fGenfPRINT) MCOrigin.Print();
+		if(fGenfPRINT) MCMomentum.Print();
 		repMC = new genf::RKTrackRep(MCOrigin,
 					     MCMomentum,
 					     posErr,
@@ -660,9 +663,9 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	  *stMCT = repMC->getState();
 	  covMCT-> ResizeTo(repMC->getCov());
 	  *covMCT = repMC->getCov();
-	  mf::LogWarning("Track3DKalmanSPS") <<" repMC, covMC are ... " ;
-	  repMC->getState().Print();
-	  repMC->getCov().Print();
+	  if(fGenfPRINT) mf::LogWarning("Track3DKalmanSPS") <<" repMC, covMC are ... " ;
+	  if(fGenfPRINT) repMC->getState().Print();
+	  if(fGenfPRINT) repMC->getCov().Print();
 
 	} // !isRealData
       nTrks = 0;
@@ -685,7 +688,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	  if (spacepoints.size()<5) 
 	    { sppt++; rePass0 = 3; continue;} // for now...
 		  
-	  mf::LogWarning("Track3DKalmanSPS")<<"\n\t found "<<spacepoints.size()<<" 3D spacepoint(s) for this element of std::vector<art:PtrVector> spacepoints. \n";
+	  if(fGenfPRINT) mf::LogWarning("Track3DKalmanSPS")<<"\n\t found "<<spacepoints.size()<<" 3D spacepoint(s) for this element of std::vector<art:PtrVector> spacepoints. \n";
 	  
 	  //const double resolution = posErr.Mag(); 
 	  //	  
@@ -811,13 +814,13 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	      // track and give large angular deviations which
 	      // will kill the fit.
 	      mom.SetMag(2.0 * mom.Mag()); 
-	      mf::LogWarning("Track3DKalmanSPS")<<"Uncontained track ... ";
+	      if(fGenfPRINT) mf::LogWarning("Track3DKalmanSPS")<<"Uncontained track ... ";
 	      fDecimateHere = fDecimateU;
 	      fMaxUpdateHere = fMaxUpdateU;
 	    }
 	  else
 	    {
-	      mf::LogWarning("Track3DKalmanSPS")<<"Contained track ... Run "<<evt.run()<<" Event "<<evt.id().event();
+	      if(fGenfPRINT) mf::LogWarning("Track3DKalmanSPS")<<"Contained track ... Run "<<evt.run()<<" Event "<<evt.id().event();
 	      // Don't decimate contained tracks as drastically, 
 	      // and omit only very large corrections ...
 	      // which hurt only high momentum tracks.
@@ -957,7 +960,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		    }
 	      
 	      
-		  mf::LogDebug("Track3DKalmanSPS: ") << "ihit xyz..." << spt3[0]<<","<< spt3[1]<<","<< spt3[2];
+		  if(fGenfPRINT) mf::LogDebug("Track3DKalmanSPS: ") << "ihit xyz..." << spt3[0]<<","<< spt3[1]<<","<< spt3[2];
 
 		  fitTrack.addHit(new genf::PointHit(spt3,err3),
 				  1,//dummy detector id
@@ -967,13 +970,13 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		  fptsNo++;
 		} // end loop over spacepoints.
 	  
-	      if (fptsNo<=4) // Cuz 1st 2 in each direction don't count. Should have, say, 3 more.
+	      if (fptsNo<=fMinNumSppts) // Cuz 1st 2 in each direction don't count. Should have, say, 3 more.
 		{ 
-		  mf::LogWarning("Track3DKalmanSPS") << "Bailing cuz only " << fptsNo << " spacepoints.";
+		  if(fGenfPRINT) mf::LogWarning("Track3DKalmanSPS") << "Bailing cuz only " << fptsNo << " spacepoints.";
 		  rePass++;
 		  continue;
 		} 
-	      mf::LogWarning("Track3DKalmanSPS") << "Fitting on " << fptsNo << " spacepoints.";
+	      if(fGenfPRINT) mf::LogWarning("Track3DKalmanSPS") << "Fitting on " << fptsNo << " spacepoints.";
 	      //      std::cout<<"Track3DKalmanSPS about to do GFKalman."<<std::endl;
 	      genf::GFKalman k;
 	      k.setBlowUpFactor(5); // 500 out of box. EC, 6-Jan-2011.
@@ -1016,12 +1019,12 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	  
 	      if(rep->getStatusFlag()==0) // 0 is successful completion
 		{
-		  mf::LogWarning("Track3DKalmanSPS") << __FILE__ << " " << __LINE__ ;
-		  mf::LogWarning("Track3DKalmanSPS") << "Track3DKalmanSPS.cxx: Original plane:";
+		  if(fGenfPRINT) mf::LogWarning("Track3DKalmanSPS") << __FILE__ << " " << __LINE__ ;
+		  if(fGenfPRINT) mf::LogWarning("Track3DKalmanSPS") << "Track3DKalmanSPS.cxx: Original plane:";
 		  if(fGenfPRINT) planeG.Print();
-		  mf::LogWarning("Track3DKalmanSPS") << "Current (fit) reference Plane:";
+		  if(fGenfPRINT) mf::LogWarning("Track3DKalmanSPS") << "Current (fit) reference Plane:";
 		  if(fGenfPRINT) rep->getReferencePlane().Print();
-		  mf::LogInfo("Track3DKalmanSPS") << "Track3DKalmanSPS.cxx: Last reference Plane:";
+		  if(fGenfPRINT) mf::LogInfo("Track3DKalmanSPS") << "Track3DKalmanSPS.cxx: Last reference Plane:";
 		  if(fGenfPRINT) rep->getLastPlane().Print();
 		  if(fGenfPRINT) 
 		    {
@@ -1089,7 +1092,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		      chi2ndf = (Float_t)(chi2/ndf);
 		  
 		      nTrks++;
-		      mf::LogWarning("Track3DKalmanSPS") << "Track3DKalmanSPS about to do tree->Fill(). Chi2/ndf is " << chi2/ndf << ".";
+		      if(fGenfPRINT) mf::LogWarning("Track3DKalmanSPS") << "Track3DKalmanSPS about to do tree->Fill(). Chi2/ndf is " << chi2/ndf << ".";
 		      fpMCMom[3] = MCMomentum.Mag();
 		      for (int ii=0;ii<3;++ii)
 			{
