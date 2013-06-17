@@ -834,6 +834,7 @@ namespace vertex{
 // ###################################################################
 
 double x_3dVertex_dupRemoved[100000] = {0.}, y_3dVertex_dupRemoved[100000] = {0.}, z_3dVertex_dupRemoved[100000] = {0.};
+double strength_3dVertex_dubRemoved[10000] = {0.};
 int n3dVertex_dupRemoved = 0;
 
 for(size_t dup = 0; dup < n3dVertex; dup ++)
@@ -995,12 +996,11 @@ double TwoDvertexStrength = 0;
 	// ###     vertex that are within 3 cm of the vertex   ###
 	int totalGood = 0;
 	int nMerges = 0;
-	double x_good[1000] = {0.}, y_good[1000] = {0.}, z_good[1000] = {0.};
+	double x_good[1000] = {0.}, y_good[1000] = {0.}, z_good[1000] = {0.}, strength_good[1000] = {0.};
 	
 	//std::cout<<" n3dVertex = "<<n3dVertex<<std::endl;
 	if (n3dVertex_dupRemoved > 1)
 		{
-		TwoDvertexStrength = 1;
 		//std::cout<<" ### In case 2 ###"<<std::endl;
 		// ######################################################
 		// ###     Setting a limit to the number of merges    ###
@@ -1009,7 +1009,8 @@ double TwoDvertexStrength = 0;
 		int LimitMerge = 3 * n3dVertex_dupRemoved;
 		// ### Trying to merge nearby verticies found ###
 		for( int merge1 = 0; merge1 < n3dVertex_dupRemoved; merge1++)
-			{  
+			{
+			TwoDvertexStrength = 1;  
 			for( int merge2 = n3dVertex ; merge2 > merge1; merge2--)
 				{
 				double temp1_x = x_3dVertex[merge1];
@@ -1030,9 +1031,9 @@ double TwoDvertexStrength = 0;
 				std::cout<<std::endl;*/
 				
 				// ### Merge the verticies if they are within 1.5 cm of each other ###
-				if ( (std::abs( temp1_x - temp2_x ) < 1.5 && temp1_x != 0 && temp2_x !=0) &&
-				     (std::abs( temp1_y - temp2_y ) < 1.5 && temp1_y != 0 && temp2_y !=0) &&
-				     (std::abs( temp1_z - temp2_z ) < 1.5 && temp1_z != 0 && temp2_z !=0) &&
+				if ( (std::abs( temp1_x - temp2_x ) < 1.0 && temp1_x != 0 && temp2_x !=0) &&
+				     (std::abs( temp1_y - temp2_y ) < 1.0 && temp1_y != 0 && temp2_y !=0) &&
+				     (std::abs( temp1_z - temp2_z ) < 1.0 && temp1_z != 0 && temp2_z !=0) &&
 				      nMerges < LimitMerge)
 				    	{
 					//std::cout<<" Yup, I am going to merge these! "<<std::endl;
@@ -1057,7 +1058,7 @@ double TwoDvertexStrength = 0;
 					// ### If we merged the verticies then increase its relative strength ###
 					// ######################################################################
 					TwoDvertexStrength++;
-					
+					strength_3dVertex_dubRemoved[n3dVertex_dupRemoved] = TwoDvertexStrength;
 					//std::cout<<" The new merged vertex = "<<x_3dVertex[n3dVertex]<<" , "<<y_3dVertex[n3dVertex]<<" , "<<z_3dVertex[n3dVertex]<<std::endl;
 					
 					
@@ -1102,6 +1103,7 @@ double TwoDvertexStrength = 0;
 					x_good[totalGood] =  x_3dVertex[goodvtx];
 					y_good[totalGood] =  y_3dVertex[goodvtx];
 					z_good[totalGood] =  z_3dVertex[goodvtx];
+					strength_good[totalGood] = strength_3dVertex_dubRemoved[goodvtx];
 					totalGood++;
 					}//<---End removing duplicates
 			
@@ -1131,7 +1133,7 @@ double TwoDvertexStrength = 0;
 					// ###      increase the vertex strength again            ###
 					// ##########################################################
 					
-					TwoDvertexStrength++;
+					strength_good[l] = strength_good[l]+1;
 					
 					
 					//std::cout<<std::endl;
@@ -1167,11 +1169,13 @@ double TwoDvertexStrength = 0;
 						geo::View_t View	   = geom->View(EndPoint2d_Channel);
 						geo::WireID wireID(cstat,tpc,i,EndPoint2d_Wire);
 						
+						int EndPoint2dstrength = strength_good[l];
+						
 						
 						// ### Saving the 2d Vertex found ###
 						recob::EndPoint2D vertex( EndPoint2d_TimeTick , //<---TimeTick
 									  wireID ,		//<---geo::WireID
-									  TwoDvertexStrength ,	//<---Vtx strength (JA: ?)
+									  EndPoint2dstrength ,	//<---Vtx strength (JA: ?)
 									  epcol->size() ,	//<---Vtx ID (JA: ?)
 									  View ,		//<---Vtx View 	
 									  1 );			//<---Vtx Total Charge (JA: Need to figure this one?)

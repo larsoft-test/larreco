@@ -438,10 +438,17 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
 			// ############################################################################
 			// ### Calculating the nearest wire the vertex corresponds to in each plane ###
 			// ############################################################################
-			// ################################# Plane 0 ####################################
-	
-			//                  geom->NearestWire(worldLoc[3], Plane#, TPC#, Cyrostat#)
-			VtxWireNum[plane] = geom->NearestWire(truth_vertex,plane,tpc,cstat);
+			
+			try
+				{
+				//                  geom->NearestWire(worldLoc[3], Plane#, TPC#, Cyrostat#)
+				VtxWireNum[plane] = geom->NearestWire(truth_vertex,plane,tpc,cstat);
+				}
+			catch(...)
+				{
+				mf::LogWarning("FeatureVertexFinderAna") << "Can't find nearest wire";
+				continue;
+				}
 			//             detp->ConvertXToTicks(xpos, plane#, TPC#, Cyrostat#)
 			VtxTimeTick[plane] = detp->ConvertXToTicks(truth_vertex[0],plane,tpc,cstat) +  detp->GetXTicksOffset(plane, tpc, cstat);
 			
@@ -652,13 +659,13 @@ fTwoDNVtxPlane2->Fill( n2dVtxPlane2 );
    
    		// === Finding the Delta X, Y, Z between Reco vtx and truth ===
 	
-   		double DeltaX = truth_vertex[0] - xyz[0];
-   		double DeltaY = truth_vertex[1] - xyz[1];
-   		double DeltaZ = truth_vertex[2] - xyz[2];
+   		double DeltaX = xyz[0] - truth_vertex[0] ;
+   		double DeltaY = xyz[1] - truth_vertex[1] ;
+   		double DeltaZ = xyz[2] - truth_vertex[2] ;
    	
-   		double DeltaXoverTrueX = DeltaX / xyz[0];
-   		double DeltaYoverTrueY = DeltaY / xyz[1];
-   		double DeltaZoverTrueZ = DeltaZ / xyz[2];
+   		double DeltaXoverTrueX = DeltaX / truth_vertex[0];
+   		double DeltaYoverTrueY = DeltaY / truth_vertex[0];
+   		double DeltaZoverTrueZ = DeltaZ / truth_vertex[0];
    
    		fRecoVtxXPos->Fill( xyz[0] );
    		fRecoVtxYPos->Fill( xyz[1] );
