@@ -146,12 +146,16 @@ namespace cluster{
     std::vector<recob::EndPoint2D> endcol; 
 
     // Pass information into CornerFinder
-    //fcornerfinder.TakeInRaw(evt); //this makes the histograms
-    //fcornerfinder.get_feature_points_LineIntegralScore(endcol); //this fills our vector with feature points
+    //fcornerfinder.TakeInRaw(evt);
+    //fcornerfinder.get_feature_points_LineIntegralScore(endcol);
 
     // get the ChannelFilter
     filter::ChannelFilter chanFilt;
-        
+      
+  
+
+    //std::cout << "hitcol->size() " << hitcol->size() << std::endl;
+
     for(unsigned int cstat = 0; cstat < geom->Ncryostats(); ++cstat){
       for(unsigned int tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
         for(unsigned int plane = 0; plane < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
@@ -163,15 +167,22 @@ namespace cluster{
 	       hit->WireID().Cryostat == cstat) allhits.push_back(hit);  
 	  }  
 
-
+	  //double maxStrength = 0;
+	  //int iMaxStrength = -1;
 	  //for(size_t i = 0; i< endcol.size(); ++i){
 	    //if(endcol[i].WireID().Plane    == plane && 
 	       //endcol[i].WireID().TPC      == tpc   && 
 	       //endcol[i].WireID().Cryostat == cstat){allends.push_back(endcol[i]);  
-	      //std::cout << "wire: " << endcol[i].WireID().Wire << " time: " << endcol[i].DriftTime() << std::endl;
+	      //std::cout << "wire: " << endcol[i].WireID().Wire << " time: " << endcol[i].DriftTime() << " strength: " << endcol[i].Strength() << std::endl;
+	      //if(maxStrength < endcol[i].Strength()){
+		//maxStrength = endcol[i].Strength();
+		//iMaxStrength = i;
+	      //}
 	    //}
 	  //}  
 
+	  //std::cout << "Strongest vertex" << std::endl;
+	  //std::cout << "wire: " << endcol[iMaxStrength].WireID().Wire << " time: " << endcol[iMaxStrength].DriftTime() << " strength: " << endcol[iMaxStrength].Strength() << std::endl;
 
 
           //Begin clustering with fuzzy
