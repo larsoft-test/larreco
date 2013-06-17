@@ -162,7 +162,7 @@ private:
   Double_t fMaxUpdate;
   Double_t fErrScaleSTh; // simulated theta error scale 
   Double_t fErrScaleMTh; // measured theta error scale 
-
+  bool fGENfPRINT;
   //TH1D* fUpdate;
   //TH1D* fIhitvUpdate;
 

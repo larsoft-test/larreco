@@ -468,6 +468,7 @@ double genf::RKTrackRep::extrapolate(const GFDetPlane& pl,
   TVector3 u=fRefPlane.getU();
   TVector3 v=fRefPlane.getV();
   TVector3 w=u.Cross(v);
+  bool kGENfPRINT(false);
 
   J_pM[0][3] = u.X();J_pM[0][4]=v.X(); // dx/du
   J_pM[1][3] = u.Y();J_pM[1][4]=v.Y();
@@ -495,14 +496,14 @@ double genf::RKTrackRep::extrapolate(const GFDetPlane& pl,
   cov7x7 = J_pM*(fCov*J_pM_transp);
   if (cov7x7[0][0]>=1000. || cov7x7[0][0]<1.E-50)
     { 
-      std::cout << "RKTrackRep::extrapolate(): cov7x7[0][0] is crazy. Rescale off-diags. Try again. fCov, cov7x7 were: " << std::endl;
-      fCov.Print();
-      cov7x7.Print();
+      if (kGENfPRINT) std::cout << "RKTrackRep::extrapolate(): cov7x7[0][0] is crazy. Rescale off-diags. Try again. fCov, cov7x7 were: " << std::endl;
+      if (kGENfPRINT) fCov.Print();
+      if (kGENfPRINT) cov7x7.Print();
       rescaleCovOffDiags();
       cov7x7 = J_pM*(fCov*J_pM_transp);
-      std::cout << "New cov7x7 and fCov are ... " << std::endl;
-      cov7x7.Print();
-      fCov.Print();
+      if (kGENfPRINT) std::cout << "New cov7x7 and fCov are ... " << std::endl;
+      if (kGENfPRINT) cov7x7.Print();
+      if (kGENfPRINT) fCov.Print();
     }
 
 

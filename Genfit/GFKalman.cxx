@@ -41,7 +41,7 @@
 #define COVEXC "cov_is_zero"
 
 
-genf::GFKalman::GFKalman():fInitialDirection(1),fNumIt(3),fBlowUpFactor(50.),fMomLow(-100.0),fMomHigh(100.0),fMaxUpdate(1.0),fErrScaleSTh(1.0),fErrScaleMTh(1.0)
+genf::GFKalman::GFKalman():fInitialDirection(1),fNumIt(3),fBlowUpFactor(50.),fMomLow(-100.0),fMomHigh(100.0),fMaxUpdate(1.0),fErrScaleSTh(1.0),fErrScaleMTh(1.0), fGENfPRINT(false)
 {
   art::ServiceHandle<art::TFileService> tfs;
 }
@@ -419,10 +419,10 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
     }
   */
   if(cov[0][0]<1.E-50 || TMath::IsNaN(cov[0][0])){
-        std::cout<<"GFKalman::processHit() 0. Calling Exception."<<std::endl;
+    //std::cout<<"GFKalman::processHit() 0. Calling Exception."<<std::endl;
 	GFException exc(COVEXC,__LINE__,__FILE__);
-	cov.Print();
-        std::cout<<"GFKalman::processHit() 1. No longer throw exception. Force cov[0][0] to 0.01."<<std::endl;
+	if (fGENfPRINT) cov.Print();
+        if (fGENfPRINT) std::cout<<"GFKalman::processHit() 1. No longer throw exception. Force cov[0][0] to 0.01."<<std::endl;
         // std::cout<<"GFKalman::processHit() 1. About to throw GFException."<<std::endl;
 	cov = covFilt;
 	//	throw exc;
@@ -781,7 +781,7 @@ genf::GFKalman::calcGain(const TMatrixT<Double_t>& cov,
 	matrices.push_back(covsum1);
 	matrices.push_back(covsum);
 	exc.setMatrices("cov, HitCov, covsum1 and covsum",matrices);
-    throw exc;
+	throw exc;
 
   }
 
