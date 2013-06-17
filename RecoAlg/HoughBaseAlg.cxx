@@ -27,6 +27,7 @@ extern "C" {
 #include <algorithm>
 #include <vector>
 #include <stdint.h>
+#include <boost/bind.hpp>
 
 #include <TF1.h>
 #include <TH1D.h>
@@ -428,8 +429,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
       }
       //std::cout << "missedHits " << missedHits << std::endl;
       //std::cout << "lastHits.size() " << lastHits.size() << std::endl;
-      //std::cout << "missedHits/lastHits.size() " << (double)missedHits/(double)lastHits.size() << std::endl;
-      if((double)missedHits/(double)lastHits.size() > fMissedHitsToLineSize)
+      //std::cout << "missedHits/lastHits.size() " << (double)missedHits/((double)lastHits.size()-1) << std::endl;
+      if((double)missedHits/((double)lastHits.size()-1)> fMissedHitsToLineSize)
         continue;
 
 
@@ -999,12 +1000,14 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
       }
     }
     //std::cout << "directionBin1: " << directionBin1 << " directionBin2: " << directionBin2 << std::endl;
-    if(directionBin1<directionBin2 && houghCorners[0].strength == houghCorners[1].strength){
-      //std::cout << "But, I'm probably moving right" << std::endl;
+    //if(directionBin1<directionBin2 && houghCorners[0].strength == houghCorners[1].strength){
+    if(directionBin1<directionBin2){
+      //std::cout << "I'm probably moving right" << std::endl;
       showerDirection = 1;
     }
-    else if(directionBin1>directionBin2 && houghCorners[0].strength == houghCorners[1].strength){
-      //std::cout << "But, I'm probably moving left" << std::endl;
+    //else if(directionBin1>directionBin2 && houghCorners[0].strength == houghCorners[1].strength){
+    else if(directionBin1>directionBin2){
+      //std::cout << "I'm probably moving left" << std::endl;
       showerDirection = -1;
     }
 
@@ -1040,7 +1043,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
             //std::cout << hits[linesFoundItr->iMinWire]->WireID().Wire << " " << hits[linesFoundItr->iMaxWire]->WireID().Wire << std::endl;
             //std::cout << hits[linesFoundItr->iMinWire]->PeakTime() << " " <<hits[linesFoundItr->iMaxWire]->PeakTime() << std::endl;
             if((hits[linesFoundItr->iMinWire]->PeakTime() < showerLineUpPointMin && hits[linesFoundItr->iMinWire]->PeakTime() > showerLineDownPointMin)
-              || (hits[linesFoundItr->iMaxWire]->PeakTime() < showerLineUpPointMax && hits[linesFoundItr->iMaxWire]->PeakTime() > showerLineDownPointMax)){
+              && (hits[linesFoundItr->iMaxWire]->PeakTime() < showerLineUpPointMax && hits[linesFoundItr->iMaxWire]->PeakTime() > showerLineDownPointMax)){
               for(auto showerLinesItr2 = showerLines.begin(); showerLinesItr2!= showerLines.end(); showerLinesItr2++){
                 if(showerLinesItr2->clusterNumber == linesFoundItr->clusterNumber)
                   showerLinesItr2->showerMerged=true;
@@ -1070,7 +1073,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
             //std::cout << hits[linesFoundItr->iMinWire]->WireID().Wire << " " << hits[linesFoundItr->iMaxWire]->WireID().Wire << std::endl;
             //std::cout << hits[linesFoundItr->iMinWire]->PeakTime() << " " <<hits[linesFoundItr->iMaxWire]->PeakTime() << std::endl;
             if((hits[linesFoundItr->iMinWire]->PeakTime() > showerLineUpPointMin && hits[linesFoundItr->iMinWire]->PeakTime() < showerLineDownPointMin)
-              || (hits[linesFoundItr->iMaxWire]->PeakTime() > showerLineUpPointMax && hits[linesFoundItr->iMaxWire]->PeakTime() < showerLineDownPointMax)){
+              && (hits[linesFoundItr->iMaxWire]->PeakTime() > showerLineUpPointMax && hits[linesFoundItr->iMaxWire]->PeakTime() < showerLineDownPointMax)){
               for(auto showerLinesItr2 = showerLines.begin(); showerLinesItr2!= showerLines.end(); showerLinesItr2++){
                 if(showerLinesItr2->clusterNumber == linesFoundItr->clusterNumber)
                   showerLinesItr2->showerMerged=true;
@@ -1270,342 +1273,80 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
         }
       }
 
-      // Find four points closest to closestToMerge on the toMerge[i] line
-      int closestToMerge1=-1;
-      int closestToMerge2=-1;
-      int closestToMerge3=-1;
-      int closestToMerge4=-1;
-      int closestToMerge5=-1;
-      int closestToMerge6=-1;
-      int closestToMerge7=-1;
-      int closestToMerge8=-1;
-      int closestToMerge9=-1;
-      double closestToMergeDist1=999999;
-      double closestToMergeDist2=999999;
-      double closestToMergeDist3=999999;
-      double closestToMergeDist4=999999;
-      double closestToMergeDist5=999999;
-      double closestToMergeDist6=999999;
-      double closestToMergeDist7=999999;
-      double closestToMergeDist8=999999;
-      double closestToMergeDist9=999999;
+      // Find up to 9 more points closest to closestToMerge on the toMerge[i] line
+      // check if it's closer, insert, delete
+      std::vector<std::pair<int,double> > closestToMergeDist;
       for (auto toMergePHitItr = linesFound->at(*toMergeItr).pHit.begin(); toMergePHitItr != linesFound->at(*toMergeItr).pHit.end(); toMergePHitItr++) {
         if(closestToMerge==toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin())
           continue;
         double distance = std::sqrt(pow(toMergePHitItr->first-linesFound->at(*toMergeItr).pHit[closestToMerge].first,2)+
                   pow(toMergePHitItr->second-linesFound->at(*toMergeItr).pHit[closestToMerge].second,2));
-        if(closestToMergeDist1 > distance){
-          closestToMergeDist9 = closestToMergeDist8;
-          closestToMerge9 = closestToMerge8;
-          closestToMergeDist8 = closestToMergeDist7;
-          closestToMerge8 = closestToMerge7;
-          closestToMergeDist7 = closestToMergeDist6;
-          closestToMerge7 = closestToMerge6;
-          closestToMergeDist6 = closestToMergeDist5;
-          closestToMerge6 = closestToMerge5;
-          closestToMergeDist5 = closestToMergeDist4;
-          closestToMerge5 = closestToMerge4;
-          closestToMergeDist4 = closestToMergeDist3;
-          closestToMerge4 = closestToMerge3;
-          closestToMergeDist3 = closestToMergeDist2;
-          closestToMerge3 = closestToMerge2;
-          closestToMergeDist2 = closestToMergeDist1;
-          closestToMerge2 = closestToMerge1;
-          closestToMergeDist1 = distance;
-          closestToMerge1 = toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin();
+
+        bool foundCloser = false;
+        for(auto closestToMergeDistItr = closestToMergeDist.begin(); closestToMergeDistItr != closestToMergeDist.end(); closestToMergeDistItr++) {
+          if(closestToMergeDistItr->second > distance){
+            foundCloser = true;
+            break;
+          }
         }
-        else if(closestToMergeDist2 > distance){
-          closestToMergeDist9 = closestToMergeDist8;
-          closestToMerge9 = closestToMerge8;
-          closestToMergeDist8 = closestToMergeDist7;
-          closestToMerge8 = closestToMerge7;
-          closestToMergeDist7 = closestToMergeDist6;
-          closestToMerge7 = closestToMerge6;
-          closestToMergeDist6 = closestToMergeDist5;
-          closestToMerge6 = closestToMerge5;
-          closestToMergeDist5 = closestToMergeDist4;
-          closestToMerge5 = closestToMerge4;
-          closestToMergeDist4 = closestToMergeDist3;
-          closestToMerge4 = closestToMerge3;
-          closestToMergeDist3 = closestToMergeDist2;
-          closestToMerge3 = closestToMerge2;
-          closestToMergeDist2 = distance;
-          closestToMerge2 = toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin();
+        if(foundCloser 
+            || closestToMergeDist.size() < linesFound->at(*toMergeItr).pHit.size()-1
+            || closestToMergeDist.size() < 9){
+          closestToMergeDist.push_back(std::make_pair(toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin(),distance));
+          std::sort(closestToMergeDist.begin(), closestToMergeDist.end(), boost::bind(&std::pair<int,double>::second,_1) < boost::bind(&std::pair<int,double>::second,_2));
         }
-        else if(closestToMergeDist3 > distance){
-          closestToMergeDist9 = closestToMergeDist8;
-          closestToMerge9 = closestToMerge8;
-          closestToMergeDist8 = closestToMergeDist7;
-          closestToMerge8 = closestToMerge7;
-          closestToMergeDist7 = closestToMergeDist6;
-          closestToMerge7 = closestToMerge6;
-          closestToMergeDist6 = closestToMergeDist5;
-          closestToMerge6 = closestToMerge5;
-          closestToMergeDist5 = closestToMergeDist4;
-          closestToMerge5 = closestToMerge4;
-          closestToMergeDist4 = closestToMergeDist3;
-          closestToMerge4 = closestToMerge3;
-          closestToMergeDist3 = distance;
-          closestToMerge3 = toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin();
-        }
-        else if(closestToMergeDist4 > distance){
-          closestToMergeDist9 = closestToMergeDist8;
-          closestToMerge9 = closestToMerge8;
-          closestToMergeDist8 = closestToMergeDist7;
-          closestToMerge8 = closestToMerge7;
-          closestToMergeDist7 = closestToMergeDist6;
-          closestToMerge7 = closestToMerge6;
-          closestToMergeDist6 = closestToMergeDist5;
-          closestToMerge6 = closestToMerge5;
-          closestToMergeDist5 = closestToMergeDist4;
-          closestToMerge5 = closestToMerge4;
-          closestToMergeDist4 = distance;
-          closestToMerge4 = toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin();
-        }
-        else if(closestToMergeDist5 > distance){
-          closestToMergeDist9 = closestToMergeDist8;
-          closestToMerge9 = closestToMerge8;
-          closestToMergeDist8 = closestToMergeDist7;
-          closestToMerge8 = closestToMerge7;
-          closestToMergeDist7 = closestToMergeDist6;
-          closestToMerge7 = closestToMerge6;
-          closestToMergeDist6 = closestToMergeDist5;
-          closestToMerge6 = closestToMerge5;
-          closestToMergeDist5 = closestToMergeDist4;
-          closestToMerge5 = closestToMerge4;
-        }
-        else if(closestToMergeDist6 > distance){
-          closestToMergeDist9 = closestToMergeDist8;
-          closestToMerge9 = closestToMerge8;
-          closestToMergeDist8 = closestToMergeDist7;
-          closestToMerge8 = closestToMerge7;
-          closestToMergeDist7 = closestToMergeDist6;
-          closestToMerge7 = closestToMerge6;
-          closestToMergeDist6 = closestToMergeDist5;
-          closestToMerge6 = closestToMerge5;
-        }
-        else if(closestToMergeDist7 > distance){
-          closestToMergeDist9 = closestToMergeDist8;
-          closestToMerge9 = closestToMerge8;
-          closestToMergeDist8 = closestToMergeDist7;
-          closestToMerge8 = closestToMerge7;
-          closestToMergeDist7 = closestToMergeDist6;
-          closestToMerge7 = closestToMerge6;
-        }
-        else if(closestToMergeDist8 > distance){
-          closestToMergeDist9 = closestToMergeDist8;
-          closestToMerge9 = closestToMerge8;
-          closestToMergeDist8 = closestToMergeDist7;
-          closestToMerge8 = closestToMerge7;
-        }
-        else if(closestToMergeDist9 > distance){
-          closestToMergeDist9 = closestToMergeDist8;
-          closestToMerge9 = closestToMerge8;
-        }
+        if(closestToMergeDist.size() > linesFound->at(*toMergeItr).pHit.size()-1 ||
+          closestToMergeDist.size() > 9)
+          closestToMergeDist.erase(closestToMergeDist.end());
       }
+      //for(auto closestToMergeDistItr = closestToMergeDist.begin(); closestToMergeDistItr != closestToMergeDist.end();
+        //closestToMergeDistItr++) 
+        //std::cout << closestToMergeDistItr->first << " " << closestToMergeDistItr->second << std::endl;
 
 
-      // Find three points closest to closestToMerge on the clusIndexStart line
-      int closestClusIndexStart1=-1;
-      int closestClusIndexStart2=-1;
-      int closestClusIndexStart3=-1;
-      int closestClusIndexStart4=-1;
-      int closestClusIndexStart5=-1;
-      int closestClusIndexStart6=-1;
-      int closestClusIndexStart7=-1;
-      int closestClusIndexStart8=-1;
-      int closestClusIndexStart9=-1;
-      double closestClusIndexStartDist1=999999;
-      double closestClusIndexStartDist2=999999;
-      double closestClusIndexStartDist3=999999;
-      double closestClusIndexStartDist4=999999;
-      double closestClusIndexStartDist5=999999;
-      double closestClusIndexStartDist6=999999;
-      double closestClusIndexStartDist7=999999;
-      double closestClusIndexStartDist8=999999;
-      double closestClusIndexStartDist9=999999;
-      for (auto clusIndStPHitItr = linesFound->at(clusIndexStart).pHit.begin(); clusIndStPHitItr != linesFound->at(clusIndexStart).pHit.end(); clusIndStPHitItr++) {
-        if(closestClusIndexStart==clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin())
+
+      // Find up to 9 more points closest to closestToMerge on the clusIndexStart line
+      std::vector<std::pair<int,double> > closestClusIndexStartDist;
+      for (auto clusIndexStartPHitItr = linesFound->at(clusIndexStart).pHit.begin(); clusIndexStartPHitItr != linesFound->at(clusIndexStart).pHit.end(); clusIndexStartPHitItr++) {
+        if(closestClusIndexStart==clusIndexStartPHitItr-linesFound->at(clusIndexStart).pHit.begin())
           continue;
-        double distance = std::sqrt(pow(clusIndStPHitItr->first-linesFound->at(clusIndexStart).pHit[closestClusIndexStart].first,2)+
-                  pow(clusIndStPHitItr->second-linesFound->at(clusIndexStart).pHit[closestClusIndexStart].second,2));
-        if(closestClusIndexStartDist1 > distance){
-          closestClusIndexStartDist9 = closestClusIndexStartDist8;
-          closestClusIndexStart9 = closestClusIndexStart8;
-          closestClusIndexStartDist8 = closestClusIndexStartDist7;
-          closestClusIndexStart8 = closestClusIndexStart7;
-          closestClusIndexStartDist7 = closestClusIndexStartDist6;
-          closestClusIndexStart7 = closestClusIndexStart6;
-          closestClusIndexStartDist6 = closestClusIndexStartDist5;
-          closestClusIndexStart6 = closestClusIndexStart5;
-          closestClusIndexStartDist5 = closestClusIndexStartDist4;
-          closestClusIndexStart5 = closestClusIndexStart4;
-          closestClusIndexStartDist4 = closestClusIndexStartDist3;
-          closestClusIndexStart4 = closestClusIndexStart3;
-          closestClusIndexStartDist3 = closestClusIndexStartDist2;
-          closestClusIndexStart3 = closestClusIndexStart2;
-          closestClusIndexStartDist2 = closestClusIndexStartDist1;
-          closestClusIndexStart2 = closestClusIndexStart1;
-          closestClusIndexStartDist1 = distance;
-          closestClusIndexStart1 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
+        double distance = std::sqrt(pow(clusIndexStartPHitItr->first-linesFound->at(clusIndexStart).pHit[closestClusIndexStart].first,2)+
+                  pow(clusIndexStartPHitItr->second-linesFound->at(clusIndexStart).pHit[closestClusIndexStart].second,2));
+
+        bool foundCloser = false;
+        for(auto closestClusIndexStartDistItr = closestClusIndexStartDist.begin(); closestClusIndexStartDistItr != closestClusIndexStartDist.end(); closestClusIndexStartDistItr++) {
+          if(closestClusIndexStartDistItr->second > distance){
+            foundCloser = true;
+            break;
+          }
         }
-        else if(closestClusIndexStartDist2 > distance){
-          closestClusIndexStartDist9 = closestClusIndexStartDist8;
-          closestClusIndexStart9 = closestClusIndexStart8;
-          closestClusIndexStartDist8 = closestClusIndexStartDist7;
-          closestClusIndexStart8 = closestClusIndexStart7;
-          closestClusIndexStartDist7 = closestClusIndexStartDist6;
-          closestClusIndexStart7 = closestClusIndexStart6;
-          closestClusIndexStartDist6 = closestClusIndexStartDist5;
-          closestClusIndexStart6 = closestClusIndexStart5;
-          closestClusIndexStartDist5 = closestClusIndexStartDist4;
-          closestClusIndexStart5 = closestClusIndexStart4;
-          closestClusIndexStartDist4 = closestClusIndexStartDist3;
-          closestClusIndexStart4 = closestClusIndexStart3;
-          closestClusIndexStartDist3 = closestClusIndexStartDist2;
-          closestClusIndexStart3 = closestClusIndexStart2;
-          closestClusIndexStartDist2 = distance;
-          closestClusIndexStart2 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
+        if(foundCloser 
+            || closestClusIndexStartDist.size() < linesFound->at(clusIndexStart).pHit.size()-1
+            || closestClusIndexStartDist.size() < 9){
+          closestClusIndexStartDist.push_back(std::make_pair(clusIndexStartPHitItr-linesFound->at(clusIndexStart).pHit.begin(),distance));
+          std::sort(closestClusIndexStartDist.begin(), closestClusIndexStartDist.end(), boost::bind(&std::pair<int,double>::second,_1) < boost::bind(&std::pair<int,double>::second,_2));
         }
-        else if(closestClusIndexStartDist3 > distance){
-          closestClusIndexStartDist9 = closestClusIndexStartDist8;
-          closestClusIndexStart9 = closestClusIndexStart8;
-          closestClusIndexStartDist8 = closestClusIndexStartDist7;
-          closestClusIndexStart8 = closestClusIndexStart7;
-          closestClusIndexStartDist7 = closestClusIndexStartDist6;
-          closestClusIndexStart7 = closestClusIndexStart6;
-          closestClusIndexStartDist6 = closestClusIndexStartDist5;
-          closestClusIndexStart6 = closestClusIndexStart5;
-          closestClusIndexStartDist5 = closestClusIndexStartDist4;
-          closestClusIndexStart5 = closestClusIndexStart4;
-          closestClusIndexStartDist4 = closestClusIndexStartDist3;
-          closestClusIndexStart4 = closestClusIndexStart3;
-          closestClusIndexStartDist3 = distance;
-          closestClusIndexStart3 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
-        }
-        else if(closestClusIndexStartDist4 > distance){
-          closestClusIndexStartDist9 = closestClusIndexStartDist8;
-          closestClusIndexStart9 = closestClusIndexStart8;
-          closestClusIndexStartDist8 = closestClusIndexStartDist7;
-          closestClusIndexStart8 = closestClusIndexStart7;
-          closestClusIndexStartDist7 = closestClusIndexStartDist6;
-          closestClusIndexStart7 = closestClusIndexStart6;
-          closestClusIndexStartDist6 = closestClusIndexStartDist5;
-          closestClusIndexStart6 = closestClusIndexStart5;
-          closestClusIndexStartDist5 = closestClusIndexStartDist4;
-          closestClusIndexStart5 = closestClusIndexStart4;
-          closestClusIndexStartDist4 = distance;
-          closestClusIndexStart4 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
-        }
-        else if(closestClusIndexStartDist5 > distance){
-          closestClusIndexStartDist9 = closestClusIndexStartDist8;
-          closestClusIndexStart9 = closestClusIndexStart8;
-          closestClusIndexStartDist8 = closestClusIndexStartDist7;
-          closestClusIndexStart8 = closestClusIndexStart7;
-          closestClusIndexStartDist7 = closestClusIndexStartDist6;
-          closestClusIndexStart7 = closestClusIndexStart6;
-          closestClusIndexStartDist6 = closestClusIndexStartDist5;
-          closestClusIndexStart6 = closestClusIndexStart5;
-          closestClusIndexStartDist5 = closestClusIndexStartDist4;
-          closestClusIndexStart5 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
-        }
-        else if(closestClusIndexStartDist6 > distance){
-          closestClusIndexStartDist9 = closestClusIndexStartDist8;
-          closestClusIndexStart9 = closestClusIndexStart8;
-          closestClusIndexStartDist8 = closestClusIndexStartDist7;
-          closestClusIndexStart8 = closestClusIndexStart7;
-          closestClusIndexStartDist7 = closestClusIndexStartDist6;
-          closestClusIndexStart7 = closestClusIndexStart6;
-          closestClusIndexStartDist6 = closestClusIndexStartDist5;
-          closestClusIndexStart6 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
-        }
-        else if(closestClusIndexStartDist7 > distance){
-          closestClusIndexStartDist9 = closestClusIndexStartDist8;
-          closestClusIndexStart9 = closestClusIndexStart8;
-          closestClusIndexStartDist8 = closestClusIndexStartDist7;
-          closestClusIndexStart8 = closestClusIndexStart7;
-          closestClusIndexStartDist7 = closestClusIndexStartDist6;
-          closestClusIndexStart7 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
-        }
-        else if(closestClusIndexStartDist8 > distance){
-          closestClusIndexStartDist9 = closestClusIndexStartDist8;
-          closestClusIndexStart9 = closestClusIndexStart8;
-          closestClusIndexStartDist8 = closestClusIndexStartDist7;
-          closestClusIndexStart8 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
-        }
-        else if(closestClusIndexStartDist9 > distance){
-          closestClusIndexStartDist9 = closestClusIndexStartDist8;
-          closestClusIndexStart9 = clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
-        }
-      
+        if(closestClusIndexStartDist.size() > linesFound->at(clusIndexStart).pHit.size()-1 ||
+          closestClusIndexStartDist.size() > 9)
+          closestClusIndexStartDist.erase(closestClusIndexStartDist.end());
+     }
+
+
+
+      double toMergeAveCharge = linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge].first;
+      double toMergeAveSigmaCharge = linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge].second;
+      for(auto closestToMergeDistItr = closestToMergeDist.begin(); closestToMergeDistItr != closestToMergeDist.end(); closestToMergeDistItr++) {
+        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMergeDistItr->first].first;
+        toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMergeDistItr->first].second;
+      }
+      double clusIndexStartAveCharge = linesFound->at(clusIndexStart).pHitChargeSigma[closestToMerge].first;
+      double clusIndexStartAveSigmaCharge = linesFound->at(clusIndexStart).pHitChargeSigma[closestToMerge].first;
+      for(auto closestToMergeDistItr = closestToMergeDist.begin(); closestToMergeDistItr != closestToMergeDist.end(); closestToMergeDistItr++) {
+        clusIndexStartAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestToMergeDistItr->first].first;
+        clusIndexStartAveSigmaCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestToMergeDistItr->first].second;
       }
 
-      //Determine average charge and average sigma charge for each line around closest hits
-      double toMergeAveCharge = linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge].first+
-        linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge1].first+
-        linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge2].first+
-        linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge3].first+
-        linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge4].first;
-      //toMergeAveCharge/=5;
-      double clusIndexStartAveCharge = linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart].first+
-        linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart1].first+
-        linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart2].first+
-        linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart3].first+
-        linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart4].first;
-      //clusIndexStartAveCharge/=5;
-      //double toMergeAveSigmaCharge = linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge].second+
-        //linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge1].second+
-        //linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge2].second+
-        //linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge3].second+
-        //linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge4].second;
-      //toMergeAveSigmaCharge/=5;
-      //double clusIndexStartAveSigmaCharge = linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart].second+
-        //linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart1].second+
-        //linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart2].second+
-        //linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart3].second+
-        //linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart4].second;
-      //clusIndexStartAveSigmaCharge/=5;
 
-      // Do we have 6 or more hits for each line?
-      if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 5 && 
-          linesFound->at(*toMergeItr).pHitChargeSigma.size() > 5){
-        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge5].first;
-        clusIndexStartAveCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart5].first;
-        //toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge5].first;
-        //clusIndexStartAveSigmaCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart5].first;
-      }
-      // Do we have 7 or more hits for each line?
-      if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 6 && 
-          linesFound->at(*toMergeItr).pHitChargeSigma.size() > 6){
-        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge6].first;
-        clusIndexStartAveCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart6].first;
-        //toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge6].first;
-        //clusIndexStartAveSigmaCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart6].first;
-      }
-      // Do we have 8 or more hits for each line?
-      if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 7 && 
-          linesFound->at(*toMergeItr).pHitChargeSigma.size() > 7){
-        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge7].first;
-        clusIndexStartAveCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart7].first;
-        //toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge7].first;
-        //clusIndexStartAveSigmaCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart7].first;
-      }
-      // Do we have 9 or more hits for each line?
-      if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 8 && 
-          linesFound->at(*toMergeItr).pHitChargeSigma.size() > 8){
-        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge8].first;
-        clusIndexStartAveCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart8].first;
-        //toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge8].first;
-        //clusIndexStartAveSigmaCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart8].first;
-      }
-      // Do we have 10 or more hits for each line?
-      if(linesFound->at(clusIndexStart).pHitChargeSigma.size() > 9 && 
-          linesFound->at(*toMergeItr).pHitChargeSigma.size() > 9){
-        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge9].first;
-        clusIndexStartAveCharge +=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart9].first;
-        //toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge9].first;
-        //clusIndexStartAveSigmaCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestClusIndexStart9].first;
-      }
 
       double chargeAsymmetry = std::abs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
       //double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
