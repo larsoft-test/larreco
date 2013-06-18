@@ -139,7 +139,6 @@ namespace trkf {
     
     if(fInputSource==1)
       {
-	std::cout<<"SeedFinder: Getting space points from clusters"<<std::endl;
 	
 	std::vector<std::vector<recob::SpacePoint> > SpacePointVectors;
 	SpacePointVectors = GetSpacePointsFromClusters(fInputModuleLabel, evt);
@@ -160,11 +159,8 @@ namespace trkf {
       }else if(fInputSource==0)
       {
 	
-	std::cout<<"SeedFinder: Getting space points from hits"<<std::endl;
 	art::PtrVector<recob::Hit> Hits = GetHitsFromEvent(fInputModuleLabel, evt);
-	std::cout<<"Hits extracted from event : " << Hits.size()<<std::endl;
        	std::vector<recob::SpacePoint> SPsFromHits = fSeedAlg.GetSpacePointsFromHitVector(Hits);
-	std::cout<<"SPs extracted from hits : " << SPsFromHits.size()<<std::endl;
  	SeedVector = fSeedAlg.FindSeeds(SPsFromHits, SpacePointsWithSeeds);
       }
     else	  
@@ -182,7 +178,7 @@ namespace trkf {
 	
       }
     else
-      std::cout<<"Seed finder made no seeds : no space points in event"<<std::endl;
+      mf::LogInfo("SeedFinder")<<"Seed finder made no seeds : no space points in event"<<std::endl;
     
     evt.put(std::move(seeds));
     
