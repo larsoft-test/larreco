@@ -190,7 +190,7 @@ namespace trkf {
     TVector3 HighestZPoint;
     bool NoPointFound=true;
     int counter = Points.size()-1; 
-    while(NoPointFound==true)
+    while((NoPointFound==true)&&(counter>=0))
       {
 	if(PointStatus[counter]==0)
 	  {
