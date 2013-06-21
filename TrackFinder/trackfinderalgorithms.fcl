@@ -20,7 +20,7 @@ standard_seedfinderalgorithm:
   MinPointsInSeed:        5
   AngularDev:             0.3
   Refits:                 30
-  ExtendThresh:           0.90
+  ExtendThresh:           0.80
   ExtendStep:             1.
   ExtendResolution:       2.
   MaxViewRMS:             [0.0,0.0,0.0]
@@ -28,7 +28,7 @@ standard_seedfinderalgorithm:
 
 standard_beziertrackeralgorithm:
 {	
-  MaxKinkAngle:        0.15
+  MaxKinkAngle:        0.5
   MaxTrackMissAngle:   100.0
   MaxJumpDistance:     30.0
   HitDistance:         0.5

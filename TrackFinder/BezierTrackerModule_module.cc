@@ -191,11 +191,14 @@ namespace trkf {
 	std::vector<std::vector<recob::Seed> > Seeds = GetSeedsFromClusters(fClusterModuleLabel,evt);
 	for(size_t i=0; i!=Seeds.size(); ++i)
 	  {
+	    std::cout<<"Seeds in this batch " <<i<<", " <<Seeds.at(i).size()<<std::endl;
+		  
 	    for(size_t j=0; j!=Seeds.at(i).size(); ++j)
-	      seeds->push_back(Seeds.at(i).at(j));
-	    
+	      {
+		seeds->push_back(Seeds.at(i).at(j));
+	      }
 	    std::vector<trkf::BezierTrack*> BTracksThisCombo
-	      = fBTrackAlg->MakeBezierTracksFromSeeds(Seeds.at(i));
+	    = fBTrackAlg->MakeBezierTracksFromSeeds(Seeds.at(i));
 	   
 	    for(size_t j=0; j!=BTracksThisCombo.size(); ++j)
 	      {
@@ -255,14 +258,14 @@ namespace trkf {
     // Loop over first cluster.
 
     int nclus = Clusters.size();
-    mf::LogInfo("BezierTrackerModule")<< "There are " << nclus<< " clusters in the event"<<std::endl;
+    mf::LogInfo("BezierTrackerModule")<< "There are " << nclus<< " clusters in the event";
     for(int iclus = 0; iclus < nclus; ++iclus) {
       art::Ptr<recob::Cluster> piclus = Clusters.at(iclus);
       geo::View_t iview = piclus->View();
 
       // Test first view.
 
-      mf::LogInfo("BezierTrackerModule") << "View check: " << iview << " " << Sptalg->enableU()<< " " << Sptalg->enableV() << " " << Sptalg->enableW()<<std::endl;
+      //    mf::LogInfo("BezierTrackerModule") << "View check: " << iview << " " << Sptalg->enableU()<< " " << Sptalg->enableV() << " " << Sptalg->enableW()<<std::endl;
 
       if((iview == geo::kU && Sptalg->enableU()) ||
          (iview == geo::kV && Sptalg->enableV()) ||
@@ -272,7 +275,7 @@ namespace trkf {
 
 	std::vector< art::Ptr<recob::Hit> > ihits = fm.at(iclus);
         unsigned int nihits = ihits.size();
-	mf::LogInfo("BezierTrackerModule")<<"Cluster " << iclus<< " has " <<nihits<< " hits " <<std::endl;
+	//	mf::LogInfo("BezierTrackerModule")<<"Cluster " << iclus<< " has " <<nihits<< " hits " <<std::endl;
 	hits.clear();
         hits.reserve(nihits);
 	for(std::vector< art::Ptr<recob::Hit> >::const_iterator i = ihits.begin();
@@ -340,9 +343,9 @@ namespace trkf {
 		  {
 		    std::vector<std::vector<recob::SpacePoint> > CataloguedSPs;
 		   
-		    mf::LogInfo("BezierTrackerModule") 
-		      << "Cluster combo found with " << spts.size() 
-		      << " sps" << std::endl;
+		    //  mf::LogInfo("BezierTrackerModule") 
+		    //   << "Cluster combo found with " << spts.size() 
+		    //  << " sps" << std::endl;
 		    
 		    std::vector<recob::Seed> Seeds 
 		      = fBTrackAlg->GetSeedFinderAlgorithm()->FindSeeds(spts,CataloguedSPs);
@@ -400,14 +403,14 @@ namespace trkf {
     // Loop over first cluster.
 
     int nclus = Clusters.size();
-    mf::LogInfo("BezierTrackerModule")<< "There are " << nclus<< " clusters in the event"<<std::endl;
+    mf::LogInfo("BezierTrackerModule")<< "There are " << nclus<< " clusters in the event";
     for(int iclus = 0; iclus < nclus; ++iclus) {
       art::Ptr<recob::Cluster> piclus = Clusters.at(iclus);
       geo::View_t iview = piclus->View();
 
       // Test first view.
 
-      mf::LogInfo("BezierTrackerModule") << "View check: " << iview << " " << Sptalg->enableU()<< " " << Sptalg->enableV() << " " << Sptalg->enableW()<<std::endl;
+      //      mf::LogInfo("BezierTrackerModule") << "View check: " << iview << " " << Sptalg->enableU()<< " " << Sptalg->enableV() << " " << Sptalg->enableW()<<std::endl;
 
       if((iview == geo::kU && Sptalg->enableU()) ||
          (iview == geo::kV && Sptalg->enableV()) ||
@@ -417,7 +420,7 @@ namespace trkf {
 
 	std::vector< art::Ptr<recob::Hit> > ihits = fm.at(iclus);
         unsigned int nihits = ihits.size();
-	mf::LogInfo("BezierTrackerModule")<<"Cluster " << iclus<< " has " <<nihits<< " hits " <<std::endl;
+	//	mf::LogInfo("BezierTrackerModule")<<"Cluster " << iclus<< " has " <<nihits<< " hits " <<std::endl;
 	hits.clear();
         hits.reserve(nihits);
 	for(std::vector< art::Ptr<recob::Hit> >::const_iterator i = ihits.begin();
