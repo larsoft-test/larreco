@@ -48,30 +48,26 @@ namespace trkf {
 
 
 
-  std::vector<trkf::BezierTrack* > BezierTrackerAlgorithm::MakeBezierTracksFromSeeds(std::vector<recob::Seed> const& TrackSeeds )
+  std::vector<trkf::BezierTrack* > BezierTrackerAlgorithm::MakeBezierTracksFromSeeds(std::vector<recob::Seed> const& AllSeeds )
   {
     
     mf::LogInfo("BezierTrackerAlgorithm")<<"Making bezier tracks from seeds"<<std::endl;
     std::vector<trkf::BezierTrack*> ReturnVector;
     
-    std::vector<std::vector<recob::Seed> > OrgSeeds = OrganizeSeedsIntoTracks(TrackSeeds);
-	
-    mf::LogInfo("BezierTrackerAlgorithm")<<"Bezier Tracker OrgSeeds size : " << OrgSeeds.size()<<std::endl;
-    // Loop through track candidate seed collections
+    std::vector<std::vector<recob::Seed> > OrgSeeds = OrganizeSeedsIntoTracks(AllSeeds);
     
     for(unsigned int i=0; i!=OrgSeeds.size(); i++)
       {
 	mf::LogInfo("BezierTrackerAlgorithm")<<"Seeds in this btrack : " << OrgSeeds.at(i).size()<<std::endl;
 	
-	// Make a base track using seed positions and directions
-	//  and build a BezierTrack on top of it.
-	
-	BezierTrack *BTrack = ProduceTrackFromSeeds(OrgSeeds.at(i));
+        BezierTrack *BTrack = ProduceTrackFromSeeds(OrgSeeds.at(i));
 	ReturnVector.push_back(BTrack);
       }
 
     return ReturnVector;
 
+    
+    return ReturnVector;
   }
 
 
@@ -103,11 +99,11 @@ namespace trkf {
 	std::vector<std::vector<recob::SpacePoint> > SPUsed;
 	mf::LogInfo("BezierTrackerAlgorithm")<<"Getting seeds " <<std::endl;
 	
-	std::vector<recob::Seed> TrackSeeds = fTheSeedFinder->FindSeeds(SPVec, SPUsed);
+	std::vector<recob::Seed> AllSeeds = fTheSeedFinder->FindSeeds(SPVec, SPUsed);
 	   	    
 	mf::LogInfo("BezierTrackerAlgorithm")<<"Organizing seed collections " <<std::endl;
 	// Organize these seeds into tracklike collections
-	std::vector<std::vector<recob::Seed > > OrgSeeds = OrganizeSeedsIntoTracks(TrackSeeds);
+	std::vector<std::vector<recob::Seed > > OrgSeeds = OrganizeSeedsIntoTracks(AllSeeds);
 	
 	// If we didn't find any, continue and quit
 	if(OrgSeeds.size()==0) 
@@ -159,54 +155,15 @@ namespace trkf {
 
 
   // Produce a track using the seeds we found
-  // Note : we also need to add new seeds at beginning and end to get
-  //  entire length of track extremities
+  
   BezierTrack * BezierTrackerAlgorithm::ProduceTrackFromSeeds(std::vector<recob::Seed> const& Seeds)
   {
+    std::vector<recob::Seed*> SeedVecForBTrack;
 
-    std::vector<TVector3> Pos;
-    std::vector<TVector3> Dir;
-    std::vector<std::vector<double > > dQdx;
+    for (size_t i=0; i!=Seeds.size(); ++i)
+      SeedVecForBTrack.push_back(new recob::Seed(Seeds.at(i)));
     
-    double pt[3], dir[3], dummy[3];
-    for(unsigned int i=0; i!=Seeds.size(); i++)
-      {
-	Seeds.at(i).GetPoint(     pt,  dummy );
-	Seeds.at(i).GetDirection( dir, dummy );
-	/*
-	if(i==0)  // put in beginning seed
-	  {
-	    double ExtraPoint[3];
-	    for(int j=0; j!=3; ++j)
-	      ExtraPoint[j]=pt[j]+dir[j];
-	    TVector3 ThisPos(ExtraPoint[0],ExtraPoint[1],ExtraPoint[2]);
-	    TVector3 ThisDir(dir[0],dir[1],dir[2]);
-	    
-	    Pos.push_back(ThisPos);
-	    Dir.push_back(ThisDir);
-	  }
-	*/
-	TVector3 ThisPos(pt[0],  pt[1],  pt[2]  );
-	TVector3 ThisDir(dir[0], dir[1], dir[2] );
-
-	Pos.push_back(ThisPos);
-	Dir.push_back(ThisDir);
-	/*
-	if(i==Seeds.size()-1)  // put in end seed
-	  {
-	    double ExtraPoint[3];
-	    for(int j=0; j!=3; ++j)
-	      ExtraPoint[j]=pt[j]-dir[j];
-	    TVector3 ThisPos(ExtraPoint[0],ExtraPoint[1],ExtraPoint[2]);
-	    TVector3 ThisDir(dir[0],dir[1],dir[2]);
-	    
-	    Pos.push_back(ThisPos);
-	    Dir.push_back(ThisDir);
-	  }
-	*/
-      }
-
-    BezierTrack * TheTrack = new BezierTrack(Pos,Dir,dQdx,fTopTrackID++);
+    BezierTrack * TheTrack = new BezierTrack(SeedVecForBTrack);
     return TheTrack;
   }
 
@@ -236,53 +193,142 @@ namespace trkf {
   
 
   //----------------------------------------------------------------------
-  std::vector<std::vector< recob::Seed > > BezierTrackerAlgorithm::OrganizeSeedsIntoTracks(std::vector<recob::Seed > TrackSeeds)
+  //
+  // This is the key function of the bezier tracker.  It takes a set of seeds,
+  //  and attempts to organize them into a set of tracks.
+  //  Currently the functionality allows for finding 1 long track,
+  //  and a set of single-seed leftover parts.  This lends itself
+  //  to cluster combination based tracking.  We can revist and improve
+  //  this method for multi-tracks in the future.
+
+
+  std::vector<std::vector< recob::Seed > > BezierTrackerAlgorithm::OrganizeSeedsIntoTracks(std::vector<recob::Seed > AllSeeds)
   {
+
     std::vector<std::vector<recob::Seed > > OrganizedByTrack;
-
-    while(TrackSeeds.size()>1)
+    std::map<int, std::map<int, double> > ConnectionMap;
+    
+    for(size_t i=0; i!=AllSeeds.size(); ++i)
       {
-	// Declare this track
-	std::vector<recob::Seed > ThisTrack;
-	
-        // Add first element
-	std::vector<recob::Seed >::iterator ifirst= TrackSeeds.begin();
-        ThisTrack.push_back(*ifirst);
-        TrackSeeds.erase(ifirst);
-	
-        for(std::vector<recob::Seed >::iterator it=TrackSeeds.begin();
-	    it!=TrackSeeds.end(); it++)
+	for(size_t j=0; j!=AllSeeds.size(); ++j)
 	  {
-	    recob::Seed LastSeedAdded = ThisTrack.at(ThisTrack.size()-1);
-	    recob::Seed ThisSeed = *it;
-	    
-            // Does this seed fit with this track?
-	    double SeedPos[3],Err[3];
+	    if(i==j) continue;
+	    double Distance = AllSeeds.at(j).GetDistance(AllSeeds.at(i));
+	    double Angle    = AllSeeds.at(j).GetAngle(AllSeeds.at(i));
+	    double Length   = std::max(AllSeeds.at(i).GetLength(), AllSeeds.at(j).GetLength());
+	    int PointingSign = AllSeeds.at(i).GetPointingSign(AllSeeds.at(j));
+	     
+	    std::cout<<Angle/Distance<<", " << (Distance-Length)/Length<<", " <<PointingSign<<std::endl;
+	    if( ( (Angle/Distance)<0.1) && (((Distance-Length)/Length)<2)) 
+	      {
+		
+		ConnectionMap[i][j] = (Distance-Length)/Length*float(PointingSign);
+	      }      
+	  }
+      }
+    
+    std::vector<int> NForwards, NBackwards, BestForward, BestBackward;
+    NForwards.resize(AllSeeds.size());
+    NBackwards.resize(AllSeeds.size());
+    BestForward.resize(AllSeeds.size());
+    BestBackward.resize(AllSeeds.size());
+    
+    std::vector<int> StartCandidates;
+    std::vector<int> EndCandidates;
+    
 
-	    ThisSeed.GetPoint(SeedPos,Err);
-	    
-
-	    //  float Angle = ThisSeed->GetAngle(*LastSeedAdded);
-	    //  float ProjDis = ThisSeed->GetProjAngleDiscrepancy(*LastSeedAdded);
-	    //  std::cout<<"BezierTrackerAlgorithm: " << Angle << " " << ProjDis << "  for seed : "; 
-	    //  std::cout<<double(SeedPos[0]) << " " << double(SeedPos[1]) << " " << double(SeedPos[2]) << std::endl;
-            if((  abs(ThisSeed.GetAngle(LastSeedAdded))                 < fMaxKinkAngle)
-	       &&( abs(ThisSeed.GetProjAngleDiscrepancy(LastSeedAdded))  < fMaxTrackMissAngle)
-	       &&( abs(ThisSeed.GetDistance(LastSeedAdded)<fMaxJumpDistance)))
-                {
-                  // if so, add it into the track, erase it from the stack
-                  // and start looping at the beginning again
-                  ThisTrack.push_back(ThisSeed);
-                  TrackSeeds.erase(it);
-		  it=TrackSeeds.begin();
-                }
-          }
-        // We ran out of seeds on the stack. store this track and go again
-	if(ThisTrack.size()>1)
-	  OrganizedByTrack.push_back(ThisTrack);
-      }   
+    for(size_t i=0; i!=AllSeeds.size(); ++i)	
+      {
+	for(size_t j=0; j!=AllSeeds.size(); ++j)	
+	  {
+	    if(ConnectionMap[i][j]>0)
+	      {
+		NForwards[i]++;
+		if( (ConnectionMap[i][j] < ConnectionMap[i][BestForward[i]])
+		    || ConnectionMap[i][BestForward[i]]==0)
+		  BestForward[i] = j;
+	      }
+	    else if(ConnectionMap[i][j]<0)
+	      {
+		NBackwards[i]++;
+		if( (ConnectionMap[i][j] > ConnectionMap[i][BestBackward[i]])
+		    || ConnectionMap[i][BestBackward[i]]==0)
+		  BestBackward[i] = j;
+	      }
+	  }
+	
+	if((NForwards[i]>0)&&(NBackwards[i]==0))
+	  StartCandidates.push_back(i);
+	
+	if((NForwards[i]==0)&&(NBackwards[i]>0))
+	  EndCandidates.push_back(i);
+	
+	// If seed is totally unconnected, it is its own track.
+	if((NForwards[i]==0)&&(NBackwards[i]==0))
+	  {
+	    OrganizedByTrack.push_back(std::vector<recob::Seed>() );
+		OrganizedByTrack.at(OrganizedByTrack.size()-1).push_back(AllSeeds.at(i));
+		
+	  }	
+      }
+    
+    // For now we'll only look for 1 long track per cluster combo.
+    //  There is room for improvement here if we need it.
+    
+    std::vector<int> TrackParts;
+    
+    std::cout<<"Start and end candidates : " << StartCandidates.size()<<", "<< EndCandidates.size()<<std::endl;
+    
+    // If clear start, we're going to go forwards
+    if(StartCandidates.size()==1)
+      {
+	std::cout<<"We're going forwards"<<std::endl;
+	TrackParts.push_back(StartCandidates.at(0));		
+	bool KeepGoing=true;
+	while(KeepGoing)
+	  {
+	    if(NForwards[TrackParts.at(TrackParts.size()-1)]>0)
+	      {
+		TrackParts.push_back(BestForward[TrackParts.at(TrackParts.size()-1)]);
+		std::cout<<"We have somewhere to go : "<<
+		  BestForward[TrackParts.at(TrackParts.size()-1)] << std::endl;
+	      }
+	    else KeepGoing=false;   
+	  }
+      }
+    // If no clear start, but a clear end, we're going to go backwards
+    else if(EndCandidates.size()==1)
+      {
+	std::cout<<"We're going backwards"<<std::endl;
+	TrackParts.push_back(EndCandidates.at(0));
+	bool KeepGoing=true;
+	while(KeepGoing)
+	  {
+	    if(NBackwards[TrackParts.at(TrackParts.size()-1)]>0)
+	      {
+		TrackParts.push_back(BestBackward[TrackParts.at(TrackParts.size()-1)]);	
+		std::cout<<"We have somewhere to go : "<<
+		  BestBackward[TrackParts.at(TrackParts.size()-1)] << std::endl;
+	      }
+	    else KeepGoing=false;   
+	  }
+      }
+    
+    if(TrackParts.size()>0)
+      {
+	std::cout<<"Proposing a track with seeds ";
+	std::vector<recob::Seed> TheTrackSeeds;
+	for(size_t i=0; i!=TrackParts.size(); ++i)
+	  {
+	    std::cout<<TrackParts.at(i)<<", ";
+	    TheTrackSeeds.push_back(AllSeeds.at(TrackParts.at(i)));
+	  }
+	
+	OrganizedByTrack.push_back(TheTrackSeeds);    
+	std::cout<<std::endl;
+      }
     return OrganizedByTrack;
   }
-
+  
 
 }
