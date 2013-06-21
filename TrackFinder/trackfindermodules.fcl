@@ -30,9 +30,9 @@ standard_beziertrackermodule:
  module_type:         "BezierTrackerModule"
  SeedModuleLabel:     "seedfinder"
  HitModuleLabel:      "ffthit"
- ClusterModuleLabel:  "cluster"
- TrackMode:           1
- MakeHitAssns:        true
+ ClusterModuleLabel:  "dbcluster"
+ TrackMode:           3
+ MakeHitAssns:        false
  BezierTrackerAlgorithm: @local::standard_beziertrackeralgorithm
 }
 
@@ -161,22 +161,6 @@ standard_spacepointcheater:
   MinHits:            10
   ClusterAssns:       true
   SpacePointAlg:      @local::standard_spacepointalg
-}
-
-development_seeding:
-{
-  SeedMode:            1
-  ClusterModuleLabel:  "dbcluster"
-  HitModuleLabel:      "ffthit"
-  Source:              2
-  SeedLength:          8
-  MinPointsInCluster:  50
-  MinPointsInSeed:     10
-  ExtendThresh:        0.
-  MaxViewRMS:          [0.09, 0.20, 0.10]
-  AngularDev:          0.3 
-  Refits:              20
-  SpacePointAlg:       @local::microboone_spacepointalg
 }
 
 development_beziertrackjoiner:
