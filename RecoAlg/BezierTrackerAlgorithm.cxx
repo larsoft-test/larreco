@@ -26,12 +26,16 @@ namespace trkf {
   {
     reconfigure(pset);
     fTopTrackID=0;
-  
   }
+
+  //------------------------------------------------
 
   BezierTrackerAlgorithm::~BezierTrackerAlgorithm()
   {
   }
+
+  //------------------------------------------------
+
 
   void BezierTrackerAlgorithm::reconfigure(fhicl::ParameterSet const& pset)
   {
@@ -45,7 +49,7 @@ namespace trkf {
   }
 
 
-
+  //------------------------------------------------
 
   std::vector<trkf::BezierTrack* > BezierTrackerAlgorithm::MakeBezierTracksFromSeeds(std::vector<recob::Seed> const& AllSeeds )
   {
@@ -64,13 +68,10 @@ namespace trkf {
       }
 
     return ReturnVector;
-
-    
-    return ReturnVector;
   }
 
 
-
+  //------------------------------------------------
 
   std::vector<trkf::BezierTrack* > BezierTrackerAlgorithm::MakeBezierTracksFromHits(std::vector<art::Ptr<recob::Hit> > HitVec, std::vector<art::PtrVector<recob::Hit> >& HitsForAssns )
   {
@@ -150,7 +151,7 @@ namespace trkf {
 
 
   
-
+  //------------------------------------------------
 
 
   // Produce a track using the seeds we found
