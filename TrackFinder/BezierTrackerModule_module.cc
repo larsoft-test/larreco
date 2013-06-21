@@ -217,7 +217,7 @@ namespace trkf {
     
     for(size_t i=0; i!=BTracks.size(); ++i)
       {
-	recob::Track * ToStore = BTracks.at(i)->GetBaseTrack();
+	std::unique_ptr<recob::Track>  ToStore = BTracks.at(i)->GetBaseTrack();
 	btracks->push_back(*ToStore);
 	//	util::CreateAssn(*this, evt, *(btracks.get()), HitsForAssns.at(i), *(assn.get()));
       }
