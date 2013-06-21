@@ -82,6 +82,6 @@ microboone_seedfinderalgorithm:                          @local::standard_seedfi
 microboone_seedfinderalgorithm.SpacePointAlg :           @local::microboone_spacepointalg
 microboone_seedfinderalgorithm.SpacePointAlg.PreferColl: true
 microboone_beziertrackeralgorithm:                       @local::standard_beziertrackeralgorithm
-microboone_beziertrackeralgorithm.SeedFinderAlgorithm:   @local::microboone_seedfinderalgorithm
+microboone_beziertrackeralgorithm.SeedFinder:            @local::microboone_seedfinderalgorithm
 
 END_PROLOG
