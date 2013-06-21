@@ -562,14 +562,11 @@ namespace trkf {
    
     for(size_t i=0; i!=Seeds.size(); ++i)
       {
-	recob::Seed * Seed1 = new recob::Seed(Seeds.at(i));
-	
 	for(size_t j=0; j!=i; ++j)
 	  {
-	    recob::Seed * Seed2 = new recob::Seed(Seeds.at(j));
-	    std::vector<recob::Seed *> SeedsVec;
-	    SeedsVec.push_back(Seed1);
-	    SeedsVec.push_back(Seed2);
+	    std::vector<recob::Seed > SeedsVec;
+	    SeedsVec.push_back(Seeds.at(i));
+	    SeedsVec.push_back(Seeds.at(j));
 	    
 	    trkf::BezierTrack TestTrack(SeedsVec);
 	    
@@ -586,10 +583,10 @@ namespace trkf {
 	      }
 	    double Seed1Pt[3], Seed2Pt[3], Seed1Dir[3], Seed2Dir[3], Err[3];
 	    
-	    Seed1->GetPoint(Seed1Pt,Err);
-	    Seed2->GetPoint(Seed2Pt,Err);
-	    Seed1->GetDirection(Seed1Dir,Err);
-	    Seed2->GetDirection(Seed2Dir,Err);
+	    Seeds.at(i).GetPoint(Seed1Pt,Err);
+	    Seeds.at(j).GetPoint(Seed2Pt,Err);
+	    Seeds.at(i).GetDirection(Seed1Dir,Err);
+	    Seeds.at(j).GetDirection(Seed2Dir,Err);
 	    
 	    TVector3 Seed1End1, Seed1End2, Seed2End1, Seed2End2;
 
