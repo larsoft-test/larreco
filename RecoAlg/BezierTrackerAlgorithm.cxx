@@ -158,12 +158,7 @@ namespace trkf {
   
   BezierTrack * BezierTrackerAlgorithm::ProduceTrackFromSeeds(std::vector<recob::Seed> const& Seeds)
   {
-    std::vector<recob::Seed*> SeedVecForBTrack;
-
-    for (size_t i=0; i!=Seeds.size(); ++i)
-      SeedVecForBTrack.push_back(new recob::Seed(Seeds.at(i)));
-    
-    BezierTrack * TheTrack = new BezierTrack(SeedVecForBTrack);
+    BezierTrack * TheTrack = new BezierTrack(Seeds);
     return TheTrack;
   }
 
