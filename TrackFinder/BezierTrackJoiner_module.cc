@@ -218,7 +218,7 @@ namespace trkf {
 
     for(size_t i=0; i!=JoinedTracks.size(); ++i)
       {
-	tracksout->push_back(JoinedTracks.at(i)->GetBaseTrack());
+	tracksout->push_back(*(JoinedTracks.at(i)->GetBaseTrack()));
 
 	///\todo need to associate hits to the tracks
       }
@@ -286,8 +286,8 @@ namespace trkf {
 		    {
 		      std::cout<<"Making a join"<<std::endl;
 		      UsedTracks[i]=UsedTracks[j]=true;
-		      recob::Track Combined = BTracks.at(i)->GetJoinedBaseTrack(BTracks.at(j));		      		      
-		      ReturnVector.push_back(new BezierTrack(Combined));
+		      recob::Track * Combined = BTracks.at(i)->GetJoinedBaseTrack(BTracks.at(j));		      		      
+		      ReturnVector.push_back(new trkf::BezierTrack(*Combined));
 		    } // Angle small enough
 		} // within join distance threshold
 	    } // unused tracks
@@ -368,12 +368,12 @@ namespace trkf {
 		  std::cout<<"Segs from track end " << BTracks.at(i)->WhichSegment(s1)<<" " <<BTracks.at(i)->NSegments()<<std::endl;
 		  if(BTracks.at(i)->WhichSegment(s1)==(BTracks.at(i)->NSegments()-1))
 		    {
-		      recob::Track TheTrack 
+		      recob::Track  * TheTrack 
 			= BTracks.at(i)->GetJoinedPartBaseTrack(BTracks.at(j),
 								0, BTracks.at(i)->WhichSegment(s1),
 								0, BTracks.at(j)->NSegments()-1);
 		      UsedTracks[i]=UsedTracks[j]=true;		      
-		      ReturnVector.push_back(new BezierTrack(TheTrack));
+		      ReturnVector.push_back(new BezierTrack(*TheTrack));
 		    }
 		}
 	      if((d2<d1)&&(d2<fJoinThreshold))
@@ -381,12 +381,12 @@ namespace trkf {
 		  std::cout<<"Segs from track end " << BTracks.at(j)->WhichSegment(s2)<<" " << BTracks.at(j)->NSegments()<<std::endl;
 		  if(BTracks.at(j)->WhichSegment(s2)==0)
 		    {
-		      recob::Track TheTrack 
+		      recob::Track *TheTrack 
 			= BTracks.at(i)->GetJoinedPartBaseTrack(BTracks.at(j),
 								0, BTracks.at(i)->NSegments()-1,
 								1, BTracks.at(j)->NSegments()-1);
 		      UsedTracks[i]=UsedTracks[j]=true;
-		      ReturnVector.push_back(new BezierTrack(TheTrack));
+		      ReturnVector.push_back(new BezierTrack(*TheTrack));
 		    }		     
 		}    
 	      

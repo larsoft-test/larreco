@@ -113,7 +113,7 @@ namespace trkf {
     reconfigure(pset);
     produces< std::vector<recob::Track> >();
     produces< std::vector<recob::Seed> >();
-    produces< art::Assns<recob::Track, recob::Hit> >();
+    //  produces< art::Assns<recob::Track, recob::Hit> >();
     
   }
 
@@ -186,7 +186,8 @@ namespace trkf {
     else if(fTrackMode==3)
       {
 	// Find tracks from cluster combinations
-	mf::LogInfo("BezierTrackerModule")<<"Bezier tracker configured in mode 3, building tracks from cluster combinations"<<std::endl;
+	//	mf::LogInfo("BezierTrackerModule")<<"Bezier tracker configured in mode 3, building tracks from cluster combinations"<<std::endl;
+	std::cout<<"Bezier tracker configured in mode 3, building tracks from cluster combinations"<<std::endl;
 	std::vector<std::vector<recob::Seed> > Seeds = GetSeedsFromClusters(fClusterModuleLabel,evt);
 	for(size_t i=0; i!=Seeds.size(); ++i)
 	  {
@@ -213,15 +214,15 @@ namespace trkf {
     
     for(size_t i=0; i!=BTracks.size(); ++i)
       {
-	recob::Track ToStore = BTracks.at(i)->GetBaseTrack();
-	btracks->push_back(ToStore);
+	recob::Track * ToStore = BTracks.at(i)->GetBaseTrack();
+	btracks->push_back(*ToStore);
 	//	util::CreateAssn(*this, evt, *(btracks.get()), HitsForAssns.at(i), *(assn.get()));
       }
-  
-    mf::LogInfo("BezierTrackerAlgorithm")<<"Storing in evt"<<std::endl;
+   
+    mf::LogInfo("BezierTrackerAlgorithm")<<"Storing in evt - check"<<std::endl;
     evt.put(std::move(btracks));
     evt.put(std::move(seeds));
-    evt.put(std::move(assn));
+    //   evt.put(std::move(assn));
   }
 
 
