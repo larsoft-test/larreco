@@ -45,8 +45,6 @@ namespace trkf {
 
     std::vector<trkf::BezierTrack* > MakeBezierTracksFromHits(std::vector<art::Ptr<recob::Hit> > HitVec, std::vector<art::PtrVector<recob::Hit> >& HitsForAssns );
 
-
-
     std::vector<std::vector<recob::Seed> > OrganizeSeedsIntoTracks(std::vector<recob::Seed >  SeedVector);
 
 
@@ -55,6 +53,8 @@ namespace trkf {
     std::vector<int> DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, BezierTrack * BTrack, double HitCollectionDistance, std::vector<double>& SValues);
     
     trkf::SeedFinderAlgorithm * GetSeedFinderAlgorithm() { return fTheSeedFinder;}
+
+    
     
     // Overrides.
 
@@ -66,9 +66,8 @@ namespace trkf {
 
     // Fcl Attributes.
 
-    double fMaxKinkAngle;
-    double fMaxTrackMissAngle;
-    double fMaxJumpDistance;
+    double fMaxKinkDThetaDx;
+    double fMaxJumpLengths;
     double fHitDistance;
 
     int fTopTrackID;

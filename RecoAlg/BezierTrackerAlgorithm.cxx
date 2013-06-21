@@ -36,9 +36,8 @@ namespace trkf {
   void BezierTrackerAlgorithm::reconfigure(fhicl::ParameterSet const& pset)
   {
 
-    fMaxKinkAngle      = pset.get<double>("MaxKinkAngle");
-    fMaxTrackMissAngle = pset.get<double>("MaxTrackMissAngle");
-    fMaxJumpDistance   = pset.get<double>("MaxJumpDistance");
+    fMaxKinkDThetaDx   = pset.get<double>("MaxKinkDThetaDx");
+    fMaxJumpLengths    = pset.get<double>("MaxJumpLengths");
     fHitDistance       = pset.get<double>("HitDistance");
 
     fTheSeedFinder = new SeedFinderAlgorithm(pset.get<fhicl::ParameterSet>("SeedFinder"));
@@ -177,14 +176,13 @@ namespace trkf {
   {
     std::vector<int> ReturnVector;
     std::vector<double> s, distance;
-    std::cout<<"Size of hit vector : " <<Hits.size()<<std::endl;
     BTrack->GetClosestApproaches(Hits,SValues, distance);
 
     for(size_t i=0; i!=Hits.size(); ++i)
       {
 
 	if((distance.at(i)<HitCollectionDistance)&&(SValues.at(i)<1)&&(SValues.at(i)>0)) ReturnVector.push_back(i); 
-	//       	std::cout<< i <<"  "<< Hits.at(i)->View()<<"  "<<distance.at(i)<<std::endl;
+
       }
     return ReturnVector;
   }
@@ -218,8 +216,7 @@ namespace trkf {
 	    double Length   = std::max(AllSeeds.at(i).GetLength(), AllSeeds.at(j).GetLength());
 	    int PointingSign = AllSeeds.at(i).GetPointingSign(AllSeeds.at(j));
 	     
-	    std::cout<<Angle/Distance<<", " << (Distance-Length)/Length<<", " <<PointingSign<<std::endl;
-	    if( ( (Angle/Distance)<0.1) && (((Distance-Length)/Length)<2)) 
+	    if( ( (Angle/Distance)<fMaxKinkDThetaDx) && (((Distance-Length)/Length)<fMaxJumpLengths)) 
 	      {
 		
 		ConnectionMap[i][j] = (Distance-Length)/Length*float(PointingSign);
@@ -277,12 +274,10 @@ namespace trkf {
     
     std::vector<int> TrackParts;
     
-    std::cout<<"Start and end candidates : " << StartCandidates.size()<<", "<< EndCandidates.size()<<std::endl;
-    
+      
     // If clear start, we're going to go forwards
     if(StartCandidates.size()==1)
       {
-	std::cout<<"We're going forwards"<<std::endl;
 	TrackParts.push_back(StartCandidates.at(0));		
 	bool KeepGoing=true;
 	while(KeepGoing)
@@ -290,8 +285,6 @@ namespace trkf {
 	    if(NForwards[TrackParts.at(TrackParts.size()-1)]>0)
 	      {
 		TrackParts.push_back(BestForward[TrackParts.at(TrackParts.size()-1)]);
-		std::cout<<"We have somewhere to go : "<<
-		  BestForward[TrackParts.at(TrackParts.size()-1)] << std::endl;
 	      }
 	    else KeepGoing=false;   
 	  }
@@ -299,7 +292,6 @@ namespace trkf {
     // If no clear start, but a clear end, we're going to go backwards
     else if(EndCandidates.size()==1)
       {
-	std::cout<<"We're going backwards"<<std::endl;
 	TrackParts.push_back(EndCandidates.at(0));
 	bool KeepGoing=true;
 	while(KeepGoing)
@@ -307,8 +299,6 @@ namespace trkf {
 	    if(NBackwards[TrackParts.at(TrackParts.size()-1)]>0)
 	      {
 		TrackParts.push_back(BestBackward[TrackParts.at(TrackParts.size()-1)]);	
-		std::cout<<"We have somewhere to go : "<<
-		  BestBackward[TrackParts.at(TrackParts.size()-1)] << std::endl;
 	      }
 	    else KeepGoing=false;   
 	  }
@@ -316,16 +306,13 @@ namespace trkf {
     
     if(TrackParts.size()>0)
       {
-	std::cout<<"Proposing a track with seeds ";
 	std::vector<recob::Seed> TheTrackSeeds;
 	for(size_t i=0; i!=TrackParts.size(); ++i)
 	  {
-	    std::cout<<TrackParts.at(i)<<", ";
 	    TheTrackSeeds.push_back(AllSeeds.at(TrackParts.at(i)));
 	  }
 	
 	OrganizedByTrack.push_back(TheTrackSeeds);    
-	std::cout<<std::endl;
       }
     return OrganizedByTrack;
   }
