@@ -75,7 +75,7 @@ namespace trkf {
   void BezierTrackerAlgorithm::MakeBezierTracksFromHits(std::vector<trkf::BezierTrack>& ReturnVector, std::vector<art::Ptr<recob::Hit> > HitVec, std::vector<art::PtrVector<recob::Hit> >& HitsForAssns )
   {
     mf::LogInfo("BezierTrackerAlgorithm")<<"Making bezier tracks from hits"<<std::endl;
-  
+    
     
     // This vector keeps track of which hits we are still processing  
     art::PtrVector<recob::Hit> HitsToProcess;
@@ -153,7 +153,7 @@ namespace trkf {
   // From a PtrVector of hits, determine which are nearby
   //
 
-  std::vector<int> BezierTrackerAlgorithm::DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, BezierTrack const& BTrack, double HitCollectionDistance, std::vector<double>& SValues)
+  std::vector<int> BezierTrackerAlgorithm::DetermineNearbyHits(art::PtrVector<recob::Hit> const& Hits, BezierTrack const& BTrack, double HitCollectionDistance, std::vector<double>& SValues)
   {
     std::vector<int> ReturnVector;
     std::vector<double> s, distance;
@@ -181,7 +181,7 @@ namespace trkf {
   //  this method for multi-tracks in the future.
 
 
-  std::vector<std::vector< recob::Seed > > BezierTrackerAlgorithm::OrganizeSeedsIntoTracks(std::vector<recob::Seed > AllSeeds)
+  std::vector<std::vector< recob::Seed > > BezierTrackerAlgorithm::OrganizeSeedsIntoTracks(std::vector<recob::Seed > const& AllSeeds)
   {
       
     std::vector<std::vector<recob::Seed > > OrganizedByTrack;

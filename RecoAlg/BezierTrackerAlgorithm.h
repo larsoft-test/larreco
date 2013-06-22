@@ -48,10 +48,10 @@ namespace trkf {
 				  std::vector<art::Ptr<recob::Hit> > HitVec, 
 				  std::vector<art::PtrVector<recob::Hit> >& HitsForAssns );
 
-    std::vector<std::vector<recob::Seed> > OrganizeSeedsIntoTracks(std::vector<recob::Seed >  SeedVector);
+    std::vector<std::vector<recob::Seed> > OrganizeSeedsIntoTracks(std::vector<recob::Seed > const&  SeedVector);
 
 
-    std::vector<int> DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, 
+    std::vector<int> DetermineNearbyHits(art::PtrVector<recob::Hit> const& Hits, 
 					 BezierTrack const& BTrack, 
 					 double HitCollectionDistance, 
 					 std::vector<double>& SValues);
