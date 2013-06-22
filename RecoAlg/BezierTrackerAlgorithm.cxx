@@ -51,33 +51,31 @@ namespace trkf {
 
   //------------------------------------------------
 
-  std::vector<trkf::BezierTrack* > BezierTrackerAlgorithm::MakeBezierTracksFromSeeds(std::vector<recob::Seed> const& AllSeeds )
+  void BezierTrackerAlgorithm::MakeBezierTracksFromSeeds(std::vector<trkf::BezierTrack>& ReturnVector, std::vector<recob::Seed> const& AllSeeds )
   {
     
     mf::LogInfo("BezierTrackerAlgorithm")<<"Making bezier tracks from seeds"<<std::endl;
-    std::vector<trkf::BezierTrack*> ReturnVector;
     
     std::vector<std::vector<recob::Seed> > OrgSeeds = OrganizeSeedsIntoTracks(AllSeeds);
-    
+
+    mf::LogInfo("BezierTrackerAlgorithm")<<"Producing track objects"<<std::endl;    
+
     for(unsigned int i=0; i!=OrgSeeds.size(); i++)
       {
 	mf::LogInfo("BezierTrackerAlgorithm")<<"Seeds in this btrack : " << OrgSeeds.at(i).size()<<std::endl;
-	
-        BezierTrack *BTrack = ProduceTrackFromSeeds(OrgSeeds.at(i));
-	ReturnVector.push_back(BTrack);
+	if(OrgSeeds.at(i).size()>0)
+	  ReturnVector.push_back(trkf::BezierTrack(OrgSeeds.at(i)));
       }
 
-    return ReturnVector;
   }
 
 
   //------------------------------------------------
 
-  std::vector<trkf::BezierTrack* > BezierTrackerAlgorithm::MakeBezierTracksFromHits(std::vector<art::Ptr<recob::Hit> > HitVec, std::vector<art::PtrVector<recob::Hit> >& HitsForAssns )
+  void BezierTrackerAlgorithm::MakeBezierTracksFromHits(std::vector<trkf::BezierTrack>& ReturnVector, std::vector<art::Ptr<recob::Hit> > HitVec, std::vector<art::PtrVector<recob::Hit> >& HitsForAssns )
   {
     mf::LogInfo("BezierTrackerAlgorithm")<<"Making bezier tracks from hits"<<std::endl;
   
-    std::vector<trkf::BezierTrack*> ReturnVector;
     
     // This vector keeps track of which hits we are still processing  
     art::PtrVector<recob::Hit> HitsToProcess;
@@ -119,7 +117,7 @@ namespace trkf {
 	    
 	    // Make a base track using seed positions and directions
 	    //  and build a BezierTrack on top of it.		
-	    BezierTrack *BTrack = ProduceTrackFromSeeds(OrgSeeds.at(i));
+	    BezierTrack BTrack(OrgSeeds.at(i));
 	 	
 	    art::PtrVector<recob::Hit>         HitsThisTrack;
 	    std::vector<double>                SValues;
@@ -145,34 +143,21 @@ namespace trkf {
 	if(HitsToProcess.size()<3) KeepTrying=false;
 	
       }
-    
-    return ReturnVector;
   }
 
 
   
-  //------------------------------------------------
-
-
-  // Produce a track using the seeds we found
-  
-  BezierTrack * BezierTrackerAlgorithm::ProduceTrackFromSeeds(std::vector<recob::Seed> const& Seeds)
-  {
-    BezierTrack * TheTrack = new BezierTrack(Seeds);
-    return TheTrack;
-  }
-
 
   //----------------------------------------------------------------------
   //
   // From a PtrVector of hits, determine which are nearby
   //
 
-  std::vector<int> BezierTrackerAlgorithm::DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, BezierTrack* BTrack, double HitCollectionDistance, std::vector<double>& SValues)
+  std::vector<int> BezierTrackerAlgorithm::DetermineNearbyHits(art::PtrVector<recob::Hit> Hits, BezierTrack const& BTrack, double HitCollectionDistance, std::vector<double>& SValues)
   {
     std::vector<int> ReturnVector;
     std::vector<double> s, distance;
-    BTrack->GetClosestApproaches(Hits,SValues, distance);
+    BTrack.GetClosestApproaches(Hits,SValues, distance);
 
     for(size_t i=0; i!=Hits.size(); ++i)
       {
@@ -198,7 +183,7 @@ namespace trkf {
 
   std::vector<std::vector< recob::Seed > > BezierTrackerAlgorithm::OrganizeSeedsIntoTracks(std::vector<recob::Seed > AllSeeds)
   {
-
+      
     std::vector<std::vector<recob::Seed > > OrganizedByTrack;
     std::map<int, std::map<int, double> > ConnectionMap;
     
@@ -216,6 +201,7 @@ namespace trkf {
 	      {
 		
 		ConnectionMap[i][j] = (Distance-Length)/Length*float(PointingSign);
+	      
 	      }      
 	  }
       }
@@ -260,7 +246,7 @@ namespace trkf {
 	if((NForwards[i]==0)&&(NBackwards[i]==0))
 	  {
 	    OrganizedByTrack.push_back(std::vector<recob::Seed>() );
-		OrganizedByTrack.at(OrganizedByTrack.size()-1).push_back(AllSeeds.at(i));
+	    OrganizedByTrack.at(OrganizedByTrack.size()-1).push_back(AllSeeds.at(i));
 		
 	  }	
       }
@@ -280,7 +266,14 @@ namespace trkf {
 	  {
 	    if(NForwards[TrackParts.at(TrackParts.size()-1)]>0)
 	      {
-		TrackParts.push_back(BestForward[TrackParts.at(TrackParts.size()-1)]);
+		int NextPart = BestForward[TrackParts.at(TrackParts.size()-1)];
+		//		std::cout<<"going to " << NextPart<<std::endl;
+		
+		// Escape in case of a loop
+		for(size_t p=0; p!=TrackParts.size(); ++p)
+		  if(TrackParts.at(p)==NextPart) KeepGoing=false;
+		TrackParts.push_back(NextPart);
+
 	      }
 	    else KeepGoing=false;   
 	  }
@@ -294,7 +287,13 @@ namespace trkf {
 	  {
 	    if(NBackwards[TrackParts.at(TrackParts.size()-1)]>0)
 	      {
-		TrackParts.push_back(BestBackward[TrackParts.at(TrackParts.size()-1)]);	
+		int NextPart = BestBackward[TrackParts.at(TrackParts.size()-1)];
+		//		std::cout<<"going to " << NextPart<<std::endl;
+		
+		// Escape in case of a loop
+		for(size_t p=0; p!=TrackParts.size(); ++p)
+		  if(TrackParts.at(p)==NextPart) KeepGoing=false;
+		TrackParts.push_back(NextPart);
 	      }
 	    else KeepGoing=false;   
 	  }
@@ -308,9 +307,10 @@ namespace trkf {
 	    TheTrackSeeds.push_back(AllSeeds.at(TrackParts.at(i)));
 	  }
 	
-	OrganizedByTrack.push_back(TheTrackSeeds);    
+	OrganizedByTrack.push_back(TheTrackSeeds);  
       }
-    return OrganizedByTrack;
+
+     return OrganizedByTrack;
   }
   
 
