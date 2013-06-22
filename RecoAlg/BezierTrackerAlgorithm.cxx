@@ -54,15 +54,15 @@ namespace trkf {
   void BezierTrackerAlgorithm::MakeBezierTracksFromSeeds(std::vector<trkf::BezierTrack>& ReturnVector, std::vector<recob::Seed> const& AllSeeds )
   {
     
-    mf::LogInfo("BezierTrackerAlgorithm")<<"Making bezier tracks from seeds"<<std::endl;
+    mf::LogVerbatim("BezierTrackerAlgorithm")<<"Making bezier tracks from seeds"<<std::endl;
     
     std::vector<std::vector<recob::Seed> > OrgSeeds = OrganizeSeedsIntoTracks(AllSeeds);
 
-    mf::LogInfo("BezierTrackerAlgorithm")<<"Producing track objects"<<std::endl;    
+    mf::LogVerbatim("BezierTrackerAlgorithm")<<"Producing track objects"<<std::endl;    
 
     for(unsigned int i=0; i!=OrgSeeds.size(); i++)
       {
-	mf::LogInfo("BezierTrackerAlgorithm")<<"Seeds in this btrack : " << OrgSeeds.at(i).size()<<std::endl;
+	mf::LogVerbatim("BezierTrackerAlgorithm")<<"Seeds in this btrack : " << OrgSeeds.at(i).size()<<std::endl;
 	if(OrgSeeds.at(i).size()>0)
 	  ReturnVector.push_back(trkf::BezierTrack(OrgSeeds.at(i)));
       }
@@ -74,7 +74,7 @@ namespace trkf {
 
   void BezierTrackerAlgorithm::MakeBezierTracksFromHits(std::vector<trkf::BezierTrack>& ReturnVector, std::vector<art::Ptr<recob::Hit> > HitVec, std::vector<art::PtrVector<recob::Hit> >& HitsForAssns )
   {
-    mf::LogInfo("BezierTrackerAlgorithm")<<"Making bezier tracks from hits"<<std::endl;
+    mf::LogVerbatim("BezierTrackerAlgorithm")<<"Making bezier tracks from hits"<<std::endl;
     
     
     // This vector keeps track of which hits we are still processing  
@@ -87,7 +87,7 @@ namespace trkf {
     bool KeepTrying=true;
     while(KeepTrying)
       {
-	mf::LogInfo("BezierTrackerAlgorithm")<<"Getting space points" <<std::endl;
+	mf::LogVerbatim("BezierTrackerAlgorithm")<<"Getting space points" <<std::endl;
 	
 	// Make remaining hits into SPs
 	std::vector<recob::SpacePoint> SPVec = 
@@ -95,11 +95,11 @@ namespace trkf {
 	    
 	// Find seeds in these SPs
 	std::vector<std::vector<recob::SpacePoint> > SPUsed;
-	mf::LogInfo("BezierTrackerAlgorithm")<<"Getting seeds " <<std::endl;
+	mf::LogVerbatim("BezierTrackerAlgorithm")<<"Getting seeds " <<std::endl;
 	
 	std::vector<recob::Seed> AllSeeds = fTheSeedFinder->FindSeeds(SPVec, SPUsed);
 	   	    
-	mf::LogInfo("BezierTrackerAlgorithm")<<"Organizing seed collections " <<std::endl;
+	mf::LogVerbatim("BezierTrackerAlgorithm")<<"Organizing seed collections " <<std::endl;
 	// Organize these seeds into tracklike collections
 	std::vector<std::vector<recob::Seed > > OrgSeeds = OrganizeSeedsIntoTracks(AllSeeds);
 	
@@ -110,7 +110,7 @@ namespace trkf {
 	    continue;
 	  }
 	    
-	mf::LogInfo("BezierTrackerAlgorithm")<<"Making tracks from  " << OrgSeeds.size()<<" seed collections"<<std::endl;
+	mf::LogVerbatim("BezierTrackerAlgorithm")<<"Making tracks from  " << OrgSeeds.size()<<" seed collections"<<std::endl;
 	// For each of them make 1 track
 	for(unsigned int i=0; i!=OrgSeeds.size(); i++)
 	  {
@@ -124,7 +124,7 @@ namespace trkf {
 	    
 	    std::vector<int> HitIDs = DetermineNearbyHits(HitsToProcess, BTrack, SValues);
 	    
-	    mf::LogInfo("BezierTrackerAlgorithm")<<"Found " << HitIDs.size()<<" nearby hits" <<std::endl;
+	    mf::LogVerbatim("BezierTrackerAlgorithm")<<"Found " << HitIDs.size()<<" nearby hits" <<std::endl;
 	    
 	    for(size_t i=0; i!=HitIDs.size(); i++)
 	      HitsThisTrack.push_back(HitsToProcess.at(HitIDs.at(i)));
@@ -134,11 +134,11 @@ namespace trkf {
 	    ReturnVector.push_back(BTrack);
 	 
 	    // Remove the hits we used from the vector and go around
-	    mf::LogInfo("BezierTrackerAlgorithm")<<"Removing used hits"<<std::endl;
+	    mf::LogVerbatim("BezierTrackerAlgorithm")<<"Removing used hits"<<std::endl;
 	    for(int i=HitIDs.size()-1; i!=-1; --i)
 	      HitsToProcess.erase(HitsToProcess.begin() + HitIDs.at(i));
 	  }
-	mf::LogInfo("BezierTrackerAlgorithm")<<"Uncollected hit size : " << HitsToProcess.size()<<std::endl;
+	mf::LogVerbatim("BezierTrackerAlgorithm")<<"Uncollected hit size : " << HitsToProcess.size()<<std::endl;
 	
 	if(HitsToProcess.size()<3) KeepTrying=false;
 	
