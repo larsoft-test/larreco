@@ -1,5 +1,5 @@
 #include "job/trackfinderalgorithms.fcl"
-
+#include "job/calorimetry.fcl"
 
 BEGIN_PROLOG
 
@@ -34,6 +34,7 @@ standard_beziertrackermodule:
  TrackMode:           3
  MakeHitAssns:        false
  BezierTrackerAlgorithm: @local::standard_beziertrackeralgorithm
+ CalorimetryAlg:       @local::standard_calorimetryalgmc
 }
 
 standard_trackcheater:
@@ -272,6 +273,7 @@ microboone_seedfindermodule.SpacePointAlg:              @local::microboone_space
 microboone_seedfindermodule.SeedAlg:                    @local::microboone_seedfinderalgorithm
 microboone_beziertrackermodule:                         @local::standard_beziertrackermodule
 microboone_beziertrackermodule.BezierTrackerAlgorithm:  @local::microboone_beziertrackeralgorithm
+microboone_beziertrackermodule.CalorimetryAlg:          @local::microboone_calorimetryalg
 
 microboone_featuretracker: @local::standard_featuretracker
 

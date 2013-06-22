@@ -19,6 +19,7 @@
 
 #include "art/Framework/Core/EDProducer.h"
 #include "RecoAlg/SeedFinderAlgorithm.h"
+#include "AnalysisAlg/CalorimetryAlg.h"
 #include "Geometry/Geometry.h"
 
 namespace recob
@@ -33,7 +34,9 @@ namespace trkf {
 
   class BezierTrack;
   class BezierTrackerAlgorithm;
- 
+  class CalorimetryAlg;
+  class SpacePointAlg;
+
   class BezierTrackerModule : public art::EDProducer
   {
   public:
@@ -66,7 +69,7 @@ namespace trkf {
     bool fMakeHitAssns;
 
     trkf::BezierTrackerAlgorithm * fBTrackAlg;
-
+    calo::CalorimetryAlg         * fCaloAlg;
 
     std::vector<std::vector<recob::SpacePoint> > GetSpacePointsFromClusters(std::string ClusterModuleLabel, art::Event& evt);
 
@@ -121,6 +124,7 @@ namespace trkf {
     produces< std::vector<recob::Track> >();
     produces< std::vector<recob::Seed> >();
     produces< art::Assns<recob::Track, recob::Hit> >();
+    produces< std::vector<anab::Calorimetry> >();
     
   }
 
@@ -136,7 +140,8 @@ namespace trkf {
     fTrackMode         = pset.get<double>("TrackMode");
     fMakeHitAssns      = pset.get<bool>("MakeHitAssns");
     
-    fBTrackAlg = new BezierTrackerAlgorithm(pset.get<fhicl::ParameterSet>("BezierTrackerAlgorithm"));
+    fBTrackAlg = new trkf::BezierTrackerAlgorithm(pset.get<fhicl::ParameterSet>("BezierTrackerAlgorithm"));
+    fCaloAlg   = new calo::CalorimetryAlg(pset.get<fhicl::ParameterSet>("CalorimetryAlg"));
     
 }
 
@@ -164,8 +169,10 @@ namespace trkf {
 
     std::unique_ptr< std::vector<recob::Track > > btracks ( new std::vector<recob::Track>);
     std::unique_ptr< std::vector<recob::Seed > > seeds ( new std::vector<recob::Seed>);
+    std::unique_ptr< std::vector<anab::Calorimetry > > calos ( new std::vector<anab::Calorimetry>);
     std::unique_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
    
+
     std::vector<trkf::BezierTrack >           BTracks;
     
     std::vector<art::PtrVector<recob::Hit> >  HitsForAssns;
@@ -214,15 +221,22 @@ namespace trkf {
 	    
 	    for(size_t j=0; j!=BTracksThisCombo.size(); ++j)
 	      {
+
+		BTracks.push_back(BTracksThisCombo.at(j));
+		size_t ThisIndex = BTracks.size()-1;
+		
+		
 		SValuesOfHits.push_back(std::vector<double>());
 		HitsForAssns.push_back(art::PtrVector<recob::Hit>());
-	
-		GetHitsToAssn(SortedHits,i,BTracksThisCombo.at(j), SValuesOfHits.at(SValuesOfHits.size()-1), HitsForAssns.at(HitsForAssns.size()-1));
-		
-		BTracks.push_back(BTracksThisCombo.at(j));
-		mf::LogVerbatim("BezierTracker") << "Bezier track " << BTracks.size()<<" has hit collection size " << HitsForAssns.at(HitsForAssns.size()-1).size();
-	      }
 
+	
+		GetHitsToAssn(SortedHits,i,BTracksThisCombo.at(j), SValuesOfHits.at(ThisIndex), HitsForAssns.at(ThisIndex));
+		
+		mf::LogVerbatim("BezierTracker") << "Bezier track " << ThisIndex<<" has hit collection size " << HitsForAssns.at(ThisIndex).size();
+		calos->push_back(BTracksThisCombo.at(i).GetCalorimetryObject(HitsForAssns.at(ThisIndex), geo::kCollection, *fCaloAlg));
+		
+	      }
+	    
 	  }
 
        }
@@ -239,6 +253,7 @@ namespace trkf {
     evt.put(std::move(btracks));
     evt.put(std::move(seeds));
     evt.put(std::move(assn));
+    evt.put(std::move(calos));
   }
   //-----------------------------------------
 
@@ -319,7 +334,7 @@ namespace trkf {
 		  
 		  std::vector<recob::Seed> Seeds 
 		    = fBTrackAlg->GetSeedFinderAlgorithm()->FindSeeds(spts,CataloguedSPs);
-		 		  
+		  
 		  ReturnVec.push_back(Seeds);
 		  
 		  spts.clear();
