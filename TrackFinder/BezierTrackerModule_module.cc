@@ -19,6 +19,7 @@
 
 #include "art/Framework/Core/EDProducer.h"
 #include "RecoAlg/SeedFinderAlgorithm.h"
+#include "Geometry/Geometry.h"
 
 namespace recob
 {
@@ -69,9 +70,13 @@ namespace trkf {
 
     std::vector<std::vector<recob::SpacePoint> > GetSpacePointsFromClusters(std::string ClusterModuleLabel, art::Event& evt);
 
+    std::vector<std::vector<recob::Seed> > GetSeedsFromClusterHits(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > &);
+
+
     std::vector<std::vector<recob::Seed> > GetSeedsFromClusters(std::string ClusterModuleLabel, art::Event& evt);
-
-
+    
+    std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > GetHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt);
+    
   };
 }
 
@@ -186,8 +191,12 @@ namespace trkf {
       {
 	// Find tracks from cluster combinations
 	//	mf::LogInfo("BezierTrackerModule")<<"Bezier tracker configured in mode 3, building tracks from cluster combinations"<<std::endl;
-	std::cout<<"Bezier tracker configured in mode 3, building tracks from cluster combinations"<<std::endl;
-	std::vector<std::vector<recob::Seed> > Seeds = GetSeedsFromClusters(fClusterModuleLabel,evt);
+
+	std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > SortedHits = 
+	  GetHitsFromClusters(fClusterModuleLabel, evt);
+	
+		
+	std::vector<std::vector<recob::Seed> > Seeds = GetSeedsFromClusterHits(SortedHits);
 	for(size_t i=0; i!=Seeds.size(); ++i)
 	  {
 	    //    std::cout<<"Seeds in this batch " <<i<<", " <<Seeds.at(i).size()<<std::endl;
@@ -227,8 +236,101 @@ namespace trkf {
     evt.put(std::move(seeds));
     //   evt.put(std::move(assn));
   }
+  //-----------------------------------------
+
+  std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > BezierTrackerModule::GetHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt)
+  {
+    
+    std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > ReturnVec;
+    
+    std::vector<art::Ptr<recob::Cluster> > Clusters;
+    
+    art::Handle< std::vector<recob::Cluster> > clusterh;
+    evt.getByLabel(ClusterModuleLabel, clusterh);
+    
+    if(clusterh.isValid()) {
+      art::fill_ptr_vector(Clusters, clusterh);
+    }
+    
+    art::FindManyP<recob::Hit> fm(clusterh, evt, ClusterModuleLabel);
+      
+    for(size_t iclus = 0; iclus < Clusters.size(); ++iclus) {
+      art::Ptr<recob::Cluster> ThisCluster = Clusters.at(iclus);
+      
+      std::vector< art::Ptr<recob::Hit> > ihits = fm.at(iclus);
+      
+      art::PtrVector<recob::Hit> HitsThisCluster;    
+      for(std::vector< art::Ptr<recob::Hit> >::const_iterator i = ihits.begin();
+	  i != ihits.end(); ++i)
+	HitsThisCluster.push_back(*i);
+      
+      ReturnVec[ThisCluster->View()].push_back(HitsThisCluster);
+    }
+    return ReturnVec;
+  }
+  
+  //----------------------------------------------
 
 
+  std::vector<std::vector<recob::Seed> > BezierTrackerModule::GetSeedsFromClusterHits(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >& SortedHits)
+    {
+      trkf::SpacePointAlg *Sptalg = fBTrackAlg->GetSeedFinderAlgorithm()->GetSpacePointAlg();
+      
+      std::vector<std::vector<recob::Seed> > ReturnVec;
+      
+      // This piece of code looks detector specific, but its not - 
+      //   it also works for 2 planes, but one vector is empty.
+      
+      
+      for(std::vector<art::PtrVector<recob::Hit> >::iterator itU = SortedHits[geo::kU].begin();
+	  itU !=SortedHits[geo::kU].end(); ++itU)
+	for(std::vector<art::PtrVector<recob::Hit> >::iterator itV = SortedHits[geo::kV].begin();
+	    itV !=SortedHits[geo::kV].end(); ++itV)
+	  for(std::vector<art::PtrVector<recob::Hit> >::iterator itW = SortedHits[geo::kW].begin();
+	      itW !=SortedHits[geo::kW].end(); ++itW)
+	    {
+	      art::PtrVector<recob::Hit> HitsFromThisCombo;
+	    
+	      if(Sptalg->enableU()) 
+		for(size_t i=0; i!=itU->size(); ++i) 
+		  HitsFromThisCombo.push_back(itU->at(i));
+	
+	      if(Sptalg->enableV()) 
+		for(size_t i=0; i!=itV->size(); ++i) 
+		  HitsFromThisCombo.push_back(itV->at(i));
+	     
+	      if(Sptalg->enableW())
+		for(size_t i=0; i!=itW->size(); ++i) 
+		  HitsFromThisCombo.push_back(itW->at(i));
+ 	    
+	      std::vector<recob::SpacePoint> spts;
+	      Sptalg->makeSpacePoints(HitsFromThisCombo, spts);
+	    
+	      
+	      if(spts.size()>0)
+		{
+		  std::vector<std::vector<recob::SpacePoint> > CataloguedSPs;
+		  
+		  std::vector<recob::Seed> Seeds 
+		    = fBTrackAlg->GetSeedFinderAlgorithm()->FindSeeds(spts,CataloguedSPs);
+		 		  
+		  ReturnVec.push_back(Seeds);
+		  
+		  spts.clear();
+		}
+	      
+	      else
+		{
+		  ReturnVec.push_back(std::vector<recob::Seed>());
+		}
+	    }
+      
+      return ReturnVec;
+      
+    }
+
+
+  //---------------------------------------------
 
   std::vector<std::vector<recob::Seed> > BezierTrackerModule::GetSeedsFromClusters(std::string ClusterModuleLabel, art::Event& evt)
   {
@@ -262,6 +364,7 @@ namespace trkf {
     for(int iclus = 0; iclus < nclus; ++iclus) {
       art::Ptr<recob::Cluster> piclus = Clusters.at(iclus);
       geo::View_t iview = piclus->View();
+
 
       // Test first view.
 
