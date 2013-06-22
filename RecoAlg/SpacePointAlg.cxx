@@ -118,9 +118,8 @@ namespace  trkf{
 
     // Calculate and print geometry information.
 
-    mf::LogInfo log("SpacePointAlg");
     if(report)
-      log << "Updating geometry constants.\n";
+      mf::LogInfo("SpacePointAlg") << "Updating geometry constants.\n";
 
 
     for(unsigned int cstat = 0; cstat < geom->Ncryostats(); ++cstat){
@@ -179,7 +178,7 @@ namespace  trkf{
 
 	  if(report) {
 	    const double* xyz = tpcgeom.PlaneLocation(plane);
-	    log << "\nCryostat, TPC, Plane: " << cstat << "," << tpc << ", " << plane << "\n"
+	    mf::LogInfo("SpacePointAlg") << "\nCryostat, TPC, Plane: " << cstat << "," << tpc << ", " << plane << "\n"
 		<< "  View: " << viewname << "\n"
 		<< "  SignalType: " << sigtypename << "\n"
 		<< "  Orientation: " << orientname << "\n"
