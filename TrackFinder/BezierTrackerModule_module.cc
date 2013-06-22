@@ -159,8 +159,7 @@ namespace trkf {
     std::unique_ptr< std::vector<recob::Seed > > seeds ( new std::vector<recob::Seed>);
     std::unique_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
    
-    std::vector<trkf::BezierTrack * >         BTracks;
-    std::vector<recob::Seed * >               SeedsToStore;
+    std::vector<trkf::BezierTrack >           BTracks;
     std::vector<art::PtrVector<recob::Hit> >  HitsForAssns;
     
     
@@ -172,7 +171,7 @@ namespace trkf {
 
 	std::vector<recob::Seed> TrackSeeds(*seedh);
 
-	BTracks = fBTrackAlg->MakeBezierTracksFromSeeds(TrackSeeds);
+        fBTrackAlg->MakeBezierTracksFromSeeds(BTracks, TrackSeeds);
 	// Insert hit collecting code here
       }
 
@@ -180,7 +179,7 @@ namespace trkf {
     else if(fTrackMode==2)
       {
 	// Find tracks in amorphous hit collection
-	BTracks = fBTrackAlg->MakeBezierTracksFromHits(HitVec, HitsForAssns);
+        fBTrackAlg->MakeBezierTracksFromHits(BTracks, HitVec, HitsForAssns);
       }
 
     else if(fTrackMode==3)
@@ -191,14 +190,15 @@ namespace trkf {
 	std::vector<std::vector<recob::Seed> > Seeds = GetSeedsFromClusters(fClusterModuleLabel,evt);
 	for(size_t i=0; i!=Seeds.size(); ++i)
 	  {
-	    std::cout<<"Seeds in this batch " <<i<<", " <<Seeds.at(i).size()<<std::endl;
+	    //    std::cout<<"Seeds in this batch " <<i<<", " <<Seeds.at(i).size()<<std::endl;
 		  
 	    for(size_t j=0; j!=Seeds.at(i).size(); ++j)
 	      {
 		seeds->push_back(Seeds.at(i).at(j));
 	      }
-	    std::vector<trkf::BezierTrack*> BTracksThisCombo
-	    = fBTrackAlg->MakeBezierTracksFromSeeds(Seeds.at(i));
+	    std::vector<trkf::BezierTrack> BTracksThisCombo;
+	    if(Seeds.at(i).size()>0)
+	      fBTrackAlg->MakeBezierTracksFromSeeds(BTracksThisCombo, Seeds.at(i));
 	   
 	    for(size_t j=0; j!=BTracksThisCombo.size(); ++j)
 	      {
@@ -217,7 +217,7 @@ namespace trkf {
     
     for(size_t i=0; i!=BTracks.size(); ++i)
       {
-	std::unique_ptr<recob::Track>  ToStore = BTracks.at(i)->GetBaseTrack();
+	std::unique_ptr<recob::Track>  ToStore = BTracks.at(i).GetBaseTrack();
 	btracks->push_back(*ToStore);
 	//	util::CreateAssn(*this, evt, *(btracks.get()), HitsForAssns.at(i), *(assn.get()));
       }
