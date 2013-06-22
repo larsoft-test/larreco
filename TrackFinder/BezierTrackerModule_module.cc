@@ -77,6 +77,8 @@ namespace trkf {
     
     std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > GetHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt);
     
+    void GetHitsToAssn(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >& SortedHits, int ClusterNum,  BezierTrack const& BTrack,  std::vector<double>& ReturnSValues, art::PtrVector<recob::Hit>& ReturnVec);
+    
   };
 }
 
@@ -118,7 +120,7 @@ namespace trkf {
     reconfigure(pset);
     produces< std::vector<recob::Track> >();
     produces< std::vector<recob::Seed> >();
-    //  produces< art::Assns<recob::Track, recob::Hit> >();
+    produces< art::Assns<recob::Track, recob::Hit> >();
     
   }
 
@@ -165,8 +167,9 @@ namespace trkf {
     std::unique_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
    
     std::vector<trkf::BezierTrack >           BTracks;
-    std::vector<art::PtrVector<recob::Hit> >  HitsForAssns;
     
+    std::vector<art::PtrVector<recob::Hit> >  HitsForAssns;
+    std::vector<std::vector<double> >         SValuesOfHits;
     
     if(fTrackMode==1)
       {
@@ -190,7 +193,7 @@ namespace trkf {
     else if(fTrackMode==3)
       {
 	// Find tracks from cluster combinations
-	//	mf::LogInfo("BezierTrackerModule")<<"Bezier tracker configured in mode 3, building tracks from cluster combinations"<<std::endl;
+	//	mf::LogVerbatim("BezierTrackerModule")<<"Bezier tracker configured in mode 3, building tracks from cluster combinations"<<std::endl;
 
 	std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > SortedHits = 
 	  GetHitsFromClusters(fClusterModuleLabel, evt);
@@ -199,7 +202,6 @@ namespace trkf {
 	std::vector<std::vector<recob::Seed> > Seeds = GetSeedsFromClusterHits(SortedHits);
 	for(size_t i=0; i!=Seeds.size(); ++i)
 	  {
-	    //    std::cout<<"Seeds in this batch " <<i<<", " <<Seeds.at(i).size()<<std::endl;
 		  
 	    for(size_t j=0; j!=Seeds.at(i).size(); ++j)
 	      {
@@ -208,33 +210,35 @@ namespace trkf {
 	    std::vector<trkf::BezierTrack> BTracksThisCombo;
 	    if(Seeds.at(i).size()>0)
 	      fBTrackAlg->MakeBezierTracksFromSeeds(BTracksThisCombo, Seeds.at(i));
-	   
+	
+	    
 	    for(size_t j=0; j!=BTracksThisCombo.size(); ++j)
 	      {
+		SValuesOfHits.push_back(std::vector<double>());
+		HitsForAssns.push_back(art::PtrVector<recob::Hit>());
+	
+		GetHitsToAssn(SortedHits,i,BTracksThisCombo.at(j), SValuesOfHits.at(SValuesOfHits.size()-1), HitsForAssns.at(HitsForAssns.size()-1));
+		
 		BTracks.push_back(BTracksThisCombo.at(j));
+		mf::LogVerbatim("BezierTracker") << "Bezier track " << BTracks.size()<<" has hit collection size " << HitsForAssns.at(HitsForAssns.size()-1).size();
 	      }
 
 	  }
 
        }
-    else if(fTrackMode==4)
-      {
-	// Made tracks from 
-
-      }
 
     
     for(size_t i=0; i!=BTracks.size(); ++i)
       {
 	std::unique_ptr<recob::Track>  ToStore = BTracks.at(i).GetBaseTrack();
 	btracks->push_back(*ToStore);
-	//	util::CreateAssn(*this, evt, *(btracks.get()), HitsForAssns.at(i), *(assn.get()));
+	util::CreateAssn(*this, evt, *(btracks.get()), HitsForAssns.at(i), *(assn.get()));
       }
    
-    mf::LogInfo("BezierTrackerAlgorithm")<<"Storing in evt - check"<<std::endl;
+    mf::LogVerbatim("BezierTrackerAlgorithm")<<"Storing in evt - check"<<std::endl;
     evt.put(std::move(btracks));
     evt.put(std::move(seeds));
-    //   evt.put(std::move(assn));
+    evt.put(std::move(assn));
   }
   //-----------------------------------------
 
@@ -281,6 +285,8 @@ namespace trkf {
       // This piece of code looks detector specific, but its not - 
       //   it also works for 2 planes, but one vector is empty.
       
+      if(!(Sptalg->enableU()&&Sptalg->enableV()&&Sptalg->enableW()))
+	mf::LogWarning("BezierTrackerModule")<<"Warning: SpacePointAlg is does not have three views enabled. This may cause unexpected behaviour in the bezier tracker.";
       
       for(std::vector<art::PtrVector<recob::Hit> >::iterator itU = SortedHits[geo::kU].begin();
 	  itU !=SortedHits[geo::kU].end(); ++itU)
@@ -360,7 +366,7 @@ namespace trkf {
     // Loop over first cluster.
 
     int nclus = Clusters.size();
-    mf::LogInfo("BezierTrackerModule")<< "There are " << nclus<< " clusters in the event";
+    mf::LogVerbatim("BezierTrackerModule")<< "There are " << nclus<< " clusters in the event";
     for(int iclus = 0; iclus < nclus; ++iclus) {
       art::Ptr<recob::Cluster> piclus = Clusters.at(iclus);
       geo::View_t iview = piclus->View();
@@ -368,7 +374,7 @@ namespace trkf {
 
       // Test first view.
 
-      //    mf::LogInfo("BezierTrackerModule") << "View check: " << iview << " " << Sptalg->enableU()<< " " << Sptalg->enableV() << " " << Sptalg->enableW()<<std::endl;
+      //    mf::LogVerbatim("BezierTrackerModule") << "View check: " << iview << " " << Sptalg->enableU()<< " " << Sptalg->enableV() << " " << Sptalg->enableW()<<std::endl;
 
       if((iview == geo::kU && Sptalg->enableU()) ||
          (iview == geo::kV && Sptalg->enableV()) ||
@@ -378,7 +384,7 @@ namespace trkf {
 
 	std::vector< art::Ptr<recob::Hit> > ihits = fm.at(iclus);
         unsigned int nihits = ihits.size();
-	//	mf::LogInfo("BezierTrackerModule")<<"Cluster " << iclus<< " has " <<nihits<< " hits " <<std::endl;
+	//	mf::LogVerbatim("BezierTrackerModule")<<"Cluster " << iclus<< " has " <<nihits<< " hits " <<std::endl;
 	hits.clear();
         hits.reserve(nihits);
 	for(std::vector< art::Ptr<recob::Hit> >::const_iterator i = ihits.begin();
@@ -446,13 +452,13 @@ namespace trkf {
 		  {
 		    std::vector<std::vector<recob::SpacePoint> > CataloguedSPs;
 		   
-		    //  mf::LogInfo("BezierTrackerModule") 
+		    //  mf::LogVerbatim("BezierTrackerModule") 
 		    //   << "Cluster combo found with " << spts.size() 
 		    //  << " sps" << std::endl;
 		    
 		    std::vector<recob::Seed> Seeds 
 		      = fBTrackAlg->GetSeedFinderAlgorithm()->FindSeeds(spts,CataloguedSPs);
-		    mf::LogInfo("BezierTrackerModule") << "Found " << 
+		    mf::LogVerbatim("BezierTrackerModule") << "Found " << 
 		      Seeds.size() << " seeds" << std::endl;
 		    
 		    if(Seeds.size()>0)
@@ -506,14 +512,14 @@ namespace trkf {
     // Loop over first cluster.
 
     int nclus = Clusters.size();
-    mf::LogInfo("BezierTrackerModule")<< "There are " << nclus<< " clusters in the event";
+    mf::LogVerbatim("BezierTrackerModule")<< "There are " << nclus<< " clusters in the event";
     for(int iclus = 0; iclus < nclus; ++iclus) {
       art::Ptr<recob::Cluster> piclus = Clusters.at(iclus);
       geo::View_t iview = piclus->View();
 
       // Test first view.
 
-      //      mf::LogInfo("BezierTrackerModule") << "View check: " << iview << " " << Sptalg->enableU()<< " " << Sptalg->enableV() << " " << Sptalg->enableW()<<std::endl;
+      //      mf::LogVerbatim("BezierTrackerModule") << "View check: " << iview << " " << Sptalg->enableU()<< " " << Sptalg->enableV() << " " << Sptalg->enableW()<<std::endl;
 
       if((iview == geo::kU && Sptalg->enableU()) ||
          (iview == geo::kV && Sptalg->enableV()) ||
@@ -523,7 +529,7 @@ namespace trkf {
 
 	std::vector< art::Ptr<recob::Hit> > ihits = fm.at(iclus);
         unsigned int nihits = ihits.size();
-	//	mf::LogInfo("BezierTrackerModule")<<"Cluster " << iclus<< " has " <<nihits<< " hits " <<std::endl;
+	//	mf::LogVerbatim("BezierTrackerModule")<<"Cluster " << iclus<< " has " <<nihits<< " hits " <<std::endl;
 	hits.clear();
         hits.reserve(nihits);
 	for(std::vector< art::Ptr<recob::Hit> >::const_iterator i = ihits.begin();
@@ -603,6 +609,58 @@ namespace trkf {
     return SpacePointVectors;
   }
 
+
+
+  //---------------------------------------------------------------------
+ 
+  void BezierTrackerModule::GetHitsToAssn(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >& SortedHits, int ClusterNum,  BezierTrack const& BTrack, std::vector<double>& ReturnSValues, art::PtrVector<recob::Hit>& ReturnVec)
+  {
+    
+    trkf::SpacePointAlg *Sptalg = fBTrackAlg->GetSeedFinderAlgorithm()->GetSpacePointAlg();
+
+    int ComboNumber=0;
+    
+    if(!(Sptalg->enableU()&&Sptalg->enableV()&&Sptalg->enableW()))
+      mf::LogWarning("BezierTrackerModule")<<"Warning: SpacePointAlg is does not have three views enabled. This may cause unexpected behaviour in the bezier tracker.";
+    
+    for(std::vector<art::PtrVector<recob::Hit> >::iterator itU = SortedHits[geo::kU].begin();
+	    itU !=SortedHits[geo::kU].end(); ++itU)
+      for(std::vector<art::PtrVector<recob::Hit> >::iterator itV = SortedHits[geo::kV].begin();
+	  itV !=SortedHits[geo::kV].end(); ++itV)
+	for(std::vector<art::PtrVector<recob::Hit> >::iterator itW = SortedHits[geo::kW].begin();
+	    itW !=SortedHits[geo::kW].end(); ++itW)
+	  {
+	    if(ComboNumber==ClusterNum)
+	      {
+		art::PtrVector<recob::Hit> HitsFromThisCombo;
+		
+		if(Sptalg->enableU()) 
+		  for(size_t i=0; i!=itU->size(); ++i) 
+		    HitsFromThisCombo.push_back(itU->at(i));
+		
+		if(Sptalg->enableV()) 
+		  for(size_t i=0; i!=itV->size(); ++i) 
+		    HitsFromThisCombo.push_back(itV->at(i));
+		
+		if(Sptalg->enableW())
+		  for(size_t i=0; i!=itW->size(); ++i) 
+		    HitsFromThisCombo.push_back(itW->at(i));
+		
+		std::vector<int> HitIndices = fBTrackAlg->DetermineNearbyHits(HitsFromThisCombo, BTrack, ReturnSValues);
+		
+		for(size_t i=0; i!=HitIndices.size(); ++i)
+		  {
+		    ReturnVec.push_back(HitsFromThisCombo.at(HitIndices.at(i)));
+		  }
+		
+		return;
+	      }
+	    
+	    
+	    ComboNumber++;	    
+	    
+	  }
+  }
 
 
 
