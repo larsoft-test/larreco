@@ -122,7 +122,7 @@ namespace trkf {
 	    art::PtrVector<recob::Hit>         HitsThisTrack;
 	    std::vector<double>                SValues;
 	    
-	    std::vector<int> HitIDs = DetermineNearbyHits(HitsToProcess, BTrack, fHitDistance, SValues);
+	    std::vector<int> HitIDs = DetermineNearbyHits(HitsToProcess, BTrack, SValues);
 	    
 	    mf::LogInfo("BezierTrackerAlgorithm")<<"Found " << HitIDs.size()<<" nearby hits" <<std::endl;
 	    
@@ -153,7 +153,7 @@ namespace trkf {
   // From a PtrVector of hits, determine which are nearby
   //
 
-  std::vector<int> BezierTrackerAlgorithm::DetermineNearbyHits(art::PtrVector<recob::Hit> const& Hits, BezierTrack const& BTrack, double HitCollectionDistance, std::vector<double>& SValues)
+  std::vector<int> BezierTrackerAlgorithm::DetermineNearbyHits(art::PtrVector<recob::Hit> const& Hits, BezierTrack const& BTrack, std::vector<double>& SValues)
   {
     std::vector<int> ReturnVector;
     std::vector<double> s, distance;
@@ -162,7 +162,7 @@ namespace trkf {
     for(size_t i=0; i!=Hits.size(); ++i)
       {
 
-	if((distance.at(i)<HitCollectionDistance)&&(SValues.at(i)<1)&&(SValues.at(i)>0)) ReturnVector.push_back(i); 
+	if((distance.at(i)<fHitDistance)&&(SValues.at(i)<1)&&(SValues.at(i)>0)) ReturnVector.push_back(i); 
 
       }
     return ReturnVector;

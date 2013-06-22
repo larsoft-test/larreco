@@ -53,7 +53,6 @@ namespace trkf {
 
     std::vector<int> DetermineNearbyHits(art::PtrVector<recob::Hit> const& Hits, 
 					 BezierTrack const& BTrack, 
-					 double HitCollectionDistance, 
 					 std::vector<double>& SValues);
     
     trkf::SeedFinderAlgorithm * GetSeedFinderAlgorithm() { return fTheSeedFinder;}
