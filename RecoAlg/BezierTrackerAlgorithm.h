@@ -55,6 +55,12 @@ namespace trkf {
 					 BezierTrack const& BTrack, 
 					 std::vector<double>& SValues);
     
+    void MakeDirectJoins(std::vector<trkf::BezierTrack>& BTracks, std::vector<art::PtrVector<recob::Hit> > & HitVecs);
+    
+    void AddPtrVectors(art::PtrVector<recob::Hit>& Receiever, art::PtrVector<recob::Hit> const & ToAdd);
+      
+      
+    
     trkf::SeedFinderAlgorithm * GetSeedFinderAlgorithm() { return fTheSeedFinder;}
 
     
@@ -72,9 +78,8 @@ namespace trkf {
     double fMaxKinkDThetaDx;
     double fMaxJumpLengths;
     double fHitDistance;
-
-    int fTopTrackID;
-
+    double fTrackJoinAngle;
+ 
     SeedFinderAlgorithm * fTheSeedFinder;
 
   };
