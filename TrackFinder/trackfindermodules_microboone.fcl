@@ -35,6 +35,7 @@ microboone_seedfindermodule.SpacePointAlg:              @local::microboone_space
 microboone_seedfindermodule.SeedAlg:                    @local::microboone_seedfinderalgorithm
 microboone_beziertrackermodule:                         @local::standard_beziertrackermodule
 microboone_beziertrackermodule.BezierTrackerAlgorithm:  @local::microboone_beziertrackeralgorithm
+microboone_beziertrackermodule.CalorimetryAlg:          @local::microboone_calorimetryalgmc
 
 microboone_2stg_kalman:
 {
