@@ -19,7 +19,6 @@
 
 #include "art/Framework/Core/EDProducer.h"
 #include "RecoAlg/SeedFinderAlgorithm.h"
-#include "AnalysisAlg/CalorimetryAlg.h"
 #include "Geometry/Geometry.h"
 
 namespace recob
@@ -34,7 +33,6 @@ namespace trkf {
 
   class BezierTrack;
   class BezierTrackerAlgorithm;
-  class CalorimetryAlg;
   class SpacePointAlg;
 
   class BezierTrackerModule : public art::EDProducer
@@ -68,8 +66,7 @@ namespace trkf {
     int fTrackMode;
 
     trkf::BezierTrackerAlgorithm * fBTrackAlg;
-    calo::CalorimetryAlg         * fCaloAlg;
-
+    
     std::vector<std::vector<recob::SpacePoint> > GetSpacePointsFromClusters(std::string ClusterModuleLabel, art::Event& evt);
 
     std::vector<std::vector<recob::Seed> > GetSeedsFromClusterHits(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > &);
@@ -123,8 +120,7 @@ namespace trkf {
     produces< std::vector<recob::Track> >();
     produces< std::vector<recob::Seed> >();
     produces< art::Assns<recob::Track, recob::Hit> >();
-    produces< std::vector<anab::Calorimetry> >();
-    
+      
   }
 
   BezierTrackerModule::~BezierTrackerModule()
@@ -139,8 +135,7 @@ namespace trkf {
     fTrackMode         = pset.get<double>("TrackMode");
       
     fBTrackAlg = new trkf::BezierTrackerAlgorithm(pset.get<fhicl::ParameterSet>("BezierTrackerAlgorithm"));
-    fCaloAlg   = new calo::CalorimetryAlg(pset.get<fhicl::ParameterSet>("CalorimetryAlg"));
-    
+      
 }
 
   void BezierTrackerModule::beginJob()
@@ -168,7 +163,6 @@ namespace trkf {
 
     std::unique_ptr< std::vector<recob::Track > > btracks ( new std::vector<recob::Track>);
     std::unique_ptr< std::vector<recob::Seed > > seeds ( new std::vector<recob::Seed>);
-    std::unique_ptr< std::vector<anab::Calorimetry > > calos ( new std::vector<anab::Calorimetry>);
     std::unique_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
    
 
@@ -250,13 +244,6 @@ namespace trkf {
        }
 
     fBTrackAlg->MakeDirectJoins(BTracks, HitsForAssns);
-
-    
-    mf::LogVerbatim("BezierTrackerModule")<< "Making calorimetry objects";
-    for(size_t i=0; i!=BTracks.size(); ++i)
-      {
-	calos->push_back(BTracks.at(i).GetCalorimetryObject(HitsForAssns.at(i), geo::kCollection, *fCaloAlg));	
-      }
     
 
     for(size_t i=0; i!=BTracks.size(); ++i)
@@ -271,7 +258,6 @@ namespace trkf {
     evt.put(std::move(btracks));
     evt.put(std::move(seeds));
     evt.put(std::move(assn));
-    evt.put(std::move(calos));
 
     // Now tidy up
     trkf::SpacePointAlg *Sptalg = fBTrackAlg->GetSeedFinderAlgorithm()->GetSpacePointAlg();
