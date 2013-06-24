@@ -28,8 +28,7 @@ standard_seedfinderalgorithm:
 
 standard_beziertrackeralgorithm:
 {	
-  MaxKinkDThetaDx:     0.5
-  MaxJumpLengths:      10.0
+  MaxJumpLengths:      5.0
   HitDistance:         1
   SeedFinder:          @local::standard_seedfinderalgorithm
   TrackJoinAngle:      0.5          
