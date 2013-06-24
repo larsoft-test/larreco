@@ -412,25 +412,62 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 
       if(lastHits.size() < 5) continue;
 
+
+
+
+
+
+
       // Check if lastHits has hits with big gaps in it
+      // lastHits[i] is ordered in increasing channel and then increasing peak time,
+      // as a consequence, if the line has a negative slope and there are multiple hits in the line for a channel,
+      // we have to go back to the first hit (in terms of lastHits[i]) of that channel to find the distance
+      // between hits
       //std::cout << "New line" << std::endl;
       int missedHits=0;
+      int lastHitsChannel = lastHits[0];
+      int nHitsPerChannel = 1;
+      unsigned int lastChannel = hits[hitsTemp[lastHits[0]]]->Wire()->RawDigit()->Channel();
       for(size_t i = 0; i < lastHits.size()-1; ++i) {
-        //std::cout << hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel() << std::endl;
-        double pCorner0[2];
-        pCorner0[0] = (hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel())*wire_dist;
-        pCorner0[1] = ((hits[hitsTemp[lastHits[i]]]->StartTime()+hits[hitsTemp[lastHits[i]]]->EndTime())/2.)*tickToDist;
-        double pCorner1[2];
-        pCorner1[0] = (hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel())*wire_dist;
-        pCorner1[1] = ((hits[hitsTemp[lastHits[i+1]]]->StartTime()+hits[hitsTemp[lastHits[i+1]]]->EndTime())/2.)*tickToDist;
-        //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
-        if(std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance             )
-          missedHits++;
+        bool newChannel = false;
+        if(slope < 0){
+          if(hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel() != lastChannel){
+            newChannel = true;
+          }
+          if(hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel() == lastChannel)
+            nHitsPerChannel++;
+        }
+        if(slope > 0 || (!newChannel && nHitsPerChannel <= 1)){
+          //std::cout << hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[i]]]->StartTime()+hits[hitsTemp[lastHits[i]]]->EndTime())/2.) << std::endl;
+          double pCorner0[2];
+          pCorner0[0] = (hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel())*wire_dist;
+          pCorner0[1] = ((hits[hitsTemp[lastHits[i]]]->StartTime()+hits[hitsTemp[lastHits[i]]]->EndTime())/2.)*tickToDist;
+          double pCorner1[2];
+          pCorner1[0] = (hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel())*wire_dist;
+          pCorner1[1] = ((hits[hitsTemp[lastHits[i+1]]]->StartTime()+hits[hitsTemp[lastHits[i+1]]]->EndTime())/2.)*tickToDist;
+          //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
+          if(std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance             )
+            missedHits++;
+        } else if (slope < 0 && newChannel && nHitsPerChannel > 1){
+          //std::cout << hits[hitsTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[lastHitsChannel]]]->StartTime()+hits[hitsTemp[lastHits[lastHitsChannel]]]->EndTime())/2.) << std::endl;
+          double pCorner0[2];
+          pCorner0[0] = (hits[hitsTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel())*wire_dist;
+          pCorner0[1] = ((hits[hitsTemp[lastHits[lastHitsChannel]]]->StartTime()+hits[hitsTemp[lastHits[lastHitsChannel]]]->EndTime())/2.)*tickToDist;
+          double pCorner1[2];
+          pCorner1[0] = (hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel())*wire_dist;
+          pCorner1[1] = ((hits[hitsTemp[lastHits[i+1]]]->StartTime()+hits[hitsTemp[lastHits[i+1]]]->EndTime())/2.)*tickToDist;
+          //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
+          if(std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance             )
+            missedHits++;
+          lastChannel=hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();
+          lastHitsChannel=i+1;
+          nHitsPerChannel=0;
+        }
       }
       //std::cout << "missedHits " << missedHits << std::endl;
       //std::cout << "lastHits.size() " << lastHits.size() << std::endl;
       //std::cout << "missedHits/lastHits.size() " << (double)missedHits/((double)lastHits.size()-1) << std::endl;
-      if((double)missedHits/((double)lastHits.size()-1)> fMissedHitsToLineSize)
+      if((double)missedHits/((double)lastHits.size()-1) > fMissedHitsToLineSize)
         continue;
 
 
@@ -729,20 +766,20 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
   //std::cout << std::endl;
   
   // Merge houghCorners if they are close
-  //for(auto houghCornersItr1 = houghCorners.begin(); houghCornersItr1 != houghCorners.end()-1; houghCornersItr1++) {
-    //for(auto houghCornersItr2 = houghCornersItr1+1; houghCornersItr2 != houghCorners.end(); ) {
-      //double houghCornerDistance = std::sqrt(pow(houghCornersItr1->p0-houghCornersItr2->p0,2)+pow(houghCornersItr1->p1-houghCornersItr2->p1,2));
-      //if(houghCornerDistance < fHoughLineMergeCutoff){
-        //houghCornersItr1->p0=(houghCornersItr1->p0*houghCornersItr1->strength+houghCornersItr2->p0*houghCornersItr2->strength)/(houghCornersItr1->strength+houghCornersItr2->strength);
-        //houghCornersItr1->p1=(houghCornersItr1->p1*houghCornersItr1->strength+houghCornersItr2->p1*houghCornersItr2->strength)/(houghCornersItr1->strength+houghCornersItr2->strength);
-        //houghCornersItr1->strength+=houghCornersItr2->strength;
-        //houghCornersItr2 = houghCorners.erase(houghCornersItr2);
-        //houghCornersItr1 = houghCorners.begin();
-      //}
-      //else
-        //++houghCornersItr2;
-    //}
-  //}
+  for(auto houghCornersItr1 = houghCorners.begin(); houghCornersItr1 != houghCorners.end()-1; houghCornersItr1++) {
+    for(auto houghCornersItr2 = houghCornersItr1+1; houghCornersItr2 != houghCorners.end(); ) {
+      double houghCornerDistance = std::sqrt(pow(houghCornersItr1->p0-houghCornersItr2->p0,2)+pow(houghCornersItr1->p1-houghCornersItr2->p1,2));
+      if(houghCornerDistance < 10){
+        houghCornersItr1->p0=(houghCornersItr1->p0*houghCornersItr1->strength+houghCornersItr2->p0*houghCornersItr2->strength)/(houghCornersItr1->strength+houghCornersItr2->strength);
+        houghCornersItr1->p1=(houghCornersItr1->p1*houghCornersItr1->strength+houghCornersItr2->p1*houghCornersItr2->strength)/(houghCornersItr1->strength+houghCornersItr2->strength);
+        houghCornersItr1->strength= (houghCornersItr2->strength > houghCornersItr1->strength) ? houghCornersItr2->strength : houghCornersItr1->strength;
+        houghCornersItr2 = houghCorners.erase(houghCornersItr2);
+        houghCornersItr1 = houghCorners.begin();
+      }
+      else
+        ++houghCornersItr2;
+    }
+  }
 
 
   //for(auto houghCornersItr = houghCorners.begin(); houghCornersItr != houghCorners.end(); houghCornersItr++){
@@ -763,8 +800,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 
 
 
-  //std::sort(houghCorners.begin(),houghCorners.end());
-  //std::reverse(houghCorners.begin(),houghCorners.end());
+  std::sort(houghCorners.begin(),houghCorners.end());
+  std::reverse(houghCorners.begin(),houghCorners.end());
 
   //for(auto houghCornersItr = houghCorners.begin(); houghCornersItr != houghCorners.end(); houghCornersItr++) {
     //std::vector<geo::WireID> wireCornerList = geom->ChannelToWire((uint32_t) houghCornersItr->p0/wire_dist);
@@ -889,18 +926,43 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     // Take the strongest houghCorner as the primary vertex, determine if the min or max of the shower is closest
     double cornerDistToMin = sqrt(pow(pMin0Ave-houghCorners[0].p0,2)+pow(pMin1Ave-houghCorners[0].p1,2));
     double cornerDistToMax = sqrt(pow(pMax0Ave-houghCorners[0].p0,2)+pow(pMax1Ave-houghCorners[0].p1,2));
+    bool directionAmbiguous = false;
+    if (0.5*std::abs(houghCorners[0].strength-houghCorners[1].strength)/(houghCorners[0].strength+houghCorners[1].strength) < 0.01)
+      directionAmbiguous = true;
     int showerDirection = 0; // +1 is to the right, -1 is to the left
-    if(cornerDistToMin < cornerDistToMax && houghCorners[0].strength != houghCorners[1].strength){
+    if(cornerDistToMin < cornerDistToMax && houghCorners[0].strength != houghCorners[1].strength && !directionAmbiguous){
       //std::cout << "For the new, new, new metric, I'm probably going right" << std::endl;
       showerDirection = 1;
     }
-    else if (cornerDistToMin > cornerDistToMax && houghCorners[0].strength != houghCorners[1].strength){
+    else if (cornerDistToMin > cornerDistToMax && houghCorners[0].strength != houghCorners[1].strength && !directionAmbiguous){
       //std::cout << "For the new, new, new metric, I'm probably going left" << std::endl;
       showerDirection = -1;
     }
-    //else if (houghCorners[0].strength == houghCorners[1].strength)
+    std::cout << 0.5*std::abs(houghCorners[0].strength-houghCorners[1].strength)/(houghCorners[0].strength+houghCorners[1].strength) << std::endl;
+    if (directionAmbiguous){
       //std::cout << "For the new, new, new metric, direction is ambiguous" << std::endl;
-     
+      double cornersCloseToMin = 0;
+      double cornersCloseToMax = 0;
+      for(auto houghCornersItr = houghCorners.begin(); houghCornersItr != houghCorners.end(); houghCornersItr++) {
+        std::vector<geo::WireID> wireCornerList = geom->ChannelToWire((uint32_t) houghCornersItr->p0/wire_dist);
+        cornerDistToMin = sqrt(pow(pMin0Ave-houghCornersItr->p0,2)+pow(pMin1Ave-houghCornersItr->p1,2));
+        cornerDistToMax = sqrt(pow(pMax0Ave-houghCornersItr->p0,2)+pow(pMax1Ave-houghCornersItr->p1,2));
+        if(cornerDistToMin  < cornerDistToMax)
+          cornersCloseToMin+=houghCornersItr->strength;
+        else
+          cornersCloseToMax+=houghCornersItr->strength;
+      }
+      if(cornersCloseToMin > cornersCloseToMax) {
+        showerDirection = -1;
+        //std::cout << "For the new, new, new metric correction, I'm probably going left" << std::endl;
+      }
+      else if(cornersCloseToMin < cornersCloseToMax){
+        showerDirection = 1;
+        //std::cout << "For the new, new, new metric correction, I'm probably going right" << std::endl;
+      }
+      //else if (cornersCloseToMin == cornersCloseToMax)
+        //std::cout << "For the new, new, new metric correction, direction is still ambiguous" << std::endl;
+    }
 
 
 
@@ -986,27 +1048,27 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
       if(distance < 10000*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling)){
         double peakTimePerpMid=-(1/averageSlope)*(double)((*hitsItr)->WireID().Wire)+midPeakTime+(1/averageSlope)*(midWire);
         if((-1/slope) < 0 && (*hitsItr)->PeakTime() < peakTimePerpMid)
-          //directionBin1+=(*hitsItr)->Charge()*distance;
-          directionBin1+=distance;
+          directionBin1+= (distance<5) ? 10*(*hitsItr)->Charge() : 5*(*hitsItr)->Charge()/distance;
+          //directionBin1+=distance;
         if((-1/slope) > 0 && (*hitsItr)->PeakTime() > peakTimePerpMid)
-          //directionBin1+=(*hitsItr)->Charge()*distance;
-          directionBin1+=distance;
+          directionBin1+= (distance<5) ? 10*(*hitsItr)->Charge() : 5*(*hitsItr)->Charge()/distance;
+          //directionBin1+=distance;
         if((-1/slope) > 0 && (*hitsItr)->PeakTime() < peakTimePerpMid)
-          //directionBin2+=(*hitsItr)->Charge()*distance;
-          directionBin2+=distance;
+          directionBin2+= (distance<5) ? 10*(*hitsItr)->Charge() : 5*(*hitsItr)->Charge()/distance;
+          //directionBin2+=distance;
         if((-1/slope) < 0 && (*hitsItr)->PeakTime() > peakTimePerpMid)
-          //directionBin2+=(*hitsItr)->Charge()*distance;
-          directionBin2+=distance;
+          directionBin2+= (distance<5) ? 10*(*hitsItr)->Charge() : 5*(*hitsItr)->Charge()/distance;
+          //directionBin2+=distance;
       }
     }
     //std::cout << "directionBin1: " << directionBin1 << " directionBin2: " << directionBin2 << std::endl;
-    //if(directionBin1<directionBin2 && houghCorners[0].strength == houghCorners[1].strength){
-    if(directionBin1<directionBin2){
+    if(directionBin1<directionBin2 && houghCorners[0].strength == houghCorners[1].strength && showerDirection == 0){
+    //if(directionBin1>directionBin2){
       //std::cout << "I'm probably moving right" << std::endl;
       showerDirection = 1;
     }
-    //else if(directionBin1>directionBin2 && houghCorners[0].strength == houghCorners[1].strength){
-    else if(directionBin1>directionBin2){
+    else if(directionBin1>directionBin2 && houghCorners[0].strength == houghCorners[1].strength && showerDirection == 0){
+    //else if(directionBin1<directionBin2){
       //std::cout << "I'm probably moving left" << std::endl;
       showerDirection = -1;
     }
@@ -2295,6 +2357,7 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 	  //factor to make x and y scale the same units
 	  double xyScale  = .001*larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
 	  xyScale        *= detprop->SamplingRate()/geom->WirePitch(0,1,p,t,cs);
+          double wirePitch = geom->WirePitch(geom->View(hit[0]->Wire()->RawDigit()->Channel()));
 	  
 	  int x, y;
 	  int dx = geom->Cryostat(cs).TPC(t).Plane(p).Nwires();//number of wires 
@@ -2466,31 +2529,59 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 
 
               // Check if lastHits has hits with big gaps in it
-              uint32_t     channel = hit[0]->Wire()->RawDigit()->Channel();
-              double wirePitch = geom->WirePitch(geom->View(channel));
+              // lastHits[i] is ordered in increasing channel and then increasing peak time,
+              // as a consequence, if the line has a negative slope and there are multiple hits in the line for a channel,
+              // we have to go back to the first hit (in terms of lastHits[i]) of that channel to find the distance
+              // between hits
+              //std::cout << "New line" << std::endl;
               double wire_dist = wirePitch;
               double tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
               tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
-              //std::cout << "New line" << std::endl;
               int missedHits=0;
-	      for(size_t i = 0; i < lastHits.size()-1; ++i) {
-                //std::cout << hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel() << std::endl;
-                double pCorner0[2];
-                pCorner0[0] = (hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel())*wire_dist;
-                pCorner0[1] = ((hit[hitTemp[lastHits[i]]]->StartTime()+hit[hitTemp[lastHits[i]]]->EndTime())/2.)*tickToDist;
-                double pCorner1[2];
-                pCorner1[0] = (hit[hitTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel())*wire_dist;
-                pCorner1[1] = ((hit[hitTemp[lastHits[i+1]]]->StartTime()+hit[hitTemp[lastHits[i+1]]]->EndTime())/2.)*tickToDist;
-                //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
-                if(std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance             )
-                  missedHits++;
+              int lastHitsChannel = lastHits[0];
+              int nHitsPerChannel = 1;
+              unsigned int lastChannel = hit[hitTemp[lastHits[0]]]->Wire()->RawDigit()->Channel();
+              for(size_t i = 0; i < lastHits.size()-1; ++i) {
+                bool newChannel = false;
+                if(slope < 0){
+                  if(hit[hitTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel() != lastChannel){
+                    newChannel = true;
+                  }
+                  if(hit[hitTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel() == lastChannel)
+                    nHitsPerChannel++;
+                }
+                if(slope > 0 || (!newChannel && nHitsPerChannel <= 1)){
+                  //std::cout << hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[i]]]->StartTime()+hits[hitsTemp[lastHits[i]]]->EndTime())/2.) << std::endl;
+                  double pCorner0[2];
+                  pCorner0[0] = (hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel())*wire_dist;
+                  pCorner0[1] = ((hit[hitTemp[lastHits[i]]]->StartTime()+hit[hitTemp[lastHits[i]]]->EndTime())/2.)*tickToDist;
+                  double pCorner1[2];
+                  pCorner1[0] = (hit[hitTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel())*wire_dist;
+                  pCorner1[1] = ((hit[hitTemp[lastHits[i+1]]]->StartTime()+hit[hitTemp[lastHits[i+1]]]->EndTime())/2.)*tickToDist;
+                  //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
+                  if(std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance             )
+                    missedHits++;
+                } else if (slope < 0 && newChannel && nHitsPerChannel > 1){
+                  //std::cout << hits[hitsTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[lastHitsChannel]]]->StartTime()+hits[hitsTemp[lastHits[lastHitsChannel]]]->EndTime())/2.) << std::endl;
+                  double pCorner0[2];
+                  pCorner0[0] = (hit[hitTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel())*wire_dist;
+                  pCorner0[1] = ((hit[hitTemp[lastHits[lastHitsChannel]]]->StartTime()+hit[hitTemp[lastHits[lastHitsChannel]]]->EndTime())/2.)*tickToDist;
+                  double pCorner1[2];
+                  pCorner1[0] = (hit[hitTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel())*wire_dist;
+                  pCorner1[1] = ((hit[hitTemp[lastHits[i+1]]]->StartTime()+hit[hitTemp[lastHits[i+1]]]->EndTime())/2.)*tickToDist;
+                  //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
+                  if(std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance             )
+                    missedHits++;
+                  lastChannel=hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();
+                  lastHitsChannel=i+1;
+                  nHitsPerChannel=0;
+                }
               }
               //std::cout << "missedHits " << missedHits << std::endl;
               //std::cout << "lastHits.size() " << lastHits.size() << std::endl;
-              //std::cout << "missedHits/lastHits.size() " << (double)missedHits/(double)lastHits.size() << std::endl;
-              if((double)missedHits/(double)lastHits.size() > fMissedHitsToLineSize)
+              //std::cout << "missedHits/lastHits.size() " << (double)missedHits/((double)lastHits.size()-1) << std::endl;
+              if((double)missedHits/((double)lastHits.size()-1) > fMissedHitsToLineSize)
                 continue;
-
 
 
 
