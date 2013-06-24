@@ -938,7 +938,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
       //std::cout << "For the new, new, new metric, I'm probably going left" << std::endl;
       showerDirection = -1;
     }
-    std::cout << 0.5*std::abs(houghCorners[0].strength-houghCorners[1].strength)/(houghCorners[0].strength+houghCorners[1].strength) << std::endl;
+    //std::cout << 0.5*std::abs(houghCorners[0].strength-houghCorners[1].strength)/(houghCorners[0].strength+houghCorners[1].strength) << std::endl;
     if (directionAmbiguous){
       //std::cout << "For the new, new, new metric, direction is ambiguous" << std::endl;
       double cornersCloseToMin = 0;
