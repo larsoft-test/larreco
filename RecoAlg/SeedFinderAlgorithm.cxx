@@ -92,13 +92,12 @@ namespace trkf {
   //  into a vector of spacepoints
   //
   
-  std::vector<recob::SpacePoint>  SeedFinderAlgorithm::GetSpacePointsFromHitVector(art::PtrVector<recob::Hit>  Hits)
+  std::vector<recob::SpacePoint>  SeedFinderAlgorithm::GetSpacePointsFromHitVector(art::PtrVector<recob::Hit>  const& Hits)
   {
     std::vector<recob::SpacePoint> ReturnVec;
     
     fSptalg->makeSpacePoints(Hits, ReturnVec);
-    //   std::cout<<"Making SPs : " <<Hits.size()<< " " << ReturnVec.size()<< std::endl;
- 
+  
     return ReturnVec;
       
   }
@@ -139,13 +138,13 @@ namespace trkf {
 	std::vector<int> PointsUsed;
 
 	// Find exactly one seed, starting at high Z
-	recob::Seed* TheSeed = FindSeedAtEnd(AllSpacePoints, PointStatus, PointsUsed);
+	recob::Seed TheSeed = FindSeedAtEnd(AllSpacePoints, PointStatus, PointsUsed);
 
 	// If it was a good seed, collect up the relevant spacepoints
 	// and add the seed to the return vector 
-	if(TheSeed->IsValid())
+	if(TheSeed.IsValid())
 	  {
-	    ReturnVector.push_back(*TheSeed);
+	    ReturnVector.push_back(TheSeed);
 	    
 	    std::vector<recob::SpacePoint> SPs;
 	    for(size_t i=0; i!=PointsUsed.size(); ++i) 
@@ -153,7 +152,7 @@ namespace trkf {
 	    PointsInSeeds.push_back(SPs);
 	  }
 	// Update the status of the spacepoints we used in this attempt
-	if(TheSeed->IsValid())
+	if(TheSeed.IsValid())
 	  for(size_t i=0; i!=PointsUsed.size(); PointStatus[PointsUsed.at(i++)]=1);
 	else
 	  for(size_t i=0; i!=PointsUsed.size(); PointStatus[PointsUsed.at(i++)]=2);
@@ -175,10 +174,10 @@ namespace trkf {
   // Try to find one seed at the high Z end of a set of spacepoints 
   //
 
-  recob::Seed * SeedFinderAlgorithm::FindSeedAtEnd(std::vector<recob::SpacePoint> const& Points, std::map<int,int>& PointStatus, std::vector<int>& PointsInRange)
+  recob::Seed  SeedFinderAlgorithm::FindSeedAtEnd(std::vector<recob::SpacePoint> const& Points, std::map<int,int>& PointStatus, std::vector<int>& PointsInRange)
   {
     // This pointer will be returned later
-    recob::Seed * ReturnSeed;
+    recob::Seed ReturnSeed;
     
     // Keep track of spacepoints we used, not just their IDs
     std::vector<recob::SpacePoint> PointsUsed;
@@ -228,7 +227,6 @@ namespace trkf {
 		    CentreOfPoints[1]+=Points.at(index).XYZ()[1];
 		    CentreOfPoints[2]+=Points.at(index).XYZ()[2];
 		    PointsUsed.push_back(Points.at(index));
-		    //  std::cout<<"In range : " << index<<std::endl;
 		  }
 	      }
 	    else break;
@@ -239,11 +237,9 @@ namespace trkf {
     // Check we have enough points in here to form a seed,
     // otherwise return a dud
     int NPoints = PointsInRange.size();
-    if(NPoints<fMinPointsInSeed) return new recob::Seed();
+    if(NPoints<fMinPointsInSeed) return  recob::Seed();
     CentreOfPoints = (1./float(NPoints)) * CentreOfPoints;
     
-    //std::cout<<"Trying seed at " << CentreOfPoints[0]<<" " <<
-    //  CentreOfPoints[1]<<" " << CentreOfPoints[2]<<" " <<NPoints<<std::endl;
     
     // See if seed points have some linearity
     float costheta=0, phi=0, costheta2=0, phi2=0;    
@@ -305,11 +301,11 @@ namespace trkf {
 	DirArray[2]=SeedDirection.Z();
 	
 
-	ReturnSeed = new recob::Seed(PtArray,DirArray);
+	ReturnSeed = recob::Seed(PtArray,DirArray);
     }
     else
       {
-	return new recob::Seed();
+	return recob::Seed();
       }
 	
     bool ThrowOutSeed = false;
@@ -330,13 +326,11 @@ namespace trkf {
     if(fMaxViewRMS.at(0)>0)
       {
 	std::vector<double> RMS = GetHitRMS(ReturnSeed, PointsUsed);
-	//std::cout<<"RMS vector size : " << RMS.size() <<", contents ";
+
 	for(size_t j=0; j!=fMaxViewRMS.size(); j++)
 	  {
-	    //std::cout<<RMS.at(j)<<" ";
 	    if(fMaxViewRMS.at(j)<RMS.at(j)) ThrowOutSeed=true;
 	  }
-	//std::cout<<std::endl; 
       }
 
 
@@ -345,7 +339,7 @@ namespace trkf {
     if(!ThrowOutSeed)
       return ReturnSeed;
     else
-      return new recob::Seed;
+      return recob::Seed();
   }
 
 
@@ -358,22 +352,20 @@ namespace trkf {
   // After every step, refit to find optimal centre and direction. 
   //
 
-  bool SeedFinderAlgorithm::ExtendSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, std::map<int,int>& PointStatus, std::vector<int>& PointsUsed)
+  bool SeedFinderAlgorithm::ExtendSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, std::map<int,int>& PointStatus, std::vector<int>& PointsUsed)
   {
-    //std::cout<<"Begin ExtendSeed method"<<std::endl;
    
     // Get the actual spacepoints for the IDs provided
     std::vector<recob::SpacePoint>   SPsUsed        = ExtractSpacePoints(AllSpacePoints, PointsUsed);
 
-    //std::cout<<"first extract" <<std::endl;
 
     // This is the seed we will return - initially make a fresh seed with the same coordinates as the input seed
-    recob::Seed * BestSeed = new recob::Seed(*TheSeed);
+    recob::Seed  BestSeed = TheSeed;
 
     // Get direction and centre information for this seed
     double ThisDir[3], ThisPt[3], ThisErr[3];
-    BestSeed->GetDirection( ThisDir, ThisErr );
-    BestSeed->GetPoint(     ThisPt,  ThisErr );
+    BestSeed.GetDirection( ThisDir, ThisErr );
+    BestSeed.GetPoint(     ThisPt,  ThisErr );
 
     TVector3 VecDir( ThisDir[0], ThisDir[1], ThisDir[2] );
     TVector3 VecPt(  ThisPt[0],  ThisPt[1],  ThisPt[2]  );
@@ -397,14 +389,13 @@ namespace trkf {
 
     // We extend the seed in both directions.  Backward first:
     
-    //std::cout<<"Begin extending"<<std::endl;
 
     bool KeepExtending=true;
     while(KeepExtending!=false)
       {
         // Get data from existing seed
-        BestSeed->GetDirection( ThisDir, ThisErr );
-	BestSeed->GetPoint(     ThisPt,  ThisErr );
+        BestSeed.GetDirection( ThisDir, ThisErr );
+	BestSeed.GetPoint(     ThisPt,  ThisErr );
 
         VecDir = TVector3( ThisDir[0], ThisDir[1], ThisDir[2] );
 	VecPt  = TVector3(  ThisPt[0],  ThisPt[1],  ThisPt[2]  );
@@ -418,13 +409,13 @@ namespace trkf {
             ThisPt[i]  = VecPt[i];
           }
 
-	recob::Seed* TheNewSeed = new recob::Seed(ThisPt, ThisDir, ThisErr, ThisErr);
+	recob::Seed TheNewSeed(ThisPt, ThisDir, ThisErr, ThisErr);
 
 
         // Find nearby spacepoints and refit
 	std::vector<int> NearbySPs               = DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
 	if(NearbySPs.size()<3) return true;
-	//std::cout<<"Size of SP vec in ext "<< NearbySPs.size()<<std::endl;
+
 	std::vector<recob::SpacePoint> ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
 
       
@@ -436,13 +427,12 @@ namespace trkf {
         ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
 
         NoOfHits = CountHits(ThePoints);
-	//std::cout<<"SPs: " <<NearbySPs.size()<<" " << ThePoints.size()<< " Hits: " << NoOfHits<<std::endl;
+
         ThisN        = NoOfHits;
         ThisdNdx     = double(NoOfHits) / VecDir.Mag();
         ThisRMS      = GetHitRMS(TheNewSeed,ThePoints);
         ThisAveRMS   = pow(pow(ThisRMS.at(0),2)+pow(ThisRMS.at(1),2)+pow(ThisRMS.at(2),2),0.5);
 
-	//std::cout<<" Deciding whether to increase: " << ThisdNdx<<" " <<BestdNdx<<", " << ThisAveRMS<<" " <<BestAveRMS<<std::endl;
 
         // Decide whether to keep the extended seed
         if((ThisdNdx > BestdNdx*fExtendThresh)&&(ThisAveRMS < BestAveRMS/fExtendThresh)&&(ThisN>BestN))
@@ -451,7 +441,6 @@ namespace trkf {
 	    BestdNdx   = ThisdNdx;
             BestN      = ThisN;
 
-            delete BestSeed;
             BestSeed   = TheNewSeed;
           }
 	else
@@ -464,8 +453,8 @@ namespace trkf {
     while(KeepExtending!=false)
       {
 	// Get data from existing seed
-        BestSeed->GetDirection( ThisDir, ThisErr );
-        BestSeed->GetPoint(     ThisPt,  ThisErr );
+        BestSeed.GetDirection( ThisDir, ThisErr );
+        BestSeed.GetPoint(     ThisPt,  ThisErr );
 
         VecDir = TVector3( ThisDir[0], ThisDir[1], ThisDir[2] );
         VecPt  = TVector3(  ThisPt[0],  ThisPt[1],  ThisPt[2]  );
@@ -479,7 +468,7 @@ namespace trkf {
             ThisDir[i] = VecDir[i];
             ThisPt[i]  = VecPt[i];
           }
-	recob::Seed* TheNewSeed = new recob::Seed(ThisPt, ThisDir, ThisErr, ThisErr);
+	recob::Seed TheNewSeed(ThisPt, ThisDir, ThisErr, ThisErr);
 
 	// Find nearby spacepoints and for refit
 	std::vector<int> NearbySPs =  DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
@@ -496,7 +485,6 @@ namespace trkf {
         ThisRMS      = GetHitRMS(TheNewSeed,ThePoints);
         ThisAveRMS   = pow(pow(ThisRMS.at(0),2)+pow(ThisRMS.at(1),2)+pow(ThisRMS.at(2),2),0.5);
 
-	//std::cout<<" Deciding whether to increase: " << ThisdNdx<<" " <<BestdNdx<<std::endl;
 
         // Decide whether to keep the extended seed
         if((ThisdNdx > BestdNdx*fExtendThresh)&&(ThisAveRMS < BestAveRMS/fExtendThresh)&&(ThisN>BestN))
@@ -505,8 +493,7 @@ namespace trkf {
             BestN      = ThisN;
             BestAveRMS = ThisAveRMS;
             BestdNdx   = ThisdNdx;
-
-            delete BestSeed;
+ 
             BestSeed   = TheNewSeed;
           }
         else
@@ -517,24 +504,16 @@ namespace trkf {
             KeepExtending=false;
           }
       }
-    //std::cout<<"Done extending.  Final length : " << BestSeed->GetLength()<<std::endl;
 
-    BestSeed->GetDirection( ThisDir, ThisErr);
-    BestSeed->GetPoint(     ThisPt,  ThisErr);
 
-    TheSeed->SetDirection(  ThisDir, ThisErr);
-    TheSeed->SetPoint(      ThisPt,  ThisErr);
+    BestSeed.GetDirection( ThisDir, ThisErr);
+    BestSeed.GetPoint(     ThisPt,  ThisErr);
+
+    TheSeed.SetDirection(  ThisDir, ThisErr);
+    TheSeed.SetPoint(      ThisPt,  ThisErr);
 
     bool ReturnVal=false;
-    /*
-    std::cout<<"RMS Vals after extend: ";
-    for(size_t i=0; i!=BestRMS.size(); ++i)
-      {
-	std::cout << BestRMS.at(i) << " " << fMaxViewRMS.at(i)<<", " ;
-        //      if(BestRMS.at(i)>fMaxViewRMS.at(i)) ReturnVal=true;
-      }
-    std::cout<<std::endl;
-    */
+  
     return ReturnVal;
   }
 
@@ -544,27 +523,27 @@ namespace trkf {
   //  are within some distance
   //
 
-  std::vector<int> SeedFinderAlgorithm::DetermineNearbySPs(recob::Seed* TheSeed, std::vector<recob::SpacePoint> AllSpacePoints, std::map<int, int> PointStatus, double MaxDistance)
+  std::vector<int> SeedFinderAlgorithm::DetermineNearbySPs(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> AllSpacePoints, std::map<int, int> PointStatus, double MaxDistance)
   {
     std::vector<int> ReturnVector;
 
     double SeedPt[3], Err[3];
-    TheSeed->GetPoint( SeedPt,  Err );
+    TheSeed.GetPoint( SeedPt,  Err );
     
    
     
-    double SeedLength = TheSeed->GetLength();
+    double SeedLength = TheSeed.GetLength();
 
     for(int i=AllSpacePoints.size()-1; i!=-1; --i)
       {
 	if(PointStatus[i]!=1)
 	  {
 	    // check Z separation first - helps prevent doing unnecessary calculations
-	    //  std::cout<<"NearbySP Dist " << TheSeed->GetDistanceFrom(AllSpacePoints.at(i))<<std::endl;
+
 	    if(( SeedPt[2]-AllSpacePoints.at(i).XYZ()[2] ) > SeedLength) 
 	      break;
 	    
- 	    else if( TheSeed->GetDistanceFrom(AllSpacePoints.at(i))
+ 	    else if( TheSeed.GetDistanceFrom(AllSpacePoints.at(i))
 		     < MaxDistance )
 	      ReturnVector.push_back(i);
 	    
@@ -582,7 +561,7 @@ namespace trkf {
   //  from the spine of a seed in each view.
   //
 
-  std::vector<double> SeedFinderAlgorithm::GetHitRMS(recob::Seed * TheSeed, std::vector<recob::SpacePoint> SpacePoints)
+  std::vector<double> SeedFinderAlgorithm::GetHitRMS(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> const& SpacePoints)
   {
     // Vector to return later, of one RMS value for each view
     std::vector<double>    ReturnVec;
@@ -608,12 +587,13 @@ namespace trkf {
 	  {
 	    if(!HitsClaimed[(*itHit)->Channel()])
 	      {
-		//		std::cout<<"RMS : hit in view " << (*itHit)->View()<<std::endl;
+
 		HitMap[(*itHit)->View()].push_back(*itHit);
 		HitsClaimed[(*itHit)->Channel()]=true;
 	      }
 	    
 	  }
+	HitsThisSP.clear();
       }
    
     // Find the RMS in each plane
@@ -625,8 +605,8 @@ namespace trkf {
 	double SeedCentralWire=0, SeedCentralTime=0;
 
 	double SeedPt[3], Err[3], SeedDir[3];
-	TheSeed->GetPoint(      SeedPt,   Err);
-	TheSeed->GetDirection(  SeedDir,  Err);
+	TheSeed.GetPoint(      SeedPt,   Err);
+	TheSeed.GetDirection(  SeedDir,  Err);
 
 	TVector3 SeedPoint(     SeedPt[0],     SeedPt[1],   SeedPt[2]);
         TVector3 SeedDirection( SeedDir[0],    SeedDir[1],  SeedDir[2]);
@@ -679,7 +659,14 @@ namespace trkf {
           }
 	ReturnVec.push_back(pow(LSTot/Count,0.5));
       }
+
+    // tidy up
+    for(std::map<int,art::PtrVector<recob::Hit> >::iterator it = HitMap.begin();
+	it!=HitMap.end(); ++it)
+      it->second.clear();
+
     return ReturnVec;
+  
   }
 
 
@@ -688,12 +675,9 @@ namespace trkf {
   //  to the hits in the SPs
   //
 
-  void SeedFinderAlgorithm::RefitSeed(recob::Seed * TheSeed, std::vector<recob::SpacePoint> SpacePoints)
+  void SeedFinderAlgorithm::RefitSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& SpacePoints)
   {
 
-    //std::cout<<"Refit module called on vector of " << SpacePoints.size() << " space points " << std::endl;
-    //  std::cout<<"Beginning of refit: "<<std::endl;
-    //  TheSeed->Print();
     // Get the services we need
     art::ServiceHandle<geo::Geometry>            geom;
     art::ServiceHandle<util::DetectorProperties> det;
@@ -722,7 +706,6 @@ namespace trkf {
 	for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
 	    itHit!=HitsThisSP.end(); itHit++)
 	  {
-	    //  std::cout<<"Hit view " << (*itHit)->View()<<std::endl;
 	    if(!HitsClaimed[(*itHit)->Channel()])
 	      {
 		HitMap[(*itHit)->View()].push_back(*itHit);
@@ -782,6 +765,8 @@ namespace trkf {
 	AverageXWeighted      += det->ConvertTicksToX(HitCentralTimes[view],planeno,0,0) * NHits[view];
 	AverageXDemocratic    += det->ConvertTicksToX(HitCentralTimes[view],planeno,0,0);
 	TotalHits             += NHits[view];
+
+	HitsThisPlane.clear();
       }
     
     // Times are easy - no coordinate degeneracy
@@ -793,8 +778,7 @@ namespace trkf {
     // Loop the prescribed number of times
     for(int loop=0; loop!=fRefits; loop++)
       {
-        // std::cout<<"SeedFinder running refit " << loop<<std::endl;
-        for(size_t view=0; view!=Planes; view++)
+	for(size_t view=0; view!=Planes; view++)
           {
 	    // Adjust central seed point
 	    // --------------------------
@@ -804,18 +788,16 @@ namespace trkf {
 
 
             double SeedPt[3], Err[3], SeedDir[3];
-            TheSeed->GetPoint(    SeedPt,   Err);
-            TheSeed->GetDirection(SeedDir,  Err);
+            TheSeed.GetPoint(    SeedPt,   Err);
+            TheSeed.GetDirection(SeedDir,  Err);
 
             TVector3 SeedPoint(SeedPt[0],      SeedPt[1],  SeedPt[2]);
             TVector3 SeedDirection(SeedDir[0], SeedDir[1], SeedDir[2]);
 
-	    //	    std::cout<<"Moving seed point from "<<SeedPt[0]<<" " << SeedPt[1]<<" " <<SeedPt[2]<<std::endl;
 
 	    // Find what the seed central wire was before
             double SeedCentralWire = (PlaneNormDirections.at(view).Dot(SeedPoint) - WireOffsets.at(view)) / WirePitch;
             
-	    //    std::cout<<"Central wires: " << HitCentralWires[view]<< " " << SeedCentralWire<<std::endl;
 
 	    // Move it half way to that predicted from hits
 	  
@@ -830,9 +812,8 @@ namespace trkf {
             SeedPt[2] = SeedPt[2] + InPlaneShift * PlaneNormDirections.at(view)[2] ;
 
 	    // Update the seed
-            TheSeed->SetPoint(SeedPt);
+            TheSeed.SetPoint(SeedPt);
 
-	    //  std::cout<<"Moving seed point to "<<SeedPt[0]<<" " << SeedPt[1]<<" " <<SeedPt[2]<<std::endl<<std::endl;
 
             for(int i=0; i!=3; i++)
               SeedPoint[i]=SeedPt[i];
@@ -846,7 +827,6 @@ namespace trkf {
 
 	    art::PtrVector<recob::Hit> HitsThisPlane = HitMap[view]; 
 	    unsigned int c=0, t=0, p=0;
-	    // std::cout<<"No of hits : " << HitsThisPlane.size()<<std::endl;
             for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisPlane.begin(); itHit!=HitsThisPlane.end(); itHit++)
               {
 		double DDisp = (double((*itHit)->WireID().Wire)-SeedCentralWire)*WirePitch; 
@@ -904,18 +884,16 @@ namespace trkf {
               SeedOutOfPlaneComp * WireVecs.at(view);
 
             SeedDirection.SetMag(OriginalSeedLength);
-            //  std::cout<<"Moving seed dir from "<<SeedDir[0]<< " " <<SeedDir[1]<< " " <<SeedDir[2]<<std::endl;
-            // Set the seed direction accordingly
+
             for(int i=0; i!=3; i++)
               SeedDir[i]=SeedDirection[i];
-            //      std::cout<<"to "<<SeedDir[0]<< " " <<SeedDir[1]<< " " <<SeedDir[2]<<std::endl;
-            TheSeed->SetDirection(SeedDir);
 
+            TheSeed.SetDirection(SeedDir);
+	    
+	    HitsThisPlane.clear();
           } // next plane
       } // next iteration
 
-    //    std::cout<<"End of refit: "<<std::endl;
-    //  TheSeed->Print();
   
   }
 
@@ -928,7 +906,7 @@ namespace trkf {
   // Given a set of spacepoints, count how many unique hits
   //  are present
 
-  double SeedFinderAlgorithm::CountHits(std::vector<recob::SpacePoint>  SpacePoints)
+  double SeedFinderAlgorithm::CountHits(std::vector<recob::SpacePoint>  const& SpacePoints)
   {
     art::ServiceHandle<geo::Geometry>            geom;
 

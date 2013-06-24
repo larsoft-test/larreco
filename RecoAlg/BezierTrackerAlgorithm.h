@@ -6,14 +6,10 @@
 //
 // Name: BezierTrackerAlgorithm.h
 //
-// Purpose: Header file for module BezierTrackerAlgorithm.  This modules makes
-//          bezier tracks out of seed collections
-//
-// Configuration parameters.
-//
-// SeedModuleLabel;     // Cluster module label (e.g. "dbcluster").
-// HitModuleLabel;      // Hit module label (e.g. "FFTHitFinder")
-//
+// Purpose: Header file for module BezierTrackerAlgorithm.  This 
+//  algorithm contains tools for producing and combining bezier
+//  tracks made up of seed segments.
+////
 // Ben Jones, MIT
 //
 

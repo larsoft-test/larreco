@@ -42,7 +42,6 @@ namespace trkf {
   void BezierTrackerAlgorithm::reconfigure(fhicl::ParameterSet const& pset)
   {
 
-    fMaxKinkDThetaDx   = pset.get<double>("MaxKinkDThetaDx");
     fMaxJumpLengths    = pset.get<double>("MaxJumpLengths");
     fHitDistance       = pset.get<double>("HitDistance");
     fTrackJoinAngle    = pset.get<double>("TrackJoinAngle");
@@ -113,8 +112,10 @@ namespace trkf {
 	    {
 	      if((!ToErase[t2])&&(t1!=t2))
 		{
-		  if( ( (End2Directions.at(t2).Angle(End1Directions.at(t1))) < fTrackJoinAngle )
-		      && ( (End2Points.at(t2)-End1Points.at(t1) ).Mag()<5.))
+		  if( ( (fabs(End2Directions.at(t2).Angle(End1Directions.at(t1)))) < fTrackJoinAngle )
+		      && ( (End2Points.at(t2)-End1Points.at(t1) ).Mag()<5.)
+		      && ( (End2Directions.at(t2).Dot(End1Directions.at(t1)))>0))
+		    
 		    {
 		      mf::LogVerbatim("BezierTrackerAlgorithm")<<" Making track join " << t1<<", " << t2<<std::endl;
 		      
