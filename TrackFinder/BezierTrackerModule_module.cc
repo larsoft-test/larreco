@@ -7,7 +7,7 @@
 // Name: BezierTrackerModule.h
 //
 // Purpose: Header file for module BezierTrackerModule.  This modules makes
-//          bezier tracks out of seed collections
+//          bezier tracks out of seed collections, or hits, or clusters
 //
 // Configuration parameters.
 //
@@ -145,20 +145,6 @@ namespace trkf {
   void BezierTrackerModule::produce(art::Event& evt)
   {
  
-    
-    // Extract hits PtrVector from event
-
-    art::Handle< std::vector<recob::Hit> > hith;
-    evt.getByLabel(fHitModuleLabel, hith);
-
-    std::vector<art::Ptr<recob::Hit> > HitVec;
-    for(unsigned int i=0; i < hith->size(); ++i)
-      {
-	art::Ptr<recob::Hit> hit(hith,i);
-	HitVec.push_back(hit);
-      }
-    
-
     // Declare products to store
 
     std::unique_ptr< std::vector<recob::Track > > btracks ( new std::vector<recob::Track>);
@@ -169,7 +155,6 @@ namespace trkf {
     std::vector<trkf::BezierTrack >           BTracks;
     
     std::vector<art::PtrVector<recob::Hit> >  HitsForAssns;
-    std::vector<std::vector<double> >         SValuesOfHits;
     
    
     if(fTrackMode==1)
@@ -188,7 +173,20 @@ namespace trkf {
     else if(fTrackMode==2)
       {
 	// Find tracks in amorphous hit collection
-        fBTrackAlg->MakeBezierTracksFromHits(BTracks, HitVec, HitsForAssns);
+        
+	
+	art::Handle< std::vector<recob::Hit> > hith;
+	evt.getByLabel(fHitModuleLabel, hith);
+	
+	std::vector<art::Ptr<recob::Hit> > HitVec;
+	for(unsigned int i=0; i < hith->size(); ++i)
+	  {
+	    art::Ptr<recob::Hit> hit(hith,i);
+	    HitVec.push_back(hit);
+	  }
+       
+	fBTrackAlg->MakeBezierTracksFromHits(BTracks, HitVec, HitsForAssns);
+	HitVec.clear();
       }
 
     else if(fTrackMode==3)
@@ -200,6 +198,8 @@ namespace trkf {
 	  GetHitsFromClusters(fClusterModuleLabel, evt);
 	
 	std::vector<std::vector<recob::Seed> > Seeds = GetSeedsFromClusterHits(SortedHits);
+	std::vector<std::vector<double> >         SValuesOfHits;
+
 	
 	for(size_t i=0; i!=Seeds.size(); ++i)
 	  {		  
@@ -265,8 +265,7 @@ namespace trkf {
     for(size_t i=0; i!=HitsForAssns.size(); ++i)
       HitsForAssns.at(i).clear();
     HitsForAssns.clear();
-    
-
+  
   }
   //-----------------------------------------
 
