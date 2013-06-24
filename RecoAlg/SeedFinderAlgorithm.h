@@ -50,7 +50,7 @@ namespace trkf {
 
     std::vector<double>         GetHitRMS(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> const&);
 
-    double                      CountHits(std::vector<recob::SpacePoint> const& Points);
+    size_t                      CountHits(std::vector<recob::SpacePoint> const& Points);
     
     SpacePointAlg *             GetSpacePointAlg() const { return fSptalg; }
 
@@ -63,9 +63,9 @@ namespace trkf {
     bool                        ExtendSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, 
 					   std::map<int, int>& PointStatus, std::vector<int>& PointsUsed);
 
-    std::vector<recob::SpacePoint> ExtractSpacePoints(std::vector<recob::SpacePoint> AllPoints, std::vector<int> IDsToExtract);
+    std::vector<recob::SpacePoint> ExtractSpacePoints(std::vector<recob::SpacePoint> const& AllPoints, std::vector<int> IDsToExtract);
 
-    std::vector<int>            DetermineNearbySPs(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> AllSpacePoints, 
+    std::vector<int>            DetermineNearbySPs(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, 
 						   std::map<int, int> PointStatus, double ExtendResolution);
 
 

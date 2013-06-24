@@ -523,7 +523,7 @@ namespace trkf {
   //  are within some distance
   //
 
-  std::vector<int> SeedFinderAlgorithm::DetermineNearbySPs(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> AllSpacePoints, std::map<int, int> PointStatus, double MaxDistance)
+  std::vector<int> SeedFinderAlgorithm::DetermineNearbySPs(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, std::map<int, int> PointStatus, double MaxDistance)
   {
     std::vector<int> ReturnVector;
 
@@ -906,7 +906,7 @@ namespace trkf {
   // Given a set of spacepoints, count how many unique hits
   //  are present
 
-  double SeedFinderAlgorithm::CountHits(std::vector<recob::SpacePoint>  const& SpacePoints)
+  size_t SeedFinderAlgorithm::CountHits(std::vector<recob::SpacePoint>  const& SpacePoints)
   {
     art::ServiceHandle<geo::Geometry>            geom;
 
@@ -928,7 +928,7 @@ namespace trkf {
     return HitsClaimed.size();
   }
 
-  std::vector<recob::SpacePoint> SeedFinderAlgorithm::ExtractSpacePoints(std::vector<recob::SpacePoint> AllPoints, std::vector<int> IDsToExtract)
+  std::vector<recob::SpacePoint> SeedFinderAlgorithm::ExtractSpacePoints(std::vector<recob::SpacePoint> const& AllPoints, std::vector<int> IDsToExtract)
   {
     std::vector<recob::SpacePoint> ReturnVec;
     for(size_t i=0; i!=IDsToExtract.size(); ++i)
