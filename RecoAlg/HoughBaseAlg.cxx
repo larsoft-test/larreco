@@ -426,14 +426,14 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
       //std::cout << "New line" << std::endl;
       //std::cout << "slope: " << slope << std::endl;
       int missedHits=0;
-      int lastHitsChannel = lastHits[0];
+      int lastHitsChannel = 0;
       unsigned int lastChannel = hits[hitsTemp[lastHits[0]]]->Wire()->RawDigit()->Channel();
       for(size_t i = 0; i < lastHits.size()-1; ++i) {
         bool newChannel = false;
         if(slope < 0){
           if(hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel() != lastChannel){
             newChannel = true;
-          }
+          }           
         }
         if(slope > 0 || !newChannel){
           //std::cout << hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[i]]]->StartTime()+hits[hitsTemp[lastHits[i]]]->EndTime())/2.) << std::endl;
@@ -444,10 +444,11 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
           pCorner1[0] = (hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel())*wire_dist;
           pCorner1[1] = ((hits[hitsTemp[lastHits[i+1]]]->StartTime()+hits[hitsTemp[lastHits[i+1]]]->EndTime())/2.)*tickToDist;
           //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
-          if(std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance             )
+          if(std::sqrt(pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance)
             missedHits++;
         //} else if (slope < 0 && newChannel && nHitsInChannel > 1){
         } else if (slope < 0 && newChannel){
+          //std::cout << lastHitsChannel << " " << lastHits[i+1] << " " << lastChannel << std::endl;
           //std::cout << hits[hitsTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[lastHitsChannel]]]->StartTime()+hits[hitsTemp[lastHits[lastHitsChannel]]]->EndTime())/2.) << std::endl;
           double pCorner0[2];
           pCorner0[0] = (hits[hitsTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel())*wire_dist;
@@ -458,7 +459,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
           //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
           if(std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance             )
             missedHits++;
-          lastChannel=hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();
+          lastChannel=hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel();
           lastHitsChannel=i+1;
         }
       }
@@ -1411,17 +1412,17 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
       double chargeAsymmetry = std::abs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
       //double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
       double chargeAsymmetrySinAngle = chargeAsymmetry*pow(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180),2);
-      //double sigmaChargeAsymmetrySinAngle = chargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180);
+      //double sigmaChargeAsymmetrySinAngle = chargeAsymmetry*pow(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180),2);
 
       //std::cout << std::endl;
       //std::cout << chargeAsymmetry*pow(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180),2) << std::endl;
-      //std::cout << sigmaChargeAsymmetry*sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180) << std::endl;
+      //std::cout << sigmaChargeAsymmetry*pow(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180),2) << std::endl;
 
       if(chargeAsymmetrySinAngle > fChargeAsymAngleCut &&
           mergeStyle == iMergeChargeAsymAngle)
         continue;
 
-      //if(sigmaChargeAsymmetrySinAngle > 0.0005 &&
+      //if(sigmaChargeAsymmetrySinAngle > 0.1 &&
           //mergeStyle == iMergeChargeAsymAngle)
         //continue;
 
