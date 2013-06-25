@@ -424,9 +424,9 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
       // we have to go back to the first hit (in terms of lastHits[i]) of that channel to find the distance
       // between hits
       //std::cout << "New line" << std::endl;
+      //std::cout << "slope: " << slope << std::endl;
       int missedHits=0;
       int lastHitsChannel = lastHits[0];
-      int nHitsPerChannel = 1;
       unsigned int lastChannel = hits[hitsTemp[lastHits[0]]]->Wire()->RawDigit()->Channel();
       for(size_t i = 0; i < lastHits.size()-1; ++i) {
         bool newChannel = false;
@@ -434,10 +434,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
           if(hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel() != lastChannel){
             newChannel = true;
           }
-          if(hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel() == lastChannel)
-            nHitsPerChannel++;
         }
-        if(slope > 0 || (!newChannel && nHitsPerChannel <= 1)){
+        if(slope > 0 || !newChannel){
           //std::cout << hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[i]]]->StartTime()+hits[hitsTemp[lastHits[i]]]->EndTime())/2.) << std::endl;
           double pCorner0[2];
           pCorner0[0] = (hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel())*wire_dist;
@@ -448,7 +446,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
           //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
           if(std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance             )
             missedHits++;
-        } else if (slope < 0 && newChannel && nHitsPerChannel > 1){
+        //} else if (slope < 0 && newChannel && nHitsInChannel > 1){
+        } else if (slope < 0 && newChannel){
           //std::cout << hits[hitsTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[lastHitsChannel]]]->StartTime()+hits[hitsTemp[lastHits[lastHitsChannel]]]->EndTime())/2.) << std::endl;
           double pCorner0[2];
           pCorner0[0] = (hits[hitsTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel())*wire_dist;
@@ -461,7 +460,6 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
             missedHits++;
           lastChannel=hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel();
           lastHitsChannel=i+1;
-          nHitsPerChannel=0;
         }
       }
       //std::cout << "missedHits " << missedHits << std::endl;
