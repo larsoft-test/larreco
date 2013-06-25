@@ -1,4 +1,5 @@
 #include "art/Persistency/Common/PtrVector.h"
+#include "TVector3.h"
 
 #ifndef BEZIERTRACKERALG_H
 #define BEZIERTRACKERALG_H
@@ -21,7 +22,9 @@ namespace recob
   class Seed;
   class Track;
   class Hit;
+  class Vertex;
 }
+
 
 
 namespace trkf {
@@ -59,6 +62,7 @@ namespace trkf {
     
     trkf::SeedFinderAlgorithm * GetSeedFinderAlgorithm() { return fTheSeedFinder;}
 
+    void  MakeVertexJoins(std::vector<trkf::BezierTrack>& BTracks, std::vector<recob::Vertex>& Vertices, std::vector<std::vector<int> > Mapping);
     
     
     // Overrides.
@@ -71,11 +75,22 @@ namespace trkf {
 
     // Fcl Attributes.
 
-    double fMaxKinkDThetaDx;
+    
+
+    
     double fMaxJumpLengths;
     double fHitDistance;
+    double fDirectJoinDistance;
     double fTrackJoinAngle;
+
+    double fVertexImpactThreshold;
+    double fVertexExtrapDistance;
+
+    void GetImpact(TVector3 t1pt, TVector3 t1dir, TVector3 t2pt, TVector3 t2dir, double& ImpactParam, double& Dist1, double& Dist2);
+
  
+
+
     SeedFinderAlgorithm * fTheSeedFinder;
 
   };
