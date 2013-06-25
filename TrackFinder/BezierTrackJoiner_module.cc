@@ -40,10 +40,6 @@ namespace trkf {
     explicit BezierTrackJoiner(fhicl::ParameterSet const& pset);
     virtual ~BezierTrackJoiner();
 
-    std::vector<BezierTrack*> MakeTouchJoins(std::vector<BezierTrack*>, double);
-    std::vector<TVector3> MakeVertexCandidates(std::vector<BezierTrack*>, std::vector<std::vector<int> >&);
-    std::vector<BezierTrack*> MakeGlancingJoins(std::vector<BezierTrack*>, double);
-    double GetTrackAngle(std::vector<trkf::BezierTrack*> BTracks, int i, int j, bool endi, bool endj);
     
     // Overrides.
 
@@ -52,7 +48,7 @@ namespace trkf {
     void produce(art::Event& evt);
     void endJob();
     
-    
+    void GetImpact(TVector3 t1pt, TVector3 t1dir, TVector3 t2pt, TVector3 t2dir, double& ImpactParam, double& Dist1, double& Dist2);
     
 
   private:
@@ -60,13 +56,10 @@ namespace trkf {
     // Fcl Attributes.
 
     std::string fTrackModuleLabel;
-    std::string fHitModuleLabel;
-
-    
+     
     double fJoinThreshold;
     double fVertexAngle;
-    double fDistanceForAngle;
-    double fHitDistance;
+    double fExtrapDistance;
   };
 }
 
@@ -112,9 +105,7 @@ namespace trkf {
     reconfigure(pset);
     produces< std::vector<recob::Track> >();
     produces< std::vector<recob::Vertex> >();
-    produces< art::Assns<recob::Track, recob::Hit> >();
     produces< art::Assns<recob::Vertex, recob::Track> >();
-    produces< art::Assns<recob::Vertex, recob::Hit> >();
   }
 
   //-------------------------------------------------------------------------
@@ -126,10 +117,9 @@ namespace trkf {
   void BezierTrackJoiner::reconfigure(fhicl::ParameterSet const& pset)
   {
     fTrackModuleLabel   = pset.get<std::string>("TrackModuleLabel");
-    fHitModuleLabel     = pset.get<std::string>("HitModuleLabel");
     fJoinThreshold      = pset.get<double>("JoinThreshold");
     fVertexAngle        = pset.get<double>("VertexAngle");
-    fDistanceForAngle   = pset.get<double>("DistanceForAngle");   
+    fExtrapDistance     = pset.get<double>("ExtrapDistance");
   }
 
   //-------------------------------------------------------------------------
@@ -147,9 +137,7 @@ namespace trkf {
     
     std::unique_ptr< std::vector<recob::Track > > tracksout ( new std::vector<recob::Track>);
     std::unique_ptr< std::vector<recob::Vertex > > verticesout ( new std::vector<recob::Vertex>);
-    std::unique_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
     std::unique_ptr< art::Assns<recob::Vertex, recob::Track > > tvassn( new art::Assns<recob::Vertex, recob::Track>);
-    std::unique_ptr< art::Assns<recob::Vertex, recob::Hit > > vhassn( new art::Assns<recob::Vertex, recob::Hit>);
     
         
     mf::LogVerbatim("BezierTrackJoiner") << "Getting tracks ";
@@ -159,18 +147,11 @@ namespace trkf {
     art::Handle< std::vector<recob::Track> > trackh;
     evt.getByLabel(fTrackModuleLabel, trackh);
 
-    art::FindManyP<recob::Hit> fmh(trackh, evt, fTrackModuleLabel);
-
-    std::vector< std::vector<art::Ptr<recob::Hit> > > trackHits;
     art::PtrVector<recob::Track>   Tracks;
-    Tracks.clear();
     for(unsigned int i=0; i < trackh->size(); ++i)
       {
 	art::Ptr<recob::Track> track(trackh,i);
 	Tracks.push_back(track);
-
-	// get the hits associated with this track
-	trackHits.push_back(fmh.at(i));
       }
 
     
@@ -178,72 +159,228 @@ namespace trkf {
 
     mf::LogVerbatim("BezierTrackJoiner") << "Make bez tracks ";
     // Make bezier tracks
-    std::vector<trkf::BezierTrack*> BTracks;
+    std::vector<trkf::BezierTrack> BTracks;
     BTracks.clear();
     for(size_t i=0; i!=Tracks.size(); i++)
-      BTracks.push_back(new BezierTrack(*Tracks.at(i)));
+      BTracks.push_back(BezierTrack(*Tracks.at(i)));
 
 
-    std::vector<trkf::BezierTrack*> JoinedTracks = BTracks;
+    std::vector<trkf::BezierTrack> JoinedTracks = BTracks;
+    
+    std::vector<TVector3> TrackEnd1s;
+    std::vector<TVector3> TrackEnd2s;
+    std::vector<TVector3> TrackDir1s;
+    std::vector<TVector3> TrackDir2s;
 
-    size_t PrevSize=BTracks.size()+1;
+
+    for(size_t i=0; i!=BTracks.size(); ++i)
+      {
+	TrackEnd1s.push_back( BTracks.at(i).GetTrackPointV(0));
+	TrackEnd2s.push_back( BTracks.at(i).GetTrackPointV(1));
+	TrackDir1s.push_back( BTracks.at(i).GetTrackDirectionV(0));
+	TrackDir2s.push_back( BTracks.at(i).GetTrackDirectionV(1));	
+      }
+ 
+    std::vector<std::map<int,bool> >     TracksMeetAtPoints;    
+    std::vector<std::vector<TVector3> >  MeetPoints;
      
-    // If we joined some tracks last time, try again
-    //  until no more joins
-    while(JoinedTracks.size()<PrevSize)
+    // The connection[i][j] gives impact parameters for track ends
+    //  The sign tells us which end of track j 
+    for(size_t i=0; i!=BTracks.size(); ++i)
       {
-	PrevSize = JoinedTracks.size();
-	JoinedTracks = MakeTouchJoins( JoinedTracks, fJoinThreshold);
-	mf::LogVerbatim("BezierTrackJoiner") << "Making touch joins  : " << PrevSize << " " << JoinedTracks.size();
+	for(size_t j=0; j!=BTracks.size(); ++j)
+	  {
+	    if(i!=j)
+	      {
+		double impact, disti, distj;
+		GetImpact(TrackEnd1s[i],TrackDir1s[i],TrackEnd1s[j],TrackDir1s[j], impact, disti, distj);
 
+		if((impact < fJoinThreshold)
+		   && (fabs(disti) < fExtrapDistance )
+		   && (fabs(distj) < fExtrapDistance )
+		   && (disti < 0 )
+		   && (distj < 0 ))
+		  {
+		    bool ThisTrackAlreadyMet =false;
+		    TVector3 ExtrapPoint1 = TrackEnd1s[i] + TrackDir1s[j].Unit()*disti;
+		    TVector3 ExtrapPoint2 = TrackEnd1s[j] + TrackDir1s[j].Unit()*distj;
+		    
+		    for(size_t pt=0; pt!=TracksMeetAtPoints.size(); ++i)
+		      {
+			if(TracksMeetAtPoints.at(pt)[-i]==true)
+			  {
+			    TracksMeetAtPoints.at(pt)[-j]=true;
+			    MeetPoints.at(pt).push_back(ExtrapPoint1);
+			    MeetPoints.at(pt).push_back(ExtrapPoint2);
+			    ThisTrackAlreadyMet=true;
+			    
+			  }
+			else if(TracksMeetAtPoints.at(pt)[-j]==true)
+			  {
+			    TracksMeetAtPoints.at(pt)[-i]=true;
+			    MeetPoints.at(pt).push_back(ExtrapPoint1);
+			    MeetPoints.at(pt).push_back(ExtrapPoint2);
+			    ThisTrackAlreadyMet=true;
+			  }
+		      }
+		    if(!ThisTrackAlreadyMet)
+		      {
+			size_t pt = TracksMeetAtPoints.size();
+			TracksMeetAtPoints.push_back(std::map<int,bool>());
+			TracksMeetAtPoints.at(pt)[-i]=true;
+			TracksMeetAtPoints.at(pt)[-j]=true;
+			MeetPoints.push_back(std::vector<TVector3>());
+			MeetPoints.at(pt).push_back(ExtrapPoint1);
+			MeetPoints.at(pt).push_back(ExtrapPoint2);
+		      }
+
+		  }
+
+		GetImpact(TrackEnd2s[i],TrackDir2s[i],TrackEnd2s[j],TrackDir2s[j], impact, disti, distj);
+		if((impact < fJoinThreshold)
+		   && (fabs(disti) < fExtrapDistance )
+		   && (fabs(distj) < fExtrapDistance )
+		   && (disti > 0 )
+		   && (distj > 0 ))
+		  {
+		    bool ThisTrackAlreadyMet =false;
+		    TVector3 ExtrapPoint1 = TrackEnd1s[i] + TrackDir2s[j].Unit()*disti;
+		    TVector3 ExtrapPoint2 = TrackEnd2s[j] + TrackDir2s[j].Unit()*distj;
+		    
+		    for(size_t pt=0; pt!=TracksMeetAtPoints.size(); ++i)
+		      {
+			if(TracksMeetAtPoints.at(pt)[i]==true)
+			  {
+			    TracksMeetAtPoints.at(pt)[j]=true;
+			    MeetPoints.at(pt).push_back(ExtrapPoint1);
+			    MeetPoints.at(pt).push_back(ExtrapPoint2);
+			    ThisTrackAlreadyMet=true;
+			    
+			  }
+			else if(TracksMeetAtPoints.at(pt)[j]==true)
+			  {
+			    TracksMeetAtPoints.at(pt)[i]=true;
+			    MeetPoints.at(pt).push_back(ExtrapPoint1);
+			    MeetPoints.at(pt).push_back(ExtrapPoint2);
+			    ThisTrackAlreadyMet=true;
+			  }
+		      }
+		    if(!ThisTrackAlreadyMet)
+		      {
+			size_t pt = TracksMeetAtPoints.size();
+			TracksMeetAtPoints.push_back(std::map<int,bool>());
+			TracksMeetAtPoints.at(pt)[i]=true;
+			TracksMeetAtPoints.at(pt)[j]=true;
+			MeetPoints.push_back(std::vector<TVector3>());
+			MeetPoints.at(pt).push_back(ExtrapPoint1);
+			MeetPoints.at(pt).push_back(ExtrapPoint2);
+		      }
+		    
+		    
+		  }
+		
+		GetImpact(TrackEnd1s[i],TrackDir1s[i],TrackEnd2s[j],TrackDir2s[j], impact, disti, distj);
+		if((impact < fJoinThreshold)
+		   && (fabs(disti) < fExtrapDistance )
+		   && (fabs(distj) < fExtrapDistance )
+		   && (disti < 0 )
+		   && (distj > 0 ))
+		  {
+		    bool ThisTrackAlreadyMet =false;
+		    TVector3 ExtrapPoint1 = TrackEnd1s[i] + TrackDir2s[j].Unit()*disti;
+		    TVector3 ExtrapPoint2 = TrackEnd2s[j] + TrackDir2s[j].Unit()*distj;
+		    
+		    for(size_t pt=0; pt!=TracksMeetAtPoints.size(); ++i)
+		      {
+			if(TracksMeetAtPoints.at(pt)[-i]==true)
+			  {
+			    TracksMeetAtPoints.at(pt)[j]=true;
+			    MeetPoints.at(pt).push_back(ExtrapPoint1);
+			    MeetPoints.at(pt).push_back(ExtrapPoint2);
+			    ThisTrackAlreadyMet=true;
+			    
+			  }
+			else if(TracksMeetAtPoints.at(pt)[j]==true)
+			  {
+			    TracksMeetAtPoints.at(pt)[-i]=true;
+			    MeetPoints.at(pt).push_back(ExtrapPoint1);
+			    MeetPoints.at(pt).push_back(ExtrapPoint2);
+			    ThisTrackAlreadyMet=true;
+			  }
+		      }
+		    if(!ThisTrackAlreadyMet)
+		      {
+			size_t pt = TracksMeetAtPoints.size();
+			TracksMeetAtPoints.push_back(std::map<int,bool>());
+			TracksMeetAtPoints.at(pt)[-i]=true;
+			TracksMeetAtPoints.at(pt)[j]=true;
+			MeetPoints.push_back(std::vector<TVector3>());
+			MeetPoints.at(pt).push_back(ExtrapPoint1);
+			MeetPoints.at(pt).push_back(ExtrapPoint2);
+		      }
+	  
+				    
+		  }
+		
+	      }
+	  }
       }
 
-    PrevSize=BTracks.size()+1;
 
 
-    while(JoinedTracks.size()<PrevSize)
+    for(size_t pt=0; pt!=TracksMeetAtPoints.size(); ++pt)
       {
-	PrevSize = JoinedTracks.size();
-	JoinedTracks = MakeGlancingJoins( JoinedTracks, fJoinThreshold);
-	mf::LogVerbatim("BezierTrackJoiner") << "Making glancing joins  : " << PrevSize << " " << JoinedTracks.size();
+	TVector3 FinalMeetPt;
+	for(size_t i=0; i!=MeetPoints.at(pt).size(); ++i)
+	  {
+	    FinalMeetPt += MeetPoints.at(pt).at(i);
+	  } 
+	FinalMeetPt *= (1./MeetPoints.at(pt).size());
 	
+	for(size_t i=0; i!=BTracks.size(); ++i)
+	  {
+	    if(TracksMeetAtPoints.at(pt)[i]==true)
+	      {
+		TVector3 NewDirection = (FinalMeetPt - TrackEnd2s[i])*0.5;
+		double NewPos[3];
+		double NewDir[3];
+		double Err[3];
+		
+		for(size_t n=0; n!=3; ++n)
+		  {
+		    NewPos[n]=FinalMeetPt[n];
+		    NewDir[n]=NewDirection[n];
+		  }
+		
+		recob::Seed NewSeed(NewPos, NewDir, Err, Err);
+		BTracks.at(i).GetSeedVector().push_back(NewSeed);
+	      }
+	    else if(TracksMeetAtPoints.at(pt)[-i]==true)
+	      {
+		TVector3 NewDirection = -(FinalMeetPt - TrackEnd2s[i])*0.5;
+		double NewPos[3];
+		double NewDir[3];
+		double Err[3];
+		
+		for(size_t n=0; n!=3; ++n)
+		  {
+		    NewPos[n]=FinalMeetPt[n];
+		    NewDir[n]=NewDirection[n];
+		  }
+		
+		recob::Seed NewSeed(NewPos, NewDir, Err, Err);
+		BTracks.at(i).GetSeedVector().insert(BTracks.at(i).GetSeedVector().begin(), NewSeed);
+
+	      }
+	  }
       }
     
-
-    std::vector<std::vector<int> > TracksToVertices;
-    std::vector<TVector3> Vertices = MakeVertexCandidates(JoinedTracks, TracksToVertices);
-
-    
-    
-
-    for(size_t i=0; i!=JoinedTracks.size(); ++i)
+    for(size_t i=0; i!=BTracks.size(); ++i)
       {
-	tracksout->push_back(*(JoinedTracks.at(i)->GetBaseTrack()));
-
-	///\todo need to associate hits to the tracks
-      }
-
-    for(size_t i=0; i!=Vertices.size(); ++i)
-      {
-	double xyz[3];
-	for(size_t j=0; j!=3; j++)
-	  xyz[j]=Vertices.at(i)[j];
-	
-	verticesout->push_back(recob::Vertex(xyz, i)); 
-
-	// associate tracks to this vertex
-	for(size_t t = 0; t < TracksToVertices[i].size(); ++t)
-	  util::CreateAssn(*this, evt, *verticesout, *tracksout, *tvassn, 
-			   (size_t)TracksToVertices[i][t], (size_t)TracksToVertices[i][t]+1);
-
-	///\todo need to associate hits to the vertices
-
+	tracksout->push_back(*(BTracks.at(i).GetBaseTrack()));
       }
     
-    mf::LogVerbatim("BezierTrackJoiner") << "storing products ";
 
-    // Store the fruits of our labour in the event
-    mf::LogVerbatim("BezierTrackJoiner") << "Storing in evt";
     evt.put(std::move(tracksout));
     evt.put(std::move(verticesout));
     evt.put(std::move(tvassn));
@@ -251,214 +388,18 @@ namespace trkf {
 
   }
 
-
-  //-------------------------------------------------------------------------
-  std::vector<BezierTrack*> BezierTrackJoiner::MakeTouchJoins(std::vector<BezierTrack*> BTracks, double fJoinThreshold)
+  void BezierTrackJoiner::GetImpact(TVector3 t1pt, TVector3 t1dir, TVector3 t2pt, TVector3 t2dir, double& ImpactParam, double& Dist1, double& Dist2)
   {
-
-    std::cout<<"looping tracks " <<std::endl;
-    std::map<int,bool> UsedTracks;
-    std::vector<BezierTrack*> ReturnVector;
+    double lambda1 = ((t2pt-t1pt).Cross(t2dir)).Dot(t1dir.Cross(t2dir)) / (t1dir.Cross(t2dir)).Mag2();
+    double lambda2 = ((t1pt-t2pt).Cross(t1dir)).Dot(t2dir.Cross(t1dir)) / (t2dir.Cross(t1dir)).Mag2();
+    TVector3 c = t1pt + t1dir*lambda1 - t2pt - t2dir*lambda2;
     
-    ReturnVector.clear();
-    UsedTracks.clear();
-
-    // Loop through track pairs looking for joins
-    for(size_t i=1; i<BTracks.size(); ++i)
-      for(size_t j=0; j<BTracks.size(); ++j)
-	{
-	  if((!UsedTracks[i])&&(!UsedTracks[j]))
-	    {
-	      TVector3 Endi1 = BTracks.at(i)->GetTrackPointV(1);
-	      TVector3 Endj0 = BTracks.at(j)->GetTrackPointV(0);
-	   
-	      
-	      std::cout<<"EndSeparation " <<i<<" " << j <<" " << (Endi1-Endj0).Mag()<<std::endl;
-		  
-	      if((Endi1-Endj0).Mag()<fJoinThreshold)
-		{  
-		  TVector3 Diri = BTracks.at(i)->GetTrackPointV(1) - BTracks.at(i)->GetTrackPointV(1-fDistanceForAngle);
-		  TVector3 Dirj = (BTracks.at(j)->GetTrackPointV(1) - BTracks.at(j)->GetTrackPointV(1-fDistanceForAngle));
-
-		  std::cout<<"checking angle  "<<Diri.Angle(Dirj) <<std::endl;
-
-		  if(Diri.Angle(Dirj)<fVertexAngle)
-		    {
-		      std::cout<<"Making a join"<<std::endl;
-		      UsedTracks[i]=UsedTracks[j]=true;
-		      std::unique_ptr<recob::Track> Combined = BTracks.at(i)->GetJoinedBaseTrack(BTracks.at(j));		      		      
-		      ReturnVector.push_back(new trkf::BezierTrack(*Combined));
-		    } // Angle small enough
-		} // within join distance threshold
-	    } // unused tracks
-	} // loop i,j
-    
-    
-    // Add into the return vector any that were not joined
-    for(size_t i=0; i!=BTracks.size(); ++i)
-      if(!UsedTracks[i]){
-	ReturnVector.push_back(BTracks.at(i));
-      }
-
-    return ReturnVector;
-  }
-
-  /*
-  std::vector<BezierTrack*> BezierTrackJoiner::MakeExtrapJoins(std::vector<BezierTrack*> BTracks, double fMissThreshold, double fAngleThreshold, double fJumpDistance, double fLengthFraction)
-  {
-    std::map<int,bool> UsedTracks;
-    std::vector<BezierTrack*> ReturnVector;
-    
-    ReturnVector.clear();
-    UsedTracks.clear();
-
-    // Loop through track pairs looking for joins
-    for(size_t i=1; i<BTracks.size(); ++i)
-      for(size_t j=0; j<BTracks.size(); ++j)
-	{
-	  if((!UsedTracks[i])&&(!UsedTracks[j])&&(i!=j))
-	    {
-	      TVector3 Endi1 = BTracks.at(i)->GetTrackPointV(1);
-	      TVector3 Diri1 = (Endi1 - BTracks.at(i)->GetTrackPointV(1-fLengthFraction)).Unit();
-	      TVector3 Endj0 = BTracks.at(j)->GetTrackPointV(0);
-	      TVector3 Dirj0 = (BTracks.at(i)->GetTrackPointV(fLengthFraction) - Endj0).Unit();
-	      
-	      if((Diri1.Angle(Dirj0)) < fAngleThreshold)
-		{
-		  if(evd
-
-		}
-	    }
-	}
-  
-  }
-
-  
-  */
-
-  //-------------------------------------------------------------------------
-  std::vector<BezierTrack*> BezierTrackJoiner::MakeGlancingJoins(std::vector<BezierTrack*> BTracks, double fJoinThreshold)
-  {
-
-    std::cout<<"looping tracks " <<std::endl;
-    std::map<int,bool> UsedTracks;
-    std::vector<BezierTrack*> ReturnVector;
-    
-    ReturnVector.clear();
-    UsedTracks.clear();
-
-    // Loop through track pairs looking for joins
-    for(size_t i=1; i<BTracks.size(); ++i)
-      for(size_t j=0; j<BTracks.size(); ++j)
-	{
-	  if((!UsedTracks[i])&&(!UsedTracks[j])&&(i!=j))
-	    {
-	      TVector3 Endi1 = BTracks.at(i)->GetTrackPointV(1);
-	      TVector3 Endj0 = BTracks.at(j)->GetTrackPointV(0);
-	    
-	      double s1,d1, s2,d2;
-	      BTracks.at(i)->GetClosestApproach(Endj0,s1,d1);
-	      BTracks.at(j)->GetClosestApproach(Endi1,s2,d2);
-
-	      std::cout<<"Glancing join distances  : "<<d1<<" " << d2<<std::endl;
-	      std::cout<<"Glancing join s values   : "<<s1<<" " << s2<<std::endl;
-	      
-	      if((d1<d2)&&(d1<fJoinThreshold))
-		{
-		  std::cout<<"Segs from track end " << BTracks.at(i)->WhichSegment(s1)<<" " <<BTracks.at(i)->NSegments()<<std::endl;
-		  if(BTracks.at(i)->WhichSegment(s1)==(BTracks.at(i)->NSegments()-1))
-		    {
-		      std::unique_ptr<recob::Track>   TheTrack 
-			= BTracks.at(i)->GetJoinedPartBaseTrack(BTracks.at(j),
-								0, BTracks.at(i)->WhichSegment(s1),
-								0, BTracks.at(j)->NSegments()-1);
-		      UsedTracks[i]=UsedTracks[j]=true;		      
-		      ReturnVector.push_back(new BezierTrack(*TheTrack));
-		    }
-		}
-	      if((d2<d1)&&(d2<fJoinThreshold))
-		{
-		  std::cout<<"Segs from track end " << BTracks.at(j)->WhichSegment(s2)<<" " << BTracks.at(j)->NSegments()<<std::endl;
-		  if(BTracks.at(j)->WhichSegment(s2)==0)
-		    {
-		      std::unique_ptr<recob::Track> TheTrack 
-			= BTracks.at(i)->GetJoinedPartBaseTrack(BTracks.at(j),
-								0, BTracks.at(i)->NSegments()-1,
-								1, BTracks.at(j)->NSegments()-1);
-		      UsedTracks[i]=UsedTracks[j]=true;
-		      ReturnVector.push_back(new BezierTrack(*TheTrack));
-		    }		     
-		}    
-	      
-	    }
-      
-	}    
-    
-    // Add into the return vector any that were not joined
-    for(size_t i=0; i!=BTracks.size(); ++i)
-      if(!UsedTracks[i])
-	ReturnVector.push_back(BTracks.at(i));
-    
-    return ReturnVector;
+    ImpactParam = c.Mag();
+    Dist1 = lambda1 * t1dir.Mag();
+    Dist2 = lambda2 * t2dir.Mag();
   }
 
 
-  //-------------------------------------------------------------------------
-  std::vector<TVector3> BezierTrackJoiner::MakeVertexCandidates(std::vector<BezierTrack*> BTracks,std::vector<std::vector<int> >& TracksToVertices)
-  {
-    std::cout<<"looping tracks " <<std::endl;
-    std::map<int,bool> UsedTracks;
-    std::vector<TVector3> ReturnVector;
-    
-    ReturnVector.clear();
-    UsedTracks.clear();
-
-    // Loop through track pairs looking for joins
-    for(size_t i=1; i<BTracks.size(); ++i)
-      {
-	TVector3 Endi0 = BTracks.at(i)->GetTrackPointV(0);
-
-	// first check if track meets any existing vertices
-	for(size_t jvtx=0; jvtx!=ReturnVector.size(); jvtx++)
-	  {
-	    if((Endi0-ReturnVector.at(jvtx)).Mag()<fJoinThreshold)
-	      {
-		TracksToVertices.at(jvtx).push_back(i);
-		UsedTracks[i]=true;		
-	      }	    
-	  }
-
-	// then check if track meets any other tracks to form
-	//  a new vertex
-	for(size_t j=0; j<BTracks.size(); ++j)
-	  {
-	    if((!UsedTracks[i])&&(!UsedTracks[j])&&(i!=j))
-	      {
-
-		TVector3 Endj0 = BTracks.at(j)->GetTrackPointV(0);
-		
-		if((Endi0-Endj0).Mag()<fJoinThreshold)
-		  {
-		    TVector3 VertexPos=0.5*(Endi0+Endj0);
-		    ReturnVector.push_back(VertexPos);
-		    std::cout<<"Found Vertex at " <<VertexPos[0]<<
-		      " " <<  VertexPos[1]<< " " << VertexPos[2]<<std::endl;
-		    std::vector<int> TracksThisVtx;
-		    TracksThisVtx.push_back(i);
-		    TracksThisVtx.push_back(j);
-
-		    UsedTracks[i]=UsedTracks[j]=true;
-		    
-		    TracksToVertices.push_back(TracksThisVtx);
-		    
-		    
-		  }
-	    }
-	}
-      }
-    return ReturnVector;
-    
-  }
 
    
   //-------------------------------------------------------------------------

@@ -220,9 +220,11 @@ namespace trkf {
 		
 		SValuesOfHits.push_back(std::vector<double>());
 		HitsForAssns.push_back(art::PtrVector<recob::Hit>());
-
+		
 	
 		GetHitsToAssn(SortedHits,i,BTracksThisCombo.at(j), SValuesOfHits.at(ThisIndex), HitsForAssns.at(ThisIndex));
+		
+		BTracksThisCombo.at(j).CalculatedQdx(HitsForAssns.at(ThisIndex), SValuesOfHits.at(ThisIndex));
 		
 		mf::LogVerbatim("BezierTracker") << " Bezier track " << ThisIndex<<" has hit collection size " << HitsForAssns.at(ThisIndex).size();
 			

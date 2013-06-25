@@ -166,12 +166,10 @@ development_beziertrackjoiner:
 {  
   module_type:         "BezierTrackJoiner"
   TrackModuleLabel:    "beziertracker"
-  HitModuleLabel:      "beziertracker"
-  UseExistingAssocs:   true
-  JoinThreshold:       5
+  JoinThreshold:       1
   VertexAngle:         0.26
-  DistanceForAngle:    0.15
-  HitDistance:         0.5
+  ExtrapDistance:      10
+
 }
 
 development_beziertrackana:
