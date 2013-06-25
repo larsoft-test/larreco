@@ -31,7 +31,8 @@ standard_beziertrackermodule:
  HitModuleLabel:      "ffthit"
  ClusterModuleLabel:  "dbcluster"
  TrackMode:           3
- MakeHitAssns:        false
+ MakeHitAssns:        true
+ EnableCalo:          false
  BezierTrackerAlgorithm: @local::standard_beziertrackeralgorithm
 }
 

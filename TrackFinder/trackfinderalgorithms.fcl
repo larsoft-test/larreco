@@ -29,9 +29,13 @@ standard_seedfinderalgorithm:
 standard_beziertrackeralgorithm:
 {	
   MaxJumpLengths:      5.0
-  HitDistance:         1
-  SeedFinder:          @local::standard_seedfinderalgorithm
+  HitDistance:         1.0
+  DirectJoinDistance:  5.0
   TrackJoinAngle:      0.5          
+  VertexImpactThreshold: 2
+  VertexExtrapDistance: 10
+  SeedFinder:          @local::standard_seedfinderalgorithm
+
 }
 
 bo_spacepointalg: @local::standard_spacepointalg

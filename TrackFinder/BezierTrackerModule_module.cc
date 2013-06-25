@@ -21,6 +21,7 @@
 #include "RecoAlg/SeedFinderAlgorithm.h"
 #include "Geometry/Geometry.h"
 
+
 namespace recob
 {
   class Seed;
@@ -64,7 +65,9 @@ namespace trkf {
     std::string fClusterModuleLabel;
 
     int fTrackMode;
-
+    bool fEnableCalo;
+    bool fMakeHitAssns;
+    
     trkf::BezierTrackerAlgorithm * fBTrackAlg;
     
     std::vector<std::vector<recob::SpacePoint> > GetSpacePointsFromClusters(std::string ClusterModuleLabel, art::Event& evt);
@@ -105,6 +108,7 @@ namespace trkf {
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "RecoBase/Hit.h"
 #include "RecoBase/Seed.h"
+#include "RecoBase/Vertex.h"
 #include "RecoBase/SpacePoint.h"
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Track.h"
@@ -119,7 +123,9 @@ namespace trkf {
     reconfigure(pset);
     produces< std::vector<recob::Track> >();
     produces< std::vector<recob::Seed> >();
+    produces< std::vector<recob::Vertex> >();
     produces< art::Assns<recob::Track, recob::Hit> >();
+    //  produces< art::Assns<recob::Track, recob::Vertex> >();
       
   }
 
@@ -133,7 +139,9 @@ namespace trkf {
     fClusterModuleLabel= pset.get<std::string>("ClusterModuleLabel");
     fHitModuleLabel    = pset.get<std::string>("HitModuleLabel");
     fTrackMode         = pset.get<double>("TrackMode");
-      
+    fEnableCalo        = pset.get<bool>("EnableCalo");
+    fMakeHitAssns      = pset.get<bool>("MakeHitAssns");
+    
     fBTrackAlg = new trkf::BezierTrackerAlgorithm(pset.get<fhicl::ParameterSet>("BezierTrackerAlgorithm"));
       
 }
@@ -148,6 +156,7 @@ namespace trkf {
     // Declare products to store
 
     std::unique_ptr< std::vector<recob::Track > > btracks ( new std::vector<recob::Track>);
+    std::unique_ptr< std::vector<recob::Vertex > > vertices ( new std::vector<recob::Vertex>);
     std::unique_ptr< std::vector<recob::Seed > > seeds ( new std::vector<recob::Seed>);
     std::unique_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
    
@@ -221,10 +230,11 @@ namespace trkf {
 		SValuesOfHits.push_back(std::vector<double>());
 		HitsForAssns.push_back(art::PtrVector<recob::Hit>());
 		
-	
-		GetHitsToAssn(SortedHits,i,BTracksThisCombo.at(j), SValuesOfHits.at(ThisIndex), HitsForAssns.at(ThisIndex));
-		
-		BTracksThisCombo.at(j).CalculatedQdx(HitsForAssns.at(ThisIndex), SValuesOfHits.at(ThisIndex));
+		if(fMakeHitAssns)
+		  GetHitsToAssn(SortedHits,i,BTracksThisCombo.at(j), SValuesOfHits.at(ThisIndex), HitsForAssns.at(ThisIndex));	
+
+		if(fEnableCalo)
+		  BTracksThisCombo.at(j).CalculatedQdx(HitsForAssns.at(ThisIndex), SValuesOfHits.at(ThisIndex));
 		
 		mf::LogVerbatim("BezierTracker") << " Bezier track " << ThisIndex<<" has hit collection size " << HitsForAssns.at(ThisIndex).size();
 			
@@ -247,7 +257,16 @@ namespace trkf {
 
     fBTrackAlg->MakeDirectJoins(BTracks, HitsForAssns);
     
-
+    mf::LogInfo("BezierTrackerModle")<<"Bezier tracker vertexing";
+    std::vector<recob::Vertex> Vertices;
+    std::vector<std::vector<int> > VertexMapping;
+    fBTrackAlg->MakeVertexJoins(BTracks, Vertices, VertexMapping);
+    
+    for(size_t v=0; v!=Vertices.size(); ++v)
+      {
+	vertices->push_back(Vertices.at(v));
+      }
+    
     for(size_t i=0; i!=BTracks.size(); ++i)
       {
 	
@@ -258,6 +277,7 @@ namespace trkf {
    
     mf::LogVerbatim("BezierTrackerAlgorithm")<<"Storing in evt - check"<<std::endl;
     evt.put(std::move(btracks));
+    evt.put(std::move(vertices));
     evt.put(std::move(seeds));
     evt.put(std::move(assn));
 
@@ -701,7 +721,6 @@ namespace trkf {
 	return;
       }
   }
-
 
 
 

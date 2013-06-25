@@ -205,7 +205,7 @@ namespace trkf {
 		    TVector3 ExtrapPoint1 = TrackEnd1s[i] + TrackDir1s[j].Unit()*disti;
 		    TVector3 ExtrapPoint2 = TrackEnd1s[j] + TrackDir1s[j].Unit()*distj;
 		    
-		    for(size_t pt=0; pt!=TracksMeetAtPoints.size(); ++i)
+		    for(size_t pt=0; pt!=TracksMeetAtPoints.size(); ++pt)
 		      {
 			if(TracksMeetAtPoints.at(pt)[-i]==true)
 			  {
@@ -247,7 +247,7 @@ namespace trkf {
 		    TVector3 ExtrapPoint1 = TrackEnd1s[i] + TrackDir2s[j].Unit()*disti;
 		    TVector3 ExtrapPoint2 = TrackEnd2s[j] + TrackDir2s[j].Unit()*distj;
 		    
-		    for(size_t pt=0; pt!=TracksMeetAtPoints.size(); ++i)
+		    for(size_t pt=0; pt!=TracksMeetAtPoints.size(); ++pt)
 		      {
 			if(TracksMeetAtPoints.at(pt)[i]==true)
 			  {
@@ -290,7 +290,7 @@ namespace trkf {
 		    TVector3 ExtrapPoint1 = TrackEnd1s[i] + TrackDir2s[j].Unit()*disti;
 		    TVector3 ExtrapPoint2 = TrackEnd2s[j] + TrackDir2s[j].Unit()*distj;
 		    
-		    for(size_t pt=0; pt!=TracksMeetAtPoints.size(); ++i)
+		    for(size_t pt=0; pt!=TracksMeetAtPoints.size(); ++pt)
 		      {
 			if(TracksMeetAtPoints.at(pt)[-i]==true)
 			  {
@@ -330,12 +330,13 @@ namespace trkf {
 
     for(size_t pt=0; pt!=TracksMeetAtPoints.size(); ++pt)
       {
+	std::cout<<"Making adjustments for meet pt " <<pt<<std::endl;
 	TVector3 FinalMeetPt;
 	for(size_t i=0; i!=MeetPoints.at(pt).size(); ++i)
 	  {
 	    FinalMeetPt += MeetPoints.at(pt).at(i);
 	  } 
-	FinalMeetPt *= (1./MeetPoints.at(pt).size());
+	FinalMeetPt *= (1./float(MeetPoints.at(pt).size()));
 	
 	for(size_t i=0; i!=BTracks.size(); ++i)
 	  {
