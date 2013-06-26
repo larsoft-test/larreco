@@ -755,30 +755,31 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
   std::sort(houghCorners.begin(),houghCorners.end());
   std::reverse(houghCorners.begin(),houghCorners.end());
 
-  for(auto houghCornersItr = houghCorners.begin(); houghCornersItr != houghCorners.end(); houghCornersItr++) {
-    std::vector<geo::WireID> wireCornerList = geom->ChannelToWire((uint32_t) houghCornersItr->p0/wire_dist);
+  //for(auto houghCornersItr = houghCorners.begin(); houghCornersItr != houghCorners.end(); houghCornersItr++) {
+    //std::vector<geo::WireID> wireCornerList = geom->ChannelToWire((uint32_t) houghCornersItr->p0/wire_dist);
 
-    //for (auto wireCornerListItr = wireCornerList.begin(); wireCornerListItr != wireCornerList.end(); wireCornerListItr++) {
-      //std::cout << houghCornersItr->strength << " " << wireCornerListItr->Wire << " " << houghCornersItr->p1/tickToDist << std::endl;
-    //}
-  }
+    ////for (auto wireCornerListItr = wireCornerList.begin(); wireCornerListItr != wireCornerList.end(); wireCornerListItr++) {
+      ////std::cout << houghCornersItr->strength << " " << wireCornerListItr->Wire << " " << houghCornersItr->p1/tickToDist << std::endl;
+    ////}
+  //}
   //std::cout << std::endl;
   
   // Merge houghCorners if they are close
-  for(auto houghCornersItr1 = houghCorners.begin(); houghCornersItr1 != houghCorners.end()-1; houghCornersItr1++) {
-    for(auto houghCornersItr2 = houghCornersItr1+1; houghCornersItr2 != houghCorners.end(); ) {
-      double houghCornerDistance = std::sqrt(pow(houghCornersItr1->p0-houghCornersItr2->p0,2)+pow(houghCornersItr1->p1-houghCornersItr2->p1,2));
-      if(houghCornerDistance < 10){
-        houghCornersItr1->p0=(houghCornersItr1->p0*houghCornersItr1->strength+houghCornersItr2->p0*houghCornersItr2->strength)/(houghCornersItr1->strength+houghCornersItr2->strength);
-        houghCornersItr1->p1=(houghCornersItr1->p1*houghCornersItr1->strength+houghCornersItr2->p1*houghCornersItr2->strength)/(houghCornersItr1->strength+houghCornersItr2->strength);
-        houghCornersItr1->strength= (houghCornersItr2->strength > houghCornersItr1->strength) ? houghCornersItr2->strength : houghCornersItr1->strength;
-        houghCornersItr2 = houghCorners.erase(houghCornersItr2);
-        houghCornersItr1 = houghCorners.begin();
-      }
-      else
-        ++houghCornersItr2;
-    }
-  }
+  // WARNING! SEG FAULTS
+  //for(auto houghCornersItr1 = houghCorners.begin(); houghCornersItr1 != houghCorners.end()-1; houghCornersItr1++) {
+    //for(auto houghCornersItr2 = houghCornersItr1+1; houghCornersItr2 != houghCorners.end(); ) {
+      //double houghCornerDistance = std::sqrt(pow(houghCornersItr1->p0-houghCornersItr2->p0,2)+pow(houghCornersItr1->p1-houghCornersItr2->p1,2));
+      //if(houghCornerDistance < 10){
+        //houghCornersItr1->p0=(houghCornersItr1->p0*houghCornersItr1->strength+houghCornersItr2->p0*houghCornersItr2->strength)/(houghCornersItr1->strength+houghCornersItr2->strength);
+        //houghCornersItr1->p1=(houghCornersItr1->p1*houghCornersItr1->strength+houghCornersItr2->p1*houghCornersItr2->strength)/(houghCornersItr1->strength+houghCornersItr2->strength);
+        //houghCornersItr1->strength= (houghCornersItr2->strength > houghCornersItr1->strength) ? houghCornersItr2->strength : houghCornersItr1->strength;
+        //houghCornersItr2 = houghCorners.erase(houghCornersItr2);
+        //houghCornersItr1 = houghCorners.begin();
+      //}
+      //else
+        //++houghCornersItr2;
+    //}
+  //}
 
 
   //for(auto houghCornersItr = houghCorners.begin(); houghCornersItr != houghCorners.end(); houghCornersItr++){
