@@ -17,13 +17,13 @@ standard_seedfinderalgorithm:
 {
   SpacePointAlg:          @local::standard_spacepointalg
   InitSeedLength:         4
-  MinPointsInSeed:        5
-  AngularDev:             0.3
+  MinPointsInSeed:        8
+  PCAThreshold:           0.9
   Refits:                 30
-  ExtendThresh:           0.80
+  ExtendThresh:           0.85
   ExtendStep:             1.
   ExtendResolution:       2.
-  MaxViewRMS:             [0.0,0.0,0.0]
+  MaxViewRMS:             [1.5,1.5,1.5]
 }
 
 standard_beziertrackeralgorithm:
