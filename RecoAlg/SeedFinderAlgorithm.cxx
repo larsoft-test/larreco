@@ -26,6 +26,7 @@
 #include "Utilities/DetectorProperties.h"
 #include "TMatrixD.h"
 #include "TVectorD.h"
+#include "TPrincipal.h"
 
 namespace trkf {
 
@@ -48,7 +49,7 @@ namespace trkf {
     
     fInitSeedLength        = pset.get<double>("InitSeedLength");
     fMinPointsInSeed       = pset.get<int>("MinPointsInSeed");
-    fAngularDev            = pset.get<double>("AngularDev");
+    fPCAThreshold          = pset.get<double>("PCAThreshold");
 
     fRefits                = pset.get<double>("Refits");
 
@@ -136,10 +137,10 @@ namespace trkf {
       {
 	// This vector keeps a list of the points used in this seed
 	std::vector<int> PointsUsed;
-
+	
 	// Find exactly one seed, starting at high Z
 	recob::Seed TheSeed = FindSeedAtEnd(AllSpacePoints, PointStatus, PointsUsed);
-
+	
 	// If it was a good seed, collect up the relevant spacepoints
 	// and add the seed to the return vector 
 	if(TheSeed.IsValid())
@@ -242,45 +243,38 @@ namespace trkf {
     
     
     // See if seed points have some linearity
-    float costheta=0, phi=0, costheta2=0, phi2=0;    
+
+    
+    TPrincipal  pc(3, "ND");
+      
     for(unsigned int i=0; i!=PointsInRange.size(); i++)
       {
-	TVector3 ThisPoint(Points.at(PointsInRange.at(i)).XYZ()[0],
-			   Points.at(PointsInRange.at(i)).XYZ()[1],
-			   Points.at(PointsInRange.at(i)).XYZ()[2]);
-	TVector3 Step = CentreOfPoints-ThisPoint;
-	
-	if(Step.Z()<0) Step=-Step;
-	
-	
-	phi       += Step.Phi();
-	phi2      += pow(Step.Phi(),2);
-	
-	// Need to check range of costheta to avoid getting a nan.
-	//  (if CosTheta=1, floating point errors mess us up)
-	if(Step.CosTheta()<0.9999)
+	double ThisStep[3];
+	for(size_t n=0; n!=3; ++n)
 	  {
-	    costheta     += Step.CosTheta();
-	    costheta2    += pow(Step.CosTheta(),2);
+	    ThisStep[n] = Points.at(PointsInRange.at(i)).XYZ()[n] - CentreOfPoints[n];
 	  }
-	else
-	  {
-	    costheta+=1;
-	    costheta2+=1;
-	  }
+	pc.AddRow(ThisStep);
+      }
+    pc.MakePrincipals();
+   
+    TVector3 PrincipalDirection;
+    double PrincipalEigenvalue;
+    
+
+    PrincipalEigenvalue = (*pc.GetEigenValues())[0];
+    
+    
+    for(size_t n=0; n!=3; ++n)
+      {	
+	PrincipalDirection[n]=	(*pc.GetEigenVectors())[0][n];
 	
       }
-	
-    float sigtheta    = pow((costheta2 / NPoints - pow( costheta/NPoints, 2 )), 0.5);
-    float sigphi      = pow((phi2      / NPoints - pow( phi/NPoints,   2 )),    0.5);
-    float meantheta   = std::acos(costheta / NPoints);
-    float meanphi     = phi                / NPoints;
     
-    // Total angular deviation (spherical polars)
-    float AngularDev =  pow(pow(sigtheta,2) + pow(sin(sigtheta) * sigphi, 2), 0.5);
-    
+    //    mf::LogVerbatim("SeedFinderAlgorithm")<<" Protoseed has PCA eigenvalue : " <<"Principal eigenvalue: " << PrincipalEigenvalue;
+ 
     // If seed is tight enough angularly    
-    if(AngularDev<fAngularDev)
+    if(PrincipalEigenvalue>fPCAThreshold)
       {
 	double PtArray[3], DirArray[3];
 	
@@ -291,14 +285,10 @@ namespace trkf {
 
 	// calculate direction from average over hits
 	
-	TVector3 SeedDirection;
 	
-	SeedDirection.SetMagThetaPhi(fInitSeedLength, meantheta, meanphi);
-	
-
-	DirArray[0]=SeedDirection.X();
-	DirArray[1]=SeedDirection.Y();
-	DirArray[2]=SeedDirection.Z();
+	DirArray[0] = PrincipalDirection.X() * fInitSeedLength;
+	DirArray[1] = PrincipalDirection.Y() * fInitSeedLength;
+	DirArray[2] = PrincipalDirection.Z() * fInitSeedLength;
 	
 
 	ReturnSeed = recob::Seed(PtArray,DirArray);
@@ -330,6 +320,7 @@ namespace trkf {
 	for(size_t j=0; j!=fMaxViewRMS.size(); j++)
 	  {
 	    if(fMaxViewRMS.at(j)<RMS.at(j)) ThrowOutSeed=true;
+	    //   mf::LogVerbatim("SeedFinderAlgorithm") << RMS.at(j);		
 	  }
       }
 
@@ -389,6 +380,7 @@ namespace trkf {
 
     // We extend the seed in both directions.  Backward first:
     
+    bool DidExtend=false;
 
     bool KeepExtending=true;
     while(KeepExtending!=false)
@@ -442,7 +434,8 @@ namespace trkf {
             BestN      = ThisN;
 
             BestSeed   = TheNewSeed;
-          }
+	    DidExtend  = true;
+	  }
 	else
           KeepExtending=false;
 
@@ -495,6 +488,7 @@ namespace trkf {
             BestdNdx   = ThisdNdx;
  
             BestSeed   = TheNewSeed;
+	    DidExtend  = true;
           }
         else
           {
@@ -508,6 +502,16 @@ namespace trkf {
 
     BestSeed.GetDirection( ThisDir, ThisErr);
     BestSeed.GetPoint(     ThisPt,  ThisErr);
+
+    /*
+    if(DidExtend)
+      {
+	double DirLength;	
+	for(size_t n=0; n!=3; ++n) DirLength += pow(ThisDir[n],2);
+	DirLength = pow(DirLength, 0.5);
+	for(size_t n=0; n!=3; ++n) ThisDir[n] *= (1. + fExtendResolution/DirLength);
+      }
+    */
 
     TheSeed.SetDirection(  ThisDir, ThisErr);
     TheSeed.SetPoint(      ThisPt,  ThisErr);
@@ -647,15 +651,15 @@ namespace trkf {
 
 	double a = SeedDirInTime / SeedDirInPlane;
 
-
+	
 	for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisPlane.begin(); itHit!=HitsThisPlane.end(); itHit++)
           {
             double DDisp = (double((*itHit)->WireID().Wire)-SeedCentralWire)*WirePitch;
 	    double Time = (*itHit)->PeakTime();
 	    double XDisp = (Time-SeedCentralTime)*OneTickInX;
-
-            LSTot += pow(XDisp - a * DDisp, 2);
-            Count++;
+	    LSTot += pow(XDisp - a * DDisp, 2);
+	    Count++;
+	    
           }
 	ReturnVec.push_back(pow(LSTot/Count,0.5));
       }
@@ -925,8 +929,12 @@ namespace trkf {
 	    HitsClaimed[(*itHit)->Channel()]=true;
 	  }
       }
-    return HitsClaimed.size();
+    size_t ReturnVal = HitsClaimed.size();	
+    HitsClaimed.clear();
+    return ReturnVal;
   }
+
+  //------------------------------------------------------------
 
   std::vector<recob::SpacePoint> SeedFinderAlgorithm::ExtractSpacePoints(std::vector<recob::SpacePoint> const& AllPoints, std::vector<int> IDsToExtract)
   {
@@ -935,6 +943,44 @@ namespace trkf {
       ReturnVec.push_back(AllPoints.at(IDsToExtract.at(i)));
 
     return ReturnVec;
+  }
+
+
+
+  //------------------------------------------------------------
+  // Given a set of spacepoints, count how many unique hits
+  //  are present within a distance d of CenterPoint;
+
+  size_t SeedFinderAlgorithm::CountHits(std::vector<recob::SpacePoint>  const& SpacePoints, TVector3 CenterPoint, double d)
+  {
+    art::ServiceHandle<geo::Geometry>            geom;
+
+    // A map of HitID to true/false whether it has been counted already
+    std::map<uint32_t, bool>            HitsClaimed;
+    HitsClaimed.clear();
+    
+    // For each spacepoint, check hit contents
+    for(std::vector<recob::SpacePoint>::const_iterator itSP=SpacePoints.begin();
+	itSP!=SpacePoints.end(); itSP++)
+      {
+	TVector3 xyz;
+	for(size_t n=0; n!=3; ++n)
+	  xyz[n] = itSP->XYZ()[n];
+	
+	if( (xyz - CenterPoint).Mag() < d)
+	  {
+	    art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits((*itSP));
+	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
+		itHit!=HitsThisSP.end(); itHit++)
+	      {
+		HitsClaimed[(*itHit)->Channel()]=true;
+	      }
+	  }
+      }
+    size_t ReturnVal = HitsClaimed.size();	
+    HitsClaimed.clear();
+    return ReturnVal;
+    
   }
 
 

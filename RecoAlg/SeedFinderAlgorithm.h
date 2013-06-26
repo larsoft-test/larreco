@@ -11,6 +11,7 @@
 
 #include "art/Framework/Core/EDProducer.h"
 #include "RecoAlg/SpacePointAlg.h"
+#include "TVector3.h"
 
 namespace recob
 {
@@ -53,6 +54,8 @@ namespace trkf {
     size_t                      CountHits(std::vector<recob::SpacePoint> const& Points);
     
     SpacePointAlg *             GetSpacePointAlg() const { return fSptalg; }
+    
+    size_t                      CountHits(std::vector<recob::SpacePoint>  const& SpacePoints, TVector3 CenterPoint, double d);
 
 
 
@@ -78,7 +81,7 @@ namespace trkf {
                                         
     int                   fMinPointsInSeed;   
                                         
-    float                 fAngularDev;        
+    float                 fPCAThreshold;
                                         
     int                   fRefits;            
     
