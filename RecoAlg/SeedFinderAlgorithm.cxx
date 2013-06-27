@@ -167,7 +167,7 @@ namespace trkf {
 	if((TotalNoOfSPs-TotalSPsUsed)<fMinPointsInSeed)
 	  KeepChopping=false;
 	
-	if(PointStatus[0]==3) KeepChopping=false;
+	if((PointStatus[0]==3)||(PointStatus.size()==0)) KeepChopping=false;
       }
     return ReturnVector;
   }
