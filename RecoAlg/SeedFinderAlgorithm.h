@@ -12,6 +12,7 @@
 #include "art/Framework/Core/EDProducer.h"
 #include "RecoAlg/SpacePointAlg.h"
 #include "TVector3.h"
+#include "Geometry/Geometry.h"
 
 namespace recob
 {
@@ -48,6 +49,9 @@ namespace trkf {
     void                        RefitSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& SpacePoints);
 
     std::vector<recob::SpacePoint> GetSpacePointsFromHitVector(art::PtrVector<recob::Hit> const& );
+
+    std::vector<std::vector<recob::Seed> > GetSeedsFromClusterHits(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > const &);
+
 
     std::vector<double>         GetHitRMS(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> const&);
 

@@ -978,6 +978,74 @@ namespace trkf {
   }
 
 
+  //---------------------------------------------
 
+  std::vector<std::vector<recob::Seed> > SeedFinderAlgorithm::GetSeedsFromClusterHits(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > const& SortedHits)
+  {
+    trkf::SpacePointAlg *Sptalg = GetSpacePointAlg();
+
+    std::vector<std::vector<recob::Seed> > ReturnVec;
+
+    // This piece of code looks detector specific, but its not -
+    //   it also works for 2 planes, but one vector is empty.
+
+    if(!(Sptalg->enableU()&&Sptalg->enableV()&&Sptalg->enableW()))
+      mf::LogWarning("BezierTrackerModule")<<"Warning: SpacePointAlg is does not have three views enabled. This may cause unexpected behaviour in the bezier tracker.";
+
+      try
+        {
+          for(std::vector<art::PtrVector<recob::Hit> >::const_iterator itU = SortedHits.at(geo::kU).begin();
+              itU !=SortedHits.at(geo::kU).end(); ++itU)
+            for(std::vector<art::PtrVector<recob::Hit> >::const_iterator itV = SortedHits.at(geo::kV).begin();
+                itV !=SortedHits.at(geo::kV).end(); ++itV)
+	      for(std::vector<art::PtrVector<recob::Hit> >::const_iterator itW = SortedHits.at(geo::kW).begin();
+                  itW !=SortedHits.at(geo::kW).end(); ++itW)
+                {
+		  art::PtrVector<recob::Hit> HitsFromThisCombo;
+
+                  if(Sptalg->enableU())
+                    for(size_t i=0; i!=itU->size(); ++i)
+                      HitsFromThisCombo.push_back(itU->at(i));
+
+                  if(Sptalg->enableV())
+                    for(size_t i=0; i!=itV->size(); ++i)
+                      HitsFromThisCombo.push_back(itV->at(i));
+
+                  if(Sptalg->enableW())
+                    for(size_t i=0; i!=itW->size(); ++i)
+                      HitsFromThisCombo.push_back(itW->at(i));
+
+		  std::vector<recob::SpacePoint> spts;
+                  Sptalg->makeSpacePoints(HitsFromThisCombo, spts);
+
+
+                  if(spts.size()>0)
+                    {
+		      std::vector<std::vector<recob::SpacePoint> > CataloguedSPs;
+
+		      std::vector<recob::Seed> Seeds
+                        = FindSeeds(spts,CataloguedSPs);
+
+                      ReturnVec.push_back(Seeds);
+
+                      spts.clear();
+                    }
+
+                  else
+                    {
+                      ReturnVec.push_back(std::vector<recob::Seed>());
+                    }
+		}
+	}
+      catch(...)
+        {
+	  mf::LogWarning("BezierTrackerModule")<<" bailed during hit map lookup - have you enabled all 3 planes?";
+          ReturnVec.push_back(std::vector<recob::Seed>());
+        }
+
+      return ReturnVec;
+
+  }
+  
 
 }
