@@ -166,6 +166,8 @@ namespace trkf {
 
 	if((TotalNoOfSPs-TotalSPsUsed)<fMinPointsInSeed)
 	  KeepChopping=false;
+	
+	if(PointStatus[0]==3) KeepChopping=false;
       }
     return ReturnVector;
   }
@@ -202,7 +204,12 @@ namespace trkf {
 	else
 	  counter--;
       }
-
+    if(NoPointFound)
+      {
+	// We didn't find a high point at all
+	//  - let the algorithm know to give up.
+	PointStatus[0]=3;
+      }
 
     // Now we have the high Z point, loop through collecting
     // near enough hits.  We look 2 seed lengths away, since 
@@ -380,7 +387,6 @@ namespace trkf {
 
     // We extend the seed in both directions.  Backward first:
     
-    bool DidExtend=false;
 
     bool KeepExtending=true;
     while(KeepExtending!=false)
@@ -434,7 +440,6 @@ namespace trkf {
             BestN      = ThisN;
 
             BestSeed   = TheNewSeed;
-	    DidExtend  = true;
 	  }
 	else
           KeepExtending=false;
@@ -488,8 +493,7 @@ namespace trkf {
             BestdNdx   = ThisdNdx;
  
             BestSeed   = TheNewSeed;
-	    DidExtend  = true;
-          }
+	  }
         else
           {
 	    PointsUsed =  DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
@@ -502,16 +506,6 @@ namespace trkf {
 
     BestSeed.GetDirection( ThisDir, ThisErr);
     BestSeed.GetPoint(     ThisPt,  ThisErr);
-
-    /*
-    if(DidExtend)
-      {
-	double DirLength;	
-	for(size_t n=0; n!=3; ++n) DirLength += pow(ThisDir[n],2);
-	DirLength = pow(DirLength, 0.5);
-	for(size_t n=0; n!=3; ++n) ThisDir[n] *= (1. + fExtendResolution/DirLength);
-      }
-    */
 
     TheSeed.SetDirection(  ThisDir, ThisErr);
     TheSeed.SetPoint(      ThisPt,  ThisErr);
