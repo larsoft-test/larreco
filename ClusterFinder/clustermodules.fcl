@@ -9,6 +9,13 @@ standard_dbcluster:
  DBScanAlg:       @local::standard_dbscanalg
 }
 
+standard_clustercrawler:
+{
+ module_type:       "ClusterCrawler"
+ HitsModuleLabel:   "ffthit"
+ ClusterCrawlerAlg: @local::standard_clustercrawleralg
+}
+
 standard_fuzzycluster:
 {
  module_type:     "fuzzyCluster"
@@ -138,6 +145,7 @@ bo_endpointmod.EndPointAlg:      @local::bo_endpointalg
 bo_showeranglecluster:           @local::standard_showeranglecluster
 
 argoneut_dbcluster:                    @local::standard_dbcluster      
+argoneut_clustercrawler:               @local::standard_clustercrawler      
 argoneut_fuzzycluster:                 @local::standard_fuzzycluster      
 argoneut_fuzzycluster.HoughBaseAlg:    @local::standard_houghbasealg      
 argoneut_dbcluster.DBScanAlg:          @local::argoneut_dbscanalg   

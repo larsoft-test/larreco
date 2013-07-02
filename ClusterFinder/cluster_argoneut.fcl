@@ -3,6 +3,7 @@
 BEGIN_PROLOG
 
 argoneut_dbscanalg:                  @local::standard_dbscanalg       
+argoneut_clustercrawleralg:          @local::standard_clustercrawleralg       
 argoneut_fuzzyclusteralg:            @local::standard_fuzzyclusteralg
 argoneut_houghbasealg:               @local::standard_houghbasealg   
 argoneut_houghbasealg.MaxLines:      15                              
@@ -11,6 +12,8 @@ argoneut_houghbasealg.NumAngleCells: 5000
 argoneut_houghbasealg.MaxDistance:   5.0
 argoneut_endpointalg:                @local::standard_endpointalg
 
+argoneut_clustercrawler:               @local::standard_clustercrawler      
+argoneut_clustercrawler.ClusterCrawlerAlg: @local::argoneut_clustercrawleralg    
 argoneut_dbcluster:                    @local::standard_dbcluster      
 argoneut_dbcluster.DBScanAlg:          @local::argoneut_dbscanalg    
 argoneut_dbclusterana:                 @local::standard_dbclusterana   
