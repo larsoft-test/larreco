@@ -352,7 +352,10 @@ namespace trkf {
 
   bool SeedFinderAlgorithm::ExtendSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, std::map<int,int>& PointStatus, std::vector<int>& PointsUsed)
   {
-   
+    if(PointsUsed.size()==0) return;
+    
+    int FirstPoint = PointsUsed.at(0);
+
     // Get the actual spacepoints for the IDs provided
     std::vector<recob::SpacePoint>   SPsUsed        = ExtractSpacePoints(AllSpacePoints, PointsUsed);
 
@@ -414,6 +417,17 @@ namespace trkf {
 	std::vector<int> NearbySPs               = DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
 	if(NearbySPs.size()<3) return true;
 
+	// To prevent us getting stuck in infinite loopville,
+	//  it is going to be non-negotiable that the first
+	//  point remain in the seed.
+	bool ContainsFirst=false;
+        for(size_t i=0; i!=NearbySPs.size(); ++i)
+          {
+            if(NearbySPs.at(i)==FirstPoint) ContainsFirst=true;
+          }
+	if(!ContainsFirst) NearbySPs.push_back(FirstPoint);
+
+	
 	std::vector<recob::SpacePoint> ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
 
       
