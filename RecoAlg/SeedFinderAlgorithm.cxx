@@ -352,7 +352,7 @@ namespace trkf {
 
   bool SeedFinderAlgorithm::ExtendSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, std::map<int,int>& PointStatus, std::vector<int>& PointsUsed)
   {
-    if(PointsUsed.size()==0) return;
+    if(PointsUsed.size()==0) return false;
     
     int FirstPoint = PointsUsed.at(0);
 
