@@ -79,6 +79,10 @@ standard_dbscanalg:
               #                           channel aware (not working)    
 }
 
+standard_clustercrawleralg:
+{
+}
+
 standard_fuzzyclusteralg:
 {
   eps:             1.0
@@ -140,6 +144,7 @@ bo_houghbasealg.NumAngleCells:  5000
 bo_houghbasealg.MaxDistance:    5.0
 bo_endpointalg:                 @local::standard_endpointalg
 
+argoneut_clustercrawleralg:          @local::standard_clustercrawleralg       
 argoneut_dbscanalg:                  @local::standard_dbscanalg       
 argoneut_fuzzyclusteralg:            @local::standard_fuzzyclusteralg
 argoneut_houghbasealg:               @local::standard_houghbasealg   
