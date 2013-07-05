@@ -102,6 +102,7 @@ void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
   fConversion_func                       = p.get< std::string    >("Conversion_function");
   fConversion_func_neighborhood     	 = p.get< int		 >("Conversion_func_neighborhood");
   fDerivative_method        		 = p.get< std::string    >("Derivative_method");
+  fDerivative_neighborhood     	         = p.get< int		 >("Derivative_neighborhood");
   fCornerScore_neighborhood     	 = p.get< int		 >("CornerScore_neighborhood");
   fCornerScore_algorithm		 = p.get< std::string    >("CornerScore_algorithm");
   fCornerScore_Noble_epsilon		 = p.get< float          >("CornerScore_Noble_epsilon");
@@ -150,8 +151,8 @@ void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
   for (uint i_plane=0; i_plane < fGeom->Nplanes(); i_plane++){
     
     std::stringstream ss_tmp_name,ss_tmp_title;
-    ss_tmp_name << "h_WireData_" << i_plane;
-    ss_tmp_title << fCalDataModuleLabel << " wire data for plane " << i_plane << ";Wire Number;Time Tick";
+    ss_tmp_name << "h_WireData_" << i_plane << "_" << run_number << "_" << event_number;
+    ss_tmp_title << fCalDataModuleLabel << " wire data for plane " << i_plane << ", Run " << run_number << ", Event " << event_number << ";Wire Number;Time Tick";
 
     if(WireData_histos[i_plane]) WireData_histos[i_plane]->Reset();
     else
