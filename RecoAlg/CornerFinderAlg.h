@@ -15,6 +15,7 @@
 
 #include "TMath.h"
 #include "TH2.h"
+#include "TF2.h"
 #include <vector>
 #include <string>
 #include "RecoBase/EndPoint2D.h"
@@ -64,6 +65,9 @@ namespace cluster { //<---Not sure if this is the right namespace
     std::string  fCalDataModuleLabel;
     
     
+    std::string    fConversion_algorithm;
+    std::string    fConversion_func;
+    int            fConversion_func_neighborhood;
     float          fConversion_threshold;
     int            fConversion_bins_per_input_x;
     int            fConversion_bins_per_input_y;
@@ -71,6 +75,8 @@ namespace cluster { //<---Not sure if this is the right namespace
     int            fDerivative_neighborhood;
     int            fCornerScore_neighborhood;
     std::string    fCornerScore_algorithm;
+    float          fCornerScore_Noble_epsilon;
+    float          fCornerScore_Harris_kappa;
     int            fMaxSuppress_neighborhood;
     int            fMaxSuppress_threshold;
     float          fIntegral_bin_threshold;

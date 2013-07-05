@@ -2,12 +2,24 @@
 //
 // CornerFinderAlg class
 //
-// yo-mama@state.edu
+// wketchum@fnal.gov
 //
-//  blah blah blah...put description here 
+// CornerFinder is meant to use image-processing techniques (mainly Harris-Stephens
+// corner-finding) to find "corners" using the information from calibrated wires.
 //  
-//  
-//  
+//  Conversion_algorithm options:  
+//     standard --- basically a copy of the calibrated wires
+//     skeleton --- a thinned copy of the calibrated wires
+//     binary   --- ticks above threshold get assigned a value 10*threshold, everything else = threshold
+//     function --- apply a function (like a double-Gaussian) to a neighborhood around each tick
+//       
+//  Derivative options:
+//     Sobel --- apply a Sobel mask (neighborhood of 1 or 2 supported)
+//     local --- take slope from immediately neighboring bins (neighborhood of 1 supported)
+//
+//  CornerScore_algorithm options:
+//     Noble  --- determinant / (trace + Noble_epsilon)
+//     Harris --- determinant - (trace)^2 * Harris_kappa
 ////////////////////////////////////////////////////////////////////////
 
 
@@ -87,9 +99,14 @@ void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
   fConversion_threshold     		 = p.get< float    	 >("Conversion_threshold");
   fConversion_bins_per_input_x  	 = p.get< int      	 >("Conversion_bins_per_input_x");
   fConversion_bins_per_input_y       	 = p.get< int      	 >("Conversion_bins_per_input_y");
+  fConversion_algorithm                  = p.get< std::string    >("Conversion_algorithm");
+  fConversion_func                       = p.get< std::string    >("Conversion_function");
+  fConversion_func_neighborhood     	 = p.get< int		 >("Conversion_func_neighborhood");
   fDerivative_method        		 = p.get< std::string    >("Derivative_method");
   fCornerScore_neighborhood     	 = p.get< int		 >("CornerScore_neighborhood");
   fCornerScore_algorithm		 = p.get< std::string    >("CornerScore_algorithm");
+  fCornerScore_Noble_epsilon		 = p.get< float          >("CornerScore_Noble_epsilon");
+  fCornerScore_Harris_kappa		 = p.get< float          >("CornerScore_Harris_kappa");
   fMaxSuppress_neighborhood		 = p.get< int		 >("MaxSuppress_neighborhood");
   fMaxSuppress_threshold		 = p.get< int		 >("MaxSuppress_threshold");
   fIntegral_bin_threshold                = p.get< float          >("Integral_bin_threshold");
@@ -326,26 +343,59 @@ void cluster::CornerFinderAlg::attach_feature_points_LineIntegralScore(TH2F *h_w
 // Convert to pixel
 void cluster::CornerFinderAlg::create_image_histo(TH2F *h_wire_data, TH2F *h_conversion) {
   
-  float temp_integral=0;
+  double temp_integral=0;
+
+  const TF2 fConversion_TF2("fConversion_func",fConversion_func.c_str(),-20,20,-20,20);
 
   for(int ix=1; ix<=h_conversion->GetNbinsX(); ix++){
     for(int iy=1; iy<=h_conversion->GetNbinsY(); iy++){
       
-      temp_integral = h_wire_data->Integral( (ix-1)*fConversion_bins_per_input_x + 1,
-					     ix * fConversion_bins_per_input_x,
-					     (iy-1)*fConversion_bins_per_input_y + 1,
-					     iy * fConversion_bins_per_input_y);
+      temp_integral = h_wire_data->Integral(ix,ix,iy,iy);
 
-      if( temp_integral > fConversion_threshold)
-	h_conversion->SetBinContent(ix,iy,h_wire_data->GetBinContent(ix,iy));
-      else{
-	h_conversion->SetBinContent(ix,iy,fConversion_threshold);
+      if( temp_integral > fConversion_threshold){
+
+	if(fConversion_algorithm.compare("binary")==0)
+	  h_conversion->SetBinContent(ix,iy,10*fConversion_threshold);
+	else if(fConversion_algorithm.compare("standard")==0)
+	  h_conversion->SetBinContent(ix,iy,temp_integral);
+
+	else if(fConversion_algorithm.compare("function")==0){
+
+	  temp_integral = 0;
+	  for(int jx=ix-fConversion_func_neighborhood; jx<=ix+fConversion_func_neighborhood; jx++){
+	    for(int jy=iy-fConversion_func_neighborhood; jy<=iy+fConversion_func_neighborhood; jy++){
+	      temp_integral += h_wire_data->GetBinContent(jx,jy)*fConversion_TF2.Eval(ix-jx,iy-jy);
+	    }
+	  }
+	  h_conversion->SetBinContent(ix,iy,temp_integral);
+	}
+
+	else if(fConversion_algorithm.compare("skeleton")==0){
+	  
+	  if( (temp_integral > h_wire_data->GetBinContent(ix-1,iy) && temp_integral > h_wire_data->GetBinContent(ix+1,iy))
+	      || (temp_integral > h_wire_data->GetBinContent(ix,iy-1) && temp_integral > h_wire_data->GetBinContent(ix,iy+1)))
+	    h_conversion->SetBinContent(ix,iy,temp_integral);
+	  else 
+	    h_conversion->SetBinContent(ix,iy,fConversion_threshold);
+	}
+	else if(fConversion_algorithm.compare("sk_bin")==0){
+	  
+	  if( (temp_integral > h_wire_data->GetBinContent(ix-1,iy) && temp_integral > h_wire_data->GetBinContent(ix+1,iy))
+	      || (temp_integral > h_wire_data->GetBinContent(ix,iy-1) && temp_integral > h_wire_data->GetBinContent(ix,iy+1)))
+	    h_conversion->SetBinContent(ix,iy,10*fConversion_threshold);
+	  else 
+	    h_conversion->SetBinContent(ix,iy,fConversion_threshold);
+	}
+	else
+	  h_conversion->SetBinContent(ix,iy,temp_integral);
       }
+
+      else
+	h_conversion->SetBinContent(ix,iy,fConversion_threshold);
+      
     }
   }
 
-
-  return;
 }
 
 //-----------------------------------------------------------------------------
@@ -356,34 +406,75 @@ void cluster::CornerFinderAlg::create_derivative_histograms(TH2F *h_conversion, 
   const int x_bins = h_conversion->GetNbinsX();
   const int y_bins = h_conversion->GetNbinsY();
 
-  for(int iy=1; iy<=y_bins; iy++){
-    for(int ix=1; ix<=x_bins; ix++){
+  for(int iy=1+fDerivative_neighborhood; iy<=(y_bins-fDerivative_neighborhood); iy++){
+    for(int ix=1+fDerivative_neighborhood; ix<=(x_bins-fDerivative_neighborhood); ix++){
       
-      //set to zero the derivatives near the corners...
-      if ( iy <= fDerivative_neighborhood 
-	   || ix <= fDerivative_neighborhood 
-	   || iy >= (y_bins-fDerivative_neighborhood) 
-	   || ix == (x_bins-fDerivative_neighborhood) )
-	{
-	  h_derivative_x->SetBinContent(ix,iy,0);
-	  h_derivative_y->SetBinContent(ix,iy,0);
-	}
-      
-      else
-	{
+      if(fDerivative_method.compare("Sobel")==0){
+	
+	if(fDerivative_neighborhood==1){
 	  h_derivative_x->SetBinContent(ix,iy,
-					2*(h_conversion->GetBinContent(ix+1,iy)-h_conversion->GetBinContent(ix-1,iy))
-					+ 1*(h_conversion->GetBinContent(ix+1,iy+1)-h_conversion->GetBinContent(ix-1,iy+1))
-					+ 1*(h_conversion->GetBinContent(ix+1,iy-1)-h_conversion->GetBinContent(ix-1,iy-1)));
+					0.5*(h_conversion->GetBinContent(ix+1,iy)-h_conversion->GetBinContent(ix-1,iy))
+					+ 0.25*(h_conversion->GetBinContent(ix+1,iy+1)-h_conversion->GetBinContent(ix-1,iy+1))
+					+ 0.25*(h_conversion->GetBinContent(ix+1,iy-1)-h_conversion->GetBinContent(ix-1,iy-1)));
 	  h_derivative_y->SetBinContent(ix,iy,
-					2*(h_conversion->GetBinContent(ix,iy+1)-h_conversion->GetBinContent(ix,iy-1))
-					+ 1*(h_conversion->GetBinContent(ix-1,iy+1)-h_conversion->GetBinContent(ix-1,iy-1))
-					+ 1*(h_conversion->GetBinContent(ix+1,iy+1)-h_conversion->GetBinContent(ix+1,iy-1)));
+					0.5*(h_conversion->GetBinContent(ix,iy+1)-h_conversion->GetBinContent(ix,iy-1))
+					+ 0.25*(h_conversion->GetBinContent(ix-1,iy+1)-h_conversion->GetBinContent(ix-1,iy-1))
+					+ 0.25*(h_conversion->GetBinContent(ix+1,iy+1)-h_conversion->GetBinContent(ix+1,iy-1)));
 	}
+	else if(fDerivative_neighborhood==2){
+	  h_derivative_x->SetBinContent(ix,iy,
+					12*(h_conversion->GetBinContent(ix+1,iy)-h_conversion->GetBinContent(ix-1,iy))
+					+ 8*(h_conversion->GetBinContent(ix+1,iy+1)-h_conversion->GetBinContent(ix-1,iy+1))
+					+ 8*(h_conversion->GetBinContent(ix+1,iy-1)-h_conversion->GetBinContent(ix-1,iy-1))
+					+ 2*(h_conversion->GetBinContent(ix+1,iy+2)-h_conversion->GetBinContent(ix-1,iy+2))
+					+ 2*(h_conversion->GetBinContent(ix+1,iy-2)-h_conversion->GetBinContent(ix-1,iy-2))
+					  + 6*(h_conversion->GetBinContent(ix+2,iy)-h_conversion->GetBinContent(ix-2,iy))
+					+ 4*(h_conversion->GetBinContent(ix+2,iy+1)-h_conversion->GetBinContent(ix-2,iy+1))
+					+ 4*(h_conversion->GetBinContent(ix+2,iy-1)-h_conversion->GetBinContent(ix-2,iy-1))
+					+ 1*(h_conversion->GetBinContent(ix+2,iy+2)-h_conversion->GetBinContent(ix-2,iy+2))
+					  + 1*(h_conversion->GetBinContent(ix+2,iy-2)-h_conversion->GetBinContent(ix-2,iy-2)));
+	  h_derivative_y->SetBinContent(ix,iy,
+					12*(h_conversion->GetBinContent(ix,iy+1)-h_conversion->GetBinContent(ix,iy-1))
+					+ 8*(h_conversion->GetBinContent(ix-1,iy+1)-h_conversion->GetBinContent(ix-1,iy-1))
+					+ 8*(h_conversion->GetBinContent(ix+1,iy+1)-h_conversion->GetBinContent(ix+1,iy-1))
+					+ 2*(h_conversion->GetBinContent(ix-2,iy+1)-h_conversion->GetBinContent(ix-2,iy-1))
+					+ 2*(h_conversion->GetBinContent(ix+2,iy+1)-h_conversion->GetBinContent(ix+2,iy-1))
+					+ 6*(h_conversion->GetBinContent(ix,iy+2)-h_conversion->GetBinContent(ix,iy-2))
+					+ 4*(h_conversion->GetBinContent(ix-1,iy+2)-h_conversion->GetBinContent(ix-1,iy-2))
+					+ 4*(h_conversion->GetBinContent(ix+1,iy+2)-h_conversion->GetBinContent(ix+1,iy-2))
+					+ 1*(h_conversion->GetBinContent(ix-2,iy+2)-h_conversion->GetBinContent(ix-2,iy-2))
+					+ 1*(h_conversion->GetBinContent(ix+2,iy+2)-h_conversion->GetBinContent(ix+2,iy-2)));
+	}
+	else{
+	  std::cout << "Sobel derivative not supported for neighborhoods > 2." << std::endl;
+	  return;
+	}
+	
+	} //end if Sobel
+      
+      else if(fDerivative_method.compare("local")==0){
+	
+	if(fDerivative_neighborhood==1){
+	  h_derivative_x->SetBinContent(ix,iy,
+					(h_conversion->GetBinContent(ix+1,iy)-h_conversion->GetBinContent(ix-1,iy)));
+	  h_derivative_y->SetBinContent(ix,iy,
+					(h_conversion->GetBinContent(ix,iy+1)-h_conversion->GetBinContent(ix,iy-1)));
+	}
+	else{
+	  std::cout << "Local derivative not yet supported for neighborhoods > 1." << std::endl;
+	  return;
+	}
+	
+	} //end if local
+
+      else{
+	std::cout << "Bad derivative algorithm! " << fDerivative_method << std::endl;
+	return;
+      }
+
     }
   }
 
-  return;
 
 }
 
@@ -395,49 +486,58 @@ void cluster::CornerFinderAlg::create_cornerScore_histogram(TH2F *h_derivative_x
 
   const int x_bins = h_derivative_x->GetNbinsX();
   const int y_bins = h_derivative_y->GetNbinsY();
-
-  const double noble_epsilon = 1e-5;
-  //const double harris_kappa = 0.05;
   
   //the structure tensor elements
-  float st_xx, st_xy, st_yy;
+  double st_xx, st_xy, st_yy;
 
-  for(int iy=1; iy<=y_bins; iy++){
-    for(int ix=1; ix<=x_bins; ix++){
-      
-      //ignore things that will push us over the histogram edge
-      if( ix-fCornerScore_neighborhood <= 0 
-	  || ix+fCornerScore_neighborhood >= x_bins
-	  || iy-fCornerScore_neighborhood <=0
-	  || iy+fCornerScore_neighborhood>=y_bins)
-	{
-	  continue;
-	}
-      
+  for(int iy=1+fCornerScore_neighborhood; iy<=(y_bins-fCornerScore_neighborhood); iy++){
+    for(int ix=1+fCornerScore_neighborhood; ix<=(x_bins-fCornerScore_neighborhood); ix++){
 
-      else{
-
+      if(ix==1+fCornerScore_neighborhood){
 	st_xx=0.; st_xy=0.; st_yy=0.;
 
 	for(int jx=ix-fCornerScore_neighborhood; jx<=ix+fCornerScore_neighborhood; jx++){
 	  for(int jy=iy-fCornerScore_neighborhood; jy<=iy+fCornerScore_neighborhood; jy++){
-
+	    
 	    st_xx += h_derivative_x->GetBinContent(jx,jy)*h_derivative_x->GetBinContent(jx,jy);
 	    st_yy += h_derivative_y->GetBinContent(jx,jy)*h_derivative_y->GetBinContent(jx,jy);
 	    st_xy += h_derivative_x->GetBinContent(jx,jy)*h_derivative_y->GetBinContent(jx,jy);
-
+	    
 	  }
 	}
-
-	
-	h_cornerScore->SetBinContent(ix,iy,
-				     (st_xx*st_yy-st_xy*st_xy) / (st_xx+st_yy + noble_epsilon));
       }
+      
+      // we do it this way to reduce computation time
+      else{
+	for(int jy=iy-fCornerScore_neighborhood; jy<=iy+fCornerScore_neighborhood; jy++){
+	  
+	  st_xx -= h_derivative_x->GetBinContent(ix-fCornerScore_neighborhood-1,jy)*h_derivative_x->GetBinContent(ix-fCornerScore_neighborhood-1,jy);
+	  st_xx += h_derivative_x->GetBinContent(ix+fCornerScore_neighborhood,jy)*h_derivative_x->GetBinContent(ix+fCornerScore_neighborhood,jy);
+	  
+	  st_yy -= h_derivative_y->GetBinContent(ix-fCornerScore_neighborhood-1,jy)*h_derivative_y->GetBinContent(ix-fCornerScore_neighborhood-1,jy);
+	  st_yy += h_derivative_y->GetBinContent(ix+fCornerScore_neighborhood,jy)*h_derivative_y->GetBinContent(ix+fCornerScore_neighborhood,jy);
+	  
+	  st_xy -= h_derivative_x->GetBinContent(ix-fCornerScore_neighborhood-1,jy)*h_derivative_y->GetBinContent(ix-fCornerScore_neighborhood-1,jy);
+	  st_xy += h_derivative_x->GetBinContent(ix+fCornerScore_neighborhood,jy)*h_derivative_y->GetBinContent(ix+fCornerScore_neighborhood,jy);
+	}
+      }
+      
+      if( fCornerScore_algorithm.compare("Noble")==0 ) {
+	h_cornerScore->SetBinContent(ix,iy,
+				     (st_xx*st_yy-st_xy*st_xy) / (st_xx+st_yy + fCornerScore_Noble_epsilon));
+      }
+	else if( fCornerScore_algorithm.compare("Harris")==0 ) {
+	  h_cornerScore->SetBinContent(ix,iy,
+				       (st_xx*st_yy-st_xy*st_xy) - ((st_xx+st_yy)*(st_xx+st_yy)*fCornerScore_Harris_kappa));
+	}
+	else{
+	  std::cout << "BAD CORNER ALGORITHM: " << fCornerScore_algorithm << std::endl;
+	  return;
+	}
+      
+    } // end for loop over x bins
+  } // end for loop over y bins
 
-    }
-  }
-
-  return;
 }
 
 

@@ -45,13 +45,18 @@ standard_cornerfinderalg:
 {
   RawDataModuleLabel:           "daq"
   CalDataModuleLabel:		"caldata"
+  Conversion_algorithm:         "standard"
+  Conversion_function:          "TMath::Gaus(x,0,1)*TMath::Gaus(y,0,1)"
+  Conversion_func_neighborhood: 3
   Conversion_threshold:		0
   Conversion_bins_per_input_x:	1
   Conversion_bins_per_input_y:	1
   Derivative_method: 		"Sobel" #Noble
   Derivative_neighborhood:	1 
   CornerScore_neighborhood:	1
-  CornerScore_algorithm:	"Nobel" #Harris
+  CornerScore_algorithm:	"Noble" #Harris
+  CornerScore_Noble_epsilon:    1e-5
+  CornerScore_Harris_kappa:     0.05
   MaxSuppress_neighborhood:	3
   MaxSuppress_threshold:	1000
   Integral_bin_threshold:       5
