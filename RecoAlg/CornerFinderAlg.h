@@ -61,7 +61,6 @@ namespace cluster { //<---Not sure if this is the right namespace
     
     // Taking in RawData from the event
     
-    std::string  fRawDataModuleLabel;
     std::string  fCalDataModuleLabel;
     
     
