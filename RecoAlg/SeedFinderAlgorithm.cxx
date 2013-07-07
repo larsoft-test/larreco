@@ -417,16 +417,6 @@ namespace trkf {
 	std::vector<int> NearbySPs               = DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
 	if(NearbySPs.size()<3) return true;
 
-	// To prevent us getting stuck in infinite loopville,
-	//  it is going to be non-negotiable that the first
-	//  point remain in the seed.
-	bool ContainsFirst=false;
-        for(size_t i=0; i!=NearbySPs.size(); ++i)
-          {
-            if(NearbySPs.at(i)==FirstPoint) ContainsFirst=true;
-          }
-	if(!ContainsFirst) NearbySPs.push_back(FirstPoint);
-
 	
 	std::vector<recob::SpacePoint> ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
 
@@ -516,6 +506,20 @@ namespace trkf {
             KeepExtending=false;
           }
       }
+
+
+    // To prevent us getting stuck in infinite loopville,
+    //  it is going to be non-negotiable that the first
+    //  point remain in the seed.
+    bool ContainsFirst=false;
+    for(size_t i=0; i!=PointsUsed.size(); ++i)
+      {
+	if(PointsUsed.at(i)==FirstPoint) ContainsFirst=true;
+      }
+    if(!ContainsFirst) PointsUsed.push_back(FirstPoint);
+
+
+
 
 
     BestSeed.GetDirection( ThisDir, ThisErr);
