@@ -73,6 +73,11 @@ cluster::CornerFinderAlg::CornerFinderAlg(fhicl::ParameterSet const& pset)
   // set the sizes of the WireData_histos and WireData_IDs
   unsigned int nPlanes = fGeom->Nplanes();
   WireData_histos.resize(nPlanes);
+  fConversion_histos.resize(nPlanes);
+  fDerivativeX_histos.resize(nPlanes);
+  fDerivativeY_histos.resize(nPlanes);
+  fCornerScore_histos.resize(nPlanes);
+  fMaxSuppress_histos.resize(nPlanes);
 
   /* For now, we need something to associate each wire in the histogram with a wire_id.
      This is not a beautiful way of handling this, but for now it should work. */
@@ -86,6 +91,15 @@ cluster::CornerFinderAlg::CornerFinderAlg(fhicl::ParameterSet const& pset)
 //-----------------------------------------------------------------------------
 cluster::CornerFinderAlg::~CornerFinderAlg()
 {
+  for (auto wd_histo : WireData_histos)
+    delete wd_histo;
+
+  for (auto histo : fConversion_histos) delete histo;
+  for (auto histo : fDerivativeX_histos) delete histo;
+  for (auto histo : fDerivativeY_histos) delete histo;
+  for (auto histo : fCornerScore_histos) delete histo;
+  for (auto histo : fMaxSuppress_histos) delete histo;
+
   WireData_histos.clear();
   WireData_IDs.clear();
 }
@@ -154,17 +168,31 @@ void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
     ss_tmp_name << "h_WireData_" << i_plane << "_" << run_number << "_" << event_number;
     ss_tmp_title << fCalDataModuleLabel << " wire data for plane " << i_plane << ", Run " << run_number << ", Event " << event_number << ";Wire Number;Time Tick";
 
-    if(WireData_histos[i_plane]) WireData_histos[i_plane]->Reset();
+    if(WireData_histos[i_plane]) {
+      WireData_histos[i_plane]->Reset();
+      WireData_histos[i_plane]->SetName(ss_tmp_name.str().c_str());
+      WireData_histos[i_plane]->SetTitle(ss_tmp_title.str().c_str());
+    }
     else
+      WireData_histos[i_plane] = new TH2F(ss_tmp_name.str().c_str(),
+					  ss_tmp_title.str().c_str(),
+					  fGeom->Nwires(i_plane),
+					  0,
+					  fGeom->Nwires(i_plane),
+					  nTimeTicks,
+					  0,
+					  nTimeTicks);
+    /*
       WireData_histos[i_plane] = tfs->make<TH2F>(ss_tmp_name.str().c_str(),
-						 ss_tmp_title.str().c_str(),
-						 fGeom->Nwires(i_plane),
-						 0,
-						 fGeom->Nwires(i_plane),
-						 nTimeTicks,
-						 0,
-						 nTimeTicks);
-    
+                                                 ss_tmp_title.str().c_str(),
+                                                 fGeom->Nwires(i_plane),
+                                                 0,
+                                                 fGeom->Nwires(i_plane),
+                                                 nTimeTicks,
+                                                 0,
+                                                 nTimeTicks);
+    */
+
   }
   
   /* Now do the loop over the wires. */
@@ -249,31 +277,55 @@ void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data,
   std::stringstream cornerScore_name; cornerScore_name << "h_cornerScore_"  << view << "_" << run_number << "_" << event_number;
   std::stringstream maxSuppress_name; maxSuppress_name << "h_maxSuppress_"  << view << "_" << run_number << "_" << event_number;
 
-  TH2F h_conversion  ((conversion_name.str()).c_str(),
-		      "Image Conversion Histogram",
-		      converted_x_bins,x_min,x_max,
-		      converted_y_bins,y_min,y_max);
-  TH2F h_derivative_x((dx_name.str()).c_str(),
-		      "Partial Derivatives (x)",
-		      converted_x_bins,x_min,x_max,
-		      converted_y_bins,y_min,y_max);
-  TH2F h_derivative_y((dy_name.str()).c_str(),
-		      "Partial Derivatives (y)",
-		      converted_x_bins,x_min,x_max,
-		      converted_y_bins,y_min,y_max);
-  TH2D h_cornerScore ((cornerScore_name.str()).c_str(),
-		      "Feature Point Corner Score",
-		      converted_x_bins,x_min,x_max,
-		      converted_y_bins,y_min,y_max);
-  TH2D h_maxSuppress ((maxSuppress_name.str()).c_str(),
-		      "Corner Points (Maximum Suppressed)",
-		      converted_x_bins,x_min,x_max,
-		      converted_y_bins,y_min,y_max);
+  if(fConversion_histos[view]){
+    fConversion_histos[view]->Reset();
+    fConversion_histos[view]->SetName(conversion_name.str().c_str());
+  }
+  else
+    fConversion_histos[view] = new TH2F(conversion_name.str().c_str(),"Image Conversion Histogram",
+					   converted_x_bins,x_min,x_max,
+					   converted_y_bins,y_min,y_max);
   
-  create_image_histo(h_wire_data,&h_conversion);  
-  create_derivative_histograms(&h_conversion,&h_derivative_x,&h_derivative_y);
-  create_cornerScore_histogram(&h_derivative_x,&h_derivative_y,&h_cornerScore);
-  perform_maximum_suppression(&h_cornerScore,corner_vector,wireIDs,view,&h_maxSuppress);
+  if(fDerivativeX_histos[view]){
+    fDerivativeX_histos[view]->Reset();
+    fDerivativeX_histos[view]->SetName(dx_name.str().c_str());
+  }
+  else
+    fDerivativeX_histos[view] = new TH2F(dx_name.str().c_str(),"Partial Derivatives (x)",
+					    converted_x_bins,x_min,x_max,
+					    converted_y_bins,y_min,y_max);
+  
+  if(fDerivativeY_histos[view]){
+    fDerivativeY_histos[view]->Reset();
+    fDerivativeY_histos[view]->SetName(dy_name.str().c_str());
+  }
+  else
+    fDerivativeY_histos[view] = new TH2F(dy_name.str().c_str(),"Partial Derivatives (y)",
+					    converted_x_bins,x_min,x_max,
+					    converted_y_bins,y_min,y_max);
+  
+  if(fCornerScore_histos[view]){
+    fCornerScore_histos[view]->Reset();
+    fCornerScore_histos[view]->SetName(cornerScore_name.str().c_str());
+  }
+  else
+    fCornerScore_histos[view] = new TH2D(cornerScore_name.str().c_str(),"Corner Score",
+					    converted_x_bins,x_min,x_max,
+					    converted_y_bins,y_min,y_max);
+
+  if(fMaxSuppress_histos[view]){
+    fMaxSuppress_histos[view]->Reset();
+    fMaxSuppress_histos[view]->SetName(maxSuppress_name.str().c_str());
+  }
+  else
+    fMaxSuppress_histos[view] = new TH2D(maxSuppress_name.str().c_str(),"Corner Points (Maximum Suppressed)",
+					    converted_x_bins,x_min,x_max,
+					    converted_y_bins,y_min,y_max);
+  
+  create_image_histo(h_wire_data,fConversion_histos[view]);  
+  create_derivative_histograms(fConversion_histos[view],fDerivativeX_histos[view],fDerivativeY_histos[view]);
+  create_cornerScore_histogram(fDerivativeX_histos[view],fDerivativeY_histos[view],fCornerScore_histos[view]);
+  perform_maximum_suppression(fCornerScore_histos[view],corner_vector,wireIDs,view,fMaxSuppress_histos[view]);
 }
 
 //-----------------------------------------------------------------------------
@@ -745,4 +797,62 @@ size_t cluster::CornerFinderAlg::calculate_line_integral_score( TH2F* h_wire_dat
 }
 
 
+TH2F* cluster::CornerFinderAlg::GetWireDataHist(unsigned int i_plane){
 
+  if(i_plane >= WireData_histos.size()){
+    mf::LogWarning("CornerFinderAlg") << "WARNING:  Requested plane does not exist.";
+    return NULL;
+  }
+
+  return WireData_histos.at(i_plane);
+}
+
+TH2F* cluster::CornerFinderAlg::GetConversionHist(unsigned int i_plane){
+
+  if(i_plane >= fConversion_histos.size()){
+    mf::LogWarning("CornerFinderAlg") << "WARNING:  Requested plane does not exist.";
+    return NULL;
+  }
+
+  return fConversion_histos.at(i_plane);
+}
+
+TH2F* cluster::CornerFinderAlg::GetDerivativeXHist(unsigned int i_plane){
+
+  if(i_plane >= fDerivativeX_histos.size()){
+    mf::LogWarning("CornerFinderAlg") << "WARNING:  Requested plane does not exist.";
+    return NULL;
+  }
+
+  return fDerivativeX_histos.at(i_plane);
+}
+
+TH2F* cluster::CornerFinderAlg::GetDerivativeYHist(unsigned int i_plane){
+
+  if(i_plane >= fDerivativeY_histos.size()){
+    mf::LogWarning("CornerFinderAlg") << "WARNING:  Requested plane does not exist.";
+    return NULL;
+  }
+
+  return fDerivativeY_histos.at(i_plane);
+}
+
+TH2D* cluster::CornerFinderAlg::GetCornerScoreHist(unsigned int i_plane){
+
+  if(i_plane >= fCornerScore_histos.size()){
+    mf::LogWarning("CornerFinderAlg") << "WARNING:  Requested plane does not exist.";
+    return NULL;
+  }
+
+  return fCornerScore_histos.at(i_plane);
+}
+
+TH2D* cluster::CornerFinderAlg::GetMaxSuppressHist(unsigned int i_plane){
+
+  if(i_plane >= fMaxSuppress_histos.size()){
+    mf::LogWarning("CornerFinderAlg") << "WARNING:  Requested plane does not exist.";
+    return NULL;
+  }
+
+  return fMaxSuppress_histos.at(i_plane);
+}

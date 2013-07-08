@@ -48,9 +48,12 @@ namespace cluster { //<---Not sure if this is the right namespace
 
     std::vector<float> line_integrals(trkf::BezierTrack&, size_t Steps, float threshold);
     
-    TH2F * GetHist(int i) {return WireData_histos.at(i);}
-
-
+    TH2F * GetWireDataHist(unsigned int);
+    TH2F * GetConversionHist(unsigned int);
+    TH2F * GetDerivativeXHist(unsigned int);
+    TH2F * GetDerivativeYHist(unsigned int);
+    TH2D * GetCornerScoreHist(unsigned int);
+    TH2D * GetMaxSuppressHist(unsigned int);
 
     private:
     
@@ -59,11 +62,7 @@ namespace cluster { //<---Not sure if this is the right namespace
 
     // Need to list the things we will take in from the .fcl file
     
-    // Taking in RawData from the event
-    
     std::string  fCalDataModuleLabel;
-    
-    
     std::string    fConversion_algorithm;
     std::string    fConversion_func;
     int            fConversion_func_neighborhood;
@@ -84,6 +83,11 @@ namespace cluster { //<---Not sure if this is the right namespace
     // Making a vector of histograms
     std::vector<TH2F*> WireData_histos;
     std::vector< std::vector<geo::WireID> > WireData_IDs;
+    std::vector<TH2F*> fConversion_histos;
+    std::vector<TH2F*> fDerivativeX_histos;
+    std::vector<TH2F*> fDerivativeY_histos;
+    std::vector<TH2D*> fCornerScore_histos;
+    std::vector<TH2D*> fMaxSuppress_histos;
     
     unsigned int event_number;
     unsigned int run_number;
