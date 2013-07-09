@@ -254,7 +254,7 @@ namespace trkf {
 
 	    for(size_t p=0; p!=uvw_i.size(); ++p)
 	      {
-		TH2F * RawHist = fCorner.GetHist(p);
+		TH2F * RawHist = fCorner.GetWireDataHist(p);
 		
 		double lineint = 
 		  fCorner.line_integral(RawHist, 
@@ -530,7 +530,7 @@ namespace trkf {
     
     for(size_t p=0; p!=uvw_i.size(); ++p)
       {
-	TH2F * RawHist = fCorner.GetHist(p);
+	TH2F * RawHist = fCorner.GetWireDataHist(p);
 	
 	double lineint = 
 	  fCorner.line_integral(RawHist, 
