@@ -16,6 +16,8 @@
 #include "art/Persistency/Common/Ptr.h" 
 #include "art/Persistency/Common/PtrVector.h" 
 
+//#include "RecoBase/Hit.h"
+
 namespace recob { 
   class Hit;
   class Cluster; 
@@ -127,6 +129,7 @@ namespace recob {
       bool showerMerged=false;
       std::vector<std::pair<double,double> > pHit;
       std::vector<std::pair<double,double> > pHitChargeSigma;
+      std::vector<art::Ptr<recob::Hit>> hits;
       lineSlope(unsigned int num=999999, 
           double slope=999999, 
           double intercept=999999,
@@ -139,9 +142,7 @@ namespace recob {
           int    iMaxWireTemp=-999999,
           int    minWireTemp=999999,
           int    maxWireTemp=-999999,
-          std::vector<std::pair<double,double> > pHitTemp=NULL,
-          std::vector<std::pair<double,double> > pHitChargeSigmaTemp=NULL
-          )
+          std::vector<art::Ptr<recob::Hit>> hitsTemp=NULL)
       {
         clusterNumber = num;
         oldClusterNumber = num;
@@ -159,8 +160,7 @@ namespace recob {
         merged = false;
         showerMerged = false;
         showerLikeness = 0;
-        pHit = pHitTemp;
-        pHitChargeSigma = pHitChargeSigmaTemp;
+        hits = hitsTemp;
       }
     };
 
@@ -291,6 +291,7 @@ namespace cluster {
                                            ///< for (electron showers), only for fuzzy clustering
     int    fDoChargeAsymAngleMerge;        ///< Turn on cut on product of charge asymmetry and sin of angle between slopes of lines
     double fChargeAsymAngleCut;            ///< Cut on product of charge asymmetry and sin of angle between slopes of lines
+    double fSigmaChargeAsymAngleCut;       ///< Cut on product of charge asymmetry and sin of angle between slopes of lines
     double fChargeAsymAngleCutoff;         ///< Distance between lines before cut on product of charge asymmetry and sin of angle between slopes of lines
                                            ///< is applied
     double fShowerWidthAngle;              ///< Half of the angle defining how wide a shower is 
@@ -301,10 +302,13 @@ namespace cluster {
                                            ///< line closest to each other
     double fShowerLikenessCut;             ///< Cut on shower likeness (larger the more shower like, smaller the less shower like)
 
+
     void mergeHoughLinesBySegment(unsigned int k,
         std::vector<lineSlope> *linesFound, 
         double xyScale,
-        int mergeStyle);
+        int mergeStyle,
+        double wire_dist,
+        double tickToDist);
 
     //std::vector<lineSlope> linesFound;
     double HoughLineDistance(double p0MinLine1, 
@@ -330,7 +334,11 @@ namespace cluster {
         double  x2,
         double  y2);
 
-
+    double DistanceBetweenHits(
+        art::Ptr<recob::Hit> hit0,
+        art::Ptr<recob::Hit> hit1,
+        double wire_dist,
+        double tickToDist);
 
 
     
