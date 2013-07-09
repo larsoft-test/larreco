@@ -648,7 +648,7 @@ void cluster::fuzzyClusterAlg::mergeClusters(int clusIndexStart)
     double sumUik = 0;
     double sumUjk = 0;
     for( int k = 0; k < fpsMembershipFinal.GetNcols(); k++){
-      sumMinUikUjk+=std::min(fpsMembershipFinal(i,k),fpsMembershipFinal(i,k));
+      sumMinUikUjk+=std::min(fpsMembershipFinal(i,k),fpsMembershipFinal(j,k));
       sumUik += fpsMembershipFinal(i,k);
       sumUjk += fpsMembershipFinal(j,k);
     }
