@@ -98,6 +98,7 @@ void cluster::HoughBaseAlg::reconfigure(fhicl::ParameterSet const& pset)
   fHoughLineMergeCutoff           = pset.get< double >("HoughLineMergeCutoff"           );
   fDoChargeAsymAngleMerge         = pset.get< int    >("DoChargeAsymAngleMerge"         );
   fChargeAsymAngleCut             = pset.get< double >("ChargeAsymAngleCut"             );
+  fSigmaChargeAsymAngleCut        = pset.get< double >("SigmaChargeAsymAngleCut"        );
   fChargeAsymAngleCutoff          = pset.get< double >("ChargeAsymAngleCutoff"          );
   fDoShowerHoughLineMerge         = pset.get< int    >("DoShowerHoughLineMerge"         );
   fShowerHoughLineMergeAngle      = pset.get< double >("ShowerHoughLineMergeAngle"      );
@@ -529,8 +530,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 
       // Add new line to list of lines
       double totalQ = 0;
-      std::vector<std::pair<double,double> > pHit;
-      std::vector<std::pair<double,double> > pHitChargeSigma;
+      std::vector< art::Ptr<recob::Hit> > lineHits;
       nClustersTemp++;
       ///std::cout << "nClusters: " << *nClusters << std::endl;
       for(auto lastHitsItr = lastHits.begin(); lastHitsItr != lastHits.end(); ++lastHitsItr) {
@@ -539,11 +539,10 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
         totalQ += clusterHits.back()->Charge();
         wire = hits[hitsTemp[(*lastHitsItr)]]->WireID().Wire;
 
-        pHit.push_back(std::make_pair((hits[hitsTemp[(*lastHitsItr)]]->Wire()->RawDigit()->Channel())*wire_dist,
-              ((hits[hitsTemp[(*lastHitsItr)]]->StartTime()+hits[hitsTemp[(*lastHitsItr)]]->EndTime())/2.)*tickToDist));
-        pHitChargeSigma.push_back(std::make_pair(clusterHits.back()->Charge(),
-              clusterHits.back()->SigmaCharge()));
         skip[hitsTemp[(*lastHitsItr)]]=1;
+
+        lineHits.push_back(hits[hitsTemp[(*lastHitsItr)]]);
+
 
         /// Subtract points from the accumulator that have already been used
         if(accumPoints[hitsTemp[(*lastHitsItr)]]) 
@@ -580,8 +579,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
             iMaxWire,
             fMinWire,
             fMaxWire,
-            pHit,
-            pHitChargeSigma));
+            lineHits));
        
     }/// end if !isnan
 
@@ -639,10 +637,10 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 
 
   /// Do a merge based on distances between line segments instead of endpoints
-  if(fDoShowerHoughLineMerge)              mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeShower);
-  if(fDoShowerHoughLineInterceptMerge)     mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeShowerIntercept);
-  if(fDoChargeAsymAngleMerge)              mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeChargeAsymAngle);
-  if(fDoHoughLineMerge)                    mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeNormal);
+  if(fDoShowerHoughLineMerge)              mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeShower,wire_dist,tickToDist);
+  if(fDoShowerHoughLineInterceptMerge)     mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeShowerIntercept,wire_dist,tickToDist);
+  if(fDoChargeAsymAngleMerge)              mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeChargeAsymAngle,wire_dist,tickToDist);
+  if(fDoHoughLineMerge)                    mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeNormal,wire_dist,tickToDist);
 
 
 
@@ -835,7 +833,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     if(linesFoundItr->merged)
       if(mergedLinesMap.at(linesFoundItr->clusterNumber).showerLikeness < fShowerLikenessCut)
         continue;
-    int lineSize = linesFoundItr->pHit.size();
+    int lineSize = linesFoundItr->hits.size();
     double lineSlope = linesFoundItr->clusterSlope;
     double lineIntercept = linesFoundItr->clusterIntercept;
     //std::cout << "line slopey: " << lineSlope << " intercepty: " << linesFoundItr->clusterIntercept << " line size: " << lineSize  << std::endl;
@@ -1261,7 +1259,9 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart,
 						     std::vector<lineSlope> *linesFound,
 						     double xyScale,
-                                                     int mergeStyle)
+                                                     int mergeStyle,
+                                                     double wire_dist,
+                                                     double tickToDist)
 {
 
   // If we have zero or one Hough lines, move on 
@@ -1323,14 +1323,18 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
       int closestToMerge=-1;
       int closestClusIndexStart=-1;
       double closestDistance=999999;
-      for (auto toMergePHitItr = linesFound->at(*toMergeItr).pHit.begin(); toMergePHitItr != linesFound->at(*toMergeItr).pHit.end(); toMergePHitItr++) {
-        for (auto clusIndStPHitItr = linesFound->at(clusIndexStart).pHit.begin(); clusIndStPHitItr != linesFound->at(clusIndexStart).pHit.end(); clusIndStPHitItr++) {
-          double distance = std::sqrt(pow(clusIndStPHitItr->first-(*toMergePHitItr).first,2)+
-                    pow(clusIndStPHitItr->second-toMergePHitItr->second,2));
+      for (auto toMergePHitItr = linesFound->at(*toMergeItr).hits.begin(); toMergePHitItr != linesFound->at(*toMergeItr).hits.end(); toMergePHitItr++) {
+        for (auto clusIndStPHitItr = linesFound->at(clusIndexStart).hits.begin(); clusIndStPHitItr != linesFound->at(clusIndexStart).hits.end(); clusIndStPHitItr++) {
+          //double distance = std::sqrt(pow(clusIndStPHitItr->first-(*toMergePHitItr).first,2)+
+                    //pow(clusIndStPHitItr->second-toMergePHitItr->second,2));
+          double distance = DistanceBetweenHits(*clusIndStPHitItr,
+                                                *toMergePHitItr,
+                                                wire_dist,
+                                                tickToDist);
           if(distance < closestDistance){
             closestDistance = distance;
-            closestToMerge=toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin();
-            closestClusIndexStart=clusIndStPHitItr-linesFound->at(clusIndexStart).pHit.begin();
+            closestToMerge=toMergePHitItr-linesFound->at(*toMergeItr).hits.begin();
+            closestClusIndexStart=clusIndStPHitItr-linesFound->at(clusIndexStart).hits.begin();
           }
         }
       }
@@ -1338,11 +1342,16 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
       // Find up to 9 more points closest to closestToMerge on the toMerge[i] line
       // check if it's closer, insert, delete
       std::vector<std::pair<int,double> > closestToMergeDist;
-      for (auto toMergePHitItr = linesFound->at(*toMergeItr).pHit.begin(); toMergePHitItr != linesFound->at(*toMergeItr).pHit.end(); toMergePHitItr++) {
-        if(closestToMerge==toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin())
+      //for (auto toMergePHitItr = linesFound->at(*toMergeItr).pHit.begin(); toMergePHitItr != linesFound->at(*toMergeItr).pHit.end(); toMergePHitItr++) {
+      for (auto toMergePHitItr = linesFound->at(*toMergeItr).hits.begin(); toMergePHitItr != linesFound->at(*toMergeItr).hits.end(); toMergePHitItr++) {
+        if(closestToMerge==toMergePHitItr-linesFound->at(*toMergeItr).hits.begin())
           continue;
-        double distance = std::sqrt(pow(toMergePHitItr->first-linesFound->at(*toMergeItr).pHit[closestToMerge].first,2)+
-                  pow(toMergePHitItr->second-linesFound->at(*toMergeItr).pHit[closestToMerge].second,2));
+          //double distance = std::sqrt(pow(toMergePHitItr->first-linesFound->at(*toMergeItr).pHit[closestToMerge].first,2)+
+                  //pow(toMergePHitItr->second-linesFound->at(*toMergeItr).pHit[closestToMerge].second,2));
+          double distance = DistanceBetweenHits(linesFound->at(clusIndexStart).hits[closestClusIndexStart],
+                                                *toMergePHitItr,
+                                                wire_dist,
+                                                tickToDist);
 
         bool foundCloser = false;
         for(auto closestToMergeDistItr = closestToMergeDist.begin(); closestToMergeDistItr != closestToMergeDist.end(); closestToMergeDistItr++) {
@@ -1354,7 +1363,7 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
         if(foundCloser 
             || closestToMergeDist.size() < linesFound->at(*toMergeItr).pHit.size()-1
             || closestToMergeDist.size() < 9){
-          closestToMergeDist.push_back(std::make_pair(toMergePHitItr-linesFound->at(*toMergeItr).pHit.begin(),distance));
+          closestToMergeDist.push_back(std::make_pair(toMergePHitItr-linesFound->at(*toMergeItr).hits.begin(),distance));
           std::sort(closestToMergeDist.begin(), closestToMergeDist.end(), boost::bind(&std::pair<int,double>::second,_1) < boost::bind(&std::pair<int,double>::second,_2));
         }
         if(closestToMergeDist.size() > linesFound->at(*toMergeItr).pHit.size()-1 ||
@@ -1369,11 +1378,17 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
 
       // Find up to 9 more points closest to closestToMerge on the clusIndexStart line
       std::vector<std::pair<int,double> > closestClusIndexStartDist;
-      for (auto clusIndexStartPHitItr = linesFound->at(clusIndexStart).pHit.begin(); clusIndexStartPHitItr != linesFound->at(clusIndexStart).pHit.end(); clusIndexStartPHitItr++) {
-        if(closestClusIndexStart==clusIndexStartPHitItr-linesFound->at(clusIndexStart).pHit.begin())
+      //for (auto clusIndexStartPHitItr = linesFound->at(clusIndexStart).pHit.begin(); clusIndexStartPHitItr != linesFound->at(clusIndexStart).pHit.end(); clusIndexStartPHitItr++) {
+      for (auto clusIndexStartPHitItr = linesFound->at(clusIndexStart).hits.begin(); clusIndexStartPHitItr != linesFound->at(clusIndexStart).hits.end(); clusIndexStartPHitItr++) {
+        if(closestClusIndexStart==clusIndexStartPHitItr-linesFound->at(clusIndexStart).hits.begin())
           continue;
-        double distance = std::sqrt(pow(clusIndexStartPHitItr->first-linesFound->at(clusIndexStart).pHit[closestClusIndexStart].first,2)+
-                  pow(clusIndexStartPHitItr->second-linesFound->at(clusIndexStart).pHit[closestClusIndexStart].second,2));
+        //double distance = std::sqrt(pow(clusIndexStartPHitItr->first-linesFound->at(clusIndexStart).pHit[closestClusIndexStart].first,2)+
+                  //pow(clusIndexStartPHitItr->second-linesFound->at(clusIndexStart).pHit[closestClusIndexStart].second,2));
+
+        double distance = DistanceBetweenHits(*clusIndexStartPHitItr,
+                                              linesFound->at(*toMergeItr).hits[closestToMerge],
+                                              wire_dist,
+                                              tickToDist);
 
         bool foundCloser = false;
         for(auto closestClusIndexStartDistItr = closestClusIndexStartDist.begin(); closestClusIndexStartDistItr != closestClusIndexStartDist.end(); closestClusIndexStartDistItr++) {
@@ -1385,7 +1400,7 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
         if(foundCloser 
             || closestClusIndexStartDist.size() < linesFound->at(clusIndexStart).pHit.size()-1
             || closestClusIndexStartDist.size() < 9){
-          closestClusIndexStartDist.push_back(std::make_pair(clusIndexStartPHitItr-linesFound->at(clusIndexStart).pHit.begin(),distance));
+          closestClusIndexStartDist.push_back(std::make_pair(clusIndexStartPHitItr-linesFound->at(clusIndexStart).hits.begin(),distance));
           std::sort(closestClusIndexStartDist.begin(), closestClusIndexStartDist.end(), boost::bind(&std::pair<int,double>::second,_1) < boost::bind(&std::pair<int,double>::second,_2));
         }
         if(closestClusIndexStartDist.size() > linesFound->at(clusIndexStart).pHit.size()-1 ||
@@ -1395,25 +1410,27 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
 
 
 
-      double toMergeAveCharge = linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge].first;
-      double toMergeAveSigmaCharge = linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge].second;
+      //double toMergeAveCharge = linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge].first;
+      //double toMergeAveSigmaCharge = linesFound->at(*toMergeItr).pHitChargeSigma[closestToMerge].second;
+      double toMergeAveCharge = linesFound->at(*toMergeItr).hits[closestToMerge]->Charge();
+      double toMergeAveSigmaCharge = linesFound->at(*toMergeItr).hits[closestToMerge]->SigmaCharge();
       for(auto closestToMergeDistItr = closestToMergeDist.begin(); closestToMergeDistItr != closestToMergeDist.end(); closestToMergeDistItr++) {
-        toMergeAveCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMergeDistItr->first].first;
-        toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).pHitChargeSigma[closestToMergeDistItr->first].second;
+        toMergeAveCharge+=linesFound->at(*toMergeItr).hits[closestToMergeDistItr->first]->Charge();
+        toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).hits[closestToMergeDistItr->first]->SigmaCharge();
       }
-      double clusIndexStartAveCharge = linesFound->at(clusIndexStart).pHitChargeSigma[closestToMerge].first;
-      double clusIndexStartAveSigmaCharge = linesFound->at(clusIndexStart).pHitChargeSigma[closestToMerge].first;
-      for(auto closestToMergeDistItr = closestToMergeDist.begin(); closestToMergeDistItr != closestToMergeDist.end(); closestToMergeDistItr++) {
-        clusIndexStartAveCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestToMergeDistItr->first].first;
-        clusIndexStartAveSigmaCharge+=linesFound->at(clusIndexStart).pHitChargeSigma[closestToMergeDistItr->first].second;
+      double clusIndexStartAveCharge = linesFound->at(clusIndexStart).hits[closestClusIndexStart]->Charge();
+      double clusIndexStartAveSigmaCharge = linesFound->at(clusIndexStart).hits[closestClusIndexStart]->SigmaCharge();
+      for(auto closestClusIndexStartDistItr = closestClusIndexStartDist.begin(); closestClusIndexStartDistItr != closestClusIndexStartDist.end(); closestClusIndexStartDistItr++) {
+        clusIndexStartAveCharge+=linesFound->at(clusIndexStart).hits[closestClusIndexStartDistItr->first]->Charge();
+        clusIndexStartAveSigmaCharge+=linesFound->at(clusIndexStart).hits[closestClusIndexStartDistItr->first]->SigmaCharge();
       }
 
 
 
       double chargeAsymmetry = std::abs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
-      //double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
+      double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
       double chargeAsymmetrySinAngle = chargeAsymmetry*pow(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180),2);
-      //double sigmaChargeAsymmetrySinAngle = chargeAsymmetry*pow(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180),2);
+      double sigmaChargeAsymmetrySinAngle = sigmaChargeAsymmetry*pow(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180),2);
 
       //std::cout << std::endl;
       //std::cout << chargeAsymmetry*pow(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180),2) << std::endl;
@@ -1423,10 +1440,9 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
           mergeStyle == iMergeChargeAsymAngle)
         continue;
 
-      //if(sigmaChargeAsymmetrySinAngle > 0.1 &&
-          //mergeStyle == iMergeChargeAsymAngle)
-        //continue;
-
+      if(sigmaChargeAsymmetrySinAngle > fSigmaChargeAsymAngleCut  &&
+          mergeStyle == iMergeChargeAsymAngle)
+        continue;
 
       //// Veto the merge if the lines are not colinear for the wide angle merge
       if(mergeStyle == iMergeWide || mergeStyle == iMergeNormal || mergeStyle == iMergeChargeAsymAngle) {
@@ -1522,12 +1538,31 @@ void cluster::HoughBaseAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart
     }  
   }
 
+                                                
   if(lineMerged)
-    mergeHoughLinesBySegment(clusIndexStart,linesFound,xyScale,mergeStyle);
+    mergeHoughLinesBySegment(clusIndexStart,linesFound,xyScale,mergeStyle,wire_dist,tickToDist);
   else
-    mergeHoughLinesBySegment(clusIndexStart+1,linesFound,xyScale,mergeStyle);
+    mergeHoughLinesBySegment(clusIndexStart+1,linesFound,xyScale,mergeStyle,wire_dist,tickToDist);
   
   return;
+
+}
+
+
+//------------------------------------------------------------------------------
+double cluster::HoughBaseAlg::DistanceBetweenHits(art::Ptr<recob::Hit> hit0,
+                                                art::Ptr<recob::Hit> hit1,
+                                                double wire_dist,
+                                                double tickToDist)
+{
+  double pHit0[2];
+  pHit0[0] = (hit0->Wire()->RawDigit()->Channel())*wire_dist;
+  pHit0[1] = ((hit0->StartTime()+hit0->EndTime())/2.)*tickToDist;
+  double pHit1[2];
+  pHit1[0] = (hit1->Wire()->RawDigit()->Channel())*wire_dist;
+  pHit1[1] = ((hit1->StartTime()+hit1->EndTime())/2.)*tickToDist;
+
+  return std::sqrt( pow(pHit0[0] - pHit1[0],2) + pow(pHit0[1] - pHit1[1],2));
 
 }
 
