@@ -67,6 +67,8 @@ namespace cluster{
   
     std::string fhitsModuleLabel;
     std::string fCalDataModuleLabel;
+    int fUseHoughSeed;
+    long int fHoughSeed;
    
     fuzzyClusterAlg ffuzzyCluster; ///< object that implements the fuzzy cluster algorithm
     CornerFinderAlg fcornerfinder; ///< object that implements the corner finder algorithm
@@ -87,8 +89,7 @@ namespace cluster{
     produces< art::Assns<recob::Cluster, recob::Hit> >();
   
     // Create random number engine needed for PPHT
-    // Set the seed to unity for reproducibility
-    createEngine(1,"HepJamesRandom");
+    createEngine(SeedCreator::CreateRandomNumberSeed(),"HepJamesRandom");
   }
   
   //-------------------------------------------------
@@ -101,6 +102,8 @@ namespace cluster{
   {
     fhitsModuleLabel  = p.get< std::string >("HitsModuleLabel");
     fCalDataModuleLabel  = p.get< std::string >("CalDataModuleLabel");
+    fUseHoughSeed = p.get< int >("UseHoughSeed");
+    fHoughSeed = p.get< long int >("HoughSeed");
     ffuzzyCluster.reconfigure(p.get< fhicl::ParameterSet >("fuzzyClusterAlg"));
   }
   
@@ -138,12 +141,14 @@ namespace cluster{
     //std::vector<art::Ptr<recob::EndPoint2D> > allends;
     std::vector<recob::EndPoint2D> allends;
 
-    // Set event number as the random number seed needed for PPHT
-    //std::cout << "Event number check: " << evt.event() << std::endl;
-    //art::ServiceHandle<art::RandomNumberGenerator> rng;
-    //CLHEP::HepRandomEngine &engine = rng->getEngine();
-    //engine.setSeed((long int)evt.event(),0);
-  
+    // If a nonzero random number seed has been provided, 
+    // overwrite the seed already initialized
+    if(fUseHoughSeed){
+      art::ServiceHandle<art::RandomNumberGenerator> rng;
+      CLHEP::HepRandomEngine &engine = rng->getEngine();
+      engine.setSeed(fHoughSeed,0);
+    } 
+
     std::vector<recob::EndPoint2D> endcol; 
 
     // Pass information into CornerFinder

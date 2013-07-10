@@ -48,6 +48,7 @@ extern "C" {
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "art/Framework/Services/Optional/TFileDirectory.h" 
 #include "messagefacility/MessageLogger/MessageLogger.h" 
+#include "CLHEP/Random/JamesRandom.h"
 
 // LArSoft includes 
 #include "RawData/RawDigit.h"
@@ -82,6 +83,8 @@ namespace cluster {
   private:
 
     std::string fDBScanModuleLabel;    
+    int fUseHoughSeed;
+    long int fHoughSeed;
 
     HoughBaseAlg fHLAlg;            ///< object that does the Hough Transform
   
@@ -117,6 +120,8 @@ namespace cluster {
   void HoughLineFinder::reconfigure(fhicl::ParameterSet const& p)
   {
     fDBScanModuleLabel = p.get< std::string >("DBScanModuleLabel");
+    fUseHoughSeed = p.get< int >("UseHoughSeed");
+    fHoughSeed = p.get< long int >("HoughSeed");
     fHLAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughBaseAlg"));
   }
   
@@ -146,7 +151,16 @@ namespace cluster {
     std::vector< art::PtrVector<recob::Hit> > clusHitsOut;
     
     size_t numclus = 0;
-      
+     
+   
+    // If a nonzero random number seed has been provided, 
+    // overwrite the seed already initialized
+    if(fUseHoughSeed){
+      art::ServiceHandle<art::RandomNumberGenerator> rng;
+      CLHEP::HepRandomEngine &engine = rng->getEngine();
+      engine.setSeed(fHoughSeed,0);
+    } 
+
     numclus = fHLAlg.FastTransform(clusIn, clusOut, clusHitsOut, evt, fDBScanModuleLabel);
 
 
