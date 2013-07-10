@@ -32,7 +32,7 @@ void cluster::ClusterParamsAlg::reconfigure(fhicl::ParameterSet const& pset)
   fChargeCutoffThreshold	=pset.get<   std::vector<double> > ("ChargeCutoffThreshold");    
   fSelectBoxSizePar    		=pset.get<   double > ("SelectBoxSizePar");
   fSelectBoxSizePerp		=pset.get<   double > ("SelectBoxSizePerp");
-  fSelectBoxDiff		=pset.get<   double > ("SelectBoxDiff");
+  //fSelectBoxDiff		=pset.get<   double > ("SelectBoxDiff");
   fMinHitListSize		=pset.get<   double > ("MinHitListSize"); //40;
   fOutlierRadius		=pset.get<   double > ("fOutlierRadius"); //5;
   fForceRightGoing 		=pset.get<   bool > ("ForceRightGoing");
@@ -93,16 +93,25 @@ void cluster::ClusterParamsAlg::FindMinMaxWiresTimes(double &MinWire, double &Ma
   
   //fClusterPlane=plane;  // time coordinate of last point for each plane
       
-  std::cout << " +++ maximums " << MinWire << " " << MaxWire << " " <<MinTime << " " << MaxTime << std::endl;
-  std::cout << " +++ meancharge " << MeanCharge << std::endl;
+ // std::cout << " +++ maximums " << MinWire << " " << MaxWire << " " <<MinTime << " " << MaxTime << std::endl;
+//  std::cout << " +++ meancharge " << MeanCharge << std::endl;
 }
 
 
 
+//---------------------------------------------------------------------------------------------
+//Calculate rough axis of the cluster, using hits above the average charge. Calculate measure of verticalness of the cluster and return in goodness.
+//--------------------------------------------------------------------------------------------
 
-
-
-
+void cluster::ClusterParamsAlg::Find2DAxisRoughHighCharge(double &lineslope,double &lineintercept,double &goodness,std::vector < art::Ptr < recob::Hit> > hitlist){
+ 
+  double kMinWire=99999,kMinTime=999999,kMaxWire=0,kMaxTime=0,kMeanCharge=0;
+  FindMinMaxWiresTimes(kMinWire,kMaxWire,kMinTime,kMaxTime,kMeanCharge,hitlist);
+  std::vector< art::Ptr<recob::Hit> > highhitlist=CreateHighHitlist(kMeanCharge,hitlist);
+  std::cout << "$$$$$$$ highhitlist size: " << highhitlist.size() << " " << kMeanCharge <<  std::endl;
+  Find2DAxisRough(lineslope,lineintercept,goodness,highhitlist);
+  
+}
 
 //---------------------------------------------------------------------------------------------
 //Calculate rough axis of the cluster. Calculate measure of verticalness of the cluster and return in goodness.
@@ -115,6 +124,11 @@ void cluster::ClusterParamsAlg::Find2DAxisRough(double &lineslope,double &linein
   unsigned int plane;
 
  
+  if(hitlist.size()<5)
+  {
+   std::cout << " hitlist too small," <<hitlist.size() << " bailing " << std::endl;
+    return;
+  }
  // padding of the selected TGraph in wires and time. 
   int wirepad=20;
   int timepad=wirepad*fWiretoCm/fTimetoCm+0.5;
@@ -178,7 +192,7 @@ void cluster::ClusterParamsAlg::Find2DAxisRough(double &lineslope,double &linein
     }
 
  
-    std::cout << " old fit: " <<  linefittest_cm->GetParameter(1)/fWireTimetoCmCm << " " <<  linefittest_cm->GetParameter(0)/fTimetoCm << std::endl;
+ //   std::cout << " old fit: " <<  linefittest_cm->GetParameter(1)/fWireTimetoCmCm << " " <<  linefittest_cm->GetParameter(0)/fTimetoCm << std::endl;
  
 
     
@@ -199,6 +213,23 @@ void   cluster::ClusterParamsAlg::Find2DStartPointsBasic(std::vector< art::Ptr <
  Find2DStartPointsBasic(lineslope,lineintercept,hitlist,wire_start,time_start,wire_end,time_end);
     
 }
+
+
+
+//---------------------------------------------------------------------------------------------
+//Calculate rough axis of the cluster. Interface for version without the slope yet
+//--------------------------------------------------------------------------------------------
+
+void   cluster::ClusterParamsAlg::Find2DStartPointsHighCharge(std::vector< art::Ptr < recob::Hit> > hitlist,double &wire_start,double &time_start,double &wire_end,double &time_end)
+{
+  
+ double lineslope, lineintercept,goodness;
+
+ Find2DAxisRoughHighCharge(lineslope,lineintercept,goodness,hitlist);
+ Find2DStartPointsBasic(lineslope,lineintercept,hitlist,wire_start,time_start,wire_end,time_end);
+    
+}
+
 
 
 //---------------------------------------------------------------------------------------------
@@ -228,6 +259,8 @@ void   cluster::ClusterParamsAlg::Find2DStartPointsBasic(double lineslope,double
  else
    aprim = -999999.;
   
+ 
+ //std::cout << "in starting points basic, line slope, intercept, a,c: " << lineslope << " " << lineintercept << " " << a << " " << c << std::endl;
  // find extreme intercepts. For the time being we don't care which one is the start point and which one is the endpoint.
   
   double extreme_intercept_high,extreme_intercept_low;
@@ -249,19 +282,17 @@ void   cluster::ClusterParamsAlg::Find2DStartPointsBasic(double lineslope,double
     extreme_intercept_end=extreme_intercept_low;
   }
   
- /* std::cout << " extreme intercepts: " << extreme_intercept_start << " " << extreme_intercept_end << std::endl;
-  std::cout << " point at w=1000 "  << 500 <<"," << 500*a/fWireTimetoCmCm+c/fTimetoCm << std::endl;
-  std::cout << " point at w=1000 "  << 1000 <<"," << 1000*a/fWireTimetoCmCm+c/fTimetoCm << std::endl;
-  std::cout << " point at w=1000 "  << 1500 <<"," << 1500*a/fWireTimetoCmCm+c/fTimetoCm << std::endl;
- */ 
+  std::cout << " extreme intercepts: " << extreme_intercept_start << " " << extreme_intercept_end << std::endl;
+
+  
   double wire_online_end,wire_online_begin,time_online_end,time_online_begin;
   
   gser.GetPointOnLineWSlopes(a,c,extreme_intercept_end,wire_online_end,time_online_end);
   gser.GetPointOnLineWSlopes(a,c,extreme_intercept_start,wire_online_begin,time_online_begin);
   
- /* std::cout << " ---------:::::::: wire_online begin point " << wire_online_begin << " " << time_online_begin << std::endl;
- std::cout << " ----------:::::::: wire_online end point " << wire_online_end << " " << time_online_end << std::endl;
- */ //calculate the first and last cluster points on the through line:
+// std::cout << " ---------:::::::: wire_online begin point " << wire_online_begin << " " << time_online_begin << std::endl;
+// std::cout << " ----------:::::::: wire_online end point " << wire_online_end << " " << time_online_end << std::endl;
+  //calculate the first and last cluster points on the through line:
   
   art::Ptr<recob::Hit> startHit=FindClosestHit(hitlist, wire_online_begin,time_online_begin);
   art::Ptr<recob::Hit> endHit=FindClosestHit(hitlist, wire_online_end,time_online_end);
@@ -446,7 +477,7 @@ int cluster::ClusterParamsAlg::FindTrunk(std::vector < art::Ptr < recob::Hit> > 
   t_on_begin=time_online_begin+dts;
   t_on_end=time_online_begin+dte;
 
-  
+  //std::cout << "inside findTrunk, start points: " << w_on_begin << " "<<t_on_begin << " | "<< w_on_end << "  " << t_on_end << std::endl;
   /////// create new, two bin histogram, to test where the front and back are:
    double lowbin=0,highbin=0;
    double relowbin=0,rehighbin=0;
@@ -465,11 +496,11 @@ int cluster::ClusterParamsAlg::FindTrunk(std::vector < art::Ptr < recob::Hit> > 
   //////////////////////////////////////////////////////
   
  
-  std::cout << "==== low and highbin " << lowbin << " " << highbin << std::endl;
-  std::cout << "==== reverse low and highbin " << relowbin << " " << rehighbin << std::endl;
-  std::cout << "==== reverse low and highbin hist" << hitreinv2->GetBinContent(1)<< " " << hitreinv2->GetBinContent(2) << std::endl;
-  
-  std::cout << " histo coords: LowE" <<  hitreinv2->GetBinLowEdge(1) << " " <<  hitreinv2->GetBinLowEdge(2) << " " << hitreinv2->GetBinWidth(1) << " " <<  hitreinv2->GetBinWidth(2) << std::endl;
+//   std::cout << "==== low and highbin " << lowbin << " " << highbin << std::endl;
+//   std::cout << "==== reverse low and highbin " << relowbin << " " << rehighbin << std::endl;
+//   std::cout << "==== reverse low and highbin hist" << hitreinv2->GetBinContent(1)<< " " << hitreinv2->GetBinContent(2) << std::endl;
+//   
+//   std::cout << " histo coords: LowE " <<  hitreinv2->GetBinLowEdge(1) << " " <<  hitreinv2->GetBinLowEdge(2) << " " << hitreinv2->GetBinWidth(1) << " " <<  hitreinv2->GetBinWidth(2) << std::endl;
   
   /////////Refine start points to real hits:
   double wstartnorm=0,tstartnorm=0,wendnorm=0,tendnorm=0;
@@ -578,6 +609,8 @@ void cluster::ClusterParamsAlg::FindDirectionWeights(double lineslope,double w_o
   //double ct=lineintercept*fTimetoCm;
   double smallprojlength= TMath::Sqrt( ((double)w_on_end-(double)w_on_begin)*((double)w_on_end-(double)w_on_begin)*fWiretoCm*fWiretoCm +  ((double)w_on_end-(double)w_on_begin)*((double)w_on_end-(double)w_on_begin)*at*at/fWireTimetoCmCm/fWireTimetoCmCm*fTimetoCm*fTimetoCm  );
   
+  //std::cout << " smallprojlength: "<< smallprojlength << std::endl;
+  
   //get slope of lines orthogonal to those found crossing the shower.
   double aprimt=0;
   if(at){
@@ -610,6 +643,7 @@ void cluster::ClusterParamsAlg::FindDirectionWeights(double lineslope,double w_o
    double inv_intercept_start=t_on_begin*fTimetoCm-aprimt*(double)w_on_begin*fWiretoCm;
    double inv_intercept_end=t_on_end*fTimetoCm-aprimt*(double)w_on_end*fWiretoCm;
     
+  // std::cout << "intercepts in weights: " << inv_intercept_start << " " << inv_intercept_end << " " << hitlist.size()  <<std::endl;
  
    ///////// Calculate weights
     for(std::vector < art::Ptr < recob::Hit > >::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
@@ -653,7 +687,10 @@ void cluster::ClusterParamsAlg::FindDirectionWeights(double lineslope,double w_o
   }  // end weight calculating loop
   
   
-  
+  HiBin=highbin;
+  LowBin=lowbin;
+  invHiBin=rehighbin;
+  invLowBin=relowbin;
   
   
 }
@@ -770,7 +807,7 @@ std::vector< art::Ptr<recob::Hit> > cluster::ClusterParamsAlg::CreateHighHitlist
    if(hitlistlocal.size()<10 && hitlist_high.size() > ix && hitlist_high.size()>0 ){
       hitlist_high.erase(hitlist_high.begin()+ix);
       ix--;
-      //std::cout << " erasing hit @ w,t" << wire << " "<< time << " (start) "  << std::endl;
+    //  std::cout << " erasing hit @ w,t" << wire << " "<< time << " (start) "  << std::endl;
     }
    hitlistlocal.clear();
 	
@@ -938,41 +975,47 @@ void cluster::ClusterParamsAlg::RefineStartPointsHough(std::vector< art::Ptr < r
   double startwire=10000*(1+direction),starttime=-1,endwire=10000*(1-direction),endtime=-1;
  
   //use longest houghline to find new start
-  for(unsigned int ix=0;ix<houghlinesend[endhoughclus].size();ix++) {
-      unsigned int p,w;
-      //unsigned int c = houghlinesend[endhoughclus][ix]->Wire()->RawDigit()->Channel(); 
-     // geo->ChannelToWire(c,cs,t,p,w);
-     //GetPlaneAndTPC((*hitlist.begin()),iplane,cstat,tpc,wire);
-    w=houghlinesend[endhoughclus][0]->WireID().Wire; 
-    p=houghlinesend[endhoughclus][0]->WireID().Plane; 
+  if(endhoughclus!=-1)
+  {
+    for(unsigned int ix=0;ix<houghlinesend[endhoughclus].size();ix++) {
+	unsigned int w;
+	//unsigned int c = houghlinesend[endhoughclus][ix]->Wire()->RawDigit()->Channel(); 
+	// geo->ChannelToWire(c,cs,t,p,w);
+	//GetPlaneAndTPC((*hitlist.begin()),iplane,cstat,tpc,wire);
+	w=houghlinesend[endhoughclus][ix]->WireID().Wire; 
+	//p=houghlinesend[endhoughclus][ix]->WireID().Plane; 
    
       
       
-  /*    std::cout << " hough hits for set: "<< i << " plane: " << p << " w,t: "  << w<< " "<< (*houghlines[i][ix]).PeakTime() << std::endl;
-  */     std::cout << " hough hits for set: "<< endhoughclus << " plane: " << p << " w,t: "  << w<< " "<< houghlinesend[endhoughclus][ix]->PeakTime() << std::endl;
+	/*    std::cout << " hough hits for set: "<< i << " plane: " << p << " w,t: "  << w<< " "<< (*houghlines[i][ix]).PeakTime() << std::endl;
+	*/
+	//std::cout << " hough hits for set: "<< endhoughclus << " plane: " << p << " w,t: "  << w<< " "<< houghlinesend[endhoughclus][ix]->PeakTime() << std::endl;
    
-      if(w*direction>endwire*direction) //multiply by original direction to find most extreme point 
-	{endwire=w;
-	 endtime=houghlinesend[endhoughclus][ix]->PeakTime();
-	}
-    }
+	if(w*direction>endwire*direction) //multiply by original direction to find most extreme point 
+	  {endwire=w;
+	  endtime=houghlinesend[endhoughclus][ix]->PeakTime();
+	  }
+      }
+  }
   
-  for(unsigned int ix=0;ix<houghlines[starthoughclus].size();ix++) {
-      unsigned int p,w;
-    //  unsigned int c = houghlines[starthoughclus][ix]->Wire()->RawDigit()->Channel(); 
-    //  geo->ChannelToWire(c,cs,t,p,w);
+  if(starthoughclus!=-1)
+  {
+    for(unsigned int ix=0;ix<houghlines[starthoughclus].size();ix++) {
+	unsigned int w;
+	//  unsigned int c = houghlines[starthoughclus][ix]->Wire()->RawDigit()->Channel(); 
+	//  geo->ChannelToWire(c,cs,t,p,w);
     
-     w=houghlines[starthoughclus][0]->WireID().Wire; 
-     p=houghlines[starthoughclus][0]->WireID().Plane; 
-  /*    std::cout << " hough hits for set: "<< i << " plane: " << p << " w,t: "  << w<< " "<< (*houghlines[i][ix]).PeakTime() << std::endl;
-  */     std::cout << " hough hits for set: "<<starthoughclus << " plane: " << p << " w,t: "  << w<< " "<< houghlines[starthoughclus][ix]->PeakTime() << std::endl;
+	w=houghlines[starthoughclus][ix]->WireID().Wire; 
+	
+	/*    std::cout << " hough hits for set: "<< i << " plane: " << p << " w,t: "  << w<< " "<< (*houghlines[i][ix]).PeakTime() << std::endl;  */    
+	//std::cout << " hough hits for set: "<<starthoughclus << " plane: " << p << " w,t: "  << w<< " "<< houghlines[starthoughclus][ix]->PeakTime() << std::endl;
    
-      if(w*direction<startwire*direction) //multiply by original direction to find most extreme point 
-	{startwire=w;
-	 starttime=houghlines[starthoughclus][ix]->PeakTime();
-	}
+	if(w*direction<startwire*direction) //multiply by original direction to find most extreme point 
+	  {startwire=w;
+	  starttime=houghlines[starthoughclus][ix]->PeakTime();
+	  }
     }
-  
+  }
   
   
  std::cout << " low, high wire,time: " << startwire <<","<<starttime << " | " << endwire<<","<<endtime<<std::endl;

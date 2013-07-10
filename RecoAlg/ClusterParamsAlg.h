@@ -46,13 +46,15 @@ namespace cluster {
   
   void Find2DAxisRough(double &lineslope,double &lineintercept,double &goodness,std::vector < art::Ptr < recob::Hit> > hitlist); /**Calculate 2D angle histograms, provided vertex is know */ 
     
-    
+  void Find2DAxisRoughHighCharge(double &lineslope,double &lineintercept,double &goodness,std::vector < art::Ptr < recob::Hit> > hitlist);  
     //  void CalculateAxisParameters(unsigned nClust, std::vector < art::Ptr < recob::Hit> >  hitlist,double wstart,double tstart,double wend,double tend);
     
   void  Find2DStartPointsBasic(std::vector< art::Ptr < recob::Hit> > hitlist,double &wire_start,double &time_start,double &wire_end,double &time_end);
 
   void Find2DStartPointsBasic(double lineslope,double lineintercept,std::vector< art::Ptr < recob::Hit> > hitlist,double &wire_start,double &time_start,double &wire_end,double &time_end);
 
+  void Find2DStartPointsHighCharge(std::vector< art::Ptr < recob::Hit> > hitlist,double &wire_start,double &time_start,double &wire_end,double &time_end);
+  
   
   int FindTrunk(std::vector < art::Ptr < recob::Hit> > hitlist,double &wstn,double &tstn,double &wendn,double &tendn,double lineslope,double lineintercept);
   
@@ -62,9 +64,13 @@ namespace cluster {
   
   void FindSideWeights(double lineslope,double lineintercept,double wstn,double tstn,int direction, std::vector < art::Ptr < recob::Hit> > hitlist,double &sideWeightCharge); 
   
-  void RefineStartPointsHough(std::vector< art::Ptr < recob::Hit> > hitlist, double & wire_start,double & time_start, double & wire_end,double & time_end, int &direction);
+  void RefineStartPointsHough(std::vector< art::Ptr < recob::Hit> > hitlist, 								double & wire_start,
+				  double & time_start, 
+				  double & wire_end,
+				  double & time_end, 
+				  int &direction);
  
- int DecideClusterDirection(std::vector < art::Ptr<recob::Hit> > hitlist,
+  int DecideClusterDirection(std::vector < art::Ptr<recob::Hit> > hitlist,
 				double lineslope,double &wstn,double &tstn,double &wendn,double &tendn);
  
  
@@ -96,7 +102,7 @@ namespace cluster {
    std::vector<double> fChargeCutoffThreshold;
    double fSelectBoxSizePar;
    double fSelectBoxSizePerp;
-   double fSelectBoxDiff;
+  // double fSelectBoxDiff;
    bool fForceRightGoing;
      //helper functions
   void FindExtremeIntercepts(std::vector < art::Ptr<recob::Hit> > hitlist,
