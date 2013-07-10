@@ -87,7 +87,8 @@ namespace cluster{
     produces< art::Assns<recob::Cluster, recob::Hit> >();
   
     // Create random number engine needed for PPHT
-    createEngine(SeedCreator::CreateRandomNumberSeed(),"HepJamesRandom");
+    // Set the seed to unity for reproducibility
+    createEngine(1,"HepJamesRandom");
   }
   
   //-------------------------------------------------
