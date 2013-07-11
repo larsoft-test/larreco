@@ -67,7 +67,6 @@ namespace cluster{
   
     std::string fhitsModuleLabel;
     std::string fCalDataModuleLabel;
-    int fUseHoughSeed;
     long int fHoughSeed;
    
     fuzzyClusterAlg ffuzzyCluster; ///< object that implements the fuzzy cluster algorithm
@@ -102,7 +101,6 @@ namespace cluster{
   {
     fhitsModuleLabel  = p.get< std::string >("HitsModuleLabel");
     fCalDataModuleLabel  = p.get< std::string >("CalDataModuleLabel");
-    fUseHoughSeed = p.get< int >("UseHoughSeed");
     fHoughSeed = p.get< long int >("HoughSeed");
     ffuzzyCluster.reconfigure(p.get< fhicl::ParameterSet >("fuzzyClusterAlg"));
   }
@@ -143,7 +141,7 @@ namespace cluster{
 
     // If a nonzero random number seed has been provided, 
     // overwrite the seed already initialized
-    if(fUseHoughSeed){
+    if(fHoughSeed != 0){
       art::ServiceHandle<art::RandomNumberGenerator> rng;
       CLHEP::HepRandomEngine &engine = rng->getEngine();
       engine.setSeed(fHoughSeed,0);

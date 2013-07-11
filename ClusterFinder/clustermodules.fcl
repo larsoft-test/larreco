@@ -21,8 +21,8 @@ standard_fuzzycluster:
  module_type:     "fuzzyCluster"
  HitsModuleLabel: "ffthit"
  CalDataModuleLabel: "caldata"
- UseHoughSeed:    0      # Tells the random number generator to use a user supplied seed
- HoughSeed:       1      # The user supplied seed that UseHoughSeed tells the generator to use
+ HoughSeed:       0      # The user supplied seed the generator uses for the 
+                         # Hough transform, if it is zero a seed is randomly created
  fuzzyClusterAlg: @local::standard_fuzzyclusteralg
  CornerFinderAlg: @local::standard_cornerfinderalg
 }
@@ -42,8 +42,8 @@ standard_houghlinefinder:
 {
  module_type:          "HoughLineFinder"
  DBScanModuleLabel:    "dbcluster"
- UseHoughSeed:         0      # Tells the random number generator to use a user supplied seed
- HoughSeed:            1      # The user supplied seed that UseHoughSeed tells the generator to use
+ HoughSeed:       0      # The user supplied seed the generator uses for the 
+                         # Hough transform, if it is zero a seed is randomly created
  MaxLines:             5
  MinHits:              3
  SaveAccumulator:      0

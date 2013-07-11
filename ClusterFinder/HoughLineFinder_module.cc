@@ -83,7 +83,6 @@ namespace cluster {
   private:
 
     std::string fDBScanModuleLabel;    
-    int fUseHoughSeed;
     long int fHoughSeed;
 
     HoughBaseAlg fHLAlg;            ///< object that does the Hough Transform
@@ -120,7 +119,6 @@ namespace cluster {
   void HoughLineFinder::reconfigure(fhicl::ParameterSet const& p)
   {
     fDBScanModuleLabel = p.get< std::string >("DBScanModuleLabel");
-    fUseHoughSeed = p.get< int >("UseHoughSeed");
     fHoughSeed = p.get< long int >("HoughSeed");
     fHLAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughBaseAlg"));
   }
@@ -155,7 +153,7 @@ namespace cluster {
    
     // If a nonzero random number seed has been provided, 
     // overwrite the seed already initialized
-    if(fUseHoughSeed){
+    if(fHoughSeed != 0){
       art::ServiceHandle<art::RandomNumberGenerator> rng;
       CLHEP::HepRandomEngine &engine = rng->getEngine();
       engine.setSeed(fHoughSeed,0);
