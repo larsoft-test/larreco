@@ -25,9 +25,11 @@ standard_houghbasealg:
   DoShowerHoughLineInterceptMerge: 1 
   DoChargeAsymAngleMerge:    1    # Turn on cut on product of charge asymmetry and sin of angle between slopes of lines
   ChargeAsymAngleCut:        0.01 # Cut on product of charge asymmetry and the sin of angle between slopes of lines
+  SigmaChargeAsymAngleCut:   0.01 # Cut on product of charge sigma asymmetry and the sin of angle between slopes of lines
   ChargeAsymAngleCutoff:     10   # Distance between lines before cut on product of charge asymmetry and sin of angle between slopes of lines
   ShowerLikenessCut:        0.1  # Cut on shower likeness (the larger the more shower like, the smaller the less shower like)
-  ShowerWidthAngle:          0   # Half of the angle defining how wide a shower is 
+  ShowerWidthAngle:         0   # Half of the angle defining how wide a shower is 
+  Seed:                     1
 }
 
 standard_endpointalg:
