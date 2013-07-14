@@ -305,11 +305,21 @@ namespace vertex{
 				// ##########################################################################
 				if(feature_plane[feature1] != feature_plane[feature2])
 					{
+					
+					// #############################################################################
+					// ### Get the appropriate time offset for the two planes we are considering ###
+					// #############################################################################
+					float tempXFeature1 = detprop->ConvertTicksToX(feature_time[feature1], feature_plane[feature1], tpc, cstat);
+					
+					float tempXFeature2 = detprop->ConvertTicksToX(feature_time[feature2], feature_plane[feature2], tpc, cstat);
+					
+					
 					// ####################################################################
 					// ### Checking to see if these features have intersecting channels ###
+					// ###               and are within 1 cm in projected X             ###
 					// ####################################################################
 					if( geom->ChannelsIntersect( feature_channel[feature2], feature_channel[feature1], yy, zz) &&
-					    std::abs(feature_time[feature2] - feature_time[feature1]) < detprop->TimeOffsetV()*2)
+					    std::abs(tempXFeature1 - tempXFeature2) < 0.5)
 					    	{
 				
 						x_feature[n3dFeatures] = detprop->ConvertTicksToX(feature_time[feature1], feature_plane[feature1], tpc, cstat); 
@@ -711,113 +721,128 @@ namespace vertex{
     // --- we need to check if any of them match between planes and only keep ---
     // ---                       those that have matches                      ---
     // --------------------------------------------------------------------------
-    for(unsigned int vtx = n2dVertexCandidates; vtx > 0; vtx--)
+    
+    // ##############################
+    // ### Looping over cryostats ###
+    // ##############################
+    for(size_t cstat = 0; cstat < geom->Ncryostats(); ++cstat)
     	{
-	for (unsigned int vtx1 = 0; vtx1 < vtx; vtx1++)
+    	// ##########################
+      	// ### Looping over TPC's ###
+      	// ##########################
+      	for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc)
 		{
-		// ###########################################################################
-		// ### Check to make sure we are comparing verticies from different planes ###
-		// ###########################################################################
-		if(vtx_plane[vtx1] != vtx_plane[vtx])
-			{
-			/*std::cout<<std::endl;
-			std::cout<<"vtx_wire[vtx1] = "<<vtx_wire[vtx1]<<" , vtx_wire[vtx] = "<<vtx_wire[vtx]<<std::endl;
-			std::cout<<"vtx_time[vtx1] = "<<vtx_time[vtx1]<<" , vtx_time[vtx] = "<<vtx_time[vtx]<<std::endl;
-			std::cout<<"vtx_plane[vtx1] = "<<vtx_plane[vtx1]<<" , vtx_plane[vtx] = "<<vtx_plane[vtx]<<std::endl;
-			std::cout<<std::endl;*/
-			
-			// === To figure out if these two verticies are from a common point 
-			// === we need to check if the channels intersect and if they are 
-			// === close in time ticks as well...to do this we have to do some 
-			// === converting to use geom->PlaneWireToChannel(PlaneNo, Wire, tpc, cstat)
-			// === JA: Need to include vtx tpc, and cstat to make detector agnositc
-			
-			unsigned int vtx1_plane   = vtx_plane[vtx1];
-			unsigned int vtx1_wire    = vtx_wire[vtx1];
-			try
+    		for(unsigned int vtx = n2dVertexCandidates; vtx > 0; vtx--)
+    			{
+			for (unsigned int vtx1 = 0; vtx1 < vtx; vtx1++)
 				{
-				vtx1_channel = geom->PlaneWireToChannel(vtx1_plane, vtx1_wire, 0, 0);
-				
-				}
-			catch(...)
-				{
-				mf::LogWarning("FeatureVertexFinder") << "PlaneWireToChannel Failed";
-	      
-	      			continue;
-	    			}
-				
-				
-			
-			unsigned int vtx2_plane   = vtx_plane[vtx];
-			unsigned int vtx2_wire    = vtx_wire[vtx];
-			
-			try
-				{
-				vtx2_channel = geom->PlaneWireToChannel(vtx2_plane, vtx2_wire, 0, 0);
-				
-				}
-			catch(...)
-				{
-				mf::LogWarning("FeatureVertexFinder") << "PlaneWireToChannel Failed";
-	      
-	      			continue;
-				
-				}
-			
-			// ##############################################################################
-			// ### Check to see if the channels intersect and save the y and z coordinate ###
-			// ##############################################################################
-			bool match = false;
-			
-			try
-				{
-				match = geom->ChannelsIntersect( vtx1_channel, vtx2_channel, y_coord, z_coord);
-				
-				
-				}
-			catch(...)
-				{
-	      			mf::LogWarning("FeatureVertexFinder") << "match failed for some reason";
-	      
-	      			match = false;
-	      			continue;
-	    			}
-			if( match )
-				{
-				//std::cout<<std::endl;
-				//std::cout<<"Vertex Intersection Found!!!"<<std::endl;
-				//std::cout<<"Offset between planes = "<<detprop->TimeOffsetV()<<std::endl;
-				//std::cout<<std::endl;
-				
-				// #############################################
-				// ### Now check if the matched channels are ###
-				// ###   within 2*TimeOffset between planes  ###
-				// #############################################
-				if(std::abs(vtx_time[vtx1] - vtx_time[vtx]) < 1.5*detprop->TimeOffsetV())
+				// ###########################################################################
+				// ### Check to make sure we are comparing verticies from different planes ###
+				// ###########################################################################
+				if(vtx_plane[vtx1] != vtx_plane[vtx])
 					{
-					//        detprop->ConvertTicksToX(ticks, plane, tpc, cryostat)
-					x_3dVertex[n3dVertex] = detprop->ConvertTicksToX(vtx_time[vtx], vtx_plane[vtx], 0, 0); //<---Hardcoding tpc and cryostat for now.
-					y_3dVertex[n3dVertex] = y_coord;
-					z_3dVertex[n3dVertex] = z_coord;
-					n3dVertex++;
-					
-					
-					//std::cout<<std::endl;
-					//std::cout<<" ============== REAL 3-D VERTEX FOUND ============"<<std::endl;
-					//std::cout<<" std::abs(vtx_time[vtx1] - vtx_time[vtx] = "<<std::abs(vtx_time[vtx1] - vtx_time[vtx])<<std::endl;
-					//std::cout<<"x_coord = "<<x_coord<<" , y_coord = "<<y_coord<<" , z_coord = "<<z_coord<<std::endl;
-					//std::cout<<std::endl;
-					
-					
-					
-					
-					}//<---End Checking if the vertices agree "well enough" in time tick
+					/*std::cout<<std::endl;
+					std::cout<<"vtx_wire[vtx1] = "<<vtx_wire[vtx1]<<" , vtx_wire[vtx] = "<<vtx_wire[vtx]<<std::endl;
+					std::cout<<"vtx_time[vtx1] = "<<vtx_time[vtx1]<<" , vtx_time[vtx] = "<<vtx_time[vtx]<<std::endl;
+					std::cout<<"vtx_plane[vtx1] = "<<vtx_plane[vtx1]<<" , vtx_plane[vtx] = "<<vtx_plane[vtx]<<std::endl;
+					std::cout<<std::endl;*/
+			
+					// === To figure out if these two verticies are from a common point 
+					// === we need to check if the channels intersect and if they are 
+					// === close in time ticks as well...to do this we have to do some 
+					// === converting to use geom->PlaneWireToChannel(PlaneNo, Wire, tpc, cstat)
+					// === JA: Need to include vtx tpc, and cstat to make detector agnositc
+			
+					unsigned int vtx1_plane   = vtx_plane[vtx1];
+					unsigned int vtx1_wire    = vtx_wire[vtx1];
+					try
+						{
+						vtx1_channel = geom->PlaneWireToChannel(vtx1_plane, vtx1_wire, tpc, cstat);
 				
-				}//<---End Checking if verticies intersect
+						}
+					catch(...)
+						{
+						mf::LogWarning("FeatureVertexFinder") << "PlaneWireToChannel Failed";
+	      
+	      					continue;
+	    					}
+				
+				
+			
+					unsigned int vtx2_plane   = vtx_plane[vtx];
+					unsigned int vtx2_wire    = vtx_wire[vtx];
+			
+					try
+						{
+						vtx2_channel = geom->PlaneWireToChannel(vtx2_plane, vtx2_wire, tpc, cstat);
+				
+						}
+					catch(...)
+						{
+						mf::LogWarning("FeatureVertexFinder") << "PlaneWireToChannel Failed";
+	      
+	      					continue;
+				
+						}
+			
+					// ##############################################################################
+					// ### Check to see if the channels intersect and save the y and z coordinate ###
+					// ##############################################################################
+					bool match = false;
+			
+					try
+						{
+						match = geom->ChannelsIntersect( vtx1_channel, vtx2_channel, y_coord, z_coord);
+				
+				
+						}
+					catch(...)
+						{
+	      					mf::LogWarning("FeatureVertexFinder") << "match failed for some reason";
+	      
+	      					match = false;
+	      					continue;
+	    					}
+					if( match )
+						{
+						//std::cout<<std::endl;
+						//std::cout<<"Vertex Intersection Found!!!"<<std::endl;
+						//std::cout<<"Offset between planes = "<<detprop->TimeOffsetV()<<std::endl;
+						//std::cout<<std::endl;
+				
+						// #############################################################################
+						// ### Now check if the matched channels are within 1 cm when projected in X ###
+						// #############################################################################
+						float tempXCluster1 = detprop->ConvertTicksToX(vtx_time[vtx1], vtx1_plane, tpc, cstat);
+						float tempXCluster2 = detprop->ConvertTicksToX(vtx_time[vtx], vtx2_plane, tpc, cstat);
+						
+						if(std::abs(tempXCluster1 - tempXCluster2) < 0.5)
+							{
+							//        detprop->ConvertTicksToX(ticks, plane, tpc, cryostat)
+							x_3dVertex[n3dVertex] = detprop->ConvertTicksToX(vtx_time[vtx], vtx_plane[vtx], tpc, cstat); 
+							y_3dVertex[n3dVertex] = y_coord;
+							z_3dVertex[n3dVertex] = z_coord;
+							n3dVertex++;
+					
+					
+							//std::cout<<std::endl;
+							//std::cout<<" ============== REAL 3-D VERTEX FOUND ============"<<std::endl;
+							//std::cout<<" std::abs(vtx_time[vtx1] - vtx_time[vtx] = "<<std::abs(vtx_time[vtx1] - vtx_time[vtx])<<std::endl;
+							//std::cout<<"x_coord = "<<x_coord<<" , y_coord = "<<y_coord<<" , z_coord = "<<z_coord<<std::endl;
+							//std::cout<<std::endl;
+					
+					
+					
+					
+							}//<---End Checking if the vertices agree "well enough" in time tick
+				
+						}//<---End Checking if verticies intersect
 
-			}//<--- End checking we are in different planes
-		}//<---end vtx1 for loop
-	}//<---End vtx for loop
+					}//<--- End checking we are in different planes
+				}//<---end vtx1 for loop
+			}//<---End vtx for loop
+		}//<---End loop over TPC's 
+	}//<---End loop over cryostats
 
 
 
@@ -955,8 +980,17 @@ double TwoDvertexStrength = 0;
 						}//<---End a for loop
 					
 					double EndPoint2d_TimeTick = detprop->ConvertXToTicks(xyz[0],i, tpc, cstat);
+					int EndPoint2d_Wire = 0;
+					try
 					
-					int EndPoint2d_Wire 	   = geom->NearestWire(xyz , i, tpc, cstat);
+						{EndPoint2d_Wire 	   = geom->NearestWire(xyz , i, tpc, cstat);}
+					catch(...)
+						{
+						mf::LogWarning("FeatureVertexFinder") << "2dWire failed";
+	    
+	      					continue;
+						
+						}
 					int EndPoint2d_Channel     = geom->NearestChannel(xyz, i, tpc, cstat);
 					geo::View_t View	   = geom->View(EndPoint2d_Channel);
 					geo::WireID wireID(cstat,tpc,i,EndPoint2d_Wire);
