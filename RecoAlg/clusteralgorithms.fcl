@@ -1,5 +1,29 @@
 BEGIN_PROLOG
 
+standard_clustercrawleralg:
+{
+  NumPass:              2  # number of passes through the hit list
+  MaxHitsFit:    [20,   4] # number of hits fitted to a line
+  MinHits:       [10,   3] # minimum size of a cluster
+  NHitsAve:       [1,   1] # number of hits to find the average charge and width  
+                           # at the end of the cluster. NHitsAve should be 1 or 2
+  ChgCut:       [0.5, 0.7] # max fractional hit charge difference for adding hits
+  WidCut:       [0.5, 0.8] # max fractional hit width difference for adding hits
+  ChiCut:         [2., 4.] # stop adding hits to clusters if ChiCut is reached
+  MaxWirSkip:    [25,   2] # max number of wires to skip without adding a hit
+  MinWirAfterSkip:  [1, 1] # min reqd number of consecutive wires with a hit after a skip
+  KinkChiRat:   [1.5,  0.] # Max consecutive chisq increase for the last 3 hits on the cluster
+                           # 0. = no kink check
+  KinkAngCut:   [1.5,  0.] # kink angle cut (dTick/dWire)
+  DoMerge:   [false, true] # run cluster merging code?
+  TimDelta:      [2.,  4.] # max time difference for cluster merging
+  HitErrFac:           0.3 # hit time error = fHitErrFac * (EndTime - PeakTime)
+  BEChgRat:            2.0 # Begin/End Charge Ratio to determine cluster direction
+                           # Set to 0 to turn off
+  FudgeBigHits:        2.0 # increase the width of large charge hits so that poorly
+                           # reconstructed hits do not abort crawling
+}
+
 standard_houghbasealg:
 {
   MaxLines:                 50   # The maximum number of Hough lines to look for, 20 had been working!
@@ -85,10 +109,6 @@ standard_dbscanalg:
               #                           channel aware (not working)    
 }
 
-standard_clustercrawleralg:
-{
-}
-
 standard_fuzzyclusteralg:
 {
   eps:             1.0
@@ -141,6 +161,7 @@ jp250L_houghbasealg.NumAngleCells: 5000
 jp250L_houghbasealg.MaxDistance:   5.0
 jp250L_endpointalg:                @local::standard_endpointalg
 
+bo_clustercrawleralg:           @local::standard_clustercrawleralg       
 bo_dbscanalg:                   @local::standard_dbscanalg      
 bo_fuzzyclusteralg:             @local::standard_fuzzyclusteralg
 bo_houghbasealg:                @local::standard_houghbasealg   
@@ -165,8 +186,7 @@ argoneut_clusterparamsalg.HoughBaseAlg: @local::argoneut_houghbasealg
 argoneut_clusterparamsalg.ChargeCutoffThreshold:  [200,400]
 argoneut_clusterparamsalg.ForceRightGoing:   true
  
-
-
+microboone_clustercrawleralg:                 @local::standard_clustercrawleralg       
 microboone_dbscanalg:                         @local::standard_dbscanalg_fast 
 microboone_endpointalg:                       @local::standard_endpointalg    
 microboone_houghbasealg:                      @local::standard_houghbasealg   
