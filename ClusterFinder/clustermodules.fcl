@@ -133,6 +133,7 @@ jp250L_endpointmod:                  @local::standard_endpointmod
 jp250L_endpointmod.EndPointAlg:      @local::jp250L_endpointalg
 jp250L_showeranglecluster:           @local::standard_showeranglecluster
 
+bo_clustercrawler:               @local::standard_clustercrawler      
 bo_dbcluster:                    @local::standard_dbcluster      
 bo_fuzzycluster:                 @local::standard_fuzzycluster      
 bo_fuzzycluster.HoughBaseAlg:    @local::standard_houghbasealg      
@@ -148,8 +149,8 @@ bo_endpointmod:                  @local::standard_endpointmod
 bo_endpointmod.EndPointAlg:      @local::bo_endpointalg
 bo_showeranglecluster:           @local::standard_showeranglecluster
 
-argoneut_dbcluster:                    @local::standard_dbcluster      
 argoneut_clustercrawler:               @local::standard_clustercrawler      
+argoneut_dbcluster:                    @local::standard_dbcluster      
 argoneut_fuzzycluster:                 @local::standard_fuzzycluster      
 argoneut_fuzzycluster.HoughBaseAlg:    @local::standard_houghbasealg      
 argoneut_dbcluster.DBScanAlg:          @local::argoneut_dbscanalg   
@@ -164,6 +165,8 @@ argoneut_endpointmod:                  @local::standard_endpointmod
 argoneut_endpointmod.EndPointAlg:      @local::argoneut_endpointalg
 argoneut_showeranglecluster:           @local::standard_showeranglecluster
 
+microboone_clustercrawler:               @local::standard_clustercrawler      
+microboone_clustercrawler:               @local::standard_clustercrawler      
 microboone_dbcluster:                    @local::standard_dbcluster      
 microboone_dbcluster.DBScanAlg:          @local::microboone_dbscanalg    
 microboone_dbclusterana:                 @local::standard_dbclusterana   

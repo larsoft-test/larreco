@@ -101,8 +101,9 @@ namespace cluster {
       for(unsigned int tpc = 0; tpc < geo->Cryostat(cstat).NTPC(); ++tpc){
         for(unsigned int plane = 0; plane < geo->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
           // load the hits in this plane
-//          geo::SigType_t sigType = geo->Cryostat(cstat).TPC(tpc).Plane(plane).SignalType();
+          plnhits.clear();
 // debugging
+//          geo::SigType_t sigType = geo->Cryostat(cstat).TPC(tpc).Plane(plane).SignalType();
 //          if(sigType != geo::kCollection) continue;
           for(size_t i = 0; i< hitcol->size(); ++i){
             art::Ptr<recob::Hit> hit(hitcol, i);
@@ -130,44 +131,13 @@ namespace cluster {
             double endtime = plnhits[hite]->PeakTime();
             art::PtrVector<recob::Hit> clusterHits;
             double totalQ = 0.;
-            // find the average charge at the low and high wire ends
-            // this will be used to determine the start and end of the cluster
-            double LoWirChg = 0.;
-            double HiWirChg = 0.;
-            // determine how many hits to use to sum the charge
-            int ncnt = clstr.tclhits.size() / 2;
-            if(ncnt > 3) ncnt = 3;
             for(std::vector<int>::const_iterator itt = clstr.tclhits.begin();
                 itt != clstr.tclhits.end(); ++itt) {
               int hit = *itt;
-              int wire = plnhits[hit]->WireID().Wire;
-              // Note that the endwire < startwire since tracking is from DS to US
-              if(wire < endwire + ncnt) {
-                LoWirChg += plnhits[hit]->Charge();
-              }
-              if(wire > startwire - ncnt - 1) {
-                HiWirChg += plnhits[hit]->Charge();
-              }
               totalQ += plnhits[hit]->Charge();
               clusterHits.push_back(plnhits[hit]);
             } // hit iterator
-            // assume the track is going in the direction of increasing wire number
-            bool GoingPos = true;
-            // unless the charge is much higher at the low wire end
-                  if(LoWirChg > 2 * HiWirChg) GoingPos = false;
-            // swap the start and end
-            double slope;
-            if(GoingPos) {
-              int itmp = startwire;
-              startwire = endwire;
-              endwire = itmp;
-              double tmp = starttime;
-              starttime = endtime;
-              endtime = tmp;
-              slope = clstr.slpstart;
-            } else {
-              slope = clstr.slpend;
-            }
+            double slope = clstr.BeginSlp;
             std::vector<recob::Cluster> newclus;
             std::vector< art::PtrVector<recob::Hit> > clusterhits;
             art::ServiceHandle<geo::Geometry> geom;
@@ -179,7 +149,8 @@ namespace cluster {
                                   slope, 0.,
                                   -999.,0.,
                                   totalQ,
-                                  geom->View((*plnhits.begin())->Channel()),
+//                                  geom->View((*plnhits.begin())->Channel()),
+                                  plnhits[0]->View(),
                                   clstr.ID);
             ccol->push_back(cluster);
     
@@ -187,7 +158,6 @@ namespace cluster {
             util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
             clusterHits.clear();
           } // cluster iterator
-          plnhits.clear();
         } // plane
       } // tpc
     } // cstat
