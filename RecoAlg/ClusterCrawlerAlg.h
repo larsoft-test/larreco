@@ -65,7 +65,7 @@ namespace cluster {
     std::vector<float> fChiCut;   ///< stop adding hits to clusters if chisq too high
     std::vector<float> fKinkChiRat;  ///< Max consecutive chisq increase for the last 
                                      ///< 3 hits on the cluster
-    std::vector<float> fKinkAngCut; ///< kink angle cut (dT/dW) made after fKinkChiRat
+    std::vector<float> fKinkAngCut; ///< kink angle cut made after fKinkChiRat
     std::vector<float> fWidCut;   ///< chisq cut for adding a hit to a cluster
     std::vector<float> fChgCut;   ///< charge difference cut for adding a hit to a cluster
     std::vector<int> fMaxWirSkip; ///< max number of wires that can be skipped while following
@@ -73,7 +73,9 @@ namespace cluster {
     std::vector<int> fMinWirAfterSkip; ///< minimum number of hits on consecutive wires
                                      ///< after skipping
     std::vector<bool> fDoMerge;     ///< try to merge clusters?
-    std::vector<float> fTimDelta;   ///< max time difference for matching
+    std::vector<float> fTimeDelta;   ///< max time difference for matching
+    std::vector<float> fTimeDeltaLA; ///< max time difference for matching
+                                     ///< large angle clusters, abs(slope) > 20
 
     // global cuts
     float fHitErrFac;   ///< hit time error = fHitErrFac * (EndTime - PeakTime)
@@ -125,6 +127,7 @@ namespace cluster {
     int wire0;          ///< wire number origin of the fit => usually end wire
     
     int pass;
+    float ScaleF;     ///< scale factor from Tick/Wire to dx/du
     
     std::vector<int> fcl2hits;  ///< vector of hits used in the cluster
     

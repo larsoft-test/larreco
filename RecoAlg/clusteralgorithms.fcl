@@ -5,23 +5,25 @@ standard_clustercrawleralg:
   NumPass:              2  # number of passes through the hit list
   MaxHitsFit:    [20,   4] # number of hits fitted to a line
   MinHits:       [10,   3] # minimum size of a cluster
-  NHitsAve:       [1,   1] # number of hits to find the average charge and width  
+  NHitsAve:       [2,   2] # number of hits to find the average charge and width  
                            # at the end of the cluster. NHitsAve should be 1 or 2
   ChgCut:       [0.5, 0.7] # max fractional hit charge difference for adding hits
   WidCut:       [0.5, 0.8] # max fractional hit width difference for adding hits
-  ChiCut:         [2., 4.] # stop adding hits to clusters if ChiCut is reached
+  ChiCut:         [4., 4.] # stop adding hits to clusters if ChiCut is reached
   MaxWirSkip:    [25,   2] # max number of wires to skip without adding a hit
   MinWirAfterSkip:  [1, 1] # min reqd number of consecutive wires with a hit after a skip
-  KinkChiRat:   [1.5,  0.] # Max consecutive chisq increase for the last 3 hits on the cluster
-                           # 0. = no kink check
-  KinkAngCut:   [1.5,  0.] # kink angle cut (dTick/dWire)
+  KinkChiRat:   [1.2,  0.] # Max consecutive chisq increase for the last 3 hits on the cluster
+                           # 0. = no kink check when following
+  KinkAngCut: [0.15, 0.15] # kink angle cut (radians) used to follow and merge
   DoMerge:   [false, true] # run cluster merging code?
-  TimDelta:      [2.,  4.] # max time difference for cluster merging
-  HitErrFac:           0.3 # hit time error = fHitErrFac * (EndTime - PeakTime)
+  TimeDelta:     [2.,  8.] # max time difference for cluster merging
+  TimeDeltaLA:   [2.,  8.] # max time difference for Large Angle cluster merging
+  HitErrFac:           0.3 # hit time error = fHitErrFac * (hit width)
   BEChgRat:            2.0 # Begin/End Charge Ratio to determine cluster direction
                            # Set to 0 to turn off
-  FudgeBigHits:        2.0 # increase the width of large charge hits so that poorly
-                           # reconstructed hits do not abort crawling
+  FudgeBigHits:        5.0 # increase the width of large charge hits so that poorly
+                           # reconstructed hits do not abort crawling. Used only 
+                           # to test for a ADC signal in the projected cluster position
 }
 
 standard_houghbasealg:
@@ -29,31 +31,29 @@ standard_houghbasealg:
   MaxLines:                 50   # The maximum number of Hough lines to look for, 20 had been working!
   MinHits:                  5
   SaveAccumulator:          0
-  NumAngleCells:            10000 # The number of angle cells to create for the Hough transform,
+  NumAngleCells:            20000 # The number of angle cells to create for the Hough transform,
   RhoResolutionFactor:      5    # Was set to 5
-  MaxDistance:              0.1  # 
+  MaxDistance:              1.0  # 0.1 was working (okay, not really, larger is probably better,
   MaxSlope:                 80.0 # 80 was working fine previously
   RhoZeroOutRange:          0
   ThetaZeroOutRange:        0
   HitsPerCluster:           1
   MissedHits:               1    # Was set to 0
   MissedHitsDistance:       1.0  # 
-  MissedHitsToLineSize:     0.25 # Was set to 0
+  MissedHitsToLineSize:     0.5    # Was set to 0
   DoFuzzyRemnantMerge:      1    # Tell the algorithm to merge fuzzy cluster remnants into showers or tracks (0-off, 1-on)
   DoHoughLineMerge:         0    # Turns on Hough line merging (0-off, 1-on)
   HoughLineMergeAngle:      5    # The maximum angle between slopes of Hough lines to be merged,
   HoughLineMergeCutoff:     5    # The maximum distance between Hough line endpoints before they can be merged,
-  DoShowerHoughLineMerge:     1  # Turns on parallel Hough line merging (0-off, 1-on)
+  DoShowerHoughLineMerge:     0  # Turns on parallel Hough line merging (0-off, 1-on)
   ShowerHoughLineMergeAngle: 90  # The maximum angle between slopes of Hough lines to be merged,
   ShowerHoughLineMergeCutoff: 10 # The maximum distance between Hough line endpoints before they can be merged,
-  DoShowerHoughLineInterceptMerge: 1 
+  DoShowerHoughLineInterceptMerge: 0 
   DoChargeAsymAngleMerge:    1    # Turn on cut on product of charge asymmetry and sin of angle between slopes of lines
-  ChargeAsymAngleCut:        0.01 # Cut on product of charge asymmetry and the sin of angle between slopes of lines
-  SigmaChargeAsymAngleCut:   0.01 # Cut on product of charge sigma asymmetry and the sin of angle between slopes of lines
+  ChargeAsymAngleCut:        0.01 # Cut on product of charge asymmetry and the square of the sin of angle between slopes of lines
   ChargeAsymAngleCutoff:     10   # Distance between lines before cut on product of charge asymmetry and sin of angle between slopes of lines
   ShowerLikenessCut:        0.1  # Cut on shower likeness (the larger the more shower like, the smaller the less shower like)
-  ShowerWidthAngle:         0   # Half of the angle defining how wide a shower is 
-  Seed:                     1
+  ShowerWidthAngle:         15   # Half of the angle defining how wide a shower is 
 }
 
 standard_endpointalg:
@@ -69,19 +69,15 @@ standard_endpointalg:
 
 standard_cornerfinderalg:
 {
-  CalDataModuleLabel:  "caldata"
-  Conversion_algorithm:  "standard"
-  Conversion_function:  "TMath::Gaus(x,0,1)*TMath::Gaus(y,0,1)"
-  Conversion_func_neighborhood: 3
+  RawDataModuleLabel:           "daq"
+  CalDataModuleLabel:		"caldata"
   Conversion_threshold:		0
   Conversion_bins_per_input_x:	1
   Conversion_bins_per_input_y:	1
   Derivative_method: 		"Sobel" #Noble
   Derivative_neighborhood:	1 
   CornerScore_neighborhood:	1
-  CornerScore_algorithm:	"Noble" #Harris
-  CornerScore_Noble_epsilon:    1e-5
-  CornerScore_Harris_kappa:     0.05
+  CornerScore_algorithm:	"Nobel" #Harris
   MaxSuppress_neighborhood:	3
   MaxSuppress_threshold:	1000
   Integral_bin_threshold:       5
@@ -161,7 +157,6 @@ jp250L_houghbasealg.NumAngleCells: 5000
 jp250L_houghbasealg.MaxDistance:   5.0
 jp250L_endpointalg:                @local::standard_endpointalg
 
-bo_clustercrawleralg:           @local::standard_clustercrawleralg       
 bo_dbscanalg:                   @local::standard_dbscanalg      
 bo_fuzzyclusteralg:             @local::standard_fuzzyclusteralg
 bo_houghbasealg:                @local::standard_houghbasealg   
@@ -186,10 +181,16 @@ argoneut_clusterparamsalg.HoughBaseAlg: @local::argoneut_houghbasealg
 argoneut_clusterparamsalg.ChargeCutoffThreshold:  [200,400]
 argoneut_clusterparamsalg.ForceRightGoing:   true
  
-microboone_clustercrawleralg:                 @local::standard_clustercrawleralg       
+
+
 microboone_dbscanalg:                         @local::standard_dbscanalg_fast 
 microboone_endpointalg:                       @local::standard_endpointalg    
 microboone_houghbasealg:                      @local::standard_houghbasealg   
+microboone_houghbasealg.MaxLines:             20
+microboone_houghbasealg.MaxDistance:          1.0
+microboone_houghbasealg.MinHits:              5
+microboone_houghbasealg.NumAngleCells:        20000
+microboone_houghbasealg.DoHoughLineMerge:     1
 microboone_fuzzyclusteralg:                   @local::standard_fuzzyclusteralg 
 microboone_fuzzyclusteralg.HoughBaseAlg:      @local::microboone_houghbasealg 
 microboone_cornerfinderalg:		      @local::standard_cornerfinderalg
