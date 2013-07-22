@@ -121,14 +121,10 @@ namespace cluster {
             ClusterStore clstr = *it;
             // ignore deleted clusters
             if(clstr.ID < 0) continue;
-            std::vector<int>::const_iterator iht = clstr.tclhits.begin();
-            int hits = *iht;
-            int startwire = plnhits[hits]->WireID().Wire;
-            double starttime = plnhits[hits]->PeakTime();
-            iht = clstr.tclhits.end()-1;
-            int hite = *iht;
-            int endwire = plnhits[hite]->WireID().Wire;
-            double endtime = plnhits[hite]->PeakTime();
+            int startwire = clstr.BeginWir;
+            double starttime = clstr.BeginTim;
+            int endwire = clstr.EndWir;
+            double endtime = clstr.EndTim;
             art::PtrVector<recob::Hit> clusterHits;
             double totalQ = 0.;
             for(std::vector<int>::const_iterator itt = clstr.tclhits.begin();
@@ -138,9 +134,6 @@ namespace cluster {
               clusterHits.push_back(plnhits[hit]);
             } // hit iterator
             double slope = clstr.BeginSlp;
-            std::vector<recob::Cluster> newclus;
-            std::vector< art::PtrVector<recob::Hit> > clusterhits;
-            art::ServiceHandle<geo::Geometry> geom;
 
             recob::Cluster cluster(startwire, 0.,
                                   starttime, 0.,
@@ -149,7 +142,6 @@ namespace cluster {
                                   slope, 0.,
                                   -999.,0.,
                                   totalQ,
-//                                  geom->View((*plnhits.begin())->Channel()),
                                   plnhits[0]->View(),
                                   clstr.ID);
             ccol->push_back(cluster);
