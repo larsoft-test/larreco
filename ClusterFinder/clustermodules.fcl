@@ -109,6 +109,15 @@ standard_showeranglecluster:
  UseMCVertex:              1              #needed for MC vertex extraction
 }
 
+standard_smallclusterfinder:
+{
+ module_type:			"SmallClusterFinder"
+ HitFinderModuleLabel:	"hitfinder"
+ smallClustAlg:			@local::standard_smallclustalg
+ Verbose:				false
+}
+
+
 standard_clustercheater:
 {
  module_type:    	"ClusterCheater"
@@ -164,6 +173,10 @@ argoneut_linemerger:                   @local::standard_linemerger
 argoneut_endpointmod:                  @local::standard_endpointmod        
 argoneut_endpointmod.EndPointAlg:      @local::argoneut_endpointalg
 argoneut_showeranglecluster:           @local::standard_showeranglecluster
+argoneut_smallclusterfinder:		   @local::standard_smallclusterfinder
+
+
+
 
 microboone_clustercrawler:               @local::standard_clustercrawler      
 microboone_clustercrawler:               @local::standard_clustercrawler      
@@ -181,6 +194,7 @@ microboone_linemerger:                   @local::standard_linemerger
 microboone_endpointmod:                  @local::standard_endpointmod       
 microboone_endpointmod.EndPointAlg:      @local::microboone_endpointalg
 microboone_showeranglecluster:           @local::standard_showeranglecluster
+microboone_smallclusterfinder:			 @local::standard_smallclusterfinder
 
 
 END_PROLOG
