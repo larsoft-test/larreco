@@ -1,10 +1,11 @@
 ////////////////////////////////////////////////////////////////////////
 //
-// \file SmallClusterFinder.cxx
+// \file SmallClusterFinderAlg.cxx
 //
-// andrzej.szelc@yale.edu 
+// \author corey.adams@yale.edu 
 //
-// This algorithm is designed to fid small clusters that could correspond to gama or low energy e
+// This algorithm is designed to find small clusters that could correspond to gammas
+// or low energy electrons.
 //
 /*	There are two parameters that matter from the fcl file:
 		fNHitsInClust is the number of hits that should be in these small clusters
@@ -19,8 +20,11 @@
 	presumed to be part of a very small (or single hit) cluster.  So its added to the list
 	of hits in the small cluster.
 	
-	This algorithm dumps all the hits that could be part of a small cluster into one cluster
-	There is no grouping done between individual hits or anything like that.
+	All of the small clusters are then split apart into groups in the way you would expect.
+	Each cluster is assigned an ID number to distinguish it, and the hits that aren't 
+	identified as small clusters all end up in the "leftover" cluster.  The numbering scheme
+	is ID = 100*iPlane + Cluster on that plane, and the leftover hits are the first (0th)
+	cluster written out.
 	
 	-Corey
 */

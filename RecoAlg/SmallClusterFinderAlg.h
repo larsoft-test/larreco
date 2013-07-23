@@ -1,11 +1,11 @@
 ////////////////////////////////////////////////////////////////////////
 //
-// \file SmallClusterFinder.cxx
+// \file SmallClusterFinderAlg.h
 //
-// andrzej.szelc@yale.edu 
-// corey.adams@yale.edu
+// \author corey.adams@yale.edu 
 //
-// This algorithm is designed to fid small clusters that could correspond to gama or low energy e
+// This algorithm is designed to find small clusters that could correspond to gammas
+// or low energy electrons.
 //
 /*	There are two parameters that matter from the fcl file:
 		fNHitsInClust is the number of hits that should be in these small clusters
@@ -20,18 +20,11 @@
 	presumed to be part of a very small (or single hit) cluster.  So its added to the list
 	of hits in the small cluster.
 	
-	This algorithm dumps all the hits that could be part of a small cluster into one cluster
-	There is no grouping done between individual hits or anything like that.
-	
-	The scheme for cluster identification was:
-	Clusters with ID 0 to nPlanes-1 are the gammas on planes 0, 1, ... nPlanes-1
-	Clusters with ID nPlanes to 2*nPlanes -1 are the leftover hits on the planes 0, 1, ... nPlanes-1
-	
-	But has been updated to:
-	Clusters are ID'd with numbers like 107, meaning the 7th cluster on plane 1.  The formula
-	is ID = 100*iPlane + Cluster on that plane.  
-	
-	By Convention, cluster 000, 100, 200, etc. are the leftover hits that aren't gammas.
+	All of the small clusters are then split apart into groups in the way you would expect.
+	Each cluster is assigned an ID number to distinguish it, and the hits that aren't 
+	identified as small clusters all end up in the "leftover" cluster.  The numbering scheme
+	is ID = 100*iPlane + Cluster on that plane, and the leftover hits are the first (0th)
+	cluster written out.
 	
 	-Corey
 */
@@ -39,13 +32,10 @@
 // 
 ///////////////////////////////////////////////////////////////////////
 
+
 #ifndef SMALLCLUSTERFINDERALG_H
 #define SMALLCLUSTERFINDERALG_H
 
-#include "art/Framework/Core/EDProducer.h" // include the proper bit of the framework
-#include "art/Framework/Services/Registry/ActivityRegistry.h"
-#include <vector>
-#include <string>
 
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Hit.h"
@@ -53,16 +43,6 @@
 #include "Utilities/GeometryUtilities.h"
 #include "Utilities/DetectorProperties.h"
 
-
-
-//class recob::Hit;
-// class TH1F;
-// class TF1;
-// class TTree;
-
-struct wire {
-	std::vector<art::Ptr<recob::Hit> > hits;
-};
 
 
 namespace cluster {
@@ -101,7 +81,7 @@ namespace cluster {
     	//This function is solely to sort the leftover hits.  It's not done automatically
     	//because it's not a short process if the number of hits is big.  For a few hits
     	//its not that bad.
-    	//not yet functional!
+    	//not yet functional!  by this I mean, does not yet exist
     	
     	
     std::vector< std::vector <art::Ptr< recob::Hit> > > GetSmallClustersByPlane(unsigned int iPlane);
