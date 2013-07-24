@@ -77,6 +77,7 @@ namespace cluster {
     fHitErrFac          = pset.get<             float  >("HitErrFac");
     fBEChgRat           = pset.get<             float  >("BEChgRat");
     fFudgeBigHits       = pset.get<             float  >("FudgeBigHits");
+    fPairAngCut         = pset.get<             float  >("PairAngCut");
   }
 
   void ClusterCrawlerAlg::beginJob()
@@ -105,14 +106,15 @@ namespace cluster {
 
     art::PtrVector<recob::Hit>::const_iterator it = plnhits.begin();
     fFirstWire = (*it)->WireID().Wire;
-//    std::cout<<"N hits "<<plnhits.size()<<" FirstWire "<<fFirstWire;
+//  std::cout<<"N hits "<<plnhits.size()<<" FirstWire "<<fFirstWire;
     it = plnhits.end()-1;
     int LastWire = (*it)->WireID().Wire;
-//    std::cout<<" LastWire "<<LastWire<<std::endl;
+//  std::cout<<" LastWire "<<LastWire<<std::endl;
     
     FirstWirHit.clear();
     hiterr2.clear();
     hitwid.clear();
+    NClusters = 0;
     
     prt = false;
 
@@ -175,7 +177,6 @@ namespace cluster {
     for(int thispass = 0; thispass < fNumPass; thispass++) {
       pass = thispass;
 //      std::cout<<"******** ClusterCrawler pass "<<pass<<std::endl;
-      int nClusters = 0;
       // look for a starting cluster that spans a block of wires
       int span = 3;
       if(fMinHits[pass] < span) span = fMinHits[pass];
@@ -225,6 +226,9 @@ namespace cluster {
               fAveWid = -1.;
               fAveChg = -1.;
               clStopCode = -1;
+              clProcCode = pass;
+              clAssn = -1;
+              
               fcl2hits.push_back(ihit);
               fcl2hits.push_back(jhit);
               // define the fit origin. Use the upstream hit
@@ -294,8 +298,7 @@ namespace cluster {
                 if(pass < fNumPass-1 && (int)fcl2hits.size() >= fMinHits[pass+1]) {
                   clEndSlp = (float)clpar[1]; // save the slope at the end
                   clEndChg = fAveChg;
-                  nClusters++;
-                  cl2TmpStore(plnhits, tcl, pass+1, nClusters);
+                  cl2TmpStore(plnhits, tcl, pass+1);
                   ClusterAdded = true;
                   nHitsUsed += fcl2hits.size();
                   AllDone = (nHitsUsed == plnhits.size());
@@ -309,8 +312,7 @@ namespace cluster {
                 clEndSlp = (float)clpar[1]; // save the slope at the end
                 clEndChg = fAveChg;
   if(prt) std::cout<<"Storing cluster "<<std::endl;
-                nClusters++;
-                cl2TmpStore(plnhits, tcl, pass, nClusters); // store the cluster
+                cl2TmpStore(plnhits, tcl, pass); // store the cluster
                 ClusterAdded = true;
                 nHitsUsed += fcl2hits.size();
                 AllDone = (nHitsUsed == plnhits.size());
@@ -337,6 +339,11 @@ namespace cluster {
 //        cl2Print(plnhits, tcl);
       }
     } // pass
+    
+    // prepare close pair clusters for 3D matching
+    cl2ChkPair(plnhits, tcl);
+//    std::cout<<"After cl2ChkPair"<<std::endl;
+//    cl2Print(plnhits, tcl);
     
     int ncl = 0;
     for(unsigned int ii = 0; ii < tcl.size(); ii++) {
@@ -399,6 +406,227 @@ namespace cluster {
     } // cl2SetBeginEnd
 
 /////////////////////////////////////////
+    void ClusterCrawlerAlg::cl2ChkPair(art::PtrVector<recob::Hit>& plnhits,
+        std::vector<ClusterStore>& tcl)
+    {
+      // break clusters that are a part of a pair of clusters that
+      // are less than PairAngCut
+//  std::cout<<"Pair Cut "<<fPairAngCut<<std::endl;
+      
+      if(tcl.size() < 2) return;
+      // The size of the ClusterStore vector will increase after merging
+      // is done.
+      unsigned int tclsize = tcl.size();
+
+      for (unsigned int it1 = 0; it1 < tclsize - 1; it1++) {
+        // ignore abandoned clusters
+        if(tcl[it1].ID < 0) continue;
+        // ignore short clusters
+        if(tcl[it1].tclhits.size() < 10) continue;
+        float bs1 = tcl[it1].BeginSlp;
+        // convert slope to angle
+        float bth1 = atan(ScaleF * bs1);
+        int bw1 = tcl[it1].BeginWir;
+        float bt1 = tcl[it1].BeginTim;
+        int ew1 = tcl[it1].EndWir;
+        for (unsigned int it2 = it1 + 1; it2 < tclsize; it2++) {
+          // ignore abandoned clusters
+          if(tcl[it2].ID < 0) continue;
+          if(tcl[it1].ID < 0) continue;
+          // ignore short clusters
+          if(tcl[it2].tclhits.size() < 10) continue;
+          float bs2 = tcl[it2].BeginSlp;
+          // convert slope to angle
+          float bth2 = atan(ScaleF * bs2);
+          int bw2 = tcl[it2].BeginWir;
+          float bt2 = tcl[it2].BeginTim;
+          int ew2 = tcl[it2].EndWir;
+          if(fabs(bth1 - bth2) < fPairAngCut) {
+            // check for begin angle difference
+            if(ew2 > ew1 && ew2 < bw1) {
+              // cluster 2 end is in the wire bounds of cluster 1
+              // find the vertex position using the begin slope of both
+              // clusters. 
+              float dsl = bs2 - bs1;
+              if(fabs(dsl) < 0.001) continue;
+//  std::cout<<"Pair1 "<<tcl[it1].ID<<" "<<tcl[it2].ID<<std::endl;
+              int vw = (int)(0.5 + (bt1 - bw1 * bs1 - bt2 + bw2 * bs2) / dsl);
+//  std::cout<<"Vtx wire "<<vw<<std::endl;
+              // compare the vertex wire with the end of cluster 1
+              if(abs(vw - ew1) < 5) cl2DoSplit(plnhits, tcl, it1, it2);
+            } else if(ew1 > ew2 && ew1 < bw2) {
+              // cluster 1 end is in the wire bounds of cluster 2
+              // find the vertex position using the begin slope of both
+              // clusters. 
+              float dsl = bs1 - bs2;
+              if(fabs(dsl) < 0.001) continue;
+//  std::cout<<"Pair2 "<<tcl[it2].ID<<" "<<tcl[it1].ID<<std::endl;
+              int vw = (int)(0.5 + (bt2 - bw2 * bs2 - bt1 + bw1 * bs1) / dsl);
+//  std::cout<<"Vtx wire "<<vw<<std::endl;
+              // compare the vertex wire with the end of cluster 2
+              if(abs(vw - ew2) < 5) cl2DoSplit(plnhits, tcl, it2, it1);
+            } // begin/end wire test
+          } // PairAngCut test
+        } // it2
+      } // it1
+
+      return;
+    }
+
+/////////////////////////////////////////
+    void ClusterCrawlerAlg::cl2DoSplit(art::PtrVector<recob::Hit>& plnhits,
+        std::vector<ClusterStore>& tcl, unsigned int it1, unsigned int it2)
+    {
+      // split cluster 1 at the gap in the middle of it. If no gap is found
+      // split the cluster at the start of cluster 2
+
+//  std::cout<<"DoSplit cl1 "<<tcl[it1].ID<<" Assn "<<tcl[it1].Assn;
+//  std::cout<<" cl2 "<<tcl[it2].ID<<" Assn "<<tcl[it2].Assn<<std::endl;
+
+      int splitwire = -1;
+      int lastwire = -1;
+      for(std::vector<int>::iterator iht1 = tcl[it1].tclhits.begin();
+          iht1 != tcl[it1].tclhits.end(); ++iht1) {
+        int hit = *iht1;
+        int wire = plnhits[hit]->WireID().Wire;
+        if(lastwire < 0) {
+          lastwire = wire;
+        } else {
+          // require a significant gap
+          if(wire < lastwire - 3) {
+            splitwire = lastwire;
+            break;
+          }
+          lastwire = wire;
+        } // lastwire test
+      } // cluster 1 hits
+//  std::cout<<"Split at wire "<<splitwire<<std::endl;
+      // split at the end of cluster 2 if no gap in cluster 1 was found
+      if(splitwire < 0) splitwire = tcl[it2].EndWir;
+
+      // split up cluster 1 - the begin end first
+      clBeginSlp = tcl[it1].BeginSlp;
+      clBeginWir = tcl[it1].BeginWir;
+      clBeginTim = tcl[it1].BeginTim;
+      clBeginChg = tcl[it1].BeginChg;
+      clStopCode = 5;
+      clProcCode = tcl[it1].ProcCode + 1000;
+      fcl2hits.clear();
+      for(std::vector<int>::iterator iht1 = tcl[it1].tclhits.begin();
+          iht1 != tcl[it1].tclhits.end(); ++iht1) {
+        int hit = *iht1;
+        fcl2hits.push_back(hit);
+        int wire = plnhits[hit]->WireID().Wire;
+        if(wire == splitwire) {
+          clEndTim = plnhits[hit]->PeakTime();
+          break;
+        }
+      }
+      // re-fit the end of the cluster
+      wire0 = splitwire;
+      cl2Fit(plnhits);
+      clEndSlp = (float)clpar[1];
+      clEndWir = splitwire;
+      clEndChg = fAveChg;
+      cl2TmpStore(plnhits, tcl, pass);
+      // index of the first DownStream cluster
+      unsigned int DScl1 = tcl.size() - 1;
+      
+      // look for an associated cluster with cluster1
+      int jj = -1;
+      for(unsigned int ii = 0; ii < tcl.size(); ii++) {
+        if(tcl[ii].Assn == (int)it1) {
+          jj = ii;
+          break;
+        }
+      }
+      unsigned int it3 = 9999;
+//  std::cout<<"Assoc cluster? "<<jj<<std::endl;
+      
+      if(jj >= 0) {
+        it3 = jj;
+        // cluster 1 has an associated cluster embedded within it.
+        // attach the hits on cluster 1 to the embedded cluster
+        clStopCode = tcl[it3].StopCode;
+        clProcCode = tcl[it3].ProcCode + 1000;
+        fcl2hits = tcl[it3].tclhits;
+        int wire = 0;
+        for(std::vector<int>::iterator iht1 = tcl[it1].tclhits.begin();
+          iht1 != tcl[it1].tclhits.end(); ++iht1) {
+          int hit = *iht1;
+          wire = plnhits[hit]->WireID().Wire;
+          if(wire < splitwire) fcl2hits.push_back(hit);
+        }
+        wire0 = wire;
+        cl2Fit(plnhits);
+        cl2TmpStore(plnhits, tcl, pass);
+      } else {
+        // create a new cluster using the hits on cluster 1 that are
+        // upstream of splitwire. 
+        clStopCode = tcl[it1].StopCode;
+        clProcCode = tcl[it1].ProcCode + 1000;
+        fcl2hits.clear();
+        bool didfit = false;
+        int wire = 0;
+        for(std::vector<int>::iterator iht1 = tcl[it1].tclhits.begin();
+          iht1 != tcl[it1].tclhits.end(); ++iht1) {
+          int hit = *iht1;
+          wire = plnhits[hit]->WireID().Wire;
+          if(wire < splitwire) {
+            fcl2hits.push_back(hit);
+            // re-fit the begin end when there are enough hits
+            if(fcl2hits.size() == 3) {
+//  std::cout<<"refit begin "<<tcl[it1].ID<<std::endl;
+              didfit = true;
+              wire0 = wire;
+              cl2Fit(plnhits);
+              clBeginSlp = (float)clpar[1];
+            } // fcl2hits test
+          } // wire < splitwire
+        } // iht1 iterator
+        if(didfit) {
+          // did a fit at the beginning of the cluster
+          if(fcl2hits.size() > 4) {
+            // long cluster: re-fit the end
+            wire0 = wire;
+            cl2Fit(plnhits);
+            clEndSlp = (float)clpar[1];
+          } else {
+            // short cluster: set the end params to the begin params
+            clEndSlp = clBeginSlp;
+          }
+          cl2TmpStore(plnhits, tcl, pass);
+        } else {
+          // didn't do the fit for some reason.
+          std::cout<<"Coding error in cl2DoSplit! "<<std::endl;
+        } // didfit test
+      } // tcl[it1].Assn > 0 else if test
+      
+      // At this point we have 3 clusters. The most upstream cluster
+      // is the last one added to tcl
+      unsigned int UScl = tcl.size() - 1;
+      // The first downstream cluster was defined above
+      // the second downstream cluster is it2
+      unsigned int DScl2 = it2;
+
+//  std::cout<<"UScl "<<UScl<<" DScl1 "<<DScl1<<" DScl2 "<<DScl2<<std::endl;
+
+      // mark clusters it1 and it3 as obsolete and set the processor code to
+      // show that this routine clobbered them
+      tcl[it1].ID = -tcl[it1].ID;
+      tcl[it1].ProcCode += 1000;
+      if(it3 < tcl.size()) {
+        tcl[it3].ID = -tcl[it3].ID;
+        tcl[it3].ProcCode += 1000;
+      }
+      // make the new association. This will turn into a vertex later (maybe)
+      tcl[DScl1].Assn = UScl;
+      tcl[DScl2].Assn = UScl;
+      
+      return;
+    }
+
+/////////////////////////////////////////
     void ClusterCrawlerAlg::cl2ChkMerge(art::PtrVector<recob::Hit>& plnhits,
         std::vector<ClusterStore>& tcl)
     {
@@ -453,10 +681,12 @@ namespace cluster {
             float timecut = fTimeDelta[pass];
             // different time cut for large angle tracks
             if(fabs(bs1) > 30) timecut = fTimeDeltaLA[pass];
+//  std::cout<<"Chk1 "<<tcl[it1].ID<<" "<<tcl[it2].ID<<" dchg "<<dchg;
+//  std::cout<<" dth "<<dth<<" dtim "<<dtim<<std::endl;
             if(dchg < fChgCut[pass] && 
                dth < fKinkAngCut[pass] && 
                dtim < timecut) {
-              cl2DoMerge(plnhits, tcl, it1, it2);
+              cl2DoMerge(plnhits, tcl, it1, it2, 10);
               tclsize = tcl.size();
               break;
             }
@@ -470,10 +700,12 @@ namespace cluster {
             float timecut = fTimeDelta[pass];
             // different time cut for large angle tracks
             if(fabs(bs2) > 30) timecut = fTimeDeltaLA[pass];
+//  std::cout<<"Chk2 "<<tcl[it1].ID<<" "<<tcl[it2].ID<<" dchg "<<dchg;
+//  std::cout<<" dth "<<dth<<" dtim "<<dtim<<std::endl;
             if(dchg < fChgCut[pass] &&
                dth < fKinkAngCut[pass] &&
                dtim < timecut) {
-              cl2DoMerge(plnhits, tcl, it2, it1);
+              cl2DoMerge(plnhits, tcl, it2, it1, 10);
               tclsize = tcl.size();
               break;
             }
@@ -486,6 +718,8 @@ namespace cluster {
             int nmiss1 = bw1 - ew1 + 1 - tcl[it1].tclhits.size();
             // compare with the number of hits in cluster 2
             int nin2 = tcl[it2].tclhits.size();
+//  std::cout<<"cl2: "<<tcl[it2].ID<<" within cl1 "<<tcl[it1].ID;
+//  std::cout<<" ? dth "<<dth<<" dtim "<<dtim<<" nmissed "<<nmiss1<<std::endl;
             // make rough cuts before calling cl2Merge12
             // this may not work well for long wandering clusters
             bool didit = false;
@@ -505,6 +739,8 @@ namespace cluster {
             int nmiss2 = bw2 - ew2 + 1 - tcl[it2].tclhits.size();
             // compare with the number of hits in cluster 1
             int nin1 = tcl[it1].tclhits.size();
+//  std::cout<<"cl1: "<<tcl[it1].ID<<" within cl2 "<<tcl[it2].ID;
+//  std::cout<<" ? dth "<<dth<<" dtim "<<dtim<<" nmissed "<<nmiss2<<std::endl;
             // make rough cuts before calling cl2Merge12
             // this may not work well for long wandering clusters
             bool didit = false;
@@ -531,10 +767,16 @@ namespace cluster {
     // Calling routine has done a rough check that cluster it2 is a candidate
     // for merging with cluster it1. The wire range spanned by it2 lies
     // within the wire range of it1 and the clusters are reasonably close
-    // together in time
+    // together in time.
+    // Flag cluster 2 if angle and time cuts are met but the charge cut is not.
+    // This is an indicator that cluster 2 is a delta ray or e+e- pair separating
     
     // assume that no merging was done
     didit = false;
+    // assume that the cluster 2 end/begin charge is consistent with cluster 1
+    bool chargeok = true;
+
+//  std::cout<<"cl2ChkMerge12 "<<tcl[it1].ID<<" "<<tcl[it2].ID<<std::endl;
     
     ClusterStore& cl1 = tcl[it1];
     std::map<int, int> HitNum;
@@ -558,13 +800,15 @@ namespace cluster {
       }
       nmiss++;
     } // wire
+//  std::cout<<"chk next US hit "<<ch1<<" missed "<<nmiss<<std::endl;
     if(ch1 < 0) return;
     if(nmiss > fMaxWirSkip[pass]) return;
     // get the charge on the closest hit
     float chgch1 = plnhits[ch1]->Charge();
     float chgrat = fabs(tcl[it2].EndChg - chgch1) / (tcl[it2].EndChg + chgch1);
+//  std::cout<<"chgrat "<<chgrat<<" cut "<<fChgCut[pass]<<std::endl;
     // make a charge ratio cut
-    if(chgrat > fChgCut[pass]) return;
+    if(chgrat > fChgCut[pass]) chargeok = false;
     // make an upstream slope cut next. First get the slope of cluster 1
     // near the intersection with cluster 2.
     // start by finding a hit on a nearby US wire on cluster 1
@@ -592,11 +836,14 @@ namespace cluster {
     }
     // make a kink angle cut
     float dth = fabs(atan(ScaleF * cl1slp) - atan(ScaleF * tcl[it2].EndSlp));
+//  std::cout<<"US dth "<<dth<<" cut "<<fKinkAngCut[pass]<<std::endl;
     if(dth > fKinkAngCut[pass]) return;
     int wir1 = plnhits[ch1]->WireID().Wire;
     // ensure that there is a signal on the missing wires
     for(int wire = wir1 + 1; wire < tcl[it2].EndWir; wire++) {
       int firsthit = FirstWirHit[wire];
+      // skip dead wires
+      if(firsthit < 0) continue;
       int lasthit = FirstWirHit[wire+1];
       if(lasthit <= 0) {
         int lwire = wire + 2;
@@ -611,6 +858,7 @@ namespace cluster {
         if (prtime < plnhits[khit]->EndTime() && 
             prtime > plnhits[khit]->StartTime()) SigOK = true;
       } // khit
+//  std::cout<<"wire "<<wire<<" SigOK "<<SigOK<<std::endl;
       if(!SigOK) return;
     } // wire
     // next make a downstream charge cut. Start by finding the closest 
@@ -624,13 +872,15 @@ namespace cluster {
       }
       nmiss++;
     }
+//  std::cout<<"chk next DS hit "<<ch1<<" missed "<<nmiss<<std::endl;
     if(ch1 < 0) return;
     if(nmiss > fMaxWirSkip[pass]) return;
     // make a charge cut
     chgch1 = plnhits[ch1]->Charge();
     chgrat = fabs(tcl[it2].BeginChg - chgch1) / (tcl[it2].BeginChg + chgch1);
+//  std::cout<<"chgrat "<<chgrat<<" cut "<<fChgCut[pass]<<std::endl;
     // make a charge ratio cut
-    if(chgrat > fChgCut[pass]) return;
+    if(chgrat > fChgCut[pass]) chargeok = false;
     // make a DS slope cut
     int ch2 = -1;
     for(int wire = ch1 + 2; wire < tcl[it1].BeginWir; wire++) {
@@ -656,24 +906,30 @@ namespace cluster {
     }
     // make a angle difference cut
     dth = fabs(atan(ScaleF * cl1slp) - atan(ScaleF * tcl[it2].BeginSlp));
-    if(dth > fKinkAngCut[pass]) return;
-    // success. Merge them
-    cl2DoMerge(plnhits, tcl, it1, it2);
-    // modify the cluster ID for this type of merge
-    unsigned int lastcl = tcl.size() - 1;
-    tcl[lastcl].ID = tcl[lastcl].ID + 10000;
-    didit = true;
+//  std::cout<<"DS dth "<<dth<<" cut "<<fKinkAngCut[pass]<<" chargeok "<<chargeok<<std::endl;
+    if( chargeok && dth < fKinkAngCut[pass]) {
+//  std::cout<<"Merge em"<<std::endl;
+      // success. Merge them
+      cl2DoMerge(plnhits, tcl, it1, it2, 100);
+      didit = true;
+    } else if( dth < 2 * fKinkAngCut[pass]) {
+//  std::cout<<"Associate em"<<std::endl;
+      // failed the charge cut. Flag as an association with looser angle cut
+      tcl[it2].Assn = it1;
+    }
     return;
   }
 
 
 /////////////////////////////////////////
   void ClusterCrawlerAlg::cl2DoMerge(art::PtrVector<recob::Hit>& plnhits, 
-     std::vector<ClusterStore>& tcl, unsigned int it1, unsigned int it2)
+     std::vector<ClusterStore>& tcl, unsigned int it1, unsigned int it2,
+     int ProcCode)
   {
     // Merge clusters. Cluster 1 has precedence for assignment of hits
     ClusterStore& cl1 = tcl[it1];
     ClusterStore& cl2 = tcl[it2];
+//    std::cout<<"DoMerge "<<cl1.ID<<" "<<cl2.ID<<std::endl;
     // ensure that there is only one hit/wire on both clusters
     std::map<int, int> wirehit;
     int hiwire = -99999;
@@ -721,16 +977,21 @@ namespace cluster {
     clBeginSlp = (float)clpar[1];
     clBeginChg = fAveChg;
     clStopCode = cl1.StopCode;
+    clAssn = -1;
     // append it to the tcl vector
-    cl2TmpStore(plnhits, tcl, pass, 0);
-    // Modify the cluster ID
-    ClusterStore& clnew = tcl[tcl.size()-1];
-    clnew.ID = cl1.ID + 10000;
+    cl2TmpStore(plnhits, tcl, pass);
+    unsigned int itnew = tcl.size()-1;
+    tcl[itnew].ProcCode = ProcCode;
     // mark cl1 and cl2 obsolete
-    for(unsigned int ii = 0; ii < tcl.size() - 1; ii++) {
-      ClusterStore& clstr = tcl[ii];
-      if(abs(clstr.ID) == abs(cl1.ID)) clstr.ID = -abs(clstr.ID);
-      if(abs(clstr.ID) == abs(cl2.ID)) clstr.ID = -abs(clstr.ID);
+    tcl[it1].ID = -tcl[it1].ID;
+    tcl[it1].ProcCode += ProcCode;
+    tcl[it2].ID = -tcl[it2].ID;
+    tcl[it2].ProcCode += ProcCode;
+    // move any associations to clusters 1 and 2 to the new cluster
+    for(unsigned int ii = 0; ii < itnew; ii++) {
+      if(tcl[ii].ID > 0 && tcl[ii].Assn >= 0) {
+        if(tcl[ii].Assn == (int)it1 || tcl[ii].Assn == (int)it2) tcl[ii].Assn = itnew;
+      }
     }
     return;
   }
@@ -759,15 +1020,18 @@ namespace cluster {
      std::vector<ClusterStore>& tcl)
   {
     // prints clusters to the screen for code development
-    std::cout<<"  ID   nht Code beg_W:H   begT begSlp begChg  end_W:H  endT  endSlp endChg" <<std::endl;
+    std::cout<<"  ID nht Stop Proc Assn beg_W:H   begT begSlp begChg  end_W:H  endT  endSlp endChg";
+    std::cout<<std::endl;
     for(unsigned int ii = 0; ii < tcl.size(); ii++) {
       std::vector<int>::const_iterator ihtb = tcl[ii].tclhits.begin();
       int hitb = *ihtb;
       std::vector<int>::const_iterator ihte = tcl[ii].tclhits.end()-1;
       int hite = *ihte;
-      std::cout<<std::setw(6)<<tcl[ii].ID;
+      std::cout<<std::setw(4)<<tcl[ii].ID;
       std::cout<<std::setw(4)<<tcl[ii].tclhits.size();
       std::cout<<std::setw(4)<<tcl[ii].StopCode;
+      std::cout<<std::setw(5)<<tcl[ii].ProcCode;
+      std::cout<<std::setw(5)<<tcl[ii].Assn;
       std::cout<<std::setw(6)<<tcl[ii].BeginWir<<":"<<hitb;
       std::cout<<std::setw(6)<<(int)tcl[ii].BeginTim;
       std::cout<<std::setw(7)<<std::setprecision(3)<<tcl[ii].BeginSlp;
@@ -775,9 +1039,11 @@ namespace cluster {
       std::cout<<std::setw(6)<<tcl[ii].EndWir<<":"<<hite;
       std::cout<<std::setw(6)<<(int)tcl[ii].EndTim;
       std::cout<<std::setw(7)<<tcl[ii].EndSlp;
-      std::cout<<std::setw(7)<<(int)tcl[ii].EndChg<<std::endl;
+      std::cout<<std::setw(5)<<(int)tcl[ii].EndChg;
+      std::cout<<std::endl;
     }
     // print out lots of stuff
+/*
     for(unsigned int ii = 0; ii < tcl.size(); ii++) {
       std::vector<int>::const_iterator ihts = tcl[ii].tclhits.begin();
       if(tcl[ii].ID > -1) {
@@ -791,15 +1057,18 @@ namespace cluster {
       std::cout<<std::endl;
       }
     }
+*/
   }
 
 
 /////////////////////////////////////////
   void ClusterCrawlerAlg::cl2TmpStore(art::PtrVector<recob::Hit>& plnhits, 
-     std::vector<ClusterStore>& tcl, int inpass, int nClusters)
+     std::vector<ClusterStore>& tcl, int inpass)
   {
 
     if(fcl2hits.size() == 0) return;
+    
+    NClusters++;
 
     // flag all the hits as used
     for(std::vector<int>::const_iterator it = fcl2hits.begin(); it != fcl2hits.end(); ++it) {
@@ -816,7 +1085,7 @@ namespace cluster {
     // store the cluster in the temporary ClusterStore struct
     ClusterStore clstr;
     
-    clstr.ID = 1000 * inpass + nClusters;
+    clstr.ID = NClusters;
     clstr.BeginSlp = clBeginSlp;
     clstr.BeginWir = plnhits[hitb]->WireID().Wire;
     clstr.BeginTim = plnhits[hitb]->PeakTime();
@@ -826,6 +1095,8 @@ namespace cluster {
     clstr.EndTim   = plnhits[hite]->PeakTime();
     clstr.EndChg   = plnhits[hite]->Charge();
     clstr.StopCode = clStopCode;
+    clstr.ProcCode = clProcCode;
+    clstr.Assn     = clAssn;
     clstr.tclhits = fcl2hits;
     tcl.push_back(clstr);
     return;
@@ -878,7 +1149,9 @@ namespace cluster {
             break;
           }
           // see if we are in the PostSkip phase and missed more than 1 wire
+//  std::cout<<"chk "<<nextwire<<" "<<PostSkip<<" "<<nmissed<<std::endl;
           if(PostSkip && nmissed > 1) {
+//  std::cout<<"Missed wire after skip "<<nextwire<<" nmissed "<<nmissed<<std::endl;
             unsigned int newsize = fcl2hits.size() - nHitAfterSkip;
             fcl2hits.resize(newsize);
             std::vector<int>::reverse_iterator ii = fcl2hits.rbegin();
@@ -894,7 +1167,8 @@ namespace cluster {
           }
         } else {
           clStopCode = 0;
-          if(prt) std::cout<<"No hit or signal on wire "<<nextwire<<std::endl;
+  if(prt) std::cout<<"No hit or signal on wire "<<nextwire<<std::endl;
+//  std::cout<<"No hit or signal on wire "<<nextwire<<std::endl;
           break;
         }
       } else {
@@ -926,6 +1200,7 @@ namespace cluster {
             float dt02 = plnhits[ih2]->PeakTime() - plnhits[ih0]->PeakTime();
             float dw02 = plnhits[ih2]->WireID().Wire - plnhits[ih0]->WireID().Wire;
             float th02 = atan( ScaleF * dt02 / dw02);
+//  std::cout<<"wire0 "<<wire0;
             // and the 4th and 6th hit
             std::vector<int>::reverse_iterator i4 = fcl2hits.rbegin() + 4;
             int ih4 = *i4;
@@ -935,8 +1210,10 @@ namespace cluster {
             float dw46 = plnhits[ih6]->WireID().Wire - plnhits[ih4]->WireID().Wire;
             float th46 = atan(ScaleF * dt46 / dw46);
             float dth = fabs(th02 - th46);
+//  std::cout<<" Kink angle "<<std::setprecision(3)<<dth<<std::endl;
             // cut on the allowed kink angle
             if(dth > fKinkAngCut[pass]) {
+//  std::cout<<"stopped tracking "<<std::endl;
               // kill the last 3 hits, refit and return
               unsigned int newsize = fcl2hits.size() - 3;
               fcl2hits.resize(newsize);
@@ -986,6 +1263,7 @@ namespace cluster {
     it = fcl2hits.end() - 1;
     lasthit = *it;
     lastwire = plnhits[lasthit]->WireID().Wire;
+//  std::cout<<"Last wire "<<lastwire<<std::endl;
     int nht = 0;
     // number of hits to lop off the end
     int nlop = 0;
@@ -993,6 +1271,7 @@ namespace cluster {
             ii != fcl2hits.rend(); ++ii) {
       int jj = *ii;
       int wir = plnhits[jj]->WireID().Wire;
+//  std::cout<<"chk "<<jj<<" wir "<<wir<<" lastwire "<<lastwire<<std::endl;
       if(abs(wir - lastwire) > 1) {
         nlop = nht + 1;
         break;
@@ -1004,6 +1283,7 @@ namespace cluster {
       lastwire = wir;
     }
     if(nlop > 0) {
+//  std::cout<<"nlop "<<nlop<<std::endl;
       unsigned int newsize = fcl2hits.size() - nlop;
       fcl2hits.resize(newsize);
       clStopCode = 2;
@@ -1166,11 +1446,11 @@ namespace cluster {
     float numsig2 = best / err;
     if(numsig2 < 3.) {
       fcl2hits.push_back(imbest);
-      if(prt) std::cout<<"cl2AddHit ADD W:H "<<kwire<<":"<<imbest<<" best "<<best<<std::endl;
+  if(prt) std::cout<<"cl2AddHit ADD W:H "<<kwire<<":"<<imbest<<" best "<<best<<std::endl;
       HitOK = true;
       return;
     } else {
-      if(prt) std::cout<<"cl2AddHit bad chisq "<<numsig2<<std::endl;
+  if(prt) std::cout<<"cl2AddHit bad chisq "<<numsig2<<std::endl;
       HitOK = false;
       return;
     }

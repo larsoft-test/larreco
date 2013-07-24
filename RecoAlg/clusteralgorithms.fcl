@@ -24,6 +24,8 @@ standard_clustercrawleralg:
   FudgeBigHits:        5.0 # increase the width of large charge hits so that poorly
                            # reconstructed hits do not abort crawling. Used only 
                            # to test for a ADC signal in the projected cluster position
+  PairAngCut:          0.4 # Break clusters for pairs that are less than this
+                           # angle (radians). Set = 0 to turn off
 }
 
 standard_houghbasealg:

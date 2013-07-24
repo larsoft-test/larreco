@@ -32,7 +32,9 @@ namespace cluster {
     // structure of temporary clusters
 
     struct ClusterStore {
-      int ID;         // Cluster ID = 1000 * pass + number
+      int ID;         // Cluster ID. ID < 0 = abandoned cluster
+      int ProcCode;   // Processor code for debugging
+      int Assn;       // coded pointer to associated clusters
       int StopCode;   // code for the reason for stopping cluster tracking
       float BeginSlp; // beginning slope (= DS end = high wire number)
       int   BeginWir; // begin wire
@@ -58,7 +60,7 @@ namespace cluster {
     void RunCrawler(art::PtrVector<recob::Hit>& plnhits,
                  int plane, std::vector< ClusterStore >& tcl);
     
-    int fNumPass;       ///< number of passes over the hit collection
+    int fNumPass;                 ///< number of passes over the hit collection
     std::vector<int> fMaxHitsFit; ///< Max number of hits fitted
     std::vector<int> fMinHits;    ///< Min number of hits to make a cluster
     std::vector<int> fNHitsAve;   ///< number of hits used to compute fAveChg and fAveWid
@@ -85,10 +87,13 @@ namespace cluster {
                            ///< prevent incorrect tracking stops. This is a workaround
                            ///< that wont be necessary when/if the hit reconstruction
                            ///< improves
+    float fPairAngCut;     ///< Close pair angle cut. Set <= 0 to turn off
+                           ///< Applied to clusters with >= 10 hits
     
     private:
     
     bool prt;
+    int NClusters;
 
     std::map<int, int> FirstWirHit; ///< map of the first hit on each wire
                                     ///< returns 0 if no hits on the wire
@@ -114,6 +119,13 @@ namespace cluster {
                         ///< 2 = failed the fMinWirAfterSkip cut
                         ///< 3 = ended on a kink. Fails fKinkChiRat
                         ///< 4 = failed the fChiCut cut
+                        ///< 5 = cluster split by cl2ChkPair
+    int clProcCode;     ///< Processor code = pass number
+                        ///< +   10 cl2ChkMerge
+                        ///< +  100 cl2ChkMerge12
+                        ///< + 1000 cl2ChkPair
+    int clAssn;         ///< index of a parent cluster. -1 if no parent.
+                        ///< Parent clusters are not associated with daughters
     
     // TLinearFitter arrays
     TLinearFitter *lf;
@@ -143,7 +155,13 @@ namespace cluster {
     void cl2FollowUS(art::PtrVector<recob::Hit>& plnhits);
     // Stores cluster information in a temporary vector
     void cl2TmpStore(art::PtrVector<recob::Hit>& plnhits, 
-      std::vector<ClusterStore>& tcl,int pass, int nClusters);
+      std::vector<ClusterStore>& tcl,int pass);
+    // Prepares close pair clusters
+    void cl2ChkPair(art::PtrVector<recob::Hit>& plnhits,
+      std::vector<ClusterStore>& tcl);
+    // Splits close pair clusters
+    void cl2DoSplit(art::PtrVector<recob::Hit>& plnhits,
+      std::vector<ClusterStore>& tcl, unsigned int it1, unsigned int it2);
     // Compares two cluster combinations to see if they should be merged
     void cl2ChkMerge(art::PtrVector<recob::Hit>& plnhits,
       std::vector<ClusterStore>& tcl);
@@ -152,7 +170,7 @@ namespace cluster {
       std::vector<ClusterStore>& tcl, unsigned int it1, unsigned int it2, bool& didit);
     // Merges clusters cl1 and cl2
     void cl2DoMerge(art::PtrVector<recob::Hit>& plnhits, 
-      std::vector<ClusterStore>& tcl, unsigned int it1, unsigned int it2);
+      std::vector<ClusterStore>& tcl, unsigned int it1, unsigned int it2, int ProcCode);
     // Prints cluster information to the screen
     void cl2Print(art::PtrVector<recob::Hit>& plnhits, 
      std::vector<ClusterStore>& tcl);
