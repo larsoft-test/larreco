@@ -11,6 +11,10 @@ LIB         := lib$(PACKAGE)
 LIBCXXFILES := $(wildcard *.cxx)
 JOBFILES    := $(wildcard *.fcl)
 
+# needed for ClusterCrawlerAlg
+ROOTLIBS = $(shell root-config --libs) -lMinuit
+override LOADLIBES += $(ROOTLIBS)
+
 LIBLINK    := -L$(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR) -L$(LARSOFT)/lib/$(SRT_SUBDIR) -l$(PACKAGE)
 
 ########################################################################
