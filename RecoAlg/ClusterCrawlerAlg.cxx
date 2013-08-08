@@ -108,7 +108,7 @@ namespace cluster {
     art::PtrVector<recob::Hit>::const_iterator it = plnhits.begin();
     fFirstWire = (*it)->WireID().Wire;
     it = plnhits.end()-1;
-    int LastWire = (*it)->WireID().Wire;
+    fLastWire = (*it)->WireID().Wire;
     
     FirstWirHit.clear();
     hiterr2.clear();
@@ -119,7 +119,7 @@ namespace cluster {
 
     // find dead wires in this region
     filter::ChannelFilter cf;
-    for(int wire = fFirstWire+1; wire < LastWire; wire++) {
+    for(int wire = fFirstWire+1; wire < fLastWire; wire++) {
       unsigned int pln = plane;
       unsigned int wir = wire;
       uint32_t chan = geom->PlaneWireToChannel(pln,wir);
@@ -157,7 +157,7 @@ namespace cluster {
       }
       iht++;
     }
-    FirstWirHit[LastWire+1] = plnhits.size();
+    FirstWirHit[fLastWire+1] = plnhits.size();
     
     prt = false;
     
@@ -181,7 +181,7 @@ namespace cluster {
       // look for a starting cluster that spans a block of wires
       int span = 3;
       if(fMinHits[pass] < span) span = fMinHits[pass];
-      for(int iwire = LastWire; iwire > fFirstWire; iwire--) {
+      for(int iwire = fLastWire; iwire > fFirstWire; iwire--) {
         int ifirsthit = FirstWirHit[iwire];
         // skip bad wires
         if(ifirsthit <= 0) continue;
@@ -309,17 +309,9 @@ namespace cluster {
     
     // prepare close pair clusters for 3D matching
     cl2ChkPair(plnhits, tcl);
-  if(prt) {
-  std::cout<<"After cl2ChkPair"<<std::endl;
-  cl2Print(plnhits, tcl);
-  }
     
     // try to merge short curly clusters
     if(fCurlyMergeAngCut > 0.) cl2CurlyMerge(plnhits, tcl);
-  if(prt) {
-  std::cout<<"After CurlyMerge"<<std::endl;
-  cl2Print(plnhits, tcl);
-  }
     int ncl = 0;
     for(unsigned int ii = 0; ii < tcl.size(); ii++) {
       if(tcl[ii].ID > 0) ncl++;
@@ -352,8 +344,8 @@ namespace cluster {
       
       // initialize the begin and end vertex IDs
       for(unsigned int ii = 0; ii < tcl.size(); ii++) {
-        tcl[ii].BeginVtx = -1;
-        tcl[ii].EndVtx = -1;
+        tcl[ii].BeginVtx = -99;
+        tcl[ii].EndVtx = -99;
       }
       vtx.clear();
 
@@ -364,7 +356,7 @@ namespace cluster {
       float nwires = geom->Nwires(plane);
       float maxtime = detprop->NumberTimeSamples();
 
-//      std::cout<<"DoVertex plane "<<plane<<std::endl;
+//  std::cout<<"DoVertex plane "<<plane<<" nwires "<<(int)nwires<<std::endl;
 
       for (unsigned int it1 = 0; it1 < tcl.size() - 1; it1++) {
         // ignore abandoned clusters
@@ -377,6 +369,9 @@ namespace cluster {
         int ew1 = tcl[it1].EndWir;
         float et1 = tcl[it1].EndTim;
         float bs1 = tcl[it1].BeginSlp;
+        // ignore curly clusters
+        float dth = fabs(atan(es1) - atan(bs1));
+        if(dth > 0.15) continue;
         int bw1 = tcl[it1].BeginWir;
         float bt1 = tcl[it1].BeginTim;
         for (unsigned int it2 = it1 + 1; it2 < tcl.size(); it2++) {
@@ -392,19 +387,26 @@ namespace cluster {
           int ew2 = tcl[it2].EndWir;
           float et2 = tcl[it2].EndTim;
           float bs2 = tcl[it2].BeginSlp;
+        // ignore curly clusters
+          dth = fabs(atan(es2) - atan(bs2));
+          if(dth > 0.15) continue;
           int bw2 = tcl[it2].BeginWir;
           float bt2 = tcl[it2].BeginTim;
-//  std::cout<<"vtx "<<tcl[it1].ID<<" "<<tcl[it2].ID<<std::endl;
   // topo 1: check for vtx US of the ends of both clusters
           if(tcl[it1].EndVtx < 0 && tcl[it2].EndVtx < 0) {
             float dsl = es2 - es1;
             if(fabs(dsl) < 0.001) dsl = 0.001;
             // find vertex wire and vertex time in float precision (fvw, fvt)
             float fvw = 0.5 + (et1 - ew1 * es1 - et2 + ew2 * es2) / dsl;
-            if(fvw > 0. || fvw < nwires) {
+            if(fvw > 0. && fvw < nwires) {
               // vertex wire in the detector
               int vw = fvw;
-              if(vw <= ew1 && vw <= ew2) {
+              // require vtx in the range of wires with hits AND
+              // vtx US of both clusters AND
+              // vtx not too far US of both clusters
+              if(vw >= fFirstWire && 
+                 vw <= ew1 && vw <= ew2 &&
+                 vw  > ew1 - 10 && vw  > ew2 - 10) {
                 float fvt = et1 + (vw - ew1) * es1;
                 if(fvt > 0. && fvt < maxtime) {
                   // vertex wire US of cluster ends and time in the detector
@@ -420,7 +422,7 @@ namespace cluster {
             if(fabs(dsl) < 0.001) dsl = 0.001;
             float fvw = 0.5 + (et1 - ew1 * es1 - bt2 + bw2 * bs2) / dsl;
 //  std::cout<<"topo2 wire "<<(int)fvw<<std::endl;
-            if(fvw > 0 || fvw < nwires) {
+            if(fvw > 0 && fvw < nwires) {
               // vertex wire in the detector
               int vw = fvw;
               if(vw <= ew1 && vw >= bw2) {
@@ -437,7 +439,7 @@ namespace cluster {
             float dsl = bs1 - es2;
             if(fabs(dsl) < 0.001) dsl = 0.001;
             float fvw = 0.5 + (et2 - ew2 * es2 - bt1 + bw1 * bs1) / dsl;
-            if(fvw > 0 || fvw < nwires) {
+            if(fvw > 0 && fvw < nwires) {
               int vw = fvw;
               if(vw <= ew2 && vw >= bw1) {
                 float fvt = et2 + (vw - ew2) * es2;
@@ -454,10 +456,15 @@ namespace cluster {
             // find vertex wire and vertex time in float precision (fvw, fvt)
             // convert to integer if within the detector (vw, vt)
             float fvw = 0.5 + (bt1 - bw1 * bs1 - bt2 + bw2 * bs2) / dsl;
-            if(fvw > 0 || fvw < nwires) {
+            if(fvw > 0 && fvw < nwires) {
               // vertex wire in the detector
               int vw = fvw;
-              if(vw >= bw1 && vw >= bw2) {
+              // require vtx in the range of wires with hits AND
+              // vtx DS of both clusters AND
+              // vtx not too far DS of both clusters
+              if(vw >= bw1 && 
+                 vw >= bw2 && vw <= fLastWire &&
+                 vw <  bw2 + 10 && vw <  bw1 + 10) {
                 float fvt = bt1 + (vw - bw1) * bs1;
                 if(fvt > 0. && fvt < maxtime) {
                   // vertex wire US of cluster ends and time in the detector
@@ -484,7 +491,8 @@ namespace cluster {
 /*
   std::cout<<"Vertices "<<vtx.size()<<std::endl;
   for(unsigned int iv = 0; iv < vtx.size(); iv++) {
-    std::cout<<"vtx "<<iv<<" wire "<<vtx[iv].Wire<<" time "<<(int)vtx[iv].Time<<" wght "<<(int)vtx[iv].Wght<<std::endl;
+    std::cout<<"vtx "<<iv<<" wire "<<vtx[iv].Wire<<" time "<<(int)vtx[iv].Time<<" wght "<<(int)vtx[iv].Wght;
+    std::cout<<" topo "<<vtx[iv].Topo<<std::endl;
   }
   cl2Print(plnhits, tcl);
 */
@@ -548,7 +556,7 @@ namespace cluster {
 
 //  std::cout<<"ChkVertex "<<tcl[it1].ID<<" "<<tcl[it2].ID<<" topo "<<topo;
 //  std::cout<<" vw "<<vw<<" vt "<<(int)fvt<<std::endl;
-        // check for proximity to existing vertices
+        // check vertex and clusters for proximity to existing vertices
         bool SigOK = false;
         for(unsigned int iv = 0; iv < vtx.size(); iv++) {
           if( abs( vw - vtx[iv].Wire) < 2 &&
@@ -557,25 +565,24 @@ namespace cluster {
             if( (topo == 1 || topo == 2) && tcl[it1].EndVtx < 0) {
               cl2ChkSignal(plnhits, vw, fvt, tcl[it1].EndWir, tcl[it1].EndTim, SigOK);
               if(SigOK) tcl[it1].EndVtx = iv;
-//  if(SigOK) std::cout<<"12 Attach cl "<<tcl[it1].ID<<" to vtx "<<iv<<std::endl;
+  if(SigOK) std::cout<<"12 Attach cl "<<tcl[it1].ID<<" to vtx "<<iv<<std::endl;
             } else if( (topo == 3 || topo == 4) && tcl[it1].BeginVtx < 0) {
               cl2ChkSignal(plnhits, vw, fvt, tcl[it1].BeginWir, tcl[it1].BeginTim, SigOK);
               if(SigOK) tcl[it1].BeginVtx = iv;
-//  if(SigOK) std::cout<<"34 Attach cl "<<tcl[it1].ID<<" to vtx "<<iv<<std::endl;
+  if(SigOK) std::cout<<"34 Attach cl "<<tcl[it1].ID<<" to vtx "<<iv<<std::endl;
             } // cluster it1
             if( (topo == 1 || topo == 3) && tcl[it2].EndVtx < 0) {
               cl2ChkSignal(plnhits, vw, fvt, tcl[it2].EndWir, tcl[it2].EndTim, SigOK);
               if(SigOK) tcl[it2].EndVtx = iv;
-//  if(SigOK) std::cout<<"13 Attach cl "<<tcl[it2].ID<<" to vtx "<<iv<<std::endl;
+  if(SigOK) std::cout<<"13 Attach cl "<<tcl[it2].ID<<" to vtx "<<iv<<std::endl;
             } else if( (topo == 2 || topo == 4) && tcl[it2].BeginVtx < 0) {
               cl2ChkSignal(plnhits, vw, fvt, tcl[it2].BeginWir, tcl[it2].BeginTim, SigOK);
               if(SigOK) tcl[it2].BeginVtx = iv;
-//  if(SigOK) std::cout<<"24 Attach cl "<<tcl[it2].ID<<" to vtx "<<iv<<std::endl;
+  if(SigOK) std::cout<<"24 Attach cl "<<tcl[it2].ID<<" to vtx "<<iv<<std::endl;
             } // cluster it2
             return;
           } // matched vertex
         } // iv
-        
 
         // no match to existing vertices. Ensure that there is a wire signal between
         // the vertex and the appropriate ends of the clusters
@@ -591,15 +598,14 @@ namespace cluster {
         } else {
           cl2ChkSignal(plnhits, vw, fvt, tcl[it2].BeginWir, tcl[it2].BeginTim, Sig2OK);
         }
-  if(prt) {
-    std::cout<<"Chk new "<<tcl[it1].ID<<" OK "<<Sig1OK<<" "<<tcl[it2].ID<<" OK "<<Sig2OK;
-    std::cout<<" Vtx at "<<vw<<" "<<(int)fvt<<std::endl;
-  }
+//  std::cout<<"Chk new "<<tcl[it1].ID<<" OK "<<Sig1OK<<" "<<tcl[it2].ID<<" OK "<<Sig2OK;
+//  std::cout<<" Vtx at "<<vw<<" "<<(int)fvt<<std::endl;
         // both clusters must have an OK signal
         if(Sig1OK && Sig2OK) {
           VtxStore newvx;
           newvx.Wire = vw;
           newvx.Time = fvt;
+          newvx.Topo = topo;
           newvx.Wght = 0;
           vtx.push_back(newvx);
           int iv = vtx.size() - 1;
@@ -661,6 +667,8 @@ namespace cluster {
             lwire++;
           }
         }
+//  std::cout<<"ChkSignal "<<wiree<<" "<<wire<<" "<<wireb<<" "<<(int)prtime;
+//  std::cout<<" first "<<firsthit<<" last "<<lasthit;
         for(int khit = firsthit; khit < lasthit; khit++) {
           float tdiff = fabs(prtime - plnhits[khit]->PeakTime());
           if (tdiff < 2 * hitwid[khit]) {
@@ -669,6 +677,7 @@ namespace cluster {
             break;
           }
         } // khit
+//        std::cout<<" SigOK "<<WireSigOK<<std::endl;
         if(!WireSigOK) return;
       } // wire
       SigOK = true;
@@ -1459,21 +1468,21 @@ namespace cluster {
       int hitb = *ihtb;
       std::vector<int>::const_iterator ihte = tcl[ii].tclhits.end()-1;
       int hite = *ihte;
-      std::cout<<std::setw(4)<<tcl[ii].ID;
-      std::cout<<std::setw(5)<<tcl[ii].tclhits.size();
-      std::cout<<std::setw(4)<<tcl[ii].StopCode;
-      std::cout<<std::setw(6)<<tcl[ii].ProcCode;
-      std::cout<<std::setw(5)<<tcl[ii].Assn;
-      std::cout<<std::setw(6)<<tcl[ii].BeginWir<<":"<<hitb;
-      std::cout<<std::setw(6)<<(int)tcl[ii].BeginTim;
-      std::cout<<std::setw(7)<<std::setprecision(3)<<tcl[ii].BeginSlp;
-      std::cout<<std::setw(7)<<std::setprecision(3)<<(int)tcl[ii].BeginChg;
-      std::cout<<std::setw(6)<<tcl[ii].EndWir<<":"<<hite;
-      std::cout<<std::setw(6)<<(int)tcl[ii].EndTim;
-      std::cout<<std::setw(7)<<tcl[ii].EndSlp;
-      std::cout<<std::setw(5)<<(int)tcl[ii].EndChg;
-      std::cout<<std::setw(5)<<tcl[ii].BeginVtx;
-      std::cout<<std::setw(5)<<tcl[ii].EndVtx;
+      std::cout<<std::right<<std::setw(4)<<tcl[ii].ID;
+      std::cout<<std::right<<std::setw(5)<<tcl[ii].tclhits.size();
+      std::cout<<std::right<<std::setw(4)<<tcl[ii].StopCode;
+      std::cout<<std::right<<std::setw(6)<<tcl[ii].ProcCode;
+      std::cout<<std::right<<std::setw(5)<<tcl[ii].Assn;
+      std::cout<<std::right<<std::setw(6)<<tcl[ii].BeginWir<<":"<<hitb;
+      std::cout<<std::right<<std::setw(6)<<(int)tcl[ii].BeginTim;
+      std::cout<<std::right<<std::setw(7)<<std::setprecision(3)<<tcl[ii].BeginSlp;
+      std::cout<<std::right<<std::setw(7)<<std::setprecision(3)<<(int)tcl[ii].BeginChg;
+      std::cout<<std::right<<std::setw(6)<<tcl[ii].EndWir<<":"<<hite;
+      std::cout<<std::right<<std::setw(6)<<(int)tcl[ii].EndTim;
+      std::cout<<std::right<<std::setw(7)<<tcl[ii].EndSlp;
+      std::cout<<std::right<<std::setw(5)<<(int)tcl[ii].EndChg;
+      std::cout<<std::right<<std::setw(5)<<tcl[ii].BeginVtx;
+      std::cout<<std::right<<std::setw(5)<<tcl[ii].EndVtx;
       std::cout<<std::endl;
     }
     // print out lots of stuff

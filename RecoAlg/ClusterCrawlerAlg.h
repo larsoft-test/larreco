@@ -55,6 +55,7 @@ namespace cluster {
       int Wire;
       float Time;
       float Wght;
+      int Topo;
     };
     std::vector< VtxStore > vtx;
 
@@ -109,6 +110,7 @@ namespace cluster {
     
     bool prt;
     int NClusters;
+    bool ArgoFix;
 
     std::map<int, int> FirstWirHit; ///< map of the first hit on each wire
                                     ///< returns 0 if no hits on the wire
@@ -150,6 +152,7 @@ namespace cluster {
     Double_t *ytimerr;
     
     int fFirstWire;    ///< the first wire with a hit
+    int fLastWire;      ///< the last wire with a hit
     float fAveWid;  ///< average hit width at leading edge of cluster
     float fAveChg;     ///< average pulse height at leading edge of cluster
     int wire0;          ///< wire number origin of the fit => usually end wire
