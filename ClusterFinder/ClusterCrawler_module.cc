@@ -25,6 +25,7 @@
 #include "Geometry/PlaneGeo.h"
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Hit.h"
+#include "RecoBase/EndPoint2D.h"
 #include "Utilities/AssociationUtil.h"
 #include "Filters/ChannelFilter.h"
 #include "RecoAlg/ClusterCrawlerAlg.h"
@@ -47,6 +48,7 @@ class cluster::ClusterCrawler : public art::EDProducer {
   private:
     std::string fhitsModuleLabel;
     ClusterCrawlerAlg fCCAlg; // define ClusterCrawlerAlg object
+    std::map<int, geo::WireID> wirmap;
     
 };
 
@@ -59,6 +61,7 @@ namespace cluster {
     this->reconfigure(pset);
     produces< std::vector<recob::Cluster> >();  
     produces< art::Assns<recob::Cluster, recob::Hit> >();
+    produces< std::vector<recob::EndPoint2D> >();
   }
 
   ClusterCrawler::~ClusterCrawler()
@@ -91,6 +94,9 @@ namespace cluster {
     std::unique_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
     std::unique_ptr<art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
     
+    std::vector<recob::EndPoint2D> vtxOut;
+    std::unique_ptr<std::vector<recob::EndPoint2D> > vcol(new std::vector<recob::EndPoint2D>(vtxOut));
+    
     // loop over all hits in the event and look for clusters in each plane
     art::PtrVector<recob::Hit> plnhits;
   
@@ -114,10 +120,12 @@ namespace cluster {
           plnhits.sort(cluster::SortByWire());
           // vector of temporary clusters returned from RunCrawler
           std::vector< ClusterStore > tcl; 
+          // and vertices
+          std::vector< VtxStore > vtx;
           // make clusters and fill the tcl vector
-          fCCAlg.RunCrawler(plnhits, plane, tcl);
+          fCCAlg.RunCrawler(plnhits, plane, tcl, vtx);
           for(std::vector<ClusterStore>::const_iterator it = tcl.begin();
-            it != tcl.end(); ++it) {
+              it != tcl.end(); ++it) {
             ClusterStore clstr = *it;
             // ignore deleted clusters
             if(clstr.ID < 0) continue;
@@ -150,12 +158,31 @@ namespace cluster {
             util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
             clusterHits.clear();
           } // cluster iterator
+          tcl.clear();
+          if(vtx.size() > 0) {
+            // generate a map to index WireID from wire
+            std::map<int, geo::WireID> wirmap;
+            for(unsigned int iht = 0; iht < plnhits.size(); iht++) {
+              int wire = plnhits[iht]->WireID().Wire;
+              wirmap[wire] = plnhits[iht]->WireID();
+            }
+            for(unsigned int iv = 0; iv < vtx.size(); iv++) {
+              double drtime = vtx[iv].Time;
+              int wire = vtx[iv].Wire;
+              geo::WireID wID = wirmap[wire];
+              double strenth = vtx[iv].Wght;
+              recob::EndPoint2D myvtx(drtime, wID, strenth, (int)iv, plnhits[0]->View(), 0.);
+              vcol->push_back(myvtx);
+            } // iv
+            vtx.clear();
+          } // vtx.size() > 0
         } // plane
       } // tpc
     } // cstat
       
     evt.put(std::move(ccol));
     evt.put(std::move(assn));
+    evt.put(std::move(vcol));
     
     return;
 
