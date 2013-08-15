@@ -1,5 +1,6 @@
-BEGIN_PROLOG
+#include "job/calorimetry.fcl"
 
+BEGIN_PROLOG
 
 standard_shower:
 {
