@@ -16,6 +16,7 @@
 #include "Geometry/TPCGeo.h"
 #include "Geometry/PlaneGeo.h"
 #include "Simulation/SimChannel.h"
+#include "Simulation/LArG4Parameters.h"
 #include "RecoBase/Hit.h"
 #include "Utilities/DetectorProperties.h"
 #include "SimpleTypesAndConstants/geo_types.h"
@@ -53,7 +54,7 @@ public:
 
 private:
 
-  void FindHitsOnChannel(std::map<unsigned short, std::vector<sim::IDE> > const& idemap,
+  void FindHitsOnChannel(const sim::SimChannel*                                  sc,
 			 std::vector<recob::Hit>&                                hits,
   			 art::Ptr<recob::Wire>&                                  wire, 
 			 int                                                     spill);
@@ -61,13 +62,14 @@ private:
 
   std::string         fG4ModuleLabel;              ///< label name for module making sim::SimChannels		
   std::string         fWireModuleLabel;      	   ///< label name for module making recob::Wires		
-  std::vector<TH1D *> fChannelEnergyDepsInd; 	   ///< Energy depositions vs time for each induction channel	
-  std::vector<TH1D *> fChannelEnergyDepsCol; 	   ///< Energy depositions vs time for each collection channel
   double              fMinCharge;            	   ///< Minimum charge required to make a hit                 
   double              fElectronsToADC;             ///< Conversion factor of electrons to ADC counts
   std::string         fCalDataProductInstanceName; ///< label name for module making recob::Wires
   int                 fReadOutWindowSize;          ///< Number of samples in a readout window; NOT #total samples
   int                 fNumberTimeSamples;          ///< Number of total time samples (N*readoutwindowsize)
+  double              fSamplingRate;               ///< from util::DetectorProperties
+  int                 fTriggerOffset;              ///< from util::DetectorProperties
+  int                 fNewHitTDCGap;               ///< gap allowed in tdcs without charge before making a new hit
 };
 
 //-------------------------------------------------------------------
@@ -113,12 +115,10 @@ void hit::HitCheater::produce(art::Event & e)
   std::vector<const sim::SimChannel*> sccol;
   e.getView(fG4ModuleLabel, sccol);
 
+  // find the hits on each channel
   for(size_t sc = 0; sc < sccol.size(); ++sc){
 
-    // loop over all the ides for this channel
-    const std::map<unsigned short, std::vector<sim::IDE> >& idemap = sccol[sc]->TDCIDEMap();
-    
-    FindHitsOnChannel(idemap, *hits, wireMap.find(sccol[sc]->Channel())->second, whatSpill);
+    FindHitsOnChannel(sccol.at(sc), *hits, wireMap.find(sccol.at(sc)->Channel())->second, whatSpill);
 
   }// end loop over SimChannels
 
@@ -130,23 +130,22 @@ void hit::HitCheater::produce(art::Event & e)
 }
 
 //-------------------------------------------------------------------
-void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim::IDE> > const& idemap,
+void hit::HitCheater::FindHitsOnChannel(const sim::SimChannel*                                  sc,
 					std::vector<recob::Hit>&                                hits,
 					art::Ptr<recob::Wire>&                                  wire, 
 					int                                                     spill)
 {
   art::ServiceHandle<geo::Geometry> geo;
 
-  // make a map of the total signal at each tdc value
-  // if there is a gap of >= 1 tdc count between signals
-  // make separate hits.  If there is a dip between 
-  // two peaks of order 600 electrons, make multiple hits
-  // also map the tdc to a weighted position from where the electrons originated
-  std::map<unsigned short, double> tdcVsE;
-  std::map<unsigned short, std::vector<double> > tdcVsPos;
-  std::vector<unsigned short> tdcEnds;
+  // determine the possible geo::WireIDs for this particular channel
+  // then make a map of tdc to electrons for each one of those geo::WireIDs
+  // then find hits on each geo::WireID
+  std::vector<geo::WireID> wireids = geo->ChannelToWire(wire->Channel());
+  
+  std::map<geo::WireID, std::map< unsigned int, double> > wireIDSignals;
 
-  unsigned short prev = idemap.begin()->first;
+  auto const& idemap = sc->TDCIDEMap();
+
   for(auto const& mapitr : idemap){
     unsigned short tdc = mapitr.first;
 
@@ -155,88 +154,96 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
 	  tdc > (spill+1)*fReadOutWindowSize )  continue;
     }
     
-    // more than a one tdc gap between times with 
-    // signal, start a new hit
-    if(tdc - prev > 1) tdcEnds.push_back(prev);
-
-    double total = 0.;
-    double x = 0.;
-    double y = 0.;
-    double z = 0.;
-    // loop over the ides
-    for(auto const& ideitr : mapitr.second){
-      total += ideitr.numElectrons;
-      x += ideitr.numElectrons*ideitr.x;
-      y += ideitr.numElectrons*ideitr.y;
-      z += ideitr.numElectrons*ideitr.z;
-    }
-    
-    std::vector<double> pos(3,0.);
-    if(total > 0){
-      pos[0] = x/total;
-      pos[1] = y/total;
-      pos[2] = z/total;
-    }
-
-    tdcVsE[tdc]   = total;
-    tdcVsPos[tdc] = pos;
-
-    // reset the starts variable
-    prev = tdc;
-  }// end loop over the ide map
-  tdcEnds.push_back(prev);
-
-  // now loop over the tdcVsE map and make some hits
-  std::map<unsigned short, double>::iterator tdcVsEitr;  
-  std::vector<unsigned short>::iterator endItr = tdcEnds.begin();
-  for(tdcVsEitr = tdcVsE.begin(); tdcVsEitr != tdcVsE.end() && endItr != tdcEnds.end(); tdcVsEitr++){
-
-    // get the options for WireIDs
-    std::vector<geo::WireID> wireids = geo->ChannelToWire(wire->Channel());
-    // figure out which TPC we are in
-    unsigned int tpc = 0;
+    // figure out which TPC we are in for each voxel
+    std::vector<double> pos(3, 0.);
+    unsigned int tpc   = 0;
     unsigned int cstat = 0;
-    geo::WireID widForHit;
-    std::vector<double> pos = tdcVsPos[tdcVsEitr->first];    
-    geo->PositionToTPC(&pos[0], tpc, cstat);
-    for( auto const& wid : wireids){
-      if(wid.TPC == tpc && wid.Cryostat == cstat){
-	// in the right TPC, now figure out which wire we want
-	// this works because there is only one plane option for 
-	// each WireID in each TPC
-	if(wid.Wire == geo->NearestWire(pos, wid.Plane, wid.TPC, wid.Cryostat))
-	  widForHit = wid;
-      }
-    }
+    float        edep  = 0.;
 
-    double startTime =  1.*tdcVsEitr->first;
-    double endTime   =  0.;
-    double peakTime  =  0.;
-    double maxCharge = -1.;
-    double totCharge =  0.;
-    int multiplicity =  1 ;
-    while(tdcVsEitr->first <  *endItr){
-      double adc = fElectronsToADC*tdcVsEitr->second;
+    for(auto const& ideitr : mapitr.second){
+
+      edep = ideitr.numElectrons;
+      
+      pos[0] = ideitr.x;
+      pos[1] = ideitr.y;
+      pos[2] = ideitr.z;
+            
+      geo->PositionToTPC(&pos[0], tpc, cstat);
+
+      for( auto const& wid : wireids){
+	if(wid.TPC == tpc && wid.Cryostat == cstat){
+	  // in the right TPC, now figure out which wire we want
+	  // this works because there is only one plane option for 
+	  // each WireID in each TPC
+	  if(wid.Wire == geo->NearestWire(pos, wid.Plane, wid.TPC, wid.Cryostat))
+	    wireIDSignals[wid][tdc] += edep;
+	}// end if in the correct TPC and Cryostat
+      }// end loop over wireids for this channel
+    }// end loop over ides for this channel
+  }// end loop over tdcs for this channel
+
+  // now loop over each wire ID and determine where the hits are
+  for( auto widitr : wireIDSignals){
+
+    // get the first tdc in the 
+    unsigned short prev         = widitr.second.begin()->first;
+    double         startTime    = prev;
+    double         totCharge    = 0.;
+    double         maxCharge    = -1.;
+    double         peakTime     = 0.;
+    int            multiplicity =  1 ;
+
+    // loop over all the tdcs for this geo::WireID
+    for( auto tdcitr : widitr.second){
+      unsigned short tdc = tdcitr.first;
+      
+      double adc = fElectronsToADC*tdcitr.second;
+
+      // more than a one tdc gap between times with 
+      // signal, start a new hit
+      if(tdc - prev > fNewHitTDCGap){
+	
+	if(totCharge > fMinCharge){
+	  hits.push_back(recob::Hit(wire, 
+				    widitr.first,
+				    startTime, 1.,
+				    prev,      1.,
+				    peakTime,  1.,
+				    totCharge, std::sqrt(totCharge),
+				    maxCharge, std::sqrt(maxCharge),
+				    multiplicity,
+				    1.)
+			 );
+	  
+	  LOG_DEBUG("HitCheater") << "new hit is " << hits.back();
+	  
+	}// end if charge is large enough
+
+	// reset the variables for each hit
+	startTime = tdc;
+	peakTime  = tdc;
+	totCharge = 0.;
+	maxCharge = -1.;
+
+      }// end if need to start a new hit
+
       totCharge += adc;
       if(adc > maxCharge){
 	maxCharge = adc;
-	peakTime = 1.*tdcVsEitr->first;
+	peakTime = tdc;
       }
-      endTime = 1.*tdcVsEitr->first;
-      tdcVsEitr++;
-      if(tdcVsEitr == tdcVsE.end()) break;
-    } // end loop for current hit
 
-    // make the new hit object
-    // use 1. as the uncertainty on the times, as we know them to within 1 tdc 
-    // tick when cheating, make the uncertainty on the charges just be the sqrt 
-    // of their values.
-    // don't make an object if the total charge is less than 5 adc count
+      prev = tdc;
+
+    }// end loop over tdc values for the current geo::WireID
+
+
+    // We might have missed the last hit, so do it now
     if(totCharge > fMinCharge){
       hits.push_back(recob::Hit(wire, 
-				widForHit,
+				widitr.first,
 				startTime, 1.,
-				endTime,   1.,
+				prev,      1.,
 				peakTime,  1.,
 				totCharge, std::sqrt(totCharge),
 				maxCharge, std::sqrt(maxCharge),
@@ -245,10 +252,11 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
 		     );
       
       LOG_DEBUG("HitCheater") << "new hit is " << hits.back();
+      
     }// end if charge is large enough
-
-    endItr++;
-  }// end loop over tdc values
+    
+  }// end loop over map of geo::WireID to map<tdc,electrons>
+  
 
   return;
 }
@@ -256,33 +264,6 @@ void hit::HitCheater::FindHitsOnChannel(std::map<unsigned short, std::vector<sim
 //-------------------------------------------------------------------
 void hit::HitCheater::beginJob()
 {
-  art::ServiceHandle<art::TFileService> tfs;
-
-  // get the geometry to determine how many channels
-  // are in the induction and collection planes...
-  // only worry about 1 induction plane for now
-  // and the first tpc
-  art::ServiceHandle<geo::Geometry> geo;
-
-  fChannelEnergyDepsInd.clear();
-  fChannelEnergyDepsCol.clear();
-
-  // plane 0 is always induction, the last plane is always collection,
-  // just worry about tpc 0.
-  fChannelEnergyDepsInd.resize(geo->TPC(0).Plane(0).Nwires());
-  for(unsigned int w = 0; w < geo->TPC(0).Plane(0).Nwires(); ++w){
-    TString name = "InductionChannel_";
-    name += w;
-    fChannelEnergyDepsInd[w] = tfs->make<TH1D>(name, ";TDC;Electrons;", 4096, 0., 4095);
-  }
-
-  fChannelEnergyDepsCol.resize(geo->TPC(0).Plane(geo->TPC(0).Nplanes()-1).Nwires());
-  for(unsigned int w = 0; w < geo->TPC(0).Plane(geo->TPC(0).Nplanes()-1).Nwires(); ++w){
-    TString name = "CollectionChannel_";
-    name += w;
-    fChannelEnergyDepsCol[w] = tfs->make<TH1D>(name, ";TDC;Electrons;", 4096, 0., 4095);
-  }
-  
   return;
 }
 
@@ -292,9 +273,12 @@ void hit::HitCheater::reconfigure(fhicl::ParameterSet const & p)
   fG4ModuleLabel   = p.get< std::string >("G4ModuleLabel",   "largeant");
   fWireModuleLabel = p.get< std::string >("WireModuleLabel", "caldata" );
   fMinCharge       = p.get< double      >("MinimumCharge",   5.        );
+  fNewHitTDCGap    = p.get< int         >("NewHitTDCGap",    1         );
+
   art::ServiceHandle<util::DetectorProperties> detprop;
   fElectronsToADC = detprop->ElectronsToADC();
-
+  fSamplingRate   = detprop->SamplingRate();
+  fTriggerOffset  = detprop->TriggerOffset();
 
    fCalDataProductInstanceName="";
    size_t pos = fWireModuleLabel.find(":");
@@ -303,9 +287,8 @@ void hit::HitCheater::reconfigure(fhicl::ParameterSet const & p)
      fWireModuleLabel = fWireModuleLabel.substr( 0, pos );
    }
 
-   fReadOutWindowSize  = art::ServiceHandle<util::DetectorProperties>()->ReadOutWindowSize();
-   fNumberTimeSamples  = art::ServiceHandle<util::DetectorProperties>()->NumberTimeSamples();
-
+   fReadOutWindowSize  = detprop->ReadOutWindowSize();
+   fNumberTimeSamples  = detprop->NumberTimeSamples();
 
   return;
 }
