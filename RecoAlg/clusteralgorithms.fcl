@@ -4,8 +4,8 @@ standard_clustercrawleralg:
 {
   NumPass:              2  # number of passes through the hit list
   MaxHitsFit:    [20,   4] # number of hits fitted to a line
-  MinHits:       [10,   5] # minimum size of a cluster
-  NHitsAve:       [1,   1] # number of hits to find the average charge and width  
+  MinHits:       [20,   5] # minimum size of a cluster
+  NHitsAve:      [ 5,   1] # number of hits to find the average charge and width  
                            # at the end of the cluster. NHitsAve should be 1 or 2
   ChgCut:       [0.6, 0.7] # max fractional hit charge difference for adding hits
   WidCut:       [0.5, 0.8] # max fractional hit width difference for adding hits
@@ -14,9 +14,9 @@ standard_clustercrawleralg:
   MinWirAfterSkip:  [1, 1] # min reqd number of consecutive wires with a hit after a skip
   KinkChiRat:   [1.2,  0.] # Max consecutive chisq increase for the last 3 hits on the cluster
                            # 0. = no kink check when following
-  KinkAngCut:  [0.15,  0.] # kink angle cut (radians) used to follow and merge
+  KinkAngCut:   [0.2, 0.3] # kink angle cut (radians) used to follow and merge
   DoMerge:   [false, true] # run cluster merging code?
-  TimeDelta:     [2.,  8.] # max time difference for cluster merging
+  TimeDelta:     [2., 10.] # max time difference for cluster merging
   TimeDeltaLA:   [2.,  8.] # max time difference for Large Angle cluster merging
   HitErrFac:           0.3 # hit time error for fitting = fHitErrFac * (hit width)
   HitWidFac:           2.0 # hit width for tracking = fHitWidFac * (hit width)
@@ -28,7 +28,9 @@ standard_clustercrawleralg:
   PairAngCut:          0.4 # Break clusters for pairs that are less than this
                            # angle (radians). Set = 0 to turn off
   CurlyMergeAngCut:   -1.0 # Angle cut for mergin short curly clusters. Set = 0 to turn off
-  DoVertex:           true # make 2D vertices?
+  DoVertex:          true  # make 2D vertices?
+  DebugWire:            0  # set to the Begin Wire and Hit of a cluster to print
+  DebugHit:             0  # out detailed information while crawling
 }
 
 standard_houghbasealg:
