@@ -111,6 +111,7 @@ namespace cluster {
 // debugging
 //          geo::SigType_t sigType = geo->Cryostat(cstat).TPC(tpc).Plane(plane).SignalType();
 //          if(sigType != geo::kCollection) continue;
+          if(hitcol->size() > 32766) continue;
           for(size_t i = 0; i< hitcol->size(); ++i){
             art::Ptr<recob::Hit> hit(hitcol, i);
             if(hit->WireID().Plane    == plane && 
@@ -129,15 +130,15 @@ namespace cluster {
             ClusterStore clstr = *it;
             // ignore deleted clusters
             if(clstr.ID < 0) continue;
-            int startwire = clstr.BeginWir;
+            short startwire = clstr.BeginWir;
             double starttime = clstr.BeginTim;
-            int endwire = clstr.EndWir;
+            short endwire = clstr.EndWir;
             double endtime = clstr.EndTim;
             art::PtrVector<recob::Hit> clusterHits;
             double totalQ = 0.;
-            for(std::vector<int>::const_iterator itt = clstr.tclhits.begin();
+            for(std::vector<short>::const_iterator itt = clstr.tclhits.begin();
                 itt != clstr.tclhits.end(); ++itt) {
-              int hit = *itt;
+              short hit = *itt;
               totalQ += plnhits[hit]->Charge();
               clusterHits.push_back(plnhits[hit]);
             } // hit iterator
@@ -160,16 +161,12 @@ namespace cluster {
           } // cluster iterator
           tcl.clear();
           if(vtx.size() > 0) {
-            // generate a map to index WireID from wire
-            std::map<int, geo::WireID> wirmap;
-            for(unsigned int iht = 0; iht < plnhits.size(); iht++) {
-              int wire = plnhits[iht]->WireID().Wire;
-              wirmap[wire] = plnhits[iht]->WireID();
-            }
             for(unsigned int iv = 0; iv < vtx.size(); iv++) {
               double drtime = vtx[iv].Time;
-              int wire = vtx[iv].Wire;
-              geo::WireID wID = wirmap[wire];
+              unsigned int wire = vtx[iv].Wire;
+              uint32_t chan = geo->PlaneWireToChannel(plane, wire, tpc, cstat);
+              std::vector<geo::WireID> wIDvec = geo->ChannelToWire(chan);
+              geo::WireID wID = wIDvec[0];
               double strenth = vtx[iv].Wght;
               recob::EndPoint2D myvtx(drtime, wID, strenth, (int)iv, plnhits[0]->View(), 0.);
               vcol->push_back(myvtx);
