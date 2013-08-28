@@ -87,7 +87,8 @@ namespace cluster {
   void ClusterCrawler::produce(art::Event & evt)
   {
     art::ServiceHandle<geo::Geometry> geo;
-  
+
+  std::cout<<"Module in "<<std::endl;  
     art::Handle< std::vector<recob::Hit> > hitcol;
     evt.getByLabel(fhitsModuleLabel,hitcol);
 
@@ -102,32 +103,27 @@ namespace cluster {
   
     // get the ChannelFilter
     filter::ChannelFilter chanFilt;
-        
+
     for(unsigned int cstat = 0; cstat < geo->Ncryostats(); ++cstat){
       for(unsigned int tpc = 0; tpc < geo->Cryostat(cstat).NTPC(); ++tpc){
         for(unsigned int plane = 0; plane < geo->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
           // load the hits in this plane
           plnhits.clear();
-// debugging
-//          geo::SigType_t sigType = geo->Cryostat(cstat).TPC(tpc).Plane(plane).SignalType();
-//          if(sigType != geo::kCollection) continue;
-          if(hitcol->size() > 32766) continue;
           for(size_t i = 0; i< hitcol->size(); ++i){
             art::Ptr<recob::Hit> hit(hitcol, i);
             if(hit->WireID().Plane    == plane && 
                hit->WireID().TPC      == tpc   && 
                hit->WireID().Cryostat == cstat) plnhits.push_back(hit);
           }  // i
+          if(plnhits.size() < 2 || plnhits.size() > 32767) {
+            plnhits.clear();
+            continue;
+          }
           plnhits.sort(cluster::SortByWire());
-          // vector of temporary clusters returned from RunCrawler
-          std::vector< ClusterStore > tcl; 
-          // and vertices
-          std::vector< VtxStore > vtx;
-          // make clusters and fill the tcl vector
-          fCCAlg.RunCrawler(plnhits, plane, tcl, vtx);
-          for(std::vector<ClusterStore>::const_iterator it = tcl.begin();
-              it != tcl.end(); ++it) {
-            ClusterStore clstr = *it;
+          const art::PtrVector<recob::Hit> cplnhits(plnhits);
+          fCCAlg.RunCrawler(cplnhits, plane);
+          for(size_t it = 0; it < fCCAlg.tcl.size(); it++) {
+            ClusterCrawlerAlg::ClusterStore clstr = fCCAlg.tcl[it];
             // ignore deleted clusters
             if(clstr.ID < 0) continue;
             short startwire = clstr.BeginWir;
@@ -138,12 +134,11 @@ namespace cluster {
             double totalQ = 0.;
             for(std::vector<short>::const_iterator itt = clstr.tclhits.begin();
                 itt != clstr.tclhits.end(); ++itt) {
-              short hit = *itt;
+              unsigned int hit = *itt;
               totalQ += plnhits[hit]->Charge();
               clusterHits.push_back(plnhits[hit]);
             } // hit iterator
             double slope = clstr.BeginSlp;
-
             recob::Cluster cluster(startwire, 0.,
                                   starttime, 0.,
                                   endwire, 0.,
@@ -159,29 +154,27 @@ namespace cluster {
             util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
             clusterHits.clear();
           } // cluster iterator
-          tcl.clear();
-          if(vtx.size() > 0) {
-            for(unsigned int iv = 0; iv < vtx.size(); iv++) {
-              double drtime = vtx[iv].Time;
-              unsigned int wire = vtx[iv].Wire;
-              uint32_t chan = geo->PlaneWireToChannel(plane, wire, tpc, cstat);
-              std::vector<geo::WireID> wIDvec = geo->ChannelToWire(chan);
-              geo::WireID wID = wIDvec[0];
-              double strenth = vtx[iv].Wght;
-              recob::EndPoint2D myvtx(drtime, wID, strenth, (int)iv, plnhits[0]->View(), 0.);
-              vcol->push_back(myvtx);
-            } // iv
-            vtx.clear();
-          } // vtx.size() > 0
+          fCCAlg.tcl.clear();
+          for(unsigned int iv = 0; iv < fCCAlg.vtx.size(); iv++) {
+            ClusterCrawlerAlg::VtxStore Vtx = fCCAlg.vtx[iv];
+            double drtime = Vtx.Time;
+            unsigned int wire = Vtx.Wire;
+            uint32_t chan = geo->PlaneWireToChannel(plane, wire, tpc, cstat);
+            std::vector<geo::WireID> wIDvec = geo->ChannelToWire(chan);
+            geo::WireID wID = wIDvec[0];
+            double strenth = Vtx.Wght;
+            recob::EndPoint2D myvtx(drtime, wID, strenth, (int)iv, plnhits[0]->View(), 0.);
+            vcol->push_back(myvtx);
+          } // iv
+          fCCAlg.vtx.clear();
         } // plane
       } // tpc
     } // cstat
-      
+    
     evt.put(std::move(ccol));
     evt.put(std::move(assn));
     evt.put(std::move(vcol));
-    
-    return;
+  std::cout<<"Module out "<<std::endl;  
 
   } // produce
 } // namespace
