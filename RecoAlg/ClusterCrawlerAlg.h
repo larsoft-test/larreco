@@ -29,6 +29,9 @@ namespace recob { class Hit; }
 
 namespace cluster {
 
+
+  class ClusterCrawlerAlg {
+    public:
     // struct of temporary clusters
 
     struct ClusterStore {
@@ -61,16 +64,12 @@ namespace cluster {
     };
     std::vector< VtxStore > vtx;
 
-  class ClusterCrawlerAlg {
-    public:
-
     ClusterCrawlerAlg(fhicl::ParameterSet const& pset);
     virtual ~ClusterCrawlerAlg();
 
     void reconfigure(fhicl::ParameterSet const& pset);
     void beginJob();
-    void RunCrawler(art::PtrVector<recob::Hit>& plnhits,
-       int plane, std::vector< ClusterStore >& tcl, std::vector< VtxStore >& vtx);
+    void RunCrawler(const art::PtrVector<recob::Hit>& plnhits,int plane);
     
     short fNumPass;                 ///< number of passes over the hit collection
     std::vector<short> fMaxHitsFit; ///< Max number of hits fitted
@@ -92,7 +91,7 @@ namespace cluster {
     std::vector<float> fTimeDeltaLA; ///< max time difference for matching
                                      ///< large angle clusters, abs(slope) > 20
 
-    // global cuts and parameters
+    // global cuts and parameters 
     float fHitErrFac;   ///< hit time error = fHitErrFac * (EndTime - PeakTime)
                         ///< used for cluster fit
     float fHitWidFac;   ///< hit width = fHitWidFac * (EndTime - PeakTime)
@@ -115,9 +114,14 @@ namespace cluster {
     
     bool prt;
     short NClusters;
-    bool ArgoFix;
 
-    
+    TLinearFitter *lf;
+    std::vector<Double_t> xwir;
+    std::vector<Double_t> ytim;
+    std::vector<Double_t> ytimerr;
+    std::vector<Double_t> ychg;
+    std::vector<Double_t> ychgerr;
+
     TVectorD clpar;     ///< cluster parameters for the current fit with
                         ///< origin at wire0
     TVectorD clparerr;  ///< cluster parameter errors
@@ -149,14 +153,6 @@ namespace cluster {
     short clAssn;         ///< index of a parent cluster. -1 if no parent.
                         ///< Parent clusters are not associated with daughters
     
-    // TLinearFitter arrays
-    TLinearFitter *lf;
-    Double_t *xwir;
-    Double_t *ytim;
-    Double_t *ytimerr;
-    Double_t *ychg;
-    Double_t *ychgerr;
-    
     short fFirstWire;    ///< the first wire with a hit
     short fLastWire;      ///< the last wire with a hit
     float fAveWid;  ///< average hit width at leading edge of cluster
@@ -184,58 +180,55 @@ namespace cluster {
         std::vector<unsigned int>& sortindex);
 */
     // Finds a hit on wire kwire, adds it to the cluster and re-fits it
-    void cl2AddHit(art::PtrVector<recob::Hit>& plnhits, short kwire, bool phchk,
+    void cl2AddHit(const art::PtrVector<recob::Hit>& plnhits, short kwire,
       bool& HitOK, bool& SigOK);
     // Fits the cluster hits in fcl2hits to a straight line
-    void cl2Fit(art::PtrVector<recob::Hit>& plnhits);
+    void cl2Fit(const art::PtrVector<recob::Hit>& plnhits);
     // Fits the middle of a temporary cluster it1 using hits iht to iht + nhit
-    void cl2FitMid(art::PtrVector<recob::Hit>& plnhits, 
+    void cl2FitMid(const art::PtrVector<recob::Hit>& plnhits, 
       std::vector<ClusterStore>& tcl, unsigned int it1, short iht, short nhit);
     // Follows a trail of hits UpStream
-    void cl2FollowUS(art::PtrVector<recob::Hit>& plnhits);
+    void cl2FollowUS(const art::PtrVector<recob::Hit>& plnhits);
     // Stores cluster information in a temporary vector
-    void cl2TmpStore(art::PtrVector<recob::Hit>& plnhits, 
-      std::vector<ClusterStore>& tcl);
-    // attaches hits to the ends of tcl clusters
-    void cl2Clean(art::PtrVector<recob::Hit>& plnhits, 
+    void cl2TmpStore(const art::PtrVector<recob::Hit>& plnhits, 
       std::vector<ClusterStore>& tcl);
     // Prepares close pair clusters
-    void cl2ChkPair(art::PtrVector<recob::Hit>& plnhits,
+    void cl2ChkPair(const art::PtrVector<recob::Hit>& plnhits,
       std::vector<ClusterStore>& tcl);
     // Splits close pair clusters
-    void cl2DoSplit(art::PtrVector<recob::Hit>& plnhits,
+    void cl2DoSplit(const art::PtrVector<recob::Hit>& plnhits,
       std::vector<ClusterStore>& tcl, unsigned int it1, unsigned int it2);
     // Compares two cluster combinations to see if they should be merged
-    void cl2ChkMerge(art::PtrVector<recob::Hit>& plnhits,
+    void cl2ChkMerge(const art::PtrVector<recob::Hit>& plnhits,
       std::vector<ClusterStore>& tcl);
     // Checks merge for cluster cl2 within the bounds of cl1
-    void cl2ChkMerge12(art::PtrVector<recob::Hit>& plnhits,
+    void cl2ChkMerge12(const art::PtrVector<recob::Hit>& plnhits,
       std::vector<ClusterStore>& tcl, unsigned int it1, unsigned int it2, bool& didit);
     // Merges clusters cl1 and cl2
-    void cl2DoMerge(art::PtrVector<recob::Hit>& plnhits, 
+    void cl2DoMerge(const art::PtrVector<recob::Hit>& plnhits, 
       std::vector<ClusterStore>& tcl, unsigned int it1, unsigned int it2, short ProcCode);
-    void cl2CurlyMerge(art::PtrVector<recob::Hit>& plnhits,
+    void cl2CurlyMerge(const art::PtrVector<recob::Hit>& plnhits,
       std::vector<ClusterStore>& tcl);
     // Prints cluster information to the screen
-    void cl2Print(art::PtrVector<recob::Hit>& plnhits, 
+    void cl2Print(const art::PtrVector<recob::Hit>& plnhits, 
      std::vector<ClusterStore>& tcl);
     // Sets the beginning and end direction of the cluster. This should
     // be called last before returning to the calling routine
-    void cl2SetBeginEnd(art::PtrVector<recob::Hit>& plnhits,
+    void cl2SetBeginEnd(const art::PtrVector<recob::Hit>& plnhits,
       std::vector<ClusterStore>& tcl);
     // make 2D vertices
-    void cl2DoVertex(art::PtrVector<recob::Hit>& plnhits,
+    void cl2DoVertex(const art::PtrVector<recob::Hit>& plnhits,
       std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx);
     // check for a signal on all wires between two points
-    void cl2ChkSignal(art::PtrVector<recob::Hit>& plnhits,
+    void cl2ChkSignal(const art::PtrVector<recob::Hit>& plnhits,
       short wire1, float time1, short wire2, float time2, bool& SigOK);
     // check a vertex (vw, fvt) made with clusters it1, and it2 against the
     // vector of existing clusters
-    void cl2ChkVertex(art::PtrVector<recob::Hit>& plnhits,
+    void cl2ChkVertex(const art::PtrVector<recob::Hit>& plnhits,
         std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx,
         short vw, float fvt, unsigned int it1, unsigned int it2, short topo);
     // try to attach a cluster to an existing vertex
-    void cl2ClsVertex(art::PtrVector<recob::Hit>& plnhits, 
+    void cl2ClsVertex(const art::PtrVector<recob::Hit>& plnhits, 
         std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx,
         unsigned int it2);
 
