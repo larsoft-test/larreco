@@ -433,7 +433,7 @@ void SpacePts::produce(art::Event& evt)
 	
 
 	std::vector< art::Ptr<recob::Hit> > minhits = hitsCtrk.size() <= hitsItrk.size() ? hitsCtrk : hitsItrk;
-	std::vector< art::Ptr<recob::Hit> > maxhits = hitsItrk.size() <= hitsCtrk.size() ? hitsCtrk : hitsItrk;
+	std::vector< art::Ptr<recob::Hit> > maxhits = hitsItrk.size() < hitsCtrk.size() ? hitsCtrk : hitsItrk;
 
 
 	bool maxhitsMatch[maxhits.size()];
