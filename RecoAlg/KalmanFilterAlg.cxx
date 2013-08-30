@@ -208,7 +208,7 @@ bool trkf::KalmanFilterAlg::buildTrack(const KTrack& trk,
 
   // Sort container using this seed track.
 
-  hits.sort(trk, true, prop, dir);
+  hits.sort(trk, true, prop, Propagator::UNKNOWN);
 
   // Loop over measurements (KHitGroup) from sorted list.
 
