@@ -11,6 +11,9 @@
 
 #include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Core/ModuleMacros.h"
+#include "art/Framework/Services/Optional/TFileService.h"
+#include "art/Framework/Principal/Event.h"
+#include "cetlib/exception.h"
 
 #include "Geometry/Geometry.h"
 #include "Geometry/TPCGeo.h"
@@ -20,9 +23,6 @@
 #include "RecoBase/Hit.h"
 #include "Utilities/DetectorProperties.h"
 #include "SimpleTypesAndConstants/geo_types.h"
-
-#include "art/Framework/Services/Optional/TFileService.h"
-#include "art/Framework/Principal/Event.h"
 
 #include "TH1.h"
 #include "TString.h"
@@ -167,8 +167,17 @@ void hit::HitCheater::FindHitsOnChannel(const sim::SimChannel*                  
       pos[0] = ideitr.x;
       pos[1] = ideitr.y;
       pos[2] = ideitr.z;
-            
-      geo->PositionToTPC(&pos[0], tpc, cstat);
+
+      try{
+	geo->PositionToTPC(&pos[0], tpc, cstat);
+      }
+      catch(cet::exception &e){
+	mf::LogWarning("HitCheater") << "caught exception \n"
+				     << e
+				     << "when attempting to find TPC for position "
+				     << "move on to the next sim::IDE";
+	continue;
+      }
 
       for( auto const& wid : wireids){
 	if(wid.TPC == tpc && wid.Cryostat == cstat){
