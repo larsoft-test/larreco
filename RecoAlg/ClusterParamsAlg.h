@@ -33,6 +33,7 @@ namespace recob {
 class TH2F;
 class TF1;
 class TH1F;
+class TPrincipal;
 
 namespace cluster {
    
@@ -40,27 +41,27 @@ namespace cluster {
 
   public:
     
-  ClusterParamsAlg(fhicl::ParameterSet const& pset);
+  ClusterParamsAlg(fhicl::ParameterSet const& pset,std::string mother);
   
   void reconfigure(fhicl::ParameterSet const& pset); 
   
-  void Find2DAxisRough(double &lineslope,double &lineintercept,double &goodness,std::vector < art::Ptr < recob::Hit> > hitlist); /**Calculate 2D angle histograms, provided vertex is know */ 
+  int Find2DAxisRough(double &lineslope,double &lineintercept,double &goodness,std::vector < art::Ptr < recob::Hit> > hitlist); /**Calculate 2D angle histograms, provided vertex is know */ 
     
-  void Find2DAxisRoughHighCharge(double &lineslope,double &lineintercept,double &goodness,std::vector < art::Ptr < recob::Hit> > hitlist);  
+  int Find2DAxisRoughHighCharge(double &lineslope,double &lineintercept,double &goodness,std::vector < art::Ptr < recob::Hit> > hitlist);  
     //  void CalculateAxisParameters(unsigned nClust, std::vector < art::Ptr < recob::Hit> >  hitlist,double wstart,double tstart,double wend,double tend);
     
-  void  Find2DStartPointsBasic(std::vector< art::Ptr < recob::Hit> > hitlist,double &wire_start,double &time_start,double &wire_end,double &time_end);
+  int  Find2DStartPointsBasic(std::vector< art::Ptr < recob::Hit> > hitlist,double &wire_start,double &time_start,double &wire_end,double &time_end);
 
-  void Find2DStartPointsBasic(double lineslope,double lineintercept,std::vector< art::Ptr < recob::Hit> > hitlist,double &wire_start,double &time_start,double &wire_end,double &time_end);
+  int Find2DStartPointsBasic(double lineslope,double lineintercept,std::vector< art::Ptr < recob::Hit> > hitlist,double &wire_start,double &time_start,double &wire_end,double &time_end);
 
-  void Find2DStartPointsHighCharge(std::vector< art::Ptr < recob::Hit> > hitlist,double &wire_start,double &time_start,double &wire_end,double &time_end);
+  int Find2DStartPointsHighCharge(std::vector< art::Ptr < recob::Hit> > hitlist,double &wire_start,double &time_start,double &wire_end,double &time_end);
   
   
   int FindTrunk(std::vector < art::Ptr < recob::Hit> > hitlist,double &wstn,double &tstn,double &wendn,double &tendn,double lineslope,double lineintercept);
   
   int FindTrunk(std::vector < art::Ptr < recob::Hit> > hitlist,double &wstn,double &tstn,double &wendn,double &tendn); //overloaded interface, will calculate the lineslope and basic points using Find2DStartPointsBasic.
   
-  void FindDirectionWeights(double lineslope,double wstn,double tstn,double wendn,double tendn, std::vector < art::Ptr < recob::Hit> > hitlist,double &HiBin,double &LowBin,double &invHiBin,double &invLowBin); 
+  void FindDirectionWeights(double lineslope,double wstn,double tstn,double wendn,double tendn, std::vector < art::Ptr < recob::Hit> > hitlist,double &HiBin,double &LowBin,double &invHiBin,double &invLowBin, double *altWeight=0); 
   
   void FindSideWeights(double lineslope,double lineintercept,double wstn,double tstn,int direction, std::vector < art::Ptr < recob::Hit> > hitlist,double &sideWeightCharge); 
   
@@ -71,21 +72,30 @@ namespace cluster {
 				  int &direction);
  
   int DecideClusterDirection(std::vector < art::Ptr<recob::Hit> > hitlist,
-				double lineslope,double &wstn,double &tstn,double &wendn,double &tendn);
+				double lineslope,double wstn,double tstn,double wendn,double tendn);
  
  
+ 
+  bool isShower(double lineslope,double wstn,double tstn,double wendn,double tendn, std::vector < art::Ptr < recob::Hit> > hitlist);
+  
+  int MultiHitWires(std::vector < art::Ptr < recob::Hit> > hitlist);
+  
 //     
 //     void RefineStartPoints(unsigned int nClust, std::vector< art::Ptr < recob::Hit> >  hitlist, double  wire_start,double time_start);
 //     
 //     double Get2DAngleForHit( art::Ptr<recob::Hit> starthit,std::vector < art::Ptr < recob::Hit> > hitlist);
 //     
 //     double Get2DAngleForHit( unsigned int wire, double time,std::vector < art::Ptr < recob::Hit> > hitlist);
-
-    
+int FindPrincipalDirection(std::vector< art::Ptr < recob::Hit> > hitlist, double  wire_start,double  time_start, double  wire_end,double  time_end);
+void GetPrincipal(std::vector< art::Ptr < recob::Hit> > hitlist, TPrincipal * pc);
+int Find2DAxisPrincipal(double &lineslope,double &lineintercept,double &goodness,std::vector < art::Ptr < recob::Hit> > hitlist);
+int Find2DAxisPrincipalHighCharge(double &lineslope,double &lineintercept,double &goodness,std::vector < art::Ptr < recob::Hit> > hitlist);
+double Get2DAngleForHit( unsigned int swire,double stime,std::vector < art::Ptr < recob::Hit> > hitlist);
     
   private:
    
-    
+   const std::string extname; 
+   std::string funcname; 
    HoughBaseAlg fHBAlg;  
    double fWiretoCm,fTimetoCm,fWireTimetoCmCm;
    double fWirePitch ;   // wire pitch in cm
@@ -93,6 +103,7 @@ namespace cluster {
    TF1 * linefittest_cm;
    TH2F *  tgxtest;
    TH1F *  hithistinv, * hitinv2, * hitreinv2;
+   TH1F *  fh_omega_single;
    int fMinHitListSize;
    double fOutlierRadius;
    util::GeometryUtilities gser;

@@ -151,8 +151,15 @@ standard_clusterparamsalg:
   ChargeCutoffThreshold:    [500,500,1000]
   SelectBoxSizePar:               10     #distance along axis
   SelectBoxSizePerp:              3      #distance perpendicular to axis
-  ForceRightGoing:        false
+  ForceRightGoing:        	  false
+  MinHitListSize:		  40
+  fOutlierRadius:		  5 
+  #HoughBaseAlg.NumAngleCells:       3000
+  #HoughBaseAlg.RhoResolutionFactor:       4
+  #HoughBaseAlg.MaxLines:       100
+
   HoughBaseAlg:                   @local::standard_houghbasealg
+
  }
  
 standard_smallclustalg:
@@ -198,6 +205,9 @@ argoneut_endpointalg:                @local::standard_endpointalg
 argoneut_cornerfinderalg:		      @local::standard_cornerfinderalg
 argoneut_clusterparamsalg:       @local::standard_clusterparamsalg
 argoneut_clusterparamsalg.HoughBaseAlg: @local::argoneut_houghbasealg
+argoneut_clusterparamsalg.HoughBaseAlg.NumAngleCells:       3000
+argoneut_clusterparamsalg.HoughBaseAlg.RhoResolutionFactor:       4
+argoneut_clusterparamsalg.HoughBaseAlg.MaxLines:       100
 argoneut_clusterparamsalg.ChargeCutoffThreshold:  [200,400]
 argoneut_clusterparamsalg.ForceRightGoing:   true
 argoneut_smallclustalg:	@local::standard_smallclustalg
