@@ -27,7 +27,7 @@
 #include "Utilities/LArProperties.h"
 #include "Utilities/GeometryUtilities.h"
 #include "Utilities/DetectorProperties.h"
-#include "RecoAlg/HoughBaseAlg.h"
+//#include "RecoAlg/HoughBaseAlg.h"
 #include "RecoAlg/ClusterParamsAlg.h"
 
 extern "C" {
@@ -104,13 +104,16 @@ namespace cluster {
     double Get2DAngleForHit( unsigned int wire, double time,std::vector < art::Ptr < recob::Hit> > hitlist);
     void ClearandResizeVectors(unsigned int nClusters);
 
-    
-    HoughBaseAlg fHBAlg; 
+ 
+    //HoughBaseAlg fHBAlg; 
     ClusterParamsAlg fCParAlg;
  //   double fWiretoCm,fTimetoCm,fWireTimetoCmCm;
     
     std::vector< unsigned int >fNWires;
     double fNTimes;
+    
+    
+    
     
     
     
@@ -160,8 +163,8 @@ namespace cluster {
 
 //------------------------------------------------------------------------------
 cluster::ShowerAngleCluster::ShowerAngleCluster(fhicl::ParameterSet const& pset)
- : fHBAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg")),
-   fCParAlg(pset.get< fhicl::ParameterSet >("ClusterParamsAlg"))
+ :// fHBAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg")),
+   fCParAlg(pset.get< fhicl::ParameterSet >("ClusterParamsAlg"),pset.get< std::string >("module_type"))
 {
   this->reconfigure(pset);
   produces< std::vector<recob::Cluster> >();
@@ -180,15 +183,6 @@ cluster::ShowerAngleCluster::ShowerAngleCluster(fhicl::ParameterSet const& pset)
 void cluster::ShowerAngleCluster::reconfigure(fhicl::ParameterSet const& pset) 
 {
   fClusterModuleLabel 		=pset.get< std::string >("ClusterModuleLabel");
-  //fVertexCLusterModuleLabel	=pset.get<std::string > ("VertexClusterModuleLabel");
-//  fMCGeneratorLabel		=pset.get<std::string > ("MCGeneratorLabel");
-//  fLarGeantlabel		=pset.get<std::string > ("LarGeantlabel");     
-//  fChargeCutoffThreshold	=pset.get<   std::vector<double> > ("ChargeCutoffThreshold");    
-//  fSelectBoxSizePar    		=pset.get<   double > ("SelectBoxSizePar");
-//  fSelectBoxSizePerp		=pset.get<   double > ("SelectBoxSizePerp");
-//  fSelectBoxDiff		=pset.get<   double > ("SelectBoxDiff");
-//  fForceRightGoing 		=pset.get<   bool > ("ForceRightGoing");
-  fHBAlg.reconfigure(pset.get< fhicl::ParameterSet >("HoughBaseAlg"));
   fCParAlg.reconfigure(pset.get< fhicl::ParameterSet >("ClusterParamsAlg"));
  }
 
@@ -257,7 +251,13 @@ void cluster::ShowerAngleCluster::beginJob()
     ftree_cluster->Branch("event",&fEvent,"event/I");
     ftree_cluster->Branch("nplanes",&fNPlanes,"nplanes/I");
   
-
+    ftree_cluster->Branch("wire_vertex","std::vector<double>", &fWireVertex);
+    ftree_cluster->Branch("time_vertex","std::vector<double>", &fTimeVertex);
+      
+    ftree_cluster->Branch("wire_last","std::vector<double>", &fWireEnd);
+    ftree_cluster->Branch("time_last","std::vector<double>", &fTimeEnd);
+    
+    
 }
 
 // ************************************* //
@@ -291,9 +291,15 @@ void cluster::ShowerAngleCluster::ClearandResizeVectors(unsigned int nClusters) 
     lineslopetest.resize(nClusters);
     lineinterctest.resize(nClusters);
 
+    
+   
+    
   
   
 }
+  
+
+
   
   
   
@@ -304,7 +310,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
 
   
   
- 
+ mf::LogWarning("ShowerAngleCluster") << "In produce module " ; 
 
   //%%%%% this goes into ana module.
   //Find run, subrun and event number:
@@ -349,7 +355,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
   // resizing once cluster size is known.
   
   endflag=false;
-  //GetVertexN(evt);
+ 
   
   
   for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++){
@@ -400,27 +406,36 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
    // std::cout << "++++ hitlist size " << hitlist.size() << std::endl;
     
     //////////////////////////////////
-    fCParAlg.Find2DAxisRoughHighCharge(lineslope,lineintercept,goodness,hitlist);
-     std::cout << "%%%%%%%% lineslope, intercept " << lineslope << " "<< lineintercept << std::endl;
-    fVerticalness[iClust]=goodness;
+   // fCParAlg.Find2DAxisRoughHighCharge(lineslope,lineintercept,goodness,hitlist);
+   //  std::cout << "%%%%%%%% lineslope, intercept " << lineslope << " "<< lineintercept << std::endl;
+
     
+    
+    fCParAlg.Find2DAxisRough(lineslope,lineintercept,goodness,hitlist);
+    fVerticalness[iClust]=goodness;
     //if(hitlist_high.size()<=3 )
 	//continue;
+    
     fCParAlg.Find2DStartPointsHighCharge( hitlist,wire_start,time_start,wire_end,time_end);
-    std::cout << "%%%%%%%% high charge basic start points: (" << wire_start<<","<<time_start<<"), end: ( "<<wire_end << ","<<time_end <<")" <<  std::endl;
+    
+    fWireVertex[iClust]=wire_start;
+    fTimeVertex[iClust]=time_start;
+   
 
+    
+    
     double wstn=0,tstn=0,wendn=0,tendn=0;
     fCParAlg.FindTrunk(hitlist,wstn,tstn,wendn,tendn,lineslope,lineintercept);
-    std::cout << "%%%%%%%% trunk start points: (" << wstn<<","<<tstn<<"), end: ( "<<wendn << ","<<tendn <<")" <<  std::endl;
+    int fDirection = (wstn<wendn)  ? 1 : -1 ;     // if current starting point is less then end point then direction is 1.
+    
     
     double HiBin,LowBin,invHiBin,invLowBin;
     fCParAlg.FindDirectionWeights(lineslope,wstn,tstn,wendn,tendn,hitlist,HiBin,LowBin,invHiBin,invLowBin); 
-    std::cout << "%%%%%%%% Direction weights:  norm: " << HiBin << " " << LowBin << " Inv: " << invHiBin << " " << invLowBin << std::endl;
     
     if(invHiBin+invLowBin> 1000)
       nofshowerclusters++;
     
-    int fDirection=fCParAlg.DecideClusterDirection(hitlist,lineslope,wstn,tstn,wendn,tendn);
+    fDirection=fCParAlg.DecideClusterDirection(hitlist,lineslope,wstn,tstn,wendn,tendn);
      std::cout << "%%%%%%%% direction start points: (" << wstn<<","<<tstn<<"), end: ( "<<wendn << ","<<tendn <<")" << "Direction: " << fDirection << std::endl;
     wire_start=wstn;
     time_start=tstn;
@@ -571,11 +586,11 @@ double cluster::ShowerAngleCluster::Get2DAngleForHit( unsigned int swire,double 
   unsigned int wire;
   // this should changed on the loop on the cluster of the shower
    for(std::vector < art::Ptr < recob::Hit > >::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
-      art::Ptr<recob::Hit> theHit = (*hitIter);
-      double time = theHit->PeakTime();  
-      wire=theHit->WireID().Wire; 
+     // art::Ptr<recob::Hit> theHit = (*hitIter);
+      double time = (*hitIter)->PeakTime();  
+      wire=(*hitIter)->WireID().Wire; 
       double omx=gser.Get2Dangle((double)wire,(double)swire,time,stime);
-      fh_omega_single->Fill(180*omx/TMath::Pi(), theHit->Charge());
+      fh_omega_single->Fill(180*omx/TMath::Pi(),(*hitIter)->Charge());
      }
     
   double omega = fh_omega_single->GetBinCenter(fh_omega_single->GetMaximumBin());// Mean value of the fit

@@ -103,10 +103,7 @@ standard_showeranglecluster:
 {
  module_type:              "ShowerAngleCluster"
  ClusterModuleLabel:       "dbcluster"
- VertexClusterModuleLabel: "linemerger" 
- MCGeneratorLabel:         "generator"    #needed for MC vertex extraction
- LarGeantlabel:            "largeant"     #needed for MC vertex extraction
- UseMCVertex:              1              #needed for MC vertex extraction
+ ClusterParamsAlg: 	   @local::standard_clusterparamsalg
 }
 
 standard_smallclusterfinder:
@@ -142,6 +139,7 @@ jp250L_endpointmod:                  @local::standard_endpointmod
 jp250L_endpointmod.EndPointAlg:      @local::jp250L_endpointalg
 jp250L_showeranglecluster:           @local::standard_showeranglecluster
 
+
 bo_clustercrawler:               @local::standard_clustercrawler      
 bo_dbcluster:                    @local::standard_dbcluster      
 bo_fuzzycluster:                 @local::standard_fuzzycluster      
@@ -157,6 +155,7 @@ bo_linemerger:                   @local::standard_linemerger
 bo_endpointmod:                  @local::standard_endpointmod        
 bo_endpointmod.EndPointAlg:      @local::bo_endpointalg
 bo_showeranglecluster:           @local::standard_showeranglecluster
+
 
 argoneut_clustercrawler:               @local::standard_clustercrawler      
 argoneut_dbcluster:                    @local::standard_dbcluster      
