@@ -812,10 +812,10 @@ bool cluster::ClusterParamsAlg::isShower(double lineslope,double wstn,double tst
    // std::cout << " Direction weights:  norm: " << HiBin << " " << LowBin << " Inv: " << invHiBin << " " << invLowBin << std::endl;
    // std::cout << "+++++++++++ invHiBin + invLowBin " << invHiBin+invLowBin <<std::endl;
     
-   TPrincipal pc(2,"D");
-   GetPrincipal(hitlist,&pc);
-   
-   double PrincipalEigenvalue = (*pc.GetEigenValues())[0];
+//    TPrincipal pc(2,"D");
+//    GetPrincipal(hitlist,&pc);
+//    
+//    double PrincipalEigenvalue = (*pc.GetEigenValues())[0];
  //  std::cout << " Eigen Value: " << PrincipalEigenvalue << " " << PrincipalEigenvalue/hitlist.size() << std::endl;
    
    
@@ -826,7 +826,7 @@ bool cluster::ClusterParamsAlg::isShower(double lineslope,double wstn,double tst
    
    double length=TMath::Sqrt( (wstn-wendn)*(wstn-wendn)*fWiretoCm +(tstn-tendn)*(tstn-tendn)*fTimetoCm     );
    double HitDensity=hitlist.size()/length;
-   double OffAxisNorm=(invHiBin+invLowBin)/hitlist.size();
+   //double OffAxisNorm=(invHiBin+invLowBin)/hitlist.size();
    double xangle=Get2DAngleForHit( wstn,tstn, hitlist);
    if(xangle>90) xangle-=180;
    if(xangle<-90) xangle+=180;  
