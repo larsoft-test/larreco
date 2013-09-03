@@ -88,7 +88,6 @@ namespace cluster {
   {
     art::ServiceHandle<geo::Geometry> geo;
 
-  std::cout<<"Module in "<<std::endl;  
     art::Handle< std::vector<recob::Hit> > hitcol;
     evt.getByLabel(fhitsModuleLabel,hitcol);
 
@@ -100,9 +99,6 @@ namespace cluster {
     
     // loop over all hits in the event and look for clusters in each plane
     art::PtrVector<recob::Hit> plnhits;
-  
-    // get the ChannelFilter
-    filter::ChannelFilter chanFilt;
 
     for(unsigned int cstat = 0; cstat < geo->Ncryostats(); ++cstat){
       for(unsigned int tpc = 0; tpc < geo->Cryostat(cstat).NTPC(); ++tpc){
@@ -115,43 +111,39 @@ namespace cluster {
                hit->WireID().TPC      == tpc   && 
                hit->WireID().Cryostat == cstat) plnhits.push_back(hit);
           }  // i
-          if(plnhits.size() < 2 || plnhits.size() > 32767) {
+          if(plnhits.size() < 4 || plnhits.size() > 32767) {
             plnhits.clear();
             continue;
           }
           plnhits.sort(cluster::SortByWire());
-          const art::PtrVector<recob::Hit> cplnhits(plnhits);
-          fCCAlg.RunCrawler(cplnhits, plane);
+          // convert to const
+          fCCAlg.RunCrawler(plnhits, plane);
           for(size_t it = 0; it < fCCAlg.tcl.size(); it++) {
             ClusterCrawlerAlg::ClusterStore clstr = fCCAlg.tcl[it];
             // ignore deleted clusters
             if(clstr.ID < 0) continue;
-            short startwire = clstr.BeginWir;
-            double starttime = clstr.BeginTim;
-            short endwire = clstr.EndWir;
-            double endtime = clstr.EndTim;
             art::PtrVector<recob::Hit> clusterHits;
             double totalQ = 0.;
-            for(std::vector<short>::const_iterator itt = clstr.tclhits.begin();
-                itt != clstr.tclhits.end(); ++itt) {
-              unsigned int hit = *itt;
-              totalQ += plnhits[hit]->Charge();
-              clusterHits.push_back(plnhits[hit]);
+            for(auto const &itt : clstr.tclhits) {
+              if(itt < 0 || itt > plnhits.size() - 1) {
+                std::cout<<"Bad itt "<<itt<<std::endl;
+                continue;
+              }
+              totalQ += plnhits[itt]->Charge();
+              clusterHits.push_back(plnhits[itt]);
             } // hit iterator
-            double slope = clstr.BeginSlp;
-            recob::Cluster cluster(startwire, 0.,
-                                  starttime, 0.,
-                                  endwire, 0.,
-                                  endtime, 0.,
-                                  slope, 0.,
-                                  -999.,0.,
-                                  totalQ,
-                                  plnhits[0]->View(),
-                                  clstr.ID);
+            recob::Cluster cluster((double)clstr.BeginWir, 0.,
+                                   (double)clstr.BeginTim, 0.,
+                                   (double)clstr.EndWir, 0.,
+                                   (double)clstr.EndTim, 0.,
+                                   (double)clstr.EndSlp, (double)clstr.EndSlpErr,
+                                    -999.,0.,
+                                   totalQ,
+                                   plnhits[0]->View(),
+                                   (int)clstr.ID);
             ccol->push_back(cluster);
-    
             // associate the hits to this cluster
-            util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
+            util::CreateAssn(*this, evt, *ccol, clusterHits, *assn);
             clusterHits.clear();
           } // cluster iterator
           fCCAlg.tcl.clear();
@@ -174,7 +166,6 @@ namespace cluster {
     evt.put(std::move(ccol));
     evt.put(std::move(assn));
     evt.put(std::move(vcol));
-  std::cout<<"Module out "<<std::endl;  
 
   } // produce
 } // namespace
