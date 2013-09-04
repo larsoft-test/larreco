@@ -436,7 +436,7 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
 
       FilterHits(seederhits, seedhits);
 
-      // Convert seed into initial KTrack on surface located at seed point, 
+      // Convert seed into initial KTracks on surface located at seed point, 
       // and normal to seed direction.
 
       double xyz[3];
@@ -453,18 +453,6 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
       vec(2) = 0.;
       vec(3) = 0.;
       vec(4) = 2.0;
-
-      // Since we have no information, assume pz>0.
-
-      Surface::TrackDirection trkdir = (dir[2] > 0 ? Surface::FORWARD : Surface::BACKWARD);
-
-      // Also assume muon.
-
-      int pdg = 13;
-
-      // Make KTrack object.
-
-      KTrack trk(psurf, vec, trkdir, pdg);
 
       log << "Seed found with " << seedsptvec.size() 
 	  << " space points and " << seedhits.size() << " hits.\n"
@@ -483,125 +471,146 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
 
       if(std::abs(dir[0]) >= fMinSeedSlope * std::abs(dir[2])) {
 
-	// Fill hit container with current seed hits.
+	// Make two initial KTracks for forward and backward directions.
+	// Assume muon (pdgid = 13).
 
-	KHitContainerWireX seedcont;
-	seedcont.fill(seedhits, -1);
+	int pdg = 13;
+	std::vector<KTrack> initial_tracks;
+	initial_tracks.reserve(2);
+	initial_tracks.push_back(KTrack(psurf, vec, Surface::FORWARD, pdg));
+	initial_tracks.push_back(KTrack(psurf, vec, Surface::BACKWARD, pdg));
 
-	// Set the preferred plane to be the one with the most hits.
+	// Loop over initial tracks.
 
-	unsigned int prefplane = GetPreferredPlane(seedhits);
-	fKFAlg.setPlane(prefplane);
-	log << "Preferred plane = " << prefplane << "\n";
+	int ntracks = kalman_tracks.size();   // Remember original track count.
 
-	// Build and smooth seed track.
+	for(std::vector<KTrack>::const_iterator itrk = initial_tracks.begin();
+	    itrk != initial_tracks.end(); ++itrk) {
+	  const KTrack& trk = *itrk;
 
-	KGTrack trg0;
-	bool ok = fKFAlg.buildTrack(trk, trg0, fProp, Propagator::FORWARD, seedcont);
-	if(ok) {
-	  KGTrack trg1;
-	  ok = fKFAlg.smoothTrack(trg0, &trg1, fProp);
+	  // Fill hit container with current seed hits.
+
+	  KHitContainerWireX seedcont;
+	  seedcont.fill(seedhits, -1);
+
+	  // Set the preferred plane to be the one with the most hits.
+
+	  unsigned int prefplane = GetPreferredPlane(seedhits);
+	  fKFAlg.setPlane(prefplane);
+	  log << "Preferred plane = " << prefplane << "\n";
+
+	  // Build and smooth seed track.
+
+	  KGTrack trg0;
+	  bool ok = fKFAlg.buildTrack(trk, trg0, fProp, Propagator::FORWARD, seedcont);
 	  if(ok) {
-
-	    // Now we have the seed track in the form of a KGTrack.
-	    // Do additional quality cuts.
-
-	    size_t n = trg1.numHits();
-	    ok = (n >= fMinSeedHits &&
-		  trg0.startTrack().getChisq() <= n * fMaxSeedChiDF &&
-		  trg0.endTrack().getChisq() <= n * fMaxSeedChiDF &&
-		  trg1.startTrack().getChisq() <= n * fMaxSeedChiDF &&
-		  trg1.endTrack().getChisq() <= n * fMaxSeedChiDF);
-	    double mom0[3];
-	    double mom1[3];
-	    trg0.startTrack().getMomentum(mom0);
-	    trg0.endTrack().getMomentum(mom1);
-	    double dxdz0 = mom0[0] / mom0[2];
-	    double dxdz1 = mom1[0] / mom1[2];
-	    ok = ok && (std::abs(dxdz0) > fMinSeedSlope &&
-			std::abs(dxdz1) > fMinSeedSlope);
+	    KGTrack trg1;
+	    ok = fKFAlg.smoothTrack(trg0, &trg1, fProp);
 	    if(ok) {
 
-	      // Make a copy of the original hit collection of all
-	      // available track hits.
+	      // Now we have the seed track in the form of a KGTrack.
+	      // Do additional quality cuts.
 
-	      art::PtrVector<recob::Hit> trackhits = hits;
-
-	      // Do an extend + smooth loop here.
-
-	      int niter = 6;
-
-	      for(int ix = 0; ok && ix < niter; ++ix) {
-
-		// Fill a collection of hits from the last good track
-		// (initially the seed track).
-
-		art::PtrVector<recob::Hit> goodhits;
-		trg1.fillHits(goodhits);
-
-		// Filter hits already on the track out of the available hits.
-
-		FilterHits(trackhits, goodhits);
-
-		// Fill hit container using filtered hits.
-
-		KHitContainerWireX trackcont;
-		trackcont.fill(trackhits, -1);
-
-		// Extend the track.  It is not an error for the
-		// extend operation to fail, meaning that no new hits
-		// were added.
-
-		fKFAlg.extendTrack(trg1, fProp, trackcont);
-
-		// Smooth the extended track, and make a new
-		// unidirectionally fit track in the opposite
-		// direction.
-
-		KGTrack trg2;
-		ok = fKFAlg.smoothTrack(trg1, &trg2, fProp);
-		if(ok) {
-		  KETrack tremom;
-		  bool pok = fKFAlg.fitMomentum(trg1, fProp, tremom);
-		  if(pok)
-		    fKFAlg.updateMomentum(tremom, fProp, trg2);
-		  trg1 = trg2;
-		}
-	      }
-
-	      // Do a final smooth.
-
+	      size_t n = trg1.numHits();
+	      ok = (n >= fMinSeedHits &&
+		    trg0.startTrack().getChisq() <= n * fMaxSeedChiDF &&
+		    trg0.endTrack().getChisq() <= n * fMaxSeedChiDF &&
+		    trg1.startTrack().getChisq() <= n * fMaxSeedChiDF &&
+		    trg1.endTrack().getChisq() <= n * fMaxSeedChiDF);
+	      double mom0[3];
+	      double mom1[3];
+	      trg0.startTrack().getMomentum(mom0);
+	      trg0.endTrack().getMomentum(mom1);
+	      double dxdz0 = mom0[0] / mom0[2];
+	      double dxdz1 = mom1[0] / mom1[2];
+	      ok = ok && (std::abs(dxdz0) > fMinSeedSlope &&
+			  std::abs(dxdz1) > fMinSeedSlope);
 	      if(ok) {
-		ok = fKFAlg.smoothTrack(trg1, 0, fProp);
-		if(ok) {
-		  KETrack tremom;
-		  bool pok = fKFAlg.fitMomentum(trg1, fProp, tremom);
-		  if(pok)
-		    fKFAlg.updateMomentum(tremom, fProp, trg1);
 
-		  // Save this track.
+		// Make a copy of the original hit collection of all
+		// available track hits.
 
-		  ++fNumTrack;
-		  kalman_tracks.push_back(trg1);
+		art::PtrVector<recob::Hit> trackhits = hits;
 
-		  // Filter hits on the saved track out of the hits
-		  // available for making either tracks or track
-		  // seeds.
+		// Do an extend + smooth loop here.
+
+		int niter = 6;
+
+		for(int ix = 0; ok && ix < niter; ++ix) {
+
+		  // Fill a collection of hits from the last good track
+		  // (initially the seed track).
 
 		  art::PtrVector<recob::Hit> goodhits;
 		  trg1.fillHits(goodhits);
-		  FilterHits(hits, goodhits);
-		  FilterHits(seederhits, goodhits);
+
+		  // Filter hits already on the track out of the available hits.
+
+		  FilterHits(trackhits, goodhits);
+
+		  // Fill hit container using filtered hits.
+
+		  KHitContainerWireX trackcont;
+		  trackcont.fill(trackhits, -1);
+
+		  // Extend the track.  It is not an error for the
+		  // extend operation to fail, meaning that no new hits
+		  // were added.
+
+		  fKFAlg.extendTrack(trg1, fProp, trackcont);
+
+		  // Smooth the extended track, and make a new
+		  // unidirectionally fit track in the opposite
+		  // direction.
+
+		  KGTrack trg2;
+		  ok = fKFAlg.smoothTrack(trg1, &trg2, fProp);
+		  if(ok) {
+		    KETrack tremom;
+		    bool pok = fKFAlg.fitMomentum(trg1, fProp, tremom);
+		    if(pok)
+		      fKFAlg.updateMomentum(tremom, fProp, trg2);
+		    trg1 = trg2;
+		  }
+		}
+
+		// Do a final smooth.
+
+		if(ok) {
+		  ok = fKFAlg.smoothTrack(trg1, 0, fProp);
+		  if(ok) {
+		    KETrack tremom;
+		    bool pok = fKFAlg.fitMomentum(trg1, fProp, tremom);
+		    if(pok)
+		      fKFAlg.updateMomentum(tremom, fProp, trg1);
+
+		    // Save this track.
+
+		    ++fNumTrack;
+		    kalman_tracks.push_back(trg1);
+		  }
 		}
 	      }
 	    }
 	  }
+	  if(ok) {
+	    log << "Find track succeeded.\n";
+	  }
+	  else
+	    log << "Find track failed.\n";
 	}
-	if(ok) {
-	  log << "Find track succeeded.\n";
+
+	// Loop over newly added tracks and remove hits contained on
+	// these tracks from hits available for making additional
+	// tracks or track seeds.
+
+	for(unsigned int itrk = ntracks; itrk < kalman_tracks.size(); ++itrk) {
+	  const KGTrack& trg = kalman_tracks[itrk];
+	  art::PtrVector<recob::Hit> track_used_hits;
+	  trg.fillHits(track_used_hits);
+	  FilterHits(hits, track_used_hits);
+	  FilterHits(seederhits, track_used_hits);
 	}
-	else
-	  log << "Find track failed.\n";
       }
     }
   }

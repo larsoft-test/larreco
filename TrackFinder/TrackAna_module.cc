@@ -139,10 +139,13 @@ namespace {
       }
       else {
 	double eff = num / den;
+	if(eff < 0.)
+	  eff = 0.;
+	if(eff > 1.)
+	  eff = 1.;
 	double err = std::sqrt(eff * (1.-eff) / den);
 	heff->SetBinContent(ibin, eff);
 	heff->SetBinError(ibin, err);
-	assert(eff >= 0. && eff <= 1.);
       }
     }
 
