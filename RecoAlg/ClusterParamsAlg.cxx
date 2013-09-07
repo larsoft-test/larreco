@@ -1026,7 +1026,6 @@ int cluster::ClusterParamsAlg::FindPrincipalDirection(std::vector< art::Ptr < re
   double lineslope=0; //either add as parameter or pick up from Find Rough
   
   //first select a subset of points that is close to the selected start point:
-  
  SelectLocalHitlist(hitlist, hitlistlocal_start, wire_start,time_start,linearlimit,ortlimit,lineslope);
  SelectLocalHitlist(hitlist, hitlistlocal_end, wire_end,time_end,linearlimit,ortlimit,lineslope);
   
@@ -1140,9 +1139,11 @@ void cluster::ClusterParamsAlg::RefineStartPointsHough(std::vector< art::Ptr < r
   unsigned int iplane,cstat,tpc,wire;
   GetPlaneAndTPC((*hitlist.begin()),iplane,cstat,tpc,wire);
 // 
+  size_t numclus =0; 
+    if(hitlistlocal_start.size()>5) numclus = fHBAlg.FastTransform(hitlistlocal_start, houghlines);
     
-  size_t numclus = fHBAlg.FastTransform(hitlistlocal_start, houghlines);
-  size_t numclusend = fHBAlg.FastTransform(hitlistlocal_end, houghlinesend);
+  size_t numclusend =0;
+  if(hitlistlocal_end.size()>5) numclusend=fHBAlg.FastTransform(hitlistlocal_end, houghlinesend);
  
  
  // std::cout << "found " << numclus << "lines with HoughBaseAlg ";
