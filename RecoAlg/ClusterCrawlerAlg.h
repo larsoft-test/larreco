@@ -85,8 +85,6 @@ namespace cluster {
                                     ///< after skipping
     std::vector<bool> fDoMerge;     ///< try to merge clusters?
     std::vector<float> fTimeDelta;  ///< max time difference for matching
-    std::vector<float> fTimeDeltaLA; ///< max time difference for matching
-                                     ///< large angle clusters, abs(slope) > 20
 
     // global cuts and parameters 
     float fHitErrFac;   ///< hit time error = fHitErrFac * (EndTime - PeakTime)
@@ -96,16 +94,12 @@ namespace cluster {
                         ///< cluster position
     float fBEChgRat;    ///< Begin/End Charge ratio to determine cluster direction
                         ///< Set to 0 to turn off
-    float fFudgeBigHits;   ///< increase the width of hits with large charge to
-                           ///< prevent incorrect tracking stops. This is a workaround
-                           ///< that wont be necessary when/if the hit reconstruction
-                           ///< improves
     float fPairAngCut;     ///< Close pair angle cut. Set <= 0 to turn off
                            ///< Applied to clusters with >= 10 hits
     float fCurlyMergeAngCut;  ///< Run final merge on short curly clusters?
     bool fDoVertex;        ///< run vertexing code
-    unsigned short fDebugWire;  ///< set to the Begin Wire and Hit of a cluster to print
-    unsigned short fDebugHit;   ///< out detailed information while crawling
+    short fDebugWire;  ///< set to the Begin Wire and Hit of a cluster to print
+    short fDebugHit;   ///< out detailed information while crawling
     
     private:
     
@@ -116,6 +110,7 @@ namespace cluster {
     art::ServiceHandle<util::LArProperties> larprop;
     art::ServiceHandle<util::DetectorProperties> detprop;
 
+    // these variables define the cluster used during crawling
     float clpar[2];     ///< cluster parameters for the current fit with
                         ///< origin at wire0
     float clparerr[2];  ///< cluster parameter errors
@@ -140,6 +135,7 @@ namespace cluster {
     short clProcCode;     ///< Processor code = pass number
                         ///< +   10 cl2ChkMerge
                         ///< +  100 cl2ChkMerge12
+                        ///< +  200 cluster modified by cl2VtxClusterSplit
                         ///< + 1000 cl2ChkPair
                         ///< + 2000 failed pass N cuts but passes pass N=1 cuts
                         ///< +10000 cl2CurlyMerge
@@ -187,6 +183,9 @@ namespace cluster {
     // Stores cluster information in a temporary vector
     void cl2TmpStore(const art::PtrVector<recob::Hit>& plnhits, 
       std::vector<ClusterStore>& tcl);
+    // Gets a temp cluster and puts it into the working cluster variables
+    void cl2TmpGet(const art::PtrVector<recob::Hit>& plnhits, 
+      std::vector<ClusterStore>& tcl, unsigned short it1);
     // Prepares close pair clusters
     void cl2ChkPair(const art::PtrVector<recob::Hit>& plnhits,
       std::vector<ClusterStore>& tcl);
@@ -211,6 +210,9 @@ namespace cluster {
     // be called last before returning to the calling routine
     void cl2SetBeginEnd(const art::PtrVector<recob::Hit>& plnhits,
       std::vector<ClusterStore>& tcl);
+    // Split clusters that cross preliminary vertices
+    void cl2VtxClusterSplit(const art::PtrVector<recob::Hit>& plnhits,
+       std::vector<ClusterStore>& tcl);
     // make 2D vertices
     void cl2DoVertex(const art::PtrVector<recob::Hit>& plnhits,
       std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx);
