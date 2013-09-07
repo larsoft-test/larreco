@@ -79,8 +79,8 @@ standard_cornerfinderalg:
 {
   RawDataModuleLabel:           "daq"
   CalDataModuleLabel:		"caldata"
-  Conversion_algorithm:     "standard"
-  Conversion_function:  "TMath::Gaus(x,0,1)*TMath::Gaus(y,0,1)"
+  Conversion_algorithm:         "standard"
+  Conversion_function:          "TMath::Gaus(x,0,1)*TMath::Gaus(y,0,1)"
   Conversion_func_neighborhood: 3
   Conversion_threshold:		0
   Conversion_bins_per_input_x:	1

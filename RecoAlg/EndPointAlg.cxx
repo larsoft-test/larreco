@@ -143,10 +143,7 @@ size_t cluster::EndPointAlg::EndPoint(art::PtrVector<recob::Cluster>            
   art::ServiceHandle<geo::Geometry> geom;
   art::ServiceHandle<util::LArProperties> larp;
   art::ServiceHandle<util::DetectorProperties> detp;
-   
-  // function below does not link, so commenting
-  //extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
-  
+     
   //Point to a collection of vertices to output.
   std::vector< art::Ptr<recob::Hit> > hit;
 
