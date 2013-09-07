@@ -147,8 +147,6 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 
   art::ServiceHandle<geo::Geometry> geom;
   
-  extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
-  
   art::Handle< std::vector<recob::Cluster> > clusterListHandle;
   evt.getByLabel(fDBScanModuleLabel, clusterListHandle);
 
