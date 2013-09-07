@@ -64,27 +64,28 @@ namespace vertex {
     
   public:
     
-    explicit HarrisVertexFinder(fhicl::ParameterSet const& pset); 
-    virtual ~HarrisVertexFinder();        
-    void beginJob();
-
-    void produce(art::Event& evt);
-    
+   explicit HarrisVertexFinder(fhicl::ParameterSet const& pset); 
+   virtual ~HarrisVertexFinder();        
+   void beginJob();
+   
+   void produce(art::Event& evt);
+   
   private:
 
-    double Gaussian(int x, int y, double sigma);
-    double GaussianDerivativeX(int x, int y);
-    double GaussianDerivativeY(int x, int y);
-  
-    std::string fDBScanModuleLabel;
-    int         fTimeBins;
-    int         fMaxCorners;
-    double      fGsigma;
-    int         fWindow;
-    double      fThreshold;
-    int         fSaveVertexMap;
-    TH2F *fNoVertices;
+   double Gaussian(int x, int y, double sigma);
+   double GaussianDerivativeX(int x, int y);
+   double GaussianDerivativeY(int x, int y);
+   void   SaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy);
 
+   std::string fDBScanModuleLabel;
+   int         fTimeBins;
+   int         fMaxCorners;
+   double      fGsigma;
+   int         fWindow;
+   double      fThreshold;
+   int         fSaveVertexMap;
+   TH2F*       fNoVertices;
+   
   };
     
 }
@@ -385,7 +386,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 
 //-----------------------------------------------------------------------------
 //this method saves a BMP image of the vertex map space, which can be viewed with gimp
-void SaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy)
+void vertex::HarrisVertexFinder::SaveBMPFile(const char *fileName, unsigned char *pix, int dx, int dy)
 {
   ofstream bmpFile(fileName, std::ios::binary);
   bmpFile.write("B", 1);
