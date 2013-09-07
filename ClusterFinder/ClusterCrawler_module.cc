@@ -48,7 +48,6 @@ class cluster::ClusterCrawler : public art::EDProducer {
   private:
     std::string fhitsModuleLabel;
     ClusterCrawlerAlg fCCAlg; // define ClusterCrawlerAlg object
-    std::map<int, geo::WireID> wirmap;
     
 };
 
