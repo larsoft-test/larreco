@@ -225,11 +225,11 @@ microboone_clusterparamsalg:                 @local::standard_clusterparamsalg
 microboone_smallclustalg:	@local::standard_smallclustalg
 
 
-lbne10kt_dbscanalg:    @local::standard_dbscanalg_fast
-lbne10kt_houghbasealg: @local::standard_houghbasealg
-lbne10kt_endpointalg:  @local::standard_endpointalg 
-lbne10kt_fuzzyclusteralg:                   @local::standard_fuzzyclusteralg 
-lbne10kt_fuzzyclusteralg.HoughBaseAlg:      @local::lbne10kt_houghbasealg 
+lbnefd_dbscanalg:    @local::standard_dbscanalg_fast
+lbnefd_houghbasealg: @local::standard_houghbasealg
+lbnefd_endpointalg:  @local::standard_endpointalg 
+lbnefd_fuzzyclusteralg:                   @local::standard_fuzzyclusteralg 
+lbnefd_fuzzyclusteralg.HoughBaseAlg:      @local::lbnefd_houghbasealg 
 
 lbne35t_dbscanalg:    @local::standard_dbscanalg_fast
 lbne35t_houghbasealg: @local::standard_houghbasealg
