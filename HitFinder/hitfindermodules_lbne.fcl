@@ -10,17 +10,10 @@ standard_disambigcheat:
 }
 
 
-lbne10kt_hitfinder:       @local::standard_hitfinder
-lbne10kt_gaushitfinder:   @local::gaus_hitfinder
-lbne10kt_gaushitfinder.IndMinWidth: 1.0
-lbne10kt_gaushitfinder.ColMinWidth: 1.0
-
-
-
-lbne34kt_hitfinder:       @local::standard_hitfinder
-lbne34kt_gaushitfinder:   @local::gaus_hitfinder
-lbne34kt_gaushitfinder.IndMinWidth: 1.0
-lbne34kt_gaushitfinder.ColMinWidth: 1.0
+lbnefd_hitfinder:       @local::standard_hitfinder
+lbnefd_gaushitfinder:   @local::gaus_hitfinder
+lbnefd_gaushitfinder.IndMinWidth: 1.0
+lbnefd_gaushitfinder.ColMinWidth: 1.0
 
 
 
