@@ -264,6 +264,6 @@ void DisambigCheater::reconfigure(fhicl::ParameterSet const & p)
 
 #endif // DisambigCheater_h
 
-DEFINE_ART_MODULE(DisambigCheater);
+DEFINE_ART_MODULE(DisambigCheater)
 
 } // end hit namespace

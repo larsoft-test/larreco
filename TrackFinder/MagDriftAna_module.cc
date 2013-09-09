@@ -322,7 +322,7 @@ namespace hit {
     return;
   }//end analyze method
 
-  DEFINE_ART_MODULE(MagDriftAna);
+  DEFINE_ART_MODULE(MagDriftAna)
 
 } // end of hit namespace
 

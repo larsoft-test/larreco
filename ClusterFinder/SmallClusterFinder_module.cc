@@ -254,7 +254,7 @@ namespace cluster{
 
 namespace cluster {
 
-  DEFINE_ART_MODULE(SmallClusterFinder);
+  DEFINE_ART_MODULE(SmallClusterFinder)
 
 }
 

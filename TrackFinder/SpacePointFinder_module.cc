@@ -62,7 +62,7 @@ namespace trkf {
     int fNumSpt3;       // Number of 3-view space points.
   };
 
-  DEFINE_ART_MODULE(SpacePointFinder);
+  DEFINE_ART_MODULE(SpacePointFinder)
 
   //----------------------------------------------------------------------------
   SpacePointFinder::SpacePointFinder(const fhicl::ParameterSet& pset) 

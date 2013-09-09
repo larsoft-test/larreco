@@ -101,7 +101,7 @@ namespace trkf {
 
 
 namespace trkf {
-  DEFINE_ART_MODULE(FeatureTracker);
+  DEFINE_ART_MODULE(FeatureTracker)
 }
 
 #include <vector>

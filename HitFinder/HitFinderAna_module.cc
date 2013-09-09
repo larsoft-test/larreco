@@ -333,7 +333,7 @@ namespace hit{
 
 namespace hit{
 
-  DEFINE_ART_MODULE(HitFinderAna);
+  DEFINE_ART_MODULE(HitFinderAna)
 
 } // end of hit namespace
 

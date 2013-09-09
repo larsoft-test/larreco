@@ -689,7 +689,7 @@ return;
 }//<---End access the event
 
 
-DEFINE_ART_MODULE(FeatureVertexFinderAna);
+DEFINE_ART_MODULE(FeatureVertexFinderAna)
 
 }// end of vertex namespace
 

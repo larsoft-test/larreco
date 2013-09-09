@@ -104,7 +104,7 @@ namespace trkf {
     int fNumEvent;
   };
 
-  DEFINE_ART_MODULE(SpacePointAna);
+  DEFINE_ART_MODULE(SpacePointAna)
 
   SpacePointAna::SpacePointAna(const fhicl::ParameterSet& pset) :
     //

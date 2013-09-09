@@ -251,7 +251,7 @@ namespace vertex {
 
 namespace vertex{
 
-  DEFINE_ART_MODULE(AggregateVertex);
+  DEFINE_ART_MODULE(AggregateVertex)
 
 }
 #endif // AGGREGATEVERTEX_H

@@ -213,7 +213,7 @@ namespace cluster{
 
 namespace cluster{
 
-  DEFINE_ART_MODULE(DBcluster);
+  DEFINE_ART_MODULE(DBcluster)
   
 } 
 

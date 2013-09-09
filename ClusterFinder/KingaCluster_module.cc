@@ -2125,7 +2125,7 @@ namespace cluster{
 
 namespace cluster{
 
-  DEFINE_ART_MODULE(KingaCluster);
+  DEFINE_ART_MODULE(KingaCluster)
   
 } 
 

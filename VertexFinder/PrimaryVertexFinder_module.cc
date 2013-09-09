@@ -496,7 +496,7 @@ TVector3 vertex::PrimaryVertexFinder::PointOnExtendedTrack(double alphagamma, TV
 
 namespace vertex{
 
-  DEFINE_ART_MODULE(PrimaryVertexFinder);
+  DEFINE_ART_MODULE(PrimaryVertexFinder)
 
 } // end of vertex namespace
 

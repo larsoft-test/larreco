@@ -605,7 +605,7 @@ void GausHitFinder::produce(art::Event& evt)
 } // End of produce() 
 
 
-  DEFINE_ART_MODULE(GausHitFinder);
+  DEFINE_ART_MODULE(GausHitFinder)
 
 } // end of hit namespace
 #endif // GausHITFINDER_H

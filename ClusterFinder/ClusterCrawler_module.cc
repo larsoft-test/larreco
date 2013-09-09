@@ -172,7 +172,7 @@ namespace cluster {
 
 namespace cluster{
 
-  DEFINE_ART_MODULE(ClusterCrawler);
+  DEFINE_ART_MODULE(ClusterCrawler)
   
 } 
 

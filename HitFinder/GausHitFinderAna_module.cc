@@ -627,7 +627,7 @@ namespace hit{
   }//end analyze method
    
   // --------------------------------------------------------
-  DEFINE_ART_MODULE(GausHitFinderAna);
+  DEFINE_ART_MODULE(GausHitFinderAna)
 
 } // end of hit namespace
 

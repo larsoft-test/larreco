@@ -362,7 +362,7 @@ namespace hit{
   
 
   
-  DEFINE_ART_MODULE(FFTHitFinder);
+  DEFINE_ART_MODULE(FFTHitFinder)
 
 } // end of hit namespace
 

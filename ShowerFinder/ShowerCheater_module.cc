@@ -246,7 +246,7 @@ namespace shwf{
 
 namespace shwf{
 
-  DEFINE_ART_MODULE(ShowerCheater);
+  DEFINE_ART_MODULE(ShowerCheater)
 
 }
 

@@ -623,7 +623,7 @@ void SpacePts::produce(art::Event& evt)
 } // end SpacePts::produce()
 
 
-  DEFINE_ART_MODULE(SpacePts);
+  DEFINE_ART_MODULE(SpacePts)
   
 } // end namespace 
 

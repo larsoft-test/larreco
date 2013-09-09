@@ -88,7 +88,7 @@ namespace trkf {
 #include "art/Framework/Core/ModuleMacros.h" 
 
 namespace trkf {
-  DEFINE_ART_MODULE(BezierTrackAna);
+  DEFINE_ART_MODULE(BezierTrackAna)
 }
 
 

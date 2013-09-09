@@ -1599,7 +1599,7 @@ double TwoDvertexStrength = 0;
 // =====================================================================================================
 namespace vertex{
 
-  DEFINE_ART_MODULE(FeatureVertexFinder);
+  DEFINE_ART_MODULE(FeatureVertexFinder)
 
 } // end of vertex namespace
 // =====================================================================================================

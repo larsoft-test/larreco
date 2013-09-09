@@ -270,7 +270,7 @@ namespace cluster {
 
 namespace cluster{
 
-  DEFINE_ART_MODULE(HoughLineFinderAna);
+  DEFINE_ART_MODULE(HoughLineFinderAna)
   
 } // end namespace caldata
 

@@ -153,6 +153,6 @@ class ShowerSelectorFilter : public art::EDFilter {
 
  
   
-  DEFINE_ART_MODULE(ShowerSelectorFilter);
+  DEFINE_ART_MODULE(ShowerSelectorFilter)
 
 }

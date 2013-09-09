@@ -465,6 +465,6 @@ namespace vertex{
 
 namespace vertex{
 
-  DEFINE_ART_MODULE(VertexFinder2D);
+  DEFINE_ART_MODULE(VertexFinder2D)
 
 } // end of vertex namespace

@@ -294,7 +294,7 @@ namespace vertex{
 
 namespace vertex{
 
-  DEFINE_ART_MODULE(VertexCheater);
+  DEFINE_ART_MODULE(VertexCheater)
 
 }
 

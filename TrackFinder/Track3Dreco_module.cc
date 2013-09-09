@@ -588,6 +588,6 @@ void Track3Dreco::produce(art::Event& evt)
    return;
 }
 
-  DEFINE_ART_MODULE(Track3Dreco);
+  DEFINE_ART_MODULE(Track3Dreco)
 
 } // namespace

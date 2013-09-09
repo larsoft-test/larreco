@@ -1684,7 +1684,7 @@ namespace shwf {
   
   
   
-  DEFINE_ART_MODULE(ShowerReco);
+  DEFINE_ART_MODULE(ShowerReco)
   
   
 }

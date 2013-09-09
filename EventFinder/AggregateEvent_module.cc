@@ -114,7 +114,7 @@ namespace event {
 
   }
 
-  DEFINE_ART_MODULE(AggregateEvent);
+  DEFINE_ART_MODULE(AggregateEvent)
 
 } // end namespace
 

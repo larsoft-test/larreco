@@ -1261,6 +1261,6 @@ void Track3DKalmanSPS::produce(art::Event& evt)
       evt.put(std::move(tspassn));
 }
 
-  DEFINE_ART_MODULE(Track3DKalmanSPS);
+  DEFINE_ART_MODULE(Track3DKalmanSPS)
 
 }  // end namespace

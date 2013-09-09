@@ -70,7 +70,7 @@ namespace trkf {
 
 
 namespace trkf {
-  DEFINE_ART_MODULE(SeedFinderModule);
+  DEFINE_ART_MODULE(SeedFinderModule)
 }
 
 //

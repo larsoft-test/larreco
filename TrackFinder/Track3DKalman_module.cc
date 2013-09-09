@@ -583,7 +583,7 @@ void Track3DKalman::produce(art::Event& evt)
 
 } // end method
 
-  DEFINE_ART_MODULE(Track3DKalman);
+  DEFINE_ART_MODULE(Track3DKalman)
 
 
 

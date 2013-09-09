@@ -338,7 +338,7 @@ void vertex::VertexMatch::produce(art::Event& evt)
   
 namespace vertex{
 
-  DEFINE_ART_MODULE(VertexMatch);
+  DEFINE_ART_MODULE(VertexMatch)
 
 } // end of vertex namespace
 

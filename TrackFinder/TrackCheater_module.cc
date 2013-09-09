@@ -269,7 +269,7 @@ namespace trkf{
 
 namespace trkf{
 
-  DEFINE_ART_MODULE(TrackCheater);
+  DEFINE_ART_MODULE(TrackCheater)
 
 }
 

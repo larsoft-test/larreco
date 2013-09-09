@@ -340,6 +340,6 @@ namespace shwf{
 
 namespace shwf{
 
-  DEFINE_ART_MODULE(ShowerFinder);
+  DEFINE_ART_MODULE(ShowerFinder)
   
 } //end of shower namespace

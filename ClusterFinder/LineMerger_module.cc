@@ -286,7 +286,7 @@ namespace cluster{
 
 namespace cluster{
 
-  DEFINE_ART_MODULE(LineMerger);
+  DEFINE_ART_MODULE(LineMerger)
   
 } // end namespace 
 

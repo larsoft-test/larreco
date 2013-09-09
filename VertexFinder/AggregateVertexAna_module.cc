@@ -185,7 +185,7 @@ namespace vertex{
 
 namespace vertex{
 
-  DEFINE_ART_MODULE(AggregateVertexAna);
+  DEFINE_ART_MODULE(AggregateVertexAna)
 
 }
 #endif // AGGREGATEVTXANA_H

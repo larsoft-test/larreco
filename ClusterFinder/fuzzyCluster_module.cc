@@ -268,7 +268,7 @@ namespace cluster{
 
 namespace cluster{
 
-  DEFINE_ART_MODULE(fuzzyCluster);
+  DEFINE_ART_MODULE(fuzzyCluster)
   
 } 
 

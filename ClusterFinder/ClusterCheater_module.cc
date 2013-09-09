@@ -284,7 +284,7 @@ namespace cluster{
 
 namespace cluster{
 
-  DEFINE_ART_MODULE(ClusterCheater);
+  DEFINE_ART_MODULE(ClusterCheater)
 
 }
 

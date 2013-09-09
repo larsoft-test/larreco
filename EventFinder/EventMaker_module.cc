@@ -162,4 +162,4 @@ void event::EventMaker::reconfigure(fhicl::ParameterSet const & p)
 
 
 
-DEFINE_ART_MODULE(event::EventMaker);
+DEFINE_ART_MODULE(event::EventMaker)

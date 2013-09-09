@@ -166,7 +166,7 @@ namespace event{
 
 namespace event{
 
-  DEFINE_ART_MODULE(EventCheater);
+  DEFINE_ART_MODULE(EventCheater)
 
 }
 

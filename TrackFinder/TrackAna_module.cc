@@ -306,7 +306,7 @@ namespace trkf {
     int fNumEvent;
   };
 
-  DEFINE_ART_MODULE(TrackAna);
+  DEFINE_ART_MODULE(TrackAna)
 
   // RecoHists methods.
 

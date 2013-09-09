@@ -420,7 +420,7 @@ void vertex::HarrisVertexFinder::SaveBMPFile(const char *fileName, unsigned char
 
 namespace vertex{
 
-  DEFINE_ART_MODULE(HarrisVertexFinder);
+  DEFINE_ART_MODULE(HarrisVertexFinder)
 
 } // end of vertex namespace
 

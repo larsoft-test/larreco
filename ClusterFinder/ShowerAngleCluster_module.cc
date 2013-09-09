@@ -605,6 +605,6 @@ double cluster::ShowerAngleCluster::Get2DAngleForHit( unsigned int swire,double 
 
 namespace cluster {
 
-  DEFINE_ART_MODULE(ShowerAngleCluster);
+  DEFINE_ART_MODULE(ShowerAngleCluster)
 
 }

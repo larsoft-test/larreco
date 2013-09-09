@@ -62,7 +62,7 @@ namespace trkf {
     int fNumSpt3;       // Number of 3-view space points.
   };
 
-  DEFINE_ART_MODULE(SpacePointCheater);
+  DEFINE_ART_MODULE(SpacePointCheater)
 
   //----------------------------------------------------------------------------
   SpacePointCheater::SpacePointCheater(const fhicl::ParameterSet& pset)

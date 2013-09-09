@@ -86,7 +86,7 @@ namespace trkf {
 
 
 namespace trkf {
-  DEFINE_ART_MODULE(BezierTrackerModule);
+  DEFINE_ART_MODULE(BezierTrackerModule)
 }
 
 //

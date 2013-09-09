@@ -157,7 +157,7 @@ namespace cluster {
 
 namespace cluster{
 
-  DEFINE_ART_MODULE(EndPointModule);
+  DEFINE_ART_MODULE(EndPointModule)
   
 } 
 

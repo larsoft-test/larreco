@@ -197,7 +197,7 @@ namespace cluster {
 
 namespace cluster{
 
-  DEFINE_ART_MODULE(HoughLineFinder);
+  DEFINE_ART_MODULE(HoughLineFinder)
   
 } 
 
