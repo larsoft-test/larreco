@@ -436,7 +436,7 @@ void SpacePts::produce(art::Event& evt)
 	std::vector< art::Ptr<recob::Hit> > maxhits = hitsItrk.size() < hitsCtrk.size() ? hitsCtrk : hitsItrk;
 
 
-	bool maxhitsMatch[maxhits.size()];
+	std::vector<bool> maxhitsMatch(maxhits.size());
 	for(unsigned int it=0;it<maxhits.size();it++) maxhitsMatch[it] = false;
 
 	std::vector<recob::Hit*> hits3Dmatched;
