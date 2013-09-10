@@ -207,13 +207,18 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 	
 	numberwires       = geom->Cryostat(cs).TPC(t).Plane(p).Nwires();
 	numbertimesamples = hit[0]->Wire()->NSignal();
-	double MatrixAsum[numberwires][fTimeBins];
-	double MatrixBsum[numberwires][fTimeBins];
-	double hit_map[numberwires][fTimeBins];//the map of hits 
-	int hit_loc[numberwires][fTimeBins];//the index of the hit that corresponds to the potential corner
-	double Cornerness[numberwires][fTimeBins];//the "weight" of a corner
+	std::vector< std::vector<double> > MatrixAsum(numberwires);
+	std::vector< std::vector<double> > MatrixBsum(numberwires);
+	std::vector< std::vector<double> > hit_map(numberwires);//the map of hits 
+	std::vector< std::vector<int>    > hit_loc(numberwires);//the index of the hit that corresponds to the potential corner
+	std::vector< std::vector<double> > Cornerness(numberwires);//the "weight" of a corner
 	
-	for(unsigned int wi = 0; wi < numberwires; ++wi)
+	for(unsigned int wi = 0; wi < numberwires; ++wi){
+	  MatrixAsum[wi].resize(fTimeBins);
+	  MatrixBsum[wi].resize(fTimeBins);
+	  hit_map[wi].resize(fTimeBins);
+	  hit_loc[wi].resize(fTimeBins);
+	  Cornerness[wi].resize(fTimeBins);
 	  for(int timebin = 0; timebin < fTimeBins; ++timebin){
 	    hit_map[wi][timebin] = 0.;
 	    hit_loc[wi][timebin] = -1;
@@ -221,6 +226,7 @@ void vertex::HarrisVertexFinder::produce(art::Event& evt)
 	    MatrixAsum[wi][timebin] = 0.;
 	    MatrixBsum[wi][timebin] = 0.;
 	  }
+	}
 	
 	for(unsigned int i = 0; i < hit.size(); ++i){
 	  unsigned int wire = hit[i]->WireID().Wire;
