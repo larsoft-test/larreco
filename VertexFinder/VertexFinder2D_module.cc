@@ -177,7 +177,7 @@ namespace vertex{
       for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
 	int nplanes = geom->Cryostat(cstat).TPC(tpc).Nplanes();
 	
-	std::vector<int> Cls[nplanes]; //index to clusters in each view
+	std::vector< std::vector<int> > Cls(nplanes); //index to clusters in each view
 	std::vector<double> dtdwstart;
       
 	//loop over clusters
@@ -230,7 +230,7 @@ namespace vertex{
 	  else dtdwstart.push_back(clusters[iclu]->dTdW());
 	}
       
-	std::vector<int> cluvtx[nplanes];
+	std::vector< std::vector<int> > cluvtx(nplanes);
 	std::vector<double> vtx_w;
 	std::vector<double> vtx_t;
 	
