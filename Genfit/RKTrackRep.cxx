@@ -74,8 +74,16 @@ genf::RKTrackRep::~RKTrackRep(){
 }
 
 
-genf::RKTrackRep::RKTrackRep() : GFAbsTrackRep(5),fDirection(true),fPdg(0),fMass(0.), fCharge(-1), fCachePlane(), fCacheSpu(1), fSpu(1), fAuxInfo(1,1){
-}
+genf::RKTrackRep::RKTrackRep() : GFAbsTrackRep(5),
+                                 fCachePlane(), 
+                                 fCacheSpu(1), 
+                                 fSpu(1), 
+                                 fAuxInfo(1,1),
+                                 fDirection(true),
+                                 fPdg(0),
+                                 fMass(0.), 
+                                 fCharge(-1)
+{ }
 
 
 genf::RKTrackRep::RKTrackRep(const TVector3& pos,
@@ -83,7 +91,12 @@ genf::RKTrackRep::RKTrackRep(const TVector3& pos,
                        const TVector3& poserr,
                        const TVector3& momerr,
                        const int& PDGCode) :
-                       GFAbsTrackRep(5),fDirection(true), fCachePlane(), fCacheSpu(1), fAuxInfo(1,1){
+                       GFAbsTrackRep(5),
+                       fCachePlane(), 
+                       fCacheSpu(1), 
+                       fAuxInfo(1,1),
+                       fDirection(true) 
+{
   setPDG(PDGCode); // also sets charge and mass
                          
   //fEffect = new GFMaterialEffects();
@@ -131,7 +144,12 @@ genf::RKTrackRep::RKTrackRep(const TVector3& pos,
 // Wholly new constructor from Genfit svn repos. EC< 27-Sep-2011. 
 
 genf::RKTrackRep::RKTrackRep(const GFTrackCand* aGFTrackCandPtr) :
-                       GFAbsTrackRep(5), fDirection(true), fCachePlane(), fCacheSpu(1), fAuxInfo(1,1) {
+                       GFAbsTrackRep(5), 
+                       fCachePlane(),
+                       fCacheSpu(1),
+                       fAuxInfo(1,1),
+                       fDirection(true)
+{
   setPDG(aGFTrackCandPtr->getPdgCode()); // also sets charge and mass
 
   TVector3 mom = aGFTrackCandPtr->getDirSeed();
@@ -179,7 +197,10 @@ genf::RKTrackRep::RKTrackRep(const GFTrackCand* aGFTrackCandPtr) :
 genf::RKTrackRep::RKTrackRep(const TVector3& pos,
                        const TVector3& mom,
                        const int& PDGCode) :
-                       GFAbsTrackRep(5),fDirection(true), fCachePlane(), fCacheSpu(1), fAuxInfo(1,1){
+                       GFAbsTrackRep(5),
+                       fCachePlane(), fCacheSpu(1), fAuxInfo(1,1),
+                       fDirection(true)
+{
   setPDG(PDGCode); // also sets charge and mass
                          
   //fEffect = new GFMaterialEffects();
@@ -230,7 +251,10 @@ genf::RKTrackRep::RKTrackRep(const TVector3& pos,
 genf::RKTrackRep::RKTrackRep(const GFDetPlane& pl,
                        const TVector3& mom,
                        const int& PDGCode) :
-                       GFAbsTrackRep(5),fDirection(true), fCachePlane(), fCacheSpu(1), fAuxInfo(1,1){
+                       GFAbsTrackRep(5),
+                       fCachePlane(), fCacheSpu(1), fAuxInfo(1,1),
+                       fDirection(true)
+{
   setPDG(PDGCode); // also sets charge and mass
                          
   //fEffect = new GFMaterialEffects();
@@ -1075,7 +1099,7 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
       P[55] =  (*state)[6][0];
     }
 
-    double dir(1.);
+//    double dir(1.);
     {
       TVector3 Pvect(P[0],P[1],P[2]); //position
       TVector3 Avect(P[3],P[4],P[5]); //direction
@@ -1085,7 +1109,7 @@ double genf::RKTrackRep::Extrap( const GFDetPlane& plane, TMatrixT<Double_t>* st
       //Avect.Print();
       //plane.Print();
       //dist.Print();
-      if(dist*Avect<0.) dir=-1.;
+ //     if(dist*Avect<0.) dir=-1.;
     }
 
     TVector3 directionBefore(P[3],P[4],P[5]); // direction before propagation

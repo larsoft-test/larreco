@@ -399,8 +399,8 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   TVector3 u(pl.getU());
   TVector3 v(pl.getV());
   TVector3 wold(u.Cross(v));
-  Double_t sign(1.0);
-  if ((direction==-1) && ihit==(nhits-1)) sign = -1.0;
+  //Double_t sign(1.0);
+  //if ((direction==-1) && ihit==((int)nhits-1)) sign = -1.0;
 
   TVector3 pTilde = direction * (wold + state[1][0] * u + state[2][0] * v);
   TVector3 w(pTilde.Unit());
@@ -482,14 +482,14 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   TVector3 pointPrev(prevrawcoord[0][0],prevrawcoord[1][0],prevrawcoord[2][0]);
   pointsPrev.push_back(pointPrev);
   TMatrixT<Double_t> Hnew(H);
-  if ((ihit==(nhits-1)&&direction==-1) || (ihit==0&&direction==1)) 
+  if ((ihit==((int)nhits-1)&&direction==-1) || (ihit==0&&direction==1)) 
     pointsPrev.clear();
 
   TVector3 pointer((point-pointPrev).Unit());
   static TVector3 pointerPrev(pointer);
   if (ihit==0&&direction==1   ) 
     {pointer[0] = 0.0;pointer[1] = 0.0;pointer[2] = 1.0;}
-  if (ihit==(nhits-1)&&direction==-1) 
+  if (ihit==((int)nhits-1)&&direction==-1) 
     {pointer[0] = 0.0;pointer[1] = 0.0;pointer[2] = -1.0;}
   double thetaMeas = TMath::Min(fabs(pointer.Angle(pointerPrev)),0.95*TMath::Pi()/2.0);
   // Below line introduced because it's not true we predict the angle to be
@@ -505,7 +505,7 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   thetaPlanes = TMath::Min(sqrt(fabs(thetaPlanes)),0.95*TMath::Pi()/2.0);
 
   Double_t dtheta =  thetaMeas - thetaPlanes; // was fabs(res[0][0]). EC, 26-Jan-2012
-  if (((ihit==(nhits-1)||ihit==(nhits-2))&&direction==-1) || ((ihit==0||ihit==1)&&direction==1)) 
+  if (((ihit==((int)nhits-1)||ihit==((int)nhits-2))&&direction==-1) || ((ihit==0||ihit==1)&&direction==1)) 
     {
       dtheta = 0.0; // at the bare minimum (Jan-2013). Now (Feb-2013), ....
       // Do not let these 4 points*direction influence the state or chi2.
@@ -611,8 +611,8 @@ genf::GFKalman::processHit(GFTrack* tr, int ihit, int irep,int direction){
   TVector3 wf(uf.Cross(vf));
   TVector3 Of(pl.getO());
   // direction *
-  Double_t sign2(1.0);
-  if (direction==-1 && ihit==nhits-1) sign2 = -1.0;
+  //Double_t sign2(1.0);
+  //if (direction==-1 && ihit==(int)nhits-1) sign2 = -1.0;
 
   TVector3 pf = direction*(wf + state[1][0] * uf + state[2][0] * vf);
   TVector3 pposf = Of + state[3][0] * uf + state[4][0] * vf;

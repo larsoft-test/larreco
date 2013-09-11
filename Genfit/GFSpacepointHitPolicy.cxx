@@ -127,7 +127,7 @@ genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, c
   _U = plane.getU();
   _V = plane.getV();
   
-  Double_t eps(1.0e-6);
+//  Double_t eps(1.0e-6);
   TMatrixT<Double_t> rawCov = hit->getRawHitCov();
 
   //rawCov[0][0] = 12.e12; // Force this. EC, 3-Apr-2012.
@@ -158,8 +158,8 @@ genf::GFSpacepointHitPolicy::hitCov(GFAbsRecoHit* hit,const GFDetPlane& plane, c
   // More correctly :
   Double_t dist(0.3); // place holder!!
   Double_t C;
-  Double_t p (2.5); // place holder!!!
-  p = abs(1/state[0][0]);
+  //Double_t p (2.5); // place holder!!!
+  //p = abs(1/state[0][0]);
 
   Double_t mom = fabs(1.0/state[0][0]);
   Double_t beta = mom/sqrt(mass*mass+mom*mom);

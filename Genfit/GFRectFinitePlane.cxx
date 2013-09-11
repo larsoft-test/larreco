@@ -43,4 +43,4 @@ bool genf::GFRectFinitePlane::inActive(const double& u,const double& v) const{
 void genf::GFRectFinitePlane::Print() const{
   std::cout << "Rectangular Finite Plane Umin=" << fUmin << ", Umax="
 	    << fUmax << ", Vmin=" << fVmin << ", Vmax=" << fVmax << std::endl;
-};
+}

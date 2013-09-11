@@ -318,7 +318,7 @@ genf::GeaneTrackRep2::extrapolateToPoint(const TVector3& pos,
   }
   mypos.GetXYZ(x1);
   mymom.GetXYZ(p1);
-  Float_t maxlen[1] = {2.*((mypos-pos).Mag())};
+  Float_t maxlen[1] = {(float)(2.*((mypos-pos).Mag()))};
   gMC3->Eufill(1, ein, maxlen);
 
 
@@ -513,7 +513,7 @@ genf::GeaneTrackRep2::extrapolateToLine(const TVector3& point1,
   TVector3 pointOnWireClosestToMyPos;
   poca2Line(point1,point2,mypos,pointOnWireClosestToMyPos);
 
-  Float_t maxlen[1] = {2.*((mypos-pointOnWireClosestToMyPos).Mag())};
+  Float_t maxlen[1] = {(float)(2.*((mypos-pointOnWireClosestToMyPos).Mag()))};
   gMC3->Eufill(1, ein, maxlen);
 
   //point1 muss pocaOnWire sein

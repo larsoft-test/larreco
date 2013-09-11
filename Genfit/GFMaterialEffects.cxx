@@ -111,8 +111,10 @@ double genf::GFMaterialEffects::effects(const std::vector<TVector3>& points,
       dir*=1./dist; //normalize dir
 
       double X(0.);
-      double matDensity, matZ, matA, radiationLength, mEE;
+      /*
+      double matDensity, matZ, matA, radiationLength, mEE; 
       double step;
+      */
       
       gGeoManager->InitTrack(points.at(i-1).X(),points.at(i-1).Y(),points.at(i-1).Z(),
 			       dir.X(),dir.Y(),dir.Z());
