@@ -1,7 +1,4 @@
 
-
-cet_add_compiler_flags( CXX -Werror )
-
 art_make( BASENAME_ONLY
           MODULE_LIBRARIES 
                         ${RECOBASE}

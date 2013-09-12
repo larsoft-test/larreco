@@ -1,6 +1,4 @@
 
-cet_add_compiler_flags( CXX -Werror )
-
 art_make( 
           LIB_LIBRARIES HarrisVertexFinder_module
                         ${BACKTRACKER_SERVICE}
@@ -29,26 +27,9 @@ art_make(
 	                ${FHICLCPP}
 			${CETLIB}
                         ${CLHEP}
-	                ${ROOT_CORE}
-                        ${ROOT_CINT} 
-                        ${ROOT_RIO}
-                        ${ROOT_NET}
-                        ${ROOT_HIST} 
-                        ${ROOT_GRAF}
-                        ${ROOT_GRAF3D}
-                        ${ROOT_GPAD}
-                        ${ROOT_TREE}
-                        ${ROOT_RINT}
-                        ${ROOT_POSTSCRIPT}
-                        ${ROOT_MATRIX}
-                        ${ROOT_PHYSICS}
-                        ${ROOT_MATHCORE}
-                        ${ROOT_THREAD}
+			${ROOT_BASIC_LIB_LIST}
                         ${ROOT_MINUIT}
         )
-#                        ${ROOT_GEOM}
-#                        ${ROOT_XMLIO}
-#                        ${ROOT_GDML}
 
 install_headers()
 install_fhicl()

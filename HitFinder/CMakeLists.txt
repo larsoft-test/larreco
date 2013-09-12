@@ -1,7 +1,4 @@
 
-
-cet_add_compiler_flags( CXX -Werror )
-
 art_make( BASENAME_ONLY
           MODULE_LIBRARIES 
                         ${BACKTRACKER_SERVICE}
@@ -25,7 +22,7 @@ art_make( BASENAME_ONLY
 			${MF_UTILITIES}
 	                ${FHICLCPP}
 			${CETLIB}
-                        ${ROOT_LIB_LIST}
+                        ${ROOT_BASIC_LIB_LIST}
          )
 
 install_headers()
