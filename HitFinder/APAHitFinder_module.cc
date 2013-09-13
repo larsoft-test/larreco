@@ -125,9 +125,6 @@ void APAHitFinder::endJob()
 void APAHitFinder::produce(art::Event& evt)
 {
 
-  //if( evt.id().event() == 3 || evt.id().event() == 5 ) return;
-  if( evt.id().event() != 3 ) return;
-
   std::unique_ptr<std::vector<recob::Hit> > hcol(new std::vector<recob::Hit>);
   art::Handle< std::vector<recob::Hit> > ChannelHits;
   evt.getByLabel(fChanHitLabel, ChannelHits);
