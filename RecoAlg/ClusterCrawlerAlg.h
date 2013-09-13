@@ -112,7 +112,7 @@ namespace cluster {
 
     // these variables define the cluster used during crawling
     float clpar[2];     ///< cluster parameters for the current fit with
-                        ///< origin at wire0
+                        ///< origin at the US wire on the cluster
     float clparerr[2];  ///< cluster parameter errors
     float clChisq;     ///< chisq of the current fit
     float clBeginSlp;  ///< begin slope (= DS end = high wire number)
@@ -145,8 +145,8 @@ namespace cluster {
     unsigned short fFirstWire;    ///< the first wire with a hit
     unsigned short fLastWire;      ///< the last wire with a hit
     float fAveWid;  ///< average hit width at leading edge of cluster
-    float fAveChg;     ///< average pulse height at leading edge of cluster
-    short wire0;          ///< wire number origin of the fit => usually end wire
+    float fAveChg;  ///< average charge at leading edge of cluster
+    float fChgSlp;  ///< slope of the  charge vs wire 
     
     unsigned short pass;
     float ScaleF;     ///< scale factor from Tick/Wire to dx/du
@@ -178,6 +178,8 @@ namespace cluster {
     // Fits the middle of a temporary cluster it1 using hits iht to iht + nhit
     void cl2FitMid(const art::PtrVector<recob::Hit>& plnhits, 
       std::vector<ClusterStore>& tcl, unsigned short it1, unsigned short iht, short nhit);
+    // Fits the charge of the cluster hits in fcl2hits
+    void cl2FitChg(const art::PtrVector<recob::Hit>& plnhits);
     // Follows a trail of hits UpStream
     void cl2FollowUS(const art::PtrVector<recob::Hit>& plnhits);
     // Stores cluster information in a temporary vector

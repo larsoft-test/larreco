@@ -5,6 +5,7 @@
 /// Bruce Baller, baller@fnal.gov
 ///
 /// Algorithm for crawling along a string of hits to make line clusters
+/// Technical note in MicroBooNE docdb #2831
 ///
 ////////////////////////////////////////////////////////////////////////
 
@@ -110,7 +111,7 @@ namespace cluster {
     clBeginWir = 0; clBeginChg = 0; clEndSlp = 0;      clEndSlpErr = 0;
     clEndTim = 0;   clEndWir = 0;   clEndChg = 0;      clChisq = 0;
     clStopCode = 0; clProcCode = 0; clAssn = 0;        fFirstWire = 0;
-    fLastWire = 0; fAveWid = 0; fAveChg = 0; wire0 = 0; pass = 0; ScaleF = 0;
+    fLastWire = 0; fAveWid = 0; fAveChg = 0; pass = 0; ScaleF = 0;
     tcl.clear(); vtx.clear(); WireHitRange.clear(); hiterr2.clear();
     hitwid.clear();
   }
@@ -251,12 +252,12 @@ namespace cluster {
               fcl2hits.clear();
               fAveWid = -1.;
               fAveChg = -1.;
+              clBeginChg = -1.;
               clStopCode = 0;
               clProcCode = pass;
               clAssn = -1; 
               fcl2hits.push_back(ihit);
               fcl2hits.push_back(jhit);
-              wire0 = jwire;
               clpar[0] = plnhits[jhit]->PeakTime();
               clpar[1] = (plnhits[ihit]->PeakTime() - plnhits[jhit]->PeakTime()) / (iwire - jwire);
               clChisq = 0;
@@ -272,11 +273,8 @@ namespace cluster {
                   break;
                 }
               }
-              // kill it?
-              if(fcl2hits.size() < span || !clok) {
-                fcl2hits.clear();
-                continue;
-              }
+              // drop it?
+              if(fcl2hits.size() < span || !clok) continue;
               // sort them by decreasing wire number
               // assume that this is the same as sorting by decreasing 
               // hit number. This only needs to be done on the starting cluster
@@ -284,13 +282,18 @@ namespace cluster {
               std::sort(fcl2hits.begin(), fcl2hits.end(), SortByLowHit);
               // re-fit
               // define the hit origin
-              wire0 = jwire;
               cl2Fit(plnhits);
-              if(clChisq > 10.) {
-                fcl2hits.clear();
-                continue;
-              }
+              if(clChisq > 10.) continue;
+              // check the charge ratio between the DS hit and the next-most
+              // DS hit. This ratio is < 2 for a stopping particle. A large
+              // ratio indicates that we are starting a cluster just US of a
+              // high ionization region
+              float chg0 = plnhits[fcl2hits[0]]->Charge();
+              float chg1 = plnhits[fcl2hits[1]]->Charge();
+              if(chg0 > 2 * chg1) continue;
               // save the cluster begin info
+              clBeginWir = iwire;
+              clBeginTim = plnhits[ihit]->PeakTime();
               clBeginSlp = clpar[1];
               clBeginSlpErr = clparerr[1];
               // follow a trail of hits upstream
@@ -329,13 +332,13 @@ namespace cluster {
         } // ihit
         if(AllDone) break;
       } // iwire
-      if(AllDone) break;
       // try to merge clusters 
       if(fDoMerge[pass]) cl2ChkMerge(plnhits, tcl);
       if(fDoMerge[pass] && pass > 0 && fDebugWire < 0) {
         std::cout<<"After merging in plane = "<<plane<<std::endl;
         cl2Print(plnhits, tcl);
       }
+      if(AllDone) break;
     } // pass
 
 
@@ -353,9 +356,14 @@ namespace cluster {
 //    if(fCurlyMergeAngCut > 0.) cl2CurlyMerge(plnhits, tcl);
 
     short ncl = 0;
+    short nht = 0;
     for(unsigned short ii = 0; ii < tcl.size(); ++ii) {
-      if(tcl[ii].ID > 0) ++ncl;
+      if(tcl[ii].ID > 0) {
+        ++ncl;
+        nht += tcl[ii].tclhits.size();
+      }
     }
+//    std::cout<<"Hits used in plane "<<plane<<" "<<nht<<std::endl;
 
     if(fDoVertex) {
       // split clusters using vertexing information
@@ -383,18 +391,17 @@ namespace cluster {
         std::vector<ClusterStore>& tcl)
     {
       // do some preliminary vertexing to look for clusters that span a
-      // vertex that should have been split. This routine should only be called
-      // after crawling is complete, since it messes with the pass variable
-      
+      // vertex and should therefore have been split. This routine should
+      // only be called after crawling is complete, since it messes with
+      // the pass variable
       
       if(tcl.size() < 2) return;
       
-//      unsigned int plane = plnhits[0]->WireID().Plane;
-
-//      float nwires = geom->Nwires(plane);
       float maxtime = detprop->NumberTimeSamples();
       
       vtx.clear();
+
+  if(fDebugHit < 0) std::cout<<"cl2VtxClusterSplit check "<<std::endl;
       
       for (unsigned short it1 = 0; it1 < tcl.size(); ++it1) {
         // ignore abandoned clusters
@@ -426,8 +433,13 @@ namespace cluster {
           } // timediff
         } // khit
         if(imbest < 0) continue;
-//  std::cout<<"cl2VtxClusterSplit cls "<<tcl[it1].ID<<" W:H "<<uswire<<":"<<imbest<<std::endl;
         if(hiterr2[imbest] < 0.) {
+  if (fDebugHit < 0)  {
+    std::cout<<"Hit US of cluster "<<tcl[it1].ID<<" W:H "<<uswire<<":"<<imbest;
+    std::cout<<" is used in another cluster "<<std::endl;
+  }
+          // The hiterr2 is set < 0 which indicates that this hit is used in
+          // a cluster. Look for it
           short inClus = -1;
           unsigned short atPos = 0;
           for(unsigned short it2 = 0; it2 < tcl.size(); ++it2) {
@@ -443,6 +455,7 @@ namespace cluster {
             if(inClus > 0) break;
           } // it2
           if(inClus > -1) {
+  if(fDebugHit < 0) std::cout<<" in cluster "<<tcl[inClus].ID<<" at position "<<atPos<<std::endl;
             // found the hit on the US wire in a cluster. If atPos = 0,
             // these clusters are end-to-end but weren't merged. Neglect
             // these for now. Only consider the case where the hit is a bit
@@ -454,13 +467,11 @@ namespace cluster {
               cl2FitMid(plnhits, tcl, inClus, hit, -3);
               if(clChisq > 90.) continue;
               float dth = fabs(atan(ScaleF * clpar[1]) - atan(ScaleF * es1));
-//  std::cout<<"dth = "<<dth<<std::endl;
+  if(fDebugHit < 0)  std::cout<<" dth = "<<dth<<std::endl;
               // require a significant angle difference
               if(dth < 0.5) continue;
               // lop the end hits off of cluster inClus
               // first put the cluster hits into fcl2hits
-//  std::cout<<"hit in cluster "<<tcl[inClus].ID<<" at position "<<atPos;
-//  std::cout<<" Cluster size "<<tcl[inClus].tclhits.size()<<std::endl;
               cl2TmpGet(plnhits, tcl, inClus);
               // The number of hits that we would like to lop off the End
               // of cluster inClus
@@ -479,11 +490,13 @@ namespace cluster {
               clEndSlpErr = clparerr[1];
               clProcCode += 200;
               // add the revised cluster
+  if(fDebugHit < 0) {
+    std::cout<<" Lopped hits off "<<tcl[inClus].ID<<" --> new cluster ";
+    std::cout<<tcl[tcl.size()-1].ID<<std::endl;
+  }
               cl2TmpStore(plnhits, tcl);
               // declare the old one obsolete
               tcl[inClus].ID = -tcl[inClus].ID;
-//  std::cout<<"Lopped hits off "<<tcl[inClus].ID<<" --> new cluster ";
-//  std::cout<<tcl[tcl.size()-1].ID<<std::endl;
             } // atPos < tcl[inClus].tclhits.size()
           } // inClus > -1
         } // hiterr2 < 0
@@ -512,17 +525,13 @@ namespace cluster {
       float nwires = geom->Nwires(plane);
       float maxtime = detprop->NumberTimeSamples();
 
-  if(fDebugHit < 0) {
-    std::cout<<"DoVertex plane "<<plane<<std::endl;
-    cl2Print(plnhits, tcl);
-  }
+  if(fDebugHit < 0) std::cout<<"DoVertex plane "<<plane<<std::endl;
+
       for (unsigned short it1 = 0; it1 < tcl.size() - 1; ++it1) {
         // ignore abandoned clusters
         if(tcl[it1].ID < 0) continue;
         // ignore already attached clusters
         if(tcl[it1].BeginVtx >= 0 && tcl[it1].EndVtx >= 0) continue;
-        // ignore short clusters
-        if(tcl[it1].tclhits.size() < 10) continue;
         float es1 = tcl[it1].EndSlp;
         unsigned short ew1 = tcl[it1].EndWir;
         float et1 = tcl[it1].EndTim;
@@ -536,15 +545,16 @@ namespace cluster {
           if(tcl[it2].BeginVtx >= 0 && tcl[it2].EndVtx >= 0) continue;
           // try to attach cluster to existing vertices at either end
           cl2ClsVertex(plnhits, tcl, vtx, it2);
-          // ignore short clusters
-          if(tcl[it2].tclhits.size() < 10) continue;
+          // ignore if both clusters are short
+          if(tcl[it1].tclhits.size() < 10 &&
+             tcl[it2].tclhits.size() < 10) continue;
           float es2 = tcl[it2].EndSlp;
           unsigned short ew2 = tcl[it2].EndWir;
           float et2 = tcl[it2].EndTim;
           float bs2 = tcl[it2].BeginSlp;
           unsigned short bw2 = tcl[it2].BeginWir;
           float bt2 = tcl[it2].BeginTim;
-  if(fDebugHit < 0) std::cout<<"Chk clusters "<<tcl[it1].ID<<" "<<tcl[it2].ID<<std::endl;
+//  if(fDebugHit < 0) std::cout<<"Chk clusters "<<tcl[it1].ID<<" "<<tcl[it2].ID<<std::endl;
   // topo 1: check for vtx US of the ends of both clusters
           if(tcl[it1].EndVtx < 0 && tcl[it2].EndVtx < 0) {
             float dsl = es2 - es1;
@@ -561,7 +571,10 @@ namespace cluster {
                  vw <= ew1 && vw <= ew2 &&
                  vw  > ew1 - 10 && vw  > ew2 - 10) {
                 float fvt = et1 + (vw - ew1) * es1;
-  if(fDebugHit < 0) std::cout<<"topo1 vtx wire "<<vw<<" time "<<(int)fvt<<std::endl;
+  if(fDebugHit < 0) {
+    std::cout<<"Chk clusters "<<tcl[it1].ID<<" "<<tcl[it2].ID;
+    std::cout<<" topo1 vtx wire "<<vw<<" time "<<(int)fvt<<std::endl;
+  }
                 if(fvt > 0. && fvt < maxtime) {
                   // vertex wire US of cluster ends and time in the detector
                   // Check this against existing vertices and update
@@ -580,7 +593,10 @@ namespace cluster {
               unsigned short vw = fvw;
               if(vw <= ew1 && vw >= bw2) {
                 float fvt = et1 + (vw - ew1) * es1;
-  if(fDebugHit < 0) std::cout<<"topo2 vtx wire "<<vw<<" time "<<(int)fvt<<std::endl;
+  if(fDebugHit < 0) {
+    std::cout<<"Chk clusters "<<tcl[it1].ID<<" "<<tcl[it2].ID;
+    std::cout<<" topo2 vtx wire "<<vw<<" time "<<(int)fvt<<std::endl;
+  }
                 if(fvt > 0. && fvt < maxtime) {
                   cl2ChkVertex(plnhits, tcl, vtx, vw, fvt, it1, it2, 2);
                 } // fvt in detector
@@ -596,7 +612,10 @@ namespace cluster {
               unsigned short vw = fvw;
               if(vw <= ew2 && vw >= bw1) {
                 float fvt = et2 + (vw - ew2) * es2;
-  if(fDebugHit < 0) std::cout<<"topo3 vtx wire "<<vw<<" time "<<(int)fvt<<std::endl;
+  if(fDebugHit < 0) {
+    std::cout<<"Chk clusters "<<tcl[it1].ID<<" "<<tcl[it2].ID;
+    std::cout<<" topo3 vtx wire "<<vw<<" time "<<(int)fvt<<std::endl;
+  }
                 if(fvt > 0. && fvt < maxtime) {
                   cl2ChkVertex(plnhits, tcl, vtx, vw, fvt, it1, it2, 3);
                 } // fvt in detector
@@ -620,7 +639,10 @@ namespace cluster {
                  vw >= bw2 && vw <= fLastWire &&
                  vw <  bw2 + 10 && vw <  bw1 + 10) {
                 float fvt = bt1 + (vw - bw1) * bs1;
-  if(fDebugHit < 0) std::cout<<"topo4 vtx wire "<<vw<<" time "<<(int)fvt<<std::endl;
+  if(fDebugHit < 0) {
+    std::cout<<"Chk clusters "<<tcl[it1].ID<<" "<<tcl[it2].ID;
+    std::cout<<" topo4 vtx wire "<<vw<<" time "<<(int)fvt<<std::endl;
+  }
                 if(fvt > 0. && fvt < maxtime) {
                   // vertex wire US of cluster ends and time in the detector
                   // Check this against existing vertices and update
@@ -789,9 +811,9 @@ namespace cluster {
       // (wire1, time1) and (wire2, time2).
       SigOK = false;
       // get the begin and end right
-      unsigned short wireb = wire1;
+      short wireb = wire1;
       float timeb = time1;
-      unsigned short wiree = wire2;
+      short wiree = wire2;
       float timee = time2;
       // swap them?
       if(wiree > wireb) {
@@ -808,14 +830,14 @@ namespace cluster {
             mf::LogError("ClusterCrawler")<<"ChkSignal bad wireb "<<wireb;
             return;
       }
-      wire0 = wiree;
+      short wire0 = wiree;
       // checking a single wire?
       if(wireb == wiree) {
         clpar[1] = 0.;
       } else {
         clpar[1] = (timeb - timee) / (wireb - wiree);
       }
-      for(unsigned short wire = wiree; wire < wireb + 1; ++wire) {
+      for(short wire = wiree; wire < wireb + 1; ++wire) {
         // assume there is no signal on this wire
         bool WireSigOK = false;
         float prtime = timee + (wire - wire0) * clpar[1];
@@ -980,7 +1002,19 @@ namespace cluster {
           tmp = tcl[ii].BeginChg;
           tcl[ii].BeginChg = tcl[ii].EndChg;
           tcl[ii].EndChg = tmp;
-          // no obvious need to swap the hit order...
+          // vertex
+          short jtmp = tcl[ii].BeginVtx;
+          tcl[ii].BeginVtx = tcl[ii].EndVtx;
+          tcl[ii].EndVtx = jtmp;
+          // swap the hit order as well
+/*
+          std::vector<unsigned short> tvec;
+          for(std::vector<short>::reverse_iterator jj = tcl[ii].tclhits.rbegin();
+              jj != tcl[ii].tclhits.rend(); ++jj) {
+            tvec.push_back(tcl[ii].tclhits[jj]);
+          }
+          tcl[ii].tclhits = tvec;
+*/
         }
       }
     } // cl2SetBeginEnd
@@ -1105,7 +1139,6 @@ namespace cluster {
         }
       }
       // re-fit the end of the cluster
-      wire0 = splitwire;
       cl2Fit(plnhits);
       clEndSlp = clpar[1];
       clEndSlpErr = clparerr[1];
@@ -1143,7 +1176,6 @@ namespace cluster {
           wire = plnhits[hit]->WireID().Wire;
           if(wire < splitwire) fcl2hits.push_back(hit);
         }
-        wire0 = wire;
         cl2Fit(plnhits);
         clEndSlp = clpar[1]; // save the slope at the end
         clEndSlpErr = clparerr[1];
@@ -1166,7 +1198,6 @@ namespace cluster {
             if(fcl2hits.size() == 3) {
 //  std::cout<<"refit begin "<<tcl[it1].ID<<std::endl;
               didfit = true;
-              wire0 = wire;
               cl2Fit(plnhits);
               if(clChisq > 99.) {
   std::cout<<"cl2DoSplit bad fit "<<std::endl;
@@ -1181,7 +1212,6 @@ namespace cluster {
           // did a fit at the beginning of the cluster
           if(fcl2hits.size() > 4) {
             // long cluster: re-fit the end
-            wire0 = wire;
             cl2Fit(plnhits);
               if(clChisq > 99.) {
   std::cout<<"cl2DoSplit bad fit "<<std::endl;
@@ -1312,6 +1342,8 @@ namespace cluster {
           if(fChgCut[pass2] > chgcut) chgcut = fChgCut[pass2];
           float timecut = fTimeDelta[pass];
           if(fTimeDelta[pass2] > timecut) timecut = fTimeDelta[pass2];
+          // increase the time cut for large angle clusters
+          timecut *= (2 - 1/(1 + fabs(clpar[1])));
           
           float dth = fabs(bth2 - eth1);
 //  if(fDebugWire < 0 && bw2 < ew1 && (ew1 - bw2)  < skipcut) {
@@ -1631,41 +1663,30 @@ namespace cluster {
       if(hit >= 0) {
         unsigned short uhit = hit;
         fcl2hits.push_back(uhit);
+        if(fcl2hits.size() == 4) {
+          // re-fit the Begin end of the cluster
+          cl2Fit(plnhits);
+          if(clChisq > 99.) {
+            std::cout<<"cl2DoMerge bad Begin fit "<<clChisq<<std::endl;
+            return;
+          }
+          clBeginSlp = clpar[1];
+          clBeginSlpErr = clparerr[1];
+          clBeginChg = fAveChg;
+        }
       }
     }
 //  std::cout<<"new size "<<fcl2hits.size()<<std::endl;
     // re-fit the End of the cluster with the current pass params
-    unsigned short iend = fcl2hits.size() - 1;
-    unsigned short jend = fcl2hits[iend];
-    if(jend > plnhits.size() - 1) {
-      std::cout<<"cl2DoMerge bad jend "<<jend<<std::endl;
-      return;
-    }
-    wire0 = plnhits[jend]->WireID().Wire;
     cl2Fit(plnhits);
     if(clChisq > 99.) {
-      std::cout<<"cl2DoMerge bad fit1 "<<clChisq<<std::endl;
+      std::cout<<"cl2DoMerge bad End fit "<<clChisq<<std::endl;
       return;
     }
     clEndSlp = clpar[1];
     clEndSlpErr = clparerr[1];
     clEndChg = fAveChg;
-    // re-fit the Beginning of the cluster, using the first 4 hits
-    std::vector<unsigned short>::iterator ibeg3 = fcl2hits.begin() + 3;
-    unsigned short jbeg3 = *ibeg3;
-    if(jbeg3 > plnhits.size() - 1) {
-      std::cout<<"cl2DoMerge bad jbeg3 "<<std::endl;
-      return;
-    }
-    wire0 =  plnhits[jbeg3]->WireID().Wire;
-    cl2Fit(plnhits);
-    if(clChisq > 99.) {
-      std::cout<<"cl2DoMerge bad fit2 "<<clChisq<<std::endl;
-      return;
-    }
-    clBeginSlp = clpar[1];
-    clBeginSlpErr = clparerr[1];
-    clBeginChg = fAveChg;
+
     clStopCode = cl1.StopCode;
     clAssn = -1;
     // append it to the tcl vector
@@ -1752,6 +1773,7 @@ namespace cluster {
       
       if(it1 > tcl.size()) return;
 
+
       clBeginSlp = tcl[it1].BeginSlp;
       clBeginSlpErr = tcl[it1].BeginSlpErr;
       clBeginWir = tcl[it1].BeginWir;
@@ -1767,7 +1789,6 @@ namespace cluster {
       clAssn = tcl[it1].Assn;
       fcl2hits.clear();
       fcl2hits = tcl[it1].tclhits;
-      wire0 = clEndWir;
     }
 
 
@@ -1794,6 +1815,25 @@ namespace cluster {
     }
 
     // ensure that the cluster begin/end info is correct
+
+    // define the begin/end charge if it wasnt done already
+    if(clEndChg < 0.) {
+      // use the next to the last two hits. The End hit may have low charge
+      unsigned int ih0 = fcl2hits.size() - 2;
+      unsigned int hit = fcl2hits[ih0];
+      clEndChg = plnhits[hit]->Charge();
+      hit = fcl2hits[ih0 - 1];
+      clEndChg += plnhits[hit]->Charge();
+      clEndChg = clEndChg / 2.;
+    }
+    if(clBeginChg < 0.) {
+      // use the 2nd and third hit. The Begin hit may have low charge
+      unsigned int hit = fcl2hits[1];
+      clBeginChg = plnhits[hit]->Charge();
+      hit = fcl2hits[2];
+      clBeginChg += plnhits[hit]->Charge();
+      clBeginChg = clBeginChg / 2.;
+    }
     
     std::vector<unsigned short>::const_iterator ibg = fcl2hits.begin();
     unsigned short hitb = *ibg;
@@ -1808,12 +1848,12 @@ namespace cluster {
     clstr.BeginSlpErr = clBeginSlpErr;
     clstr.BeginWir    = plnhits[hitb]->WireID().Wire;
     clstr.BeginTim    = plnhits[hitb]->PeakTime();
-    clstr.BeginChg    = plnhits[hitb]->Charge();
+    clstr.BeginChg    = clBeginChg;
     clstr.EndSlp      = clEndSlp;
     clstr.EndSlpErr   = clEndSlpErr;
     clstr.EndWir      = plnhits[hite]->WireID().Wire;
     clstr.EndTim      = plnhits[hite]->PeakTime();
-    clstr.EndChg      = plnhits[hite]->Charge();
+    clstr.EndChg      = clEndChg;
     clstr.StopCode    = clStopCode;
     clstr.ProcCode    = clProcCode;
     clstr.Assn        = clAssn;
@@ -1845,9 +1885,6 @@ namespace cluster {
     std::cout<<std::endl;
   }
 
-  if(fcl2hits[0] == 879 && fcl2hits[2] == 851) {
-    std::cout<<"xxxx got it "<<std::endl;
-  }
     // SigOK = true if there is a ADC signal near the projected cluster position
     bool SigOK = true;
     bool HitOK = true;
@@ -1889,16 +1926,10 @@ namespace cluster {
               fcl2hits.clear();
               return;
             }
+  if(prt) std::cout<<" PostSkip && nmissed = "<<nmissed<<std::endl;
             for(short jj = 0; jj < nHitAfterSkip; ++jj) {
               fcl2hits.pop_back();
             } // pop_back
-            unsigned short ii = fcl2hits.size() - 1;
-            unsigned short jj = fcl2hits[ii];
-            if(jj > plnhits.size() - 1) {
-              std::cout<<"cl2FollowUS bad jj1 "<<jj<<" size "<<fcl2hits.size()<<std::endl;
-              return;
-            }
-            wire0 = plnhits[jj]->WireID().Wire;
             cl2Fit(plnhits);
             if(clChisq > 90.) {
               fcl2hits.clear();
@@ -1920,28 +1951,12 @@ namespace cluster {
         } // else SigOK false
       } else {
         // HitOK is true. Update the fit
-        // find the origin of the fit
-        unsigned short ii = fcl2hits.size() - 1;
-        unsigned short jj = fcl2hits[ii];
-        if(jj > plnhits.size() - 1) {
-          std::cout<<"cl2FollowUS bad jj2 "<<jj<<" size "<<fcl2hits.size()<<std::endl;
-          return;
-        }
-  if(prt) std::cout<<"Add hit W:H "<<nextwire<<":"<<jj<<std::endl;
-        wire0 = plnhits[jj]->WireID().Wire;
         cl2Fit(plnhits);
         if(clChisq > 99.) {
           if(fcl2hits.size() < 3) return;
           // a fit error occurred. Lop off the leading hit and refit
-  if(prt) std::cout<<"Fit failed W:H = "<<wire0<<":"<<jj<<std::endl;
+  if(prt) std::cout<<"Fit failed "<<std::endl;
           fcl2hits.pop_back();
-          ii = fcl2hits.size() - 1;
-          jj = fcl2hits[ii];
-          if(jj > plnhits.size() - 1) {
-            std::cout<<"cl2FollowUS bad jj3 "<<jj<<" size "<<fcl2hits.size()<<std::endl;
-            return;
-          }
-          wire0 = plnhits[jj]->WireID().Wire;
           cl2Fit(plnhits);
           if(clChisq > 99.) {
             // something really bad happened. Bail out
@@ -1949,12 +1964,6 @@ namespace cluster {
             return;
           }
           continue;
-        }
-        // update the cluster Begin slope?
-        if(fcl2hits.size() == fMaxHitsFit[pass] ||
-           fcl2hits.size() == fMinHits[pass]) {
-          clBeginSlp = clpar[1];
-          clBeginSlpErr = clparerr[1];
         }
         // monitor the onset of a kink. Find the average chisq for the fit
         // using the previous 3 - 6 hits. Look for a progressive increase
@@ -2014,19 +2023,25 @@ namespace cluster {
               for(short jj = 0; jj < 3; ++jj) {
                 fcl2hits.pop_back();
               }
-              unsigned short ii = fcl2hits.size();
-              unsigned short jj = fcl2hits[ii];
-              if(jj > plnhits.size() - 1) {
-                std::cout<<"cl2FollowUS bad jj "<<jj<<std::endl;
-                return;
-              }
-              wire0 = plnhits[jj]->WireID().Wire;
               cl2Fit(plnhits);
               clStopCode = 3;
               break;
             } // kinkang check
           } // chifits check
         } // chifits.size() > 5
+        // done with kink check
+        // update the cluster Begin information?
+        if(fcl2hits.size() == fMaxHitsFit[pass] ||
+           fcl2hits.size() == fMinHits[pass]) {
+          clBeginSlp = clpar[1];
+          clBeginSlpErr = clparerr[1];
+        }
+        // set the Begin charge after fAveChg is defined
+        if(fAveChg > 0 && clBeginChg < 0) {
+          // project the charge to the Begin of the cluster
+          clBeginChg = fAveChg + (clBeginWir - nextwire) * fChgSlp;
+  if(prt) std::cout<<"Set clBeginChg "<<clBeginChg<<std::endl;
+        }
         // reset nmissed
         nmissed = 0;
         // start counting hits added after skipping
@@ -2045,50 +2060,30 @@ namespace cluster {
         // check for bad chisq
         if(clChisq > fChiCut[pass]) {
           // remove the last hit and re-fit
-          fcl2hits.erase(fcl2hits.end() - 1);
-          // find the origin of the fit
-          unsigned short ii = fcl2hits.size() - 1;
-          unsigned short jj = fcl2hits[ii];
-          if(jj > plnhits.size() - 1) {
-            std::cout<<"cl2FollowUS bad jj "<<jj<<std::endl;
+          fcl2hits.pop_back();
+          cl2Fit(plnhits);
+          if(clChisq > 99.) {
+            std::cout<<"cl2FollowUS bad fit after pop_back "<<clChisq<<std::endl;
             return;
           }
-          wire0 = plnhits[jj]->WireID().Wire;
-          cl2Fit(plnhits);
           clStopCode = 4;
           break;
         } // clChisq > fChiCut[pass]
       } // !HitOK check
     } // nextwire
     
-    // count the number of consecutive hits on wires at the end
-    it = fcl2hits.size() - 1;
-    lasthit = fcl2hits[it];
-    if(lasthit > plnhits.size() - 1) {
-      std::cout<<"cl2FollowUS bad lasthit "<<std::endl;
-      return;
-    }
-    lastwire = plnhits[lasthit]->WireID().Wire;
-//  std::cout<<"Last wire "<<lastwire<<std::endl;
-    unsigned short nht = 0;
-    // number of hits to lop off the end
-    unsigned short nlop = 0;
-    for(unsigned short ii = fcl2hits.size() - 1; ii > 0; ii-- ) {
-      unsigned short jj = fcl2hits[ii];
-      unsigned short wir = plnhits[jj]->WireID().Wire;
-//  std::cout<<"chk "<<jj<<" wir "<<wir<<" lastwire "<<lastwire<<std::endl;
-      if(abs(wir - lastwire) > 1) {
-        nlop = nht + 1;
-        break;
-      }
-      ++nht;
-      if(nht > fMinWirAfterSkip[pass]) {
-        break;
-      }
-      lastwire = wir;
-    }
+    // find the US wire
+    unsigned short ih0 = fcl2hits.size() - 1;
+    unsigned short hit0 = fcl2hits[ih0];
+    unsigned short uswir = plnhits[hit0]->WireID().Wire;
+    // find the wire fMinWirAfterSkip[pass] indices DS
+    unsigned short ihskp = ih0 - fMinWirAfterSkip[pass];
+    unsigned short hitskp = fcl2hits[ihskp];
+    unsigned short wirskp = plnhits[hitskp]->WireID().Wire;
+    unsigned short nlop = wirskp - uswir - fMinWirAfterSkip[pass];
+
+  if(prt) std::cout<<" check nlop "<<nlop<<" wirskp "<<wirskp<<std::endl;
     if(nlop > 0 && nlop < fcl2hits.size() - 4) {
-//  std::cout<<"nlop "<<nlop<<std::endl;
       for(unsigned short ii = 0; ii < nlop; ++ii) {
         fcl2hits.pop_back();
         if(fcl2hits.size() < 3) {
@@ -2123,6 +2118,7 @@ namespace cluster {
     std::vector<float> ytimerr2;
     
     short nht = 0;
+    unsigned short wire0 = 0;
     if(nhit > 0) {
       nht = nhit;
       // find the first desired hit and move towards the End
@@ -2204,8 +2200,7 @@ namespace cluster {
 /////////////////////////////////////////
   void ClusterCrawlerAlg::cl2Fit(const art::PtrVector<recob::Hit>& plnhits)
   {
-    // Fits the hits on a cluster with origin at wire0 defined by the calling
-    // routine. This routine assumes that
+    // Fits the hits on the US end of a cluster. This routine assumes that
     // wires are numbered from lower (upstream) to higher (downstream) and
     // that the hits in the fclhits vector are sorted so that upstream hits
     // are at the end of the vector
@@ -2225,9 +2220,6 @@ namespace cluster {
     std::vector<float> xwir;
     std::vector<float> ytim;
     std::vector<float> ytimerr2;
-    std::vector<float> ychg;
-    std::vector<float> ychgerr2;
-
     // apply an angle dependent scale factor. The error should be
     // wire pitch / sqrt(12) for a cluster at 90 degrees. This formula 
     // simply doubles the error, which I think is reasonable for uBooNE and
@@ -2235,26 +2227,25 @@ namespace cluster {
     float angfactor = 1;
     if(clpar[1] != 0) angfactor = 2 - 1/(1 + fabs(clpar[1]));
 
-    // load the hits starting at the back end of the fcl2hits vector.
+    // load the hits starting at the End of the fcl2hits vector.
     // These are the most upstream hits
     unsigned short iht = 0;
 
-  if(prt) std::cout<<"cl2Fit wire0 "<<wire0<<" W:H ";
+    bool first = true;
+    unsigned short wire0 = 0;
     for(std::vector<unsigned short>::reverse_iterator it = fcl2hits.rbegin();
        it != fcl2hits.rend(); ++it) {
       unsigned short ihit = *it;
       unsigned short wire = plnhits[ihit]->WireID().Wire;
+      if(first) {
+        wire0 = wire;
+        first = false;
+  if(prt) std::cout<<"cl2Fit W:H ";
+      }
   if(prt) std::cout<<wire<<":"<<ihit<<" ";
       xwir.push_back(wire - wire0);
       ytim.push_back(plnhits[ihit]->PeakTime());
       ytimerr2.push_back(angfactor * fabs(hiterr2[ihit]));
-      // only load the requested number for the charge average and
-      // don't include the Begin hit
-      if(iht < fNHitsAve[pass] && it != fcl2hits.rend() - 1) {
-        ychg.push_back(plnhits[ihit]->Charge());
-        // set charge error^2 large
-        ychgerr2.push_back(0.3 * ychg[iht]);
-      }
       if(iht == nht) break;
       ++iht;
     }
@@ -2278,36 +2269,60 @@ namespace cluster {
     clparerr[1] = slopeerr;
 
 
-  if(prt) std::cout<<"nht "<<nht<<" fit par "<<(int)clpar[0]<<" "<<clpar[1]<<" clChisq "<<clChisq;
+  if(prt) {
+    std::cout<<"nht "<<nht<<" fit par "<<(int)clpar[0]<<" "<<clpar[1]<<" clChisq "<<clChisq;
+    std::cout<<std::endl;
+  }
+  
+  }
+
+/////////////////////////////////////////
+  void ClusterCrawlerAlg::cl2FitChg(const art::PtrVector<recob::Hit>& plnhits)
+  {
+    // Fits the charge of hits on the fcl2hits vector to a line, or simply
+    // uses the average of 1 or 2 hits as determined by NHitsAve
+
+    unsigned short ih0 = fcl2hits.size() - 1;
     
-    std::vector<unsigned short>::reverse_iterator it0 = fcl2hits.rbegin();
-    unsigned short ih0 = *it0;
-    fAveWid = hitwid[ih0];
-    // update the average charge
     if(fNHitsAve[pass] < 2) {
       // simply use the charge and width the last hit
-      fAveChg = plnhits[ih0]->Charge();
+      fAveChg = plnhits[fcl2hits[ih0]]->Charge();
     } else if(fNHitsAve[pass] == 2) {
       // average the last two points if requested
-      std::vector<unsigned short>::reverse_iterator it1 = fcl2hits.rbegin()+1;
-      unsigned short ih1 = *it1;
-      fAveChg = (plnhits[ih0]->Charge() + plnhits[ih1]->Charge()) / 2.;
-      fAveWid = (hitwid[ih0] + hitwid[ih1]) / 2.;
-    } else {
-      // fAveChg = -1 for a new cluster. Don't mess with this until
-      // there are enough hits to fit. The charge ratio cut in cl2Fit is not
-      // in effect until fAveChg > 0.
-      if(nht > fNHitsAve[pass]) {
-        // fit the charge to a line using the number of hits requested
-        LinFit(xwir, ychg, ychgerr2, intcpt, slope, intcpterr, slopeerr, chidof);
-  if(prt) std::cout<<" Chg fit chidof "<<chidof;
-        if(chidof < 999.) fAveChg = intcpt;
+      fAveChg = (plnhits[fcl2hits[ih0]]->Charge() + 
+                 plnhits[fcl2hits[ih0 - 1]]->Charge()) / 2.;
+    } else if((unsigned short)fcl2hits.size() > fNHitsAve[pass]){
+      // do a real fit
+      std::vector<float> xwir;
+      std::vector<float> ychg;
+      std::vector<float> ychgerr2;
+      unsigned short wire0 = 0;
+      bool first = true;
+      unsigned int npt = 0;
+      // this loop intentionally ignores the Begin hit
+      for(unsigned int ii = fcl2hits.size() - 1; ii > 0; --ii) {
+        unsigned short wire = plnhits[fcl2hits[ii]]->WireID().Wire;
+        if(first) {
+          wire0 = wire;
+          first = false;
+        }
+        xwir.push_back((float)(wire - wire0));
+        float chg = plnhits[fcl2hits[ii]]->Charge();
+        ychg.push_back(chg);
+        ychgerr2.push_back(0.5 * chg);
+        if(npt == fNHitsAve[pass]) break;
+        ++npt;
       }
-    } // end find fAveChg
+      if(ychg.size() < 3) return;
+      float intcpt; float slope; float intcpterr;
+      float slopeerr; float chidof;
+      LinFit(xwir, ychg, ychgerr2, intcpt, slope, intcpterr, slopeerr, chidof);
+  if(prt) std::cout<<"cl2FitChg Wire: "<<wire0<<" chidof "<<chidof<<" nht "<<ychg.size();
+      if(chidof < 20.) fAveChg = intcpt;
+    }
   if(prt) std::cout<<" fAveChg "<<(int)fAveChg<<std::endl;
 
   }
-
 
 /////////////////////////////////////////
   void ClusterCrawlerAlg::cl2AddHit(const art::PtrVector<recob::Hit>& plnhits,
@@ -2343,6 +2358,7 @@ namespace cluster {
     // consecutive fits
     std::vector<unsigned short>::reverse_iterator it1 = fcl2hits.rbegin();
     unsigned short ih1 = *it1;
+    unsigned short wire0 = plnhits[ih1]->WireID().Wire;
     float bigchgcut = 2 * fChgCut[pass];
     bool lasthitbig = ( (plnhits[ih1]->Charge() / fAveChg) > bigchgcut);
     float lowchgcut = -1.5 * fChgCut[pass];
@@ -2355,7 +2371,7 @@ namespace cluster {
     SigOK = false;
     for(unsigned short khit = firsthit; khit < lasthit; ++khit) {
   if(prt) {
-    std::cout<<"cl2AddHit chk W:H "<<kwire<<":"<<khit<<" time "<<(int)plnhits[khit]->PeakTime();
+    std::cout<<"cl2AddHit: Check W:H "<<kwire<<":"<<khit<<" time "<<(int)plnhits[khit]->PeakTime();
     std::cout<<" prtime "<<(short)prtime<<" fAveChg "<<(int)fAveChg;
     std::cout<<" lasthitlow "<<lasthitlow<<" lasthitbig "<<lasthitbig<<std::endl;
   }
@@ -2381,13 +2397,12 @@ namespace cluster {
             // set SigOK false if this low charge hit will be selected to stop
             // following
             if(fabs(timediff) < 3) {
+  if(prt) std::cout<<"cl2addhit: found two low charge hits. Pop_back "<<std::endl;
               SigOK = false;
+              HitOK = false;
               // lop off the last low charge hit and re-fit?
               if(fcl2hits.size() > 3) {
                 fcl2hits.pop_back();
-                unsigned short iht = fcl2hits.size() - 1;
-                unsigned short hit = fcl2hits[iht];
-                wire0 = plnhits[hit]->WireID().Wire;
                 cl2Fit(plnhits);
               }
               // stop looking for hits
@@ -2408,11 +2423,6 @@ namespace cluster {
           if(chgrat > bigchgcut) continue;
         }
       } // fAveChg > 0
-/* It isn't clear that this is a worthwhile cut to make. Needs more study
-        float widrat = fabs(hitwid[khit] - fAveWid) / fAveWid;
-  if(prt) std::cout<<" widrat "<<widrat<<std::endl;
-        if(widrat > fWidCut[pass]) continue;
-*/
   if(prt) std::cout<<" time diff "<<timediff<<std::endl;
       if(fabs(timediff) < best) {
         best = fabs(timediff);
@@ -2426,7 +2436,7 @@ namespace cluster {
     // Found a close hit check the chisq
     float prtimerr2 = clparerr[0]*clparerr[0] + fabs(kwire-wire0)*clparerr[1]*clparerr[1];
   if(prt) {
-    std::cout<<"clerr "<<prtimerr2<<" hiterr "<<hiterr2[imbest];
+    std::cout<<" clerr "<<prtimerr2<<" hiterr "<<hiterr2[imbest];
     std::cout<<" best "<<best<<std::endl;
   }
     // apply an angle dependent scale factor to the hit error
@@ -2438,12 +2448,21 @@ namespace cluster {
     if(numsig2 < 10.) {
       fcl2hits.push_back(imbest);
       if(prt) {
-        std::cout<<"cl2AddHit ADD W:H "<<kwire<<":"<<imbest<<" best "<<best;
+        std::cout<<" >>ADD W:H "<<kwire<<":"<<imbest<<" best "<<best;
         std::cout<<" numsig2 "<<numsig2<<std::endl;
       }
       HitOK = true;
+      // decide whether to define/update fAveChg. Only do this if the last hit
+      // charge and the added hit charge is not too high and not too low
+      if(fAveChg < 0.) {
+        cl2FitChg(plnhits);
+      } else if(!lasthitlow && !lasthitbig) {
+        // note that we take the absolute value here
+        float chgrat = fabs(plnhits[imbest]->Charge() - fAveChg) / fAveChg;
+        if(chgrat < fChgCut[pass]) cl2FitChg(plnhits);
+      }
     } else {
-      if(prt) std::cout<<"cl2AddHit bad chisq "<<numsig2<<std::endl;
+      if(prt) std::cout<<" >>Bad chisq "<<numsig2<<std::endl;
       HitOK = false;
     }
   }
