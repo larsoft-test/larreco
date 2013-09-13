@@ -126,6 +126,12 @@ namespace apa{
     return;
   }
 
+  //----------------------------------------------------------
+  unsigned int APAGeometryAlg::ChannelToAPA( uint32_t chan ){
+
+    return chan / fChannelsPerAPA;
+  }
+
 
   //----------------------------------------------------------
   unsigned int APAGeometryAlg::ChannelsInView( geo::View_t geoview ){
