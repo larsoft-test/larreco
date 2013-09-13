@@ -50,7 +50,7 @@ extern "C" {
 #include "TVector2.h"
 #include "TVector3.h"
 
-namespace hit{
+namespace apa{
   class APAHitFinder : public art::EDProducer {
     
   public:
@@ -70,7 +70,6 @@ namespace hit{
     art::ServiceHandle<geo::Geometry> fGeom;
 
     std::string fChanHitLabel;
-    std::string fClusLabel;
 
 
   protected: 
@@ -102,7 +101,6 @@ void APAHitFinder::reconfigure(fhicl::ParameterSet const& p)
 {
 
   fChanHitLabel =  p.get< std::string >("ChanHitLabel");
-  fClusLabel    =  p.get< std::string >("ClusLabel");
   
 }  
 
@@ -171,5 +169,5 @@ void APAHitFinder::produce(art::Event& evt)
 
 DEFINE_ART_MODULE(APAHitFinder);
 
-} // end of hit namespace
+} // end of apa namespace
 #endif // APAHITFINDER_H
