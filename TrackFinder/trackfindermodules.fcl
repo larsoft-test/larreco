@@ -123,6 +123,16 @@ standard_trackana:
   IgnoreSign:         true
 }
 
+standard_seedana:
+{
+  module_type:        "SeedAna"
+  SeedModuleLabel:   "seedfinder"
+  MinMCKE:            0.05
+  MatchColinearity:   0.99
+  MatchDisp:          2.0
+  IgnoreSign:         true
+}
+
 standard_spacepts:
 {
  module_type:           "SpacePts"
