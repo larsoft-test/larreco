@@ -5,7 +5,7 @@ standard_clustercrawleralg:
   NumPass:              3  # number of passes through the hit list
   MaxHitsFit:  [20,  8, 4] # number of hits fitted to a line
   MinHits:     [20,  8, 3] # minimum size of a cluster
-  NHitsAve:     [6,  6, 1] # number of hits to find the average charge and width  
+  NHitsAve:     [6,  6, 0] # number of hits to find the average charge and width  
                            # at the end of the cluster. NHitsAve should be 1 or 2
   ChgCut:   [.65, .65, .7] # max fractional hit charge difference for adding hits
   WidCut:     [.5, .5, .8] # max fractional hit width difference for adding hits

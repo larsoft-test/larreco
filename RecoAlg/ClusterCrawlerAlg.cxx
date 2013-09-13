@@ -2284,6 +2284,9 @@ namespace cluster {
 
     unsigned short ih0 = fcl2hits.size() - 1;
     
+    // don't find the average charge --> no charge cut is made
+    if(fNHitsAve[pass] < 1) return;
+    
     if(fNHitsAve[pass] < 2) {
       // simply use the charge and width the last hit
       fAveChg = plnhits[fcl2hits[ih0]]->Charge();
@@ -2353,6 +2356,7 @@ namespace cluster {
     }
     unsigned short firsthit = WireHitRange[index].first;
     unsigned short lasthit = WireHitRange[index].second;
+
     // Determine if the last hit added was a large (low) charge hit
     // This will be used to prevent adding large (low) charge hits on two
     // consecutive fits
@@ -2363,6 +2367,7 @@ namespace cluster {
     bool lasthitbig = ( (plnhits[ih1]->Charge() / fAveChg) > bigchgcut);
     float lowchgcut = -1.5 * fChgCut[pass];
     bool lasthitlow = ( (plnhits[ih1]->Charge() / fAveChg) < fChgCut[pass]);
+
     // find the expected time of a hit on this wire
     float prtime = clpar[0] + (kwire - wire0) * clpar[1];
     // max number of time ticks between projected cluster and hit position
