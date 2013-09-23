@@ -216,6 +216,14 @@ standard_cosmictagger:
     dWLimit: 8
 }
 
+standard_trackstitcher:
+{
+    module_type: "TrackStitcher"
+    TrackModuleLabel: "trk3dsps"
+    SpptModuleLabel: "spacepts"
+    CosAngTolerance: 0.90
+    SpptSepTolerance: 3.0 # cm
+}
 
 bo_track:                               @local::standard_track3Dreco  
 bo_kalman:                              @local::standard_track3Dkalman

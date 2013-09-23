@@ -251,7 +251,7 @@ namespace trkf {
     fPerpLim               = pset.get< double  >("PerpLimit", 1.e6); // PCA cut.
     fDoFit                 = pset.get< bool  >("DoFit", true); // Der.
     fNumIt                 = pset.get< int  >("NumIt", 5); // Number x2 passes per fit.
-    fMinNumSppts            = pset.get< int  >("NumIt", 5); // Min number of sppts in vector to bother fitting
+    fMinNumSppts            = pset.get< int  >("MinNumSppts", 5); // Min number of sppts in vector to bother fitting
     fErrScaleS              = pset.get< double >("ErrScaleSim", 1.0); // error scale.
     fErrScaleM              = pset.get< double >("ErrScaleMeas", 1.0); // error scale.
     fDecimate              = pset.get< int  >("DecimateC", 40); // Sparsify data.
