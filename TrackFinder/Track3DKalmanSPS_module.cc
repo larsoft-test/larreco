@@ -84,7 +84,8 @@ static bool sp_sort_3dz(const art::Ptr<recob::SpacePoint>& h1, const art::Ptr<re
 {
   const double* xyz1 = h1->XYZ();
   const double* xyz2 = h2->XYZ();
-  return xyz1[2] < xyz2[2];
+  //  return xyz1[2] < xyz2[2];
+  return xyz1[1] < xyz2[1];
 }
 
 static bool sp_sort_nsppts(const art::PtrVector<recob::SpacePoint>& h1, const art::PtrVector<recob::SpacePoint>& h2)
