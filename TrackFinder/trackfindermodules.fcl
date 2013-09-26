@@ -110,6 +110,7 @@ standard_track3DkalmanSPS:
  MaxUpdateU:          0.1
  Chi2HitThresh:       1000000.0
  GenfPRINT:           false
+ SortDirection:       "z"
  SpacePointAlg:       @local::standard_spacepointalg
 }
 

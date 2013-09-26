@@ -84,8 +84,19 @@ static bool sp_sort_3dz(const art::Ptr<recob::SpacePoint>& h1, const art::Ptr<re
 {
   const double* xyz1 = h1->XYZ();
   const double* xyz2 = h2->XYZ();
-  //  return xyz1[2] < xyz2[2];
+  return xyz1[2] < xyz2[2];
+}
+static bool sp_sort_3dy(const art::Ptr<recob::SpacePoint>& h1, const art::Ptr<recob::SpacePoint>& h2)
+{
+  const double* xyz1 = h1->XYZ();
+  const double* xyz2 = h2->XYZ();
   return xyz1[1] < xyz2[1];
+}
+static bool sp_sort_3dx(const art::Ptr<recob::SpacePoint>& h1, const art::Ptr<recob::SpacePoint>& h2)
+{
+  const double* xyz1 = h1->XYZ();
+  const double* xyz2 = h2->XYZ();
+  return xyz1[0] < xyz2[0];
 }
 
 static bool sp_sort_nsppts(const art::PtrVector<recob::SpacePoint>& h1, const art::PtrVector<recob::SpacePoint>& h2)
@@ -122,8 +133,9 @@ namespace trkf {
     std::string     fSpptModuleLabel;// label for input collection
     std::string     fGenieGenModuleLabel;// label for input MC single particle generator
     std::string     fG4ModuleLabel;// label for input MC single particle generator
-    bool fGenfPRINT;
-      
+    bool            fGenfPRINT;
+    std::string     fSortDim; // direction in which to sort spacepoints
+
     TFile *fileGENFIT;
     TTree *tree;
 
@@ -265,9 +277,8 @@ namespace trkf {
     fPdg                   = pset.get< int  >("PdgCode", -13); // mu+ Hypothesis.
     fChi2Thresh            = pset.get< double >("Chi2HitThresh", 12.0E12); //For Re-pass.
     fGenfPRINT             = pset.get< bool >("GenfPRINT", false);
-
- 
-  }
+    fSortDim               = pset.get< std::string> ("SortDirection", "z"); // case sensitive
+   }
 
 //-------------------------------------------------
   Track3DKalmanSPS::~Track3DKalmanSPS()
@@ -713,9 +724,10 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 	  // to make non-const version spacepointss.
 	  art::PtrVector<recob::SpacePoint> spacepointss(spacepoints);
 
-	  // This f*cks up the order when tracks not along z. Try to go w.o. it.
 	  // What I need is a nearest neighbor sorting.
-	  std::sort(spacepointss.begin(), spacepointss.end(), sp_sort_3dz);
+	  if (fSortDim.compare("y") && fSortDim.compare("x")) std::sort(spacepointss.begin(), spacepointss.end(), sp_sort_3dz);
+	  if (!fSortDim.compare("y")) std::sort(spacepointss.begin(), spacepointss.end(), sp_sort_3dy);
+	  if (!fSortDim.compare("x")) std::sort(spacepointss.begin(), spacepointss.end(), sp_sort_3dx);
 
 	  for (unsigned int point=0;point<spacepointss.size();++point)
 	    {
