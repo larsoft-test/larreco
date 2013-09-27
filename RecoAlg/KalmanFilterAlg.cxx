@@ -733,10 +733,10 @@ bool trkf::KalmanFilterAlg::smoothTrack(KGTrack& trg,
       }    // Loop over KHitTracks.
 
       // If fit was successful and the unidirectional track pointer
-      // is not null, set the fit status of the last added KHitTrack
-      // to optimal.
+      // is not null and the track is valid, set the fit status of
+      // the last added KHitTrack to optimal.
 
-      if(result && trg1 != 0) {
+      if(result && trg1 != 0 && trg1->isValid()) {
 	if(dir == Propagator::FORWARD)
 	  trg1->endTrack().setStat(KFitTrack::OPTIMAL);
 	else {
