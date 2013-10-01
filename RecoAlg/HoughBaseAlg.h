@@ -142,7 +142,7 @@ namespace recob {
 		int    iMaxWireTemp=-999999,
 		int    minWireTemp=999999,
 		int    maxWireTemp=-999999,
-		std::vector<art::Ptr<recob::Hit>> const& hitsTemp=std::vector<art::Ptr<recob::Hit>>())
+		std::vector<art::Ptr<recob::Hit>> hitsTemp=std::vector<art::Ptr<recob::Hit>>())
       {
         clusterNumber = num;
         oldClusterNumber = num;
