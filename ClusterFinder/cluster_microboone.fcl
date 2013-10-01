@@ -9,11 +9,7 @@ microboone_houghbasealg.MaxLines:             20
 microboone_houghbasealg.MaxDistance:          1.0
 microboone_houghbasealg.MinHits:              5
 microboone_houghbasealg.NumAngleCells:        20000
-microboone_houghbasealg.DoHoughLineMerge:     1
-microboone_houghbasealg.HoughLineMergeAngle:  15
-microboone_houghbasealg.HoughLineMergeCutoff: 5
 microboone_fuzzyclusteralg:                   @local::standard_fuzzyclusteralg 
-microboone_fuzzyclusteralg.HoughBaseAlg:      @local::microboone_houghbasealg 
 
 microboone_dbcluster:                    @local::standard_dbcluster      
 microboone_dbcluster.DBScanAlg:          @local::microboone_dbscanalg    
