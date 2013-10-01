@@ -1258,31 +1258,6 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 	 }
 	  
 	  
-// 	  // saves a bitmap image of the accumulator (useful for debugging), 
-// 	  // with scaling based on the maximum cell value
-// 	  if(fSaveAccumulator){   
-// 	    unsigned char *outPix = new unsigned char [accDx*accDy];
-// 	    //finds the maximum cell in the accumulator for image scaling
-// 	    int cell, pix = 0, maxCell = 0;
-// 	    for (y = 0; y < accDy; ++y){ 
-// 	      for (x = 0; x < accDx; ++x){
-// 		cell = c.GetCell(y,x);
-// 		if (cell > maxCell) maxCell = cell;
-// 	      }
-// 	    }
-// 	    for (y = 0; y < accDy; ++y){
-// 	      for (x = 0; x < accDx; ++x){ 
-// 		//scales the pixel weights based on the maximum cell value     
-// 		if(maxCell > 0)
-// 		  pix = (int)((1500*c.GetCell(y,x))/maxCell);
-// 		outPix[y*accDx + x] = pix;
-// 	      }
-// 	    }
-// 	    	    
-// 	    SaveBMPFile("houghaccum.bmp", outPix, accDx, accDy);
-// 	    delete [] outPix;
-// 	  }// end if saving accumulator
-	  
 	  hit.clear();
 	//  lastHits.clear();
 	  if(clusterIter != clusIn.end()){
