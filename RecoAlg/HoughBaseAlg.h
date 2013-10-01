@@ -140,7 +140,7 @@ namespace recob {
           int    iMaxWireTemp=-999999,
           int    minWireTemp=999999,
           int    maxWireTemp=-999999,
-          std::vector<art::Ptr<recob::Hit>> hitsTemp=NULL)
+          std::vector<art::Ptr<recob::Hit>> hitsTemp=std::vector<art::Ptr<recob::Hit>>())
       {
         clusterNumber = num;
         oldClusterNumber = num;
@@ -158,7 +158,7 @@ namespace recob {
         merged = false;
         showerMerged = false;
         showerLikeness = 0;
-        hits = hitsTemp;
+        hits.swap(hitsTemp);
       }
     };
 
