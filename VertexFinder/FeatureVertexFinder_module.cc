@@ -251,7 +251,7 @@ namespace vertex{
     int n3dFeatures = 0;
     
     
-    
+/*    
     // ###################################################
     // ### Take in the raw information about the event ###
     // ###################################################
@@ -349,7 +349,7 @@ namespace vertex{
 		}//<---End looping over TPC's
 	}//<---End looping over cryostats
  	
-	
+*/	
  
  
  
@@ -794,6 +794,29 @@ namespace vertex{
 						if(intersection_X2 > geom->Nwires(Clu_Plane[m],tpc,cstat)){continue;}
 						if(intersection_Y2 < 0){continue;}
 						if(intersection_Y2 > detprop->NumberTimeSamples() ){continue;}
+						
+						
+						// ### If the intersection point is 80 or more wires away from either cluster
+						// ### and the one of the clusters has fewer than 10 hits the intersection
+						// ### is likely a crap one and we won't save this point 
+						
+						// ### Gathering the hits associated with the current cluster ###
+						std::vector< art::Ptr<recob::Hit> > hitClu1 = fmh.at(m);
+						std::vector< art::Ptr<recob::Hit> > hitClu2 = fmh.at(n);
+						
+						if( abs( Clu_EndPos_Wire[m] - intersection_X2 ) > 80 && hitClu1.size() < 8 ||
+						    abs( Clu_EndPos_Wire[n] - intersection_X2 ) > 80 && hitClu2.size() < 8 )
+						    {std::cout<<"Skipping this intersection"<<std::endl;
+						    continue;}
+						
+						// ### If the intersection point is 50 or more wires away from either cluster
+						// ### and the one of the clusters has fewer than 3 hits the intersection
+						// ### is likely a crap one and we won't save this point 
+						if( abs( Clu_EndPos_Wire[m] - intersection_X2 ) > 50 && hitClu1.size() < 4 ||
+						    abs( Clu_EndPos_Wire[n] - intersection_X2 ) > 50 && hitClu2.size() < 4 )
+						    {std::cout<<"Skipping this intersection"<<std::endl;
+						    continue;}    
+						    
 						
 						// ##################################################
 						// ### Now checking if this intersection point is ###
