@@ -113,6 +113,16 @@ standard_showeranglecluster:
  ClusterParamsAlg: 	   @local::standard_clusterparamsalg
 }
 
+
+standard_showerangleclusterana:
+{
+ module_type:              "ShowerAngleClusterAna"
+ ClusterModuleLabel:       "dbcluster"
+ ClusterParamsAlg: 	   @local::standard_clusterparamsalg
+}
+
+
+
 standard_smallclusterfinder:
 {
  module_type:			"SmallClusterFinder"
@@ -180,7 +190,8 @@ argoneut_endpointmod:                  @local::standard_endpointmod
 argoneut_endpointmod.EndPointAlg:      @local::argoneut_endpointalg
 argoneut_showeranglecluster:           @local::standard_showeranglecluster
 argoneut_smallclusterfinder:		   @local::standard_smallclusterfinder
-
+argoneut_showerangleclusterana:           @local::standard_showerangleclusterana
+argoneut_showerangleclusterana.ClusterParamsAlg:           @local::argoneut_clusterparamsalg
 
 
 
@@ -201,6 +212,7 @@ microboone_endpointmod:                  @local::standard_endpointmod
 microboone_endpointmod.EndPointAlg:      @local::microboone_endpointalg
 microboone_showeranglecluster:           @local::standard_showeranglecluster
 microboone_smallclusterfinder:			 @local::standard_smallclusterfinder
-
+microboone_showerangleclusterana:           @local::standard_showerangleclusterana
+microboone_showerangleclusterana.ClusterParamsAlg:           @local::microboone_clusterparamsalg
 
 END_PROLOG
