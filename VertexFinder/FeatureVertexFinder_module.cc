@@ -64,6 +64,7 @@
 #include "Utilities/DetectorProperties.h"
 #include "Utilities/AssociationUtil.h"
 #include "RecoAlg/CornerFinderAlg.h"
+#include "RecoAlg/ClusterParamsAlg.h"
 
 // #####################
 // ### ROOT Includes ###
@@ -104,9 +105,10 @@ namespace vertex {
     TH1D *dtIC;
   
     std::string fClusterModuleLabel;
+    std::string fHitModuleLabel;
     // JA:Adding Corner Finder Alg
     cluster::CornerFinderAlg  fCorner;
-
+    cluster::ClusterParamsAlg fClParAlg;
   };
     
 }//<---End namespace vertex
@@ -128,7 +130,8 @@ namespace vertex{
 
 //-----------------------------------------------------------------------------
   FeatureVertexFinder::FeatureVertexFinder(fhicl::ParameterSet const& pset):
-  fCorner(pset.get<fhicl::ParameterSet>("CornerPset"))
+  fCorner(pset.get<fhicl::ParameterSet>("CornerPset")),
+  fClParAlg(pset.get<fhicl::ParameterSet>("ClusterParamsAlg"), pset.get< std::string >("module_type"))
   {  
     /*this->*/reconfigure(pset);    
     produces< std::vector<recob::Vertex> >();
@@ -147,6 +150,7 @@ namespace vertex{
   void FeatureVertexFinder::reconfigure(fhicl::ParameterSet const& p) 
   {
     fClusterModuleLabel  = p.get< std::string >("ClusterModuleLabel");
+    fHitModuleLabel	 = p.get< std::string >("HitModuleLabel");
     return;
   }
   //-------------------------------------------------------------------------
@@ -246,6 +250,8 @@ namespace vertex{
     double yy = 0., zz = 0.;
     int n3dFeatures = 0;
     
+    
+    
     // ###################################################
     // ### Take in the raw information about the event ###
     // ###################################################
@@ -342,7 +348,12 @@ namespace vertex{
 			}//<---End feature1 loop
 		}//<---End looping over TPC's
 	}//<---End looping over cryostats
-
+ 	
+	
+ 
+ 
+ 
+ 
  
 //-------------------------------------------------------------------------------------------------------------------------------------------------    
     
@@ -355,13 +366,19 @@ namespace vertex{
     std::unique_ptr< art::Assns<recob::Vertex, recob::Track> >   assntr(new art::Assns<recob::Vertex, recob::Track>);
     std::unique_ptr< art::Assns<recob::Vertex, recob::Hit> >     assnh(new art::Assns<recob::Vertex, recob::Hit>);
     
-    
-    
+
     // ###################################################
     // ### Retreiving the Cluster Module for the event ###
     // ###################################################
     art::Handle< std::vector<recob::Cluster> > clusterListHandle;
     evt.getByLabel(fClusterModuleLabel,clusterListHandle);
+    
+    // #################################################
+    // ### Finding hits associated with the clusters ###
+    // #################################################
+    art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fClusterModuleLabel);
+    
+   
     
     // ##################################
     // ### Filling the Cluster Vector ###
@@ -370,13 +387,84 @@ namespace vertex{
     for (unsigned int ii = 0; ii <  clusterListHandle->size(); ++ii){
       art::Ptr<recob::Cluster> clusterHolder(clusterListHandle,ii);
       clusters.push_back(clusterHolder);
+      
     }//<---End ii loop
     
-    // #################################################
-    // ### Finding hits associated with the clusters ###
-    // #################################################
-    art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fClusterModuleLabel);
+    // ###############################################
+    // ### Retreiving the Hit Module for the event ###
+    // ###############################################
+    art::Handle< std::vector<recob::Hit> > hitListHandle;
+    evt.getByLabel(fHitModuleLabel,hitListHandle);
     
+    // #########################################
+    // ### Putting Hits into a vector (hits) ###
+    // #########################################
+    std::vector< art::Ptr<recob::Hit> > hits;
+    art::fill_ptr_vector(hits, hitListHandle);
+    
+    
+
+
+
+// -------------------------------------------------------------------------------------------------------------------------
+
+// #######################################################################
+// ###   Trying to incorporate ClusterParmsAlg into here to utilize    ###
+// ### the finding axis of a cluster instead of doing simple pol1 fits ###
+// #######################################################################
+
+/*    // ##########################################
+    // ### Start by looping over the clusters ###
+    // ##########################################
+    for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++)
+    	{
+
+    	art::Ptr<recob::Cluster> cl(clusterListHandle, iClust);
+	
+   	std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iClust);
+	
+	double lineslope, lineintercept,goodness,wire_start,time_start,wire_end,time_end;
+
+	fClParAlg.Find2DAxisRough(lineslope,lineintercept,goodness,hitlist);
+	// hmmm...seems that my hitlist is always too small....that's strange....
+	
+	std::cout<<std::endl;
+	std::cout<<"iClust = "<<iClust<<" , StartWire = "<<cl->StartPos()[0]<<" , StartTime = "<<cl->StartPos()[1]<<std::endl;
+	std::cout<<"iClust = "<<iClust<<" , EndWire   = "<<cl->EndPos()[0]<<" , EndTime   = "<<cl->EndPos()[1]<<std::endl;
+	std::cout<<"iClust = "<<iClust<<" , Slope     = "<<lineslope<<" , intercept = "<<lineintercept<<" , goodness = "<<goodness<<std::endl;
+	
+	
+	fClParAlg.Find2DStartPointsHighCharge( hitlist,wire_start,time_start,wire_end,time_end);
+	
+	std::cout<<std::endl;
+	std::cout<<"Recalculated StartWire = "<<wire_start<<" , Recalculated StartTime = "<<time_start<<std::endl;
+	std::cout<<"Recalculated EndWire   = "<<wire_end<<" , Recalculated EndTime = "<<time_end<<std::endl;
+
+
+	}//<---End Cluster list
+
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ----------------------------------------------------------------------------------------------------------------------------    
+    
+
+
     // ==============================================================================
     // ===  Loop over all the clusters that are found in the cluster list and fit ===
     // ==  the hits in those clusters to establish a vector of slopes (dtdwstart) ===
@@ -385,6 +473,8 @@ namespace vertex{
     std::vector<int> Cls[3]; //<---- Index to clusters in each view
     std::vector<double> dtdwstart; //<----Slope (delta Time Tick vs delta Wire) 
     std::vector<double> dtdwstartError; //<---Error on the slope    
+    
+    std::cout<<"cluster.size() = "<<clusters.size()<<std::endl;
     
     //std::cout<<"Getting ready to loop over clusters"<<std::endl;
     for(size_t iclu = 0; iclu < clusters.size(); ++iclu)
@@ -451,7 +541,27 @@ namespace vertex{
 			double parerror[2];
 	      		pol1->GetParameters(par);
 			parerror[1] = pol1->GetParError(1);
-	      		//std::cout<<iclu<<" "<<par[1]<<" "<<clusters[iclu]->dTdW()<<std::endl;
+			double FitChi2 = pol1->GetChisquare();
+			double FitNDF = pol1->GetNDF();
+			
+			double fitGoodness = FitChi2/FitNDF;
+			
+			// ############################################################
+			// ### Skipping the fitted slope if the 0.5 < Chi2/NDF < 5  ###
+			// ############################################################
+			
+			
+			if( fitGoodness > 5)
+				{
+				mf::LogWarning("FeatureVertexFinder") << "Fitter returned poor Chi2/NDF, using the clusters default dTdW()";
+				dtdwstart.push_back(clusters[iclu]->dTdW());
+				//std::cout<<"Skipping the fitted slope"<<std::endl;
+				//delete the2Dtrack;
+				continue;
+				
+				}//<---End check on chi2/ndf fit
+	      		//std::cout<<"Cluster = "<<iclu<<" , Fit Slope = "<<par[1]<<" Clusters Saved Slope = "<<clusters[iclu]->dTdW()<<std::endl;
+			//std::cout<<"Cluster Fit Chi2 = "<<FitChi2<<" , Cluster NDF = "<<FitNDF<<" , Chi2/NDF = "<<fitGoodness<<std::endl;
 	      
 	      		// #######################################################################
 	      		// ### Take change in time tick vs change in wire (dT/dW) from the fit ###
@@ -492,30 +602,30 @@ namespace vertex{
     							//    (this gets zeroed after looping over all clusters in a plane)
 							
     int   n2dVertexCandidates = 0;			//<---Number of candidate 2d Vertices found
-    float Clu_Plane[1000] = {0};         	     	//<---Plane of the current cluster
-    float Clu_StartPos_Wire[1000]= {0};     		//<---Starting wire number of cluster
-    float Clu_StartPosUncer_Wire[1000]= {0};		//<---Starting wire number uncertainty
-    float Clu_StartPos_TimeTick[1000]= {0};      	//<---Starting TDC value of the cluster
-    float Clu_StartPosUncer_TimeTick[1000]= {0}; 	//<---Starting TDC value uncertainty
+    float Clu_Plane[10000] = {0};         	     	//<---Plane of the current cluster
+    float Clu_StartPos_Wire[10000]= {0};     		//<---Starting wire number of cluster
+    float Clu_StartPosUncer_Wire[10000]= {0};		//<---Starting wire number uncertainty
+    float Clu_StartPos_TimeTick[10000]= {0};      	//<---Starting TDC value of the cluster
+    float Clu_StartPosUncer_TimeTick[10000]= {0}; 	//<---Starting TDC value uncertainty
   
-    float Clu_EndPos_Wire[1000]= {0};       		//<---Ending wire number of cluster
-    float Clu_EndPosUncer_Wire[1000]= {0};  		//<---Ending wire number uncertainty
-    float Clu_EndPos_TimeTick[1000]= {0};        	//<---Ending TDC value of the cluster
-    float Clu_EndPosUncer_TimeTick[1000]= {0};   	//<---Ending TDC value uncertainty
+    float Clu_EndPos_Wire[10000]= {0};       		//<---Ending wire number of cluster
+    float Clu_EndPosUncer_Wire[10000]= {0};  		//<---Ending wire number uncertainty
+    float Clu_EndPos_TimeTick[10000]= {0};        	//<---Ending TDC value of the cluster
+    float Clu_EndPosUncer_TimeTick[10000]= {0};   	//<---Ending TDC value uncertainty
   
-    float Clu_Slope[1000]= {0};	  	   		//<---Calculated Slope of the cluster (TDC/Wire)
-    float Clu_SlopeUncer[1000]= {0};        		//<---Slope Error
-    float Clu_Yintercept[1000]= {0};			//<---Clusters Y Intercept using start positions
-    float Clu_Yintercept2[1000]= {0};			//<---Clusters Y Intercept using end positions
-    float Clu_Length[1000]= {0};			//<---Calculated Length of the cluster
+    float Clu_Slope[10000]= {0};	  	   		//<---Calculated Slope of the cluster (TDC/Wire)
+    float Clu_SlopeUncer[10000]= {0};        		//<---Slope Error
+    float Clu_Yintercept[10000]= {0};			//<---Clusters Y Intercept using start positions
+    float Clu_Yintercept2[10000]= {0};			//<---Clusters Y Intercept using end positions
+    float Clu_Length[10000]= {0};			//<---Calculated Length of the cluster
     
     int   AllCluster = 0;
-    float AllCluster_Plane[1000] = {0.};		//<---Storing the plane # for all clusters
-    float AllCluster_Length[1000] = {0.};		//<---Storing the length for all clusters
-    float AllCluster_StartWire[1000] = {0.};		//<---Storing the Start Wire for all clusters
-    float AllCluster_StartTime[1000] = {0.};		//<---Storing the Start Time for all clusters
-    float AllCluster_EndWire[1000] = {0.};		//<---Storing the End Wire for all clusters
-    float AllCluster_EndTime[1000] = {0.};		//<---Storing the End Time for all clusters
+    float AllCluster_Plane[10000] = {0.};		//<---Storing the plane # for all clusters
+    float AllCluster_Length[10000] = {0.};		//<---Storing the length for all clusters
+    float AllCluster_StartWire[10000] = {0.};		//<---Storing the Start Wire for all clusters
+    float AllCluster_StartTime[10000] = {0.};		//<---Storing the Start Time for all clusters
+    float AllCluster_EndWire[10000] = {0.};		//<---Storing the End Wire for all clusters
+    float AllCluster_EndTime[10000] = {0.};		//<---Storing the End Time for all clusters
     
     
     // ##############################
@@ -633,7 +743,7 @@ namespace vertex{
 						// --- Skip the vertex if the lines slope don't intercept ---
 						if(Clu_Slope[m] - Clu_Slope[n] == 0){break;}
 						
-						
+						/*
 						// ============================================================
 						// === X intersection = (yInt2 - yInt1) / (slope1 - slope2) ===
 						float intersection_X = (Clu_Yintercept[n] - Clu_Yintercept[m]) / (Clu_Slope[m] - Clu_Slope[n]);
@@ -654,25 +764,87 @@ namespace vertex{
 						    (intersection_X < geom->Nwires(Clu_Plane[n],0,0) || intersection_X < geom->Nwires(Clu_Plane[m],tpc,cstat) ) &&
 						    intersection_Y < detprop->NumberTimeSamples() )
 							{
-							/*std::cout<<std::endl;
-							std::cout<<"Vertex Wire = "<<intersection_X<<" , Vertex Time Tick = "<<intersection_Y<<"  , Vertex Plane # = "<<Clu_Plane[m]<<std::endl;
-							std::cout<<"geom->Nwires(Clu_Plane[n],0,0) = "<<geom->Nwires(Clu_Plane[n],0,0)<<std::endl;
-							std::cout<<"geom->Nwires(Clu_Plane[m],0,0) = "<<geom->Nwires(Clu_Plane[m],0,0)<<std::endl;
-							std::cout<<std::endl;*/
+							
 							
 							vtx_wire.push_back(intersection_X);
 							vtx_time.push_back(intersection_Y);
 							vtx_plane.push_back(Clu_Plane[m]);
 							n2dVertexCandidates++;
 							}//<---End saving a "good 2d vertex" candidate
-							
+						*/	
+						
+						
+						// #####################################################
+						// ### Skipping calculating for end points to reduce ###
+						// ###    the number of candidate verticies found    ###
+						// #####################################################
+						
 						// ============================================================
 						// === X intersection = (yInt2 - yInt1) / (slope1 - slope2) ===
 						float intersection_X2 = (Clu_Yintercept2[n] - Clu_Yintercept2[m]) / (Clu_Slope[m] - Clu_Slope[n]);
 						// ================================================
 						// === Y intersection = (slope1 * XInt) + yInt1 ===
-						float intersection_Y2 = (Clu_Slope[m] * intersection_X) + Clu_Yintercept2[m];
+						float intersection_Y2 = (Clu_Slope[m] * intersection_X2) + Clu_Yintercept2[m];
 						
+						
+						// #########################################
+						// ### Skipping crap intersection points ###
+						// #########################################
+						if(intersection_X2 < 1){continue;}
+						if(intersection_X2 > geom->Nwires(Clu_Plane[m],tpc,cstat)){continue;}
+						if(intersection_Y2 < 0){continue;}
+						if(intersection_Y2 > detprop->NumberTimeSamples() ){continue;}
+						
+						// ##################################################
+						// ### Now checking if this intersection point is ###
+						// ###       near a 3 (???) or more hits          ###
+						// ##################################################
+						
+						int nOverlapHits = 0;
+						// =========================
+						// === Looping over hits ===
+						for(size_t nHits = 0; nHits < hitListHandle->size(); nHits++)
+							{
+							
+							// === Finding Wire/Plane associated with the hit ===
+       							art::Ptr<recob::Hit> hit(hitListHandle, nHits);
+       							
+       							//w = hit->WireID().Wire; 
+							
+							// ===============================================================
+							// === Skipping hits that aren't in the plane with the cluster ===
+							// ===============================================================
+							if(Clu_Plane[m] != hit->WireID().Plane)	{continue;}
+							
+							double hit_wire = hit->WireID().Wire;
+							double hit_time = hit->PeakTime();
+							
+							if( fabs(intersection_X2 - hit_wire) < 4 && fabs(intersection_Y2 - hit_time) < 20)
+								{
+								nOverlapHits++;
+								/*std::cout<<std::endl;
+								std::cout<<"intersection_X2 = "<<intersection_X2<<std::endl;
+								std::cout<<"hit_wire = "<<hit_wire<<std::endl;
+								std::cout<<"intersection_Y2 = "<<intersection_Y2<<std::endl;
+								std::cout<<"hit_time = "<<hit_time<<std::endl;
+								std::cout<<std::endl;*/
+								
+								
+								}//<--End checking the hit overlap with the intersection
+							
+							
+							}//<---End nHits loop
+						
+						
+						
+						if(nOverlapHits <1)
+							{continue;}
+							
+						//std::cout<<std::endl;
+						//std::cout<<"Wire = "<<intersection_X2<<std::endl;
+						//std::cout<<"Time = "<<intersection_Y2<<std::endl;
+						//std::cout<<"nOverlapHits = "<<nOverlapHits<<std::endl;
+						//std::cout<<std::endl;
 						
 						// ##########################################################
 						// ### Filling the vector of Vertex Wire, Time, and Plane ###
@@ -683,14 +855,10 @@ namespace vertex{
 						// --- using geom->Nwires(plane,tpc,cyrostat) & detprop->NumberTimeSamples() ---
 						// -----------------------------------------------------------------------------
 						if( intersection_X2 > 1 && intersection_Y2 > 0 && 
-						    (intersection_X2 < geom->Nwires(Clu_Plane[n],0,0) || intersection_X2 < geom->Nwires(Clu_Plane[m],tpc,cstat) ) &&
+						    ( intersection_X2 < geom->Nwires(Clu_Plane[m],tpc,cstat) ) &&
 						    intersection_Y2 < detprop->NumberTimeSamples() )
 							{
-							/*std::cout<<std::endl;
-							std::cout<<"Vertex Wire = "<<intersection_X2<<" , Vertex Time Tick = "<<intersection_Y2<<"  , Vertex Plane # = "<<Clu_Plane[m]<<std::endl;
-							std::cout<<"geom->Nwires(Clu_Plane[n],0,0) = "<<geom->Nwires(Clu_Plane[n],0,0)<<std::endl;
-							std::cout<<"geom->Nwires(Clu_Plane[m],0,0) = "<<geom->Nwires(Clu_Plane[m],0,0)<<std::endl;
-							std::cout<<std::endl;*/
+							
 							
 							vtx_wire.push_back(intersection_X2);
 							vtx_time.push_back(intersection_Y2);
@@ -708,6 +876,115 @@ namespace vertex{
     			}//<---End loop over wireplanes
     		}//<---End looping over TPC's
     	}//<---End looping over cryostats
+
+
+
+
+    // ########################################################################
+    // ### Introducing a merge step for the candidate 2-d vertex candidates ###
+    // ########################################################################
+    double Wire[100000]  = {0.};
+    double Time[100000]  = {0.};
+    double Plane[100000] = {0.};
+    
+    for(unsigned int vtxloop = 0 ; vtxloop < n2dVertexCandidates; vtxloop++)
+	{
+	Wire[vtxloop]  = vtx_wire[vtxloop];
+	Time[vtxloop]  = vtx_time[vtxloop];
+	Plane[vtxloop] = vtx_plane[vtxloop];
+	
+	}
+    
+    double vtx_wire_merged[100000]  = {0.};
+    double vtx_time_merged[100000]  = {0.};
+    double vtx_plane_merged[100000] = {0.};
+    
+    double temp_wire1 = 0, temp_time1 = 0, temp_plane1 = 0;
+    double temp_wire2 = 0, temp_time2 = 0, temp_plane2 = 0;
+    bool merged = false;
+    
+    int n2dMergedVertices = 0;
+    
+
+    // #########################################
+    // ### Looping over 2d-verticies (loop1) ###
+    // #########################################
+    for(unsigned int vtxloop1 = 0 ; vtxloop1 < n2dVertexCandidates; vtxloop1++)
+	{
+	if(Wire[vtxloop1] < 0){continue;}
+	
+	//std::cout<<"Wire[vtxloop1] = "<<Wire[vtxloop1]<<std::endl;
+	
+	temp_wire1  = Wire[vtxloop1];
+	temp_time1  = Time[vtxloop1];
+	temp_plane1 = Plane[vtxloop1];
+	
+	// #########################################
+	// ### Looping over 2d-verticies (loop2) ###
+	// #########################################
+	for(unsigned int vtxloop2 = n2dVertexCandidates; vtxloop2 > vtxloop1; vtxloop2--)
+    		{
+		if(Wire[vtxloop2] < 0){continue;} 
+		
+		
+		temp_wire2  = Wire[vtxloop2];
+		temp_time2  = Time[vtxloop2];
+		temp_plane2 = Plane[vtxloop2];
+		
+		merged = false;
+		// ########################################################
+		// ### Make sure the 2d-Verticies are in the same plane ###
+		// ########################################################
+		if(temp_plane1 == temp_plane2)
+			{
+			// ###############################################			
+			// ### Considering merging 2d vertices if they ###
+			// ###    are within 3 wires of each other     ###
+			// ###############################################
+			if( fabs(temp_wire1 - temp_wire2) < 4 )
+				{
+				// ############################################################
+				// ### Merge the verticies if they are within 15 time ticks ###
+				// ############################################################
+				if( fabs(temp_time1 - temp_time2) < 16 )
+					{
+					vtx_wire_merged[n2dMergedVertices] = ((temp_wire2 + temp_wire1)/ 2) ;
+					vtx_time_merged[n2dMergedVertices] = ((temp_time2 + temp_time1)/ 2) ;
+					vtx_plane_merged[n2dMergedVertices] = temp_plane2;
+					
+					
+					merged = true;
+					Wire[vtxloop1] = -999;
+					Time[vtxloop1] = -999;
+					Plane[vtxloop1] = -999;
+					
+					Wire[vtxloop2] = -999;
+					Time[vtxloop2] = -999;
+					Plane[vtxloop2] = -999;
+					}//<---End the check within 15 time ticks for merging
+				}//<---Looking at vertices that are within 3 wires of each other
+			}//<---Only looking at vertices that are in the same plane
+		
+		}//<---End vtxloop2
+	if(!merged)
+		{
+		vtx_wire_merged[n2dMergedVertices]  = temp_wire1;
+		vtx_time_merged[n2dMergedVertices]  = temp_time1 ;
+		vtx_plane_merged[n2dMergedVertices] = temp_plane1;
+
+		}//<---end saving unmerged verticies
+			
+	//std::cout<<"vtx_wire_merged[n2dMergedVertices] = "<<vtx_wire_merged[n2dMergedVertices]<<std::endl;
+	n2dMergedVertices++;
+	}//<---End vtxloop1
+	
+    
+    
+    //std::cout<<std::endl;
+    //std::cout<<"n2dVertexCandidates = "<<n2dVertexCandidates<<std::endl;
+    //std::cout<<"n2dMergedVertices   = "<<n2dMergedVertices<<std::endl;
+    //std::cout<<std::endl;
+
     
     double y_coord = 0, z_coord = 0;
     
@@ -732,14 +1009,14 @@ namespace vertex{
       	// ##########################
       	for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc)
 		{
-    		for(unsigned int vtx = n2dVertexCandidates; vtx > 0; vtx--)
+    		for(unsigned int vtx = n2dMergedVertices; vtx > 0; vtx--)
     			{
 			for (unsigned int vtx1 = 0; vtx1 < vtx; vtx1++)
 				{
 				// ###########################################################################
 				// ### Check to make sure we are comparing verticies from different planes ###
 				// ###########################################################################
-				if(vtx_plane[vtx1] != vtx_plane[vtx])
+				if(vtx_plane_merged[vtx1] != vtx_plane_merged[vtx])
 					{
 					/*std::cout<<std::endl;
 					std::cout<<"vtx_wire[vtx1] = "<<vtx_wire[vtx1]<<" , vtx_wire[vtx] = "<<vtx_wire[vtx]<<std::endl;
@@ -753,8 +1030,8 @@ namespace vertex{
 					// === converting to use geom->PlaneWireToChannel(PlaneNo, Wire, tpc, cstat)
 					// === JA: Need to include vtx tpc, and cstat to make detector agnositc
 			
-					unsigned int vtx1_plane   = vtx_plane[vtx1];
-					unsigned int vtx1_wire    = vtx_wire[vtx1];
+					unsigned int vtx1_plane   = vtx_plane_merged[vtx1];
+					unsigned int vtx1_wire    = vtx_wire_merged[vtx1];
 					try
 						{
 						vtx1_channel = geom->PlaneWireToChannel(vtx1_plane, vtx1_wire, tpc, cstat);
@@ -769,8 +1046,8 @@ namespace vertex{
 				
 				
 			
-					unsigned int vtx2_plane   = vtx_plane[vtx];
-					unsigned int vtx2_wire    = vtx_wire[vtx];
+					unsigned int vtx2_plane   = vtx_plane_merged[vtx];
+					unsigned int vtx2_wire    = vtx_wire_merged[vtx];
 			
 					try
 						{
@@ -813,13 +1090,13 @@ namespace vertex{
 						// #############################################################################
 						// ### Now check if the matched channels are within 1 cm when projected in X ###
 						// #############################################################################
-						float tempXCluster1 = detprop->ConvertTicksToX(vtx_time[vtx1], vtx1_plane, tpc, cstat);
-						float tempXCluster2 = detprop->ConvertTicksToX(vtx_time[vtx], vtx2_plane, tpc, cstat);
+						float tempXCluster1 = detprop->ConvertTicksToX(vtx_time_merged[vtx1], vtx1_plane, tpc, cstat);
+						float tempXCluster2 = detprop->ConvertTicksToX(vtx_time_merged[vtx], vtx2_plane, tpc, cstat);
 						
 						if(std::abs(tempXCluster1 - tempXCluster2) < 0.5)
 							{
 							//        detprop->ConvertTicksToX(ticks, plane, tpc, cryostat)
-							x_3dVertex[n3dVertex] = detprop->ConvertTicksToX(vtx_time[vtx], vtx_plane[vtx], tpc, cstat); 
+							x_3dVertex[n3dVertex] = detprop->ConvertTicksToX(vtx_time_merged[vtx1], vtx_plane_merged[vtx1], tpc, cstat); 
 							y_3dVertex[n3dVertex] = y_coord;
 							z_3dVertex[n3dVertex] = z_coord;
 							n3dVertex++;
@@ -907,8 +1184,13 @@ for(size_t dup = 0; dup < n3dVertex; dup ++)
 
 
 
-
-
+/*std::cout<<std::endl;
+std::cout<<"#####################################"<<std::endl;
+std::cout<<std::endl;
+std::cout<<" N3dVertex w/ duplicates removed = "<<n3dVertex_dupRemoved<<std::endl;
+std::cout<<std::endl;
+std::cout<<"#####################################"<<std::endl;*/
+std::cout<<std::endl;
 //-----------------------------------------------------------------------------------------------------------------------------
 
        	// ######################################################################################################
@@ -981,6 +1263,8 @@ double TwoDvertexStrength = 0;
 					
 					double EndPoint2d_TimeTick = detprop->ConvertXToTicks(xyz[0],i, tpc, cstat);
 					int EndPoint2d_Wire = 0;
+					int EndPoint2d_Channel     = 0;
+					
 					try
 					
 						{EndPoint2d_Wire 	   = geom->NearestWire(xyz , i, tpc, cstat);}
@@ -991,7 +1275,17 @@ double TwoDvertexStrength = 0;
 	      					continue;
 						
 						}
-					int EndPoint2d_Channel     = geom->NearestChannel(xyz, i, tpc, cstat);
+					try
+						{EndPoint2d_Channel     = geom->NearestChannel(xyz, i, tpc, cstat);}
+						
+					catch(...)
+						{
+						mf::LogWarning("FeatureVertexFinder") << "2dWire failed";
+	    
+	      					continue;
+						
+						}
+						
 					geo::View_t View	   = geom->View(EndPoint2d_Channel);
 					geo::WireID wireID(cstat,tpc,i,EndPoint2d_Wire);
 					
@@ -1030,7 +1324,12 @@ double TwoDvertexStrength = 0;
 	// ###     vertex that are within 3 cm of the vertex   ###
 	int totalGood = 0;
 	int nMerges = 0;
-	double x_good[1000] = {0.}, y_good[1000] = {0.}, z_good[1000] = {0.}, strength_good[1000] = {0.};
+	double x_good[10000] = {0.}, y_good[10000] = {0.}, z_good[10000] = {0.}, strength_good[10000] = {0.};
+	
+	int totalGood2 = 0;
+	double x_good2[10000] = {0.}, y_good2[10000] = {0.}, z_good2[10000] = {0.}, strength_good2[10000] = {0.};
+	
+	int match2planes = 0;
 	
 	//std::cout<<" n3dVertex = "<<n3dVertex<<std::endl;
 	if (n3dVertex_dupRemoved > 1)
@@ -1064,10 +1363,10 @@ double TwoDvertexStrength = 0;
 				std::cout<<"temp2_x = "<<temp2_x<<" , temp2_y = "<<temp2_y<<" , temp2_z = "<<temp2_z<<std::endl;
 				std::cout<<std::endl;*/
 				
-				// ### Merge the verticies if they are within 1.5 cm of each other ###
-				if ( (std::abs( temp1_x - temp2_x ) < 1.0 && temp1_x != 0 && temp2_x !=0) &&
-				     (std::abs( temp1_y - temp2_y ) < 1.0 && temp1_y != 0 && temp2_y !=0) &&
-				     (std::abs( temp1_z - temp2_z ) < 1.0 && temp1_z != 0 && temp2_z !=0) &&
+				// ### Merge the verticies if they are within 1.0 cm of each other ###
+				if ( (std::abs( temp1_x - temp2_x ) < 2.0 && temp1_x != 0 && temp2_x !=0) &&
+				     (std::abs( temp1_y - temp2_y ) < 2.0 && temp1_y != 0 && temp2_y !=0) &&
+				     (std::abs( temp1_z - temp2_z ) < 2.0 && temp1_z != 0 && temp2_z !=0) &&
 				      nMerges < LimitMerge)
 				    	{
 					//std::cout<<" Yup, I am going to merge these! "<<std::endl;
@@ -1144,10 +1443,116 @@ double TwoDvertexStrength = 0;
 				}
 			}//<---End goodvtx loop
 		//std::cout<<"totalGood = "<<totalGood<<std::endl;
+		
+		
+		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// ###################################################
+		// ### Loop over good verticies to only save those ###
+		// ###       that match some number of hits        ###
+		// ###################################################
+		
 		// ##############################
 		// ### Looping over verticies ###
 		// ##############################
-		for(int l = 0; l < totalGood; l++)
+		for(int ll = 0; ll < totalGood; ll++)
+			{
+			
+			// ##############################
+    			// ### Looping over cryostats ###
+    			// ##############################
+    			for(size_t cstat = 0; cstat < geom->Ncryostats(); ++cstat)
+    				{
+    				// ##########################
+      				// ### Looping over TPC's ###
+      				// ##########################
+      				for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc)
+					{
+    					// #################################
+					// ### Loop over the wire planes ###
+					// #################################
+					for (size_t i = 0; i < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++i)
+						{
+						double xyz[3] = {x_good[ll], y_good[ll], z_good[ll]};
+						double EndPoint2d_TimeTick = detprop->ConvertXToTicks(x_good[ll],i, tpc, cstat);
+						int EndPoint2d_Wire = 0;
+						try
+					
+							{EndPoint2d_Wire 	   = geom->NearestWire(xyz , i, tpc, cstat);}
+						catch(...)
+							{
+							mf::LogWarning("FeatureVertexFinder") << "2dWire failed";
+	    
+	      						continue;
+						
+							}
+
+						// #############################################################
+						// ### Only going to save the vertex if it is within 3 wires ###
+						// ###       and 20 time ticks of a hit in the event         ###
+						// #############################################################
+						
+						int matchedVtxToHit = 0;
+						// =========================
+						// === Looping over hits ===
+						for(size_t nHits = 0; nHits < hitListHandle->size(); nHits++)
+							{
+							
+							// === Finding Wire/Plane associated with the hit ===
+       							art::Ptr<recob::Hit> hit(hitListHandle, nHits);
+       							
+							
+							// ===============================================================
+							// === Skipping hits that aren't in the plane with the cluster ===
+							// ===============================================================
+							if(i != hit->WireID().Plane)	{continue;}
+							
+							double hit_wire = hit->WireID().Wire;
+							double hit_time = hit->PeakTime();
+							
+							if( fabs(EndPoint2d_Wire - hit_wire) < 4 && fabs(EndPoint2d_TimeTick - hit_time) < 20)
+								{
+								matchedVtxToHit++;
+								
+								
+								}
+								
+							}//<---End loop over hits
+						
+						// #####################################################
+						// ### Saving the 2d Vertex found if matched to more ###
+						// ### hits than what you would expect along a track ###
+						// #####################################################
+						if(matchedVtxToHit > 5)
+							{
+							match2planes++;
+							}	
+
+						}//<---End loop over Planes
+					}//<---End loop over tpc's
+				}//<---End loop over cryostats
+			// #########################################
+			// ### Saving the 3d vertex if there was ###
+			// ###    a match in at least 2 planes   ###
+			// #########################################
+			if(match2planes > 1)
+				{
+				x_good2[totalGood2] = x_good[ll];
+				y_good2[totalGood2] = y_good[ll];
+				z_good2[totalGood2] = z_good[ll];
+				totalGood2++;
+				
+				}	
+
+			match2planes = 0;
+			
+			}//<---End ll loop
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		
+		
+		// ##############################
+		// ### Looping over verticies ###
+		// ##############################
+		for(int l = 0; l < totalGood2; l++)
 			{
 			// #############################
 			// ### Looping over features ###
@@ -1157,9 +1562,9 @@ double TwoDvertexStrength = 0;
 				// ###########################################################
 				// ### Looking for features and verticies within 3cm in 3d ###
 				// ###########################################################
-				if(std::abs(x_good[l] - x_feature[f]) <= 3 &&  
-				   std::abs(y_good[l] - y_feature[f]) <= 3 &&
-				   std::abs(z_good[l] - z_feature[f]) <= 3)
+				if(std::abs(x_good2[l] - x_feature[f]) <= 3 &&  
+				   std::abs(y_good2[l] - y_feature[f]) <= 3 &&
+				   std::abs(z_good2[l] - z_feature[f]) <= 3)
 				   	{
 					
 					// ##########################################################
@@ -1195,37 +1600,58 @@ double TwoDvertexStrength = 0;
 					// #################################
 					for (size_t i = 0; i < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++i)
 						{
-						double xyz[3] = {x_good[l], y_good[l], z_good[l]};
-						double EndPoint2d_TimeTick = detprop->ConvertXToTicks(x_good[l],i, tpc, cstat);
+						double xyz[3] = {x_good2[l], y_good2[l], z_good2[l]};
+						double EndPoint2d_TimeTick = detprop->ConvertXToTicks(x_good2[l],i, tpc, cstat);
+						int EndPoint2d_Wire = 0;
+						int EndPoint2d_Channel = 0;
+						try
+					
+							{EndPoint2d_Wire 	   = geom->NearestWire(xyz , i, tpc, cstat);}
+						catch(...)
+							{
+							mf::LogWarning("FeatureVertexFinder") << "2dWire failed";
+	    
+	      						continue;
 						
-						int EndPoint2d_Wire 	   = geom->NearestWire(xyz , i, tpc, cstat);
-						int EndPoint2d_Channel     = geom->NearestChannel(xyz, i, tpc, cstat);
+							}
+							
+						try
+							{EndPoint2d_Channel     = geom->NearestChannel(xyz, i, tpc, cstat);}
+						catch(...)
+							{
+							mf::LogWarning("FeatureVertexFinder") << "2dWire failed";
+	    
+	      						continue;
+						
+							}
+							
 						geo::View_t View	   = geom->View(EndPoint2d_Channel);
 						geo::WireID wireID(cstat,tpc,i,EndPoint2d_Wire);
 						
 						int EndPoint2dstrength = strength_good[l];
 						
-						
-						// ### Saving the 2d Vertex found ###
 						recob::EndPoint2D vertex( EndPoint2d_TimeTick , //<---TimeTick
 									  wireID ,		//<---geo::WireID
 									  EndPoint2dstrength ,	//<---Vtx strength (JA: ?)
 									  epcol->size() ,	//<---Vtx ID (JA: ?)
 									  View ,		//<---Vtx View 	
 									  1 );			//<---Vtx Total Charge (JA: Need to figure this one?)
-						epcol->push_back(vertex);	
+						epcol->push_back(vertex);
+							
 
 						}//<---End loop over Planes
 					}//<---End loop over tpc's
 				}//<---End loop over cryostats
-			// ############################
-			// ### Saving the 3d vertex ###
-			// ############################
-			double xyz2[3] = {x_good[l], y_good[l], z_good[l]};
-			recob::Vertex the3Dvertex(xyz2, vcol->size());
-			vcol->push_back(the3Dvertex);	
-
+			// #########################################
+			// ### Saving the 3d vertex if there was ###
+			// ###    a match in at least 2 planes   ###
+			// #########################################
 			
+			double xyz2[3] = {x_good2[l], y_good2[l], z_good2[l]};
+			recob::Vertex the3Dvertex(xyz2, vcol->size());
+			vcol->push_back(the3Dvertex);
+				
+
 			}//<--End l for loop
 		
 		}//<---End Case 2, many 3d Verticies found
@@ -1246,8 +1672,8 @@ double TwoDvertexStrength = 0;
 	
 	double x_featClusMatch = 0, y_featClusMatch = 0, z_featClusMatch = 0;
 	
-	double LongestClusterStartWire[10] = {0};
-	double LongestClusterStartTime[10] = {0};
+	double LongestClusterStartWire[100] = {0};
+	double LongestClusterStartTime[100] = {0};
 	if (n3dVertex_dupRemoved == 0)
 		{
 		bool NothingFoundYet = true;
@@ -1338,8 +1764,19 @@ double TwoDvertexStrength = 0;
 						// #########################################################
 						float xyzfeat[3]   = {x_feature[feat],y_feature[feat],z_feature[feat]};
 						float xyzfeat_score = strength_feature[feat];
-						double feat_2dWire = geom->NearestWire(xyzfeat, plane, tpc, cstat);
-						double feat_TimeT  = detprop->ConvertXToTicks(x_feature[feat], plane, tpc, cstat);
+						double feat_2dWire = -1;
+						double feat_TimeT = -1;
+						
+						try
+							{
+							feat_2dWire = geom->NearestWire(xyzfeat, plane, tpc, cstat);
+							feat_TimeT  = detprop->ConvertXToTicks(x_feature[feat], plane, tpc, cstat);
+							}
+						catch(...)
+							{
+							mf::LogWarning("FeatureVertexFinder") << "2dWire failed";
+							continue;
+							}
 						
 						//std::cout<<" Feat_2dWire = "<<feat_2dWire<<std::endl;
 						//std::cout<<" Feat_timeT  = "<<feat_TimeT<<std::endl;
@@ -1374,8 +1811,28 @@ double TwoDvertexStrength = 0;
 								double xyz[3] = {xyzfeat[0], xyzfeat[1], xyzfeat[2]};
 								double EndPoint2d_TimeTick = detprop->ConvertXToTicks(xyzfeat[0],plane, tpc, cstat);
 						
-								int EndPoint2d_Wire 	   = geom->NearestWire(xyz , plane, tpc, cstat);
-								int EndPoint2d_Channel     = geom->NearestChannel(xyz, plane, tpc, cstat);
+								int EndPoint2d_Wire 	   = 0;
+								int EndPoint2d_Channel     = 0;
+								
+								try
+					
+									{EndPoint2d_Wire 	   = geom->NearestWire(xyz , plane, tpc, cstat);}
+								catch(...)
+									{
+									mf::LogWarning("FeatureVertexFinder") << "2dWire failed";
+	      								continue;
+						
+									}
+							
+								try
+									{EndPoint2d_Channel     = geom->NearestChannel(xyz, plane, tpc, cstat);}
+								catch(...)
+									{
+									mf::LogWarning("FeatureVertexFinder") << "2dWire failed";
+	    
+	      								continue;
+						
+									}
 								geo::View_t View	   = geom->View(EndPoint2d_Channel);
 								geo::WireID wireID(cstat,tpc,plane,EndPoint2d_Wire);
 								
@@ -1410,9 +1867,19 @@ double TwoDvertexStrength = 0;
 							// #########################################################
 							float xyzfeat2[3]   = {x_feature[feat2],y_feature[feat2],z_feature[feat2]};
 							float xyzfeat_score2 = strength_feature[feat2];
-							double feat_2dWire = geom->NearestWire(xyzfeat2, plane, tpc, cstat);
-							double feat_TimeT  = detprop->ConvertXToTicks(x_feature[feat2], plane, tpc, cstat);
-						
+							
+							double feat_2dWire = -1;
+							double feat_TimeT = -1;
+							try
+								{
+								feat_2dWire = geom->NearestWire(xyzfeat2, plane, tpc, cstat);
+								feat_TimeT  = detprop->ConvertXToTicks(x_feature[feat2], plane, tpc, cstat);
+								}
+							catch(...)
+								{
+								mf::LogWarning("FeatureVertexFinder") << "2dWire failed";
+								continue;
+								}
 							//std::cout<<" Feat_2dWire = "<<feat_2dWire<<std::endl;
 							//std::cout<<" Feat_timeT  = "<<feat_TimeT<<std::endl;
 							// ######################################################################################
@@ -1445,20 +1912,29 @@ double TwoDvertexStrength = 0;
 									
 									double xyz[3] = {xyzfeat2[0], xyzfeat2[1], xyzfeat2[2]};
 									double EndPoint2d_TimeTick = detprop->ConvertXToTicks(xyzfeat2[0],plane, tpc, cstat);
-						
-									int EndPoint2d_Wire 	   = geom->NearestWire(xyz , plane, tpc, cstat);
-									int EndPoint2d_Channel     = geom->NearestChannel(xyz, plane, tpc, cstat);
-									geo::View_t View	   = geom->View(EndPoint2d_Channel);
-									geo::WireID wireID(cstat,tpc,plane,EndPoint2d_Wire);
 									
-									// ### Saving the 2d Vertex found ###
-									recob::EndPoint2D vertex( EndPoint2d_TimeTick , //<---TimeTick
+									try
+										{
+										int EndPoint2d_Wire 	   = geom->NearestWire(xyz , plane, tpc, cstat);
+										int EndPoint2d_Channel     = geom->NearestChannel(xyz, plane, tpc, cstat);
+										geo::View_t View	   = geom->View(EndPoint2d_Channel);
+										geo::WireID wireID(cstat,tpc,plane,EndPoint2d_Wire);
+									
+										// ### Saving the 2d Vertex found ###
+										recob::EndPoint2D vertex( EndPoint2d_TimeTick , //<---TimeTick
 											  wireID ,		//<---geo::WireID
 											  TwoDvertexStrength ,	//<---Vtx strength (JA: ?)
 											  epcol->size() ,	//<---Vtx ID (JA: ?)
 											  View ,		//<---Vtx View 	
 											  1 );			//<---Vtx charge (JA: Need to figure this one?)
-									epcol->push_back(vertex);
+										epcol->push_back(vertex);
+										}
+									catch(...)
+										{
+										mf::LogWarning("FeatureVertexFinder") << "2dWire failed";
+	      									continue;
+										
+										}
 								
 								
 									}//<---End saving this vertex found
@@ -1567,8 +2043,8 @@ double TwoDvertexStrength = 0;
 
     mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
     mf::LogVerbatim("Summary") << "FeatureVertexFinder Summary:";
-    for(size_t i = 0; i<epcol->size(); ++i) mf::LogVerbatim("Summary") << epcol->at(i) ;
-    for(size_t i = 0; i<vcol->size(); ++i) mf::LogVerbatim("Summary") << vcol->at(i) ;
+    //for(size_t i = 0; i<epcol->size(); ++i) mf::LogVerbatim("Summary") << epcol->at(i) ;
+    //for(size_t i = 0; i<vcol->size(); ++i) mf::LogVerbatim("Summary") << vcol->at(i) ;
     
     
     for(size_t j = 0; j<epcol->size(); ++j) std::cout<<" EndPoint2d = " << epcol->at(j) ;

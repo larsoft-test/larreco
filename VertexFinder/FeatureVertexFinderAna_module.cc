@@ -153,6 +153,7 @@ private:
 	TH1F* fRecoCheck2dWireInCmPlane2;
 	TH1F* fRecoCheck2dTimeInCmPlane2;
 	
+	TH1F* fRecoVtxN3d;
 	TH1F* fRecoVtxXPos;
 	TH1F* fRecoVtxYPos;
 	TH1F* fRecoVtxZPos;
@@ -218,9 +219,9 @@ void FeatureVertexFinderAna::beginJob()
 	fTruthWireInCmPlane2  	= tfs->make<TH1F>("fTruthWireInCmPlane2", "Truth Wire In CM Plane 2", 2000, 0, 1000);
 	fTruthTimeInCmPlane2	= tfs->make<TH1F>("fTruthTimeInCmPlane2", "Truth Time In Cm Plane 2", 2000, 0, 1000);
 	
-	fTwoDNVtxPlane0		= tfs->make<TH1F>("fTwoDNVtxPlane0", "TwoD Number of Verticies Found in Plane 0", 200, 0, 100);
-	fTwoDNVtxPlane1		= tfs->make<TH1F>("fTwoDNVtxPlane1", "TwoD Number of Verticies Found in Plane 1", 200, 0, 100);
-	fTwoDNVtxPlane2		= tfs->make<TH1F>("fTwoDNVtxPlane2", "TwoD Number of Verticies Found in Plane 2", 200, 0, 100);
+	fTwoDNVtxPlane0		= tfs->make<TH1F>("fTwoDNVtxPlane0", "TwoD Number of Verticies Found in Plane 0", 400, 0, 200);
+	fTwoDNVtxPlane1		= tfs->make<TH1F>("fTwoDNVtxPlane1", "TwoD Number of Verticies Found in Plane 1", 400, 0, 200);
+	fTwoDNVtxPlane2		= tfs->make<TH1F>("fTwoDNVtxPlane2", "TwoD Number of Verticies Found in Plane 2", 400, 0, 200);
 	
 	fTwoDWireNumberPlane0  	= tfs->make<TH1F>("fTwoDWireNumberPlane0", "TwoD Wire Number Plane 0", 3000, 0, 3000);
 	fTwoDTimeTickPlane0	= tfs->make<TH1F>("fTwoDTimeTickPlane0", "TwoD Time Tick Plane 0", 3200, 0, 3200);
@@ -254,7 +255,7 @@ void FeatureVertexFinderAna::beginJob()
 	fRecoCheck2dWireInCmPlane2	= tfs->make<TH1F>("fRecoCheck2dWireInCmPlane2", "Reco Wire in CM - True Wire in CM Plane 2", 200, -50, 50);	
 	fRecoCheck2dTimeInCmPlane2	= tfs->make<TH1F>("fRecoCheck2dTimeInCmPlane2", "Reco Time in CM - True Time in CM Plane 2", 200, -50, 50);
 	
-	
+	fRecoVtxN3d		= tfs->make<TH1F>("fRecoVtxN3d", "Number of 3d-Reco Verticies", 400, 0, 200);
 	fRecoVtxXPos 		= tfs->make<TH1F>("fRecoVtxXPos", "Reco Vertex X Position", 400, -10, 200);
 	fRecoVtxYPos 		= tfs->make<TH1F>("fRecoVtxYPos", "Reco Vertex Y Position", 400, -100, 100);
 	fRecoVtxZPos 		= tfs->make<TH1F>("fRecoVtxZPos", "Reco Vertex Z Position", 2000, -10, 1000);
@@ -485,11 +486,11 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
    
    // Variables for Vertex2d
    
-   double Vertex2d_TimeTick[1000] = {0.};	//<---Vertex2d Time Tick for the current plane ( TimeTick[#2d] )
-   double Vertex2d_Wire[1000]	 = {0.};	//<---Veretx2d Wire # ( Wire[#2d] )
+   double Vertex2d_TimeTick[10000] = {0.};	//<---Vertex2d Time Tick for the current plane ( TimeTick[#2d] )
+   double Vertex2d_Wire[10000]	 = {0.};	//<---Veretx2d Wire # ( Wire[#2d] )
    
-   double Vertex2d_TimeTick_InCM[1000] 	= {0.};	//<---Vertex 2d Time tick in CM ( TimeTick[#2d] )
-   double Vertex2d_Wire_InCM[1000] 	= {0.};	//<---Veretx2d Wire in CM ( Wire[#2d] )
+   double Vertex2d_TimeTick_InCM[10000] = {0.};	//<---Vertex 2d Time tick in CM ( TimeTick[#2d] )
+   double Vertex2d_Wire_InCM[10000] 	= {0.};	//<---Veretx2d Wire in CM ( Wire[#2d] )
    int n2dVtx = 0;
    
    int n2dVtxPlane0 = 0, n2dVtxPlane1 = 0, n2dVtxPlane2 = 0;
@@ -649,6 +650,8 @@ fTwoDNVtxPlane2->Fill( n2dVtxPlane2 );
 	
    if(Vertexlist.size() > 0 && vertexWstrengthplane0 && vertexWstrengthplane1)
     	{
+	
+	fRecoVtxN3d->Fill(Vertexlist.size());
 	for(int ww = 0; ww<Vertexlist.size(); ww++)
 		{
 		Vertexlist[ww]->XYZ(xyz);
