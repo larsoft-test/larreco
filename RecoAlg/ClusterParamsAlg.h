@@ -74,8 +74,10 @@ namespace cluster {
   int DecideClusterDirection(std::vector < art::Ptr<recob::Hit> > hitlist,
 				double lineslope,double wstn,double tstn,double wendn,double tendn);
  
- 
- 
+  int FindHitCountDirection(std::vector< art::Ptr < recob::Hit> > hitlist, double  wire_start,double  time_start, double  wire_end,double  time_end, double lineslope);
+  
+  int FindMultiHitDirection(std::vector< art::Ptr < recob::Hit> > hitlist, double  wire_start,double  time_start, double  wire_end,double  time_end, double lineslope);
+  
   bool isShower(double lineslope,double wstn,double tstn,double wendn,double tendn, std::vector < art::Ptr < recob::Hit> > hitlist);
   
   int MultiHitWires(std::vector < art::Ptr < recob::Hit> > hitlist);
@@ -86,7 +88,7 @@ namespace cluster {
 //     double Get2DAngleForHit( art::Ptr<recob::Hit> starthit,std::vector < art::Ptr < recob::Hit> > hitlist);
 //     
 //     double Get2DAngleForHit( unsigned int wire, double time,std::vector < art::Ptr < recob::Hit> > hitlist);
-int FindPrincipalDirection(std::vector< art::Ptr < recob::Hit> > hitlist, double  wire_start,double  time_start, double  wire_end,double  time_end);
+int FindPrincipalDirection(std::vector< art::Ptr < recob::Hit> > hitlist, double  wire_start,double  time_start, double  wire_end,double  time_end,double lineslope);
 void GetPrincipal(std::vector< art::Ptr < recob::Hit> > hitlist, TPrincipal * pc);
 int Find2DAxisPrincipal(double &lineslope,double &lineintercept,double &goodness,std::vector < art::Ptr < recob::Hit> > hitlist);
 int Find2DAxisPrincipalHighCharge(double &lineslope,double &lineintercept,double &goodness,std::vector < art::Ptr < recob::Hit> > hitlist);
@@ -138,6 +140,13 @@ double Get2DAngleForHit( unsigned int swire,double stime,std::vector < art::Ptr 
    std::vector< art::Ptr<recob::Hit> > CreateHighHitlist(double threshold,std::vector< art::Ptr<recob::Hit> > hitlist);
    
    void FindMinMaxWiresTimes(double &MinWire, double &MaxWire,double &MinTime,double &Maxtime,double &MeanCharge,std::vector< art::Ptr < recob::Hit> > hitlist);
+   
+   double fHitDensityCutoff;
+   double fMultiHitWireCutoff;
+   double fOffAxisHitsCutoff;
+   double fPrincipalComponentCutoff;
+   bool fShowerSelisORorAND;
+   
    
    
   }; //class ClusterParamsAlg

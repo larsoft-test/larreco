@@ -41,6 +41,12 @@ void cluster::ClusterParamsAlg::reconfigure(fhicl::ParameterSet const& pset)
   fMinHitListSize		=pset.get<   double > ("MinHitListSize"); //40;
   fOutlierRadius		=pset.get<   double > ("fOutlierRadius"); //5;
   fForceRightGoing 		=pset.get<   bool > ("ForceRightGoing");
+  fHitDensityCutoff		=pset.get<   double > ("HitDensityCutoff"); // Showers is high, tracks low, 0 don't use cut
+  fMultiHitWireCutoff		=pset.get<   double > ("MultiHitWireCutoff"); // Showers is high, tracks low, 0 don't use cut
+  fOffAxisHitsCutoff		=pset.get<   double > ("OffAxisHitsCutoff"); // Showers is high, tracks low, 0 don't use cut
+  fPrincipalComponentCutoff	=pset.get<   double > ("PrincipalComponentCutoff"); // Tracks is high, showers low, 0 don't use cut
+  fShowerSelisORorAND		=pset.get<   double > ("ShowerSelisORorAND"); // 0 = OR, 1 = AND
+  
   fHBAlg.reconfigure(pset.get< fhicl::ParameterSet >("HoughBaseAlg"));
   
   fWirePitch = geo->WirePitch(0,1,0);    //wire pitch in cm
@@ -807,38 +813,107 @@ void cluster::ClusterParamsAlg::FindDirectionWeights(double lineslope,double w_o
 
 bool cluster::ClusterParamsAlg::isShower(double lineslope,double wstn,double tstn,double wendn,double tendn, std::vector < art::Ptr < recob::Hit> > hitlist)
 {
-   double HiBin,LowBin,invHiBin,invLowBin;
-    FindDirectionWeights(lineslope,wstn,tstn,wendn,tendn,hitlist,HiBin,LowBin,invHiBin,invLowBin); 
-   // std::cout << " Direction weights:  norm: " << HiBin << " " << LowBin << " Inv: " << invHiBin << " " << invLowBin << std::endl;
-   // std::cout << "+++++++++++ invHiBin + invLowBin " << invHiBin+invLowBin <<std::endl;
-    
-//    TPrincipal pc(2,"D");
-//    GetPrincipal(hitlist,&pc);
-//    
-//    double PrincipalEigenvalue = (*pc.GetEigenValues())[0];
- //  std::cout << " Eigen Value: " << PrincipalEigenvalue << " " << PrincipalEigenvalue/hitlist.size() << std::endl;
+  
+//   fHitDensityCutoff	 // Showers is high, tracks low, 0 don't use cut
+//   fMultiHitWireCutoff	 // Showers is high, tracks low, 0 don't use cut
+//   fOffAxisHitsCutoff	 // Showers is high, tracks low, 0 don't use cut
+//   fPrincipalComponentCutoff // Tracks is high, showers low, 0 don't use cut
+//   fShowerSelisORorAND	  //// 0 = OR, 1 = AND
+  
+   double HiBin,LowBin,invHiBin,invLowBin,altWeight=0.;
+   double PrincipalEigenvalue=1.,ModPV=-900;
+   double multihit=0; 
+   double MODHitDensity=0;
    
-   
-  // std::cout << " MultiHitWires " << multihit << std::endl;
-
+   // no hits = no shower
    if(hitlist.size()==0)
       return false;
    
-   double length=TMath::Sqrt( (wstn-wendn)*(wstn-wendn)*fWiretoCm +(tstn-tendn)*(tstn-tendn)*fTimetoCm     );
-   double HitDensity=hitlist.size()/length;
-   //double OffAxisNorm=(invHiBin+invLowBin)/hitlist.size();
+   /////////////////////////////////////////////////////////////////////////
+   // calculate cluster 2D length and 2D angle 
+   double length=TMath::Sqrt( (wstn-wendn)*(wstn-wendn)*fWiretoCm +(tstn-tendn)*(tstn-tendn)*fTimetoCm );
    double xangle=Get2DAngleForHit( wstn,tstn, hitlist);
-   if(xangle>90) xangle-=180;
-   if(xangle<-90) xangle+=180;  
-   double multihit=MultiHitWires(hitlist)/length;
+    if(xangle>90) xangle-=180;
+    if(xangle<-90) xangle+=180;  
    
-   double MODHitDensity=HitDensity+std::abs(xangle)*0.0299;
    
-   std::cout << "##########3 Cutting on: ModHitDensit:" << MODHitDensity << " MultiHitWires " << multihit << " cut: HD>1.9 || MH >2.1" << std::endl;
+ //////////////////////////////////////////////////////////  
+   // do we apply the off AxisHitsCut? 
+   if(fOffAxisHitsCutoff)
+   {
+      FindDirectionWeights(lineslope,wstn,tstn,wendn,tendn,hitlist,HiBin,LowBin,invHiBin,invLowBin,&altWeight); 
+      altWeight/=length;
+   }
+   else if(fShowerSelisORorAND==false) //using or
+       altWeight=0;   // use small value so that the OR doesn't select gibberish.
+   else if(fShowerSelisORorAND==true)  //using AND
+       altWeight=1;   // use large value, so that AND doesn't balk.
+  //////////////////////////////////////////////////////// 
+    // do we apply the Principal Component cut? 
+   if( fPrincipalComponentCutoff)
+    {
+       TPrincipal pc(2,"D");
+       GetPrincipal(hitlist,&pc);
+       PrincipalEigenvalue = (*pc.GetEigenValues())[0];
+       ModPV=TMath::Log(1-PrincipalEigenvalue);
+    }
+    else
+    {
+    if(fShowerSelisORorAND==false) //using or
+       { 
+       PrincipalEigenvalue=1;   // use small value so that the OR doesn't select gibberish.
+       ModPV=-999;
+       }
+    }
+
+ 
+    //////////////////////////////////////////////////////// 
+    // do we apply the MultiHit cut? 
+   if( fMultiHitWireCutoff)
+    {
+	multihit=MultiHitWires(hitlist)/length;
+    }
+    else
+    {
+    if(fShowerSelisORorAND==false) //using or
+       multihit=0;   // use small value so that the OR doesn't select gibberish.
+    }
+   
+    //////////////////////////////////////////////////////// 
+    // do we apply the HitDensity cut? 
+    if( fHitDensityCutoff)
+    {
+	double HitDensity=hitlist.size()/length;
+// 	MODHitDensity=HitDensity+std::abs(xangle)*0.0299;
+	MODHitDensity=HitDensity-(1.82 * cosh(3.14/180*abs(xangle)-1.24)-1.56);
+    }
+    else
+    {
+    if(fShowerSelisORorAND==false) //using or
+       MODHitDensity=0;   // use small value so that the OR doesn't select gibberish.
+    }
+   
+   std::string ororand= (fShowerSelisORorAND) ? " && " : " || ";
+         
+   std::cout << "##########3 Cutting on: ModHitDensit:" << MODHitDensity << " > " << fHitDensityCutoff << ororand 
+   << " MultiHitWires " << multihit << " > " << fMultiHitWireCutoff << ororand 
+   << " OffAxisHits " << altWeight << " > " << fOffAxisHitsCutoff << ororand 
+   << " PrincipalComponent " << ModPV << " < " << fPrincipalComponentCutoff
+   << std::endl;
    
       //(fHitDensity[0]>1.9  || fOffAxisNorm[0] > 1.) &&(fHitDensity[1]>1.9  || fOffAxisNorm[1] > 1.)
-    if((MODHitDensity>1.9  || multihit > 2.1) )
-      return true;
+    if( !fShowerSelisORorAND && 
+      (MODHitDensity>fHitDensityCutoff  || 
+      multihit > fMultiHitWireCutoff || 
+      PrincipalEigenvalue < fPrincipalComponentCutoff || 
+      altWeight > fOffAxisHitsCutoff ) )
+	return true;
+    else if ( fShowerSelisORorAND && 
+      (MODHitDensity>fHitDensityCutoff  && 
+      multihit > fMultiHitWireCutoff && 
+      ModPV < fPrincipalComponentCutoff && ModPV >= -4 &&
+      altWeight > fOffAxisHitsCutoff ) )
+	return true;
     else
       return false;
   
@@ -1006,7 +1081,7 @@ return hitlist_high;
 
 
 
-int cluster::ClusterParamsAlg::FindPrincipalDirection(std::vector< art::Ptr < recob::Hit> > hitlist, double  wire_start,double  time_start, double  wire_end,double  time_end)
+int cluster::ClusterParamsAlg::FindPrincipalDirection(std::vector< art::Ptr < recob::Hit> > hitlist, double  wire_start,double  time_start, double  wire_end,double  time_end, double lineslope)
 {
   
   double linearlimit=fSelectBoxSizePar; 
@@ -1023,9 +1098,9 @@ int cluster::ClusterParamsAlg::FindPrincipalDirection(std::vector< art::Ptr < re
   //FindTrunk(nClust,hitlist,wstn,tstn,wendn,tendn);
   
   /////
-  double lineslope=0; //either add as parameter or pick up from Find Rough
-  
+    
   //first select a subset of points that is close to the selected start point:
+  
  SelectLocalHitlist(hitlist, hitlistlocal_start, wire_start,time_start,linearlimit,ortlimit,lineslope);
  SelectLocalHitlist(hitlist, hitlistlocal_end, wire_end,time_end,linearlimit,ortlimit,lineslope);
   
@@ -1037,6 +1112,7 @@ int cluster::ClusterParamsAlg::FindPrincipalDirection(std::vector< art::Ptr < re
  double PrincipalEigenvalue_start = (*pc_start.GetEigenValues())[0];
  double PrincipalEigenvalue_end = (*pc_end.GetEigenValues())[0];
  
+ std::cout << " EigenValue_start: " << PrincipalEigenvalue_start << " "<< PrincipalEigenvalue_end << std::endl;
  
  if(PrincipalEigenvalue_start/hitlistlocal_start.size() > PrincipalEigenvalue_end/hitlistlocal_end.size() )
    direction_local=1;
@@ -1048,18 +1124,82 @@ int cluster::ClusterParamsAlg::FindPrincipalDirection(std::vector< art::Ptr < re
    direction_local*=-1;     //make the principal calculated direction absolute.
  }
  
- 
-//  PrincipalDirection.Set( (*pc.GetEigenVectors())[0][n],(*pc.GetEigenVectors())[0][n]);
-//  
-//  double a =0,c=0;
-//  if(PrincipalDirection.X()!=0) 
-//     a=-PrincipalDirectionY()/PrincipalDirection.X();
-//  else
-//     a = 99999;
-//   
   
   return direction_local;
 }
+
+
+int cluster::ClusterParamsAlg::FindMultiHitDirection(std::vector< art::Ptr < recob::Hit> > hitlist, double  wire_start,double  time_start, double  wire_end,double  time_end, double lineslope)
+{
+  
+  double linearlimit=fSelectBoxSizePar; 
+  double ortlimit=fSelectBoxSizePerp;
+  int direction_local=1;
+  
+  std::vector < art::Ptr<recob::Hit> > hitlistlocal_start;
+  std::vector < art::Ptr<recob::Hit> > hitlistlocal_end;
+  std::vector < art::Ptr<recob::Hit> > hitlistlocal_refined;  //these in principle should only be hits on the line.
+  
+
+ SelectLocalHitlist(hitlist, hitlistlocal_start, wire_start,time_start,linearlimit,ortlimit,lineslope);
+ SelectLocalHitlist(hitlist, hitlistlocal_end, wire_end,time_end,linearlimit,ortlimit,lineslope);
+  
+ int multihit_start=MultiHitWires(hitlistlocal_start);
+ int multihit_end=MultiHitWires(hitlistlocal_start);
+ 
+ std::cout << "-------- multihits; start: " << multihit_start << " end: " << multihit_end << std::endl;
+ 
+ 
+ if( multihit_start <  multihit_end )
+   direction_local=1;
+ else 
+   direction_local=-1;
+
+ if(wire_start>wire_end)
+ { 
+   direction_local*=-1;     //make the principal calculated direction absolute.
+ }
+  std::cout << " -- multihit direction: " << direction_local << std::endl;
+  
+  return direction_local;
+}
+
+
+int cluster::ClusterParamsAlg::FindHitCountDirection(std::vector< art::Ptr < recob::Hit> > hitlist, double  wire_start,double  time_start, double  wire_end,double  time_end, double lineslope)
+{
+  
+  double linearlimit=fSelectBoxSizePar; 
+  double ortlimit=fSelectBoxSizePerp;
+  int direction_local=1;
+  
+  std::vector < art::Ptr<recob::Hit> > hitlistlocal_start;
+  std::vector < art::Ptr<recob::Hit> > hitlistlocal_end;
+  std::vector < art::Ptr<recob::Hit> > hitlistlocal_refined;  //these in principle should only be hits on the line.
+  
+
+ SelectLocalHitlist(hitlist, hitlistlocal_start, wire_start,time_start,linearlimit,ortlimit,lineslope);
+ SelectLocalHitlist(hitlist, hitlistlocal_end, wire_end,time_end,linearlimit,ortlimit,lineslope);
+  
+int hitcount_start=hitlistlocal_start.size();
+int hitcount_end=hitlistlocal_end.size(); 
+ 
+ std::cout << "+++++++++ HitCount; start: " << hitcount_start << " end: " << hitcount_end << std::endl;
+ 
+ 
+ if( hitcount_start <  hitcount_end )
+   direction_local=1;
+ else 
+   direction_local=-1;
+
+ if(wire_start>wire_end)
+ { 
+   direction_local*=-1;     //make the principal calculated direction absolute.
+ }
+ 
+   std::cout << " -- HitCount direction: " << direction_local << std::endl;
+  return direction_local;
+}
+
 
 
 /////////////////////////////////////////////////////////////////////////
@@ -1305,7 +1445,7 @@ int cluster::ClusterParamsAlg::DecideClusterDirection(std::vector < art::Ptr<rec
   int houghdirection=fDirection;
   RefineStartPointsHough(hitlist,wire_start,time_start,wire_end,time_end,houghdirection);
   
-  int principaldirection=FindPrincipalDirection(hitlist,wire_start,time_start,wire_end,time_end);
+  int principaldirection=FindPrincipalDirection(hitlist,wire_start,time_start,wire_end,time_end,lineslope);
   
  std::cout << " direction based on principal components. " << principaldirection << std::endl;
   

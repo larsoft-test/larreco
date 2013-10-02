@@ -153,6 +153,11 @@ standard_clusterparamsalg:
   #HoughBaseAlg.NumAngleCells:       3000
   #HoughBaseAlg.RhoResolutionFactor:       4
   #HoughBaseAlg.MaxLines:       100
+  HitDensityCutoff:             1.9  # Showers is high, tracks low, 0 don't use cut
+  MultiHitWireCutoff: 		 2.1  # Showers is high, tracks low, 0 don't use cut
+  OffAxisHitsCutoff:            0    # Showers is high, tracks low, 0 don't use cut
+  PrincipalComponentCutoff:     0    # Tracks is high ~1, showers low, 0 don't use cut
+  ShowerSelisORorAND:           0    # 0 = OR, 1 = AND
 
   HoughBaseAlg:                   @local::standard_houghbasealg
 
