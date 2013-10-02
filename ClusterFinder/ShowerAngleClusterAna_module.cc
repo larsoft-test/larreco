@@ -234,16 +234,18 @@ namespace cluster {
     TH1F *  fh_omega_single;
    
     
-    TH1F * fRecoWireHist;
-    TH1F *fRecoTimeHist; 
+    TH1F * fRecoWireHist[3];
+    TH1F * fRecoTimeHist[3];
+    TH1F * fRecoOmegaHist[3];
+    TH1F * fRecoDirectionHist[3];
     
     TTree* ftree_cluster;
 
-     void CalculateAxisParameters(unsigned nClust, std::vector < art::Ptr < recob::Hit> >  hitlist,double wstart,double tstart,double wend,double tend);
+    void CalculateAxisParameters(unsigned nClust, std::vector < art::Ptr < recob::Hit> >  hitlist,double wstart,double tstart,double wend,double tend);
 
-     double Get2DAngleForHit( unsigned int wire, double time,std::vector < art::Ptr < recob::Hit> > hitlist);
+    double Get2DAngleForHit( unsigned int wire, double time,std::vector < art::Ptr < recob::Hit> > hitlist);
      
-     void ClearandResizeVectors(unsigned int nClusters);
+    void ClearandResizeVectors(unsigned int nClusters);
    
     
     //MCInformation
@@ -260,6 +262,8 @@ namespace cluster {
     std::vector<int> mcplane;
     std::vector<int> mcdirection;
     std::vector <double > mcomega;
+    std::vector <double > mcenergyfraction;
+    std::vector <double > mcdistfromorigin;
     
     std::vector<bool> startflag;
     bool endflag;
@@ -358,8 +362,17 @@ void cluster::ShowerAngleClusterAna::beginJob()
   fNTimes=geo->DetHalfWidth(tpc)*2/(fTimetoCm);
   fNWires.resize(fNPlanes);
     
-  fRecoWireHist = tfs->make<TH1F>(Form("recowire"),"RecoWire",100,-100., 100.);
-  fRecoTimeHist = tfs->make<TH1F>(Form("recotime"),"RecoTime",100,-100., 100.);
+  for(unsigned int ip=0;ip<fNPlanes;ip++)
+  {
+    fRecoWireHist[ip] = tfs->make<TH1F>(Form("recowire_%d",ip),Form("recowire_%d",ip),100,-100., 100.);
+    fRecoTimeHist[ip] = tfs->make<TH1F>(Form("recotime_%d",ip),Form("recotime_%d",ip),100,-100., 100.);
+    
+    fRecoOmegaHist[ip] = tfs->make<TH1F>(Form("recoomega_%d",ip),Form("recoomega_%d",ip),100,-180., 180.);
+    fRecoDirectionHist[ip] = tfs->make<TH1F>(Form("recodirection_%d",ip),Form("recodirection_%d",ip),5,-2., 2.);
+    
+    
+    
+  }
     
   for(unsigned int i=0;i<fNPlanes;++i){
    
@@ -394,9 +407,9 @@ void cluster::ShowerAngleClusterAna::beginJob()
     ftree_cluster->Branch("mcz","std::vector<double >", &mcz);
     ftree_cluster->Branch("mcplane","std::vector< int>", &mcplane);
     ftree_cluster->Branch("mcdirection","std::vector< int>", &mcdirection);
-    
+    ftree_cluster->Branch("mcenergyfraction","std::vector< double>", &mcenergyfraction);
  
-    
+    ftree_cluster->Branch("mcdistfromorigin","std::vector< double>", &mcdistfromorigin);
     
     
     ///////////// reconstructed quantities
@@ -556,6 +569,8 @@ void cluster::ShowerAngleClusterAna::ClearandResizeVectors(unsigned int nCluster
   mcplane.clear();
   mcdirection.clear();
   
+  mcenergyfraction.clear();
+  mcdistfromorigin.clear();
   
   lineslopetest.clear();
   lineinterctest.clear();
@@ -640,34 +655,35 @@ void cluster::ShowerAngleClusterAna::ClearandResizeVectors(unsigned int nCluster
   mcz.resize(nClusters);
   mcplane.resize(nClusters);
   mcdirection.resize(nClusters);
+  mcenergyfraction.resize(nClusters);
+  mcdistfromorigin.resize(nClusters);
   
   
-  fOffAxis.resize(fNPlanes);
-  fOnAxis.resize(fNPlanes);
-  fOffAxisNorm.resize(fNPlanes);
-  fOnAxisNorm.resize(fNPlanes);
-  fNhits.resize(fNPlanes);
-  fNhitsClust.resize(nClusters);
-  fHitDensity.resize(fNPlanes);
-  fLength.resize(fNPlanes);
+  fOffAxis.resize(nClusters);
+  fOnAxis.resize(nClusters);
+  fOffAxisNorm.resize(nClusters);
+  fOnAxisNorm.resize(nClusters);
+  fNhits.resize(nClusters);
+  fHitDensity.resize(nClusters);
+  fLength.resize(nClusters);
   
   
   
-  fOffAxisNormHD.resize(fNPlanes); 
-  fOnAxisNormHD.resize(fNPlanes); 
-  fLengthHD.resize(fNPlanes);
-  fPrincipalHD.resize(fNPlanes);
-  fOffAxisNormLength.resize(fNPlanes); 
-  slope2DHD.resize(fNPlanes);
-  fMultiHitWiresNorm.resize(fNPlanes);
-  fMultiHitWires.resize(fNPlanes);
-  fOffAxisOnlyOff.resize(fNPlanes); 
-  fOffAxisOnlyOffNorm.resize(fNPlanes);  
+//   fOffAxisNormHD.resize(nClusters); 
+//   fOnAxisNormHD.resize(nClusters); 
+  fLengthHD.resize(nClusters);
+  fPrincipalHD.resize(nClusters);
+  fOffAxisNormLength.resize(nClusters); 
+  slope2DHD.resize(nClusters);
+  fMultiHitWiresNorm.resize(nClusters);
+  fMultiHitWires.resize(nClusters);
+  fOffAxisOnlyOff.resize(nClusters); 
+  fOffAxisOnlyOffNorm.resize(nClusters);  
    
    
-  fHitDensityOA.resize(fNPlanes);
-  fOnAxisNormOA.resize(fNPlanes); 
-  fLengthOA.resize(fNPlanes);
+//   fHitDensityOA.resize(fNPlanes);
+//   fOnAxisNormOA.resize(fNPlanes); 
+//   fLengthOA.resize(fNPlanes);
      
   
   test_wire_vertex.resize(nClusters);
@@ -842,7 +858,7 @@ void cluster::ShowerAngleClusterAna::analyze(const art::Event& evt)
 
       
     double lineslope, lineintercept,goodness,wire_start,time_start,wire_end,time_end;
-    int nofshowerclusters=0;
+  //  int nofshowerclusters=0;
    // std::cout << "++++ hitlist size " << hitlist.size() << std::endl;
     
     //////////////////////////////////
@@ -878,32 +894,32 @@ void cluster::ShowerAngleClusterAna::analyze(const art::Event& evt)
     fCParAlg.FindDirectionWeights(lineslope,wstn,tstn,wendn,tendn,hitlist,HiBin,LowBin,invHiBin,invLowBin,&altWeight); 
     std::cout << "%%%%%%%% Direction weights:  norm: " << HiBin << " " << LowBin << " Inv: " << invHiBin << " " << invLowBin << std::endl;
     
-    if(invHiBin+invLowBin> 1000)
-      nofshowerclusters++;
+//     if(invHiBin+invLowBin> 1000)
+//       nofshowerclusters++;
     
     //////Save Shower difference variables:
       // check only for largest cluster maybe?
     unsigned int plane=hitlist[0]->WireID().Plane;
     std::cout << "plane: "  << plane << std::endl;
    
-    if(invHiBin+invLowBin > fOffAxis[plane] )
-       fOffAxis[plane]=invHiBin+invLowBin;
+   // if(invHiBin+invLowBin > fOffAxis[plane] )
+       fOffAxis[iClust]=invHiBin+invLowBin;
     
-    if(HiBin+LowBin > fOnAxis[plane] )
-       fOnAxis[plane]=HiBin+LowBin;
+ //   if(HiBin+LowBin > fOnAxis[plane] )
+       fOnAxis[iClust]=HiBin+LowBin;
     
    
     
   
      
     
-    if((HiBin+LowBin)/hitlist.size() > fOnAxisNorm[plane] )
-       fOnAxisNorm[plane]=(HiBin+LowBin)/hitlist.size();
+    //if((HiBin+LowBin)/hitlist.size() > fOnAxisNorm[plane] )
+       fOnAxisNorm[iClust]=(HiBin+LowBin)/hitlist.size();
     
-    if(hitlist.size() > (unsigned int)fNhits[plane] )
-       fNhits[plane]=hitlist.size();
+   // if(hitlist.size() > (unsigned int)fNhits[plane] )
+       fNhits[iClust]=hitlist.size();
   
-    fNhitsClust[iClust]=hitlist.size();
+//     fNhitsClust[iClust]=hitlist.size();
     
           
     /////////////////////////////////
@@ -941,24 +957,21 @@ void cluster::ShowerAngleClusterAna::analyze(const art::Event& evt)
     std::cout << "%%%%%%%%%%%%%%% length " << length << " fHitDensity: " << hitlist.size()/length << " dw: " << (wire_start-wire_end) << " dt: "<< (time_start-time_end)  << " dw^2+dt^2 " << (wire_start-wire_end)*(wire_start-wire_end)*fWiretoCm +(time_start-time_end)*(time_start-time_end)*fTimetoCm  <<  std::endl;
     
     
-     if((invHiBin+invLowBin)/hitlist.size() > fOffAxisNorm[plane] )
-    { fOffAxisNorm[plane]=(invHiBin+invLowBin)/hitlist.size();
-      fHitDensityOA[plane]=hitlist.size()/length;
-      fOnAxisNormOA[plane]=(HiBin+LowBin)/hitlist.size();; 
-      fLengthOA[plane]=length;
+   //  if((invHiBin+invLowBin)/hitlist.size() > fOffAxisNorm[plane] )
+     fOffAxisNorm[iClust]=(invHiBin+invLowBin)/hitlist.size();
     
-    }
+    
     
   
-    if((invHiBin+invLowBin)/length > fOffAxisNormLength[plane] )
-    { fOffAxisNormLength[plane]=(invHiBin+invLowBin)/length;  }
+//     if((invHiBin+invLowBin)/length > fOffAxisNormLength[plane] )
+    fOffAxisNormLength[iClust]=(invHiBin+invLowBin)/length;  
 
-    if((altWeight)/length > fOffAxisOnlyOffNorm[plane] )
-    { fOffAxisOnlyOffNorm[plane]=(altWeight)/length;  }
+//     if((altWeight)/length > fOffAxisOnlyOffNorm[plane] )
+     fOffAxisOnlyOffNorm[iClust]=(altWeight)/length;  
 
     
-     if((altWeight) > fOffAxisOnlyOff[plane] )
-    { fOffAxisOnlyOff[plane]=(altWeight);  }
+  //   if((altWeight) > fOffAxisOnlyOff[plane] )
+     fOffAxisOnlyOff[iClust]=(altWeight);  
     
     
     //    fOffAxisOnlyOff.clear(); 
@@ -970,37 +983,42 @@ void cluster::ShowerAngleClusterAna::analyze(const art::Event& evt)
 //    fMultiHitWires.clear();
     
     int multihit=fCParAlg.MultiHitWires(hitlist);
-    if(multihit > fMultiHitWires[plane])
-      fMultiHitWires[plane]=multihit;
+   // if(multihit > fMultiHitWires[plane])
+      fMultiHitWires[iClust]=multihit;
    
-    if((double)multihit/length > fMultiHitWiresNorm[plane])
-      fMultiHitWiresNorm[plane]=(double)multihit/length;
+    //if((double)multihit/length > fMultiHitWiresNorm[plane])
+      fMultiHitWiresNorm[iClust]=(double)multihit/length;
     
-    if(hitlist.size()/length > fHitDensity[plane] )
-    { fHitDensity[plane]=hitlist.size()/length;
-      fOffAxisNormHD[plane]=(invHiBin+invLowBin)/hitlist.size();
-      fOnAxisNormHD[plane]=(HiBin+LowBin)/hitlist.size();;
-    fLengthHD[plane]=length;
+   // if(hitlist.size()/length > fHitDensity[plane] )
+    fHitDensity[iClust]=hitlist.size()/length;
     
     TPrincipal pc(2,"D");
     fCParAlg.GetPrincipal(hitlist,&pc);
     double PrincipalEigenvalue = (*pc.GetEigenValues())[0]; 
-    fPrincipalHD[plane]=PrincipalEigenvalue;
+    fPrincipalHD[iClust]=PrincipalEigenvalue;
     
     double locangle=Get2DAngleForHit( fWireVertex[iClust],fTimeVertex[iClust], hitlist);
     if(locangle>90) locangle-=180;
     if(locangle<-90) locangle+=180;  
-     slope2DHD[plane]=locangle;
+    slope2DHD[iClust]=locangle;
     
      
      
-    }
-    if(length > fLength[plane])
-      {fLength[plane]=length;   // save longest plane
     
-      }
+ //   if(length > fLength[plane])
+    fLength[iClust]=length;   // save longest plane
+    
+      
 	  
      xangle[iClust]=Get2DAngleForHit( fWireVertex[iClust],fTimeVertex[iClust], hitlist);
+     
+    fRecoWireHist[plane]->Fill(mcwirevertex[iClust]-fWireVertex[iClust]);
+    fRecoTimeHist[plane]->Fill(mctimevertex[iClust]-fTimeVertex[iClust]);;
+    
+    fRecoOmegaHist[plane]->Fill(mcomega[iClust]-xangle[iClust]);
+    fRecoDirectionHist[plane]->Fill(mcdirection[iClust]-fDirection[iClust]);
+     
+     
     } // End loop on clusters.
   
 
@@ -1068,7 +1086,7 @@ int trkid;
      std::cout << " -------- Cluster hit TrackID " << trkid << " PDG: " << particle->PdgCode() << std::endl;	
      mcplane[iClust]=hitlist[0]->WireID().Plane;
      mcpdg[iClust]=particle->PdgCode();
-     mcenergy[iClust]=particle->P();  
+     mcenergy[iClust]=particle->E();  
   
      
     // Find Hit with closest deposition to original x,y,z 
@@ -1078,12 +1096,45 @@ int trkid;
      z=particle->Vz();
      double minx=x,miny=y,minz=z;
      double mindist=9999999.0;
+     double depenergy=0.;
+         
+     if(particle->Trajectory().size()>2)
+     {
+      
+      double xyz1[]={particle->Trajectory().X(0),particle->Trajectory().Y(0),particle->Trajectory().Z(0)};
+      double xyz2[]={particle->Trajectory().X(1),particle->Trajectory().Y(1),particle->Trajectory().Z(1)};
+      util::pxpoint pN1=gser.Get2DPointProjection(xyz1,mcplane[iClust]);
+      util::pxpoint pN2=gser.Get2DPointProjection(xyz2,mcplane[iClust]);
+     
+      for(unsigned int xx=1;xx<particle->Trajectory().size();xx++)
+      {
+       if(pN1.w!=pN2.w)   
+	    break;
+       xyz2[0]=particle->Trajectory().X(xx);xyz2[1]=particle->Trajectory().Y(xx);xyz2[2]=particle->Trajectory().Z(xx);  
+       pN2=gser.Get2DPointProjection(xyz2,mcplane[iClust]);
+      }
+     mcomega[iClust]=gser.Get2Dangle(pN2.w, pN1.w,pN2.t, pN1.t);   
+     mcdirection[iClust]=pN2.w-pN1.w;
+     }
+     else
+     {
+      mcomega[iClust]=0;   
+      mcdirection[iClust]=0; 
+     }
+     
+     
+    
+     
+     
+     
+     
     std::cout << "---- particle x,y,z" << x << " " << y << " " << z << std::endl; 
     for(size_t h = 0; h < hitlist.size(); ++h){
       art::Ptr<recob::Hit> hit = hitlist[h];
       std::vector<sim::IDE> ides;
       bt->HitToSimIDEs(hit,ides);
       for(size_t e = 0; e < ides.size(); ++e){
+	depenergy+=ides[e].energy;
 	if(ides[e].trackID==-trkid)   // the right particle
 	   { double dist=TMath::Sqrt( (x-ides[e].x)*(x-ides[e].x)+(y-ides[e].y)*(y-ides[e].y)+(z-ides[e].z)*(z-ides[e].z));
 	     if(dist<mindist) {
@@ -1092,13 +1143,17 @@ int trkid;
 	      miny=ides[e].y;
 	      minz=ides[e].z;
 	     }
+	    
 	   }
 	}
   
       }  
      
-     std::cout << " min x,y,z " << minx << " "<< miny << " " << minz << std::endl;
+     mcdistfromorigin[iClust]=mindist;
      
+     std::cout << " min x,y,z " << minx << " "<< miny << " " << minz << std::endl;
+     if(mcenergy[iClust])
+      mcenergyfraction[iClust]=depenergy/mcenergy[iClust];
    // This picks up the original particle's  angles. It remains to be seen, whether this is better, or maybe the angle at actual start of cluster. 
    if (particle->P()){
     double lep_dcosx_truth = particle->Px()/particle->P();
@@ -1122,36 +1177,24 @@ int trkid;
      mcy[iClust]=miny;
      mcz[iClust]=minz;
 
-  
+  //calculate direction:
+     
+     
+   //calculate angle:  Take first two trajectory points and calculate 2D angle between hits that are closest to that?  
+     
+     
   mf::LogVerbatim("ShowerAngleClusterAna") <<"particle->Vx()= "<<minx<<" ,y= "<<miny<<" ,z= "<<minz<<std::endl;
   
-  double drifttick=(mcx[iClust]/larp->DriftVelocity(larp->Efield(),larp->Temperature()))*(1./fTimeTick);
-  
-  const double origin[3] = {0.};
-  for(unsigned int iplane=0;iplane<fNPlanes;iplane++)
-    {
-      double pos[3];
-      geo->Plane(iplane).LocalToWorld(origin, pos);
-      //planex[p] = pos[0];
-      mf::LogVerbatim("ShowerAngleClusterAna")  << "plane X positionp " << iplane << " " << pos[0] << std::endl;
+  double xyz[]={mcx[iClust],mcy[iClust],mcz[iClust]};
+  util::pxpoint pN=gser.Get2DPointProjection(xyz,mcplane[iClust]);
+  mcwirevertex[iClust]=pN.w;  // wire coordinate of vertex for each plane
+  mctimevertex[iClust]=pN.t;  // time coordinate of vertex for each plane
 
-      pos[1]=mcy[iClust];
-      pos[2]=mcz[iClust];
-      unsigned int wirevertex = geo->NearestWire(pos,iplane);
-       
-
-      mcwirevertex[iClust]=wirevertex;  // wire coordinate of vertex for each plane
-      mctimevertex[iClust]=drifttick-(pos[0]/larp->DriftVelocity(larp->Efield(),larp->Temperature()))*(1./fTimeTick)+detp->TriggerOffset();  // time coordinate of vertex for each plane
-
-      mf::LogVerbatim("ShowerAngleClusterAna") << "wirevertex= "<< mcwirevertex[iClust]
+  mf::LogVerbatim("ShowerAngleClusterAna") << "wirevertex= "<< mcwirevertex[iClust]
 					    << " timevertex " << mctimevertex[iClust] 
-					    << " correction "
-					    << (pos[0]/larp->DriftVelocity(larp->Efield(),
-									   larp->Temperature()))*(1./fTimeTick) 
-					    << " " << pos[0];
- 
-
-    }
+					    << " correction "   ;
+       
+  
     
   }	// end if(trkid>0)
 
