@@ -204,6 +204,7 @@ namespace trkf {
     double fMomHigh;
     int fPdg;
     double fChi2Thresh;
+    int fMaxPass;
 
     genf::GFAbsTrackRep *repMC;
     genf::GFAbsTrackRep *rep;
@@ -233,6 +234,7 @@ namespace trkf {
     , fMomHigh(100.)
     , fPdg(-13)
     , fChi2Thresh(12.0E12)
+    , fMaxPass (1)
   {
     
     this->reconfigure(pset);
@@ -278,6 +280,7 @@ namespace trkf {
     fChi2Thresh            = pset.get< double >("Chi2HitThresh", 12.0E12); //For Re-pass.
     fGenfPRINT             = pset.get< bool >("GenfPRINT", false);
     fSortDim               = pset.get< std::string> ("SortDirection", "z"); // case sensitive
+    fMaxPass               = pset.get< int  >("MaxPass", 2); // mu+ Hypothesis.
    }
 
 //-------------------------------------------------
@@ -844,7 +847,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 
 	  // This seems like best place to jump back to for a re-pass.
 	  unsigned short rePass = rePass0; // 1 by default; 
-	  unsigned short maxPass(2);
+	  unsigned short maxPass(fMaxPass);
 	  unsigned short tcnt1(0);
 	  while (rePass<=maxPass)
 	    {
@@ -1267,10 +1270,8 @@ void Track3DKalmanSPS::produce(art::Event& evt)
       
       if (!repMC) delete repMC;
       
-      
-      // and now the spacepoints
-
       evt.put(std::move(tcol)); 
+      // and now the spacepoints
       evt.put(std::move(tspassn));
 }
 

@@ -118,6 +118,10 @@ standard_trackana:
 {
   module_type:        "TrackAna"
   TrackModuleLabel:   "trackkalmanhit"
+  SpacepointModuleLabel:  "spacepointfinder"
+  StitchModuleLabel:  "stitch"
+  TrkSpptAssocModuleLabel:  "trackkalmanhit"
+  HitSpptAssocModuleLabel:  "ffthit"
   MinMCKE:            0.05
   MatchColinearity:   0.99
   MatchDisp:          2.0

@@ -261,7 +261,9 @@ namespace trkf {
       }
     
     mf::LogWarning("TrackStitcher.end") << "There are " <<  tvcol->size() << " Tracks in this event after stitching.";
-    evt.put(std::move(tcol)); 
+    // It is redundant and wasteful to store the tcol. We can just get the individual tracks
+    // from the original Tracking module that made them.
+    //    evt.put(std::move(tcol)); 
     evt.put(std::move(tvcol));
     
   }

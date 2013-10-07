@@ -20,12 +20,16 @@
 
 #include "art/Framework/Core/ModuleMacros.h" 
 #include "art/Framework/Core/EDAnalyzer.h"
+#include "art/Framework/Core/FindManyP.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "art/Framework/Services/Optional/TFileService.h" 
 #include "art/Framework/Principal/Event.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "Geometry/Geometry.h"
 #include "RecoBase/Track.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/SpacePoint.h"
 #include "MCCheater/BackTracker.h"
 #include "SimulationBase/MCParticle.h"
 
@@ -188,6 +192,12 @@ namespace trkf {
       TH1F* fHtheta_yz;    // Theta_yz.
       TH1F* fHmom;         // Momentum.
       TH1F* fHlen;         // Length.
+
+      // Histograms for the consituent Hits
+
+      TH1F* fHHitChg;       // hit charge
+      TH1F* fHHitWidth;     // hit width
+      TH1F* fHHitPdg;       // Pdg primarily responsible.
     };
 
     // Struct for mc particles and mc-matched tracks.
@@ -274,6 +284,8 @@ namespace trkf {
       TH1F* fHetheta_yz;   // Theta_yz.
       TH1F* fHemom;        // Momentum.
       TH1F* fHelen;        // Length.
+
+
     };
 
     // Constructors, destructor
@@ -291,10 +303,16 @@ namespace trkf {
     // Fcl Attributes.
 
     std::string fTrackModuleLabel;
+    std::string fSpacepointModuleLabel;
+    std::string fStitchModuleLabel;
+    std::string fTrkSpptAssocModuleLabel;
+    std::string fHitSpptAssocModuleLabel;
+
     double fMinMCKE;           // Minimum MC particle kinetic energy (GeV).
     double fMatchColinearity;  // Minimum matching colinearity.
     double fMatchDisp;         // Maximum matching displacement.
     bool fIgnoreSign;          // Ignore sign of mc particle if true.
+    bool fStitchedAnalysis;    // if true, do the whole drill-down from stitched track to assd hits
 
     // Histograms.
 
@@ -328,6 +346,9 @@ namespace trkf {
     fHtheta_yz(0),
     fHmom(0),
     fHlen(0)
+    ,fHHitChg(0)
+    ,fHHitWidth(0)
+    ,fHHitPdg(0)
   {}
 
   TrackAna::RecoHists::RecoHists(const std::string& subdir)
@@ -373,6 +394,10 @@ namespace trkf {
     fHtheta_yz = dir.make<TH1F>("theta_yz", "Theta_yz", 100, -3.142, 3.142);
     fHmom = dir.make<TH1F>("mom", "Momentum", 100, 0., 10.);
     fHlen = dir.make<TH1F>("len", "Track Length", 100, 0., 1.1 * geom->DetLength());
+    fHHitChg = dir.make<TH1F>("hchg", "Hit Charge (ADC counts)", 100, 0., 4000.);
+    fHHitWidth = dir.make<TH1F>("hwid", "Hit Width (ticks)", 40, 0., 20.);
+    //    fHHitPdg = dir.make<TH1F>("hpdg", "Hit Pdg code",5001, -2500.5., +2500.5);
+    fHHitPdg = dir.make<TH1F>("hpdg", "Hit Track ID", 401, -200.5, +200.5);
   }
 
   // MCHists methods.
@@ -562,10 +587,15 @@ namespace trkf {
     // Arguments: pset - Module parameters.
     //
     fTrackModuleLabel(pset.get<std::string>("TrackModuleLabel")),
+    fSpacepointModuleLabel(pset.get<std::string>("SpacepointModuleLabel")),
+    fStitchModuleLabel(pset.get<std::string>("StitchModuleLabel")),
+    fTrkSpptAssocModuleLabel(pset.get<std::string>("TrkSpptAssocModuleLabel")),
+    fHitSpptAssocModuleLabel(pset.get<std::string>("HitSpptAssocModuleLabel")),
     fMinMCKE(pset.get<double>("MinMCKE")),
     fMatchColinearity(pset.get<double>("MatchColinearity")),
     fMatchDisp(pset.get<double>("MatchDisp")),
     fIgnoreSign(pset.get<bool>("IgnoreSign")),
+    fStitchedAnalysis(pset.get<bool>("StitchedAnalysis",false)),
     fNumEvent(0)
   {
 
@@ -574,6 +604,9 @@ namespace trkf {
     mf::LogInfo("TrackAna") 
       << "TrackAna configured with the following parameters:\n"
       << "  TrackModuleLabel = " << fTrackModuleLabel << "\n"
+      << "  StitchModuleLabel = " << fStitchModuleLabel << "\n"
+      << "  TrkSpptAssocModuleLabel = " << fTrkSpptAssocModuleLabel << "\n"
+      << "  HitSpptAssocModuleLabel = " << fHitSpptAssocModuleLabel << "\n"
       << "  MinMCKE = " << fMinMCKE;
   }
 
@@ -590,6 +623,8 @@ namespace trkf {
   // Arguments: event - Art event.
   //
   {
+    art::ServiceHandle<cheat::BackTracker> bt;
+    std::map<int, art::PtrVector<recob::Hit> > hitmap;
     ++fNumEvent;
 
     // Make sure histograms are booked.
@@ -605,6 +640,7 @@ namespace trkf {
     if(mc) {
       art::ServiceHandle<cheat::BackTracker> bt;
       plist = bt->ParticleList();
+
 
       // Loop over mc particles, and fill histograms that depend only
       // on mc particles.  Also, fill a secondary list of mc particles
@@ -664,39 +700,143 @@ namespace trkf {
 	  }
 	}
       }
-    }
+    } //mc
 
-    // Get tracks.
-
+	
+    // Get tracks and spacepoints and hits
     art::Handle< std::vector<recob::Track> > trackh;
+    art::Handle< std::vector< recob::SpacePoint> > sppth;
+    art::Handle< std::vector< art::PtrVector < recob::Track > > > trackvh;
+
     evt.getByLabel(fTrackModuleLabel, trackh);
+    evt.getByLabel(fSpacepointModuleLabel, sppth);
+    evt.getByLabel(fStitchModuleLabel,trackvh);
+
+
+    // This new top part of TrackAna between two long lines of ************s
+    // is particular to analyzing Stitched Tracks.
+    // *******************************************************************//
+    int ntv(0);
+    if (trackvh.isValid() && fStitchedAnalysis) 
+      {
+	mf::LogWarning("TrackAna") 
+	  << "TrackAna read "  << trackvh->size()
+	  << "  vectors of Stitched PtrVectorsof tracks.";
+	// If here, we must now get the components of trackvh. I need those
+	// cuz the Spacepoints are associated to _those_ tracks, not the stitched ones.
+	// Much as the Hits are associated to the individual Spacepoints, not
+	// the more conveniently organized (for our purposes here) std::vec Spacepoints.
+	ntv = trackvh->size();
+
+    
+    std::vector < art::PtrVector<recob::Track> >::const_iterator cti = trackvh->begin();
+    /// art::FindManyP<recob::Hit> fh(sppth, evt, fHitSpptAssocModuleLabel);
+    
     if(trackh.isValid()) {
+      art::FindManyP<recob::SpacePoint> fswhole(trackh, evt, fTrkSpptAssocModuleLabel);
+      int nsppts_assnwhole = fswhole.size();
+      std::cout << "TrackAna: Number of clumps of Spacepoints from Assn for all Tracks: " << nsppts_assnwhole << std::endl;
+    }
+    
+    // Let's don't lose sight of what we want to do. We want to merely subtract all hits
+    // associated to the stitched tracks. Plots we can make include: fraction of hits per 
+    // plane that remain in cosmics-only events. fraction of hits per MC trackID that remain.
+    // Could make that in bins of costh,phi for cosmic muons.
 
+    for (int o = 0; o < ntv; ++o) // o for outer
+      {
+	const art::PtrVector<recob::Track> pvtrack(*(cti++));
+	auto it = pvtrack.begin();
+	int ntrack = pvtrack.size();
+	for(int i = 0; i < ntrack; ++i) {
+	  const art::Ptr<recob::Track> ptrack(*(it++));
+	  //	  const recob::Track& track = *ptrack;
+	  auto pcoll { ptrack };
+	  art::FindManyP<recob::SpacePoint> fs( pcoll, evt, fTrkSpptAssocModuleLabel);
+	  // From gdb> ptype fs, the vector of Ptr<SpacePoint>s it appears is grabbed after fs.at(0)
+	  bool assns(true);
+	  try {
+	    // Get Spacepoints from this Track, get Hits from those Spacepoints.
+	    //	    int nsppts = track.NumberTrajectoryPoints();
+	    // std::cout << "TrackAna: Number of Spacepoints from Track.NumTrajPts()" << nsppts << std::endl;
+	    int nsppts_assn = fs.at(0).size();
+	    // std::cout << "TrackAna: Number of Spacepoints from Assns for this Track" << nsppts_assn << std::endl;
+	    //assert (nsppts_assn == nsppts);
+	    auto sppt = fs.at(0);//.at(is);
+	    art::FindManyP<recob::Hit> fh( sppt, evt, fHitSpptAssocModuleLabel);
+	    // Importantly, loop on all sppts, though they don't all contribute to the track.
+	    // As opposed to looping on the trajectory pts, which is a lower number. 
+	    // Also, important, in job in whch this runs I set TrackKal3DSPS parameter MaxPass=1, 
+	    // cuz I don't want merely the sparse set of sppts as follows from the uncontained 
+	    // MS-measurement in 2nd pass.
+	    for(int is = 0; is < nsppts_assn; ++is) {
+	      int nhits = fh.at(is).size(); // should be 2 or 3: number of planes.
+	      for(int ih = 0; ih < nhits; ++ih) {
+		auto hit = fh.at(is).at(ih); // Our vector is after the .at(is) this time.
+		if (hit->SignalType()!=geo::kCollection) continue;
+		if(fRecoHistMap.count(0) == 0)
+		  fRecoHistMap[0] = RecoHists("Reco");
+		const RecoHists& rhistsStitched = fRecoHistMap[0];
+		rhistsStitched.fHHitChg->Fill(hit->Charge(false));
+		rhistsStitched.fHHitWidth->Fill(hit->EndTime() - hit->StartTime());
+		if (mc)
+		  {
+		    std::vector<cheat::TrackIDE> tids = bt->HitToTrackID(hit);
+		    // more here.
+		    // Loop over track ids.
+		    
+		    for(std::vector<cheat::TrackIDE>::const_iterator itid = tids.begin();
+			itid != tids.end(); ++itid) {
+		      int trackID = itid->trackID;
+		      // Add hit to PtrVector corresponding to this track id.
+		      hitmap[trackID].push_back(hit);
+		      rhistsStitched.fHHitPdg->Fill(trackID); // needs work, obvi
+		    }
+
+		  } // mc
+	      } //  hits
+
+	    } //    spacepoints
+	    
+	  } 
+	  catch (cet::exception& x)  {
+	    assns = false;
+	  }
+	  if (!assns) throw cet::exception("TrackAna") << "Bad Associations. \n";
+	  
+	} // i
+      } // o
+
+      } // trackvh.isValid()
+    // *******************************************************************//
+
+    // Below is TrackAna as we knew it before we wanted to analyze Stitched trks.
+    if(trackh.isValid()) {
       // Loop over tracks.
-
+      
       int ntrack = trackh->size();
       for(int i = 0; i < ntrack; ++i) {
 	art::Ptr<recob::Track> ptrack(trackh, i);
 	const recob::Track& track = *ptrack;
 
 	// Fill histograms involving reco tracks only.
-
+	
 	int ntraj = track.NumberTrajectoryPoints();
 	if(ntraj > 0) {
 	  const TVector3& pos = track.Vertex();
 	  const TVector3& dir = track.VertexDirection();
 	  const TVector3& end = track.End();
-
+	  
 	  double dpos = bdist(pos);
 	  double dend = bdist(end);
 	  double tlen = length(track);
 	  double theta_xz = std::atan2(dir.X(), dir.Z());
 	  double theta_yz = std::atan2(dir.Y(), dir.Z());
-
+	  
 	  if(fRecoHistMap.count(0) == 0)
 	    fRecoHistMap[0] = RecoHists("Reco");
 	  const RecoHists& rhists = fRecoHistMap[0];
-
+	  
 	  rhists.fHstartx->Fill(pos.X());
 	  rhists.fHstarty->Fill(pos.Y());
 	  rhists.fHstartz->Fill(pos.Z());
@@ -709,22 +849,22 @@ namespace trkf {
 	  rhists.fHphi->Fill(dir.Phi());
 	  rhists.fHtheta_xz->Fill(theta_xz);
 	  rhists.fHtheta_yz->Fill(theta_yz);
-
+	  
 	  double mom = 0.;
 	  if(track.NumberFitMomentum() > 0)
 	    mom = track.VertexMomentum();
 	  rhists.fHmom->Fill(mom);
 	  rhists.fHlen->Fill(tlen);
-
+	      
 	  // Calculate the global-to-local rotation matrix.
 
 	  TMatrixD rot(3,3);
 	  track.GlobalToLocalRotationAtPoint(0, rot);
-
+	  
 	  // Get covariance matrix.
 
 	  const TMatrixD& cov = track.VertexCovariance();
-
+	  
 	  // Loop over track-like mc particles.
 
 	  for(auto ipart = plist2.begin(); ipart != plist2.end(); ++ipart) {
@@ -741,7 +881,7 @@ namespace trkf {
 
 	    TVector3 mcmom = part->Momentum().Vect();
 	    TVector3 mcpos = part->Position().Vect() - pos;
-
+	    
 	    // Rotate the momentum and position to the
 	    // track-local coordinate system.
 
@@ -749,11 +889,11 @@ namespace trkf {
 	    TVector3 mcposl = rot * mcpos;
 
 	    double colinearity = mcmoml.Z() / mcmoml.Mag();
-
+	    
 	    double u = mcposl.X();
 	    double v = mcposl.Y();
 	    double w = mcposl.Z();
-
+	    
 	    double pu = mcmoml.X();
 	    double pv = mcmoml.Y();
 	    double pw = mcmoml.Z();
@@ -785,7 +925,7 @@ namespace trkf {
 	      mchists.fHmcw->Fill(w);
 	      mchists.fHupull->Fill(u0 / std::sqrt(cov(0,0)));
 	      mchists.fHvpull->Fill(v0 / std::sqrt(cov(1,1)));
-
+	      
 	      if(std::abs(uv0) < fMatchDisp) {
 
 		// Fill matching histograms.
@@ -840,7 +980,8 @@ namespace trkf {
 	  }
 	}
       }
-    }
+    }   // i
+
   }
 
   void TrackAna::endJob()

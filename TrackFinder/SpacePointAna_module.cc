@@ -249,8 +249,7 @@ namespace trkf {
 	  int nhits = clushits.size();
 	  hits.reserve(hits.size() + nhits);
 
-	  for(std::vector< art::Ptr<recob::Hit> >::const_iterator ihit = clushits.begin();
-	      ihit != clushits.end(); ++ihit) {
+	  for(std::vector< art::Ptr<recob::Hit> >::const_iterator ihit = clushits.begin(); ihit != clushits.end(); ++ihit) {
 	    hits.push_back(*ihit);
 	  }
 	}
