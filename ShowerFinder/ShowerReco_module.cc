@@ -699,7 +699,7 @@ namespace shwf {
       //AxisRecoAlg tt;
   
       //find best set:
-      unsigned int bp1,bp2;
+      unsigned int bp1 = 0,bp2 = 0;
       double maxerror1=99999999,maxerror2=9999999;
       for(unsigned int ii = 0; ii < fNPlanes; ++ii)
 	{

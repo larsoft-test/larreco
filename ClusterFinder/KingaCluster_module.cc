@@ -597,7 +597,7 @@ namespace cluster{
     std::vector<int> startTimes;  //stores time of 1st local minimum
     // std::vector<int> maxBin;    //stores time of local maximum
     std::vector<int> endTimes;    //stores time of 2nd local minimum
-    bool maxFound; //Flag for whether a value>threshold has been found
+    bool maxFound = false; //Flag for whether a value>threshold has been found
     
     int minTimeHolder;
    

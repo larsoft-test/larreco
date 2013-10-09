@@ -17,6 +17,7 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include <memory>
+#include <iostream>
 
 //LArSoft includes
 #include "Geometry/Geometry.h"

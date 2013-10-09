@@ -37,6 +37,8 @@
 // 
 ///////////////////////////////////////////////////////////////////////
 
+#include <iostream>
+
 // include the proper bit of the framework
 #include "art/Framework/Core/EDProducer.h" 
 #include "art/Framework/Principal/Event.h" 
