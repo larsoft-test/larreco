@@ -23,6 +23,7 @@
 #include "MCCheater/BackTracker.h"
 #include "RecoBase/Cluster.h"
 #include "RecoBase/Hit.h"
+#include "SimpleTypesAndConstants/geo_types.h"
 #include "Utilities/AssociationUtil.h"
 #include "Simulation/EmEveIdCalculator.h"
 #include "Utilities/DetectorProperties.h"
@@ -65,27 +66,21 @@ namespace cluster{
 
   struct eveLoc{
 
-    eveLoc(int id, size_t c, size_t t, size_t p)
+    eveLoc(int id, geo::PlaneID plnID)
       : eveID(id)
-      , cryostat(c)
-      , tpc(t)
-      , plane(p)
+      , planeID(plnID)
     {}
 
     friend bool operator < (eveLoc const& a, eveLoc const& b)
     { 
-      if(a.eveID    != b.eveID)    return a.eveID    < b.eveID;
-      if(a.cryostat != b.cryostat) return a.cryostat < b.cryostat; 
-      if(a.tpc      != b.tpc)      return a.tpc      < b.tpc; 
-      if(a.plane    != b.plane)    return a.plane    < b.plane;
-
-      return false;
+      if(a.eveID    != b.eveID)    
+	return a.eveID    < b.eveID;
+      
+      return a.planeID < b.planeID;
     }
     
-    int    eveID;
-    size_t cryostat;
-    size_t tpc;
-    size_t plane;
+    int          eveID;
+    geo::PlaneID planeID;
   };
 
   bool sortHitsByWire(art::Ptr<recob::Hit> a, art::Ptr<recob::Hit> b)
@@ -157,9 +152,7 @@ namespace cluster{
 	if( eveides[e].energyFrac < 0.1) continue;
 
 	eveLoc el(eveides[e].trackID, 
-		  itr->WireID().Cryostat,
-		  itr->WireID().TPC,
-		  itr->WireID().Plane);
+		  itr->WireID().planeID());
 
 	eveHitMap[el].push_back(itr);
 
@@ -182,9 +175,9 @@ namespace cluster{
       double xyz[3]   = {0.};
       double xyz2[3]  = {0.};
       double local[3] = {0.};
-      unsigned int cryostat = hitMapItr.first.cryostat;
-      unsigned int tpc      = hitMapItr.first.tpc;
-      unsigned int plane    = hitMapItr.first.plane;
+      unsigned int cryostat = hitMapItr.first.planeID.Cryostat;
+      unsigned int tpc      = hitMapItr.first.planeID.TPC;
+      unsigned int plane    = hitMapItr.first.planeID.Plane;
       geo->Cryostat(cryostat).TPC(tpc).Plane(plane).LocalToWorld(local, xyz);
 
       LOG_DEBUG("ClusterCheater") << "make cluster for eveID: " << hitMapItr.first.eveID
@@ -258,9 +251,9 @@ namespace cluster{
 					   totalQ,
 					   hitMapItr.second.at(0)->View(),
 					   (hitMapItr.first.eveID*1000 + 
-					    hitMapItr.first.plane*100  + 
-					    hitMapItr.first.tpc*10     + 
-					    hitMapItr.first.cryostat)
+					    hitMapItr.first.planeID.Plane*100  + 
+					    hitMapItr.first.planeID.TPC*10     + 
+					    hitMapItr.first.planeID.Cryostat)
 					   )
 			    );
       
