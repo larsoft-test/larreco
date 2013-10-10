@@ -469,6 +469,9 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   art::ServiceHandle<util::LArProperties> larprop;
   art::ServiceHandle<util::DetectorProperties> detprop;
 
+  if(allhits.size()==0)
+    return;
+  
   //factor to make x and y scale the same units
   uint32_t     channel = allhits[0]->Wire()->RawDigit()->Channel();
   double wirePitch = geom->WirePitch(geom->View(channel));
