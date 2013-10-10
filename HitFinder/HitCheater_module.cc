@@ -54,10 +54,10 @@ public:
 
 private:
 
-  void FindHitsOnChannel(const sim::SimChannel*                                  sc,
-			 std::vector<recob::Hit>&                                hits,
-  			 art::Ptr<recob::Wire>&                                  wire, 
-			 int                                                     spill);
+  void FindHitsOnChannel(const sim::SimChannel*   sc,
+			 std::vector<recob::Hit>& hits,
+  			 art::Ptr<recob::Wire>&   wire, 
+			 int                      spill);
 
 
   std::string         fG4ModuleLabel;              ///< label name for module making sim::SimChannels		
@@ -130,10 +130,10 @@ void hit::HitCheater::produce(art::Event & e)
 }
 
 //-------------------------------------------------------------------
-void hit::HitCheater::FindHitsOnChannel(const sim::SimChannel*                                  sc,
-					std::vector<recob::Hit>&                                hits,
-					art::Ptr<recob::Wire>&                                  wire, 
-					int                                                     spill)
+void hit::HitCheater::FindHitsOnChannel(const sim::SimChannel*   sc,
+					std::vector<recob::Hit>& hits,
+					art::Ptr<recob::Wire>&   wire, 
+					int                      spill)
 {
   art::ServiceHandle<geo::Geometry> geo;
 
