@@ -31,6 +31,7 @@ extern "C" {
 #include "SimulationBase/MCTruth.h"
 #include "Utilities/AssociationUtil.h"
 #include "Geometry/PlaneGeo.h"
+#include "Geometry/TPCGeo.h"
 #include "CLHEP/Random/JamesRandom.h"
 #include "Utilities/SeedCreator.h"
 #include "RecoBase/Hit.h"
@@ -185,7 +186,7 @@ namespace cluster {
     std::vector<double> fOffAxisNorm; 
     std::vector<double> fOnAxisNorm; 
     std::vector<int> fNhits;
-    std::vector<int> fNhitsClust;
+  
     std::vector<double> fHitDensity;
     std::vector<double> fLength;
     
@@ -234,10 +235,10 @@ namespace cluster {
     TH1F *  fh_omega_single;
    
     
-    TH1F * fRecoWireHist[3];
-    TH1F * fRecoTimeHist[3];
-    TH1F * fRecoOmegaHist[3];
-    TH1F * fRecoDirectionHist[3];
+    std::vector<  TH1F *> fRecoWireHist;
+    std::vector<  TH1F *> fRecoTimeHist;
+    std::vector<  TH1F *> fRecoOmegaHist;
+    std::vector<  TH1F *> fRecoDirectionHist;
     
     TTree* ftree_cluster;
 
@@ -361,7 +362,11 @@ void cluster::ShowerAngleClusterAna::beginJob()
   
   fNTimes=geo->DetHalfWidth(tpc)*2/(fTimetoCm);
   fNWires.resize(fNPlanes);
-    
+  fRecoWireHist.resize(fNPlanes);  
+  fRecoTimeHist.resize(fNPlanes);
+  fRecoOmegaHist.resize(fNPlanes);
+  fRecoDirectionHist.resize(fNPlanes);
+  
   for(unsigned int ip=0;ip<fNPlanes;ip++)
   {
     fRecoWireHist[ip] = tfs->make<TH1F>(Form("recowire_%d",ip),Form("recowire_%d",ip),100,-100., 100.);
@@ -433,7 +438,7 @@ void cluster::ShowerAngleClusterAna::beginJob()
     ftree_cluster->Branch("fOffAxisNorm","std::vector<double>", &fOffAxisNorm);
     ftree_cluster->Branch("fOnAxisNorm","std::vector<double>", &fOnAxisNorm);
     ftree_cluster->Branch("fNhits","std::vector<int>", &fNhits);
-    ftree_cluster->Branch("fNhitsClust","std::vector<int>", &fNhitsClust);
+   
     ftree_cluster->Branch("fHitDensity","std::vector<double>", &fHitDensity);
      ftree_cluster->Branch("fLength","std::vector<double>", &fLength);
     
@@ -580,7 +585,6 @@ void cluster::ShowerAngleClusterAna::ClearandResizeVectors(unsigned int nCluster
   fOffAxisNorm.clear();
   fOnAxisNorm.clear();
   fNhits.clear();
-  fNhitsClust.clear();
   fHitDensity.clear();
   fLength.clear(); 
   
@@ -811,13 +815,13 @@ void cluster::ShowerAngleClusterAna::analyze(const art::Event& evt)
   
   for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++){
 
-    art::Ptr<recob::Cluster> cl(clusterListHandle, iClust);
+   art::Ptr<recob::Cluster> cl(clusterListHandle, iClust);
    std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iClust);
    
    if (!evt.isRealData())
       GetVertexCluster(hitlist,iClust);
    
-   
+      fNhits[iClust]=hitlist.size();	
 
 
    
@@ -851,7 +855,8 @@ void cluster::ShowerAngleClusterAna::analyze(const art::Event& evt)
 	endflag=true;
 	//std::cout << "setting external ending points " << epos[0] << " " << epos[1] << std::endl;
       }
-	
+      
+ 
     std::cout << " hitlist size: " << hitlist.size() << std::endl;
     if(hitlist.size()<=15 )
 	continue;
@@ -917,9 +922,9 @@ void cluster::ShowerAngleClusterAna::analyze(const art::Event& evt)
        fOnAxisNorm[iClust]=(HiBin+LowBin)/hitlist.size();
     
    // if(hitlist.size() > (unsigned int)fNhits[plane] )
-       fNhits[iClust]=hitlist.size();
+   
   
-//     fNhitsClust[iClust]=hitlist.size();
+
     
           
     /////////////////////////////////
@@ -1077,6 +1082,10 @@ void cluster::ShowerAngleClusterAna::GetVertexCluster(std::vector < art::Ptr < r
   art::ServiceHandle<cheat::BackTracker> bt;
 int trkid;
    double purity,maxe;
+   double width=2.*geom->TPC(0).ActiveHalfWidth();  //notice the geometry gives the 1/2 width, so multiply by 2
+   double halfheight = geom->TPC(0).ActiveHalfHeight(); //notice the geometry gives the 1/2 height, so multiply by 2
+   double length =    geom->TPC(0).ActiveLength();     
+   
    
    HitsPurity(hitlist, trkid, purity, maxe);
    if (trkid>0){
@@ -1095,10 +1104,25 @@ int trkid;
      y=particle->Vy();
      z=particle->Vz();
      double minx=x,miny=y,minz=z;
+     
+     //checking whether minx, miny, and minz are inside of the TPC - if not, set the closest point inside.
+     minx= (x>0 && x<width) ? x : ( ( x<=0 ) ? 0.1 : width-0.1) ;        
+     //minx= (x< width && x>0) ? x : width;
+     
+     minz= (z>0 && z<length) ? z : ( ( z<=0 ) ? 0.1 : length-0.1);        
+     //minz= (z< length && z>0) ? z : length;
+     
+     miny= (y>-halfheight && y< halfheight ) ? y : ( ( y<= -halfheight) ? -halfheight+0.1 : halfheight-0.1) ; 
+    // miny= (y< halfheight && y>-halfheight) ? y : halfheight;
+     std::cout << "halfheight" << halfheight << std::endl;
+      std::cout << "first min x,y,z " << minx << " "<< miny << " " << minz << std::endl;
      double mindist=9999999.0;
      double depenergy=0.;
-         
-     if(particle->Trajectory().size()>2)
+       std::cout << " @trajectory 0" <<x << " "<< y << " "<<z << std::endl; 
+       
+     
+       
+     if(particle->Trajectory().size()>2 && x>0 && x< width && z>0 && z<length && fabs(y)<halfheight  )
      {
       
       double xyz1[]={particle->Trajectory().X(0),particle->Trajectory().Y(0),particle->Trajectory().Z(0)};
@@ -1106,6 +1130,7 @@ int trkid;
       util::pxpoint pN1=gser.Get2DPointProjection(xyz1,mcplane[iClust]);
       util::pxpoint pN2=gser.Get2DPointProjection(xyz2,mcplane[iClust]);
      
+      std::cout << " @looping through trajectory" << std::endl; 
       for(unsigned int xx=1;xx<particle->Trajectory().size();xx++)
       {
        if(pN1.w!=pN2.w)   
@@ -1137,7 +1162,7 @@ int trkid;
 	depenergy+=ides[e].energy;
 	if(ides[e].trackID==-trkid)   // the right particle
 	   { double dist=TMath::Sqrt( (x-ides[e].x)*(x-ides[e].x)+(y-ides[e].y)*(y-ides[e].y)+(z-ides[e].z)*(z-ides[e].z));
-	     if(dist<mindist) {
+	     if(dist<mindist && ides[e].x>0 && ides[e].x< width && ides[e].z>0 && ides[e].z<length && fabs(ides[e].y)<halfheight ) {
 	      mindist=dist;
 	      minx=ides[e].x;
 	      miny=ides[e].y;
