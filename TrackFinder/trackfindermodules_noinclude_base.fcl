@@ -19,7 +19,6 @@ standard_seedfindermodule:
  module_type:         "SeedFinderModule"
  InputSource:          0
  InputModuleLabel:     "ffthit"
- SpacePointAlg:        @local::standard_spacepointalg
  SeedAlg:              @local::standard_seedfinderalgorithm
 }
 

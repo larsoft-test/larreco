@@ -11,6 +11,8 @@
 
 #include "art/Framework/Core/EDProducer.h"
 #include "RecoAlg/SeedFinderAlgorithm.h"
+#include "Utilities/AssociationUtil.h"
+
 
 namespace recob
 {
@@ -41,7 +43,7 @@ namespace trkf {
   
     
     art::PtrVector<recob::Hit>       GetHitsFromEvent(std::string HitModuleLabel, art::Event & evt);
-    void                             GetHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > & ReturnVec );
+    void                             GetSortedHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > & ReturnVec );
 
 
 
@@ -140,9 +142,9 @@ namespace trkf {
       {
 	
 	std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > SortedHits;
-        GetHitsFromClusters(fInputModuleLabel, evt, SortedHits);
+        GetSortedHitsFromClusters(fInputModuleLabel, evt, SortedHits);
 
-	std::vector<std::vector<recob::Seed> > Seeds = fSeedAlg.GetSeedsFromClusterHits(SortedHits);
+	std::vector<std::vector<recob::Seed> > Seeds = fSeedAlg.GetSeedsFromSortedHits(SortedHits);
 
 	for(size_t i=0; i!=Seeds.size(); ++i)
 	  for(size_t j=0; j!=Seeds.at(i).size(); ++j)
@@ -154,8 +156,8 @@ namespace trkf {
       {
 	
 	art::PtrVector<recob::Hit> Hits = GetHitsFromEvent(fInputModuleLabel, evt);
-       	std::vector<recob::SpacePoint> SPsFromHits = fSeedAlg.GetSpacePointsFromHitVector(Hits);
- 	SeedVector = fSeedAlg.FindSeeds(SPsFromHits, SpacePointsWithSeeds);
+	std::vector<art::PtrVector<recob::Hit> > HitCatalogue;
+  	SeedVector = fSeedAlg.GetSeedsFromUnSortedHits(Hits, HitCatalogue);
       }
     else	  
       {
@@ -187,7 +189,7 @@ namespace trkf {
   // Get the hits associated with stored clusters
   //
 
-  void SeedFinderModule::GetHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > & ReturnVec )
+  void SeedFinderModule::GetSortedHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > & ReturnVec )
   {
 
     std::vector<art::Ptr<recob::Cluster> > Clusters;

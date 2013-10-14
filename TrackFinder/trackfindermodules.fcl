@@ -18,9 +18,8 @@ standard_featuretracker.SpacepointPset.MinViews: 2
 standard_seedfindermodule:
 {
  module_type:         "SeedFinderModule"
- InputSource:          0
- InputModuleLabel:     "ffthit"
- SpacePointAlg:        @local::standard_spacepointalg
+ InputSource:          1
+ InputModuleLabel:     "dbcluster"
  SeedAlg:              @local::standard_seedfinderalgorithm
 }
 
@@ -289,7 +288,6 @@ microboone_track3Dkalmanhit.SeedFinderAlg.ExtendThresh: 0.
 microboone_track3Dkalmanhit.SpacePointAlg:              @local::microboone_spacepointalg
 microboone_track3Dkalmanhit.SpacePointAlg.MinViews:     2
 microboone_seedfindermodule:                            @local::standard_seedfindermodule     
-microboone_seedfindermodule.SpacePointAlg:              @local::microboone_spacepointalg      
 microboone_seedfindermodule.SeedAlg:                    @local::microboone_seedfinderalgorithm
 microboone_beziertrackermodule:                         @local::standard_beziertrackermodule
 microboone_beziertrackermodule.BezierTrackerAlgorithm:  @local::microboone_beziertrackeralgorithm

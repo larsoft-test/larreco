@@ -400,13 +400,13 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
   while(!done) {
 
     // Use remaining hits to make space points using the seed finder.
+       
 
-    std::vector<recob::SpacePoint> seedspts =
-      fSeedFinderAlg.GetSpacePointsFromHitVector(seederhits);
-    std::vector<std::vector<recob::SpacePoint> > seedsptvecs;
+    std::vector<art::PtrVector<recob::Hit> > hitsperseed;
     std::vector<recob::Seed> seeds;
-    if(seedspts.size() > 0)
-      seeds = fSeedFinderAlg.FindSeeds(seedspts, seedsptvecs);
+    if(seederhits.size()>0)
+      seeds = fSeedFinderAlg.GetSeedsFromUnSortedHits(seederhits, hitsperseed);
+    
     if(seeds.size() == 0 || !seeds.front().IsValid()) {
 
       // Quit loop if we didn't find any new seeds.
@@ -424,12 +424,10 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
       // used by this seed.
 
       const recob::Seed& seed = (seeds.front());
-      const std::vector<recob::SpacePoint>& seedsptvec = seedsptvecs.front();
-
+      
       // Extract hits used by space points in this seed.
 
-      art::PtrVector<recob::Hit> seedhits;
-      SpacePointsToHits(seedsptvec, seedhits, *fSeedFinderAlg.GetSpacePointAlg());
+      art::PtrVector<recob::Hit> seedhits = (hitsperseed.front());
 
       // Filter hits used by seed from hits available to make future seeds.
       // No matter what, we will never use these hits for another seed.
@@ -454,18 +452,10 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
       vec(3) = 0.;
       vec(4) = 2.0;
 
-      log << "Seed found with " << seedsptvec.size() 
-	  << " space points and " << seedhits.size() << " hits.\n"
+      log << "Seed found with " << seedhits.size() <<" hits.\n"
 	  << "(x,y,z) = " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << "\n"
 	  << "(dx,dy,dz) = " << dir[0] << ", " << dir[1] << ", " << dir[2] << "\n"
-	  << "(x1, y1, z1)) = "
-	  << seedsptvec.front().XYZ()[0] << ", "
-	  << seedsptvec.front().XYZ()[1] << ", "
-	  << seedsptvec.front().XYZ()[2] << "\n"
-	  << "(xn, yn, zn)) = "
-	  << seedsptvec.back().XYZ()[0] << ", "
-	  << seedsptvec.back().XYZ()[1] << ", "
-	  << seedsptvec.back().XYZ()[2] << "\n";
+	  << "(x1, y1, z1)) = ";
 
       // Cut on the seed slope dx/dz.
 

@@ -202,7 +202,7 @@ namespace trkf {
 	std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > SortedHits;
 	GetHitsFromClusters(fClusterModuleLabel, evt, SortedHits);
 	
-	std::vector<std::vector<recob::Seed> > Seeds = fBTrackAlg->GetSeedFinderAlgorithm()->GetSeedsFromClusterHits(SortedHits);
+	std::vector<std::vector<recob::Seed> > Seeds = fBTrackAlg->GetSeedFinderAlgorithm()->GetSeedsFromSortedHits(SortedHits);
 	std::vector<std::vector<double> >         SValuesOfHits;
 
 	
@@ -355,7 +355,6 @@ namespace trkf {
 
       // Test first view.
 
-      //    mf::LogVerbatim("BezierTrackerModule") << "View check: " << iview << " " << Sptalg->enableU()<< " " << Sptalg->enableV() << " " << Sptalg->enableW()<<std::endl;
 
       if((iview == geo::kU && Sptalg->enableU()) ||
          (iview == geo::kV && Sptalg->enableV()) ||
@@ -426,30 +425,11 @@ namespace trkf {
 		  hits.push_back(*k);
 		// Make three-view space points.
 
-		std::vector<recob::SpacePoint> spts;
-		Sptalg->makeSpacePoints(hits, spts);
+		std::vector<recob::Seed> Seeds;
+		std::vector<art::PtrVector<recob::Hit> > HitCatalogue;
+		Seeds = fBTrackAlg->GetSeedFinderAlgorithm()->GetSeedsFromUnSortedHits(hits, HitCatalogue); 
+		if(Seeds.size() > 0) ReturnVec.push_back(Seeds);
 
-		if(spts.size() > 0) 
-		  {
-		    std::vector<std::vector<recob::SpacePoint> > CataloguedSPs;
-		   
-		    //  mf::LogVerbatim("BezierTrackerModule") 
-		    //   << "Cluster combo found with " << spts.size() 
-		    //  << " sps" << std::endl;
-		    
-		    std::vector<recob::Seed> Seeds 
-		      = fBTrackAlg->GetSeedFinderAlgorithm()->FindSeeds(spts,CataloguedSPs);
-		    mf::LogVerbatim("BezierTrackerModule") << "Found " << 
-		      Seeds.size() << " seeds" << std::endl;
-		    
-		    if(Seeds.size()>0)
-		      {
-			ReturnVec.push_back(Seeds);
-
-		      }
-		    spts.clear();
-		  }
-	      
 	      }
 	    }
 	  }
