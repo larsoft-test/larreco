@@ -36,6 +36,13 @@ microboone_seedfindermodule.SeedAlg:                    @local::microboone_seedf
 microboone_beziertrackermodule:                         @local::standard_beziertrackermodule
 microboone_beziertrackermodule.BezierTrackerAlgorithm:  @local::microboone_beziertrackeralgorithm
 microboone_trackstitcher:                               @local::standard_trackstitcher
+microboone_trackstitcher.TrackModuleLabel:              "trackkalsps"
+microboone_trackstitcher.SpptModuleLabel:               "spacepointfinder"
+microboone_trackstitcher.CosAngTolerance:               0.95
+microboone_trackstitcher.SpptSepTolerance:              15.0
+microboone_cosmictracker:                               @local::standard_cosmictracker  
+microboone_cosmictracker.ClusterModuleLabel:            "dbcluster"
+
 
 microboone_2stg_kalman:
 {
