@@ -13,6 +13,7 @@
 #include "RecoAlg/SpacePointAlg.h"
 #include "TVector3.h"
 #include "Geometry/Geometry.h"
+#include "TTree.h"
 
 namespace recob
 {
@@ -61,8 +62,8 @@ namespace trkf {
     
     size_t                      CountHits(std::vector<recob::SpacePoint>  const& SpacePoints, TVector3 CenterPoint, double d);
 
-
-
+    void                        GetCenterAndDirection(std::vector<recob::SpacePoint> const& Points, std::vector<int> const& PointsInRange, TVector3& Center, TVector3& Direction, double& Strength, bool Mode);
+    
   private:
 
     recob::Seed                 FindSeedAtEnd(std::vector<recob::SpacePoint> const&, std::map<int, int>&, std::vector<int>&);
@@ -94,6 +95,23 @@ namespace trkf {
     float                 fExtendThresh;
     float                 fExtendStep;
     float                 fExtendResolution;
+
+    TTree *   ftMonitoringTree;
+    Float_t   ftThetaXZ;
+    Float_t   ftThetaYZ;
+    Float_t   ftTheta;
+    Float_t   ftEigenvalue;
+    Int_t     ftNSpts;
+    Int_t     ftNUHits;
+    Int_t     ftNVHits;
+    Int_t     ftNWHits;
+    Float_t   ftURMS;
+    Float_t   ftVRMS;
+    Float_t   ftWRMS;
+    Float_t   ftURMSb;
+    Float_t   ftVRMSb;
+    Float_t   ftWRMSb;
+    bool      ftKeep;
   };
   
 }
