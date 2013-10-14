@@ -91,27 +91,6 @@ namespace trkf {
 
 
 
-  //------------------------------------------------------------
-  // Find seeds in a collection of collections of SPs
-  //   (for cluster method)
-
-  std::vector<recob::Seed> SeedFinderAlgorithm::FindSeeds(std::vector<std::vector<recob::SpacePoint> > const& InputPoints, std::vector<std::vector<recob::SpacePoint> >& CataloguedSPs)
-  {
-    CataloguedSPs.clear();
-    std::vector<recob::Seed> ReturnVector;
-    for(size_t i=0; i!=InputPoints.size(); ++i)
-      {
-	std::vector<std::vector<recob::SpacePoint> > SPsThisCombo;
-	std::vector<recob::Seed> SeedsThisCombo = FindSeeds(InputPoints.at(i), SPsThisCombo);
-	for(size_t j=0; j!=SeedsThisCombo.size(); ++j)
-	  {
-	    ReturnVector.push_back(  SeedsThisCombo[j] ) ;
-	    CataloguedSPs.push_back( SPsThisCombo[j]   ) ;
-	  }
-      }
-
-    return ReturnVector;
-  }
 
   
 
