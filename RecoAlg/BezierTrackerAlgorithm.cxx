@@ -195,17 +195,10 @@ namespace trkf {
     bool KeepTrying=true;
     while(KeepTrying)
       {
-	mf::LogVerbatim("BezierTrackerAlgorithm")<<"Getting space points" <<std::endl;
-	
-	// Make remaining hits into SPs
-	std::vector<recob::SpacePoint> SPVec = 
-	  fTheSeedFinder->GetSpacePointsFromHitVector(HitsToProcess);
-	    
-	// Find seeds in these SPs
-	std::vector<std::vector<recob::SpacePoint> > SPUsed;
 	mf::LogVerbatim("BezierTrackerAlgorithm")<<"Getting seeds " <<std::endl;
-	
-	std::vector<recob::Seed> AllSeeds = fTheSeedFinder->FindSeeds(SPVec, SPUsed);
+
+	std::vector<art::PtrVector<recob::Hit> > HitCatalogue;	
+	std::vector<recob::Seed> AllSeeds = fTheSeedFinder->GetSeedsFromUnSortedHits(HitsToProcess, HitCatalogue);
 	   	    
 	mf::LogVerbatim("BezierTrackerAlgorithm")<<"Organizing seed collections " <<std::endl;
 	// Organize these seeds into tracklike collections

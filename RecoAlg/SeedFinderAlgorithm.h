@@ -27,51 +27,96 @@ namespace trkf {
   class SeedFinderAlgorithm
   {
   public:
- 
-    // Constructors, destructor
+
+    //--------------------------------------
+    // Constructors, destructor, reconfigure
+    //--------------------------------------
 
     SeedFinderAlgorithm(const fhicl::ParameterSet& pset);
    ~SeedFinderAlgorithm();
 
-
-    // Overrides.
-
     void reconfigure(fhicl::ParameterSet const& pset);
 
  
+
+    //----------------------
     // Seedfinding methods
-
- 
-    std::vector<recob::Seed >  FindSeeds(std::vector<recob::SpacePoint> const&, std::vector<std::vector<recob::SpacePoint> >&);
-
-    void                        RefitSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& SpacePoints);
-
-    std::vector<recob::SpacePoint> GetSpacePointsFromHitVector(art::PtrVector<recob::Hit> const& );
-
-    std::vector<std::vector<recob::Seed> > GetSeedsFromClusterHits(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > const &);
+    //----------------------
 
 
-    std::vector<double>         GetHitRMS(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> const&);
-
-    size_t                      CountHits(std::vector<recob::SpacePoint> const& Points);
+    std::vector<std::vector<recob::Seed> > GetSeedsFromSortedHits(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > const &);
+                                    // Return a vector of vectors of seeds, one vector for each supplied cluster 
+                                    //   combination which has sufficient overlap
+   
     
+
+    std::vector<recob::Seed>    GetSeedsFromUnSortedHits(art::PtrVector<recob::Hit> const &, std::vector<art::PtrVector<recob::Hit> >&);
+                                    // Return a vector of seeds formed from an unstructured collection of hits    
+
+
+
+    //----------------------
+    // Alg passing 
+    //----------------------
+
+
     SpacePointAlg *             GetSpacePointAlg() const { return fSptalg; }
+                                    // Return the SpacePointAlg, as configured for the Seed Finding 
+   
     
-    size_t                      CountHits(std::vector<recob::SpacePoint>  const& SpacePoints, TVector3 CenterPoint, double d);
 
-    void                        GetCenterAndDirection(std::vector<recob::SpacePoint> const& Points, std::vector<int> const& PointsInRange, TVector3& Center, TVector3& Direction, double& Strength, bool Mode);
+
     
   private:
 
-    recob::Seed                 FindSeedAtEnd(std::vector<recob::SpacePoint> const&, std::map<int, int>&, std::vector<int>&);
+    //----------------------
+    // Internal methods
+    //----------------------
 
+
+    std::vector<recob::Seed >   FindSeeds(std::vector<recob::SpacePoint> const&, std::vector<std::vector<recob::SpacePoint> >&);
+                                    // Find a collection of seeds, one for each element in the supplied spacepoint vector. 
+                                    //  The third argument returns a list of spacepoints catalogued by which seed they fell in.
+   
+
+
+    recob::Seed                 FindSeedAtEnd(std::vector<recob::SpacePoint> const&, std::map<int, int>&, std::vector<int>&);
+                                    // Find one seed at high Z from the spacepoint collection given. Latter arguments are 
+                                    //  for internal book keeping.
+
+
+    void                        RefitSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& SpacePoints);
+                                   // Having found a 3D seed, refit it onto its constituent hits to iteratively minimize 
+                                   //  the RMS in each view
+
+
+    std::vector<double>         GetHitRMS(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> const&);
+                                   // Get a vector of RMS values indiciating how closely the seed runs to the hits in each view
+
+
+    size_t                      CountHits(std::vector<recob::SpacePoint> const& Points);
+                                   // Counting the number of hits in each view which are associated with a set of SPs
+
+
+    void                        GetCenterAndDirection(std::vector<recob::SpacePoint> const& Points, std::vector<int> const& PointsInRange, TVector3& Center, TVector3& Direction, double& Strength, bool Mode);
+                                   // Given a set of spacepoints, find the center and direction to form a seed. 
+                                   //  Mode specifies whether to operate on spacepoints (old) or directly onto hits (new)
+
+    
     bool                        ExtendSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, 
 					   std::map<int, int>& PointStatus, std::vector<int>& PointsUsed);
+                                   // Attempt to walk a found seed out further to collect more hits. DEPRECATED
+
 
     std::vector<recob::SpacePoint> ExtractSpacePoints(std::vector<recob::SpacePoint> const& AllPoints, std::vector<int> IDsToExtract);
+                                   // Given a spacepoint vector and ID list, return the vector of spacepoints for those IDs
+ 
 
     std::vector<int>            DetermineNearbySPs(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, 
 						   std::map<int, int> PointStatus, double ExtendResolution);
+
+                                   // Find the spacepoints which are within some radius of seed from a provided sed.
+
 
 
                        

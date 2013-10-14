@@ -95,24 +95,6 @@ namespace trkf {
   
 
   //------------------------------------------------------------
-  // Use the spacepoint service to turn a vector of hits 
-  //  into a vector of spacepoints
-  //
-  
-  std::vector<recob::SpacePoint>  SeedFinderAlgorithm::GetSpacePointsFromHitVector(art::PtrVector<recob::Hit>  const& Hits)
-  {
-    std::vector<recob::SpacePoint> ReturnVec;
-    
-    fSptalg->makeSpacePoints(Hits, ReturnVec);
-  
-    return ReturnVec;
-      
-  }
-
-
-  
-
-  //------------------------------------------------------------
   // Given a set of spacepoints, find seeds, and catalogue
   //  spacepoints by the seeds they formed
   //
@@ -123,7 +105,12 @@ namespace trkf {
 
     // This vector keeps track of the status of each point.  
     // The key is the position in the AllSpacePoints vector.
-    // The value is 0: point unused, 1: point used in seed, 2: point thrown but unused 
+    // The value is 
+    //    0: point unused, 
+    //    1: point used in seed, 
+    //    2: point thrown but unused 
+    //    3: flagged to terminate seed finding
+
     std::map<int,int>               PointStatus;
     
     
@@ -914,35 +901,6 @@ namespace trkf {
 
 
 
-
-  //------------------------------------------------------------
-  // Given a set of spacepoints, count how many unique hits
-  //  are present
-
-  size_t SeedFinderAlgorithm::CountHits(std::vector<recob::SpacePoint>  const& SpacePoints)
-  {
-    art::ServiceHandle<geo::Geometry>            geom;
-
-    // A map of HitID to true/false whether it has been counted already
-    std::map<uint32_t, bool>            HitsClaimed;
-    HitsClaimed.clear();
-    
-    // For each spacepoint, check hit contents
-    for(std::vector<recob::SpacePoint>::const_iterator itSP=SpacePoints.begin();
-	itSP!=SpacePoints.end(); itSP++)
-      {
-	art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits((*itSP));
-	for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
-	    itHit!=HitsThisSP.end(); itHit++)
-	  {
-	    HitsClaimed[(*itHit)->Channel()]=true;
-	  }
-      }
-    size_t ReturnVal = HitsClaimed.size();	
-    HitsClaimed.clear();
-    return ReturnVal;
-  }
-
   //------------------------------------------------------------
 
   std::vector<recob::SpacePoint> SeedFinderAlgorithm::ExtractSpacePoints(std::vector<recob::SpacePoint> const& AllPoints, std::vector<int> IDsToExtract)
@@ -1181,7 +1139,7 @@ namespace trkf {
 
 
 
-
+  /*
   //------------------------------------------------------------
   // Given a set of spacepoints, count how many unique hits
   //  are present within a distance d of CenterPoint;
@@ -1218,10 +1176,57 @@ namespace trkf {
     
   }
 
+  */
+
+
+  //-----------------------------------------------
+
+  std::vector<recob::Seed>    SeedFinderAlgorithm::GetSeedsFromUnSortedHits(art::PtrVector<recob::Hit> const & Hits, std::vector<art::PtrVector<recob::Hit> >& HitCatalogue)
+  {
+    HitCatalogue.clear();
+    
+    std::vector<recob::Seed>                     ReturnVector;
+    std::vector<std::vector<recob::SpacePoint> > SPCatalogue;
+    std::map<uint32_t, bool>                     HitsClaimed;
+
+    
+    
+    std::vector<recob::SpacePoint> SPsFromHits;   
+    fSptalg->makeSpacePoints(Hits, SPsFromHits);
+
+    ReturnVector =  FindSeeds(SPsFromHits, SPCatalogue);    
+  
+    // For each seed
+    for(size_t i=0; i!=SPCatalogue.size(); ++i)
+      {
+	// For each SP
+	HitCatalogue.push_back(art::PtrVector<recob::Hit>());
+	for(size_t j=0; j!=SPCatalogue.at(i).size(); ++j)
+	  {
+	    art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits(SPCatalogue.at(i).at(j));
+	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
+		itHit!=HitsThisSP.end(); itHit++)
+	      {
+		if(!HitsClaimed[(*itHit)->Channel()])
+		  {
+		    HitCatalogue.at(i).push_back(*itHit);
+		    HitsClaimed[(*itHit)->Channel()]=true;
+		  }
+	      }
+	  }
+      }  
+    SPCatalogue.clear();
+    HitsClaimed.clear();
+    
+    return ReturnVector;
+  }
+
+
+
 
   //---------------------------------------------
 
-  std::vector<std::vector<recob::Seed> > SeedFinderAlgorithm::GetSeedsFromClusterHits(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > const& SortedHits)
+  std::vector<std::vector<recob::Seed> > SeedFinderAlgorithm::GetSeedsFromSortedHits(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > const& SortedHits)
   {
     trkf::SpacePointAlg *Sptalg = GetSpacePointAlg();
 
