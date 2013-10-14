@@ -52,10 +52,10 @@ namespace trkf {
    
     // Fcl Attributes.
 
-    SeedFinderAlgorithm    fSeedAlg;                  // Algorithm object
-    SpacePointAlg          fSptalg;
-    std::string            fInputModuleLabel;         // Where to find hits, if we need them
-    int                    fInputSource;              // 1: Use Clusters
+    SeedFinderAlgorithm     fSeedAlg;                  // Algorithm object
+    SpacePointAlg           fSptalg;
+    std::string             fInputModuleLabel;         // Where to find hits, if we need them
+    int                     fInputSource;              // 1: Use Clusters
                                                       // 2: Use Hits
 
   };
@@ -117,8 +117,8 @@ namespace trkf {
   //----------------------------------------------------------------------------
   void SeedFinderModule::reconfigure(fhicl::ParameterSet const& pset)
   {
-    fSeedAlg               = SeedFinderAlgorithm ( pset.get<fhicl::ParameterSet>("SeedAlg") );
-    fSptalg                = SpacePointAlg       ( pset.get<fhicl::ParameterSet>("SpacePointAlg") );
+    fSeedAlg.reconfigure ( pset.get<fhicl::ParameterSet>("SeedAlg") );
+    fSptalg.reconfigure  ( pset.get<fhicl::ParameterSet>("SpacePointAlg") );
     fInputModuleLabel      = pset.get<std::string>("InputModuleLabel");
     fInputSource           = pset.get<int>("InputSource");
   

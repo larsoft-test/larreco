@@ -16,15 +16,17 @@ standard_spacepointalg:
 standard_seedfinderalgorithm:
 {
   SpacePointAlg:          @local::standard_spacepointalg
-  InitSeedLength:         4
-  MinPointsInSeed:        8
-  PCAThreshold:           0.9
+  SpacePointAlg.Filter:   false
+  InitSeedLength:         3
+  MinPointsInSeed:        6
+  PCAThreshold:           0.75
   Refits:                 30
-  ExtendThresh:           0.85
+  ExtendThresh:           -1.
   ExtendStep:             1.
-  ExtendResolution:       2.
-  MaxViewRMS:             [1.5,1.5,1.5]
+  ExtendResolution:       1.
+  MaxViewRMS:             [1.,1.,1.]
 }
+
 
 standard_beziertrackeralgorithm:
 {	
