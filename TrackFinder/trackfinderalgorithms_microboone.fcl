@@ -11,6 +11,7 @@ microboone_kalmanfilteralg:  @local::standard_kalmanfilteralg
 microboone_seedfinderalgorithm:                          @local::standard_seedfinderalgorithm
 microboone_seedfinderalgorithm.SpacePointAlg :           @local::microboone_spacepointalg
 microboone_seedfinderalgorithm.SpacePointAlg.PreferColl: true
+microboone_seedfinderalgorithm.SpacePointAlg.Filter:     false
 microboone_beziertrackeralgorithm:                       @local::standard_beziertrackeralgorithm
 microboone_beziertrackeralgorithm.SeedFinderAlgorithm:   @local::microboone_seedfinderalgorithm
 

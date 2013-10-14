@@ -10,7 +10,6 @@
 //
 
 #include "art/Framework/Core/EDProducer.h"
-#include "RecoAlg/SpacePointAlg.h"
 #include "RecoAlg/SeedFinderAlgorithm.h"
 
 namespace recob
@@ -41,9 +40,8 @@ namespace trkf {
     void endJob();
   
     
-    std::vector<std::vector<recob::SpacePoint> > GetSpacePointsFromClusters(std::string fInputModuleLabel, art::Event& evt);
-
     art::PtrVector<recob::Hit>       GetHitsFromEvent(std::string HitModuleLabel, art::Event & evt);
+    void                             GetHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > & ReturnVec );
 
 
 
@@ -53,7 +51,6 @@ namespace trkf {
     // Fcl Attributes.
 
     SeedFinderAlgorithm     fSeedAlg;                  // Algorithm object
-    SpacePointAlg           fSptalg;
     std::string             fInputModuleLabel;         // Where to find hits, if we need them
     int                     fInputSource;              // 1: Use Clusters
                                                       // 2: Use Hits
@@ -100,8 +97,7 @@ namespace trkf {
 
   //----------------------------------------------------------------------------
   SeedFinderModule::SeedFinderModule(const fhicl::ParameterSet& pset) :
-    fSeedAlg(pset.get<fhicl::ParameterSet>("SeedAlg")),
-    fSptalg(pset.get<fhicl::ParameterSet>("SpacePointAlg"))
+    fSeedAlg(pset.get<fhicl::ParameterSet>("SeedAlg"))
   {
     reconfigure(pset);
     produces<std::vector<recob::Seed> >();
@@ -118,7 +114,6 @@ namespace trkf {
   void SeedFinderModule::reconfigure(fhicl::ParameterSet const& pset)
   {
     fSeedAlg.reconfigure ( pset.get<fhicl::ParameterSet>("SeedAlg") );
-    fSptalg.reconfigure  ( pset.get<fhicl::ParameterSet>("SpacePointAlg") );
     fInputModuleLabel      = pset.get<std::string>("InputModuleLabel");
     fInputSource           = pset.get<int>("InputSource");
   
@@ -128,6 +123,9 @@ namespace trkf {
   void SeedFinderModule::beginJob()
   {}
 
+
+
+
   //----------------------------------------------------------------------------
   void SeedFinderModule::produce(art::Event& evt)
   {
@@ -136,27 +134,23 @@ namespace trkf {
 
     std::vector<std::vector<recob::SpacePoint> > SpacePointsWithSeeds;
     std::vector<recob::Seed> SeedVector;
-    
+
+    // Make seeds from clusters    
     if(fInputSource==1)
       {
 	
-	std::vector<std::vector<recob::SpacePoint> > SpacePointVectors;
-	SpacePointVectors = GetSpacePointsFromClusters(fInputModuleLabel, evt);
-	
-	std::vector<recob::Seed> SeedsToAdd;
-	std::vector<std::vector<recob::SpacePoint> > ReturnedSPs;
+	std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > SortedHits;
+        GetHitsFromClusters(fInputModuleLabel, evt, SortedHits);
 
-	for(size_t i=0; i!=SpacePointVectors.size(); ++i)
-	  {
-	    SeedsToAdd = fSeedAlg.FindSeeds(SpacePointVectors.at(i),ReturnedSPs);
-	    for(size_t j=0; j!=SeedsToAdd.size(); j++)
-	      {
-		SeedVector.push_back(SeedsToAdd.at(j));
-		SpacePointsWithSeeds.push_back(ReturnedSPs.at(j));
-	      }
-	  }      
+	std::vector<std::vector<recob::Seed> > Seeds = fSeedAlg.GetSeedsFromClusterHits(SortedHits);
 
-      }else if(fInputSource==0)
+	for(size_t i=0; i!=Seeds.size(); ++i)
+	  for(size_t j=0; j!=Seeds.at(i).size(); ++j)
+	    SeedVector.push_back(Seeds.at(i).at(j));
+      }
+    
+    // Make seeds from unsorted hits
+    else if(fInputSource==0)
       {
 	
 	art::PtrVector<recob::Hit> Hits = GetHitsFromEvent(fInputModuleLabel, evt);
@@ -189,136 +183,48 @@ namespace trkf {
 
 
 
-
-
-  
   //----------------------------------------------------------------------------
+  // Get the hits associated with stored clusters
+  //
 
-  std::vector<std::vector<recob::SpacePoint> > SeedFinderModule::GetSpacePointsFromClusters(std::string ClusterModuleLabel, art::Event& evt)
+  void SeedFinderModule::GetHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > & ReturnVec )
   {
-    // Get Services.
-
-    art::ServiceHandle<geo::Geometry> geom;
 
     std::vector<art::Ptr<recob::Cluster> > Clusters;
-   
+
     art::Handle< std::vector<recob::Cluster> > clusterh;
     evt.getByLabel(ClusterModuleLabel, clusterh);
 
     if(clusterh.isValid()) {
       art::fill_ptr_vector(Clusters, clusterh);
     }
+
     art::FindManyP<recob::Hit> fm(clusterh, evt, ClusterModuleLabel);
 
+    for(size_t iclus = 0; iclus < Clusters.size(); ++iclus) {
+      art::Ptr<recob::Cluster> ThisCluster = Clusters.at(iclus);
 
-    std::vector<std::vector<recob::SpacePoint> > SpacePointVectors;
+      std::vector< art::Ptr<recob::Hit> > ihits = fm.at(iclus);
 
-    // Make a double or triple loop over clusters in distinct views
-    // (depending on minimum number of views configured in SpacePointAlg).
+      art::PtrVector<recob::Hit> HitsThisCluster;
+      for(std::vector< art::Ptr<recob::Hit> >::const_iterator i = ihits.begin();
+          i != ihits.end(); ++i)
+        HitsThisCluster.push_back(*i);
 
-    art::PtrVector<recob::Hit> hits;      
-    
-    // Loop over first cluster.
-    
-    int nclus = Clusters.size();
-    for(int iclus = 0; iclus < nclus; ++iclus) {
-      art::Ptr<recob::Cluster> piclus = Clusters.at(iclus);
-      geo::View_t iview = piclus->View();
-      
-      // Test first view.
-      
-      if((iview == geo::kU && fSptalg.enableU()) ||
-	 (iview == geo::kV && fSptalg.enableV()) ||
-	 (iview == geo::kZ && fSptalg.enableW())) {
-	
-	// Store hits from first view into hit vector.
-	
-	std::vector< art::Ptr<recob::Hit> > ihits = fm.at(iclus);
-	unsigned int nihits = ihits.size();
-	hits.clear();
-	hits.reserve(nihits);
-	for(std::vector< art::Ptr<recob::Hit> >::const_iterator i = ihits.begin();
-	    i != ihits.end(); ++i)
-	  hits.push_back(*i);
-	
-	// Loop over second cluster.
-
-	for(int jclus = 0; jclus < iclus; ++jclus) {
-	  art::Ptr<recob::Cluster> pjclus = Clusters.at(jclus);
-	  geo::View_t jview = pjclus->View();
-	  
-	    // Test second view.
-
-	    if(((jview == geo::kU && fSptalg.enableU()) ||
-		(jview == geo::kV && fSptalg.enableV()) ||
-		(jview == geo::kZ && fSptalg.enableW()))
-	       && jview != iview) {
-
-	      // Store hits from second view into hit vector.
-
-	      std::vector< art::Ptr<recob::Hit> > jhits = fm.at(jclus);
-	      unsigned int njhits = jhits.size();
-	      assert(hits.size() >= nihits);
-	      //hits.resize(nihits);
-	      while(hits.size() > nihits)
-		hits.pop_back();
-	      assert(hits.size() == nihits);
-	      hits.reserve(nihits + njhits);
-	      for(std::vector< art::Ptr<recob::Hit> >::const_iterator j = jhits.begin();
-		  j != jhits.end(); ++j)
-		hits.push_back(*j);
-	  
-
-	      // Loop over third cluster.
-
-	      for(int kclus = 0; kclus < jclus; ++kclus) {
-		art::Ptr<recob::Cluster> pkclus = Clusters.at(kclus);
-		geo::View_t kview = pkclus->View();
-
-		// Test third view.
-
-		if(((kview == geo::kU && fSptalg.enableU()) ||
-		    (kview == geo::kV && fSptalg.enableV()) ||
-		    (kview == geo::kZ && fSptalg.enableW()))
-		   && kview != iview && kview != jview) {
-
-		  // Store hits from third view into hit vector.
-
-		  std::vector< art::Ptr<recob::Hit> > khits = fm.at(kclus);
-		  unsigned int nkhits = khits.size();
-		  assert(hits.size() >= nihits + njhits);
-		  //hits.resize(nihits + njhits);
-		  while(hits.size() > nihits + njhits)
-		    hits.pop_back();
-		  assert(hits.size() == nihits + njhits);
-		  hits.reserve(nihits + njhits + nkhits);
-		  for(std::vector< art::Ptr<recob::Hit> >::const_iterator k = khits.begin();
-		      k != khits.end(); ++k)
-		    hits.push_back(*k);
-
-		  // Make three-view space points.
-
-		  std::vector<recob::SpacePoint> spts;
-		  fSptalg.makeSpacePoints(hits, spts);
-
-		  if(spts.size() > 0) {
-		    SpacePointVectors.push_back(spts);
-		  }
-		}
-	      }
-	    }
-	  }
-	}
-      }
-
-  
-    return SpacePointVectors;
+      ReturnVec[ThisCluster->View()].push_back(HitsThisCluster);
+    }
   }
 
 
-  // Extract vector of hits from event
 
+
+
+
+  
   //----------------------------------------------------------------------------
+  // Extract vector of hits from event
+  //
+
   art::PtrVector<recob::Hit> SeedFinderModule::GetHitsFromEvent(std::string HitModuleLabel, art::Event & evt)
   {
     art::PtrVector<recob::Hit> TheHits;
