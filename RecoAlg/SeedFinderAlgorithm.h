@@ -44,9 +44,11 @@ namespace trkf {
     //----------------------
 
 
-    std::vector<std::vector<recob::Seed> > GetSeedsFromSortedHits(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > const &);
+    std::vector<std::vector<recob::Seed> > GetSeedsFromSortedHits( std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >  const& SortedHits, 
+								   std::vector<std::vector<art::PtrVector<recob::Hit> > >& HitsPerSeed);
                                     // Return a vector of vectors of seeds, one vector for each supplied cluster 
-                                    //   combination which has sufficient overlap
+                                    //   combination which has sufficient overlap. The second argument returns
+                                    //   the hits sorted by combo and by seed
    
     
 
@@ -74,13 +76,14 @@ namespace trkf {
     //----------------------
 
 
-    std::vector<recob::Seed >   FindSeeds(std::vector<recob::SpacePoint> const&, std::vector<std::vector<recob::SpacePoint> >&);
-                                    // Find a collection of seeds, one for each element in the supplied spacepoint vector. 
-                                    //  The third argument returns a list of spacepoints catalogued by which seed they fell in.
+    std::vector<recob::Seed>    FindSeeds( art::PtrVector<recob::Hit> const& HitsFlat, std::vector<art::PtrVector<recob::Hit> >& CataloguedHits);
+                                    // Find a collection of seeds, based on the supplied set of hits.
+                                    //  The second argument returns the hits catalogued by which
+                                    //  seed they fell into (if any) 
    
 
 
-    recob::Seed                 FindSeedAtEnd(std::vector<recob::SpacePoint> const&, std::map<int, int>&, std::vector<int>&);
+    recob::Seed                 FindSeedAtEnd(std::vector<recob::SpacePoint> const&, std::vector<char>&, std::vector<int>&);
                                     // Find one seed at high Z from the spacepoint collection given. Latter arguments are 
                                     //  for internal book keeping.
 
@@ -104,7 +107,7 @@ namespace trkf {
 
     
     bool                        ExtendSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, 
-					   std::map<int, int>& PointStatus, std::vector<int>& PointsUsed);
+					   std::map<int,int>& PointStatus, std::vector<int>& PointsUsed);
                                    // Attempt to walk a found seed out further to collect more hits. DEPRECATED
 
 

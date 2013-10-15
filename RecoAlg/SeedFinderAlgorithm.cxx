@@ -91,86 +91,198 @@ namespace trkf {
 
 
 
-
+  
   
 
   //------------------------------------------------------------
   // Given a set of spacepoints, find seeds, and catalogue
   //  spacepoints by the seeds they formed
   //
-  std::vector<recob::Seed> SeedFinderAlgorithm::FindSeeds(std::vector<recob::SpacePoint> const& AllSpacePoints, std::vector<std::vector<recob::SpacePoint> > & PointsInSeeds)
+  std::vector<recob::Seed> SeedFinderAlgorithm::FindSeeds( art::PtrVector<recob::Hit> const& HitsFlat, std::vector<art::PtrVector<recob::Hit> >& CataloguedHits)
   {
+
+
     // Vector of seeds found to return
     std::vector<recob::Seed>       ReturnVector;
+    
+    // First check if there is any overlap
+    std::vector<recob::SpacePoint> spts;
+    
+    fSptalg->clearHitMap();
+    fSptalg->makeSpacePoints(HitsFlat, spts);
 
-    // This vector keeps track of the status of each point.  
+    if(int(spts.size()) < fMinPointsInSeed)
+      {
+	return std::vector<recob::Seed>();
+      }
+
+
+    // If we got here, we have enough spacepoints to potentially make seeds from these hits.
+
+    // This is table will let us quickly look up which hits are in a given view / channel.
+    //  structure is OrgHits[View][Channel] = {index1,index2...}
+    // where the indices are of HitsFlat[index].
+ 
+    std::map<geo::View_t, std::map<uint32_t, std::vector<int> > > OrgHits;
+  
+    // These two tables contain the hit to spacepoint mappings
+    
+    std::vector<std::vector<int> > SpacePointsPerHit(HitsFlat.size(), std::vector<int>());
+    std::vector<std::vector<int> > HitsPerSpacePoint(spts.size(), std::vector<int>());
+
+    // This vector records the status of each hit.
+    // The possible values are:
+    //  0. hit unused
+    //  1. hit used in a seed
+    // Initially none are used.
+
+    std::vector<int> HitStatus(HitsFlat.size(),0);
+
+    
+    // Fill the organizing map
+
+    for(size_t i=0; i!=HitsFlat.size(); ++i)
+      {
+	OrgHits[HitsFlat.at(i)->View()][HitsFlat.at(i)->Channel()].push_back(i);
+      }
+
+
+    // Fill the spacepoint / hit lookups
+
+    for(size_t iSP =0; iSP!=spts.size(); ++iSP)
+      {
+	art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits(spts.at(iSP));
+
+	for(size_t iH = 0; iH != HitsThisSP.size(); ++iH)
+	  {
+	    geo::View_t ThisView     = HitsThisSP.at(iH)->View();
+	    uint32_t    ThisChannel  = HitsThisSP.at(iH)->Channel();
+	    float       ThisTime     = HitsThisSP.at(iH)->PeakTime();
+	    float       eta          = 0.001;
+
+
+	    for(size_t iOrg = 0; iOrg!= OrgHits[ThisView][ThisChannel].size(); ++iOrg)
+	      {
+		if(fabs(ThisTime - HitsFlat.at( OrgHits[ThisView][ThisChannel][iOrg] )->PeakTime() ) < eta)
+		  {
+		    SpacePointsPerHit.at(OrgHits[ThisView][ThisChannel][iOrg]).push_back(iSP);
+		    HitsPerSpacePoint.at(iSP).push_back(OrgHits[ThisView][ThisChannel][iOrg]);
+		  }
+	      }
+	  }
+      }
+
+
+    // The general idea will be:
+    //  A. Make spacepoints from remaining hits
+    //  B. Look for 1 seed in that vector
+    //  C. Discard used hits
+    //  D. Repeat
+
+
+
+
+    // This vector keeps track of the status of each space point.  
     // The key is the position in the AllSpacePoints vector.
     // The value is 
-    //    0: point unused, 
-    //    1: point used in seed, 
+    //    0: point unused
+    //    1: point used in seed (no longer implemented)
     //    2: point thrown but unused 
-    //    3: flagged to terminate seed finding
-
-    std::map<int,int>               PointStatus;
+    //    3: flag to terminate seed finding
+    
+    std::vector<char> PointStatus(spts.size(),0);
     
     
-    // Keep track of how many SPs we used already 
-    int TotalSPsUsed=0;
-    int TotalNoOfSPs=int(AllSpacePoints.size());
+
+    bool KeepChopping = true;
     
-    // Empty the relevant vectors
-    ReturnVector.clear();
-    PointStatus.clear();
-    PointsInSeeds.clear();
-
-    // Follow this loop until all SPs used up
-    bool KeepChopping=true;
-
     while(KeepChopping)
       {
-	// This vector keeps a list of the points used in this seed
-	std::vector<int> PointsUsed;
 	
+	
+	// This vector keeps a list of the points used in this seed
+	std::vector<int>                PointsUsed;
+	    
 	// Find exactly one seed, starting at high Z
-	recob::Seed TheSeed = FindSeedAtEnd(AllSpacePoints, PointStatus, PointsUsed);
+	recob::Seed TheSeed = FindSeedAtEnd(spts, PointStatus, PointsUsed);
 	
 	// If it was a good seed, collect up the relevant spacepoints
 	// and add the seed to the return vector 
+	    
+	
 	if(TheSeed.IsValid())
 	  {
-	    ReturnVector.push_back(TheSeed);
 	    
-	    std::vector<recob::SpacePoint> SPs;
-	    for(size_t i=0; i!=PointsUsed.size(); ++i) 
-	      SPs.push_back(AllSpacePoints.at(PointsUsed.at(i)));
-	    PointsInSeeds.push_back(SPs);
+	    ReturnVector.push_back(TheSeed);
+	    art::PtrVector<recob::Hit> HitsWithThisSeed;       
+	    
+	    
+	    for(size_t iP=0; iP!=PointsUsed.size(); ++iP)
+	      {
+		for(size_t iH=0; iH!=HitsPerSpacePoint.at(PointsUsed.at(iP)).size(); ++iH)
+		  {
+		    int UsedHitID = HitsPerSpacePoint.at(PointsUsed.at(iP)).at(iH);
+		    HitsWithThisSeed.push_back(HitsFlat.at(UsedHitID));
+		    for(size_t iSP=0; iSP!=SpacePointsPerHit.at(UsedHitID).size(); ++iSP)
+		      {
+			PointStatus[SpacePointsPerHit.at(UsedHitID).at(iSP)] = 1;
+		      }
+		  }
+		
+	      }	
+	    
+
+	    // Record that we used this set of hits with this seed in the return catalogue
+	    CataloguedHits.push_back(HitsWithThisSeed);
+	    
+	    
+	    // Tidy up
+	    HitsWithThisSeed.clear();
 	  }
-	// Update the status of the spacepoints we used in this attempt
-	if(TheSeed.IsValid())
-	  for(size_t i=0; i!=PointsUsed.size(); PointStatus[PointsUsed.at(i++)]=1);
 	else
-	  for(size_t i=0; i!=PointsUsed.size(); PointStatus[PointsUsed.at(i++)]=2);
-	
-	TotalSPsUsed=0;
+	  {
+	    
+	    // If it was not a good seed, throw out the top SP and try again
+	    //  for(size_t i=0; i!=PointsUsed.size(); PointStatus[PointsUsed.at(i++)] = 2);
+	       PointStatus.at(PointsUsed.at(0))=2;
+	  }
+   
+	int TotalSPsUsed=0;
 	for(size_t i=0; i!=PointStatus.size(); ++i)
 	  {
 	    if(PointStatus[i]!=0) TotalSPsUsed++;
 	  }
-
-	if((TotalNoOfSPs-TotalSPsUsed)<fMinPointsInSeed)
+	    
+	if((int(spts.size()) - TotalSPsUsed) < fMinPointsInSeed)
 	  KeepChopping=false;
-	
+	    
 	if((PointStatus[0]==3)||(PointStatus.size()==0)) KeepChopping=false;
-      }
+	
+	PointsUsed.clear();
+
+      } // end spt-level loop
+    
+
+
+    // Tidy up
+    SpacePointsPerHit.clear();
+    HitsPerSpacePoint.clear();
+    PointStatus.clear();	  
+    OrgHits.clear();
+    HitStatus.clear();
+
+    
     return ReturnVector;
-  }
+
+
+      }
 
 
   //------------------------------------------------------------
   // Try to find one seed at the high Z end of a set of spacepoints 
   //
 
-  recob::Seed  SeedFinderAlgorithm::FindSeedAtEnd(std::vector<recob::SpacePoint> const& Points, std::map<int,int>& PointStatus, std::vector<int>& PointsInRange)
+    recob::Seed  SeedFinderAlgorithm::FindSeedAtEnd(std::vector<recob::SpacePoint> const& Points, std::vector<char>& PointStatus, std::vector<int>& PointsInRange)
   {
     // This pointer will be returned later
     recob::Seed ReturnSeed;
@@ -279,18 +391,9 @@ namespace trkf {
     ftWRMSb = RMSb.at(2);
 
    
-      // If we use extendable seeds, go through extend and refit procedure
-    if((!ThrowOutSeed) && (fExtendThresh>0))
-      {
-	ThrowOutSeed = ExtendSeed(ReturnSeed, Points, PointStatus, PointsInRange);
-      }
-
-    // Otherwise, make optional refit of fixed length seed
-    else
-      {	
-	if((!ThrowOutSeed) && (fRefits>0))
-	  RefitSeed(ReturnSeed, PointsUsed);
-      }
+    if((!ThrowOutSeed) && (fRefits>0))
+      RefitSeed(ReturnSeed, PointsUsed);
+    
 	
     std::vector<double> RMS = GetHitRMS(ReturnSeed, PointsUsed);
     
@@ -1139,105 +1242,36 @@ namespace trkf {
 
 
 
-  /*
-  //------------------------------------------------------------
-  // Given a set of spacepoints, count how many unique hits
-  //  are present within a distance d of CenterPoint;
-
-  size_t SeedFinderAlgorithm::CountHits(std::vector<recob::SpacePoint>  const& SpacePoints, TVector3 CenterPoint, double d)
-  {
-    art::ServiceHandle<geo::Geometry>            geom;
-
-    // A map of HitID to true/false whether it has been counted already
-    std::map<uint32_t, bool>            HitsClaimed;
-    HitsClaimed.clear();
-    
-    // For each spacepoint, check hit contents
-    for(std::vector<recob::SpacePoint>::const_iterator itSP=SpacePoints.begin();
-	itSP!=SpacePoints.end(); itSP++)
-      {
-	TVector3 xyz;
-	for(size_t n=0; n!=3; ++n)
-	  xyz[n] = itSP->XYZ()[n];
-	
-	if( (xyz - CenterPoint).Mag() < d)
-	  {
-	    art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits((*itSP));
-	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
-		itHit!=HitsThisSP.end(); itHit++)
-	      {
-		HitsClaimed[(*itHit)->Channel()]=true;
-	      }
-	  }
-      }
-    size_t ReturnVal = HitsClaimed.size();	
-    HitsClaimed.clear();
-    return ReturnVal;
-    
-  }
-
-  */
-
 
   //-----------------------------------------------
 
   std::vector<recob::Seed>    SeedFinderAlgorithm::GetSeedsFromUnSortedHits(art::PtrVector<recob::Hit> const & Hits, std::vector<art::PtrVector<recob::Hit> >& HitCatalogue)
-  {
-    HitCatalogue.clear();
-    
-    std::vector<recob::Seed>                     ReturnVector;
-    std::vector<std::vector<recob::SpacePoint> > SPCatalogue;
-    std::map<uint32_t, bool>                     HitsClaimed;
-
-    
-    
-    std::vector<recob::SpacePoint> SPsFromHits;   
-    fSptalg->makeSpacePoints(Hits, SPsFromHits);
-
-    ReturnVector =  FindSeeds(SPsFromHits, SPCatalogue);    
+  {  
+    std::vector<recob::Seed> ReturnVec;
   
-    // For each seed
-    for(size_t i=0; i!=SPCatalogue.size(); ++i)
-      {
-	// For each SP
-	HitCatalogue.push_back(art::PtrVector<recob::Hit>());
-	for(size_t j=0; j!=SPCatalogue.at(i).size(); ++j)
-	  {
-	    art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits(SPCatalogue.at(i).at(j));
-	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
-		itHit!=HitsThisSP.end(); itHit++)
-	      {
-		if(!HitsClaimed[(*itHit)->Channel()])
-		  {
-		    HitCatalogue.at(i).push_back(*itHit);
-		    HitsClaimed[(*itHit)->Channel()]=true;
-		  }
-	      }
-	  }
-      }  
-    SPCatalogue.clear();
-    HitsClaimed.clear();
+    ReturnVec = FindSeeds( Hits, HitCatalogue);          
     
-    return ReturnVector;
+    return ReturnVec;
   }
 
 
-
+ 
 
   //---------------------------------------------
 
-  std::vector<std::vector<recob::Seed> > SeedFinderAlgorithm::GetSeedsFromSortedHits(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > const& SortedHits)
+  std::vector<std::vector<recob::Seed> > SeedFinderAlgorithm::GetSeedsFromSortedHits(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >  const& SortedHits, std::vector<std::vector<art::PtrVector<recob::Hit> > >& HitsPerSeed)
   {
-    trkf::SpacePointAlg *Sptalg = GetSpacePointAlg();
+
 
     std::vector<std::vector<recob::Seed> > ReturnVec;
 
     // This piece of code looks detector specific, but its not -
     //   it also works for 2 planes, but one vector is empty.
 
-    if(!(Sptalg->enableU()&&Sptalg->enableV()&&Sptalg->enableW()))
-      mf::LogWarning("BezierTrackerModule")<<"Warning: SpacePointAlg is does not have three views enabled. This may cause unexpected behaviour in the bezier tracker.";
-
+    if(!(fSptalg->enableU()&&fSptalg->enableV()&&fSptalg->enableW()))
+	mf::LogWarning("BezierTrackerModule")<<"Warning: SpacePointAlg is does not have three views enabled. This may cause unexpected behaviour in the bezier tracker.";
+    
+    
       try
         {
           for(std::vector<art::PtrVector<recob::Hit> >::const_iterator itU = SortedHits.at(geo::kU).begin();
@@ -1247,45 +1281,38 @@ namespace trkf {
 	      for(std::vector<art::PtrVector<recob::Hit> >::const_iterator itW = SortedHits.at(geo::kW).begin();
                   itW !=SortedHits.at(geo::kW).end(); ++itW)
                 {
-		  art::PtrVector<recob::Hit> HitsFromThisCombo;
+		  art::PtrVector<recob::Hit>    HitsThisComboFlat;
 
-                  if(Sptalg->enableU())
+                  if(fSptalg->enableU())
                     for(size_t i=0; i!=itU->size(); ++i)
-                      HitsFromThisCombo.push_back(itU->at(i));
-
-                  if(Sptalg->enableV())
+		      HitsThisComboFlat.push_back(itU->at(i));
+		    
+                  if(fSptalg->enableV())
                     for(size_t i=0; i!=itV->size(); ++i)
-                      HitsFromThisCombo.push_back(itV->at(i));
-
-                  if(Sptalg->enableW())
+		      HitsThisComboFlat.push_back(itV->at(i));
+		    
+                  if(fSptalg->enableW())
                     for(size_t i=0; i!=itW->size(); ++i)
-                      HitsFromThisCombo.push_back(itW->at(i));
+		      HitsThisComboFlat.push_back(itW->at(i));
+		    
+		  std::vector<art::PtrVector<recob::Hit> > CataloguedHits;
+		      
+		  
+		  std::vector<recob::Seed> Seeds
+		    = FindSeeds(HitsThisComboFlat, CataloguedHits);
+		      
+		  // Add this harvest to return vectors
+		  HitsPerSeed.push_back(CataloguedHits);		      
+		  ReturnVec.push_back(Seeds);
 
-		  std::vector<recob::SpacePoint> spts;
-                  Sptalg->makeSpacePoints(HitsFromThisCombo, spts);
-
-
-                  if(spts.size()>0)
-                    {
-		      std::vector<std::vector<recob::SpacePoint> > CataloguedSPs;
-
-		      std::vector<recob::Seed> Seeds
-                        = FindSeeds(spts,CataloguedSPs);
-
-                      ReturnVec.push_back(Seeds);
-
-                      spts.clear();
-                    }
-
-                  else
-                    {
-                      ReturnVec.push_back(std::vector<recob::Seed>());
-                    }
+		  // Tidy up
+		  CataloguedHits.clear();
+                  Seeds.clear();
 		}
 	}
       catch(...)
         {
-	  mf::LogWarning("BezierTrackerModule")<<" bailed during hit map lookup - have you enabled all 3 planes?";
+	  mf::LogWarning("SeedFinderTrackerModule")<<" bailed during hit map lookup - have you enabled all 3 planes?";
           ReturnVec.push_back(std::vector<recob::Seed>());
         }
 
