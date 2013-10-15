@@ -43,7 +43,7 @@ namespace trkf {
   
     
     art::PtrVector<recob::Hit>       GetHitsFromEvent(std::string HitModuleLabel, art::Event & evt);
-    void                             GetSortedHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > & ReturnVec );
+    void                             GetSortedHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::map<geo::View_t, std::vector< art::PtrVector<recob::Hit> > > & SortedHits );
 
 
 
@@ -140,11 +140,12 @@ namespace trkf {
     // Make seeds from clusters    
     if(fInputSource==1)
       {
+	std::vector<std::vector<art::PtrVector<recob::Hit> > > HitsPerSeed;
 	
-	std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > SortedHits;
+	std::map<geo::View_t, std::vector< art::PtrVector<recob::Hit> > > SortedHits;
         GetSortedHitsFromClusters(fInputModuleLabel, evt, SortedHits);
 
-	std::vector<std::vector<recob::Seed> > Seeds = fSeedAlg.GetSeedsFromSortedHits(SortedHits);
+	std::vector<std::vector<recob::Seed> > Seeds = fSeedAlg.GetSeedsFromSortedHits(SortedHits, HitsPerSeed);
 
 	for(size_t i=0; i!=Seeds.size(); ++i)
 	  for(size_t j=0; j!=Seeds.at(i).size(); ++j)
@@ -189,7 +190,7 @@ namespace trkf {
   // Get the hits associated with stored clusters
   //
 
-  void SeedFinderModule::GetSortedHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > & ReturnVec )
+  void SeedFinderModule::GetSortedHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::map<geo::View_t, std::vector< art::PtrVector<recob::Hit> > > & SortedHits )
   {
 
     std::vector<art::Ptr<recob::Cluster> > Clusters;
@@ -208,12 +209,13 @@ namespace trkf {
 
       std::vector< art::Ptr<recob::Hit> > ihits = fm.at(iclus);
 
-      art::PtrVector<recob::Hit> HitsThisCluster;
+      art::PtrVector<recob::Hit>  HitsThisCluster;
       for(std::vector< art::Ptr<recob::Hit> >::const_iterator i = ihits.begin();
           i != ihits.end(); ++i)
         HitsThisCluster.push_back(*i);
 
-      ReturnVec[ThisCluster->View()].push_back(HitsThisCluster);
+      SortedHits[ThisCluster->View()].push_back(HitsThisCluster);
+      
     }
   }
 

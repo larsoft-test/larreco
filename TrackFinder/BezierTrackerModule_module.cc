@@ -202,7 +202,9 @@ namespace trkf {
 	std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > SortedHits;
 	GetHitsFromClusters(fClusterModuleLabel, evt, SortedHits);
 	
-	std::vector<std::vector<recob::Seed> > Seeds = fBTrackAlg->GetSeedFinderAlgorithm()->GetSeedsFromSortedHits(SortedHits);
+	std::vector<std::vector<art::PtrVector<recob::Hit> > > HitsPerSeed;
+	
+	std::vector<std::vector<recob::Seed> > Seeds = fBTrackAlg->GetSeedFinderAlgorithm()->GetSeedsFromSortedHits(SortedHits, HitsPerSeed);
 	std::vector<std::vector<double> >         SValuesOfHits;
 
 	
