@@ -120,42 +120,6 @@ namespace {
       hits.erase(it, hits.end());
     }
   }
-
-  //----------------------------------------------------------------------------
-  // Get preferred plane (find plane that has the most hits).
-  //
-  // Arguments:
-  //
-  // hits - Hit collection.
-  //
-  unsigned int GetPreferredPlane(const art::PtrVector<recob::Hit>& hits)
-  {
-    // Get geometry service.
-
-    art::ServiceHandle<geo::Geometry> geom;
-
-    // Count hits in each plane.
-
-    std::vector<unsigned int> planehits(3, 0);
-
-    // Loop over hits.
-
-    for(art::PtrVector<recob::Hit>::const_iterator ih = hits.begin();
-	ih != hits.end(); ++ih) {
-      const recob::Hit& hit = **ih;
-      assert(hit.WireID().Plane >= 0 && hit.WireID().Plane < planehits.size());
-      ++planehits[hit.WireID().Plane];
-    }
-
-    // Figure out which plane has the most hits.
-
-    unsigned int prefplane = 0;
-    for(unsigned int i=0; i<planehits.size(); ++i) {
-      if(planehits[i] > planehits[prefplane])
-	prefplane = i;
-    }
-    return prefplane;
-  }
 }
 
 namespace trkf {
@@ -485,7 +449,7 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
 
 	  // Set the preferred plane to be the one with the most hits.
 
-	  unsigned int prefplane = GetPreferredPlane(seedhits);
+	  unsigned int prefplane = seedcont.getPreferredPlane();
 	  fKFAlg.setPlane(prefplane);
 	  log << "Preferred plane = " << prefplane << "\n";
 
@@ -648,7 +612,7 @@ void trkf::Track3DKalmanHit::produce(art::Event & evt)
     // Make Track to Hit associations.  
 
     art::PtrVector<recob::Hit> trhits;
-    kalman_track.fillHits(hits);
+    kalman_track.fillHits(trhits);
     util::CreateAssn(*this, evt, *tracks, trhits, *th_assn, tracks->size()-1);
 
     // Make space points from this track.
