@@ -101,7 +101,7 @@ namespace trkf {
                                    // Counting the number of hits in each view which are associated with a set of SPs
 
 
-    void                        GetCenterAndDirection(std::vector<recob::SpacePoint> const& Points, std::vector<int> const& PointsInRange, TVector3& Center, TVector3& Direction, double& Strength, bool Mode);
+    void                        GetCenterAndDirection(std::vector<recob::SpacePoint> const& Points, std::vector<int> const& PointsInRange, TVector3& Center, TVector3& Direction, double& Strength, int Mode);
                                    // Given a set of spacepoints, find the center and direction to form a seed. 
                                    //  Mode specifies whether to operate on spacepoints (old) or directly onto hits (new)
 
@@ -109,8 +109,10 @@ namespace trkf {
     bool                        ExtendSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, 
 					   std::map<int,int>& PointStatus, std::vector<int>& PointsUsed);
                                    // Attempt to walk a found seed out further to collect more hits. DEPRECATED
+    void                        ExtendSeed(recob::Seed& TheSeed, art::PtrVector<recob::Hit> const&, std::vector<char> HitStatus,
+					   std::map<geo::View_t, std::map<uint32_t, std::vector<int> > > OrgHits);
 
-
+    
     std::vector<recob::SpacePoint> ExtractSpacePoints(std::vector<recob::SpacePoint> const& AllPoints, std::vector<int> IDsToExtract);
                                    // Given a spacepoint vector and ID list, return the vector of spacepoints for those IDs
  

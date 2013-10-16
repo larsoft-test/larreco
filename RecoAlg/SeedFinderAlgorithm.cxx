@@ -136,7 +136,7 @@ namespace trkf {
     //  1. hit used in a seed
     // Initially none are used.
 
-    std::vector<int> HitStatus(HitsFlat.size(),0);
+    std::vector<char> HitStatus(HitsFlat.size(),0);
 
     
     // Fill the organizing map
@@ -214,6 +214,7 @@ namespace trkf {
 	  {
 	    
 	    ReturnVector.push_back(TheSeed);
+	 
 	    art::PtrVector<recob::Hit> HitsWithThisSeed;       
 	    
 	    
@@ -222,16 +223,32 @@ namespace trkf {
 		for(size_t iH=0; iH!=HitsPerSpacePoint.at(PointsUsed.at(iP)).size(); ++iH)
 		  {
 		    int UsedHitID = HitsPerSpacePoint.at(PointsUsed.at(iP)).at(iH);
-		    HitsWithThisSeed.push_back(HitsFlat.at(UsedHitID));
-		    for(size_t iSP=0; iSP!=SpacePointsPerHit.at(UsedHitID).size(); ++iSP)
+		    HitStatus[UsedHitID] = 2;
+		  }
+	      }
+
+			    
+	    if(fExtendThresh > 0)
+	      {
+		ExtendSeed(TheSeed, HitsFlat, HitStatus, OrgHits);
+	      }
+		  
+
+	    for(size_t iH=0; iH!=HitStatus.size(); ++iH)
+	      {
+		if(HitStatus.at(iH)==2)
+		  {
+		    HitsWithThisSeed.push_back(HitsFlat.at(iH));
+		    HitStatus.at(iH)=1;
+		    
+		    for(size_t iSP=0; iSP!=SpacePointsPerHit.at(iH).size(); ++iSP)
 		      {
-			PointStatus[SpacePointsPerHit.at(UsedHitID).at(iSP)] = 1;
+			PointStatus[SpacePointsPerHit.at(iH).at(iSP)] = 1;
 		      }
 		  }
-		
-	      }	
+	      }
+		    
 	    
-
 	    // Record that we used this set of hits with this seed in the return catalogue
 	    CataloguedHits.push_back(HitsWithThisSeed);
 	    
@@ -263,6 +280,54 @@ namespace trkf {
       } // end spt-level loop
     
 
+    // If we didn't find any seeds, we can make one last ditch attempt. See
+    //  if the whole collection is colinear enough to make one megaseed
+    //  (good for patching up high angle tracks)
+
+    if(ReturnVector.size()==0)
+      {
+	std::vector<int> ListAllPoints;
+	for(size_t i=0; i!=spts.size(); ++i)
+	  ListAllPoints.push_back(i);
+	
+	TVector3 SeedCenter(    0, 0, 0 );
+	TVector3 SeedDirection( 0, 0, 0 );
+	double   SeedStrength = 0;
+
+	GetCenterAndDirection(spts, ListAllPoints, SeedCenter, SeedDirection, SeedStrength, 2);
+
+
+	if(SeedStrength > fPCAThreshold)
+	  {
+	    double PtArray[3], DirArray[3];
+	    for(size_t n=0; n!=3; ++n)
+	      {
+		PtArray[n] = SeedCenter[n];
+		DirArray[n] = SeedDirection[n];
+	      }
+	    recob::Seed TheSeed(PtArray,DirArray);
+	
+	    if(fRefits>0) RefitSeed(TheSeed, spts);	
+	    
+	    std::vector<double> RMS = GetHitRMS(TheSeed, spts);
+	    
+	    bool ThrowOutSeed = false;
+	    if(fMaxViewRMS.at(0)>0)
+	      {
+		for(size_t j=0; j!=fMaxViewRMS.size(); j++)
+		  {
+		    if(fMaxViewRMS.at(j)<RMS.at(j))
+		      {
+			ThrowOutSeed=true;
+		      }
+		  }
+	      }
+	    if(!ThrowOutSeed)
+	      ReturnVector.push_back(TheSeed);
+	  }
+	
+      }
+    
 
     // Tidy up
     SpacePointsPerHit.clear();
@@ -270,13 +335,27 @@ namespace trkf {
     PointStatus.clear();	  
     OrgHits.clear();
     HitStatus.clear();
-
     
+    
+
     return ReturnVector;
 
 
-      }
+  }
 
+
+
+  //------------------------------------------------------------
+  // Latest extendseed method
+  //
+
+  void SeedFinderAlgorithm::ExtendSeed(recob::Seed& TheSeed, art::PtrVector<recob::Hit> const&, std::vector<char> HitStatus,
+		  std::map<geo::View_t, std::map<uint32_t, std::vector<int> > > OrgHits)
+  {
+    // Placeholder for new extend method
+
+  }
+  
 
   //------------------------------------------------------------
   // Try to find one seed at the high Z end of a set of spacepoints 
@@ -355,7 +434,7 @@ namespace trkf {
    
     if(NPoints<fMinPointsInSeed) return  recob::Seed();
     
-    GetCenterAndDirection(Points, PointsInRange, SeedCenter, SeedDirection, SeedStrength, 1);
+    GetCenterAndDirection(Points, PointsInRange, SeedCenter, SeedDirection, SeedStrength, 2);
     
     // See if seed points have some linearity
 
@@ -1020,8 +1099,10 @@ namespace trkf {
   // Given a set of spacepoints, find preferred direction
   //  and center
 
-  void  SeedFinderAlgorithm::GetCenterAndDirection(std::vector<recob::SpacePoint> const& Points, std::vector<int> const& PointsInRange, TVector3& Center, TVector3& Direction, double& Strength, bool Mode)
+  void  SeedFinderAlgorithm::GetCenterAndDirection(std::vector<recob::SpacePoint> const& Points, std::vector<int> const& PointsInRange, TVector3& Center, TVector3& Direction, double& Strength, int Mode)
   {
+
+    // Spt PCA mode
     if(Mode==0)
       {
 	TPrincipal  pc(3, "D");
@@ -1055,6 +1136,7 @@ namespace trkf {
 	  }
 	
       }
+    // View PCA Mode
     else if(Mode==1)
       {
 
@@ -1073,9 +1155,9 @@ namespace trkf {
 
 	// Find pitch of each wireplane
 	std::vector<double> Pitches(3);
-	Pitches.at(0) = geom->WirePitch(geo::kU);
-	Pitches.at(1) = geom->WirePitch(geo::kV);
-	Pitches.at(2) = geom->WirePitch(geo::kW);
+	Pitches.at(0) = fabs(geom->WirePitch(geo::kU));
+	Pitches.at(1) = fabs(geom->WirePitch(geo::kV));
+	Pitches.at(2) = fabs(geom->WirePitch(geo::kW));
 	
 
 	// Get directional vectors for each plane
@@ -1225,6 +1307,8 @@ namespace trkf {
 	    if( (HitCoord1.at(n).size() <= HitCoord1.at(n1).size()) &&
 		(HitCoord1.at(n).size() <= HitCoord1.at(n2).size()) )
 	      {
+		
+
 		Center    = Center2D[n];
 		Direction = PrincDir2D[n];
 		Strength  = 0.5*(PrincVals[n1]+PrincVals[n2]);
@@ -1237,6 +1321,181 @@ namespace trkf {
 	       
 	      } 
 	  }
+      }
+    // Least squares method
+    else if(Mode==2)
+      {
+	// Initialize the services we need
+
+	art::ServiceHandle<geo::Geometry>                geom;
+	art::ServiceHandle<util::DetectorProperties>     det;
+
+        // Setup vector of PCA objects
+	std::vector<TPrincipal*> pcs;
+
+        for(size_t n=0; n!=3; ++n)
+          {
+            pcs.push_back(new TPrincipal(2,"D") );
+          }
+
+        // Find pitch of each wireplane
+	std::vector<double> Pitches(3);
+        Pitches.at(0) = fabs(geom->WirePitch(geo::kU));
+        Pitches.at(1) = fabs(geom->WirePitch(geo::kV));
+        Pitches.at(2) = fabs(geom->WirePitch(geo::kW));
+
+
+        // Get directional vectors for each plane
+	std::vector<TVector3> WireDir(3);
+	std::vector<double> WireZeroOffset(3);
+	std::vector<TVector3> PitchDir(3);
+        double xyzStart1[3], xyzEnd1[3];
+        double xyzStart2[3], xyzEnd2[3];
+        TVector3 XDir(1,0,0);
+        for(size_t n=0; n!=3; ++n)
+          {
+            geom->WireEndPoints(0,0,n,0,xyzStart1,xyzEnd1);
+            geom->WireEndPoints(0,0,n,1,xyzStart2,xyzEnd2);
+            WireDir[n] = TVector3(xyzEnd1[0] - xyzStart1[0],
+                                  xyzEnd1[1] - xyzStart1[1],
+                                  xyzEnd1[2] - xyzStart1[2]).Unit();
+            PitchDir[n] = WireDir[n].Cross(XDir).Unit();
+            if(PitchDir[n].Dot(TVector3(xyzEnd2[0] - xyzEnd1[0],
+                                        xyzEnd2[1] - xyzEnd1[1],
+                                        xyzEnd2[2] - xyzEnd1[2]))<0) PitchDir[n] = -PitchDir[n];
+
+            WireZeroOffset[n] =
+              xyzEnd1[0]*PitchDir[n][0] +
+              xyzEnd1[1]*PitchDir[n][1] +
+              xyzEnd1[2]*PitchDir[n][2];
+
+          }
+
+	std::map<uint32_t, bool>   HitsClaimed;
+
+        // We'll store hit coordinates in each view into this vector
+
+	std::vector<std::vector<double> > HitTimes(3);
+	std::vector<std::vector<double> > HitWires(3);
+	std::vector<std::vector<double> > HitWidths(3);
+	std::vector<double> MeanWireCoord(3,0);
+	std::vector<double> MeanTimeCoord(3,0);
+
+        // Run through the collection getting hit info for these spacepoints
+
+	std::vector<double> x(3,0), y(3,0), xx(3,0), xy(3,0), yy(3,0),  sig(3,0), N(3,0);
+
+ 	std::vector<art::PtrVector<recob::Hit> > HitsInThisCollection(3);
+         for(unsigned int i=0; i!=PointsInRange.size(); i++)
+           {
+ 	    art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits((Points.at(PointsInRange.at(i))));
+             for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
+                 itHit!=HitsThisSP.end(); ++itHit)
+               {
+                 if(!HitsClaimed[(*itHit)->Channel()])
+                   {
+                     HitsClaimed[(*itHit)->Channel()]=true;
+
+                     size_t ViewIndex;
+
+                     if(     (*itHit)->View() == geo::kU) ViewIndex=0;
+                     else if((*itHit)->View() == geo::kV) ViewIndex=1; 
+		     else if((*itHit)->View() == geo::kW) ViewIndex=2;
+                     double WireCoord = (*itHit)->WireID().Wire * Pitches.at(ViewIndex);
+                     double TimeCoord = det->ConvertTicksToX((*itHit)->PeakTime(),ViewIndex,0,0);
+		     double TimeUpper = det->ConvertTicksToX((*itHit)->EndTime(), ViewIndex,0,0);
+		     double TimeLower = det->ConvertTicksToX((*itHit)->StartTime(), ViewIndex,0,0);
+		     double Width = fabs(0.5*(TimeUpper-TimeLower));
+		     double Width2 = pow(Width,2);
+		    
+                     HitWires.at(ViewIndex).push_back(WireCoord);
+                     HitTimes.at(ViewIndex).push_back(TimeCoord);
+		     HitWidths.at(ViewIndex).push_back(fabs(0.5*(TimeUpper-TimeLower)));
+		    
+		     HitsInThisCollection.at(ViewIndex).push_back(*itHit);
+
+		     MeanWireCoord.at(ViewIndex) += WireCoord;
+		     MeanTimeCoord.at(ViewIndex) += TimeCoord;
+
+		     // Elements for PCA
+		     x.at(ViewIndex)   += WireCoord / Width2;
+		     y.at(ViewIndex)   += TimeCoord / Width2;
+		     xy.at(ViewIndex)  += (TimeCoord * WireCoord) / Width2;
+		     xx.at(ViewIndex)  += (WireCoord * WireCoord) / Width2;
+		     yy.at(ViewIndex)  += (TimeCoord * TimeCoord) / Width2;
+		     sig.at(ViewIndex) += 1./Width2;
+		     N.at(ViewIndex)++;
+		     
+                  }
+              }
+          }
+
+	std::vector<double>   ViewRMS(3);
+	std::vector<double>   ViewGrad(3);
+	std::vector<double>   ViewOffset(3);
+
+	std::vector<double> CenterTime(3);
+	std::vector<double> CenterWireAtT0(3);
+
+
+	
+	for(size_t n=0; n!=3; ++n)
+	  {
+	    MeanWireCoord[n] /= N[n];
+	    MeanTimeCoord[n] /= N[n];
+
+	    ViewGrad.at(n)   = (y[n]/sig[n] - xy[n]/x[n])/(x[n]/sig[n]-xx[n]/x[n]);
+	    ViewOffset.at(n) = (y[n] - ViewGrad[n]*x[n])/sig[n];
+	    ViewRMS.at(n)    = (yy[n] + pow(ViewGrad[n],2) * xx[n] + pow(ViewOffset[n],2) - 2*ViewGrad[n]*xy[n] - 2*ViewOffset[n]*y[n] + 2*ViewGrad[n]*ViewOffset[n]*x[n]);	    
+
+	  }
+
+
+	std::vector<TVector3> ViewDir2D(3);
+
+	std::vector<TVector3> Center2D(3);
+
+        // Calculate centers and directions from pairs
+        for(size_t n=0; n!=3; ++n)
+          {
+            int n1 = (n+1)%3;
+            int n2 = (n+2)%3;
+
+
+            ViewDir2D[n] =
+              (XDir + PitchDir[n1] *(1./ViewGrad[n1])
+               + WireDir[n1]  * (((1./ViewGrad[n2]) - PitchDir[n1].Dot(PitchDir[n2]) * (1./ViewGrad[n1])) / WireDir[n1].Dot(PitchDir[n2])) ).Unit();
+	    
+            Center2D[n] =
+              XDir * 0.5 * (MeanTimeCoord[n1]+MeanTimeCoord[n2])
+              + PitchDir[n1] * (MeanWireCoord[n1] + WireZeroOffset[n1])
+              + WireDir[n1] *  ( ((MeanWireCoord[n2] + WireZeroOffset[n2]) - ( MeanWireCoord[n1] + WireZeroOffset[n1] )*PitchDir[n1].Dot(PitchDir[n2]))/(PitchDir[n2].Dot(WireDir[n1])) );
+          }
+	
+	
+
+        for(size_t n=0; n!=3; ++n)
+          {
+            size_t n1 = (n+1)%3;
+            size_t n2 = (n+2)%3;
+            if( (N[n] <= N[n1]) &&
+                (N[n] <= N[n2]) )
+              {
+
+                Center    = Center2D[n];
+                Direction = ViewDir2D[n];
+                Strength  = 1;
+		
+                ftEigenvalue = Strength;
+                ftTheta = Direction.Theta();
+                TVector3 NX(1,0,0), NY(0,1,0);
+                ftThetaYZ = (Direction - Direction.Dot(NX)*NX).Theta();
+                ftThetaXZ = (Direction - Direction.Dot(NY)*NY).Theta();
+
+              }
+          }
+
+
       }
   }
 
