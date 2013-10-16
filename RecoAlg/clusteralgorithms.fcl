@@ -5,7 +5,7 @@ standard_clustercrawleralg:
   NumPass:              3  # number of passes through the hit list
   MaxHitsFit:  [20,  8, 4] # number of hits fitted to a line
   MinHits:     [20,  8, 3] # minimum size of a cluster
-  NHitsAve:     [6,  6, 0] # number of hits to find the average charge and width  
+  NHitsAve:     [8,  8, 0] # number of hits to find the average charge and width  
                            # at the end of the cluster. NHitsAve should be 1 or 2
   ChgCut:   [.65, .65, .7] # max fractional hit charge difference for adding hits
   WidCut:     [.5, .5, .8] # max fractional hit width difference for adding hits
@@ -14,19 +14,38 @@ standard_clustercrawleralg:
   MinWirAfterSkip: [1, 1, 1] # min reqd number of consecutive wires with a hit after a skip
   KinkChiRat: [1.2, 1.2, 0.] # Max consecutive chisq increase for the last 3 hits on the cluster
                              # 0. = no kink check when following
-  KinkAngCut: [0.25, 0.25, 0.35] # kink angle cut (radians) used to follow and merge
+  KinkAngCut: [0.35, 0.35, 0.4] # kink angle cut (radians) used to follow and merge
   DoMerge:   [false, true, true] # run cluster merging code?
   TimeDelta: [2., 3., 10.] # max time difference for cluster merging
-  HitErrFac:           0.3 # hit time error for fitting = fHitErrFac * (hit width)
+  DoVertex:  [ false, true, true]  # make 2D vertices after clustering?
+  LAClusterFix:       true # Fix hits on Large Angle Clusters?
+  HitErrFac:           0.4 # hit time error for fitting = fHitErrFac * (hit width)
   HitWidFac:           2.0 # hit width for tracking = fHitWidFac * (hit width)
-  BEChgRat:            0.0 # Begin/End Charge Ratio to determine cluster direction
-                           # Set to 0 to turn off
-  PairAngCut:          0.0 # Break clusters for pairs that are less than this
-                           # angle (radians). Set = 0 to turn off
-  CurlyMergeAngCut:   -1.0 # Angle cut for mergin short curly clusters. Set = 0 to turn off
-  DoVertex:          true  # make 2D vertices?
+  DebugPlane:          -1  # print info only in this plane
   DebugWire:            0  # set to the Begin Wire and Hit of a cluster to print
   DebugHit:             0  # out detailed information while crawling
+}
+
+standard_cchitfinderalg:
+{
+  CalDataModuleLabel: "caldata"
+  MinSigInd:  10.   # min signal peak for induction plane
+  MinSigCol:   6.   # min signal peak for collection plane
+  MinRMSInd:   2.   # min signal width for induction plane
+  MinRMSCol:   2.   # min signal width for induction plane
+  MaxBumps:    5    # make a crude hit if > MaxBumps are found in the RAT
+  MaxXtraHits: 1    # max number of hidden hits in Region Above Threshold
+  ChiSplit:  10.   # Max chi/DOF for splitting hits for signal rms error = 1
+  ChiNorms: [ 0.8, 2., 8. ]  # chi/DOF normalization for each plane
+  TimeOffsets: [ 0.48, 0.41, 0.49 ] # hit time offsets
+  ChgNorms: [ 0.733, 0.750, 1.471 ]   # Area -> Charge normalization
+}
+
+standard_cchitrefineralg:
+{
+  RefineHits:       false  # refine hits during clustering?
+  BEChgRat:           2.0  # Begin/End Charge Ratio to determine cluster direction
+                           # Set to 0 to turn off
 }
 
 standard_houghbasealg:
