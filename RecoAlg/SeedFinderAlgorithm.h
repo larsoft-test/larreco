@@ -106,12 +106,10 @@ namespace trkf {
                                    //  Mode specifies whether to operate on spacepoints (old) or directly onto hits (new)
 
     
-    bool                        ExtendSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, 
-					   std::map<int,int>& PointStatus, std::vector<int>& PointsUsed);
-                                   // Attempt to walk a found seed out further to collect more hits. DEPRECATED
-    void                        ExtendSeed(recob::Seed& TheSeed, art::PtrVector<recob::Hit> const&, std::vector<char> HitStatus,
-					   std::map<geo::View_t, std::map<uint32_t, std::vector<int> > > OrgHits);
+    void                        ConsolidateSeed(recob::Seed& TheSeed, art::PtrVector<recob::Hit> const&, std::vector<char>& HitStatus,
+						std::map<geo::View_t, std::map<uint32_t, std::vector<int> > >& OrgHits, bool Extend);
 
+    void                        GetHitDistAndProj( recob::Seed const& ASeed,  art::Ptr<recob::Hit> const& AHit, double& disp, double& s);
     
     std::vector<recob::SpacePoint> ExtractSpacePoints(std::vector<recob::SpacePoint> const& AllPoints, std::vector<int> IDsToExtract);
                                    // Given a spacepoint vector and ID list, return the vector of spacepoints for those IDs
@@ -139,9 +137,11 @@ namespace trkf {
     
     std::vector<double>   fMaxViewRMS;
 
-    float                 fExtendThresh;
-    float                 fExtendStep;
-    float                 fExtendResolution;
+    float                 fHitResolution;
+
+    float                 fOccupancyCut;
+
+    bool                  fExtendSeeds;
 
     TTree *   ftMonitoringTree;
     Float_t   ftThetaXZ;

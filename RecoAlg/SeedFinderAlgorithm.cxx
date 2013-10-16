@@ -76,17 +76,22 @@ namespace trkf {
     
     fInitSeedLength        = pset.get<double>("InitSeedLength");
     fMinPointsInSeed       = pset.get<int>("MinPointsInSeed");
-    fPCAThreshold          = pset.get<double>("PCAThreshold");
-
+  
     fRefits                = pset.get<double>("Refits");
 
-    fExtendThresh          = pset.get<double>("ExtendThresh");
-    fExtendStep            = pset.get<double>("ExtendStep");
-    fExtendResolution      = pset.get<double>("ExtendResolution");
+    fHitResolution         = pset.get<double>("HitResolution");
+
+    fOccupancyCut          = pset.get<double>("OccupancyCut");
+    fExtendSeeds           = pset.get<double>("ExtendSeeds");
+	
 
     fMaxViewRMS.resize(3);
     fMaxViewRMS            = pset.get<std::vector<double> >("MaxViewRMS"); 
  
+    
+    //    fPCAThreshold          = pset.get<double>("PCAThreshold");
+    // Deprecated (but left in, in case we want to bring it back)
+
   }
 
 
@@ -213,11 +218,6 @@ namespace trkf {
 	if(TheSeed.IsValid())
 	  {
 	    
-	    ReturnVector.push_back(TheSeed);
-	 
-	    art::PtrVector<recob::Hit> HitsWithThisSeed;       
-	    
-	    
 	    for(size_t iP=0; iP!=PointsUsed.size(); ++iP)
 	      {
 		for(size_t iH=0; iH!=HitsPerSpacePoint.at(PointsUsed.at(iP)).size(); ++iH)
@@ -226,14 +226,15 @@ namespace trkf {
 		    HitStatus[UsedHitID] = 2;
 		  }
 	      }
+	    
+	    ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, true);
+	  }
 
-			    
-	    if(fExtendThresh > 0)
-	      {
-		ExtendSeed(TheSeed, HitsFlat, HitStatus, OrgHits);
-	      }
-		  
-
+	if(TheSeed.IsValid())
+	  {
+	    ReturnVector.push_back(TheSeed);
+	    
+	    art::PtrVector<recob::Hit> HitsWithThisSeed;       
 	    for(size_t iH=0; iH!=HitStatus.size(); ++iH)
 	      {
 		if(HitStatus.at(iH)==2)
@@ -247,7 +248,7 @@ namespace trkf {
 		      }
 		  }
 	      }
-		    
+	    
 	    
 	    // Record that we used this set of hits with this seed in the return catalogue
 	    CataloguedHits.push_back(HitsWithThisSeed);
@@ -260,10 +261,9 @@ namespace trkf {
 	  {
 	    
 	    // If it was not a good seed, throw out the top SP and try again
-	    //  for(size_t i=0; i!=PointsUsed.size(); PointStatus[PointsUsed.at(i++)] = 2);
-	       PointStatus.at(PointsUsed.at(0))=2;
+	    PointStatus.at(PointsUsed.at(0))=2;
 	  }
-   
+	
 	int TotalSPsUsed=0;
 	for(size_t i=0; i!=PointStatus.size(); ++i)
 	  {
@@ -272,7 +272,7 @@ namespace trkf {
 	    
 	if((int(spts.size()) - TotalSPsUsed) < fMinPointsInSeed)
 	  KeepChopping=false;
-	    
+	
 	if((PointStatus[0]==3)||(PointStatus.size()==0)) KeepChopping=false;
 	
 	PointsUsed.clear();
@@ -349,13 +349,280 @@ namespace trkf {
   // Latest extendseed method
   //
 
-  void SeedFinderAlgorithm::ExtendSeed(recob::Seed& TheSeed, art::PtrVector<recob::Hit> const&, std::vector<char> HitStatus,
-		  std::map<geo::View_t, std::map<uint32_t, std::vector<int> > > OrgHits)
+  void SeedFinderAlgorithm::ConsolidateSeed(recob::Seed& TheSeed, art::PtrVector<recob::Hit> const& HitsFlat, std::vector<char>& HitStatus,
+					    std::map<geo::View_t, std::map<uint32_t, std::vector<int> > >& OrgHits, bool Extend)
   {
-    // Placeholder for new extend method
+    
+    bool ThrowOutSeed = false;
+    
+    // This will keep track of what hits are in this seed
+    std::map<geo::View_t, std::map<uint32_t, std::vector<int> > > HitsInThisSeed;
+    
+    double MinS = 1000, MaxS=-1000;
+    for(size_t i=0; i!=HitStatus.size(); ++i)
+      {
+	if(HitStatus.at(i)==2)
+	  {
+	    double disp, s;
+	    GetHitDistAndProj(TheSeed, HitsFlat.at(i),disp, s);
+	    if(fabs(s)>1.2)
+	      {
+		// This hit is not rightfully part of this seed, toss it.
+		HitStatus[i]=0;
+	      }
+	    else
+	      {
+		if(s<MinS) MinS = s;
+		if(s>MaxS) MaxS = s;
+		HitsInThisSeed[HitsFlat.at(i)->View()][HitsFlat.at(i)->Channel()].push_back(i);
+	      }
+	  }
+      }
 
+    double LengthRescale = (MaxS - MinS)/2.;
+    double PositionShift = (MaxS + MinS)/2.;
+
+    double pt[3], dir[3], err[3];
+    TheSeed.GetPoint(pt, err);
+    TheSeed.GetDirection(dir, err);
+    
+
+    for(size_t n=0; n!=3; ++n)
+      {
+	pt[n]  += dir[n] * PositionShift;
+	dir[n] *= LengthRescale;
+      }
+
+    TheSeed.SetPoint(pt, err);
+    TheSeed.SetDirection(dir, err);
+
+    
+    // Run through checking if we missed any hits
+    for(auto itP = HitsInThisSeed.begin(); itP!=HitsInThisSeed.end(); ++itP)
+      {
+	double dist, s;
+	geo::View_t View = itP->first;
+	uint32_t LowestChan = itP->second.begin()->first;
+	uint32_t HighestChan = itP->second.rbegin()->first;
+	for(uint32_t c=LowestChan; c!=HighestChan; ++c)
+	  {
+	    for(size_t h=0; h!=OrgHits[View][c].size(); ++h)
+	      {
+		if(HitStatus[OrgHits[View][c].at(h)]==0)
+		  {
+		    GetHitDistAndProj(TheSeed, HitsFlat[OrgHits[View][c].at(h)], dist, s);
+		    if(dist < fHitResolution)
+		      {
+			HitStatus[OrgHits[View][c].at(h)]=2;
+			HitsInThisSeed[View][c].push_back(OrgHits[View][c].at(h));
+		      }
+		  }
+	      }
+	  }
+      }
+    
+    // Check seed occupancy
+    
+    uint32_t LowestChanInSeed[3], HighestChanInSeed[3], LowestChanInView[3], HighestChanInView[3];
+    double Occupancy[3];
+    
+    for(auto itP = HitsInThisSeed.begin(); itP!=HitsInThisSeed.end(); ++itP)
+      {
+	int ViewID;
+	geo::View_t View = itP->first;
+	if(View==geo::kU) ViewID=0;
+	if(View==geo::kV) ViewID=1;
+	if(View==geo::kW) ViewID=2;
+
+        LowestChanInSeed[ViewID]  = itP->second.begin()->first;
+	HighestChanInSeed[ViewID] = itP->second.rbegin()->first;
+	LowestChanInView[ViewID]  =  OrgHits[View].begin()->first;
+	HighestChanInView[ViewID] = OrgHits[View].rbegin()->first;
+	
+	int FilledChanCount=0;
+	
+	for(size_t c  = LowestChanInSeed[ViewID]; c!=HighestChanInSeed[ViewID]; ++c)
+	  {
+	    if(itP->second[c].size()>0) ++FilledChanCount;
+	  }
+	
+	Occupancy[ViewID] = float(FilledChanCount) / float(HighestChanInSeed[ViewID]-LowestChanInSeed[ViewID]);
+      }	
+    
+    // std::cout<<"Occupancy in views : " << Occupancy[0]<<", " <<Occupancy[1]<<", " <<Occupancy[2]<<std::endl;
+    
+    for(size_t n=0; n!=3; ++n)
+      if(Occupancy[n]<fOccupancyCut) ThrowOutSeed=true;
+	 
+    if((Extend)&&(!ThrowOutSeed))
+      {
+	std::vector<std::vector<double> > ToAddNegativeS(3,std::vector<double>());
+	std::vector<std::vector<double> > ToAddPositiveS(3,std::vector<double>());
+	std::vector<std::vector<int> >    ToAddNegativeH(3,std::vector<int>());
+	std::vector<std::vector<int> >    ToAddPositiveH(3,std::vector<int>());
+	
+	for(auto itP = HitsInThisSeed.begin(); itP!=HitsInThisSeed.end(); ++itP)
+	  {
+	    double dist, s;
+	    int ViewID=0;
+
+	    geo::View_t View = itP->first;
+
+	    if(View==geo::kU) ViewID=0;
+	    if(View==geo::kV) ViewID=1;
+	    if(View==geo::kW) ViewID=2;
+	    
+	    
+	    if(LowestChanInSeed[ViewID]>LowestChanInView[ViewID])
+	      {
+		for(uint32_t c=LowestChanInSeed[ViewID]-1; c!=LowestChanInView[ViewID]; --c)
+		  {
+		    bool GotOneThisChannel=false;
+		    for(size_t h=0; h!=OrgHits[View][c].size(); ++h)
+		      {
+			GetHitDistAndProj(TheSeed, HitsFlat[OrgHits[View][c].at(h)], dist, s);
+			if(dist < fHitResolution)
+			  {
+			    GotOneThisChannel=true;
+			    if(s<0) 
+			      {
+				ToAddNegativeS[ViewID].push_back(s);
+				ToAddNegativeH[ViewID].push_back(OrgHits[View][c].at(h));
+			      }
+			    else
+			      {
+				ToAddPositiveS[ViewID].push_back(s);
+				ToAddPositiveH[ViewID].push_back(OrgHits[View][c].at(h));
+			      }
+			  }
+		      }
+		    if(GotOneThisChannel==false) break;
+		  }
+	      }
+	    if(HighestChanInSeed < HighestChanInView)
+	      
+	      for(uint32_t c=HighestChanInSeed[ViewID]+1; c!=HighestChanInView[ViewID]; ++c)
+		{
+		  bool GotOneThisChannel=false;
+		  for(size_t h=0; h!=OrgHits[View][c].size(); ++h)
+		    {
+		      GetHitDistAndProj(TheSeed, HitsFlat[OrgHits[View][c].at(h)], dist, s);
+		      if(dist < fHitResolution)
+			{
+			  GotOneThisChannel=true;
+			  if(s<0) 
+			    {
+			      ToAddNegativeS[ViewID].push_back(s);
+			      ToAddNegativeH[ViewID].push_back(OrgHits[View][c].at(h));
+			    }
+			  else
+			    {
+			      ToAddPositiveS[ViewID].push_back(s);
+			      ToAddPositiveH[ViewID].push_back(OrgHits[View][c].at(h));
+			    }
+			}
+		    }
+		  if(GotOneThisChannel==false) break;
+		}
+	  }
+	
+	
+	double ExtendPositiveS, ExtendNegativeS;
+
+	if((ToAddPositiveS[0].size()>0)&&
+	   (ToAddPositiveS[1].size()>0)&&
+	   (ToAddPositiveS[2].size()>0))
+	  {
+	    for(size_t n=0; n!=3; ++n)
+	      {
+		int n1 = (n+1)%3;
+		int n2 = (n+2)%3;
+		
+		if( (ToAddPositiveS[n].back() <= ToAddPositiveS[n1].back()) &&
+		    (ToAddPositiveS[n].back() <= ToAddPositiveS[n2].back()) )
+		  {
+		    ExtendPositiveS = ToAddPositiveS[n].back();
+		  }
+	      }
+	  }
+
+	if((ToAddNegativeS[0].size()>0)&&
+	   (ToAddNegativeS[1].size()>0)&&
+	   (ToAddNegativeS[2].size()>0))
+	  {
+	    for(size_t n=0; n!=3; ++n)
+	      {
+		int n1 = (n+1)%3;
+		int n2 = (n+2)%3;
+		if( (ToAddNegativeS[n].back() >= ToAddNegativeS[n1].back()) &&
+		    (ToAddNegativeS[n].back() >= ToAddNegativeS[n2].back()) )
+		  {
+		    ExtendNegativeS = ToAddNegativeS[n].back();
+		  }
+	      }
+	  }
+	
+	if(fabs(ExtendNegativeS) < 1.) ExtendNegativeS=-1.;
+	if(fabs(ExtendPositiveS) < 1.) ExtendPositiveS=1.;
+
+	
+	LengthRescale = (ExtendPositiveS - ExtendNegativeS)/2.;
+	PositionShift = (ExtendPositiveS + ExtendNegativeS)/2.;
+	
+	for(size_t n=0; n!=3; ++n)
+	  {
+	    pt[n]  += dir[n] * PositionShift;
+	    dir[n] *= LengthRescale;
+	  }
+
+
+	TheSeed.SetPoint(pt, err);
+	TheSeed.SetDirection(dir, err);
+	
+      }
+
+
+    
+    if(ThrowOutSeed) TheSeed.SetValidity(false);
+      
+    
   }
   
+  //------------------------------------------------------------
+
+
+  void SeedFinderAlgorithm::GetHitDistAndProj( recob::Seed const& ASeed,  art::Ptr<recob::Hit> const& AHit, double& disp, double& s)
+  {
+    art::ServiceHandle<util::DetectorProperties> det;
+    art::ServiceHandle<geo::Geometry> geom;
+    
+    double xyzStart[3], xyzEnd[3];
+    
+    geom->WireEndPoints(0,0, AHit->WireID().Plane, AHit->WireID().Wire, xyzStart, xyzEnd);
+    
+    double HitX = det->ConvertTicksToX(AHit->PeakTime(), AHit->WireID().Plane, 0, 0);
+    
+    double HitXHigh = det->ConvertTicksToX(AHit->EndTime(), AHit->WireID().Plane, 0, 0);    
+    double HitXLow =  det->ConvertTicksToX(AHit->StartTime(), AHit->WireID().Plane, 0, 0);
+    
+    double HitWidth = HitXHigh - HitXLow;
+    
+    double pt[3], dir[3], err[3];
+    
+    ASeed.GetDirection(dir,err);
+    ASeed.GetPoint(pt,err);
+    
+
+
+    TVector3 sPt  (pt[0],   pt[1],                 pt[2]);
+    TVector3 sDir (dir[0],  dir[1],                dir[2]);
+    TVector3 hPt   (HitX,    xyzStart[1],           xyzStart[2]);
+    TVector3 hDir  (0,       xyzStart[1]-xyzEnd[1], xyzStart[2]-xyzEnd[2]);
+
+    s = (sPt - hPt).Dot(hDir*(hDir.Dot(sDir))-sDir*(hDir.Dot(hDir))) / (hDir.Dot(hDir)*sDir.Dot(sDir)-pow(hDir.Dot(sDir),2));
+    
+    disp = fabs((sPt - hPt).Dot(sDir.Cross(hDir))/(sDir.Cross(hDir)).Mag()) / HitWidth;
+  }
 
   //------------------------------------------------------------
   // Try to find one seed at the high Z end of a set of spacepoints 
@@ -510,193 +777,6 @@ namespace trkf {
 
 
 
-  //-----------------------------------------------------
-  // Try walking a seed out past its end to find more hits.
-  // After every step, refit to find optimal centre and direction. 
-  //
-
-  bool SeedFinderAlgorithm::ExtendSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, std::map<int,int>& PointStatus, std::vector<int>& PointsUsed)
-  {
-    if(PointsUsed.size()==0) return false;
-    
-    int FirstPoint = PointsUsed.at(0);
-
-    // Get the actual spacepoints for the IDs provided
-    std::vector<recob::SpacePoint>   SPsUsed        = ExtractSpacePoints(AllSpacePoints, PointsUsed);
-
-
-    // This is the seed we will return - initially make a fresh seed with the same coordinates as the input seed
-    recob::Seed  BestSeed = TheSeed;
-
-    // Get direction and centre information for this seed
-    double ThisDir[3], ThisPt[3], ThisErr[3];
-    BestSeed.GetDirection( ThisDir, ThisErr );
-    BestSeed.GetPoint(     ThisPt,  ThisErr );
-
-    TVector3 VecDir( ThisDir[0], ThisDir[1], ThisDir[2] );
-    TVector3 VecPt(  ThisPt[0],  ThisPt[1],  ThisPt[2]  );
-
-    // Keep a record of some quantities for the best seed found
-    //  so far.  We are only allowed to extend if we meet a set
-    //  of seed quality criteria relative to the best seed so far found.
-    std::vector<double>              BestRMS        = GetHitRMS(TheSeed, SPsUsed);
-    std::vector<double>              ThisRMS        = BestRMS;
-    double BestAveRMS =  pow(pow(ThisRMS.at(0),2)+pow(ThisRMS.at(1),2)+pow(ThisRMS.at(2),2),0.5);
-    double ThisAveRMS =  BestAveRMS;
-
-    int NoOfHits = CountHits(SPsUsed);
-
-    int ThisN         = NoOfHits;
-    int BestN         = ThisN;
-
-    double ThisdNdx   = double(NoOfHits) / VecDir.Mag();
-    double BestdNdx   = ThisdNdx;
-
-
-    // We extend the seed in both directions.  Backward first:
-    
-
-    bool KeepExtending=true;
-    while(KeepExtending!=false)
-      {
-        // Get data from existing seed
-        BestSeed.GetDirection( ThisDir, ThisErr );
-	BestSeed.GetPoint(     ThisPt,  ThisErr );
-
-        VecDir = TVector3( ThisDir[0], ThisDir[1], ThisDir[2] );
-	VecPt  = TVector3(  ThisPt[0],  ThisPt[1],  ThisPt[2]  );
-
-        // Make seed extension
-        VecDir.SetMag(VecDir.Mag() + fExtendStep);
-	VecPt = VecPt + fExtendStep * VecDir.Unit();
-        for(int i=0; i!=3; ++i)
-          {
-            ThisDir[i] = VecDir[i];
-            ThisPt[i]  = VecPt[i];
-          }
-
-	recob::Seed TheNewSeed(ThisPt, ThisDir, ThisErr, ThisErr);
-
-
-        // Find nearby spacepoints and refit
-	std::vector<int> NearbySPs               = DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
-	if(NearbySPs.size()<3) return true;
-
-	
-	std::vector<recob::SpacePoint> ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
-
-      
-	RefitSeed(TheNewSeed,ThePoints);
-
-        // With refitted seed, count number of hits and work out dNdx and RMS
-        NearbySPs =  DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
-	if(NearbySPs.size()<2) return true;
-        ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
-
-        NoOfHits = CountHits(ThePoints);
-
-        ThisN        = NoOfHits;
-        ThisdNdx     = double(NoOfHits) / VecDir.Mag();
-        ThisRMS      = GetHitRMS(TheNewSeed,ThePoints);
-        ThisAveRMS   = pow(pow(ThisRMS.at(0),2)+pow(ThisRMS.at(1),2)+pow(ThisRMS.at(2),2),0.5);
-
-
-        // Decide whether to keep the extended seed
-        if((ThisdNdx > BestdNdx*fExtendThresh)&&(ThisAveRMS < BestAveRMS/fExtendThresh)&&(ThisN>BestN))
-          {
-            BestAveRMS = ThisAveRMS;
-	    BestdNdx   = ThisdNdx;
-            BestN      = ThisN;
-
-            BestSeed   = TheNewSeed;
-	  }
-	else
-          KeepExtending=false;
-
-      }
-
-    // Then extend forward
-    KeepExtending=true;
-    while(KeepExtending!=false)
-      {
-	// Get data from existing seed
-        BestSeed.GetDirection( ThisDir, ThisErr );
-        BestSeed.GetPoint(     ThisPt,  ThisErr );
-
-        VecDir = TVector3( ThisDir[0], ThisDir[1], ThisDir[2] );
-        VecPt  = TVector3(  ThisPt[0],  ThisPt[1],  ThisPt[2]  );
-
-
-        // Make seed extension
-	VecDir.SetMag(VecDir.Mag() + fExtendStep);
-        VecPt = VecPt - fExtendStep * VecDir.Unit();
-	for(int i=0; i!=3; ++i)
-          {
-            ThisDir[i] = VecDir[i];
-            ThisPt[i]  = VecPt[i];
-          }
-	recob::Seed TheNewSeed(ThisPt, ThisDir, ThisErr, ThisErr);
-
-	// Find nearby spacepoints and for refit
-	std::vector<int> NearbySPs =  DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
-	std::vector<recob::SpacePoint> ThePoints = ExtractSpacePoints(AllSpacePoints, NearbySPs);
-        RefitSeed(TheNewSeed,ThePoints);
-
-        // With refitted seed, count number of hits and work out dNdx and RMS
-	NearbySPs    = DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
-        ThePoints    = ExtractSpacePoints(AllSpacePoints, NearbySPs);
-
-        NoOfHits = CountHits(ThePoints);
-        ThisN        = NoOfHits;
-        ThisdNdx     = double(NoOfHits) / VecDir.Mag();
-        ThisRMS      = GetHitRMS(TheNewSeed,ThePoints);
-        ThisAveRMS   = pow(pow(ThisRMS.at(0),2)+pow(ThisRMS.at(1),2)+pow(ThisRMS.at(2),2),0.5);
-
-
-        // Decide whether to keep the extended seed
-        if((ThisdNdx > BestdNdx*fExtendThresh)&&(ThisAveRMS < BestAveRMS/fExtendThresh)&&(ThisN>BestN))
-          {
-            BestRMS    = ThisRMS;
-            BestN      = ThisN;
-            BestAveRMS = ThisAveRMS;
-            BestdNdx   = ThisdNdx;
- 
-            BestSeed   = TheNewSeed;
-	  }
-        else
-          {
-	    PointsUsed =  DetermineNearbySPs(TheNewSeed, AllSpacePoints, PointStatus, fExtendResolution);
-            for(size_t i=0; i!=NearbySPs.size(); ++i) PointStatus[NearbySPs.at(i)]=1;
-
-            KeepExtending=false;
-          }
-      }
-
-
-    // To prevent us getting stuck in infinite loopville,
-    //  it is going to be non-negotiable that the first
-    //  point remain in the seed.
-    bool ContainsFirst=false;
-    for(size_t i=0; i!=PointsUsed.size(); ++i)
-      {
-	if(PointsUsed.at(i)==FirstPoint) ContainsFirst=true;
-      }
-    if(!ContainsFirst) PointsUsed.push_back(FirstPoint);
-
-
-
-
-
-    BestSeed.GetDirection( ThisDir, ThisErr);
-    BestSeed.GetPoint(     ThisPt,  ThisErr);
-
-    TheSeed.SetDirection(  ThisDir, ThisErr);
-    TheSeed.SetPoint(      ThisPt,  ThisErr);
-
-    bool ReturnVal=false;
-  
-    return ReturnVal;
-  }
 
 
   //-----------------------------------------------------
