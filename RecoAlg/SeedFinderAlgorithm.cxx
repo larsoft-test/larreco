@@ -82,7 +82,7 @@ namespace trkf {
     fHitResolution         = pset.get<double>("HitResolution");
 
     fOccupancyCut          = pset.get<double>("OccupancyCut");
-    fExtendSeeds           = pset.get<double>("ExtendSeeds");
+    fExtendSeeds           = pset.get<bool>("ExtendSeeds");
 	
 
     fMaxViewRMS.resize(3);
