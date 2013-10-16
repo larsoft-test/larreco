@@ -17,13 +17,12 @@ standard_seedfinderalgorithm:
 {
   SpacePointAlg:          @local::standard_spacepointalg
   InitSeedLength:         3
-  MinPointsInSeed:        4
-  PCAThreshold:           0.75
+  MinPointsInSeed:        6
   Refits:                 0
-  ExtendThresh:           -1.
-  ExtendStep:             1.
-  ExtendResolution:       1.
+  HitResolution:          1.5
+  OccupancyCut:           0.8
   MaxViewRMS:             [1.,1.,1.]
+  ExtendSeeds:            true
 }
 standard_seedfinderalgorithm.SpacePointAlg.Filter: false
 
