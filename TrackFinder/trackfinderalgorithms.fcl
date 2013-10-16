@@ -17,9 +17,9 @@ standard_seedfinderalgorithm:
 {
   SpacePointAlg:          @local::standard_spacepointalg
   InitSeedLength:         3
-  MinPointsInSeed:        6
+  MinPointsInSeed:        4
   PCAThreshold:           0.75
-  Refits:                 30
+  Refits:                 0
   ExtendThresh:           -1.
   ExtendStep:             1.
   ExtendResolution:       1.
