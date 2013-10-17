@@ -379,7 +379,7 @@ namespace trkf {
 		{
 		  mindist = dist;  
 		  spptminIt = sppt;
-		  if (mindist < 0.05) break; 
+		  if (mindist < 0.01) break; 
 		}
 	    }
 	  sppt++;
