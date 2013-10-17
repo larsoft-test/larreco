@@ -77,8 +77,6 @@
 #include "Genfit/GFTrack.h"
 #include "Genfit/GFKalman.h"
 #include "Genfit/GFDaf.h"
-#include "Utilities/AssociationUtil.h"
-
  
 static bool sp_sort_3dz(const art::Ptr<recob::SpacePoint>& h1, const art::Ptr<recob::SpacePoint>& h2)
 {
@@ -354,8 +352,8 @@ namespace trkf {
     cov=rot*cov;
   }  
 
-  std::vector<double> Track3DKalmanSPS::dQdxCalc(const art::FindManyP<recob::Hit> &h, const art::PtrVector<recob::SpacePoint> &s, const TVector3 &dir, const TVector3 &loc )
-    {
+   std::vector<double> Track3DKalmanSPS::dQdxCalc(const art::FindManyP<recob::Hit> &h, const art::PtrVector<recob::SpacePoint> &s, const TVector3 &dir, const TVector3 &loc )
+     {
       // For now just Collection plane.
       // We should loop over all views, more generally.
       geo::SigType_t sig(geo::kCollection);
@@ -373,15 +371,23 @@ namespace trkf {
 	{
 	  if (((**sppt).XYZ() - loc).Mag() < mindist)
 	    {
-	      mindist = ((**sppt).XYZ() - loc).Mag(); 
-	      spptminIt = sppt;
+	      double dist = ((**sppt).XYZ() - loc).Mag(); 
+	      
 	      // Jump out if we're as close as 1 mm away.
-	      if (mindist < 0.1) break; 
+	      //if (mindist < 0.1) break; 
+	      if (dist<mindist) 
+		{
+		  mindist = dist;  
+		  spptminIt = sppt;
+		  if (mindist < 0.05) break; 
+		}
 	    }
 	  sppt++;
 	}
       sstart = spptminIt; // for next time.
       unsigned int ind(std::distance(s.begin(),spptminIt));
+
+
 
       std::vector< art::Ptr<recob::Hit> > hitlist = h.at(ind);
 
@@ -411,6 +417,8 @@ namespace trkf {
 	//	throw cet::exception("Track") << "cosgamma is basically 0, that can't be right";
 
       v.push_back(charge/wirePitch/cosgamma);
+      //      std::cout << " Track3DKalmanSPS::dQdxCalc() : For loc.XYZ() hit is ... " << ind << " and v is " << v.back() << std::endl;
+
       return v;
 
     }
@@ -588,6 +596,7 @@ void Track3DKalmanSPS::produce(art::Event& evt)
   //////////////////////////////////////////////////////
   std::unique_ptr<std::vector<recob::Track> > tcol(new std::vector<recob::Track>);
   std::unique_ptr< art::Assns<recob::Track, recob::SpacePoint> > tspassn(new art::Assns<recob::Track, recob::SpacePoint>); 
+  std::unique_ptr< art::Assns<recob::Track, recob::Hit> > thassn(new art::Assns<recob::Track, recob::Hit>); 
 
   unsigned int tcnt = 0;
 
@@ -1152,7 +1161,6 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 				      hitPlaneULFP.back(),
 				      hitPlaneVLFP.back()
 				      );
-
 			  dQdx.push_back(dQdxCalc(hitAssns,
 						  spacepointss,
 						  hitPlaneUxUyUzLFP.back(),
@@ -1177,7 +1185,13 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 		      if (rePass!=1 && tcnt1) tcol->pop_back();
 		      tcol->push_back(the3DTrack); 
 		      util::CreateAssn(*this, evt, *tcol, spacepointss, *tspassn);
-
+		      art::PtrVector<recob::Hit> hits;// = hitAssns;
+		      for (unsigned int ii=0; ii < spacepointss.size(); ++ii)
+			{
+			  for (unsigned int jj=0; jj < hitAssns.at(ii).size(); ++jj)
+			    hits.push_back(hitAssns.at(ii).at(jj));
+			}
+		      util::CreateAssn(*this, evt, *tcol, hits, *thassn, tcol->size()-1);
 		    } // end !skipFill
 		} // getStatusFlag
 	  
@@ -1273,6 +1287,9 @@ void Track3DKalmanSPS::produce(art::Event& evt)
       evt.put(std::move(tcol)); 
       // and now the spacepoints
       evt.put(std::move(tspassn));
+      // and the hits. Note that these are all the hits from all the spacepoints considered,
+      // even though they're not all contributing to the tracks.
+      evt.put(std::move(thassn));
 }
 
   DEFINE_ART_MODULE(Track3DKalmanSPS)

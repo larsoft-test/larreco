@@ -31,12 +31,12 @@
 #include "Geometry/PlaneGeo.h"
 #include "Geometry/WireGeo.h"
 #include "RecoBase/Track.h"
+#include "RecoBase/Hit.h"
 #include "RecoBase/SpacePoint.h"
 
 #include "Simulation/sim.h"
 #include "SimulationBase/MCTruth.h"
 #include "Utilities/AssociationUtil.h"
-
 
 #include "art/Framework/Core/ModuleMacros.h" 
 #include "art/Framework/Core/EDProducer.h"
@@ -91,6 +91,7 @@ namespace trkf {
   private:
 
     const recob::Track Stitch(const art::PtrVector<recob::Track> &);
+    const art::PtrVector<recob::Hit> GetHitsFromComponentTracks(const art::PtrVector<recob::Track> &, const art::Event& evt);
     std::string     fTrackModuleLabel;// label for input collection
     std::string     fSpptModuleLabel;// label for input collection
     double fCosAngTol;
@@ -113,6 +114,7 @@ namespace trkf {
     
     produces< std::vector<recob::Track>                  >();
     produces<std::vector<art::PtrVector<recob::Track> >  >(); 
+    produces<art::Assns<recob::Track, recob::Hit>        >();
     // get the random number seed, use a random default if not specified    
     // in the configuration file.  
     unsigned int seed = pset.get< unsigned int >("Seed", sim::GetRandomNumberSeed());
@@ -126,8 +128,8 @@ namespace trkf {
   {
     fTrackModuleLabel    = pset.get< std::string >("TrackModuleLabel");
     fSpptModuleLabel     = pset.get< std::string >("SpptModuleLabel"); 
-    fCosAngTol           = pset.get< double >("CosAngTolerance", 0.05); 
-    fSepTol              = pset.get< double >("SpptSepTolerance", 3.0); //cm 
+    fCosAngTol           = pset.get< double >("CosAngTolerance", 0.95); 
+    fSepTol              = pset.get< double >("SpptSepTolerance", 10.0); //cm 
   }
   
   //-------------------------------------------------
@@ -157,20 +159,20 @@ namespace trkf {
 
     //////////////////////////////////////////////////////
     // Make a std::unique_ptr<> for the thing you want to put into the event
-    // because that handles the memory management for you
     //////////////////////////////////////////////////////
     // tcol is the collection of new tracks
     std::unique_ptr<std::vector<recob::Track> > tcol(new std::vector<recob::Track>);
     // tvcol is the collection of vectors that comprise each tcol
     std::unique_ptr<std::vector< art::PtrVector<recob::Track> > > tvcol(new std::vector< art::PtrVector<recob::Track> >);
-    
+  std::unique_ptr< art::Assns<recob::Track, recob::Hit> > thassn(new art::Assns<recob::Track, recob::Hit>);     
+
     art::PtrVector <recob::Track> tcolTmp;
     // define TPC parameters
     TString tpcName = geom->GetLArTPCVolumeName();
 
     art::Handle< std::vector< recob::Track > > tListHandle;
     evt.getByLabel(fTrackModuleLabel,tListHandle);
-    
+
     mf::LogWarning("TrackStitcher.beginning") << "There are " <<  tListHandle->size() << " Tracks in this event before stitching.";
     
     int ntrack = tListHandle->size();
@@ -215,9 +217,14 @@ namespace trkf {
 	      // make a Stitched vector.
 	      tvcol->push_back(tcolTmp);
 	      const recob::Track& t = Stitch(tcolTmp);
-	      tcol->push_back(t);
-	      tcolTmp.erase(tcolTmp.begin(),tcolTmp.end());
 	      // also make the cumulative track
+	      tcol->push_back(t);
+
+	      const art::PtrVector<recob::Hit>& hits(GetHitsFromComponentTracks(tcolTmp, evt));
+	      // Now make the Assns of relevant Hits to stitched Track
+	      util::CreateAssn(*this, evt, *tcol, hits, *thassn, tcol->size()-1);
+	      tcolTmp.erase(tcolTmp.begin(),tcolTmp.end());
+
 	    }
 	  // start with 1st elment of a new vector of tracks.
 	  tcolTmp.push_back(ptrack1);
@@ -258,14 +265,18 @@ namespace trkf {
 	tvcol->push_back(tcolTmp);
 	const recob::Track& t = Stitch(tcolTmp);
 	tcol->push_back(t);
+	const art::PtrVector<recob::Hit>& hits(GetHitsFromComponentTracks(tcolTmp, evt));
+	// Now make the Assns of relevant Hits to stitched Track
+	util::CreateAssn(*this, evt, *tcol, hits, *thassn, tcol->size()-1);
+
       }
     
     mf::LogWarning("TrackStitcher.end") << "There are " <<  tvcol->size() << " Tracks in this event after stitching.";
-    // It is redundant and wasteful to store the tcol. We can just get the individual tracks
-    // from the original Tracking module that made them.
-    //    evt.put(std::move(tcol)); 
+    evt.put(std::move(tcol)); 
     evt.put(std::move(tvcol));
-    
+    // Add Hit-to-Track Assns.
+    evt.put(std::move(thassn));
+
   }
   
 
@@ -307,6 +318,25 @@ namespace trkf {
     const recob::Track t(xyz,dxdydz,cov,dQdx,mom,ftNo++);
     return t;
   }
+
+  const art::PtrVector<recob::Hit> TrackStitcher::GetHitsFromComponentTracks(const art::PtrVector<recob::Track> &tcomp, const art::Event& evtGHFCT) 
+  {
+
+    art::PtrVector<recob::Hit> hits;
+    for (unsigned int ii=0; ii < tcomp.size(); ++ii )
+      {
+	// From the component tracks, get the Hits from the Assns
+	const art::Ptr<recob::Track> ptrack( tcomp.at(ii) );
+	auto p { ptrack };
+	art::FindManyP<recob::Hit> hitAssns(p, evtGHFCT, fTrackModuleLabel); 
+	for (unsigned int jj=0; jj < hitAssns.size(); ++jj)
+	  hits.push_back(hitAssns.at(0).at(ii));
+      }
+    
+    //    const art::PtrVector<recob::Hit> chits(hits);
+    return hits;
+  }
+
 
   DEFINE_ART_MODULE(TrackStitcher)
 
