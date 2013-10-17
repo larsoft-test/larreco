@@ -9,7 +9,13 @@ microboone_spacepts.ClusterModuleLabel:                 "dbcluster"
 microboone_spacepts.TMatch:                             11.0        
 microboone_spacepts.vertexclusterWindow:                10000000.   
 microboone_kalman:                                      @local::standard_track3DkalmanSPS    
-microboone_kalman.SpacePointAlg:                        @local::microboone_spacepointalg     
+microboone_kalman.SpacePointAlg:                        @local::microboone_spacepointalg
+microboone_kalman_cosmic:                               @local::microboone_kalman
+microboone_kalman_cosmic.SortDirection:  "y"
+microboone_kalman_cosmic.MinNumSppts: 10
+microboone_kalman_cosmic.DistanceU: 5.
+microboone_kalman_cosmic.MaxPass: 1 # don't do the usual 2nd pass for MS energy meas't!
+
 microboone_spacepoint:                                  @local::standard_spacepointana 
 microboone_spacepoint.SpacePointAlgTime:                @local::microboone_spacepointalg     
 microboone_spacepoint.SpacePointAlgTime.MaxDT:          50.
