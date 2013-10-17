@@ -247,12 +247,6 @@ microboone_cornerfinderalg:		      @local::standard_cornerfinderalg
 microboone_clusterparamsalg:                 @local::standard_clusterparamsalg
 microboone_smallclustalg:	   @local::standard_smallclustalg
 microboone_clustercrawleralg:      @local::standard_clustercrawleralg
-microboone_clustercrawleralg.DoMerge:  [false, true, true]
-microboone_clustercrawleralg.DoVertex: [false, true, true]
-microboone_clustercrawleralg.LAClusterFix: true
-microboone_clustercrawleralg.DebugPlane: -1
-microboone_clustercrawleralg.DebugWire: 0
-microboone_clustercrawleralg.DebugHit:  0
 
 lbnefd_dbscanalg:    @local::standard_dbscanalg_fast
 lbnefd_houghbasealg: @local::standard_houghbasealg
