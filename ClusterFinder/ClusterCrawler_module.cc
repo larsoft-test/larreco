@@ -17,7 +17,6 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include <memory>
-#include <iostream>
 
 //LArSoft includes
 #include "Geometry/Geometry.h"
@@ -28,8 +27,10 @@
 #include "RecoBase/Hit.h"
 #include "RecoBase/EndPoint2D.h"
 #include "Utilities/AssociationUtil.h"
-#include "Filters/ChannelFilter.h"
+// #include "Filters/ChannelFilter.h"
+#include "RecoAlg/CCHitFinderAlg.h"
 #include "RecoAlg/ClusterCrawlerAlg.h"
+#include "RecoAlg/CCHitRefinerAlg.h"
 
 
 namespace cluster {
@@ -47,18 +48,21 @@ class cluster::ClusterCrawler : public art::EDProducer {
     void beginJob();
 
   private:
-    std::string fhitsModuleLabel;
+    CCHitFinderAlg fCCHFAlg; // define CCHitFinderAlg object
     ClusterCrawlerAlg fCCAlg; // define ClusterCrawlerAlg object
-    
+    CCHitRefinerAlg fCCHRAlg; // define CCHitRefinerAlg object    
 };
 
 
 namespace cluster {
 
-  ClusterCrawler::ClusterCrawler(fhicl::ParameterSet const& pset)
-    : fCCAlg(pset.get< fhicl::ParameterSet >("ClusterCrawlerAlg")) 
+  ClusterCrawler::ClusterCrawler(fhicl::ParameterSet const& pset) :
+    fCCHFAlg(pset.get< fhicl::ParameterSet >("CCHitFinderAlg" )),
+    fCCAlg(  pset.get< fhicl::ParameterSet >("ClusterCrawlerAlg")),
+    fCCHRAlg(pset.get< fhicl::ParameterSet >("CCHitRefinerAlg" ))
   {  
     this->reconfigure(pset);
+    produces< std::vector<recob::Hit> >();
     produces< std::vector<recob::Cluster> >();  
     produces< art::Assns<recob::Cluster, recob::Hit> >();
     produces< std::vector<recob::EndPoint2D> >();
@@ -70,101 +74,162 @@ namespace cluster {
 
   void ClusterCrawler::reconfigure(fhicl::ParameterSet const & pset)
   {
-    fhitsModuleLabel = pset.get< std::string >("HitsModuleLabel");
     fCCAlg.reconfigure(pset.get< fhicl::ParameterSet >("ClusterCrawlerAlg"));
+    fCCHFAlg.reconfigure(pset.get< fhicl::ParameterSet >("CCHitFinderAlg"));
+    fCCHRAlg.reconfigure(pset.get< fhicl::ParameterSet >("CCHitRefinerAlg"));
   }
   
   void ClusterCrawler::beginJob(){
   }
   
-  struct SortByWire {
-    bool operator() (recob::Hit const& h1, recob::Hit const& h2) const 
-    { 
-      return h1.Wire()->Channel() < h2.Wire()->Channel();
-    }
-  };
-  
   void ClusterCrawler::produce(art::Event & evt)
   {
+
+    // find hits in all planes
+    fCCHFAlg.RunCCHitFinder(evt);
+
+    // look for clusters in all planes
+    fCCAlg.RunCrawler(fCCHFAlg.allhits);
+  
+    // refine the hits, set cluster Begin/End
+    fCCHRAlg.RunCCHitRefiner(fCCHFAlg.allhits, fCCHFAlg.hitcuts, 
+                               fCCAlg.tcl, fCCAlg.vtx, fCCAlg);
+
     art::ServiceHandle<geo::Geometry> geo;
+    
+    std::unique_ptr<art::Assns<recob::Cluster, recob::Hit> > hc_assn(new art::Assns<recob::Cluster, recob::Hit>);
+    std::vector<recob::Hit> shcol;
+    std::vector<recob::Cluster> sccol;
+    std::vector<recob::EndPoint2D> svcol;
+    
+    // vector to identify hits that are in clusters
+    std::vector<bool> inCluster;
+    // assume there are no clusters
+    for(unsigned short iht = 0; iht < fCCHFAlg.allhits.size(); ++iht) {
+      inCluster.push_back(false);
+    }
 
-    art::Handle< std::vector<recob::Hit> > hitcol;
-    evt.getByLabel(fhitsModuleLabel,hitcol);
-
+    // put clusters and hits into std::vectors
+    unsigned short nclus = 0;
+    unsigned short hitcnt = 0;
+    for(size_t icl = 0; icl < fCCAlg.tcl.size(); ++icl) {
+      ClusterCrawlerAlg::ClusterStore clstr = fCCAlg.tcl[icl];
+      if(clstr.ID < 0) continue;
+      // start cluster numbering at 1
+      ++nclus;
+      // make the hits on this cluster
+      double totalQ = 0.;
+      unsigned short firsthit = hitcnt;
+      for(unsigned short itt = 0; itt < clstr.tclhits.size(); ++itt) {
+        unsigned short iht = clstr.tclhits[itt];
+        CCHitFinderAlg::CCHit& theHit = fCCHFAlg.allhits[iht];
+        art::Ptr<recob::Wire> theWire = theHit.Wire;
+        uint32_t channel = theWire->Channel();
+        // get the Wire ID from the channel
+        std::vector<geo::WireID> wids = geo->ChannelToWire(channel);
+  if(!wids[0].isValid) {
+    mf::LogError("ClusterCrawler")<<"Invalid Wire ID "<<theWire<<" "<<channel<<std::endl;
+  }
+        recob::Hit hit(theHit.Wire,  wids[0],
+              (double) theHit.Time - theHit.RMS, 0.,
+              (double) theHit.Time + theHit.RMS, 0.,
+              (double) theHit.Time, theHit.TimeErr,
+              (double) theHit.Charge, theHit.ChargeErr,
+              (double) theHit.Amplitude, theHit.AmplitudeErr,
+              (int)    theHit.numHits, 
+              (double) theHit.ChiDOF);
+        shcol.push_back(hit);
+        // mark the hit used in a cluster
+        inCluster[iht] = true;
+        ++hitcnt;
+      } // itt
+      // get the view from a hit on the cluster
+      CCHitFinderAlg::CCHit& theHit = fCCHFAlg.allhits[clstr.tclhits[0]];
+      art::Ptr<recob::Wire> theWire = theHit.Wire;
+      uint32_t channel = theWire->Channel();
+      recob::Cluster cluster((double)clstr.BeginWir, 0.,
+                             (double)clstr.BeginTim, 0.,
+                             (double)clstr.EndWir, 0.,
+                             (double)clstr.EndTim, 0.,
+                             (double)clstr.EndSlp, (double)clstr.EndSlpErr,
+                             -999.,0.,
+                             totalQ,
+                             geo->View(channel),
+                             nclus);
+      sccol.push_back(cluster);
+      // associate the hits to this cluster
+      util::CreateAssn(*this, evt, sccol, shcol, *hc_assn, firsthit, hitcnt);
+    } // cluster iterator
+//  std::cout<<"# clusters "<<nclus<<" # Hits in clusters "<<hitcnt;
+    
+    // make hits that are not associated with any cluster
+    hitcnt = 0;
+    for(unsigned short iht = 0; iht < fCCHFAlg.allhits.size(); ++iht) {
+      if(inCluster[iht]) continue;
+      CCHitFinderAlg::CCHit& theHit = fCCHFAlg.allhits[iht];
+      // Abandoned hits have negative Charge
+      if(theHit.Charge < 0) continue;
+      ++hitcnt;
+      art::Ptr<recob::Wire> theWire = theHit.Wire;
+      uint32_t channel = theWire->Channel();
+      // get the Wire ID from the channel
+      std::vector<geo::WireID> wids = geo->ChannelToWire(channel);
+  if(!wids[0].isValid) {
+    mf::LogError("ClusterCrawler")<<"Invalid Wire ID "<<theWire<<" "<<channel<<std::endl;
+  }
+      recob::Hit hit(theHit.Wire,  wids[0],
+            (double) theHit.Time - theHit.RMS, 0.,
+            (double) theHit.Time + theHit.RMS, 0.,
+            (double) theHit.Time , theHit.TimeErr,
+            (double) theHit.Charge , theHit.ChargeErr,
+            (double) theHit.Amplitude , theHit.AmplitudeErr,
+            (int)    theHit.numHits, 
+            (double) theHit.ChiDOF);
+      shcol.push_back(hit);
+    }
+//  std::cout<<" # Hits NOT in clusters "<<hitcnt;
+    
+    // convert to unique_ptrs
+    std::unique_ptr<std::vector<recob::Hit> > hcol(new std::vector<recob::Hit>);
+    for(unsigned short iht = 0; iht < shcol.size(); ++iht) {
+      hcol->push_back(shcol[iht]);
+    }
     std::unique_ptr<std::vector<recob::Cluster> > ccol(new std::vector<recob::Cluster>);
-    std::unique_ptr<art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
-    
-    std::vector<recob::EndPoint2D> vtxOut;
-    std::unique_ptr<std::vector<recob::EndPoint2D> > vcol(new std::vector<recob::EndPoint2D>(vtxOut));
-    
-    // loop over all hits in the event and look for clusters in each plane
-    art::PtrVector<recob::Hit> plnhits;
+    for(unsigned short icl = 0; icl < sccol.size(); ++icl) {
+      ccol->push_back(sccol[icl]);
+    }
 
-    for(unsigned int cstat = 0; cstat < geo->Ncryostats(); ++cstat){
-      for(unsigned int tpc = 0; tpc < geo->Cryostat(cstat).NTPC(); ++tpc){
-        for(unsigned int plane = 0; plane < geo->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
-          // load the hits in this plane
-          plnhits.clear();
-          for(size_t i = 0; i< hitcol->size(); ++i){
-            art::Ptr<recob::Hit> hit(hitcol, i);
-            if(hit->WireID().Plane    == plane && 
-               hit->WireID().TPC      == tpc   && 
-               hit->WireID().Cryostat == cstat) plnhits.push_back(hit);
-          }  // i
-          if(plnhits.size() < 4 || plnhits.size() > 32767) {
-            plnhits.clear();
-            continue;
-          }
-          plnhits.sort(cluster::SortByWire());
-          // convert to const
-          fCCAlg.RunCrawler(plnhits, plane);
-          for(size_t it = 0; it < fCCAlg.tcl.size(); it++) {
-            ClusterCrawlerAlg::ClusterStore clstr = fCCAlg.tcl[it];
-            // ignore deleted clusters
-            if(clstr.ID < 0) continue;
-            art::PtrVector<recob::Hit> clusterHits;
-            double totalQ = 0.;
-            for(auto const &itt : clstr.tclhits) {
-              if(itt < 0 || itt > plnhits.size() - 1) {
-                std::cout<<"Bad itt "<<itt<<std::endl;
-                continue;
-              }
-              totalQ += plnhits[itt]->Charge();
-              clusterHits.push_back(plnhits[itt]);
-            } // hit iterator
-            recob::Cluster cluster((double)clstr.BeginWir, 0.,
-                                   (double)clstr.BeginTim, 0.,
-                                   (double)clstr.EndWir, 0.,
-                                   (double)clstr.EndTim, 0.,
-                                   (double)clstr.EndSlp, (double)clstr.EndSlpErr,
-                                    -999.,0.,
-                                   totalQ,
-                                   plnhits[0]->View(),
-                                   (int)clstr.ID);
-            ccol->push_back(cluster);
-            // associate the hits to this cluster
-            util::CreateAssn(*this, evt, *ccol, clusterHits, *assn);
-            clusterHits.clear();
-          } // cluster iterator
-          fCCAlg.tcl.clear();
-          for(unsigned int iv = 0; iv < fCCAlg.vtx.size(); iv++) {
-            ClusterCrawlerAlg::VtxStore Vtx = fCCAlg.vtx[iv];
-            double drtime = Vtx.Time;
-            unsigned int wire = Vtx.Wire;
-            uint32_t chan = geo->PlaneWireToChannel(plane, wire, tpc, cstat);
-            std::vector<geo::WireID> wIDvec = geo->ChannelToWire(chan);
-            geo::WireID wID = wIDvec[0];
-            double strenth = Vtx.Wght;
-            recob::EndPoint2D myvtx(drtime, wID, strenth, (int)iv, plnhits[0]->View(), 0.);
-            vcol->push_back(myvtx);
-          } // iv
-          fCCAlg.vtx.clear();
-        } // plane
-      } // tpc
-    } // cstat
-    
+    // deal with cluster-EndPoint2D assns later (if necessary/desired)
+    std::unique_ptr<std::vector<recob::EndPoint2D> > vcol(new std::vector<recob::EndPoint2D>);
+
+    // make the vertex collection
+//  std::cout<<" # vertices "<<fCCAlg.vtx.size()<<std::endl;
+    for(unsigned short iv = 0; iv < fCCAlg.vtx.size(); iv++) {
+      ClusterCrawlerAlg::VtxStore vtx = fCCAlg.vtx[iv];
+      unsigned int wire = vtx.Wire;
+      unsigned int cstat = vtx.CTP / 100;
+      unsigned int tpc = (vtx.CTP - 100 * cstat) / 10;
+      unsigned int plane = vtx.CTP - 100 * cstat - 10 * tpc;
+      uint32_t channel = geo->PlaneWireToChannel(plane, wire, tpc, cstat);
+      // get the Wire ID from the channel
+      std::vector<geo::WireID> wids = geo->ChannelToWire(channel);
+  if(!wids[0].isValid) {
+    mf::LogError("ClusterCrawler")<<"Invalid Wire ID "<<plane<<" "<<wire<<" "<<tpc<<" "<<cstat<<std::endl;
+  }
+      recob::EndPoint2D myvtx((double)vtx.Time, wids[0], (double)vtx.Wght,
+        (int)iv, geo->View(channel), 0.);
+      vcol->push_back(myvtx);
+    } // iv
+
+
+    // clean up
+    fCCHFAlg.allhits.clear();
+    fCCAlg.tcl.clear();
+    fCCAlg.vtx.clear();
+
+    evt.put(std::move(hcol));
     evt.put(std::move(ccol));
-    evt.put(std::move(assn));
+    evt.put(std::move(hc_assn));
     evt.put(std::move(vcol));
 
   } // produce

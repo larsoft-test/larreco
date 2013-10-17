@@ -18,9 +18,11 @@ standard_dbcluster:
 
 standard_clustercrawler:
 {
- module_type:       "ClusterCrawler"
- HitsModuleLabel:   "ffthit"
- ClusterCrawlerAlg: @local::standard_clustercrawleralg
+ module_type:         "ClusterCrawler"
+ CalDataModuleLabel:  "caldata"
+ ClusterCrawlerAlg:   @local::standard_clustercrawleralg
+ CCHitFinderAlg:      @local::standard_cchitfinderalg
+ CCHitRefinerAlg:     @local::standard_cchitrefineralg
 }
 
 standard_fuzzycluster:
