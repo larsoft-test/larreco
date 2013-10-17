@@ -198,7 +198,7 @@ argoneut_showerangleclusterana.ClusterParamsAlg:           @local::argoneut_clus
 
 
 microboone_clustercrawler:               @local::standard_clustercrawler      
-microboone_clustercrawler.ClusterCrawlerAlg:               @local::microboone_clustercrawler      
+microboone_clustercrawler.ClusterCrawlerAlg:               @local::microboone_clustercrawleralg
 microboone_dbcluster:                    @local::standard_dbcluster      
 microboone_dbcluster.DBScanAlg:          @local::microboone_dbscanalg    
 microboone_dbclusterana:                 @local::standard_dbclusterana   
