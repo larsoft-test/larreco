@@ -329,8 +329,8 @@ namespace trkf {
 	const art::Ptr<recob::Track> ptrack( tcomp.at(ii) );
 	auto p { ptrack };
 	art::FindManyP<recob::Hit> hitAssns(p, evtGHFCT, fTrackModuleLabel); 
-	for (unsigned int jj=0; jj < hitAssns.size(); ++jj)
-	  hits.push_back(hitAssns.at(0).at(ii));
+	for (unsigned int jj=0; jj < hitAssns.at(0).size(); ++jj)
+	  hits.push_back(hitAssns.at(0).at(jj));
       }
     
     //    const art::PtrVector<recob::Hit> chits(hits);

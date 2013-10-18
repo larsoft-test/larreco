@@ -373,8 +373,7 @@ namespace trkf {
 	    {
 	      double dist = ((**sppt).XYZ() - loc).Mag(); 
 	      
-	      // Jump out if we're as close as 1 mm away.
-	      //if (mindist < 0.1) break; 
+	      // Jump out if we're as close as 0.1 mm away.
 	      if (dist<mindist) 
 		{
 		  mindist = dist;  
