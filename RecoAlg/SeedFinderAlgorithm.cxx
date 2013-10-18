@@ -36,8 +36,12 @@ namespace trkf {
   //----------------------------------------------------------------------------
   SeedFinderAlgorithm::SeedFinderAlgorithm(const fhicl::ParameterSet& pset)
   {
+    
 
     reconfigure(pset);
+  
+    CalculateGeometricalElements();
+    
     art::ServiceHandle<art::TFileService> tfs;
     ftMonitoringTree = (TTree*)tfs->make<TTree>("SeedTree","SeedTree");
  
@@ -197,6 +201,7 @@ namespace trkf {
     
     std::vector<char> PointStatus(spts.size(),0);
     
+    std::vector<std::map<geo::View_t, std::vector<int> > > WhichHitsPerSeed;
     
 
     bool KeepChopping = true;
@@ -233,12 +238,14 @@ namespace trkf {
 	if(TheSeed.IsValid())
 	  {
 	    ReturnVector.push_back(TheSeed);
+	    WhichHitsPerSeed.push_back(std::map<geo::View_t, std::vector<int> >());
 	    
 	    art::PtrVector<recob::Hit> HitsWithThisSeed;       
 	    for(size_t iH=0; iH!=HitStatus.size(); ++iH)
 	      {
 		if(HitStatus.at(iH)==2)
 		  {
+		    WhichHitsPerSeed.at(WhichHitsPerSeed.size()-1)[HitsFlat[iH]->View()].push_back(iH);
 		    HitsWithThisSeed.push_back(HitsFlat.at(iH));
 		    HitStatus.at(iH)=1;
 		    
@@ -284,6 +291,7 @@ namespace trkf {
     //  if the whole collection is colinear enough to make one megaseed
     //  (good for patching up high angle tracks)
 
+
     if(ReturnVector.size()==0)
       {
 	std::vector<int> ListAllPoints;
@@ -328,7 +336,6 @@ namespace trkf {
 	
       }
     
-
     // Tidy up
     SpacePointsPerHit.clear();
     HitsPerSpacePoint.clear();
@@ -353,10 +360,13 @@ namespace trkf {
 					    std::map<geo::View_t, std::map<uint32_t, std::vector<int> > >& OrgHits, bool Extend)
   {
     
+    
+    
     bool ThrowOutSeed = false;
     
     // This will keep track of what hits are in this seed
     std::map<geo::View_t, std::map<uint32_t, std::vector<int> > > HitsInThisSeed;
+    
     
     double MinS = 1000, MaxS=-1000;
     for(size_t i=0; i!=HitStatus.size(); ++i)
@@ -1174,6 +1184,129 @@ namespace trkf {
     return ReturnVec;
   }
 
+  //-----------------------------------------------------------
+
+  void  SeedFinderAlgorithm::GetCenterAndDirection(art::PtrVector<recob::Hit> HitsFlat, std::vector<int>&  HitsToUse, TVector3& Center, TVector3& Direction)
+  {
+    // Initialize the services we need
+    art::ServiceHandle<util::DetectorProperties>     det;
+
+  
+ 
+    std::map<uint32_t, bool>   HitsClaimed;
+
+    // We'll store hit coordinates in each view into this vector
+
+    std::vector<std::vector<double> > HitTimes(3);
+    std::vector<std::vector<double> > HitWires(3);
+    std::vector<std::vector<double> > HitWidths(3);
+    std::vector<double> MeanWireCoord(3,0);
+    std::vector<double> MeanTimeCoord(3,0);
+
+    // Run through the collection getting hit info for these spacepoints
+
+    std::vector<double> x(3,0), y(3,0), xx(3,0), xy(3,0), yy(3,0),  sig(3,0), N(3,0);
+    
+    for(size_t i=0; i!=HitsToUse.size(); ++i)
+      {
+	auto itHit = HitsFlat.begin()+i;
+	
+	size_t ViewIndex;
+	
+	if(     (*itHit)->View() == geo::kU) ViewIndex=0;
+	else if((*itHit)->View() == geo::kV) ViewIndex=1;
+	else if((*itHit)->View() == geo::kW) ViewIndex=2;
+	double WireCoord = (*itHit)->WireID().Wire * fPitches.at(ViewIndex);
+	double TimeCoord = det->ConvertTicksToX((*itHit)->PeakTime(),ViewIndex,0,0);
+	double TimeUpper = det->ConvertTicksToX((*itHit)->EndTime(), ViewIndex,0,0);
+	double TimeLower = det->ConvertTicksToX((*itHit)->StartTime(), ViewIndex,0,0);
+	double Width = fabs(0.5*(TimeUpper-TimeLower));
+	double Width2 = pow(Width,2);
+	
+	HitWires.at(ViewIndex).push_back(WireCoord);
+	HitTimes.at(ViewIndex).push_back(TimeCoord);
+	HitWidths.at(ViewIndex).push_back(fabs(0.5*(TimeUpper-TimeLower)));
+	
+	MeanWireCoord.at(ViewIndex) += WireCoord;
+	MeanTimeCoord.at(ViewIndex) += TimeCoord;
+	
+	// Elements for LS
+	x.at(ViewIndex)   += WireCoord / Width2;
+	y.at(ViewIndex)   += TimeCoord / Width2;
+	xy.at(ViewIndex)  += (TimeCoord * WireCoord) / Width2;
+	xx.at(ViewIndex)  += (WireCoord * WireCoord) / Width2;
+	yy.at(ViewIndex)  += (TimeCoord * TimeCoord) / Width2;
+	sig.at(ViewIndex) += 1./Width2;
+	N.at(ViewIndex)++;
+      }
+
+    std::vector<double>   ViewRMS(3);
+    std::vector<double>   ViewGrad(3);
+    std::vector<double>   ViewOffset(3);
+    
+    std::vector<double> CenterTime(3);
+    std::vector<double> CenterWireAtT0(3);
+    
+
+
+    for(size_t n=0; n!=3; ++n)
+      {
+	MeanWireCoord[n] /= N[n];
+	MeanTimeCoord[n] /= N[n];
+	
+	ViewGrad.at(n)   = (y[n]/sig[n] - xy[n]/x[n])/(x[n]/sig[n]-xx[n]/x[n]);
+	ViewOffset.at(n) = (y[n] - ViewGrad[n]*x[n])/sig[n];
+	ViewRMS.at(n)    = (yy[n] + pow(ViewGrad[n],2) * xx[n] + pow(ViewOffset[n],2) - 2*ViewGrad[n]*xy[n] - 2*ViewOffset[n]*y[n] + 2*ViewGrad[n]*ViewOffset[n]*x[n]);
+
+      }
+
+
+    std::vector<TVector3> ViewDir2D(3);
+
+    std::vector<TVector3> Center2D(3);
+
+    // Calculate centers and directions from pairs
+    for(size_t n=0; n!=3; ++n)
+      {
+	int n1 = (n+1)%3;
+	int n2 = (n+2)%3;
+
+
+	ViewDir2D[n] =
+	  (fXDir + fPitchDir[n1] *(1./ViewGrad[n1])
+	   + fWireDir[n1]  * (((1./ViewGrad[n2]) - fPitchDir[n1].Dot(fPitchDir[n2]) * (1./ViewGrad[n1])) / fWireDir[n1].Dot(fPitchDir[n2])) ).Unit();
+	
+	Center2D[n] =
+	  fXDir * 0.5 * (MeanTimeCoord[n1]+MeanTimeCoord[n2])
+	  + fPitchDir[n1] * (MeanWireCoord[n1] + fWireZeroOffset[n1])
+	  + fWireDir[n1] *  ( ((MeanWireCoord[n2] + fWireZeroOffset[n2]) - ( MeanWireCoord[n1] + fWireZeroOffset[n1] )*fPitchDir[n1].Dot(fPitchDir[n2]))/(fPitchDir[n2].Dot(fWireDir[n1])) );
+      }
+    
+    
+    
+    for(size_t n=0; n!=3; ++n)
+      {
+	size_t n1 = (n+1)%3;
+	size_t n2 = (n+2)%3;
+	if( (N[n] <= N[n1]) &&
+	    (N[n] <= N[n2]) )
+	  {
+	    
+	    Center    = Center2D[n];
+	    Direction = ViewDir2D[n];
+	  
+	    ftTheta = Direction.Theta();
+	    TVector3 NX(1,0,0), NY(0,1,0);
+	    ftThetaYZ = (Direction - Direction.Dot(NX)*NX).Theta();
+	    ftThetaXZ = (Direction - Direction.Dot(NY)*NY).Theta();
+	    
+	  }
+      }
+  }
+  
+
+
+
 
   //------------------------------------------------------------
   // Given a set of spacepoints, find preferred direction
@@ -1216,192 +1349,7 @@ namespace trkf {
 	  }
 	
       }
-    // View PCA Mode
-    else if(Mode==1)
-      {
 
-	// Initialize the services we need
-
-	art::ServiceHandle<geo::Geometry>                geom;
-	art::ServiceHandle<util::DetectorProperties>     det;
-
-	// Setup vector of PCA objects
-	std::vector<TPrincipal*> pcs;
-
-	for(size_t n=0; n!=3; ++n)
-	  {
-	    pcs.push_back(new TPrincipal(2,"D") );
-	  }
-
-	// Find pitch of each wireplane
-	std::vector<double> Pitches(3);
-	Pitches.at(0) = fabs(geom->WirePitch(geo::kU));
-	Pitches.at(1) = fabs(geom->WirePitch(geo::kV));
-	Pitches.at(2) = fabs(geom->WirePitch(geo::kW));
-	
-
-	// Get directional vectors for each plane
-	std::vector<TVector3> WireDir(3);
-	std::vector<double> WireZeroOffset(3);
-	std::vector<TVector3> PitchDir(3);
-	double xyzStart1[3], xyzEnd1[3];
-	double xyzStart2[3], xyzEnd2[3];
-	TVector3 XDir(1,0,0);
-	for(size_t n=0; n!=3; ++n)
-	  {
-	    geom->WireEndPoints(0,0,n,0,xyzStart1,xyzEnd1);
-	    geom->WireEndPoints(0,0,n,1,xyzStart2,xyzEnd2);
-	    WireDir[n] = TVector3(xyzEnd1[0] - xyzStart1[0],
-				  xyzEnd1[1] - xyzStart1[1],
-				  xyzEnd1[2] - xyzStart1[2]).Unit();
-	    PitchDir[n] = WireDir[n].Cross(XDir).Unit();
-	    if(PitchDir[n].Dot(TVector3(xyzEnd2[0] - xyzEnd1[0],
-					xyzEnd2[1] - xyzEnd1[1],
-					xyzEnd2[2] - xyzEnd1[2]))<0) PitchDir[n] = -PitchDir[n];
-
-	    WireZeroOffset[n] = 
-	      xyzEnd1[0]*PitchDir[n][0] +
-	      xyzEnd1[1]*PitchDir[n][1] +
-	      xyzEnd1[2]*PitchDir[n][2];
-					 
-	  }
-	
-	std::map<uint32_t, bool>   HitsClaimed;
-       
-	// We'll store hit coordinates in each view into this vector
-
-	std::vector<std::vector<double> > HitCoord1(3);
-	std::vector<std::vector<double> > HitCoord2(3);
-	std::vector<double> MeanWireCoord(3,0);
-	std::vector<double> MeanTimeCoord(3,0);
-
-	// Run through the collection getting hit info for these spacepoints
-
-	std::vector<art::PtrVector<recob::Hit> > HitsInThisCollection(3);
-	for(unsigned int i=0; i!=PointsInRange.size(); i++)
-	  {
-	    art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits((Points.at(PointsInRange.at(i))));
-	    for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
-		itHit!=HitsThisSP.end(); ++itHit)
-	      {
-		if(!HitsClaimed[(*itHit)->Channel()])
-		  {
-		    HitsClaimed[(*itHit)->Channel()]=true;
-		    
-		    size_t ViewIndex;
-		    
-		    if(     (*itHit)->View() == geo::kU) ViewIndex=0;
-		    else if((*itHit)->View() == geo::kV) ViewIndex=1;
-		    else if((*itHit)->View() == geo::kW) ViewIndex=2;
-
-		    
-		    double WireCoord = (*itHit)->WireID().Wire * Pitches.at(ViewIndex);
-		    double TimeCoord = det->ConvertTicksToX((*itHit)->PeakTime(),ViewIndex,0,0);
-
-
-		    HitCoord1.at(ViewIndex).push_back(WireCoord);
-		    HitCoord2.at(ViewIndex).push_back(TimeCoord);
-		    HitsInThisCollection.at(ViewIndex).push_back(*itHit);
-		    
-		    MeanWireCoord.at(ViewIndex) += WireCoord;
-		    MeanTimeCoord.at(ViewIndex) += TimeCoord;
-
-
-		  }
-	      }
-	  }
-
-	ftNUHits = HitCoord1.at(0).size();
-	ftNVHits = HitCoord1.at(1).size();
-	ftNWHits = HitCoord1.at(2).size();
-	
-	for(size_t n=0; n!=3; ++n)
-	  {
-	    pcs.at(n)->Clear();
-	    MeanTimeCoord.at(n) /= float(HitCoord2.at(n).size());
-	    MeanWireCoord.at(n) /= float(HitCoord1.at(n).size());
-
-	    for(size_t i=0; i!=HitCoord1.at(n).size(); ++i)
-	      {
-		double RowToAdd[2];
-		RowToAdd[0] = HitCoord1.at(n).at(i) - MeanWireCoord.at(n);
-		RowToAdd[1] = HitCoord2.at(n).at(i) - MeanTimeCoord.at(n);
-		
-		pcs.at(n)->AddRow(RowToAdd);
-	      }
-	  }
-	
-	
-	// Evaluate PCA in each view
-	std::vector<double>   PrincVals(3);
-	std::vector<double>   PrincGrad(3);
-	for(size_t n=0; n!=3; ++n)
-	  {
-	    pcs.at(n)->MakePrincipals();
-	    PrincVals.at(n) = (*pcs.at(n)->GetEigenValues())[0];
-	    PrincGrad.at(n) = 
-	      (*pcs.at(n)->GetEigenVectors())[0][0] /
-	      (*pcs.at(n)->GetEigenVectors())[0][1];
-	  }
-
-	
-	std::vector<TVector3> PrincDir2D(3);
-	std::vector<TVector3> Center2D(3);
-
-	// Calculate centers and directions from pairs
-	for(size_t n=0; n!=3; ++n)
-	  {
-	    int n1 = (n+1)%3;
-	    int n2 = (n+2)%3;
-	    
-	    
-	    PrincDir2D[n] =
-	      (XDir + PitchDir[n1] * PrincGrad[n1]
-	       + WireDir[n1]  * ((PrincGrad[n2] - PitchDir[n1].Dot(PitchDir[n2]) * PrincGrad[n1]) / WireDir[n1].Dot(PitchDir[n2])) ).Unit();
-	    
-	    Center2D[n] = 
-	      XDir * 0.5*(MeanTimeCoord[n1] + MeanTimeCoord[n2])
-	      + PitchDir[n1] * (MeanWireCoord[n1] + WireZeroOffset[n1])  
-	      + WireDir[n1] *  ( ((MeanWireCoord[n2] + WireZeroOffset[n2]) - ( MeanWireCoord[n1] + WireZeroOffset[n1] )*PitchDir[n1].Dot(PitchDir[n2]))/(PitchDir[n2].Dot(WireDir[n1])) );
-	  }
-	
-	
-	/*
-	// Check centers and angles are in approx agreement
-	mf::LogVerbatim("SeedFinderAlgorithm")<<"Check view discrepancies: "
-	for(size_t n=0; n!=3; ++n)
-	  {
-	    int n1 = (n+1)%3;
-	    int n2 = (n+2)%3;
-	    
-	    mf::LogVerbatim("SeedFinderAlgorithm")<<" " << (Center2D[n1]-Center2D[n2]).Mag()<<" " <<
-	      cos(PrincDir2D[n1].Angle(PrincDir2D[n2])) << " " << PrincVals[n1]<< " " << PrincVals[n2];
-
-	     
-	  }
-	*/	
-	for(size_t n=0; n!=3; ++n)
-	  {
-	    size_t n1 = (n+1)%3;
-	    size_t n2 = (n+2)%3;
-	    if( (HitCoord1.at(n).size() <= HitCoord1.at(n1).size()) &&
-		(HitCoord1.at(n).size() <= HitCoord1.at(n2).size()) )
-	      {
-		
-
-		Center    = Center2D[n];
-		Direction = PrincDir2D[n];
-		Strength  = 0.5*(PrincVals[n1]+PrincVals[n2]);
-		
-		ftEigenvalue = Strength;
-		ftTheta = Direction.Theta();
-		TVector3 NX(1,0,0), NY(0,1,0);
-		ftThetaYZ = (Direction - Direction.Dot(NX)*NX).Theta();
-		ftThetaXZ = (Direction - Direction.Dot(NY)*NY).Theta();
-	       
-	      } 
-	  }
-      }
     // Least squares method
     else if(Mode==2)
       {
@@ -1409,48 +1357,8 @@ namespace trkf {
 
 	art::ServiceHandle<geo::Geometry>                geom;
 	art::ServiceHandle<util::DetectorProperties>     det;
-
-        // Setup vector of PCA objects
-	std::vector<TPrincipal*> pcs;
-
-        for(size_t n=0; n!=3; ++n)
-          {
-            pcs.push_back(new TPrincipal(2,"D") );
-          }
-
-        // Find pitch of each wireplane
-	std::vector<double> Pitches(3);
-        Pitches.at(0) = fabs(geom->WirePitch(geo::kU));
-        Pitches.at(1) = fabs(geom->WirePitch(geo::kV));
-        Pitches.at(2) = fabs(geom->WirePitch(geo::kW));
-
-
-        // Get directional vectors for each plane
-	std::vector<TVector3> WireDir(3);
-	std::vector<double> WireZeroOffset(3);
-	std::vector<TVector3> PitchDir(3);
-        double xyzStart1[3], xyzEnd1[3];
-        double xyzStart2[3], xyzEnd2[3];
-        TVector3 XDir(1,0,0);
-        for(size_t n=0; n!=3; ++n)
-          {
-            geom->WireEndPoints(0,0,n,0,xyzStart1,xyzEnd1);
-            geom->WireEndPoints(0,0,n,1,xyzStart2,xyzEnd2);
-            WireDir[n] = TVector3(xyzEnd1[0] - xyzStart1[0],
-                                  xyzEnd1[1] - xyzStart1[1],
-                                  xyzEnd1[2] - xyzStart1[2]).Unit();
-            PitchDir[n] = WireDir[n].Cross(XDir).Unit();
-            if(PitchDir[n].Dot(TVector3(xyzEnd2[0] - xyzEnd1[0],
-                                        xyzEnd2[1] - xyzEnd1[1],
-                                        xyzEnd2[2] - xyzEnd1[2]))<0) PitchDir[n] = -PitchDir[n];
-
-            WireZeroOffset[n] =
-              xyzEnd1[0]*PitchDir[n][0] +
-              xyzEnd1[1]*PitchDir[n][1] +
-              xyzEnd1[2]*PitchDir[n][2];
-
-          }
-
+	
+      
 	std::map<uint32_t, bool>   HitsClaimed;
 
         // We'll store hit coordinates in each view into this vector
@@ -1481,7 +1389,7 @@ namespace trkf {
                      if(     (*itHit)->View() == geo::kU) ViewIndex=0;
                      else if((*itHit)->View() == geo::kV) ViewIndex=1; 
 		     else if((*itHit)->View() == geo::kW) ViewIndex=2;
-                     double WireCoord = (*itHit)->WireID().Wire * Pitches.at(ViewIndex);
+                     double WireCoord = (*itHit)->WireID().Wire * fPitches.at(ViewIndex);
                      double TimeCoord = det->ConvertTicksToX((*itHit)->PeakTime(),ViewIndex,0,0);
 		     double TimeUpper = det->ConvertTicksToX((*itHit)->EndTime(), ViewIndex,0,0);
 		     double TimeLower = det->ConvertTicksToX((*itHit)->StartTime(), ViewIndex,0,0);
@@ -1543,13 +1451,13 @@ namespace trkf {
 
 
             ViewDir2D[n] =
-              (XDir + PitchDir[n1] *(1./ViewGrad[n1])
-               + WireDir[n1]  * (((1./ViewGrad[n2]) - PitchDir[n1].Dot(PitchDir[n2]) * (1./ViewGrad[n1])) / WireDir[n1].Dot(PitchDir[n2])) ).Unit();
+              (fXDir + fPitchDir[n1] *(1./ViewGrad[n1])
+               + fWireDir[n1]  * (((1./ViewGrad[n2]) - fPitchDir[n1].Dot(fPitchDir[n2]) * (1./ViewGrad[n1])) / fWireDir[n1].Dot(fPitchDir[n2])) ).Unit();
 	    
             Center2D[n] =
-              XDir * 0.5 * (MeanTimeCoord[n1]+MeanTimeCoord[n2])
-              + PitchDir[n1] * (MeanWireCoord[n1] + WireZeroOffset[n1])
-              + WireDir[n1] *  ( ((MeanWireCoord[n2] + WireZeroOffset[n2]) - ( MeanWireCoord[n1] + WireZeroOffset[n1] )*PitchDir[n1].Dot(PitchDir[n2]))/(PitchDir[n2].Dot(WireDir[n1])) );
+              fXDir * 0.5 * (MeanTimeCoord[n1]+MeanTimeCoord[n2])
+              + fPitchDir[n1] * (MeanWireCoord[n1] + fWireZeroOffset[n1])
+              + fWireDir[n1] *  ( ((MeanWireCoord[n2] + fWireZeroOffset[n2]) - ( MeanWireCoord[n1] + fWireZeroOffset[n1] )*fPitchDir[n1].Dot(fPitchDir[n2]))/(fPitchDir[n2].Dot(fWireDir[n1])) );
           }
 	
 	
@@ -1580,6 +1488,51 @@ namespace trkf {
   }
 
 
+  //-----------------------------------------------
+  void SeedFinderAlgorithm::CalculateGeometricalElements()
+  {
+    art::ServiceHandle<geo::Geometry> geom;
+    
+    // Find pitch of each wireplane
+    fPitches.resize(3);
+    fPitches.at(0) = fabs(geom->WirePitch(geo::kU));
+    fPitches.at(1) = fabs(geom->WirePitch(geo::kV));
+    fPitches.at(2) = fabs(geom->WirePitch(geo::kW));
+
+    // Setup basis vectors
+    fXDir = TVector3(1,0,0);
+    fYDir = TVector3(0,1,0);
+    fZDir = TVector3(0,0,1);
+
+    fWireDir.resize(3);
+    fPitchDir.resize(3);
+    fWireZeroOffset.resize(3);
+
+    double xyzStart1[3], xyzStart2[3];
+    double xyzEnd1[3], xyzEnd2[3];
+
+    // Calculate wire coordinate systems
+    for(size_t n=0; n!=3; ++n)
+      {
+	geom->WireEndPoints(0,0,n,0,xyzStart1,xyzEnd1);
+	geom->WireEndPoints(0,0,n,1,xyzStart2,xyzEnd2);
+	fWireDir[n] = TVector3(xyzEnd1[0] - xyzStart1[0],
+			      xyzEnd1[1] - xyzStart1[1],
+			      xyzEnd1[2] - xyzStart1[2]).Unit();
+	fPitchDir[n] = fWireDir[n].Cross(fXDir).Unit();
+	if(fPitchDir[n].Dot(TVector3(xyzEnd2[0] - xyzEnd1[0],
+				     xyzEnd2[1] - xyzEnd1[1],
+				     xyzEnd2[2] - xyzEnd1[2]))<0) fPitchDir[n] = -fPitchDir[n];
+	
+	fWireZeroOffset[n] =
+	  xyzEnd1[0]*fPitchDir[n][0] +
+	  xyzEnd1[1]*fPitchDir[n][1] +
+	  xyzEnd1[2]*fPitchDir[n][2];
+	
+      }
+
+
+  }
 
 
   //-----------------------------------------------

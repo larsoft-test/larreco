@@ -105,7 +105,10 @@ namespace trkf {
                                    // Given a set of spacepoints, find the center and direction to form a seed. 
                                    //  Mode specifies whether to operate on spacepoints (old) or directly onto hits (new)
 
-    
+  
+    void                        GetCenterAndDirection(art::PtrVector<recob::Hit> HitsFlat, std::vector<int>& HitsToUse, TVector3& Center, TVector3& Direction);
+
+  
     void                        ConsolidateSeed(recob::Seed& TheSeed, art::PtrVector<recob::Hit> const&, std::vector<char>& HitStatus,
 						std::map<geo::View_t, std::map<uint32_t, std::vector<int> > >& OrgHits, bool Extend);
 
@@ -120,8 +123,9 @@ namespace trkf {
 
                                    // Find the spacepoints which are within some radius of seed from a provided sed.
 
-
-
+    void                        CalculateGeometricalElements();
+                                   // Pre-calculating geometrical factors
+  
                        
     // Fcl Attributes.
 
@@ -159,6 +163,13 @@ namespace trkf {
     Float_t   ftVRMSb;
     Float_t   ftWRMSb;
     bool      ftKeep;
+
+
+    std::vector<double>   fPitches;
+    std::vector<TVector3> fPitchDir;
+    std::vector<TVector3> fWireDir;
+    std::vector<double>   fWireZeroOffset;
+    TVector3              fXDir, fYDir, fZDir;
   };
   
 }
