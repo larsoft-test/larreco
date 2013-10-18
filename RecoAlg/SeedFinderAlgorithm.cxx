@@ -254,8 +254,6 @@ namespace trkf {
 	    TVector3 Center, Direction;
 	    GetCenterAndDirection(HitsFlat, PresentHitList, Center, Direction);
 	    
-	    double Slength = TheSeed.GetLength();
-	  
 	    
 	    Direction = Direction.Unit() * TheSeed.GetLength();
 	    
