@@ -231,10 +231,51 @@ namespace trkf {
 		    HitStatus[UsedHitID] = 2;
 		  }
 	      }
-	    
 	    ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, true);
-	  }
 
+	  }
+	
+	if(TheSeed.IsValid())
+	  {
+	    std::vector<int> PresentHitList;
+	    for(size_t iH=0; iH!=HitStatus.size(); ++iH)
+	      {
+		if(HitStatus[iH]==2)
+		  {
+		    PresentHitList.push_back(iH);
+		  }
+	      }
+	    double pt[3], dir[3], err[3];
+	    
+	    TheSeed.GetPoint(pt,err);
+	    TheSeed.GetDirection(dir,err);
+	    
+	  	    
+	    TVector3 Center, Direction;
+	    GetCenterAndDirection(HitsFlat, PresentHitList, Center, Direction);
+	    
+	    double Slength = TheSeed.GetLength();
+	  
+	    
+	    Direction = Direction.Unit() * TheSeed.GetLength();
+	    
+	    
+	    
+	    for(size_t n=0; n!=3; ++n)
+	      {
+		pt[n] = Center[n];
+		dir[n] = Direction[n];
+		
+		
+		TheSeed.SetPoint(pt, err);
+		TheSeed.SetDirection(dir, err);
+	      }
+
+	    ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, true);	  
+	  }
+	
+      
+	
 	if(TheSeed.IsValid())
 	  {
 	    ReturnVector.push_back(TheSeed);
@@ -459,7 +500,6 @@ namespace trkf {
 	Occupancy[ViewID] = float(FilledChanCount) / float(HighestChanInSeed[ViewID]-LowestChanInSeed[ViewID]);
       }	
     
-    // std::cout<<"Occupancy in views : " << Occupancy[0]<<", " <<Occupancy[1]<<", " <<Occupancy[2]<<std::endl;
     
     for(size_t n=0; n!=3; ++n)
       if(Occupancy[n]<fOccupancyCut) ThrowOutSeed=true;
@@ -1186,7 +1226,7 @@ namespace trkf {
 
   //-----------------------------------------------------------
 
-  void  SeedFinderAlgorithm::GetCenterAndDirection(art::PtrVector<recob::Hit> HitsFlat, std::vector<int>&  HitsToUse, TVector3& Center, TVector3& Direction)
+  void  SeedFinderAlgorithm::GetCenterAndDirection(art::PtrVector<recob::Hit> const& HitsFlat, std::vector<int>&  HitsToUse, TVector3& Center, TVector3& Direction)
   {
     // Initialize the services we need
     art::ServiceHandle<util::DetectorProperties>     det;
@@ -1209,7 +1249,7 @@ namespace trkf {
     
     for(size_t i=0; i!=HitsToUse.size(); ++i)
       {
-	auto itHit = HitsFlat.begin()+i;
+	auto itHit = HitsFlat.begin()+HitsToUse[i];
 	
 	size_t ViewIndex;
 	
