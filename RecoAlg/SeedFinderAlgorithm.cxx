@@ -237,46 +237,64 @@ namespace trkf {
 	
 	if(TheSeed.IsValid())
 	  {
-	    std::vector<int> PresentHitList;
-	    for(size_t iH=0; iH!=HitStatus.size(); ++iH)
+	    if(fRefits>0)
 	      {
-		if(HitStatus[iH]==2)
+		std::vector<char> HitStatusGood;
+		recob::Seed      SeedGood;
+		for(size_t r=0; r!=uint(fRefits); ++r)
 		  {
-		    PresentHitList.push_back(iH);
-		  }
-	      }
-	    double pt[3], dir[3], err[3];
-	    
-	    TheSeed.GetPoint(pt,err);
-	    TheSeed.GetDirection(dir,err);
-	    
-	  	    
-	    TVector3 Center, Direction;
-	    GetCenterAndDirection(HitsFlat, PresentHitList, Center, Direction);
-	    
-	    
-	    Direction = Direction.Unit() * TheSeed.GetLength();
-	    
-	    
-	    
-	    for(size_t n=0; n!=3; ++n)
-	      {
-		pt[n] = Center[n];
-		dir[n] = Direction[n];
-		
-		
-		TheSeed.SetPoint(pt, err);
-		TheSeed.SetDirection(dir, err);
-	      }
+		    SeedGood =      TheSeed;
+		    HitStatusGood = HitStatus;
 
-	    ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, true);	  
+		    std::vector<int> PresentHitList;
+		    for(size_t iH=0; iH!=HitStatus.size(); ++iH)
+		      {
+			if(HitStatus[iH]==2)
+			  {
+			    PresentHitList.push_back(iH);
+			  }
+		      }
+		    double pt[3], dir[3], err[3];
+		    
+		    TheSeed.GetPoint(pt,err);
+		    TheSeed.GetDirection(dir,err);
+		    
+		    
+		    TVector3 Center, Direction;
+		    GetCenterAndDirection(HitsFlat, PresentHitList, Center, Direction);
+		    
+		    
+		    Direction = Direction.Unit() * TheSeed.GetLength();
+		    
+		    
+		    
+		    for(size_t n=0; n!=3; ++n)
+		      {
+			pt[n] = Center[n];
+			dir[n] = Direction[n];
+			
+			
+			TheSeed.SetPoint(pt, err);
+			TheSeed.SetDirection(dir, err);
+		      }
+		    
+		    ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, true);	  
+		    
+		    // if we accidentally invalidated the seed, go back to the old one and escape
+		    if(!TheSeed.IsValid()) 
+		      {
+			HitStatus = HitStatusGood; 
+			TheSeed   = SeedGood;
+			break;
+		      }
+		  }
+	      } 
 	  }
 	
       
 	
 	if(TheSeed.IsValid())
 	  {
-	    ReturnVector.push_back(TheSeed);
 	    WhichHitsPerSeed.push_back(std::map<geo::View_t, std::vector<int> >());
 	    
 	    art::PtrVector<recob::Hit> HitsWithThisSeed;       
@@ -297,6 +315,7 @@ namespace trkf {
 	    
 	    
 	    // Record that we used this set of hits with this seed in the return catalogue
+	    ReturnVector.push_back(TheSeed);
 	    CataloguedHits.push_back(HitsWithThisSeed);
 	    
 	    
@@ -354,7 +373,7 @@ namespace trkf {
 	      }
 	    recob::Seed TheSeed(PtArray,DirArray);
 	
-	    if(fRefits>0) RefitSeed(TheSeed, spts);	
+	    //	    if(fRefits>0) RefitSeed(TheSeed, spts);	
 	    
 	    std::vector<double> RMS = GetHitRMS(TheSeed, spts);
 	    
@@ -370,9 +389,13 @@ namespace trkf {
 		  }
 	      }
 	    if(!ThrowOutSeed)
-	      ReturnVector.push_back(TheSeed);
+	      {
+		ReturnVector.push_back(TheSeed);
+		CataloguedHits.push_back(HitsFlat);
+		
+	      }
+	  
 	  }
-	
       }
     
     // Tidy up
@@ -785,8 +808,8 @@ namespace trkf {
     ftWRMSb = RMSb.at(2);
 
    
-    if((!ThrowOutSeed) && (fRefits>0))
-      RefitSeed(ReturnSeed, PointsUsed);
+    //    if((!ThrowOutSeed) && (fRefits>0))
+    //      RefitSeed(ReturnSeed, PointsUsed);
     
 	
     std::vector<double> RMS = GetHitRMS(ReturnSeed, PointsUsed);
