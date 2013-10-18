@@ -18,10 +18,10 @@ standard_seedfinderalgorithm:
   SpacePointAlg:          @local::standard_spacepointalg
   InitSeedLength:         4
   MinPointsInSeed:        4
-  Refits:                 0
-  HitResolution:          3
+  Refits:                 10
+  HitResolution:          2
   OccupancyCut:           0.8
-  MaxViewRMS:             [1.5,1.5,1.5]
+  MaxViewRMS:             [2,2,2]
   ExtendSeeds:            true
 }
 standard_seedfinderalgorithm.SpacePointAlg.Filter: false
