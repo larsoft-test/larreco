@@ -261,11 +261,10 @@ namespace cluster {
                 if(fcl2hits.size() < span || !clok) continue;
                 // sort them by decreasing wire number
                 // assume that this is the same as sorting by decreasing 
-                // hit number. This only needs to be done on the starting cluster
-                // hits will be added in the proper order by cl2Follow
+                // hit number. This only needs to be done on the starting cluster.
+                // Hits will be added in the proper order by cl2Follow
                 std::sort(fcl2hits.begin(), fcl2hits.end(), SortByLowHit);
-                // re-fit
-                // define the hit origin
+                // do a real fit
                 cl2Fit(allhits);
                 if(clChisq > 10.) continue;
                 // check the charge ratio between the DS hit and the next-most
@@ -369,8 +368,11 @@ namespace cluster {
       // no vertices made yet on the first pass
       if(pass == 0) return;
       // skip if vertices were not requested to be made on the previous pass
-      if( !fDoVertex[pass -1] ) return;
+      if( !fDoVertex[pass - 1] ) return;
+      
       unsigned short jindx = jwire - fFirstWire;
+      unsigned short jfirsthit = WireHitRange[jindx].first;
+      unsigned short jlasthit = WireHitRange[jindx].second;
       for(unsigned short iv = 0; iv < vtx.size(); ++iv) {
         if(vtx[iv].CTP != clCTP) continue;
         // vertex must be US of the cluster
@@ -380,8 +382,6 @@ namespace cluster {
         clpar[0] = allhits[ihit].Time;
         clpar[1] = (vtx[iv].Time - allhits[ihit].Time) / (vtx[iv].Wire - iwire);
         float prtime = clpar[0] + clpar[1] * (jwire - iwire);
-        unsigned short jfirsthit = WireHitRange[jindx].first;
-        unsigned short jlasthit = WireHitRange[jindx].second;
         for(unsigned short jhit = jfirsthit; jhit < jlasthit; ++jhit) {
           if(hiterr2[jhit - fFirstHit] < 0) continue;
           if(allhits[jhit].Charge < 0) continue;
@@ -425,7 +425,7 @@ namespace cluster {
           if(vtx[ivx].Wire > tcl[icl].BeginWir - 3) continue;
           if(vtx[ivx].Time > tmax) continue;
           if(vtx[ivx].Time < tmin) continue;
-          for(unsigned short ii = 0; ii < tcl[icl].tclhits.size(); ++ii) {
+          for(unsigned short ii = 3; ii < tcl[icl].tclhits.size() - 3; ++ii) {
             unsigned short iht = tcl[icl].tclhits[ii];
             if(vtx[ivx].Wire == allhits[iht].WireNum) {
               if(fabs(vtx[ivx].Time - allhits[iht].Time) < 10.) {
@@ -507,11 +507,16 @@ namespace cluster {
           float sumchg = 0.;
           for(unsigned short jj = 0; jj < allhits[iht].numHits; ++jj) {
             unsigned short jht = allhits[iht].LoHitID + jj;
-            // hit is not used by another cluster
   if(prt) {
     std::cout<<" W:H "<<allhits[jht].WireNum<<":";
     std::cout<<jht<<" time "<<allhits[jht].Time<<" chg "<<(int)allhits[jht].Charge<<std::endl;
   }
+            // error checking
+            if(allhits[jht].LoHitID != allhits[iht].LoHitID) {
+              std::cout<<"Hit multiplet ID error "<<jj<<" "<<allhits[iht].numHits<<std::endl;
+              return;
+            }
+            // hit is not used by another cluster
             if(hiterr2[jht - fFirstHit] < 0.) continue;
             if(theHit == 0) theHit = jht;
             short arg = (short)(allhits[jht].Time - 2.5 * allhits[jht].RMS);
@@ -572,7 +577,9 @@ namespace cluster {
           allhits[theHit].RMS = sqrt(chgsumt / chgsum);
           allhits[theHit].Time = aveTime;
           allhits[theHit].Charge = chgsum;
+          // find the amplitude from the integrated charge and the RMS
           allhits[theHit].Amplitude = chgsum / (2.507 * allhits[theHit].RMS);
+          // associate theHit with the current cluster
           fcl2hits[ii] = theHit;
   if(prt) {
     std::cout<<"theHit "<<theHit<<" time "<<(int)aveTime<<" RMS "<<allhits[theHit].RMS;
@@ -617,16 +624,21 @@ namespace cluster {
 
       for(unsigned short ii1 = 0; ii1 < sortindex.size() - 1; ++ii1) {
         unsigned short it1 = sortindex[ii1];
+        // ignore obsolete clusters
+        if(tcl[it1].ID < 0) continue;
         // ignore already attached clusters
         if(tcl[it1].BeginVtx >= 0 && tcl[it1].EndVtx >= 0) continue;
         float es1 = tcl[it1].EndSlp;
+        float eth1 = atan(fScaleF * tcl[it1].EndSlp);
         unsigned short ew1 = tcl[it1].EndWir;
         float et1 = tcl[it1].EndTim;
         float bs1 = tcl[it1].BeginSlp;
+        float bth1 = atan(fScaleF * tcl[it1].BeginSlp);
         unsigned short bw1 = tcl[it1].BeginWir;
         float bt1 = tcl[it1].BeginTim;
         for(unsigned short ii2 = ii1 + 1; ii2 < sortindex.size(); ++ii2) {
           unsigned short it2 = sortindex[ii2];
+          if(tcl[it2].ID < 0) continue;
           // ignore already attached clusters
           if(tcl[it2].BeginVtx >= 0 && tcl[it2].EndVtx >= 0) continue;
           // try to attach cluster to existing vertices at either end
@@ -635,14 +647,17 @@ namespace cluster {
           if(tcl[it1].tclhits.size() < 10 &&
              tcl[it2].tclhits.size() < 10) continue;
           float es2 = tcl[it2].EndSlp;
+          float eth2 = atan(fScaleF * tcl[it2].EndSlp);
           unsigned short ew2 = tcl[it2].EndWir;
           float et2 = tcl[it2].EndTim;
           float bs2 = tcl[it2].BeginSlp;
+          float bth2 = atan(fScaleF * tcl[it2].BeginSlp);
           unsigned short bw2 = tcl[it2].BeginWir;
           float bt2 = tcl[it2].BeginTim;
 //  if(vtxprt) std::cout<<"Chk clusters "<<tcl[it1].ID<<" "<<tcl[it2].ID<<std::endl;
   // topo 1: check for vtx US of the ends of both clusters
-          if(tcl[it1].EndVtx < 0 && tcl[it2].EndVtx < 0) {
+          float dth = fabs(eth1 - eth2);
+          if(tcl[it1].EndVtx < 0 && tcl[it2].EndVtx < 0 && dth > 0.3) {
             float dsl = es2 - es1;
             if(fabs(dsl) < 0.001) dsl = 0.001;
             // find vertex wire and vertex time in float precision (fvw, fvt)
@@ -670,7 +685,8 @@ namespace cluster {
             } // fvw in detector
           } // topo 1
   // topo 2: check for vtx US of it1 and DS of it2
-          if(tcl[it1].EndVtx < 0 && tcl[it2].BeginVtx < 0) {
+          dth = fabs(eth1 - bth2);
+          if(tcl[it1].EndVtx < 0 && tcl[it2].BeginVtx < 0 && dth > 0.3) {
             float dsl = bs2 - es1;
             if(fabs(dsl) < 0.001) dsl = 0.001;
             float fvw = 0.5 + (et1 - ew1 * es1 - bt2 + bw2 * bs2) / dsl;
@@ -690,7 +706,8 @@ namespace cluster {
             } // fvw in detector
           } // topo 2
   // topo 3: check for vtx DS of it1 and US of it2
-          if(tcl[it1].BeginVtx < 0 && tcl[it2].EndVtx < 0) {
+          dth = fabs(bth1 - eth2);
+          if(tcl[it1].BeginVtx < 0 && tcl[it2].EndVtx < 0 && dth > 0.3) {
             float dsl = bs1 - es2;
             if(fabs(dsl) < 0.001) dsl = 0.001;
             float fvw = 0.5 + (et2 - ew2 * es2 - bt1 + bw1 * bs1) / dsl;
@@ -709,7 +726,8 @@ namespace cluster {
             } // fvw in detector
           } // topo 3
   // topo 4: check for vtx DS of it1 and DS of it2
-          if(tcl[it1].BeginVtx < 0 && tcl[it2].BeginVtx < 0) {
+          dth = fabs(bth1 - bth2);
+          if(tcl[it1].BeginVtx < 0 && tcl[it2].BeginVtx < 0 && dth > 0.3) {
             float dsl = bs2 - bs1;
             if(fabs(dsl) < 0.001) dsl = 0.001;
             // find vertex wire and vertex time in float precision (fvw, fvt)
@@ -744,6 +762,7 @@ namespace cluster {
       // fit the vertices
       for(unsigned short iv = 0; iv < vtx.size(); ++iv) {
         if(vtx[iv].CTP != clCTP) continue;
+        if(vtx[iv].Wght < 0) continue;
         float ChiDOF = 0.;
         cl2VtxFit(tcl, vtx, iv, ChiDOF);
       }
@@ -776,13 +795,15 @@ namespace cluster {
         std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx,
         unsigned short it)
     {
-      // try to attach cluster it2 to an existing vertex
+      // try to attach cluster it to an existing vertex
       
       if(vtx.size() == 0) return;
       
       for(unsigned short iv = 0; iv < vtx.size(); ++iv) {
         // ignore vertices in the wrong cryostat/TPC/Plane
         if(vtx[iv].CTP != clCTP) continue;
+        // ignore deleted vertices
+        if(vtx[iv].Wght < 0) continue;
         // determine which end to match - begin or end
         if(tcl[it].EndVtx < 0 &&  vtx[iv].Wire <= tcl[it].EndWir + 2) {
           // project cluster to US vertex
@@ -934,14 +955,8 @@ namespace cluster {
         wiree = wire1;
         timee = time1;
       }
-      if(wiree < fFirstWire || wiree > fLastWire) {
-            mf::LogError("ClusterCrawler")<<"ChkSignal bad wiree "<<wiree;
-            return;
-      }
-      if(wireb < fFirstWire || wireb > fLastWire) {
-            mf::LogError("ClusterCrawler")<<"ChkSignal bad wireb "<<wireb;
-            return;
-      }
+      if(wiree < fFirstWire || wiree > fLastWire) return;
+      if(wireb < fFirstWire || wireb > fLastWire) return;
       short wire0 = wiree;
       // checking a single wire?
       if(wireb == wiree) {
@@ -1143,7 +1158,7 @@ namespace cluster {
     std::cout<<std::endl;
   }
             if(chgrat < chgcut && dtim < timecut) {
-              cl2DoMerge(allhits, tcl, it2, it1, 10);
+              cl2DoMerge(allhits, tcl, vtx, it2, it1, 10);
               tclsize = tcl.size();
               break;
             }
@@ -1167,7 +1182,7 @@ namespace cluster {
     std::cout<<std::endl;
   }
             if(chgrat < chgcut && dtim < timecut) {
-              cl2DoMerge(allhits, tcl, it1, it2, 10);
+              cl2DoMerge(allhits, tcl, vtx, it1, it2, 10);
               tclsize = tcl.size();
               break;
             }
@@ -1367,14 +1382,15 @@ namespace cluster {
 
   if(fDebugWire < 0)  std::cout<<"Merge em"<<std::endl;
     // success. Merge them
-    cl2DoMerge(allhits, tcl, it1, it2, 100);
+    cl2DoMerge(allhits, tcl, vtx, it1, it2, 100);
     didit = true;
   }
 
 /////////////////////////////////////////
-  void ClusterCrawlerAlg::cl2DoMerge(std::vector<CCHitFinderAlg::CCHit>& allhits, 
-     std::vector<ClusterStore>& tcl, unsigned short it1, unsigned short it2,
-     short ProcCode)
+  void ClusterCrawlerAlg::cl2DoMerge(
+      std::vector<CCHitFinderAlg::CCHit>& allhits, 
+      std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx,
+      unsigned short it1, unsigned short it2, short ProcCode)
   {
     // Merge clusters. Cluster 1 has precedence for assignment of hits
     
@@ -1463,7 +1479,6 @@ namespace cluster {
     clEndChg = fAveChg;
 
     clStopCode = cl1.StopCode;
-    clAssn = -1;
     // append it to the tcl vector
     cl2TmpStore(allhits, tcl);
     unsigned short itnew = tcl.size()-1;
@@ -1480,26 +1495,23 @@ namespace cluster {
     tcl[it1].ID = -tcl[it1].ID;
     tcl[it2].ID = -tcl[it2].ID;
     // delete a vertex between these two?
-    short deleteVtx = -1;
     if(tcl[it1].BeginVtx >= 0) {
-      if(tcl[it1].BeginVtx == tcl[it2].EndVtx) deleteVtx = tcl[it2].EndVtx;
-    } else if(tcl[it1].EndVtx >= 0) {
-      if(tcl[it1].EndVtx == tcl[it2].BeginVtx) deleteVtx = tcl[it2].BeginVtx;
-    }
-    if(deleteVtx >= 0) {
-      // erase the vertex
-      vtx.erase(vtx.begin() + deleteVtx);
-      // re-assign the cluster - vertex assignments
-      for(unsigned short icl = 0; icl < tcl.size(); ++icl) {
-        if(tcl[icl].BeginVtx > deleteVtx) tcl[icl].BeginVtx = tcl[icl].BeginVtx - 1;
-        if(tcl[icl].EndVtx > deleteVtx) tcl[icl].EndVtx = tcl[icl].EndVtx - 1;
+      if(tcl[it1].BeginVtx == tcl[it2].EndVtx) {
+        vtx[tcl[it2].EndVtx].Wght = -1;
+        tcl[it1].BeginVtx = -99;
+        tcl[it2].EndVtx = -99;
       }
-    } else {
-      if(tcl[it1].BeginVtx >= 0) tcl[itnew].BeginVtx = tcl[it1].BeginVtx;
-      if(tcl[it2].BeginVtx >= 0) tcl[itnew].BeginVtx = tcl[it2].BeginVtx;
-      if(tcl[it1].EndVtx >= 0) tcl[itnew].EndVtx = tcl[it1].EndVtx;
-      if(tcl[it2].EndVtx >= 0) tcl[itnew].EndVtx = tcl[it2].EndVtx;
+    } else if(tcl[it1].EndVtx >= 0) {
+      if(tcl[it1].EndVtx == tcl[it2].BeginVtx) {
+        vtx[tcl[it2].BeginVtx].Wght = -1;
+        tcl[it1].EndVtx = -99;
+        tcl[it2].BeginVtx = -99;
+      }
     }
+    // set the vertex assignments negative so that this new cluster
+    // can be re-assigned to the appropriate vertex
+    tcl[itnew].BeginVtx = -99;
+    tcl[itnew].EndVtx = -99;
   }
 
 /////////////////////////////////////////
@@ -1587,7 +1599,7 @@ namespace cluster {
   {
 
     if(fcl2hits.size() < 3) {
-      mf::LogError("ClusterCrawler")<<"cl2TmpStore trying to store crazy cluster";
+//      mf::LogError("ClusterCrawler")<<"cl2TmpStore trying to store crazy cluster";
       return;
     }
     
@@ -1607,14 +1619,12 @@ namespace cluster {
         std::cout<<" in plane "<<plane<<std::endl;
       }
       unsigned short index = hit - fFirstHit;
-      // set to the cluster ID so we can find the cluster containing this
-      // hit without searching
       hiterr2[index] = -fabs(hiterr2[index]);
     }
 
     // ensure that the cluster begin/end info is correct
 
-    // define the begin/end charge if it wasnt done already
+    // define the begin/end charge if it wasn't done already
     if(clEndChg < 0.) {
       // use the next to the last two hits. The End hit may have low charge
       unsigned int ih0 = fcl2hits.size() - 2;
@@ -1763,8 +1773,7 @@ namespace cluster {
           }
           continue;
         }
-        // monitor the onset of a kink. Find the average chisq for the fit
-        // using the previous 3 - 6 hits. Look for a progressive increase
+        // monitor the onset of a kink. Look for a progressive increase
         // in chisq for the previous 0 - 2 hits.
         chifits.push_back(clChisq);
         if(chifits.size() > 7 && fKinkChiRat[pass] > 0) {
@@ -1783,32 +1792,16 @@ namespace cluster {
             // find the kink angle (crudely) from the 0th and 2nd hit
             unsigned short ih0 = fcl2hits.size() - 1;
             unsigned short hit0 = fcl2hits[ih0];
-            if(hit0 > allhits.size()-1) {
-              mf::LogError("ClusterCrawler")<<"FollowUS bad hit0 "<<hit0;
-              return;
-            }
             unsigned short ih2 = ih0 - 2;
             unsigned short hit2 = fcl2hits[ih2];
-            if(hit2 > allhits.size()-1) {
-              mf::LogError("ClusterCrawler")<<"FollowUS bad hit2 "<<hit2;
-              return;
-            }
             float dt02 = allhits[hit2].Time - allhits[hit0].Time;
             float dw02 = allhits[hit2].WireNum - allhits[hit0].WireNum;
             float th02 = atan( fScaleF * dt02 / dw02);
             // and the 3rd and 5th hit
             unsigned short ih3 = ih2 - 1;
             unsigned short hit3 = fcl2hits[ih3];
-            if(hit3 > allhits.size()-1) {
-              mf::LogError("ClusterCrawler")<<"FollowUS bad hit3 "<<hit3;
-              return;
-            }
             unsigned short ih5 = ih3 - 2;
             unsigned short hit5 = fcl2hits[ih5];
-            if(hit5 > allhits.size()-1) {
-              mf::LogError("ClusterCrawler")<<"FollowUS bad hit5 "<<hit5;
-              return;
-            }
             float dt35 = allhits[hit5].Time - allhits[hit3].Time;
             float dw35 = allhits[hit5].WireNum - allhits[hit3].WireNum;
             float th35 = atan(fScaleF * dt35 / dw35);
@@ -2223,8 +2216,8 @@ namespace cluster {
               }
               // stop looking for hits
               return;
-            }
-          }
+            } // fabs(timediff) < 3
+          } // chgrat < -fChgCut[pass]s
         } else {
           // allow a low hit
           if(chgrat < lowchgcut) continue;
@@ -2249,7 +2242,7 @@ namespace cluster {
       HitOK = false;
       return;
     }
-    // Found a close hit check the chisq
+    // Found a close hit. Check the chisq
     float prtimerr2 = clparerr[0]*clparerr[0] + fabs(kwire-wire0)*clparerr[1]*clparerr[1];
   if(prt) {
     std::cout<<" clerr "<<prtimerr2<<" hiterr "<<hiterr2[imbest - fFirstHit];
@@ -2317,8 +2310,9 @@ namespace cluster {
         }
       } // ii
       if(x.size() < 2) {
-        std::cout<<"cl2VtxFit: Cluster-Vertex assigment error "<<plane;
-        std::cout<<" iv "<<iv<<std::endl;
+//        std::cout<<"cl2VtxFit: Cluster-Vertex assigment error "<<plane;
+//        std::cout<<" iv "<<iv<<std::endl;
+        vtx[iv].Wght = -1;
         return;
       }
       
@@ -2377,7 +2371,7 @@ namespace cluster {
       }
       float ndof = x.size() - 2;
       float varnce = (sumy2 + A*A*sum + B*B*sumx2 - 
-                      2 * (A*sumy + B*sumxy -A*B*sumx)) / ndof;
+                      2 * (A*sumy + B*sumxy - A*B*sumx)) / ndof;
       if(varnce > 0.) {
         InterceptError = sqrt(varnce * sumx2 / delta);
         SlopeError = sqrt(varnce * sum / delta);

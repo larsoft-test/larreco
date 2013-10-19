@@ -218,7 +218,8 @@ namespace cluster {
       std::vector<ClusterStore>& tcl, unsigned short it1, unsigned short it2, bool& didit);
     // Merges clusters cl1 and cl2
     void cl2DoMerge(std::vector<CCHitFinderAlg::CCHit>& allhits, 
-      std::vector<ClusterStore>& tcl, unsigned short it1, unsigned short it2, 
+      std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx,
+      unsigned short it1, unsigned short it2, 
       short ProcCode);
     // Prints cluster information to the screen
     void cl2Print(std::vector<CCHitFinderAlg::CCHit>& allhits, 
