@@ -138,8 +138,8 @@ standard_fuzzyclusteralg:
     ThetaZeroOutRange:        0
     HitsPerCluster:           1
     MissedHits:               1    # Was set to 0
-    MissedHitsDistance:       2.0  # 
-    MissedHitsToLineSize:     0.25    # Was set to 0
+    MissedHitsDistance:       1.0  # 
+    MissedHitsToLineSize:     0.5    # Was set to 0
   }
   DBScanAlg:       @local::standard_dbscanalg 
   EndPointClusAlg: @local::standard_endpointalg
