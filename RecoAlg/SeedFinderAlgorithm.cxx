@@ -231,8 +231,9 @@ namespace trkf {
 		    HitStatus[UsedHitID] = 2;
 		  }
 	      }
+	    PointStatus[PointsUsed.at(0)] = 1;
 	    ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, true);
-
+	    
 	  }
 	
 	if(TheSeed.IsValid())
@@ -429,7 +430,8 @@ namespace trkf {
     // This will keep track of what hits are in this seed
     std::map<geo::View_t, std::map<uint32_t, std::vector<int> > > HitsInThisSeed;
     
-    
+    int NHitsThisSeed=0;
+
     double MinS = 1000, MaxS=-1000;
     for(size_t i=0; i!=HitStatus.size(); ++i)
       {
@@ -444,6 +446,8 @@ namespace trkf {
 	      }
 	    else
 	      {
+		NHitsThisSeed++;
+			
 		if(s<MinS) MinS = s;
 		if(s>MaxS) MaxS = s;
 		HitsInThisSeed[HitsFlat.at(i)->View()][HitsFlat.at(i)->Channel()].push_back(i);
@@ -485,6 +489,8 @@ namespace trkf {
 		    GetHitDistAndProj(TheSeed, HitsFlat[OrgHits[View][c].at(h)], dist, s);
 		    if(dist < fHitResolution)
 		      {
+			NHitsThisSeed++;
+			
 			HitStatus[OrgHits[View][c].at(h)]=2;
 			HitsInThisSeed[View][c].push_back(OrgHits[View][c].at(h));
 		      }
@@ -492,6 +498,9 @@ namespace trkf {
 	      }
 	  }
       }
+
+    if(NHitsThisSeed==0) ThrowOutSeed=true;
+
     
     // Check seed occupancy
     
