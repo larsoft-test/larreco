@@ -146,8 +146,8 @@ namespace cluster{
         } else {
           // check for a wide enough signal above threshold
           if(nabove > minSamples) {
-            // truncate the number of points if it's crazy big
-            if(nabove > maxticks) nabove = maxticks;
+            // skip this wire if the RAT is too long
+            if(nabove > maxticks) break;
             unsigned short npt = 0;
             // look for bumps to inform the fit
             bumps.clear();
