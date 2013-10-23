@@ -48,8 +48,7 @@ namespace trkf {
     ftMonitoringTree->Branch("ThetaXZ",   &ftThetaXZ,   "ThetaXZ/F");
     ftMonitoringTree->Branch("ThetaYZ",   &ftThetaYZ,   "ThetaYZ/F");
     ftMonitoringTree->Branch("Theta",     &ftTheta,     "Theta/F");
-    ftMonitoringTree->Branch("Eigenvalue",&ftEigenvalue,"Eigenvalue/F");
-    ftMonitoringTree->Branch("NSpts",     &ftNSpts,     "NSpts/I");
+     ftMonitoringTree->Branch("NSpts",     &ftNSpts,     "NSpts/I");
     ftMonitoringTree->Branch("NUHits",    &ftNUHits,    "NUHits/I");
     ftMonitoringTree->Branch("NVHits",    &ftNVHits,    "NVHits/I");
     ftMonitoringTree->Branch("NWHits",    &ftNWHits,    "NWHits/I");
@@ -232,7 +231,7 @@ namespace trkf {
 		  }
 	      }
 	    PointStatus[PointsUsed.at(0)] = 1;
-	    ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, true);
+	    ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, fExtendSeeds);
 	    
 	  }
 	
@@ -279,7 +278,7 @@ namespace trkf {
 			TheSeed.SetDirection(dir, err);
 		      }
 		    
-		    ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, true);	  
+		    ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, fExtendSeeds);	  
 		    
 		    // if we accidentally invalidated the seed, go back to the old one and escape
 		    if(!TheSeed.IsValid()) 
@@ -361,7 +360,7 @@ namespace trkf {
 	TVector3 SeedDirection( 0, 0, 0 );
 	double   SeedStrength = 0;
 
-	GetCenterAndDirection(spts, ListAllPoints, SeedCenter, SeedDirection, SeedStrength, 2);
+	GetCenterAndDirection(spts, ListAllPoints, SeedCenter, SeedDirection);
 
 
 	if(SeedStrength > fPCAThreshold)
@@ -781,7 +780,7 @@ namespace trkf {
    
     if(NPoints<fMinPointsInSeed) return  recob::Seed();
     
-    GetCenterAndDirection(Points, PointsInRange, SeedCenter, SeedDirection, SeedStrength, 2);
+    GetCenterAndDirection(Points, PointsInRange, SeedCenter, SeedDirection);
     
     // See if seed points have some linearity
 
@@ -1382,180 +1381,140 @@ namespace trkf {
   // Given a set of spacepoints, find preferred direction
   //  and center
 
-  void  SeedFinderAlgorithm::GetCenterAndDirection(std::vector<recob::SpacePoint> const& Points, std::vector<int> const& PointsInRange, TVector3& Center, TVector3& Direction, double& Strength, int Mode)
+  void  SeedFinderAlgorithm::GetCenterAndDirection(std::vector<recob::SpacePoint> const& Points, std::vector<int> const& PointsInRange, TVector3& Center, TVector3& Direction)
   {
 
-    // Spt PCA mode
-    if(Mode==0)
+    // Initialize the services we need
+    
+    art::ServiceHandle<geo::Geometry>                geom;
+    art::ServiceHandle<util::DetectorProperties>     det;
+    
+    
+    std::map<uint32_t, bool>   HitsClaimed;
+    
+    // We'll store hit coordinates in each view into this vector
+    
+    std::vector<std::vector<double> > HitTimes(3);
+    std::vector<std::vector<double> > HitWires(3);
+    std::vector<std::vector<double> > HitWidths(3);
+    std::vector<double> MeanWireCoord(3,0);
+    std::vector<double> MeanTimeCoord(3,0);
+    
+    // Run through the collection getting hit info for these spacepoints
+    
+    std::vector<double> x(3,0), y(3,0), xx(3,0), xy(3,0), yy(3,0),  sig(3,0), N(3,0);
+    
+    std::vector<art::PtrVector<recob::Hit> > HitsInThisCollection(3);
+    for(unsigned int i=0; i!=PointsInRange.size(); i++)
       {
-	TPrincipal  pc(3, "D");
-	
-	for(unsigned int i=0; i!=PointsInRange.size(); i++)
+	art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits((Points.at(PointsInRange.at(i))));
+	for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
+	    itHit!=HitsThisSP.end(); ++itHit)
 	  {
-	    Center[0]+=Points.at(PointsInRange.at(i)).XYZ()[0];
-	    Center[1]+=Points.at(PointsInRange.at(i)).XYZ()[1];
-	    Center[2]+=Points.at(PointsInRange.at(i)).XYZ()[2];
-	  }
-	Center = (1./float(PointsInRange.size())) * Center;
-	
-	
-	
-	for(unsigned int i=0; i!=PointsInRange.size(); i++)
-	  {
-	    double ThisStep[3];
-	    for(size_t n=0; n!=3; ++n)
+	    if(!HitsClaimed[(*itHit)->Channel()])
 	      {
-		ThisStep[n] = Points.at(PointsInRange.at(i)).XYZ()[n] - Center[n];
-	      }
-	    pc.AddRow(ThisStep);
-	  }
-	pc.MakePrincipals();
-	
-	Strength = (*pc.GetEigenValues())[0];
-	
-	for(size_t n=0; n!=3; ++n)
-	  {
-	    Direction[n]=  (*pc.GetEigenVectors())[0][n];
-	  }
-	
-      }
-
-    // Least squares method
-    else if(Mode==2)
-      {
-	// Initialize the services we need
-
-	art::ServiceHandle<geo::Geometry>                geom;
-	art::ServiceHandle<util::DetectorProperties>     det;
-	
-      
-	std::map<uint32_t, bool>   HitsClaimed;
-
-        // We'll store hit coordinates in each view into this vector
-
-	std::vector<std::vector<double> > HitTimes(3);
-	std::vector<std::vector<double> > HitWires(3);
-	std::vector<std::vector<double> > HitWidths(3);
-	std::vector<double> MeanWireCoord(3,0);
-	std::vector<double> MeanTimeCoord(3,0);
-
-        // Run through the collection getting hit info for these spacepoints
-
-	std::vector<double> x(3,0), y(3,0), xx(3,0), xy(3,0), yy(3,0),  sig(3,0), N(3,0);
-
- 	std::vector<art::PtrVector<recob::Hit> > HitsInThisCollection(3);
-         for(unsigned int i=0; i!=PointsInRange.size(); i++)
-           {
- 	    art::PtrVector<recob::Hit> HitsThisSP = fSptalg->getAssociatedHits((Points.at(PointsInRange.at(i))));
-             for(art::PtrVector<recob::Hit>::const_iterator itHit=HitsThisSP.begin();
-                 itHit!=HitsThisSP.end(); ++itHit)
-               {
-                 if(!HitsClaimed[(*itHit)->Channel()])
-                   {
-                     HitsClaimed[(*itHit)->Channel()]=true;
-
-                     size_t ViewIndex;
-
-                     if(     (*itHit)->View() == geo::kU) ViewIndex=0;
-                     else if((*itHit)->View() == geo::kV) ViewIndex=1; 
-		     else if((*itHit)->View() == geo::kW) ViewIndex=2;
-                     double WireCoord = (*itHit)->WireID().Wire * fPitches.at(ViewIndex);
-                     double TimeCoord = det->ConvertTicksToX((*itHit)->PeakTime(),ViewIndex,0,0);
-		     double TimeUpper = det->ConvertTicksToX((*itHit)->EndTime(), ViewIndex,0,0);
-		     double TimeLower = det->ConvertTicksToX((*itHit)->StartTime(), ViewIndex,0,0);
-		     double Width = fabs(0.5*(TimeUpper-TimeLower));
-		     double Width2 = pow(Width,2);
-		    
-                     HitWires.at(ViewIndex).push_back(WireCoord);
-                     HitTimes.at(ViewIndex).push_back(TimeCoord);
-		     HitWidths.at(ViewIndex).push_back(fabs(0.5*(TimeUpper-TimeLower)));
-		    
-		     HitsInThisCollection.at(ViewIndex).push_back(*itHit);
-
-		     MeanWireCoord.at(ViewIndex) += WireCoord;
-		     MeanTimeCoord.at(ViewIndex) += TimeCoord;
-
-		     // Elements for PCA
-		     x.at(ViewIndex)   += WireCoord / Width2;
-		     y.at(ViewIndex)   += TimeCoord / Width2;
-		     xy.at(ViewIndex)  += (TimeCoord * WireCoord) / Width2;
-		     xx.at(ViewIndex)  += (WireCoord * WireCoord) / Width2;
-		     yy.at(ViewIndex)  += (TimeCoord * TimeCoord) / Width2;
-		     sig.at(ViewIndex) += 1./Width2;
-		     N.at(ViewIndex)++;
-		     
-                  }
-              }
-          }
-
-	std::vector<double>   ViewRMS(3);
-	std::vector<double>   ViewGrad(3);
-	std::vector<double>   ViewOffset(3);
-
-	std::vector<double> CenterTime(3);
-	std::vector<double> CenterWireAtT0(3);
-
-
-	
-	for(size_t n=0; n!=3; ++n)
-	  {
-	    MeanWireCoord[n] /= N[n];
-	    MeanTimeCoord[n] /= N[n];
-
-	    ViewGrad.at(n)   = (y[n]/sig[n] - xy[n]/x[n])/(x[n]/sig[n]-xx[n]/x[n]);
-	    ViewOffset.at(n) = (y[n] - ViewGrad[n]*x[n])/sig[n];
-	    ViewRMS.at(n)    = (yy[n] + pow(ViewGrad[n],2) * xx[n] + pow(ViewOffset[n],2) - 2*ViewGrad[n]*xy[n] - 2*ViewOffset[n]*y[n] + 2*ViewGrad[n]*ViewOffset[n]*x[n]);	    
-
-	  }
-
-
-	std::vector<TVector3> ViewDir2D(3);
-
-	std::vector<TVector3> Center2D(3);
-
-        // Calculate centers and directions from pairs
-        for(size_t n=0; n!=3; ++n)
-          {
-            int n1 = (n+1)%3;
-            int n2 = (n+2)%3;
-
-
-            ViewDir2D[n] =
-              (fXDir + fPitchDir[n1] *(1./ViewGrad[n1])
-               + fWireDir[n1]  * (((1./ViewGrad[n2]) - fPitchDir[n1].Dot(fPitchDir[n2]) * (1./ViewGrad[n1])) / fWireDir[n1].Dot(fPitchDir[n2])) ).Unit();
-	    
-            Center2D[n] =
-              fXDir * 0.5 * (MeanTimeCoord[n1]+MeanTimeCoord[n2])
-              + fPitchDir[n1] * (MeanWireCoord[n1] + fWireZeroOffset[n1])
-              + fWireDir[n1] *  ( ((MeanWireCoord[n2] + fWireZeroOffset[n2]) - ( MeanWireCoord[n1] + fWireZeroOffset[n1] )*fPitchDir[n1].Dot(fPitchDir[n2]))/(fPitchDir[n2].Dot(fWireDir[n1])) );
-          }
-	
-	
-
-        for(size_t n=0; n!=3; ++n)
-          {
-            size_t n1 = (n+1)%3;
-            size_t n2 = (n+2)%3;
-            if( (N[n] <= N[n1]) &&
-                (N[n] <= N[n2]) )
-              {
-
-                Center    = Center2D[n];
-                Direction = ViewDir2D[n];
-                Strength  = 1;
+		HitsClaimed[(*itHit)->Channel()]=true;
 		
-                ftEigenvalue = Strength;
-                ftTheta = Direction.Theta();
-                TVector3 NX(1,0,0), NY(0,1,0);
-                ftThetaYZ = (Direction - Direction.Dot(NX)*NX).Theta();
-                ftThetaXZ = (Direction - Direction.Dot(NY)*NY).Theta();
-
-              }
-          }
-
-
+		size_t ViewIndex;
+		
+		if(     (*itHit)->View() == geo::kU) ViewIndex=0;
+		else if((*itHit)->View() == geo::kV) ViewIndex=1; 
+		else if((*itHit)->View() == geo::kW) ViewIndex=2;
+		double WireCoord = (*itHit)->WireID().Wire * fPitches.at(ViewIndex);
+		double TimeCoord = det->ConvertTicksToX((*itHit)->PeakTime(),ViewIndex,0,0);
+		double TimeUpper = det->ConvertTicksToX((*itHit)->EndTime(), ViewIndex,0,0);
+		double TimeLower = det->ConvertTicksToX((*itHit)->StartTime(), ViewIndex,0,0);
+		double Width = fabs(0.5*(TimeUpper-TimeLower));
+		double Width2 = pow(Width,2);
+		
+		HitWires.at(ViewIndex).push_back(WireCoord);
+		HitTimes.at(ViewIndex).push_back(TimeCoord);
+		HitWidths.at(ViewIndex).push_back(fabs(0.5*(TimeUpper-TimeLower)));
+		
+		HitsInThisCollection.at(ViewIndex).push_back(*itHit);
+		
+		MeanWireCoord.at(ViewIndex) += WireCoord;
+		MeanTimeCoord.at(ViewIndex) += TimeCoord;
+		
+		// Elements for PCA
+		x.at(ViewIndex)   += WireCoord / Width2;
+		y.at(ViewIndex)   += TimeCoord / Width2;
+		xy.at(ViewIndex)  += (TimeCoord * WireCoord) / Width2;
+		xx.at(ViewIndex)  += (WireCoord * WireCoord) / Width2;
+		yy.at(ViewIndex)  += (TimeCoord * TimeCoord) / Width2;
+		sig.at(ViewIndex) += 1./Width2;
+		N.at(ViewIndex)++;
+		
+	      }
+	  }
       }
+
+    std::vector<double>   ViewRMS(3);
+    std::vector<double>   ViewGrad(3);
+    std::vector<double>   ViewOffset(3);
+    
+    std::vector<double> CenterTime(3);
+    std::vector<double> CenterWireAtT0(3);
+    
+    
+    
+    for(size_t n=0; n!=3; ++n)
+      {
+	MeanWireCoord[n] /= N[n];
+	MeanTimeCoord[n] /= N[n];
+	
+	ViewGrad.at(n)   = (y[n]/sig[n] - xy[n]/x[n])/(x[n]/sig[n]-xx[n]/x[n]);
+	ViewOffset.at(n) = (y[n] - ViewGrad[n]*x[n])/sig[n];
+	ViewRMS.at(n)    = (yy[n] + pow(ViewGrad[n],2) * xx[n] + pow(ViewOffset[n],2) - 2*ViewGrad[n]*xy[n] - 2*ViewOffset[n]*y[n] + 2*ViewGrad[n]*ViewOffset[n]*x[n]);	    
+	
+      }
+    
+    
+    std::vector<TVector3> ViewDir2D(3);
+    
+    std::vector<TVector3> Center2D(3);
+
+    // Calculate centers and directions from pairs
+    for(size_t n=0; n!=3; ++n)
+      {
+	int n1 = (n+1)%3;
+	int n2 = (n+2)%3;
+	
+	
+	ViewDir2D[n] =
+	  (fXDir + fPitchDir[n1] *(1./ViewGrad[n1])
+	   + fWireDir[n1]  * (((1./ViewGrad[n2]) - fPitchDir[n1].Dot(fPitchDir[n2]) * (1./ViewGrad[n1])) / fWireDir[n1].Dot(fPitchDir[n2])) ).Unit();
+	
+	Center2D[n] =
+	  fXDir * 0.5 * (MeanTimeCoord[n1]+MeanTimeCoord[n2])
+	  + fPitchDir[n1] * (MeanWireCoord[n1] + fWireZeroOffset[n1])
+	  + fWireDir[n1] *  ( ((MeanWireCoord[n2] + fWireZeroOffset[n2]) - ( MeanWireCoord[n1] + fWireZeroOffset[n1] )*fPitchDir[n1].Dot(fPitchDir[n2]))/(fPitchDir[n2].Dot(fWireDir[n1])) );
+      }
+    
+    
+    
+    for(size_t n=0; n!=3; ++n)
+      {
+	size_t n1 = (n+1)%3;
+	size_t n2 = (n+2)%3;
+	if( (N[n] <= N[n1]) &&
+	    (N[n] <= N[n2]) )
+	  {
+	    
+	    Center    = Center2D[n];
+	    Direction = ViewDir2D[n];
+	  	    
+	    ftTheta = Direction.Theta();
+	    TVector3 NX(1,0,0), NY(0,1,0);
+	    ftThetaYZ = (Direction - Direction.Dot(NX)*NX).Theta();
+	    ftThetaXZ = (Direction - Direction.Dot(NY)*NY).Theta();
+	    
+	  }
+      }
+    
+    
   }
+
 
 
   //-----------------------------------------------

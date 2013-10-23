@@ -101,7 +101,7 @@ namespace trkf {
                                    // Counting the number of hits in each view which are associated with a set of SPs
 
 
-    void                        GetCenterAndDirection(std::vector<recob::SpacePoint> const& Points, std::vector<int> const& PointsInRange, TVector3& Center, TVector3& Direction, double& Strength, int Mode);
+    void                        GetCenterAndDirection(std::vector<recob::SpacePoint> const& Points, std::vector<int> const& PointsInRange, TVector3& Center, TVector3& Direction);
                                    // Given a set of spacepoints, find the center and direction to form a seed. 
                                    //  Mode specifies whether to operate on spacepoints (old) or directly onto hits (new)
 
