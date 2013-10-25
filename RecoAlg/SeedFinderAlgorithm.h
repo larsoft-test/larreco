@@ -45,14 +45,14 @@ namespace trkf {
 
 
     std::vector<std::vector<recob::Seed> > GetSeedsFromSortedHits( std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >  const& SortedHits, 
-								   std::vector<std::vector<art::PtrVector<recob::Hit> > >& HitsPerSeed);
+								   std::vector<std::vector<art::PtrVector<recob::Hit> > >& HitsPerSeed, unsigned int StopAfter=0);
                                     // Return a vector of vectors of seeds, one vector for each supplied cluster 
                                     //   combination which has sufficient overlap. The second argument returns
                                     //   the hits sorted by combo and by seed
    
     
 
-    std::vector<recob::Seed>    GetSeedsFromUnSortedHits(art::PtrVector<recob::Hit> const &, std::vector<art::PtrVector<recob::Hit> >&);
+    std::vector<recob::Seed>    GetSeedsFromUnSortedHits(art::PtrVector<recob::Hit> const &, std::vector<art::PtrVector<recob::Hit> >&, unsigned int StopAfter=0);
                                     // Return a vector of seeds formed from an unstructured collection of hits    
 
 
@@ -76,21 +76,18 @@ namespace trkf {
     //----------------------
 
 
-    std::vector<recob::Seed>    FindSeeds( art::PtrVector<recob::Hit> const& HitsFlat, std::vector<art::PtrVector<recob::Hit> >& CataloguedHits);
+    std::vector<recob::Seed>    FindSeeds( art::PtrVector<recob::Hit> const& HitsFlat, std::vector<art::PtrVector<recob::Hit> >& CataloguedHits, unsigned int StopAfter);
                                     // Find a collection of seeds, based on the supplied set of hits.
                                     //  The second argument returns the hits catalogued by which
                                     //  seed they fell into (if any) 
    
 
 
-    recob::Seed                 FindSeedAtEnd(std::vector<recob::SpacePoint> const&, std::vector<char>&, std::vector<int>&);
+    recob::Seed                 FindSeedAtEnd(std::vector<recob::SpacePoint> const&, std::vector<char>&, std::vector<int>&,
+					      art::PtrVector<recob::Hit> const& HitsFlat, std::map<geo::View_t, std::map<uint32_t, std::vector<int> > >& OrgHits);
                                     // Find one seed at high Z from the spacepoint collection given. Latter arguments are 
                                     //  for internal book keeping.
 
-
-    void                        RefitSeed(recob::Seed& TheSeed, std::vector<recob::SpacePoint> const& SpacePoints);
-                                   // Having found a 3D seed, refit it onto its constituent hits to iteratively minimize 
-                                   //  the RMS in each view
 
 
     std::vector<double>         GetHitRMS(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> const&);
@@ -101,12 +98,8 @@ namespace trkf {
                                    // Counting the number of hits in each view which are associated with a set of SPs
 
 
-    void                        GetCenterAndDirection(std::vector<recob::SpacePoint> const& Points, std::vector<int> const& PointsInRange, TVector3& Center, TVector3& Direction);
-                                   // Given a set of spacepoints, find the center and direction to form a seed. 
-                                   //  Mode specifies whether to operate on spacepoints (old) or directly onto hits (new)
-
   
-    void                        GetCenterAndDirection(art::PtrVector<recob::Hit> const& HitsFlat, std::vector<int>& HitsToUse, TVector3& Center, TVector3& Direction);
+    void                        GetCenterAndDirection(art::PtrVector<recob::Hit> const& HitsFlat, std::vector<int>& HitsToUse, TVector3& Center, TVector3& Direction, std::vector<double>& ViewRMS);
 
   
     void                        ConsolidateSeed(recob::Seed& TheSeed, art::PtrVector<recob::Hit> const&, std::vector<char>& HitStatus,
@@ -134,8 +127,6 @@ namespace trkf {
     double                fInitSeedLength;    
                                         
     int                   fMinPointsInSeed;   
-                                        
-    float                 fPCAThreshold;
                                         
     int                   fRefits;            
     
