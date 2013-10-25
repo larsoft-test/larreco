@@ -389,7 +389,6 @@ namespace trkf {
 	  {
 	    if(!TheSeed.IsValid())
 	      {
-		std::cout<<"The seed came back invalid." <<std::endl;
 		ThrowOutSeed=true;
 	      }
 	    
@@ -418,7 +417,6 @@ namespace trkf {
 		  {
 		    if(fMaxViewRMS.at(j)<ViewRMS.at(j))
 		      {
-			std::cout<<"Throwing at point 1 " << ViewRMS.at(j)<<std::endl;
 			ThrowOutSeed=true;
 		      }
 		  }
@@ -435,8 +433,6 @@ namespace trkf {
 	    CataloguedHits.push_back(HitsThisSeed);
 	    
 	  }
-	else
-	  std::cout<<"We threw out this seed"<<std::endl;
 	
       }
   
