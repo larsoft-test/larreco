@@ -28,7 +28,7 @@ standard_beziertrackermodule:
  module_type:         "BezierTrackerModule"
  SeedModuleLabel:     "seedfinder"
  HitModuleLabel:      "ffthit"
- ClusterModuleLabel:  "dbcluster"
+ ClusterModuleLabel:  "cccluster"
  TrackMode:           3
  MakeHitAssns:        true
  EnableCalo:          false

@@ -525,7 +525,7 @@ namespace trkf {
     fHmctheta_xz = dir.make<TH1F>("mctheta_xz", "MC Theta_xz", 40, -3.142, 3.142);
     fHmctheta_yz = dir.make<TH1F>("mctheta_yz", "MC Theta_yz", 40, -3.142, 3.142);
     fHmcmom = dir.make<TH1F>("mcmom", "MC Momentum", 10, 0., 10.);
-    fHmclen = dir.make<TH1F>("mclen", "MC Particle Length", 10, 0., 1.1 * geom->DetLength());
+    fHmclen = dir.make<TH1F>("mclen", "MC Particle Length", 100, 0., 1.1 * geom->DetLength());
 
     fHmstartx = dir.make<TH1F>("mxstart", "Matched X Start Position",
 			       10, 0., 2.*geom->DetHalfWidth());
@@ -544,7 +544,7 @@ namespace trkf {
     fHmtheta_xz = dir.make<TH1F>("mtheta_xz", "Matched Theta_xz", 40, -3.142, 3.142);
     fHmtheta_yz = dir.make<TH1F>("mtheta_yz", "Matched Theta_yz", 40, -3.142, 3.142);
     fHmmom = dir.make<TH1F>("mmom", "Matched Momentum", 10, 0., 10.);
-    fHmlen = dir.make<TH1F>("mlen", "Matched Particle Length", 10, 0., 1.1 * geom->DetLength());
+    fHmlen = dir.make<TH1F>("mlen", "Matched Particle Length", 100, 0., 1.1 * geom->DetLength());
 
     fHgstartx = dir.make<TH1F>("gxstart", "Good X Start Position",
 			       10, 0., 2.*geom->DetHalfWidth());
@@ -563,7 +563,7 @@ namespace trkf {
     fHgtheta_xz = dir.make<TH1F>("gtheta_xz", "Good Theta_xz", 40, -3.142, 3.142);
     fHgtheta_yz = dir.make<TH1F>("gtheta_yz", "Good Theta_yz", 40, -3.142, 3.142);
     fHgmom = dir.make<TH1F>("gmom", "Good Momentum", 10, 0., 10.);
-    fHglen = dir.make<TH1F>("glen", "Good Particle Length", 10, 0., 1.1 * geom->DetLength());
+    fHglen = dir.make<TH1F>("glen", "Good Particle Length", 100, 0., 1.1 * geom->DetLength());
 
     fHmulstartx = dir.make<TH1F>("mulxstart", "Multiplicity vs. X Start Position",
 				 10, 0., 2.*geom->DetHalfWidth());
@@ -583,7 +583,7 @@ namespace trkf {
     fHmultheta_yz = dir.make<TH1F>("multheta_yz", "Multiplicity vs. Theta_yz", 40, -3.142, 3.142);
     fHmulmom = dir.make<TH1F>("mulmom", "Multiplicity vs. Momentum", 10, 0., 10.);
     fHmullen = dir.make<TH1F>("mullen", "Multiplicity vs. Particle Length",
-			      10, 0., 1.1 * geom->DetLength());
+			      100, 0., 1.1 * geom->DetLength());
 
     fHestartx = dir.make<TH1F>("exstart", "Efficiency vs. X Start Position",
 			       10, 0., 2.*geom->DetHalfWidth());
@@ -603,7 +603,7 @@ namespace trkf {
     fHetheta_yz = dir.make<TH1F>("etheta_yz", "Efficiency vs. Theta_yz", 40, -3.142, 3.142);
     fHemom = dir.make<TH1F>("emom", "Efficiency vs. Momentum", 10, 0., 10.);
     fHelen = dir.make<TH1F>("elen", "Efficiency vs. Particle Length",
-			    10, 0., 1.1 * geom->DetLength());
+			    100, 0., 1.1 * geom->DetLength());
   }
 
   SeedAna::SeedAna(const fhicl::ParameterSet& pset) :

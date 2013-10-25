@@ -16,9 +16,9 @@ standard_spacepointalg:
 standard_seedfinderalgorithm:
 {
   SpacePointAlg:          @local::standard_spacepointalg
-  InitSeedLength:         4
+  InitSeedLength:         2
   MinPointsInSeed:        4
-  Refits:                 10
+  Refits:                 5
   HitResolution:          2
   OccupancyCut:           0.8
   MaxViewRMS:             [2,2,2]
