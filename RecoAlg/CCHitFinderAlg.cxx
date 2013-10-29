@@ -86,8 +86,6 @@ namespace cluster{
     // make this accessible to ClusterCrawler_module
     art::Handle< std::vector<recob::Wire> > wireVecHandle;
     evt.getByLabel(fCalDataModuleLabel,wireVecHandle);
-    
-  std::cout<<"CCHitFinder "<<std::endl;
 
     // don't expect more than 50% of the max time to have a signal
     unsigned short maxticks = detprop->NumberTimeSamples() / 2 - 4;
@@ -130,7 +128,7 @@ namespace cluster{
       ChgNorm = fChgNorms[thePlane];
 
       // debugging
-//  prt = (thePlane == 2 && theWireNum == 1184);
+//  prt = (thePlane == 1 && theWireNum == 1933);
 
       std::vector<float> signal(theWire->Signal());
 
@@ -141,7 +139,10 @@ namespace cluster{
       unsigned short maxSigT = 0;
       for(unsigned short time = 3; time < maxtime; ++time) {
         if(signal[time] > minSig) {
-          if(nabove == 0) tstart = time;
+          if(nabove == 0) {
+            tstart = time;
+            maxSig = 0.;
+          }
           // monitor the max signal and it's time
           if(signal[time] > maxSig) {
             maxSig = signal[time];
@@ -151,6 +152,11 @@ namespace cluster{
         } else {
           // check for a wide enough signal above threshold
           if(nabove > minSamples) {
+            // skip this section if signal is above threshold on the first tick
+            if(tstart == 3) {
+              nabove = 0;
+              continue;
+            }
             // skip this wire if the RAT is too long
             if(nabove > maxticks) break;
             // skip this wire if the max signal is at the beginning
@@ -165,7 +171,7 @@ namespace cluster{
                  signal[ii - 1] > signal[ii - 2] &&
                  signal[ii    ] > signal[ii + 1] &&
                  signal[ii + 1] > signal[ii + 2]) bumps.push_back(npt);
-  if(prt) std::cout<<"signl "<<ii<<" "<<signl[npt]<<std::endl;
+//  if(prt) std::cout<<"signl "<<ii<<" "<<signl[npt]<<std::endl;
               ++npt;
             }
             // just make a crude hit if too many bumps
@@ -173,7 +179,6 @@ namespace cluster{
               MakeCrudeHit(npt, ticks, signl);
               StoreHits(tstart, theWire);
               nabove = 0;
-              maxSig = 0.;
               continue;
             }
             // start looking for hits with the found bumps
@@ -202,7 +207,6 @@ namespace cluster{
             }
           } // nabove > minSamples
           nabove = 0;
-          maxSig = 0.;
         } // signal < minSig
       } // time
     } // wireIter
@@ -241,7 +245,7 @@ namespace cluster{
     TGraph *fitn = new TGraph(npt, ticks, signl);
     TF1 *Gn = new TF1("gn",eqn.c_str());
 
-  if(prt) std::cout<<"FitNG nGaus "<<nGaus<<" nBumps "<<bumps.size()<<std::endl;
+//  if(prt) std::cout<<"FitNG nGaus "<<nGaus<<" nBumps "<<bumps.size()<<std::endl;
 
     // put in the bump parameters. Assume that nGaus >= bumps.size()
     for(unsigned short ii = 0; ii < bumps.size(); ++ii) {
@@ -254,7 +258,7 @@ namespace cluster{
       Gn->SetParLimits(index + 1, 0, (double)npt);
       Gn->SetParameter(index + 2, (double)minRMS);
       Gn->SetParLimits(index + 2, 1., 3*(double)minRMS);
-  if(prt) std::cout<<"Bump params "<<ii<<" "<<(short)amp<<" "<<(int)bumptime<<" "<<(int)minRMS<<std::endl;
+//  if(prt) std::cout<<"Bump params "<<ii<<" "<<(short)amp<<" "<<(int)bumptime<<" "<<(int)minRMS<<std::endl;
     } // ii bumps
 
     // search for other bumps that may be hidden by the already found ones
@@ -270,7 +274,7 @@ namespace cluster{
         }
       } // jj
       if(imbig > 0) {
-  if(prt) std::cout<<"Found bump "<<ii<<" "<<(short)big<<" "<<imbig<<std::endl;
+//  if(prt) std::cout<<"Found bump "<<ii<<" "<<(short)big<<" "<<imbig<<std::endl;
         // set the parameters for the bump
         unsigned short index = ii * 3;
         Gn->SetParameter(index    , (double)big);
@@ -296,7 +300,7 @@ namespace cluster{
     }
     chidof = Gn->GetChisquare() / ( ndof * chinorm);
     
-
+/*
     if(prt) {
       std::cout<<"Fit "<<nGaus<<" chi "<<chidof<<" npars "<<partmp.size()<<std::endl;
       std::cout<<"pars    errs "<<std::endl;
@@ -304,7 +308,7 @@ namespace cluster{
         std::cout<<ii<<" "<<partmp[ii]<<" "<<partmperr[ii]<<std::endl;
       }
     }
-
+*/
     // ensure that the fit is reasonable
     bool fitok = true;
     for(unsigned short ii = 0; ii < nGaus; ++ii) {
@@ -344,7 +348,7 @@ namespace cluster{
       parerr = partmperr;
     } else {
       chidof = 9999.;
-      if(prt) std::cout<<"Bad fit parameters"<<std::endl;
+//      if(prt) std::cout<<"Bad fit parameters"<<std::endl;
     }
     
     delete fitn;
@@ -373,7 +377,7 @@ namespace cluster{
     rms = sqrt(rms / sumS);
     float amp = sumS / (Sqrt2Pi * rms);
     par.clear();
-  if(prt) std::cout<<"Crude hit Amp "<<(int)amp<<" mean "<<(int)mean<<" rms "<<rms<<std::endl;
+//  if(prt) std::cout<<"Crude hit Amp "<<(int)amp<<" mean "<<(int)mean<<" rms "<<rms<<std::endl;
     par.push_back(amp);
     par.push_back(mean);
     par.push_back(rms);
@@ -385,7 +389,7 @@ namespace cluster{
     parerr.push_back(amperr);
     parerr.push_back(meanerr);
     parerr.push_back(rmserr);
-  if(prt) std::cout<<" errors Amp "<<amperr<<" mean "<<meanerr<<" rms "<<rmserr<<std::endl;
+//  if(prt) std::cout<<" errors Amp "<<amperr<<" mean "<<meanerr<<" rms "<<rmserr<<std::endl;
     chidof = 9999.;
   }
 
@@ -421,7 +425,7 @@ namespace cluster{
       onehit.WireNum = theWireNum;
       onehit.numHits = nhits;
       onehit.LoHitID = lohitid;
-
+/*
   if(prt) {
     std::cout<<"W:H "<<theWireNum;
     std::cout<<":"<<allhits.size()<<" Chg "<<(short)onehit.Charge;
@@ -430,7 +434,7 @@ namespace cluster{
     std::cout<<" chidof "<<chidof;
     std::cout<<std::endl;
   }
-
+*/
       allhits.push_back(onehit);
     } // hit
   } // StoreHits
