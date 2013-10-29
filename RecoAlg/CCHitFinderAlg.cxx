@@ -87,6 +87,8 @@ namespace cluster{
     art::Handle< std::vector<recob::Wire> > wireVecHandle;
     evt.getByLabel(fCalDataModuleLabel,wireVecHandle);
     
+  std::cout<<"CCHitFinder "<<std::endl;
+
     // don't expect more than 50% of the max time to have a signal
     unsigned short maxticks = detprop->NumberTimeSamples() / 2 - 4;
     float *ticks = new float[maxticks];
@@ -97,10 +99,6 @@ namespace cluster{
     float *signl = new float[maxticks];
 
     prt = false;
-    
-//    nhtot = 0;
-//    nhmul = 0;
-//    nhcru = 0;
 
     for(size_t wireIter = 0; wireIter < wireVecHandle->size(); wireIter++){
 
@@ -120,7 +118,7 @@ namespace cluster{
 
 
       // minimum number of time samples
-      unsigned short minSamples = 3 * minRMS;
+      unsigned short minSamples = 2 * minRMS;
 
       std::vector<geo::WireID> wids = geom->ChannelToWire(theChannel);
       thePlane = wids[0].Plane;
@@ -132,29 +130,41 @@ namespace cluster{
       ChgNorm = fChgNorms[thePlane];
 
       // debugging
-//  prt = (thePlane == 0 && theWireNum == 1562);
+//  prt = (thePlane == 2 && theWireNum == 1184);
 
       std::vector<float> signal(theWire->Signal());
 
       unsigned short nabove = 0;
       unsigned short tstart = 0;
-      unsigned short maxtime = signal.size() - minSamples - 2;
-      for(unsigned short time = 2; time < maxtime; ++time) {
+      unsigned short maxtime = signal.size() - 2;
+      float maxSig = 0.;
+      unsigned short maxSigT = 0;
+      for(unsigned short time = 3; time < maxtime; ++time) {
         if(signal[time] > minSig) {
           if(nabove == 0) tstart = time;
+          // monitor the max signal and it's time
+          if(signal[time] > maxSig) {
+            maxSig = signal[time];
+            maxSigT = time;
+          }
           ++nabove;
         } else {
           // check for a wide enough signal above threshold
           if(nabove > minSamples) {
             // skip this wire if the RAT is too long
             if(nabove > maxticks) break;
+            // skip this wire if the max signal is at the beginning
+            // --> deconvolution failure
+            if(maxSigT < tstart + 2) break;
             unsigned short npt = 0;
             // look for bumps to inform the fit
             bumps.clear();
             for(unsigned short ii = tstart; ii < time; ++ii) {
               signl[npt] = signal[ii];
-              if(signal[ii] > signal[ii - 1] &&
-                 signal[ii] > signal[ii + 1]) bumps.push_back(npt);
+              if(signal[ii    ] > signal[ii - 1] &&
+                 signal[ii - 1] > signal[ii - 2] &&
+                 signal[ii    ] > signal[ii + 1] &&
+                 signal[ii + 1] > signal[ii + 2]) bumps.push_back(npt);
   if(prt) std::cout<<"signl "<<ii<<" "<<signl[npt]<<std::endl;
               ++npt;
             }
@@ -162,7 +172,9 @@ namespace cluster{
             if(bumps.size() > fMaxBumps) {
               MakeCrudeHit(npt, ticks, signl);
               StoreHits(tstart, theWire);
-              break;
+              nabove = 0;
+              maxSig = 0.;
+              continue;
             }
             // start looking for hits with the found bumps
             unsigned short nHitsFit = bumps.size();
@@ -190,14 +202,13 @@ namespace cluster{
             }
           } // nabove > minSamples
           nabove = 0;
+          maxSig = 0.;
         } // signal < minSig
       } // time
     } // wireIter
 
     delete ticks;
     delete signl;
-
-//  std::cout<<"Hits Total, Mult > 1, crude "<<nhtot<<" "<<nhmul<<" "<<nhcru<<std::endl;
 
   } //RunCCHitFinder
 
@@ -257,7 +268,6 @@ namespace cluster{
           big = diff;
           imbig = jj;
         }
-//  if(prt) std::cout<<jj<<" "<<diff<<std::endl;          
       } // jj
       if(imbig > 0) {
   if(prt) std::cout<<"Found bump "<<ii<<" "<<(short)big<<" "<<imbig<<std::endl;
@@ -286,6 +296,7 @@ namespace cluster{
     }
     chidof = Gn->GetChisquare() / ( ndof * chinorm);
     
+
     if(prt) {
       std::cout<<"Fit "<<nGaus<<" chi "<<chidof<<" npars "<<partmp.size()<<std::endl;
       std::cout<<"pars    errs "<<std::endl;
@@ -293,6 +304,7 @@ namespace cluster{
         std::cout<<ii<<" "<<partmp[ii]<<" "<<partmperr[ii]<<std::endl;
       }
     }
+
     // ensure that the fit is reasonable
     bool fitok = true;
     for(unsigned short ii = 0; ii < nGaus; ++ii) {
@@ -375,7 +387,6 @@ namespace cluster{
     parerr.push_back(rmserr);
   if(prt) std::cout<<" errors Amp "<<amperr<<" mean "<<meanerr<<" rms "<<rmserr<<std::endl;
     chidof = 9999.;
-//    ++nhcru;
   }
 
 
@@ -387,9 +398,6 @@ namespace cluster{
     unsigned short nhits = par.size() / 3;
     
     if(nhits == 0) return;
-    
-//    nhtot += nhits;
-//    nhmul += nhits - 1;
     
     CCHit onehit;
     // lohitid is the index of the first hit that will be added. Hits with
@@ -413,6 +421,7 @@ namespace cluster{
       onehit.WireNum = theWireNum;
       onehit.numHits = nhits;
       onehit.LoHitID = lohitid;
+
   if(prt) {
     std::cout<<"W:H "<<theWireNum;
     std::cout<<":"<<allhits.size()<<" Chg "<<(short)onehit.Charge;
@@ -421,6 +430,7 @@ namespace cluster{
     std::cout<<" chidof "<<chidof;
     std::cout<<std::endl;
   }
+
       allhits.push_back(onehit);
     } // hit
   } // StoreHits

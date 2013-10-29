@@ -110,11 +110,6 @@ namespace cluster {
     std::vector<double> parmax;
     float chidof;
     std::vector<unsigned short> bumps;
-
-    // temp variables for counting all hits, Mult > 1 hits, and crude hits
-//    unsigned short nhtot;
-//    unsigned short nhmul;
-//    unsigned short nhcru;
     
     // make a cruddy hit if fitting fails
     void MakeCrudeHit(unsigned short npt, float *ticks, float *signl);
