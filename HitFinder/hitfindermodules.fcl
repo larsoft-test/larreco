@@ -49,7 +49,7 @@ gaus_hitfinder:
 
 rff_hitfinder:
 {
- module_type:         "RffHitFinder"
+ module_type:         "RFFHitFinder"
  CalDataModuleLabel:  "caldata"      
  MinSigInd:            6.0              # Induction signal height threshold  
  MinSigCol:            11.0             # Collection signal height threshold
@@ -96,10 +96,13 @@ argoneut_mc_hitfinder.AreaNorms: [ 12.89, 14.51 ]
 
 microboone_hitfinder:     @local::standard_hitfinder
 microboone_gaushitfinder: @local::gaus_hitfinder
+microboone_rffhitfinder: @local::rff_hitfinder
 microboone_hitfinder.IndMinWidth: 1.0
 microboone_hitfinder.ColMinWidth: 1.0
 microboone_gaushitfinder.IndMinWidth: 1.0
 microboone_gaushitfinder.ColMinWidth: 1.0
+microboone_rffhitfinder.IndMinWidth: 1.0
+microboone_rffhitfinder.ColMinWidth: 1.0
 
 
 END_PROLOG
