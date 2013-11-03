@@ -47,6 +47,23 @@ gaus_hitfinder:
 }
 
 
+rff_hitfinder:
+{
+ module_type:         "RffHitFinder"
+ CalDataModuleLabel:  "caldata"      
+ MinSigInd:            6.0              # Induction signal height threshold  
+ MinSigCol:            11.0             # Collection signal height threshold
+ IndWidth:             6.0              # Initial width for induction fit
+ ColWidth:             7.8              # Initial width for collection fit
+ IndMinWidth:          4.0              # Induction Hit width threshold
+ ColMinWidth:          6.0              # Collection hit width threshold
+ MaxMultiHit:          3                # maximum hits for multi fit   
+ AreaMethod:           0                # 0 = area by integral, 1 = area by gaussian area formula
+ AreaNorms:            [ 13.25, 26.31 ] # normalizations that put signal area in 
+                                        # same scale as peak height. 
+ Chi2NDF:              15               # maximum Chisquared / NDF allowed for a hit to be saved
+}
+
 #For now, keep the APAHitFinder configured just like the GausHitFinder
 apa_hitfinder:               @local::gaus_hitfinder
 apa_hitfinder.module_type:   "APAHitFinder"
