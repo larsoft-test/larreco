@@ -586,7 +586,7 @@ namespace trkf {
     //
     // Arguments: pset - Module parameters.
     //
-    : EDAnalyzer(pset)
+    : EDAnalyzer(/*pset*/)
     , fTrackModuleLabel(pset.get<std::string>("TrackModuleLabel"))
     , fSpacepointModuleLabel(pset.get<std::string>("SpacepointModuleLabel"))
     , fStitchModuleLabel(pset.get<std::string>("StitchModuleLabel"))

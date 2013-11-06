@@ -112,7 +112,7 @@ namespace hit {
 
   //-------------------------------------------------
   MagDriftAna::MagDriftAna(fhicl::ParameterSet const& pset)
-    : EDAnalyzer(pset)
+    : EDAnalyzer(/*pset*/)
     , initDone(false)
     , fDirCosY(0.0)
     , fDirCosZ(0.0)

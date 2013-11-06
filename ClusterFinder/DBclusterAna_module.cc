@@ -126,7 +126,7 @@ namespace cluster{
 
   //--------------------------------------------------------------------
   DBclusterAna::DBclusterAna(fhicl::ParameterSet const& pset)  
-    : EDAnalyzer(pset)
+    : EDAnalyzer(/*pset*/)
     , fDigitModuleLabel         (pset.get< std::string >("DigitModuleLabel")        )
     , fHitsModuleLabel          (pset.get< std::string >("HitsModuleLabel")         )
     , fLArG4ModuleLabel         (pset.get< std::string >("LArGeantModuleLabel")     )

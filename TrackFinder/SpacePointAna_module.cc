@@ -112,7 +112,7 @@ namespace trkf {
     //
     // Arguments: pset - Module parameters.
     //
-  : EDAnalyzer(pset)
+  : EDAnalyzer(/*pset*/)
    , fSptalgTime(pset.get<fhicl::ParameterSet>("SpacePointAlgTime"))
    , fSptalgSep(pset.get<fhicl::ParameterSet>("SpacePointAlgSep"))
    , fSptalgDefault(pset.get<fhicl::ParameterSet>("SpacePointAlgDefault"))

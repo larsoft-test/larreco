@@ -112,7 +112,7 @@ namespace cluster {
 namespace cluster {
 
   HoughLineFinderAna::HoughLineFinderAna(fhicl::ParameterSet const& pset) 
-    : EDAnalyzer(pset) 
+    : EDAnalyzer(/*pset*/) 
     , fHoughModuleLabel (pset.get< std::string >("HoughModuleLabel"))
     , fDigitModuleLabel (pset.get< std::string >("DigitModuleLabel"))
     , fHitsModuleLabel  (pset.get< std::string >("HitsModuleLabel"))

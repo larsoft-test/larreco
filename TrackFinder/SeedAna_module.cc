@@ -612,7 +612,7 @@ namespace trkf {
     //
     // Arguments: pset - Module parameters.
     //
-    : EDAnalyzer(pset)
+    : EDAnalyzer(/*pset*/)
     , fSeedModuleLabel(pset.get<std::string>("SeedModuleLabel"))
     , fMinMCKE(pset.get<double>("MinMCKE"))
     , fMatchColinearity(pset.get<double>("MatchColinearity"))

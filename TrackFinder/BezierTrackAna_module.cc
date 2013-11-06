@@ -114,7 +114,7 @@ namespace trkf {
     //
     // Arguments: pset - Module parameters.
     //
-    : EDAnalyzer(pset)
+    : EDAnalyzer(/*pset*/)
     , fBezierTrackModuleLabel(pset.get<std::string>("BezierTrackModuleLabel"))
     , fBooked(false)
   {
