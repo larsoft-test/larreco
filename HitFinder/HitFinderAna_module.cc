@@ -124,6 +124,7 @@ namespace hit{
 
   //-------------------------------------------------
   HitFinderAna::HitFinderAna(fhicl::ParameterSet const& pset) 
+    : EDAnalyzer(pset)
   {
     this->reconfigure(pset);
   }

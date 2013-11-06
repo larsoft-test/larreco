@@ -178,6 +178,7 @@ namespace hit{
 
   //-------------------------------------------------
   GausHitFinderAna::GausHitFinderAna(fhicl::ParameterSet const& pset) 
+    : EDAnalyzer(pset)
   {
     this->reconfigure(pset);
   }
