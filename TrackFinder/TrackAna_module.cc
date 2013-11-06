@@ -580,23 +580,24 @@ namespace trkf {
 			    10, 0., 1.1 * geom->DetLength());
   }
 
-  TrackAna::TrackAna(const fhicl::ParameterSet& pset) :
+  TrackAna::TrackAna(const fhicl::ParameterSet& pset)
     //
     // Purpose: Constructor.
     //
     // Arguments: pset - Module parameters.
     //
-    fTrackModuleLabel(pset.get<std::string>("TrackModuleLabel")),
-    fSpacepointModuleLabel(pset.get<std::string>("SpacepointModuleLabel")),
-    fStitchModuleLabel(pset.get<std::string>("StitchModuleLabel")),
-    fTrkSpptAssocModuleLabel(pset.get<std::string>("TrkSpptAssocModuleLabel")),
-    fHitSpptAssocModuleLabel(pset.get<std::string>("HitSpptAssocModuleLabel")),
-    fMinMCKE(pset.get<double>("MinMCKE")),
-    fMatchColinearity(pset.get<double>("MatchColinearity")),
-    fMatchDisp(pset.get<double>("MatchDisp")),
-    fIgnoreSign(pset.get<bool>("IgnoreSign")),
-    fStitchedAnalysis(pset.get<bool>("StitchedAnalysis",false)),
-    fNumEvent(0)
+    : EDAnalyzer(pset)
+    , fTrackModuleLabel(pset.get<std::string>("TrackModuleLabel"))
+    , fSpacepointModuleLabel(pset.get<std::string>("SpacepointModuleLabel"))
+    , fStitchModuleLabel(pset.get<std::string>("StitchModuleLabel"))
+    , fTrkSpptAssocModuleLabel(pset.get<std::string>("TrkSpptAssocModuleLabel"))
+    , fHitSpptAssocModuleLabel(pset.get<std::string>("HitSpptAssocModuleLabel"))
+    , fMinMCKE(pset.get<double>("MinMCKE"))
+    , fMatchColinearity(pset.get<double>("MatchColinearity"))
+    , fMatchDisp(pset.get<double>("MatchDisp"))
+    , fIgnoreSign(pset.get<bool>("IgnoreSign"))
+    , fStitchedAnalysis(pset.get<bool>("StitchedAnalysis",false))
+    , fNumEvent(0)
   {
 
     // Report.

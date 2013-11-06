@@ -9,10 +9,29 @@
 // Created: April 2012, bjpjones@mit.edu
 //
 
+
+#include "art/Framework/Core/ModuleMacros.h" 
 #include "art/Framework/Core/EDAnalyzer.h"
+#include "art/Framework/Principal/Event.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h" 
+#include "art/Framework/Services/Optional/TFileService.h" 
+#include "messagefacility/MessageLogger/MessageLogger.h"
+
 #include "TH1F.h"
 #include "TH2D.h"
-class TTree;
+#include "TTree.h"
+
+#include <iostream>
+#include <map>
+#include <vector>
+#include <algorithm>
+
+#include "Utilities/DetectorProperties.h"
+#include "RecoObjects/BezierTrack.h"
+#include "Geometry/Geometry.h"
+#include "Utilities/LArProperties.h"
+#include "RecoBase/Hit.h"
+#include "RecoBase/Cluster.h"
 
 namespace trkf {
 
@@ -85,49 +104,19 @@ namespace trkf {
 
 
 
-#include "art/Framework/Core/ModuleMacros.h" 
+
 
 namespace trkf {
-  DEFINE_ART_MODULE(BezierTrackAna)
-}
 
-
-//
-// Name: BezierTrackAna.cxx
-//
-// Purpose: Implementation file for module BezierTrackAna.
-//
-// Created: April 2012, bjpjones@mit.edu
-//
-
-#include <iostream>
-#include <map>
-#include <vector>
-#include <algorithm>
-#include "messagefacility/MessageLogger/MessageLogger.h"
-#include "Utilities/DetectorProperties.h"
-#include "RecoObjects/BezierTrack.h"
-#include "Geometry/Geometry.h"
-#include "Utilities/LArProperties.h"
-#include "art/Framework/Principal/Event.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h" 
-#include "art/Framework/Services/Optional/TFileService.h" 
-#include "RecoBase/Hit.h"
-#include "RecoBase/Cluster.h"
-
-#include "TTree.h"
-
-#include "TH2D.h"
-namespace trkf {
-
-  BezierTrackAna::BezierTrackAna(const fhicl::ParameterSet& pset) :
+  BezierTrackAna::BezierTrackAna(const fhicl::ParameterSet& pset)
     //
     // Purpose: Constructor.
     //
     // Arguments: pset - Module parameters.
     //
-    fBezierTrackModuleLabel(pset.get<std::string>("BezierTrackModuleLabel")),
-    fBooked(false)
+    : EDAnalyzer(pset)
+    , fBezierTrackModuleLabel(pset.get<std::string>("BezierTrackModuleLabel"))
+    , fBooked(false)
   {
 
 
@@ -294,4 +283,8 @@ namespace trkf {
 	
 	}
   }  
+}
+
+namespace trkf {
+  DEFINE_ART_MODULE(BezierTrackAna)
 }

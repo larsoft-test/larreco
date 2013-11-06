@@ -112,12 +112,19 @@ namespace hit {
 
   //-------------------------------------------------
   MagDriftAna::MagDriftAna(fhicl::ParameterSet const& pset)
-    :initDone(false)
-    ,fDirCosY(0.0),fDirCosZ(0.0)
-    ,fChargeXpos(),fChargeYpos(),fChargeZpos()
-    ,fHitZpos()
-    ,fDriftDeltaZ(),fDeltaZoverX(),fDeltaZvsX()
-    ,fDriftDeltaZAway(),fDeltaZoverXAway()
+    : EDAnalyzer(pset)
+    , initDone(false)
+    , fDirCosY(0.0)
+    , fDirCosZ(0.0)
+    , fChargeXpos()
+    , fChargeYpos()
+    , fChargeZpos()
+    , fHitZpos()
+    , fDriftDeltaZ()
+    , fDeltaZoverX()
+    , fDeltaZvsX()
+    , fDriftDeltaZAway()
+    , fDeltaZoverXAway()
   {
     this->reconfigure(pset);
   }

@@ -606,18 +606,19 @@ namespace trkf {
 			    100, 0., 1.1 * geom->DetLength());
   }
 
-  SeedAna::SeedAna(const fhicl::ParameterSet& pset) :
+  SeedAna::SeedAna(const fhicl::ParameterSet& pset)
     //
     // Purpose: Constructor.
     //
     // Arguments: pset - Module parameters.
     //
-    fSeedModuleLabel(pset.get<std::string>("SeedModuleLabel")),
-    fMinMCKE(pset.get<double>("MinMCKE")),
-    fMatchColinearity(pset.get<double>("MatchColinearity")),
-    fMatchDisp(pset.get<double>("MatchDisp")),
-    fIgnoreSign(pset.get<bool>("IgnoreSign")),
-    fNumEvent(0)
+    : EDAnalyzer(pset)
+    , fSeedModuleLabel(pset.get<std::string>("SeedModuleLabel"))
+    , fMinMCKE(pset.get<double>("MinMCKE"))
+    , fMatchColinearity(pset.get<double>("MatchColinearity"))
+    , fMatchDisp(pset.get<double>("MatchDisp"))
+    , fIgnoreSign(pset.get<bool>("IgnoreSign"))
+    , fNumEvent(0)
   {
 
     // Report.

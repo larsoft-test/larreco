@@ -106,41 +106,42 @@ namespace trkf {
 
   DEFINE_ART_MODULE(SpacePointAna)
 
-  SpacePointAna::SpacePointAna(const fhicl::ParameterSet& pset) :
+  SpacePointAna::SpacePointAna(const fhicl::ParameterSet& pset)
     //
     // Purpose: Constructor.
     //
     // Arguments: pset - Module parameters.
     //
-    fSptalgTime(pset.get<fhicl::ParameterSet>("SpacePointAlgTime")),
-    fSptalgSep(pset.get<fhicl::ParameterSet>("SpacePointAlgSep")),
-    fSptalgDefault(pset.get<fhicl::ParameterSet>("SpacePointAlgDefault")),
-    fHitModuleLabel(pset.get<std::string>("HitModuleLabel")),
-    fUseClusterHits(pset.get<bool>("UseClusterHits")),
-    fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel")),
-    fUseMC(pset.get<bool>("UseMC")),
-    fBooked(false),
-    fHDTUE(0),
-    fHDTVE(0),
-    fHDTWE(0),
-    fHDTUPull(0),
-    fHDTVPull(0),
-    fHDTWPull(0),
-    fHDTUV(0),
-    fHDTVW(0),
-    fHDTWU(0),
-    fHS(0),
-    fHchisq(0),
-    fHx(0),
-    fHy(0),
-    fHz(0),
-    fHMCdx(0),
-    fHMCdy(0),
-    fHMCdz(0),
-    fHMCxpull(0),
-    fHMCypull(0),
-    fHMCzpull(0),
-    fNumEvent(0)
+  : EDAnalyzer(pset)
+   , fSptalgTime(pset.get<fhicl::ParameterSet>("SpacePointAlgTime"))
+   , fSptalgSep(pset.get<fhicl::ParameterSet>("SpacePointAlgSep"))
+   , fSptalgDefault(pset.get<fhicl::ParameterSet>("SpacePointAlgDefault"))
+   , fHitModuleLabel(pset.get<std::string>("HitModuleLabel"))
+   , fUseClusterHits(pset.get<bool>("UseClusterHits"))
+   , fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel"))
+   , fUseMC(pset.get<bool>("UseMC"))
+   , fBooked(false)
+   , fHDTUE(0)
+   , fHDTVE(0)
+   , fHDTWE(0)
+   , fHDTUPull(0)
+   , fHDTVPull(0)
+   , fHDTWPull(0)
+   , fHDTUV(0)
+   , fHDTVW(0)
+   , fHDTWU(0)
+   , fHS(0)
+   , fHchisq(0)
+   , fHx(0)
+   , fHy(0)
+   , fHz(0)
+   , fHMCdx(0)
+   , fHMCdy(0)
+   , fHMCdz(0)
+   , fHMCxpull(0)
+   , fHMCypull(0)
+   , fHMCzpull(0)
+   , fNumEvent(0)
   {
 
     // Report.
