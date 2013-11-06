@@ -81,7 +81,8 @@ namespace vertex{
 
   //-----------------------------------------------
   AggregateVertexAna::AggregateVertexAna(fhicl::ParameterSet const& pset)
-    : fHitModuleLabel     (pset.get< std::string >("FFFTHitModuleLabel"))
+    : EDAnalyzer(pset)
+    , fHitModuleLabel     (pset.get< std::string >("FFFTHitModuleLabel"))
     , fTrack3DModuleLabel (pset.get< std::string >("Track3DModuleLabel"))
     , fEndPointModuleLabel(pset.get< std::string >("EndPointModuleLabel"))
     , fVertexModuleLabel  (pset.get< std::string >("VertexModuleLabel"))

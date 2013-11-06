@@ -173,8 +173,9 @@ private:
 
 //------------------------------------------------------------------
 FeatureVertexFinderAna::FeatureVertexFinderAna(fhicl::ParameterSet const& pset) 
+  : EDAnalyzer(pset)
 {
-	this->reconfigure(pset);
+  this->reconfigure(pset);
 }
 
 //------------------------------------------------------------------
