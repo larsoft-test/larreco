@@ -1,5 +1,5 @@
-#include "job/hitfindermodules.fcl"
-#include "job/disambigalgorithms.fcl"
+#include "hitfindermodules.fcl"
+#include "disambigalgorithms.fcl"
 
 BEGIN_PROLOG
 

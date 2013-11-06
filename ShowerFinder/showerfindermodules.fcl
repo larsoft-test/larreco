@@ -1,4 +1,4 @@
-#include "job/calorimetry.fcl"
+#include "calorimetry.fcl"
 
 BEGIN_PROLOG
 

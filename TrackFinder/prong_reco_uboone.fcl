@@ -1,8 +1,8 @@
-#include "job/services.fcl"
-#include "job/trackfinderservices.fcl"
-#include "job/trackfindermodules.fcl"
-#include "job/mccheatermodules.fcl"
-#include "job/hitfindermodules.fcl"
+#include "services.fcl"
+#include "trackfinderservices.fcl"
+#include "trackfindermodules.fcl"
+#include "mccheatermodules.fcl"
+#include "hitfindermodules.fcl"
 
 process_name: ProngReco
 
@@ -19,8 +19,8 @@ services:
 
 
 # services from LArSoft - see definitions for configurations in 
-# job/geometry.fcl
-# job/services.fcl
+# geometry.fcl
+# services.fcl
 services.user.Geometry:           @local::microboone_geo 
 services.user.DetectorProperties: @local::microboone_detproperties
 services.user.LArProperties:      @local::microboone_properties

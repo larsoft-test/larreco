@@ -1,4 +1,4 @@
-#include "job/vertexfindermodules.fcl"
+#include "vertexfindermodules.fcl"
 
 BEGIN_PROLOG
 

@@ -1,5 +1,5 @@
-#include "job/calorimetry.fcl"
-#include "job/showerfindermodules.fcl"
+#include "calorimetry.fcl"
+#include "showerfindermodules.fcl"
 
 BEGIN_PROLOG
 

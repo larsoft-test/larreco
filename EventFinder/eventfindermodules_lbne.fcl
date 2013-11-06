@@ -1,4 +1,4 @@
-#include "job/eventfindermodules.fcl"
+#include "eventfindermodules.fcl"
 
 BEGIN_PROLOG
 

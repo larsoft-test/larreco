@@ -1,4 +1,4 @@
-#include "job/clustermodules.fcl"
+#include "clustermodules.fcl"
 
 BEGIN_PROLOG
 

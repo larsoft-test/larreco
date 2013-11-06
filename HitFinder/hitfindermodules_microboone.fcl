@@ -1,4 +1,4 @@
-#include "job/hitfindermodules.fcl"
+#include "hitfindermodules.fcl"
 
 BEGIN_PROLOG
 

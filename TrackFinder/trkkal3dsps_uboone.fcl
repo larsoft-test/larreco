@@ -1,9 +1,9 @@
-#include "job/services.fcl"
-#include "job/largeantmodules.fcl"
-#include "job/mccheatermodules.fcl"
-#include "job/trackfinderservices.fcl"
-#include "job/trackfindermodules.fcl"
-#####include "job/filters.fcl"
+#include "services.fcl"
+#include "largeantmodules.fcl"
+#include "mccheatermodules.fcl"
+#include "trackfinderservices.fcl"
+#include "trackfindermodules.fcl"
+#####include "filters.fcl"
 
 process_name: TrkKal3DSPS
 

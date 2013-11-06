@@ -1,4 +1,4 @@
-#include "job/showerfindermodules.fcl"
+#include "showerfindermodules.fcl"
 
 BEGIN_PROLOG
 

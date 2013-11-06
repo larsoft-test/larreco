@@ -1,6 +1,6 @@
-#include "job/services.fcl"
-#include "job/trackfinderservices.fcl"
-#include "job/trackfindermodules.fcl"
+#include "services.fcl"
+#include "trackfinderservices.fcl"
+#include "trackfindermodules.fcl"
 
 process_name: SpacePointAna
 
@@ -17,8 +17,8 @@ services:
 
 
 # services from LArSoft - see definitions for configurations in 
-# job/geometry.fcl
-# job/services.fcl
+# geometry.fcl
+# services.fcl
 services.user.Geometry:           @local::argoneut_geo 
 services.user.DetectorProperties: @local::argoneut_detproperties
 services.user.LArProperties:      @local::argoneut_properties
