@@ -80,8 +80,9 @@ namespace cluster{
 
   //-------------------------------------------------
   ClusterPCA::ClusterPCA(fhicl::ParameterSet const& pset) 
-    : fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel")),
-      fNormPC(pset.get<bool>("NormPC"))
+    : EDAnalyzer(pset)
+    , fClusterModuleLabel(pset.get<std::string>("ClusterModuleLabel"))
+    , fNormPC            (pset.get<bool>("NormPC"))
   {
   }
 

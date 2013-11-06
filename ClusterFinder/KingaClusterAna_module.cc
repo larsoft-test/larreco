@@ -189,7 +189,8 @@ namespace cluster{
 
   //-------------------------------------------------
   KingaClusterAna::KingaClusterAna(fhicl::ParameterSet const& pset)
-    : fKingaModuleLabel         (pset.get< std::string >("KingaModuleLabel")     )
+    : EDAnalyzer(pset)
+    , fKingaModuleLabel         (pset.get< std::string >("KingaModuleLabel")     )
     , fLineMergerModuleLabel    (pset.get< std::string >("LineMergerModuleLabel"))
     , fEndPoint2DModuleLabel    (pset.get< std::string >("EndPoint2DModuleLabel"))
     , fClusterCheaterModuleLabel(pset.get< std::string >("ClusterCheaterModuleLabel"))
