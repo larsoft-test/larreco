@@ -64,9 +64,6 @@ namespace trkf {
     std::string fHitModuleLabel;
     std::string fClusterModuleLabel;
 
-    int fTrackMode;
-    bool fEnableCalo;
-    bool fMakeHitAssns;
     
     trkf::BezierTrackerAlgorithm * fBTrackAlg;
     
@@ -131,12 +128,7 @@ namespace trkf {
 
   void BezierTrackerModule::reconfigure(fhicl::ParameterSet const& pset)
   {
-    fSeedModuleLabel   = pset.get<std::string>("SeedModuleLabel");
     fClusterModuleLabel= pset.get<std::string>("ClusterModuleLabel");
-    fHitModuleLabel    = pset.get<std::string>("HitModuleLabel");
-    fTrackMode         = pset.get<double>("TrackMode");
-    fEnableCalo        = pset.get<bool>("EnableCalo");
-    fMakeHitAssns      = pset.get<bool>("MakeHitAssns");
     
     fBTrackAlg = new trkf::BezierTrackerAlgorithm(pset.get<fhicl::ParameterSet>("BezierTrackerAlgorithm"));
       
@@ -162,103 +154,17 @@ namespace trkf {
     std::vector<art::PtrVector<recob::Hit> >  HitsForAssns;
     
    
-    if(fTrackMode==1)
-      {
-	// Look for track-like features in seed collections
-	art::Handle< std::vector<recob::Seed> > seedh;
-        evt.getByLabel(fSeedModuleLabel, seedh);
-
-	std::vector<recob::Seed> TrackSeeds(*seedh);
-
-        fBTrackAlg->MakeBezierTracksFromSeeds(BTracks, TrackSeeds);
-	// Insert hit collecting code here
-      }
-
-   
-    else if(fTrackMode==2)
-      {
-	// Find tracks in amorphous hit collection
-        
-	
-	art::Handle< std::vector<recob::Hit> > hith;
-	evt.getByLabel(fHitModuleLabel, hith);
-	
-	std::vector<art::Ptr<recob::Hit> > HitVec;
-	for(unsigned int i=0; i < hith->size(); ++i)
-	  {
-	    art::Ptr<recob::Hit> hit(hith,i);
-	    HitVec.push_back(hit);
-	  }
-       
-	fBTrackAlg->MakeBezierTracksFromHits(BTracks, HitVec, HitsForAssns);
-	HitVec.clear();
-      }
-
-    else if(fTrackMode==3)
-      {
-	// Find tracks from cluster combinations
-	//	mf::LogVerbatim("BezierTrackerModule")<<"Bezier tracker configured in mode 3, building tracks from cluster combinations"<<std::endl;
-
-	std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > SortedHits;
-	GetHitsFromClusters(fClusterModuleLabel, evt, SortedHits);
-	
-	std::vector<std::vector<art::PtrVector<recob::Hit> > > HitsPerSeed;
-	
-	std::vector<std::vector<recob::Seed> > Seeds = fBTrackAlg->GetSeedFinderAlgorithm()->GetSeedsFromSortedHits(SortedHits, HitsPerSeed);
-	std::vector<std::vector<double> >         SValuesOfHits;
-
-	
-	for(size_t i=0; i!=Seeds.size(); ++i)
-	  {		  
-	    for(size_t j=0; j!=Seeds.at(i).size(); ++j)
-	      {
-		seeds->push_back(Seeds.at(i).at(j));
-	      }
-	    std::vector<trkf::BezierTrack> BTracksThisCombo;
-	    if(Seeds.at(i).size()>0)
-	      fBTrackAlg->MakeBezierTracksFromSeeds(BTracksThisCombo, Seeds.at(i));
-	
-	    for(size_t j=0; j!=BTracksThisCombo.size(); ++j)
-	      {
-
-		BTracks.push_back(BTracksThisCombo.at(j));
-		size_t ThisIndex = BTracks.size()-1;
-		
-		
-		SValuesOfHits.push_back(std::vector<double>());
-		HitsForAssns.push_back(art::PtrVector<recob::Hit>());
-		
-		if(fMakeHitAssns)
-		  GetHitsToAssn(SortedHits,i,BTracksThisCombo.at(j), SValuesOfHits.at(ThisIndex), HitsForAssns.at(ThisIndex));	
-
-		if(fEnableCalo)
-		  BTracksThisCombo.at(j).CalculatedQdx(HitsForAssns.at(ThisIndex), SValuesOfHits.at(ThisIndex));
-		
-		mf::LogVerbatim("BezierTracker") << " Bezier track " << ThisIndex<<" has hit collection size " << HitsForAssns.at(ThisIndex).size();
-			
-	      }
-	    BTracksThisCombo.clear();	    
-	  }
-	for(size_t i=0; i!=Seeds.size(); ++i)
-	  Seeds.at(i).clear();
-	Seeds.clear();
-	for(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >::iterator it=SortedHits.begin();
-	    it!=SortedHits.end();++it)
-	  {
-	    for(size_t i=0; i!=it->second.size(); ++i)
-	      it->second.at(i).clear();
-	    it->second.clear();
-	  }
-	SortedHits.clear();
-	  
-       }
-
+    std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > SortedHits;
+    GetHitsFromClusters(fClusterModuleLabel, evt, SortedHits);
+    BTracks = fBTrackAlg->MakeTracksNew(SortedHits, HitsForAssns);
+    
+    
     fBTrackAlg->MakeDirectJoins(BTracks, HitsForAssns);
     
     mf::LogInfo("BezierTrackerModle")<<"Bezier tracker vertexing";
     std::vector<recob::Vertex> Vertices;
     std::vector<std::vector<int> > VertexMapping;
-    fBTrackAlg->MakeVertexJoins(BTracks, Vertices, VertexMapping);
+    //  fBTrackAlg->MakeVertexJoins(BTracks, Vertices, VertexMapping);
     
     for(size_t v=0; v!=Vertices.size(); ++v)
       {

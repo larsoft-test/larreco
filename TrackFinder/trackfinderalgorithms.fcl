@@ -19,25 +19,29 @@ standard_seedfinderalgorithm:
   InitSeedLength:         2
   MinPointsInSeed:        4
   Refits:                 5
-  HitResolution:          2
+  HitResolution:          1
   OccupancyCut:           0.8
   MaxViewRMS:             [2,2,2]
   ExtendSeeds:            true
+  LengthCut:              0
 }
 standard_seedfinderalgorithm.SpacePointAlg.Filter: false
 
 
 standard_beziertrackeralgorithm:
 {	
-  MaxJumpLengths:      5.0
-  HitDistance:         1.0
+  OverlapCut:          0.5
   DirectJoinDistance:  5.0
+  HitDistance:         1.0
   TrackJoinAngle:      0.5          
   VertexImpactThreshold: 2
   VertexExtrapDistance: 10
+  OccupancyThresh:    [0.8, 0.8, 0.8]
+  TrackResolution:    2.0
   SeedFinder:          @local::standard_seedfinderalgorithm
 
 }
+standard_beziertrackeralgorithm.SeedFinder.LengthCut: 2
 
 bo_spacepointalg: @local::standard_spacepointalg
 
