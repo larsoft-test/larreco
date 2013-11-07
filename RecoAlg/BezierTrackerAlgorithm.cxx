@@ -15,7 +15,10 @@
 #include "RecoBase/Track.h"
 #include "RecoBase/SpacePoint.h"
 #include "RecoObjects/BezierTrack.h"
+#include "RecoObjects/BezierCurveHelper.h"
 #include "Utilities/AssociationUtil.h"
+#include "Utilities/DetectorProperties.h"
+
 
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
@@ -29,6 +32,7 @@ namespace trkf {
 
   BezierTrackerAlgorithm::BezierTrackerAlgorithm(const fhicl::ParameterSet& pset)
   {
+    
     reconfigure(pset);
   }
 
@@ -43,8 +47,9 @@ namespace trkf {
 
   void BezierTrackerAlgorithm::reconfigure(fhicl::ParameterSet const& pset)
   {
-
-    fMaxJumpLengths    = pset.get<double>("MaxJumpLengths");
+    
+    CalculateGeometricalElements();
+    
     fHitDistance       = pset.get<double>("HitDistance");
     fTrackJoinAngle    = pset.get<double>("TrackJoinAngle");
     fDirectJoinDistance= pset.get<double>("DirectJoinDistance");
@@ -52,48 +57,133 @@ namespace trkf {
     fVertexImpactThreshold = pset.get<double>("VertexImpactThreshold");
     fVertexExtrapDistance = pset.get<double>("VertexExtrapDistance");
     
+    fOccupancyThresh.resize(3);
+    fOccupancyThresh = pset.get<std::vector<double> >("OccupancyThresh");
+    fTrackResolution = pset.get<double>("TrackResolution");
+    fOverlapCut      = pset.get<double>("OverlapCut");
+
+
 
     fTheSeedFinder = new SeedFinderAlgorithm(pset.get<fhicl::ParameterSet>("SeedFinder"));
     
   }
 
 
-  //------------------------------------------------
-
-  void BezierTrackerAlgorithm::MakeBezierTracksFromSeeds(std::vector<trkf::BezierTrack>& ReturnVector, std::vector<recob::Seed> const& AllSeeds )
+  //-----------------------------------------------
+  std::vector<trkf::BezierTrack> BezierTrackerAlgorithm::MakeTracksNew(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >& SortedHits, std::vector<art::PtrVector<recob::Hit> >& HitAssocs)
   {
     
-    mf::LogVerbatim("BezierTrackerAlgorithm")<<"Making bezier tracks from seeds";
+    std::vector<trkf::BezierTrack> ReturnVector;
+
+    size_t UEntries = SortedHits[geo::kU].size();
+    size_t VEntries = SortedHits[geo::kV].size();
+    size_t WEntries = SortedHits[geo::kW].size();
+
     
-    std::vector<std::vector<recob::Seed> > OrgSeeds = OrganizeSeedsIntoTracks(AllSeeds);
+    // Get seeds from the hit collection    
+    std::vector<std::map<size_t, bool> > MapNeeded(3);
+ 
 
-    mf::LogVerbatim("BezierTrackerAlgorithm")<<"Producing track objects";    
+    std::vector<std::vector<art::PtrVector<recob::Hit> > > HitsPerSeed;
+    std::vector<std::vector<recob::Seed> > Seeds = GetSeedFinderAlgorithm()->GetSeedsFromSortedHits(SortedHits, HitsPerSeed);
 
-    for(unsigned int i=0; i!=OrgSeeds.size(); i++)
-      {
-	if(OrgSeeds.at(i).size()>1)
-	  ReturnVector.push_back(trkf::BezierTrack(OrgSeeds.at(i)));
-	else if(OrgSeeds.at(i).size()==1)
+
+    // Find the longest seed
+    for(size_t nU =0; nU != UEntries; ++nU)
+      for(size_t nV =0; nV != VEntries; ++nV)
+	for(size_t nW =0; nW != WEntries; ++nW)
+	  
 	  {
-	    // Throw out any stray seeds which lie on top of another track
-	    bool DoNotTrack=false;
-	    for(size_t j=0; j!=ReturnVector.size(); ++j)
+	    size_t iCombo = 
+	      nU * VEntries * WEntries + 
+	      nV * WEntries +
+	      nW;
+	    
+	    
+	    if(Seeds.at(iCombo).size()>0)
 	      {
-		double s,d;
-		ReturnVector.at(j).GetClosestApproach(OrgSeeds.at(i).at(0),s,d);
-		//		mf::LogVerbatim("BezierTrackerAlgorithm")<<"Checking for overlap " << d<<std::endl;
-		if(d<fHitDistance)
+		MapNeeded[0][nU]=true;
+		MapNeeded[1][nV]=true;
+		MapNeeded[2][nW]=true;
+	      }
+	  }
+    
+
+    std::vector< std::map<uint32_t, std::vector<int> > > OrgHitsU(UEntries);
+    std::vector< std::map<uint32_t, std::vector<int> > > OrgHitsV(VEntries);
+    std::vector< std::map<uint32_t, std::vector<int> > > OrgHitsW(WEntries);
+
+    for(size_t nU=0; nU!=UEntries; ++nU)
+      {
+	if(MapNeeded[0][nU])
+	  for(size_t iH=0; iH!=SortedHits[geo::kU][nU].size(); ++iH)
+	    {
+	      OrgHitsU[nU][SortedHits[geo::kU][nU][iH]->Channel()].push_back(iH);
+	    }
+      }
+    for(size_t nV=0; nV!=VEntries; ++nV)
+      {
+	if(MapNeeded[1][nV])
+	  for(size_t iH=0; iH!=SortedHits[geo::kV][nV].size(); ++iH)
+	    {
+	      OrgHitsV[nV][SortedHits[geo::kV][nV][iH]->Channel()].push_back(iH);
+	    }
+      }
+    for(size_t nW=0; nW!=WEntries; ++nW)
+      {
+	if(MapNeeded[2][nW])
+	  for(size_t iH=0; iH!=SortedHits[geo::kW][nW].size(); ++iH)
+	    {
+	      OrgHitsW[nW][SortedHits[geo::kW][nW][iH]->Channel()].push_back(iH);
+	    }
+      }
+    
+    for(size_t nU =0; nU != UEntries; ++nU)
+      for(size_t nV =0; nV != VEntries; ++nV)
+	for(size_t nW =0; nW != WEntries; ++nW)
+	  
+	  {
+	    size_t iCombo = 
+	      nU * VEntries * WEntries + 
+	      nV * WEntries +
+	      nW;
+	    
+	    
+	    if(Seeds.at(iCombo).size()>0)
+	      {
+		
+		std::vector<art::PtrVector<recob::Hit>* > HitStruct(3);
+		HitStruct[0] = & SortedHits[geo::kU].at(nU);
+		HitStruct[1] = & SortedHits[geo::kV].at(nV);
+		HitStruct[2] = & SortedHits[geo::kW].at(nW);
+		
+		std::vector<std::map<uint32_t, std::vector<int> >* > OrgHits(3);
+		OrgHits[0] = & OrgHitsU[nU];
+		OrgHits[1] = & OrgHitsV[nV];
+		OrgHits[2] = & OrgHitsW[nW];
+		
+		std::vector<std::vector<recob::Seed> > SeedsForTracks = OrganizeSeedsIntoTracksNew(Seeds.at(iCombo), HitStruct, HitsPerSeed.at(iCombo), OrgHits);
+		//	mf::LogVerbatim("BezierTrackerAlgorithm")
+		//	std::cout<<"This combo had " << Seeds.at(iCombo).size()<<" seeds and got " << SeedsForTracks.size()<<" tracks"<<std::endl;
+		
+		for(size_t i=0; i!=SeedsForTracks.size(); ++i)
 		  {
-		    mf::LogVerbatim("BezierTrackerAlgorithm") << " Isolated seed track "<<i<<" is subsumed by track " << j << " in seed vector - doesn't deserve  a new track"<<std::endl;
-		    DoNotTrack=true;
+		    //		    mf::LogVerbatim("BezierTrackerAlgorithm")<<" " 
+		    //  std::cout<< i <<" with " <<SeedsForTracks.at(i).size()<<" seeds"<<std::endl;
+		    ReturnVector.push_back(trkf::BezierTrack(SeedsForTracks.at(i)));
+		    // This line temporary - replace with real assoc list
+		    HitAssocs.push_back(art::PtrVector<recob::Hit>());
 		  }
 	      }
-	    if(!DoNotTrack)
-	      ReturnVector.push_back(trkf::BezierTrack(OrgSeeds.at(i)));
-	  }
-      }
-
+	    
+	  } // End of loop through combos
+    return ReturnVector;
+    
+    
   }
+
+
+
 
   //------------------------------------------------
   
@@ -178,75 +268,6 @@ namespace trkf {
   } 
 					     
 
-  //------------------------------------------------
-
-  void BezierTrackerAlgorithm::MakeBezierTracksFromHits(std::vector<trkf::BezierTrack>& ReturnVector, std::vector<art::Ptr<recob::Hit> > HitVec, std::vector<art::PtrVector<recob::Hit> >& HitsForAssns )
-  {
-    mf::LogVerbatim("BezierTrackerAlgorithm")<<"Making bezier tracks from hits"<<std::endl;
-    
-    
-    // This vector keeps track of which hits we are still processing  
-    art::PtrVector<recob::Hit> HitsToProcess;
-    for(size_t i=0; i!=HitVec.size(); ++i)
-      {
-	HitsToProcess.push_back(HitVec.at(i));
-      }
-
-    bool KeepTrying=true;
-    while(KeepTrying)
-      {
-	mf::LogVerbatim("BezierTrackerAlgorithm")<<"Getting seeds " <<std::endl;
-
-	std::vector<art::PtrVector<recob::Hit> > HitCatalogue;	
-	std::vector<recob::Seed> AllSeeds = fTheSeedFinder->GetSeedsFromUnSortedHits(HitsToProcess, HitCatalogue);
-	   	    
-	mf::LogVerbatim("BezierTrackerAlgorithm")<<"Organizing seed collections " <<std::endl;
-	// Organize these seeds into tracklike collections
-	std::vector<std::vector<recob::Seed > > OrgSeeds = OrganizeSeedsIntoTracks(AllSeeds);
-	
-	// If we didn't find any, continue and quit
-	if(OrgSeeds.size()==0) 
-	  {
-	    KeepTrying=false;
-	    continue;
-	  }
-	    
-	mf::LogVerbatim("BezierTrackerAlgorithm")<<"Making tracks from  " << OrgSeeds.size()<<" seed collections"<<std::endl;
-	// For each of them make 1 track
-	for(unsigned int i=0; i!=OrgSeeds.size(); i++)
-	  {
-	    
-	    // Make a base track using seed positions and directions
-	    //  and build a BezierTrack on top of it.		
-	    BezierTrack BTrack(OrgSeeds.at(i));
-	 	
-	    art::PtrVector<recob::Hit>         HitsThisTrack;
-	    std::vector<double>                SValues;
-	    
-	    std::vector<int> HitIDs = DetermineNearbyHits(HitsToProcess, BTrack, SValues);
-	    
-	    mf::LogVerbatim("BezierTrackerAlgorithm")<<"Found " << HitIDs.size()<<" nearby hits" <<std::endl;
-	    
-	    for(size_t i=0; i!=HitIDs.size(); i++)
-	      HitsThisTrack.push_back(HitsToProcess.at(HitIDs.at(i)));
-	    
-	    HitsForAssns.push_back(HitsThisTrack);
-	    
-	    ReturnVector.push_back(BTrack);
-	 
-	    // Remove the hits we used from the vector and go around
-	    mf::LogVerbatim("BezierTrackerAlgorithm")<<"Removing used hits"<<std::endl;
-	    for(int i=HitIDs.size()-1; i!=-1; --i)
-	      HitsToProcess.erase(HitsToProcess.begin() + HitIDs.at(i));
-	  }
-	mf::LogVerbatim("BezierTrackerAlgorithm")<<"Uncollected hit size : " << HitsToProcess.size()<<std::endl;
-	
-	if(HitsToProcess.size()<3) KeepTrying=false;
-	
-      }
-    
-  }
-
 
   
 
@@ -273,22 +294,117 @@ namespace trkf {
 
   
 
-  //----------------------------------------------------------------------
-  // 
-  // Organize a vector of seeds into collections which seem to form sensible
-  // track objects.
-  //
 
-  std::vector<std::vector< recob::Seed > > BezierTrackerAlgorithm::OrganizeSeedsIntoTracks(std::vector<recob::Seed > const& AllSeeds)
+  //-----------------------------------------------------
+
+  std::vector<std::vector< recob::Seed > > BezierTrackerAlgorithm::OrganizeSeedsIntoTracksNew(std::vector<recob::Seed > & AllSeeds, std::vector<art::PtrVector<recob::Hit>*>& AllHits, std::vector<art::PtrVector<recob::Hit> >& WhichHitsPerSeed, std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits )
   {
     mf::LogVerbatim("BezierTrackerAlgorithm")<<"Organizing seed collection into track collections ";
+
+    std::vector<std::vector<uint32_t> > MaxSeedChanPerView(3);
+    std::vector<std::vector<uint32_t> > MinSeedChanPerView(3);
     
+    // This vector will keep track of which hits we are still allowed
+    //  to use.  Key : 
+    //   0 - hit available
+    //   1 - hit taken by an extrapolated bezier curve
+    //   2 - hit taken by a seed on the track
+
+    std::vector<std::vector<int> > HitStatus(3);
+    for(size_t n=0; n!=3; ++n) HitStatus.at(n).resize(AllHits[n]->size());
+
+
+    // This map keeps track of the indices of the hits (in the AllHits vector)
+    //  which go with each seed, in each view
+    //   SeedToHitMap[per_view][per_seed][1_to_n_with_this_seed] = index 
+
+    std::vector<std::vector<std::vector<int> > >  SeedToHitMap(3);
+    
+    // Fill Seed <--> Hit lookups
+    for(size_t iSeed=0; iSeed!=AllSeeds.size(); ++iSeed)
+      {	
+	// first make sure we have at least one hit in each view.
+	
+	bool CompleteSet = false;
+	std::vector<bool> AtLeastOneHitThisView(3,false);
+	for(size_t iHit=0; iHit!=WhichHitsPerSeed.at(iSeed).size(); ++iHit)
+	  {
+	    if(!AtLeastOneHitThisView[WhichHitsPerSeed.at(iSeed).at(iHit)->View()])
+	      {
+		AtLeastOneHitThisView[WhichHitsPerSeed.at(iSeed).at(iHit)->View()] = true;
+		if(AtLeastOneHitThisView[0]&&AtLeastOneHitThisView[1]&&AtLeastOneHitThisView[2])
+		  {
+		    CompleteSet = true;
+		    break;
+		  }
+	      }
+	  }
+	if(!CompleteSet)
+	  {
+	    // If we don't have at least one hit in each view from this 
+	    //  seed, we're not going to be able to use it.
+	    //  ditch it (and its corresponding hits) from the game.
+	    AllSeeds.erase(AllSeeds.begin() + iSeed);
+	    WhichHitsPerSeed.erase(WhichHitsPerSeed.begin() + iSeed);
+	    --iSeed;
+	    continue;
+	  }
+	else
+	  {
+	    // if we didn't throw out that seed, push back a new entry in 
+	    //  the seed <-> hit map vector, and 	 	    
+	    // Find the min and max channels for each seed
+	    for(size_t n=0; n!=3; ++n)
+	      {
+		SeedToHitMap[n].push_back(std::vector<int>());
+		MinSeedChanPerView[n].push_back(10000);
+		MaxSeedChanPerView[n].push_back(0);
+	      }
+	    for(size_t iHit=0; iHit!=WhichHitsPerSeed.at(iSeed).size(); ++iHit)
+	      {
+		uint32_t Channel = WhichHitsPerSeed.at(iSeed).at(iHit)->Channel();
+		geo::View_t View = WhichHitsPerSeed.at(iSeed).at(iHit)->View();
+		
+		int ViewID=0;
+		if(View==geo::kU)      ViewID=0; 
+		else if(View==geo::kV) ViewID=1; 
+		else if(View==geo::kW) ViewID=2;	    
+		
+		double      eta     = 0.01;
+		
+		for(size_t iH=0; iH!=OrgHits[ViewID]->operator[](Channel).size();++iH)
+		  {
+		    double PeakTime1 = AllHits[ViewID]->at(OrgHits[ViewID]->operator[](Channel).at(iH))->PeakTime();
+		    double PeakTime2 = WhichHitsPerSeed.at(iSeed).at(iHit)->PeakTime();
+		    
+		    if( fabs(PeakTime1-PeakTime2)<eta)
+		      
+		      SeedToHitMap[ViewID][iSeed].push_back(OrgHits[ViewID]->operator[](Channel).at(iH));
+		  }
+		
+	    
+		if(Channel>MaxSeedChanPerView[ViewID][iSeed]) MaxSeedChanPerView[ViewID][iSeed] = Channel;
+		if(Channel<MinSeedChanPerView[ViewID][iSeed]) MinSeedChanPerView[ViewID][iSeed] = Channel;
+		
+	      }
+	  }
+      }
+    
+    // Now we've set up the book keeping, we get into the real
+    //  work of track finding.
+
+    // This will store our proposed track vectors
     std::vector<std::vector<recob::Seed > > OrganizedByTrack;
-    std::map<int, std::map<int, double> > ConnectionMap;
-    
+     
     TVector3 AverageDir;
-    std::vector<TVector3> SeedDirs;
-    std::vector<TVector3> SeedPoss;
+
+    std::vector<TVector3> VSeedDirs;
+    std::vector<TVector3> VSeedPoss;
+    std::vector<std::vector<int> >       SeedSDirs;
+    std::vector<std::vector<uint32_t> >  SeedHighSChans;
+    std::vector<std::vector<uint32_t> >  SeedLowSChans;
+    
+      
 
     for(size_t i=0; i!=AllSeeds.size(); ++i)
       {
@@ -296,45 +412,57 @@ namespace trkf {
 
 	AllSeeds.at(i).GetDirection(SeedDir,Err);
 	AllSeeds.at(i).GetPoint(SeedPos,Err);
-	SeedDirs.push_back(TVector3(SeedDir[0],SeedDir[1],SeedDir[2]));
-	SeedPoss.push_back(TVector3(SeedPos[0],SeedPos[1],SeedPos[2]));
-	AverageDir+=SeedDirs.at(SeedDirs.size()-1);
-      }
-    AverageDir *= (1.0/AverageDir.Mag());
-       
+	TVector3 VSeedDir = TVector3(SeedDir[0],SeedDir[1],SeedDir[2]);
+	VSeedDirs.push_back(VSeedDir);
+	TVector3 VSeedPos = TVector3(SeedPos[0],SeedPos[1],SeedPos[2]);
+	VSeedPoss.push_back(VSeedPos);
 	
-    for(size_t i=0; i!=AllSeeds.size(); ++i)
-      {
-	for(size_t j=0; j!=AllSeeds.size(); ++j)
+	// This is a two directional degeneracy
+	//  This is one way to resolve it (maybe not the best)
+
+	if(VSeedDir.Dot(fZDir)<0)
+	  AverageDir -= VSeedDir;
+	else
+	  AverageDir += VSeedDir;
+	
+	// Work out which direction the seed points out in each plane
+	std::vector<double> TimeDir, WireDir;
+	
+	GetSeedDirProjected(AllSeeds.at(i), WireDir, TimeDir);
+	
+	SeedSDirs.push_back(std::vector<int>(3));
+	SeedHighSChans.push_back(std::vector<uint32_t>(3));
+	SeedLowSChans.push_back(std::vector<uint32_t>(3));
+	
+
+	for(size_t n=0; n!=3; ++n)
 	  {
-	    if(i==j) continue;
-	    double Distance = AllSeeds.at(j).GetDistance(AllSeeds.at(i));
-	    double Angle    = AllSeeds.at(j).GetAngle(AllSeeds.at(i));
-	    double Length   = std::max(AllSeeds.at(i).GetLength(), AllSeeds.at(j).GetLength());
-	    double ProjDisc = AllSeeds.at(i).GetProjAngleDiscrepancy(AllSeeds.at(j));
-	    int PointingSign = AllSeeds.at(i).GetPointingSign(AllSeeds.at(j));
-	    
-	    
-	    if( ( Angle<fTrackJoinAngle) && (ProjDisc<fTrackJoinAngle)&& (((Distance-Length)/Length)<fMaxJumpLengths)) 
+	    if(WireDir[n]>0)
 	      {
-		
-		ConnectionMap[i][j] = Distance*float(PointingSign);
-	       
-	      }  
+		SeedSDirs[i][n]=1;
+		SeedHighSChans[i][n] = MaxSeedChanPerView[n][i];
+		SeedLowSChans[i][n]  = MinSeedChanPerView[n][i];
+	      }
+	    else
+	      {
+		SeedSDirs[i][n]=-1;
+		SeedHighSChans[i][n] = MinSeedChanPerView[n][i];
+		SeedLowSChans[i][n]  = MaxSeedChanPerView[n][i];
+	      }
 	  }
-	
       }
     
+    AverageDir *= (1.0/AverageDir.Mag());
+       
     std::vector<double> AngleToAve;
     std::vector<double> ProjAlongAve;
     
     for(size_t i=0; i!=AllSeeds.size(); ++i)
       {
-	ProjAlongAve.push_back(SeedPoss.at(i).Dot(AverageDir));
-	AngleToAve.push_back(SeedDirs.at(i).Dot(AverageDir)/SeedDirs.at(i).Mag());
+	ProjAlongAve.push_back(VSeedPoss.at(i).Dot(AverageDir));
+	AngleToAve.push_back(VSeedDirs.at(i).Dot(AverageDir)/VSeedDirs.at(i).Mag());
       }
-  
-    
+
     
     // For now we'll only look for 1 long track per cluster combo.
     //  There is room for improvement here if we need it.
@@ -342,62 +470,179 @@ namespace trkf {
     std::vector<size_t> TrackParts;
     std::vector<size_t> DoesNotFit;
     std::vector<size_t> AlreadyUsed;
-
-     
-
+    std::vector<size_t> ThrownByHits;
+    std::map<int, bool> SeedNotAvailable;
+  
     // This loop keeps running whilst there are still tracks to make
-    while(AlreadyUsed.size()<AllSeeds.size())
+    while((AlreadyUsed.size()+ThrownByHits.size())<AllSeeds.size())
       {
 	       
 	// This loop keeps running whilst there are still seeds
 	//  to check for this track
 
-
-	while((TrackParts.size()+DoesNotFit.size()+AlreadyUsed.size())<AllSeeds.size())
+	
+	while((ThrownByHits.size()+TrackParts.size()+DoesNotFit.size()+AlreadyUsed.size())<AllSeeds.size())
 	  {
+
 	    // First find the lowest track proj remaining
 	    int LowestLeft=-1;
 	    for(size_t i=0; i!=AllSeeds.size(); ++i)
 	      {
-		bool SeedUnavailable=false;
-		for(size_t j=0; j!=TrackParts.size(); ++j)
-		  if(i==TrackParts.at(j)) SeedUnavailable=true;
-		for(size_t j=0; j!=DoesNotFit.size(); ++j)
-		  if(i==DoesNotFit.at(j)) SeedUnavailable=true;
-		for(size_t j=0; j!=AlreadyUsed.size(); ++j)
-		  if(i==AlreadyUsed.at(j)) SeedUnavailable=true;
-	    
-		if(!SeedUnavailable)
+		if(!SeedNotAvailable[i])
 		  {
 		    if(LowestLeft < 0) LowestLeft = i;
 		    if(ProjAlongAve.at(i)<ProjAlongAve.at(LowestLeft))
 		      LowestLeft = i;		
 		  }
 	      }
+	
+	    std::vector<std::vector<int> > InterpHits(3);
 	    
-	    if(TrackParts.size()==0) TrackParts.push_back(LowestLeft);
-	    else if(ConnectionMap[TrackParts.at(TrackParts.size()-1)][LowestLeft]!=0)
+	    if(TrackParts.size()==0) 
 	      {
+		// If there are no seeds on the track, accept this seed
+		//  as the first one to start running with.
+		TrackParts.push_back(LowestLeft);
+		SeedNotAvailable[LowestLeft]=true;
+	
+		// Mark the hits that go with this seed as taken
+		for(size_t View=0; View!=3; ++View)
+		  for(size_t iH=0; iH!=SeedToHitMap[View][LowestLeft].size();++iH)
+		    HitStatus[View][SeedToHitMap[View][LowestLeft][iH]] = 2;
+	      }
+	    else if(TrackParts.size()>0) 
+	      {
+		int a = TrackParts.at(TrackParts.size()-1);
+		int b = LowestLeft;
+
+		double Angle           = AllSeeds.at(a).GetAngle(AllSeeds.at(b));
+ 		double ProjDisc        = AllSeeds.at(a).GetProjAngleDiscrepancy(AllSeeds.at(b));
+		int PointingSign_ab    = AllSeeds.at(a).GetPointingSign(AllSeeds.at(b));
+		int PointingSign_ba    = AllSeeds.at(a).GetPointingSign(AllSeeds.at(b));
+		int PointingSign_ac    = 0;
+		if(TrackParts.size()>1) PointingSign_ac = AllSeeds.at(a).GetPointingSign(AllSeeds.at(TrackParts.size()-2));
 		
-		// if track already running, check this comes out the right end
-		if(TrackParts.size()>2)
+		bool SeedFits=false;
+
+		// Check seed join conditions (no hits yet)
+		bool JoinAngleOK    = fabs(Angle)<fTrackJoinAngle;
+		bool PointingSignOK = (PointingSign_ac * PointingSign_ab)<0.5;
+		bool ProjDiscOK     = false;
+		if(PointingSign_ab > 0)
 		  {
-		    if(ConnectionMap[TrackParts.at(TrackParts.size()-1)][LowestLeft] *
-		       ConnectionMap[TrackParts.at(TrackParts.size()-1)][TrackParts.at(TrackParts.size()-2)] < 0)
-		      {
-			TrackParts.push_back(LowestLeft);
-		      }		  
-		    else
-		      DoesNotFit.push_back(LowestLeft);
+		    ProjDiscOK = fabs(ProjDisc) < fTrackJoinAngle;
 		  }
 		else
-		  TrackParts.push_back(LowestLeft);
-	      }
-	    else
-	      DoesNotFit.push_back(LowestLeft);
-	    
-	    
-	  }
+		  {
+		    ProjDiscOK = fabs(ProjDisc - 3.142) < fTrackJoinAngle;
+		  }
+		
+		if(JoinAngleOK && PointingSignOK && ProjDiscOK)
+		  {
+		    std::vector<uint32_t> EndChan_a(3), EndChan_b(3), LowChan(3), HighChan(3);
+		    std::vector<std::vector<int> > HitsUnderConsideration(3);
+  
+		    for(size_t n=0; n!=3; ++n)
+		      {
+			if(PointingSign_ab > 0)
+			  EndChan_a[n] = SeedHighSChans[a][n];   
+			else
+			  EndChan_a[n] = SeedLowSChans[a][n];
+			
+			if(PointingSign_ba > 0)
+			  EndChan_b[n] = SeedHighSChans[b][n];   
+			else
+			  EndChan_b[n] = SeedLowSChans[b][n];
+			
+			LowChan[n]  = std::min(EndChan_a[n], EndChan_b[n]) ;
+			HighChan[n] = std::max(EndChan_a[n], EndChan_b[n]) ;
+		      }
+		    
+		    std::vector<std::vector<int> > TheseHits(3);
+		    
+		    std::vector<double> Occupancy = GetOccupancy(AllSeeds.at(a), AllSeeds.at(b), fTrackResolution, AllHits, OrgHits, LowChan, HighChan, HitStatus, TheseHits);
+		    
+		  
+		    /*		    mf::LogVerbatim("BezierTrackerAlgorithm")<<"HighLow "<<a<<" : " << b <<
+		      " " <<HighChan[0]-LowChan[0]<<
+		      " " <<HighChan[1]-LowChan[1]<<
+		      " " <<HighChan[2]-LowChan[2]<<
+		      " " <<Occupancy[0]<<
+		      " " <<Occupancy[1]<<
+		      " " <<Occupancy[2]<<
+		      std::endl;
+		    */	    
+
+		    if( (Occupancy[0] > fOccupancyThresh[0]) &&
+			(Occupancy[1] > fOccupancyThresh[1]) &&
+			(Occupancy[2] > fOccupancyThresh[2]) )		    
+		      {		    
+			SeedFits = true;
+			InterpHits=TheseHits;
+		      }
+
+		  }
+		if(SeedFits) 
+		  {
+		    // This seed is good! Store it on the track
+		    TrackParts.push_back(LowestLeft);
+		    SeedNotAvailable[LowestLeft]=true;
+
+		    // Remove the hits that went with this seed from consideration
+		    for(size_t View=0; View!=3; ++View)
+		      for(size_t iH=0; iH!=SeedToHitMap[View][LowestLeft].size();++iH)
+			HitStatus[View][SeedToHitMap[View][LowestLeft][iH]] = 2;
+		    // Remove the hits that were interpolated through from consideration
+		    for(size_t n=0; n!=3; ++n)
+		      for(size_t i=0; i!=InterpHits[n].size(); ++i)
+			{
+			  HitStatus[n][InterpHits[n][i]] = 1;
+			}
+		    // Kick out any seeds which are not invalidated by their
+		    //  hits being stolen
+		    for(size_t j=0; j!=AllSeeds.size(); ++j)
+		      {
+			if(!SeedNotAvailable[j])
+			  {
+			    double OverlapFrac[3];
+			    for(size_t n=0; n!=3; ++n)
+			      {
+				int TotalInSeed=0;
+				int TotalRejected=0;
+				for(size_t iH=0; iH!=SeedToHitMap[n][j].size(); ++iH)
+				  {
+				    TotalInSeed++;
+				    if(HitStatus[n][SeedToHitMap[n][j][iH]]!=0)
+				      TotalRejected++;
+				  }
+				OverlapFrac[n] = float(TotalRejected)/float(TotalInSeed);
+			      }
+			    for(size_t n=0; n!=3; ++n)
+			      {
+				size_t n1=(n+1)%3; size_t n2=(n+2)%3;
+				if( (OverlapFrac[n]<=OverlapFrac[n1]) &&
+				    (OverlapFrac[n]<=OverlapFrac[n2]) )
+				  {
+				    if(OverlapFrac[n] > fOverlapCut)
+				      {
+					SeedNotAvailable[j]=true;
+					ThrownByHits.push_back(j);
+					break;
+				      }
+				  }
+			      }// End view loop (seed tossing)
+			  } // End checking seed availability (seed tossing)
+		      } // End seed loop (seed tossing)
+		  } // End if positive seed fit
+		else 
+		  {
+		    // If seed doesn't fit, mark it as such, and make it
+		    //  temporarily unavailable.
+		    DoesNotFit.push_back(LowestLeft);
+		    SeedNotAvailable[LowestLeft]=true;
+		  } 
+	      } // End if(not first seed)
+	  } // End loop over all remaining seeds
 	if(TrackParts.size()>0)
 	  {
 	    mf::LogVerbatim("BezierTrackerAlgorithm")<<" Prototrack runs through seeds: " ;
@@ -406,22 +651,202 @@ namespace trkf {
 	      {
 		mf::LogVerbatim("BezierTrackerAlgorithm")<<"  " << TrackParts.at(i)<<", ";
 		TheTrackSeeds.push_back(AllSeeds.at(TrackParts.at(i)));
+		AlreadyUsed.push_back(TrackParts.at(i));
 	      }
 	    OrganizedByTrack.push_back(TheTrackSeeds);  
 	  }
+
+	// Reset the count of unavailable seeds
+	SeedNotAvailable.clear();
+
+	// Anything which is either part of a track,
+	//  or which has had its hits used, is not fair game.		
+	for(size_t j=0; j!=AlreadyUsed.size(); ++j)
+	  {
+	    SeedNotAvailable[AlreadyUsed[j]]=true;
+	  }
+
+	// For all the seeds which didn't fit, see how many
+	//  are now ruled out by hit overlaps
+	for(size_t i=0; i!=DoesNotFit.size(); ++i)
+	  {
+	    size_t j=DoesNotFit[i];
+	    double OverlapFrac[3];
+	    for(size_t n=0; n!=3; ++n)
+	      {
+		int TotalInSeed=0;
+		int TotalRejected=0;
+		for(size_t iH=0; iH!=SeedToHitMap[n][j].size(); ++iH)
+		  {
+		    TotalInSeed++;
+		    if(HitStatus[n][SeedToHitMap[n][j][iH]]!=0)
+		      TotalRejected++;
+		  }
+		OverlapFrac[n] = float(TotalRejected)/float(TotalInSeed);
+	      }
+	    for(size_t n=0; n!=3; ++n)
+	      {
+		size_t n1=(n+1)%3; size_t n2=(n+2)%3;
+		if( (OverlapFrac[n]<=OverlapFrac[n1]) &&
+		    (OverlapFrac[n]<=OverlapFrac[n2]) )
+		  {
+		    if(OverlapFrac[n] > fOverlapCut)
+		      {
+			SeedNotAvailable[j]=true;
+			ThrownByHits.push_back(j);
+			break;
+		      }
+		  }
+	      }// End view loop (seed tossing)
+	  } // Loop over DoesNotFit
+      
 	
-	for(size_t j=0; j!=TrackParts.size(); ++j)
-	  AlreadyUsed.push_back(TrackParts.at(j));
-	TrackParts.clear();
+	for(size_t i=0; i!=ThrownByHits.size(); ++i)
+	  SeedNotAvailable[ThrownByHits[i]]=true;
+	
+	// Ready to go around again
+	TrackParts.clear();	
 	DoesNotFit.clear();
       }
-	
+    
     // Sort vector so most seeded tracks appear first
     std::sort(OrganizedByTrack.begin(), OrganizedByTrack.end(), BTrack_SeedCountComparator);
     return OrganizedByTrack;
   }
+
+
+  //-------------------------------------------------
+
+  std::vector<double> BezierTrackerAlgorithm::GetOccupancy(recob::Seed& Seed1, recob::Seed& Seed2, double dThresh,  std::vector<art::PtrVector<recob::Hit>*>& AllHits,  std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits, std::vector<uint32_t>& LowChan, std::vector<uint32_t>& HighChan, std::vector<std::vector<int> >& HitStatus, std::vector<std::vector<int> >& TheseHits)
+  {
+    art::ServiceHandle<util::DetectorProperties> det;
+    std::vector<double> Occupation(3);
+    
+    int NSteps = 2 * Seed1.GetDistance(Seed2) / dThresh;
+    if(NSteps<10) NSteps=10;
+    BezierCurveHelper bhlp(NSteps);
+  
+    std::vector<TVector3> Pts = bhlp.GetBezierPointsNew(Seed2, Seed1, NSteps);
   
 
+    for(size_t n=0; n!=3; ++n)
+      {
+	
+	int NClaimedChannels=0;
+	std::vector<bool> ChannelsClaimed(HighChan[n]-LowChan[n]+1, false);
+	if((HighChan[n]-LowChan[n])<2) Occupation[n]=1;
+	else
+	  {
+	    for(uint32_t iChan = LowChan[n]+1; iChan < (HighChan[n]-1); ++iChan)
+	      {
+		for(size_t iH = 0; iH!=OrgHits[n]->operator[](iChan).size(); ++iH)
+		  {
+		    if(HitStatus[n][OrgHits[n]->operator[](iChan).at(iH)]==0)
+		      {
+			art::Ptr<recob::Hit> ThisHit = AllHits[n]->at(OrgHits[n]->operator[](iChan)[iH]);
+		
+			TVector3 WirePoint1 = ( fPitchDir[n]*(fWireZeroOffset[n] + fPitches[n] * ThisHit->WireID().Wire) )+ fXDir * det->ConvertTicksToX(ThisHit->PeakTime(), n, 0, 0);
+			// TVector3 WirePoint2 = WirePoint1 + fWireDir[n];
+			for(size_t ipt=0; ipt!=Pts.size(); ++ipt)
+			  {
+			    float d = ((WirePoint1-Pts.at(ipt))-fWireDir[n]*((WirePoint1-Pts.at(ipt)).Dot(fWireDir[n]))).Mag();
+			    if(d < dThresh) 
+			      {
+				TheseHits[n].push_back(OrgHits[n]->operator[](iChan).at(iH));
+				if(!ChannelsClaimed.at(iChan-LowChan[n]))
+				  {
+				    ChannelsClaimed.at(iChan - LowChan[n])=true;
+				    ++NClaimedChannels;
+				    ipt = Pts.size()-1;
+				    continue;
+				  }
+			      }
+			  }
+		      }
+		  }
+	      }
+	    Occupation[n] =  double(NClaimedChannels)/double(HighChan[n]-LowChan[n]-2);
+	  }
+      }
+    return Occupation;
+    
+  }
+
+
+  //-------------------------------------------------
+
+  void BezierTrackerAlgorithm::GetSeedDirProjected(recob::Seed const& TheSeed, std::vector<double>& WireCoord, std::vector<double>& TimeCoord) 
+  {
+    art::ServiceHandle<util::DetectorProperties> det;
+    
+    WireCoord.clear();
+    WireCoord.resize(3);
+    TimeCoord.clear();
+    TimeCoord.resize(3);
+    
+    double dir[3], err[3];
+    
+    TheSeed.GetDirection(dir,err);
+    TVector3 DirVec(dir[0],dir[1],dir[2]);
+    
+    for(size_t n=0; n!=3; ++n)
+      {
+	WireCoord[n] = DirVec.Dot(fPitchDir[n]) / fPitches[n];
+	TimeCoord[n] = det->ConvertXToTicks(DirVec.Dot(fXDir),n,0,0);
+      }
+
+  }
+
+
+
+
+  //-------------------------------------------------
+
+
+  void BezierTrackerAlgorithm::CalculateGeometricalElements()
+  {
+    art::ServiceHandle<geo::Geometry> geom;
+
+    // Find pitch of each wireplane
+    fPitches.resize(3);
+    fPitches.at(0) = fabs(geom->WirePitch(geo::kU));
+    fPitches.at(1) = fabs(geom->WirePitch(geo::kV));
+    fPitches.at(2) = fabs(geom->WirePitch(geo::kW));
+
+    // Setup basis vectors
+    fXDir = TVector3(1,0,0);
+    fYDir = TVector3(0,1,0);
+    fZDir = TVector3(0,0,1);
+
+    fWireDir.resize(3);
+    fPitchDir.resize(3);
+    fWireZeroOffset.resize(3);
+
+    double xyzStart1[3], xyzStart2[3];
+    double xyzEnd1[3], xyzEnd2[3];
+
+    // Calculate wire coordinate systems
+    for(size_t n=0; n!=3; ++n)
+      {
+	geom->WireEndPoints(0,0,n,0,xyzStart1,xyzEnd1);
+        geom->WireEndPoints(0,0,n,1,xyzStart2,xyzEnd2);
+        fWireDir[n] = TVector3(xyzEnd1[0] - xyzStart1[0],
+			       xyzEnd1[1] - xyzStart1[1],
+			       xyzEnd1[2] - xyzStart1[2]).Unit();
+        fPitchDir[n] = fWireDir[n].Cross(fXDir).Unit();
+	if(fPitchDir[n].Dot(TVector3(xyzEnd2[0] - xyzEnd1[0],
+                                     xyzEnd2[1] - xyzEnd1[1],
+                                     xyzEnd2[2] - xyzEnd1[2]))<0) fPitchDir[n] = -fPitchDir[n];
+
+        fWireZeroOffset[n] =
+          xyzEnd1[0]*fPitchDir[n][0] +
+          xyzEnd1[1]*fPitchDir[n][1] +
+          xyzEnd1[2]*fPitchDir[n][2];
+
+      } 
+
+
+  }
 
   //-----------------------------------------------------
 

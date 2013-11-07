@@ -40,15 +40,6 @@ namespace trkf {
     explicit BezierTrackerAlgorithm(fhicl::ParameterSet const& pset);
     virtual ~BezierTrackerAlgorithm();
 
-    void MakeBezierTracksFromSeeds(std::vector<trkf::BezierTrack>& ReturnVector,
-				   std::vector<recob::Seed> const& TrackSeeds  );
-
-    void MakeBezierTracksFromHits(std::vector<trkf::BezierTrack>& ReturnVector, 
-				  std::vector<art::Ptr<recob::Hit> > HitVec, 
-				  std::vector<art::PtrVector<recob::Hit> >& HitsForAssns );
-
-    std::vector<std::vector<recob::Seed> > OrganizeSeedsIntoTracks(std::vector<recob::Seed > const&  SeedVector);
-
 
     std::vector<int> DetermineNearbyHits(art::PtrVector<recob::Hit> const& Hits, 
 					 BezierTrack const& BTrack, 
@@ -64,6 +55,23 @@ namespace trkf {
 
     void  MakeVertexJoins(std::vector<trkf::BezierTrack>& BTracks, std::vector<recob::Vertex>& Vertices, std::vector<std::vector<int> > Mapping);
     
+
+
+    std::vector<trkf::BezierTrack> MakeTracksNew(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >& SortedHits, std::vector<art::PtrVector<recob::Hit> >& HitAssocs);
+     
+    void GetTracksForCombo(std::vector<recob::Seed>& Seeds, art::PtrVector<recob::Hit>& UHits, art::PtrVector<recob::Hit>& VHits, art::PtrVector<recob::Hit>& WHits);
+
+    std::vector<std::vector< recob::Seed > > OrganizeSeedsIntoTracksNew(std::vector<recob::Seed >& AllSeeds, std::vector<art::PtrVector<recob::Hit> * >& HitsForSeeds, std::vector<art::PtrVector<recob::Hit> >& WhichHitsPerSeed, std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits);
+
+    void GetSeedDirProjected(recob::Seed const& TheSeed, std::vector<double>& WireCoord, std::vector<double>& TimeCoord);
+
+    std::vector<double> GetOccupancy(recob::Seed& Seed1, recob::Seed& Seed2, double dThresh,  std::vector<art::PtrVector<recob::Hit>*>& AllHits,  std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits,  std::vector<uint32_t>& LowChan, std::vector<uint32_t>& HighChan, std::vector<std::vector<int> >& HitStatus, std::vector<std::vector<int> >& TheseHits);
+
+    
+    void CalculateGeometricalElements();
+
+
+
     
     // Overrides.
 
@@ -78,13 +86,22 @@ namespace trkf {
     
 
     
-    double fMaxJumpLengths;
+    double fOverlapCut;
     double fHitDistance;
     double fDirectJoinDistance;
     double fTrackJoinAngle;
+    std::vector<double> fOccupancyThresh;
+    double fTrackResolution;
 
     double fVertexImpactThreshold;
     double fVertexExtrapDistance;
+
+    std::vector<double>   fPitches;
+    std::vector<TVector3> fPitchDir;
+    std::vector<TVector3> fWireDir;
+    std::vector<double>   fWireZeroOffset;
+    TVector3              fXDir, fYDir, fZDir;
+
 
     void GetImpact(TVector3 t1pt, TVector3 t1dir, TVector3 t2pt, TVector3 t2dir, double& ImpactParam, double& Dist1, double& Dist2);
 

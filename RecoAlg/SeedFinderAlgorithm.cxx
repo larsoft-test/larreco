@@ -82,6 +82,7 @@ namespace trkf {
     fHitResolution         = pset.get<double>("HitResolution");
 
     fOccupancyCut          = pset.get<double>("OccupancyCut");
+    fLengthCut             = pset.get<double>("LengthCut");
     fExtendSeeds           = pset.get<bool>("ExtendSeeds");
 	
 
@@ -444,7 +445,19 @@ namespace trkf {
     OrgHits.clear();
     HitStatus.clear();
     
-    
+    for(size_t i=0; i!=ReturnVector.size(); ++i)
+      {
+	double CrazyValue = 1000000;
+	double Length = ReturnVector.at(i).GetLength();
+	if(!((Length > fLengthCut)&&(Length < CrazyValue)))
+	  {
+	    ReturnVector.erase(ReturnVector.begin()+i);
+	    CataloguedHits.erase(CataloguedHits.begin()+i);
+	    --i;
+	  }
+      }
+
+
 
     return ReturnVector;
 
@@ -530,8 +543,10 @@ namespace trkf {
 			NHitsThisSeed++;
 			
 			HitStatus[OrgHits[View][c].at(h)]=2;
+			
 			HitsInThisSeed[View][c].push_back(OrgHits[View][c].at(h));
 		      }
+		    else HitStatus[OrgHits[View][c].at(h)]=0;
 		  }
 	      }
 	  }
@@ -598,23 +613,27 @@ namespace trkf {
 		    bool GotOneThisChannel=false;
 		    for(size_t h=0; h!=OrgHits[View][c].size(); ++h)
 		      {
-			GetHitDistAndProj(TheSeed, HitsFlat[OrgHits[View][c].at(h)], dist, s);
-			if(dist < fHitResolution)
+			if(HitStatus[OrgHits[View][c][h]]==0)
 			  {
-			    GotOneThisChannel=true;
-			    if(s<0) 
+			    GetHitDistAndProj(TheSeed, HitsFlat[OrgHits[View][c].at(h)], dist, s);
+			    if(dist < fHitResolution)
 			      {
-				ToAddNegativeS[ViewID].push_back(s);
-				ToAddNegativeH[ViewID].push_back(OrgHits[View][c].at(h));
-			      }
-			    else
-			      {
-				ToAddPositiveS[ViewID].push_back(s);
-				ToAddPositiveH[ViewID].push_back(OrgHits[View][c].at(h));
+				GotOneThisChannel=true;
+				if(s<0) 
+				  {
+				    ToAddNegativeS[ViewID].push_back(s);
+				    ToAddNegativeH[ViewID].push_back(OrgHits[View][c].at(h));
+				  }
+				else
+				  {
+				    ToAddPositiveS[ViewID].push_back(s);
+				    ToAddPositiveH[ViewID].push_back(OrgHits[View][c].at(h));
+				  }
 			      }
 			  }
 		      }
 		    if(GotOneThisChannel==false) break;
+		    
 		  }
 	      }
 	    if(HighestChanInSeed < HighestChanInView)
@@ -624,19 +643,22 @@ namespace trkf {
 		  bool GotOneThisChannel=false;
 		  for(size_t h=0; h!=OrgHits[View][c].size(); ++h)
 		    {
-		      GetHitDistAndProj(TheSeed, HitsFlat[OrgHits[View][c].at(h)], dist, s);
-		      if(dist < fHitResolution)
+		      if(HitStatus[OrgHits[View][c][h]]==0)
 			{
-			  GotOneThisChannel=true;
-			  if(s<0) 
+			  GetHitDistAndProj(TheSeed, HitsFlat[OrgHits[View][c].at(h)], dist, s);
+			  if(dist < fHitResolution)
 			    {
-			      ToAddNegativeS[ViewID].push_back(s);
-			      ToAddNegativeH[ViewID].push_back(OrgHits[View][c].at(h));
-			    }
-			  else
-			    {
-			      ToAddPositiveS[ViewID].push_back(s);
-			      ToAddPositiveH[ViewID].push_back(OrgHits[View][c].at(h));
+			      GotOneThisChannel=true;
+			      if(s<0) 
+				{
+				  ToAddNegativeS[ViewID].push_back(s);
+				  ToAddNegativeH[ViewID].push_back(OrgHits[View][c].at(h));
+				}
+			      else
+				{
+				  ToAddPositiveS[ViewID].push_back(s);
+				  ToAddPositiveH[ViewID].push_back(OrgHits[View][c].at(h));
+				}
 			    }
 			}
 		    }
@@ -696,12 +718,16 @@ namespace trkf {
 	      {
 		if(ToAddPositiveS[n].at(i)<ExtendPositiveS)
 		  HitStatus[ToAddPositiveH[n].at(i)]=2;
+		else
+		  HitStatus[ToAddPositiveH[n].at(i)]=0;
 	      }
 	    
 	    for(size_t i=0; i!=ToAddNegativeS[n].size(); ++i)
 	      {
 		if(ToAddNegativeS[n].at(i)>ExtendNegativeS)
 		  HitStatus[ToAddNegativeH[n].at(i)]=2;
+		else
+		  HitStatus[ToAddNegativeH[n].at(i)]=0;
 	      }	    
 	  }
 

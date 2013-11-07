@@ -135,7 +135,9 @@ namespace trkf {
     float                 fHitResolution;
 
     float                 fOccupancyCut;
-
+    
+    double                fLengthCut;
+    
     bool                  fExtendSeeds;
 
     TTree *   ftMonitoringTree;
