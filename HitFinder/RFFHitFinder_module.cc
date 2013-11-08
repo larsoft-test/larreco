@@ -165,7 +165,7 @@ std::vector<float> RFFHitFinder::GaussianElimination(std::vector< std::vector<fl
 
   float matrix[N_PEAKS][N_PEAKS+1]; //N_PEAKS rows, N_PEAKS+1 columns for augmented matrix
 
-  for(int i=0; i<N_PEAKS; i++){
+  for(uint i=0; i<N_PEAKS; i++){
     std::vector<float> this_row = scaled_distances.at(i);
     
     if(this_row.size()!=N_PEAKS){
@@ -173,7 +173,7 @@ std::vector<float> RFFHitFinder::GaussianElimination(std::vector< std::vector<fl
       return solutions;
     }
     
-    for(int j=0; j<N_PEAKS; j++){
+    for(uint j=0; j<N_PEAKS; j++){
       float gaus_val = 0;
       if(this_row.at(j) < 4) {
 	int this_bin = std::floor( this_row.at(j)*10 + 0.5);
@@ -185,7 +185,7 @@ std::vector<float> RFFHitFinder::GaussianElimination(std::vector< std::vector<fl
 
   }//end filling the augmented matrix
 
-  for(int i=0; i<N_PEAKS; i++){
+  for(uint i=0; i<N_PEAKS; i++){
     
     float diag_val = matrix[i][i];
     
@@ -193,9 +193,9 @@ std::vector<float> RFFHitFinder::GaussianElimination(std::vector< std::vector<fl
     //std::cout << "ERROR!!! The diagonal should never be this small?    " << matrix[i][i] << std:: endl;
     //}
 
-    for(int j=i+1; j<N_PEAKS; j++){
+    for(uint j=i+1; j<N_PEAKS; j++){
       float scale_val = matrix[j][i] / diag_val;
-      for(int k=i; k<N_PEAKS+1; k++){
+      for(uint k=i; k<N_PEAKS+1; k++){
 	matrix[j][k] -= matrix[i][k]*scale_val;
       }
     }
@@ -207,13 +207,13 @@ std::vector<float> RFFHitFinder::GaussianElimination(std::vector< std::vector<fl
   solutions.resize(N_PEAKS);
   //solutions.insert(solutions.begin()+(N_PEAKS-1),matrix[N_PEAKS-1][N_PEAKS]/matrix[N_PEAKS-1][N_PEAKS-1]);
 
-  for(int i=N_PEAKS-1; i>=0; i--){
+  for(uint i=N_PEAKS-1; i>=0; i--){
     
     //std::cout << "getting solution " << i+1 << std::endl;
 
     float this_solution = matrix[i][N_PEAKS];
     
-    for(int j=i+1; j<N_PEAKS; j++)
+    for(uint j=i+1; j<N_PEAKS; j++)
       this_solution -= matrix[i][j]*solutions.at(j);
     
     this_solution /= matrix[i][i];
@@ -234,13 +234,6 @@ std::vector<float> RFFHitFinder::GaussianElimination(std::vector< std::vector<fl
 //-------------------------------------------------
 void RFFHitFinder::produce(art::Event& evt)
 {
-  TH1::AddDirectory(kFALSE);
-
-
-  // ---------------------------
-  // --- Seed Fit Functions  --- (This function used to "seed" the mean peak position)
-  // ---------------------------
-  TF1 *hit	= new TF1("hit","gaus",0,3200);
 
   std::unique_ptr<std::vector<recob::Hit> > hcol(new std::vector<recob::Hit>);
     
@@ -255,8 +248,8 @@ void RFFHitFinder::produce(art::Event& evt)
   // ### List of useful variables used throughout the code ###
   // #########################################################  
   double threshold              = 0.;               // minimum signal size for id'ing a hit
-  double fitWidth               = 0.;               //hit fit width initial value
-  double minWidth               = 0.;               //minimum hit width
+  //double fitWidth               = 0.;               //hit fit width initial value
+  //double minWidth               = 0.;               //minimum hit width
   uint32_t channel              = 0;                // channel number
   geo::SigType_t sigType;                           // Signal Type (Collection or Induction)
   std::vector<int> startTimes;             	    // stores time of 1st local minimum
@@ -299,13 +292,13 @@ void RFFHitFinder::produce(art::Event& evt)
     // --    for either the collection or induction plane      --
     if(sigType == geo::kInduction){
       threshold     = fMinSigInd;
-      fitWidth      = fIndWidth;
-      minWidth      = fIndMinWidth;
+      //fitWidth      = fIndWidth;
+      //minWidth      = fIndMinWidth;
     }//<-- End if Induction Plane
     else if(sigType == geo::kCollection){
       threshold = fMinSigCol;
-      fitWidth  = fColWidth;
-      minWidth  = fColMinWidth;
+      //fitWidth  = fColWidth;
+      //minWidth  = fColMinWidth;
     }//<-- End if Collection Plane
       
       
@@ -377,13 +370,13 @@ void RFFHitFinder::produce(art::Event& evt)
     //to the hit vector and when all wires are complete 
     //saving them 
 	
-    double totSig(0); 						//stores the total hit signal
+    //double totSig(0); 						//stores the total hit signal
     double startT(0); 						//stores the start time
     double endT(0);  						//stores the end time
     int numHits(0);  						//number of consecutive hits being fitted
     int size(0);     						//size of data vector for fit
     int hitIndex(0);						//index of current hit in sequence
-    double amplitude(0);             			        //fit parameters
+    //double amplitude(0);             			        //fit parameters
     double minPeakHeight(0);  					//lowest peak height in multi-hit fit
 		
 	
@@ -512,7 +505,7 @@ void RFFHitFinder::produce(art::Event& evt)
 	
       }//<---End for looping over startT and endT
       
-      int i_means=0;
+      uint i_means=0;
       std::vector<float> hit_sigmas;
       std::vector<float> hit_means;
       std::vector<float> peak_signals;
@@ -532,8 +525,8 @@ void RFFHitFinder::produce(art::Event& evt)
       while(try_reduce){
 	try_reduce=false;
 	
-	for(int i=0; i<hit_means.size(); i++){
-	  for(int j=i+1; j<hit_means.size(); j++){
+	for(uint i=0; i<hit_means.size(); i++){
+	  for(uint j=i+1; j<hit_means.size(); j++){
 	    
 	    if(std::abs(hit_means.at(i) - hit_means.at(j))<2.5){
 	      hit_means.at(i) = (hit_means.at(i)*hit_multiplicity.at(i) + hit_means.at(j)*hit_multiplicity.at(j))/(hit_multiplicity.at(i)+hit_multiplicity.at(j));
@@ -554,13 +547,13 @@ void RFFHitFinder::produce(art::Event& evt)
       }
       
       std::vector< std::vector<float> > scaled_distances;
-      for(int i=0; i<peak_signals.size(); i++){
+      for(uint i=0; i<peak_signals.size(); i++){
 	
 	std::vector<float> scaled_distance_row;
 	float this_mean = hit_means.at(i);
-	float this_sigma = hit_sigmas.at(i);
+	//float this_sigma = hit_sigmas.at(i);
 	
-	for(int j=0; j<hit_sigmas.size(); j++)
+	for(uint j=0; j<hit_sigmas.size(); j++)
 	  scaled_distance_row.push_back( std::abs(this_mean - hit_means.at(j))/hit_sigmas.at(j) );
 	
 	scaled_distances.push_back(scaled_distance_row);
@@ -570,7 +563,7 @@ void RFFHitFinder::produce(art::Event& evt)
       
       
       //std::cout << "We have " << solutions.size() << " solutions." << std::endl;
-      for(int i=0; i<solutions.size(); i++){
+      for(uint i=0; i<solutions.size(); i++){
 
 
 	// get the WireID for this hit
