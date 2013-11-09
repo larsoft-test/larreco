@@ -156,15 +156,18 @@ namespace trkf {
    
     std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > SortedHits;
     GetHitsFromClusters(fClusterModuleLabel, evt, SortedHits);
+ 
     BTracks = fBTrackAlg->MakeTracksNew(SortedHits, HitsForAssns);
     
+    fBTrackAlg->FilterOverlapTracks(BTracks, HitsForAssns);
+
+    fBTrackAlg->SortTracksByLength(BTracks, HitsForAssns);
     
     fBTrackAlg->MakeDirectJoins(BTracks, HitsForAssns);
     
-    mf::LogInfo("BezierTrackerModle")<<"Bezier tracker vertexing";
     std::vector<recob::Vertex> Vertices;
     std::vector<std::vector<int> > VertexMapping;
-    //  fBTrackAlg->MakeVertexJoins(BTracks, Vertices, VertexMapping);
+    fBTrackAlg->MakeVertexJoins(BTracks, Vertices, VertexMapping);
     
     for(size_t v=0; v!=Vertices.size(); ++v)
       {

@@ -30,12 +30,11 @@ standard_seedfinderalgorithm.SpacePointAlg.Filter: false
 
 standard_beziertrackeralgorithm:
 {	
-  OverlapCut:          0.5
+  OverlapCut:          0.2
   DirectJoinDistance:  5.0
-  HitDistance:         1.0
   TrackJoinAngle:      0.5          
-  VertexImpactThreshold: 2
-  VertexExtrapDistance: 10
+  VertexImpactThreshold: 2.0
+  VertexExtrapDistance: 5.0
   OccupancyThresh:    [0.8, 0.8, 0.8]
   TrackResolution:    2.0
   SeedFinder:          @local::standard_seedfinderalgorithm

@@ -26,11 +26,7 @@ standard_seedfindermodule:
 standard_beziertrackermodule:
 {
  module_type:         "BezierTrackerModule"
- SeedModuleLabel:     "seedfinder"
- HitModuleLabel:      "ffthit"
  ClusterModuleLabel:  "cccluster"
- MakeHitAssns:        true
- EnableCalo:          false
  BezierTrackerAlgorithm: @local::standard_beziertrackeralgorithm
 }
 
