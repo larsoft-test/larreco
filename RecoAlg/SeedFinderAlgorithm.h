@@ -90,10 +90,6 @@ namespace trkf {
 
 
 
-    std::vector<double>         GetHitRMS(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> const&);
-                                   // Get a vector of RMS values indiciating how closely the seed runs to the hits in each view
-
-
     size_t                      CountHits(std::vector<recob::SpacePoint> const& Points);
                                    // Counting the number of hits in each view which are associated with a set of SPs
 
@@ -107,14 +103,6 @@ namespace trkf {
 
     void                        GetHitDistAndProj( recob::Seed const& ASeed,  art::Ptr<recob::Hit> const& AHit, double& disp, double& s);
     
-    std::vector<recob::SpacePoint> ExtractSpacePoints(std::vector<recob::SpacePoint> const& AllPoints, std::vector<int> IDsToExtract);
-                                   // Given a spacepoint vector and ID list, return the vector of spacepoints for those IDs
- 
-
-    std::vector<int>            DetermineNearbySPs(recob::Seed const& TheSeed, std::vector<recob::SpacePoint> const& AllSpacePoints, 
-						   std::map<int, int> PointStatus, double ExtendResolution);
-
-                                   // Find the spacepoints which are within some radius of seed from a provided sed.
 
     void                        CalculateGeometricalElements();
                                    // Pre-calculating geometrical factors
