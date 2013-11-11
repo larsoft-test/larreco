@@ -18,8 +18,9 @@ standard_featuretracker.SpacepointPset.MinViews: 2
 standard_seedfindermodule:
 {
  module_type:         "SeedFinderModule"
- InputSource:          1
- InputModuleLabel:     "dbcluster"
+ InputSource:          1                     # 1: use clusters
+                                             # 2: use hits
+ InputModuleLabel:     "dbcluster"     
  SeedAlg:              @local::standard_seedfinderalgorithm
 }
 

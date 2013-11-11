@@ -145,7 +145,6 @@ namespace trkf {
 
     std::unique_ptr< std::vector<recob::Track > > btracks ( new std::vector<recob::Track>);
     std::unique_ptr< std::vector<recob::Vertex > > vertices ( new std::vector<recob::Vertex>);
-    std::unique_ptr< std::vector<recob::Seed > > seeds ( new std::vector<recob::Seed>);
     std::unique_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
    
 
@@ -185,7 +184,6 @@ namespace trkf {
     mf::LogVerbatim("BezierTrackerAlgorithm")<<"Storing in evt - check"<<std::endl;
     evt.put(std::move(btracks));
     evt.put(std::move(vertices));
-    evt.put(std::move(seeds));
     evt.put(std::move(assn));
 
     // Now tidy up
