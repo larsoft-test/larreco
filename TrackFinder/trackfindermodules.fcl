@@ -172,15 +172,6 @@ standard_spacepointcheater:
   SpacePointAlg:      @local::standard_spacepointalg
 }
 
-development_beziertrackjoiner:
-{  
-  module_type:         "BezierTrackJoiner"
-  TrackModuleLabel:    "beziertracker"
-  JoinThreshold:       1
-  VertexAngle:         0.26
-  ExtrapDistance:      10
-
-}
 
 development_beziertrackana:
 {
