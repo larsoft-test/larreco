@@ -9,11 +9,6 @@
 // Purpose: Header file for module BezierTrackerModule.  This modules makes
 //          bezier tracks out of seed collections, or hits, or clusters
 //
-// Configuration parameters.
-//
-// SeedModuleLabel;     // Cluster module label (e.g. "dbcluster").
-// HitModuleLabel;      // Hit module label (e.g. "FFTHitFinder")
-//
 // Ben Jones, MIT
 //
 
@@ -60,19 +55,13 @@ namespace trkf {
 
     // Fcl Attributes.
 
-    std::string fSeedModuleLabel;
-    std::string fHitModuleLabel;
     std::string fClusterModuleLabel;
 
     
     trkf::BezierTrackerAlgorithm * fBTrackAlg;
     
 
-    std::vector<std::vector<recob::Seed> > GetSeedsFromClusters(std::string ClusterModuleLabel, art::Event& evt);
-    
     void GetHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,     std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >& ReturnVec);
-    
-    void GetHitsToAssn(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > const& SortedHits, int ClusterNum,  BezierTrack const& BTrack,  std::vector<double>& ReturnSValues, art::PtrVector<recob::Hit>& ReturnVec);
     
   };
 }
@@ -115,10 +104,9 @@ namespace trkf {
   {
     reconfigure(pset);
     produces< std::vector<recob::Track> >();
-    produces< std::vector<recob::Seed> >();
     produces< std::vector<recob::Vertex> >();
     produces< art::Assns<recob::Track, recob::Hit> >();
-    //  produces< art::Assns<recob::Track, recob::Vertex> >();
+    produces< art::Assns<recob::Track, recob::Vertex> >();
       
   }
 
@@ -145,7 +133,8 @@ namespace trkf {
 
     std::unique_ptr< std::vector<recob::Track > > btracks ( new std::vector<recob::Track>);
     std::unique_ptr< std::vector<recob::Vertex > > vertices ( new std::vector<recob::Vertex>);
-    std::unique_ptr< art::Assns<recob::Track, recob::Hit > > assn( new art::Assns<recob::Track, recob::Hit>);
+    std::unique_ptr< art::Assns<recob::Track, recob::Hit > >  assnhit( new art::Assns<recob::Track, recob::Hit>);
+    std::unique_ptr< art::Assns<recob::Track, recob::Vertex > > assnvtx( new art::Assns<recob::Track, recob::Vertex>);
    
 
     std::vector<trkf::BezierTrack >           BTracks;
@@ -154,37 +143,49 @@ namespace trkf {
     
    
     std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > SortedHits;
+    // Produce appropriately organized hit object
     GetHitsFromClusters(fClusterModuleLabel, evt, SortedHits);
  
-    BTracks = fBTrackAlg->MakeTracksNew(SortedHits, HitsForAssns);
+    // Produce bezier tracks
+    BTracks = fBTrackAlg->MakeTracks(SortedHits, HitsForAssns);
     
-    fBTrackAlg->FilterOverlapTracks(BTracks, HitsForAssns);
-
-    fBTrackAlg->SortTracksByLength(BTracks, HitsForAssns);
+    // Attempt to mitigate clustering imperfections
+    fBTrackAlg->FilterOverlapTracks( BTracks, HitsForAssns );
+    fBTrackAlg->SortTracksByLength(  BTracks, HitsForAssns );
+    fBTrackAlg->MakeOverlapJoins(    BTracks, HitsForAssns );      
+    fBTrackAlg->SortTracksByLength(  BTracks, HitsForAssns );  
+    fBTrackAlg->MakeDirectJoins(     BTracks, HitsForAssns );
+    fBTrackAlg->FilterOverlapTracks( BTracks, HitsForAssns );    
     
-    fBTrackAlg->MakeDirectJoins(BTracks, HitsForAssns);
-    
+    // Perform bezier vertexing
     std::vector<recob::Vertex> Vertices;
     std::vector<std::vector<int> > VertexMapping;
     fBTrackAlg->MakeVertexJoins(BTracks, Vertices, VertexMapping);
-    
-    for(size_t v=0; v!=Vertices.size(); ++v)
-      {
-	vertices->push_back(Vertices.at(v));
-      }
-    
+      
     for(size_t i=0; i!=BTracks.size(); ++i)
       {
 	
 	std::unique_ptr<recob::Track>  ToStore = BTracks.at(i).GetBaseTrack();
 	btracks->push_back(*ToStore);
-	util::CreateAssn(*this, evt, *(btracks.get()), HitsForAssns.at(i), *(assn.get()));
+	util::CreateAssn(*this, evt, *(btracks.get()), HitsForAssns.at(i), *(assnhit.get()));
       }
-   
+
+
+    for(size_t v=0; v!=Vertices.size(); ++v)
+      {
+	vertices->push_back(Vertices.at(v));
+	for(size_t t=0; t!=VertexMapping.at(v).size(); ++t)
+	  {
+	    util::CreateAssn(*this, evt, *(btracks), *(vertices), *(assnvtx.get()), v, v, VertexMapping[v][t]);
+	  }
+      }
+    
+ 
     mf::LogVerbatim("BezierTrackerAlgorithm")<<"Storing in evt - check"<<std::endl;
     evt.put(std::move(btracks));
     evt.put(std::move(vertices));
-    evt.put(std::move(assn));
+    evt.put(std::move(assnhit));
+    evt.put(std::move(assnvtx));
 
     // Now tidy up
     trkf::SpacePointAlg *Sptalg = fBTrackAlg->GetSeedFinderAlgorithm()->GetSpacePointAlg();
@@ -224,192 +225,6 @@ namespace trkf {
     }
   }
   
-
-
-  //---------------------------------------------
-
-  std::vector<std::vector<recob::Seed> > BezierTrackerModule::GetSeedsFromClusters(std::string ClusterModuleLabel, art::Event& evt)
-  {
-    // Get Services.
-    trkf::SpacePointAlg *Sptalg = fBTrackAlg->GetSeedFinderAlgorithm()->GetSpacePointAlg();
-
-    std::vector<std::vector<recob::Seed> > ReturnVec;
-    
-    art::ServiceHandle<geo::Geometry> geom;
-
-    std::vector<art::Ptr<recob::Cluster> > Clusters;
-
-    art::Handle< std::vector<recob::Cluster> > clusterh;
-    evt.getByLabel(ClusterModuleLabel, clusterh);
-
-    if(clusterh.isValid()) {
-      art::fill_ptr_vector(Clusters, clusterh);
-    }
-    art::FindManyP<recob::Hit> fm(clusterh, evt, ClusterModuleLabel);
-
-
-
-    // Make a double or triple loop over clusters in distinct views
-    // (depending on minimum number of views configured in SpacePointAlg).
-    art::PtrVector<recob::Hit> hits;
-
-    // Loop over first cluster.
-
-    int nclus = Clusters.size();
-    mf::LogVerbatim("BezierTrackerModule")<< "There are " << nclus<< " clusters in the event";
-    for(int iclus = 0; iclus < nclus; ++iclus) {
-      art::Ptr<recob::Cluster> piclus = Clusters.at(iclus);
-      geo::View_t iview = piclus->View();
-
-
-      // Test first view.
-
-
-      if((iview == geo::kU && Sptalg->enableU()) ||
-         (iview == geo::kV && Sptalg->enableV()) ||
-         (iview == geo::kZ && Sptalg->enableW())) {
-
-        // Store hits from first view into hit vector.
-
-	std::vector< art::Ptr<recob::Hit> > ihits = fm.at(iclus);
-        unsigned int nihits = ihits.size();
-	//	mf::LogVerbatim("BezierTrackerModule")<<"Cluster " << iclus<< " has " <<nihits<< " hits " <<std::endl;
-	hits.clear();
-        hits.reserve(nihits);
-	for(std::vector< art::Ptr<recob::Hit> >::const_iterator i = ihits.begin();
-            i != ihits.end(); ++i)
-          hits.push_back(*i);
-
-        // Loop over second cluster.
-
-        for(int jclus = 0; jclus < iclus; ++jclus) {
-	  art::Ptr<recob::Cluster> pjclus = Clusters.at(jclus);
-	  geo::View_t jview = pjclus->View();
-
-	  // Test second view.
-
-	  if(((jview == geo::kU && Sptalg->enableU()) ||
-	      (jview == geo::kV && Sptalg->enableV()) ||
-	      (jview == geo::kZ && Sptalg->enableW()))
-	     && jview != iview) {
-
-	    // Store hits from second view into hit vector.
-	    std::vector< art::Ptr<recob::Hit> > jhits = fm.at(jclus);
-	    unsigned int njhits = jhits.size();
-	    assert(hits.size() >= nihits);
-	    //hits.resize(nihits);
-	    while(hits.size() > nihits)
-	      hits.pop_back();
-	    assert(hits.size() == nihits);
-	    hits.reserve(nihits + njhits);
-	    for(std::vector< art::Ptr<recob::Hit> >::const_iterator j = jhits.begin();
-		j != jhits.end(); ++j)
-	      hits.push_back(*j);
-
-
-	    // Loop over third cluster.
-
-	    for(int kclus = 0; kclus < jclus; ++kclus) {
-	      art::Ptr<recob::Cluster> pkclus = Clusters.at(kclus);
-	      geo::View_t kview = pkclus->View();
-	      // Test third view.
-
-	      if(((kview == geo::kU && Sptalg->enableU()) ||
-		  (kview == geo::kV && Sptalg->enableV()) ||
-		  (kview == geo::kZ && Sptalg->enableW()))
-		 && kview != iview && kview != jview) {
-
-		// Store hits from third view into hit vector.
-
-		std::vector< art::Ptr<recob::Hit> > khits = fm.at(kclus);
-		unsigned int nkhits = khits.size();
-		assert(hits.size() >= nihits + njhits);
-		//hits.resize(nihits + njhits);
-		while(hits.size() > nihits + njhits)
-		  hits.pop_back();
-		assert(hits.size() == nihits + njhits);
-		hits.reserve(nihits + njhits + nkhits);
-		for(std::vector< art::Ptr<recob::Hit> >::const_iterator k = khits.begin();
-		    k != khits.end(); ++k)
-		  hits.push_back(*k);
-		// Make three-view space points.
-
-		std::vector<recob::Seed> Seeds;
-		std::vector<art::PtrVector<recob::Hit> > HitCatalogue;
-		Seeds = fBTrackAlg->GetSeedFinderAlgorithm()->GetSeedsFromUnSortedHits(hits, HitCatalogue); 
-		if(Seeds.size() > 0) ReturnVec.push_back(Seeds);
-
-	      }
-	    }
-	  }
-	}
-      }
-    }
-
-
-    return ReturnVec;
-  }
-
-
-
-
-
-  //---------------------------------------------------------------------
- 
-  void BezierTrackerModule::GetHitsToAssn(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > const& SortedHits, int ClusterNum,  BezierTrack const& BTrack, std::vector<double>& ReturnSValues, art::PtrVector<recob::Hit>& ReturnVec)
-  {
-    
-    trkf::SpacePointAlg *Sptalg = fBTrackAlg->GetSeedFinderAlgorithm()->GetSpacePointAlg();
-
-    int ComboNumber=0;
-    
-    if(!(Sptalg->enableU()&&Sptalg->enableV()&&Sptalg->enableW()))
-      mf::LogWarning("BezierTrackerModule")<<"Warning: SpacePointAlg is does not have three views enabled. This may cause unexpected behaviour in the bezier tracker.";
-    try {
-      for(std::vector<art::PtrVector<recob::Hit> >::const_iterator itU = SortedHits.at(geo::kU).begin();
-	  itU !=SortedHits.at(geo::kU).end(); ++itU)
-	for(std::vector<art::PtrVector<recob::Hit> >::const_iterator itV = SortedHits.at(geo::kV).begin();
-	    itV !=SortedHits.at(geo::kV).end(); ++itV)
-	  for(std::vector<art::PtrVector<recob::Hit> >::const_iterator itW = SortedHits.at(geo::kW).begin();
-	      itW !=SortedHits.at(geo::kW).end(); ++itW)
-	    {
-	      if(ComboNumber==ClusterNum)
-		{
-		  art::PtrVector<recob::Hit> HitsFromThisCombo;
-		  
-		  if(Sptalg->enableU()) 
-		    for(size_t i=0; i!=itU->size(); ++i) 
-		      HitsFromThisCombo.push_back(itU->at(i));
-		  
-		  if(Sptalg->enableV()) 
-		    for(size_t i=0; i!=itV->size(); ++i) 
-		      HitsFromThisCombo.push_back(itV->at(i));
-		  
-		  if(Sptalg->enableW())
-		    for(size_t i=0; i!=itW->size(); ++i) 
-		      HitsFromThisCombo.push_back(itW->at(i));
-		
-		  std::vector<int> HitIndices = fBTrackAlg->DetermineNearbyHits(HitsFromThisCombo, BTrack, ReturnSValues);
-		  
-		  for(size_t i=0; i!=HitIndices.size(); ++i)
-		    {
-		      ReturnVec.push_back(HitsFromThisCombo.at(HitIndices.at(i)));
-		  }
-		  
-		  return;
-		}
-	    
-	      
-	      ComboNumber++;	    
-	      
-	    }
-    }
-    catch(...)
-      {
-	mf::LogWarning("BezierTrackerModule") << " Bailed during hit map sort, probably no clusters in one of the views : have you enabled all 3 planes?";
-	return;
-      }
-  }
 
 
 
