@@ -55,16 +55,18 @@ namespace trkf {
     
     trkf::SeedFinderAlgorithm * GetSeedFinderAlgorithm() { return fTheSeedFinder;}
 
-    void  MakeVertexJoins(std::vector<trkf::BezierTrack>& BTracks, std::vector<recob::Vertex>& Vertices, std::vector<std::vector<int> > Mapping);
+    void  MakeVertexJoins(std::vector<trkf::BezierTrack>& BTracks, std::vector<recob::Vertex>& Vertices, std::vector<std::vector<int> >& Mapping);
     
     void  FilterAndJoin(std::vector<std::vector<std::vector<recob::Seed> > > Seeds, std::vector<std::vector<std::vector<std::vector<int> > > > HitsPerSeed, size_t UEntries, size_t VEntries, size_t WEntries);
 
+    void MakeOverlapJoins(std::vector<trkf::BezierTrack>& BTracks, std::vector<art::PtrVector<recob::Hit> > & HitVecs);
 
-    std::vector<trkf::BezierTrack> MakeTracksNew(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >& SortedHits, std::vector<art::PtrVector<recob::Hit> >& HitAssocs);
+
+    std::vector<trkf::BezierTrack> MakeTracks(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >& SortedHits, std::vector<art::PtrVector<recob::Hit> >& HitAssocs);
      
     void GetTracksForCombo(std::vector<recob::Seed>& Seeds, art::PtrVector<recob::Hit>& UHits, art::PtrVector<recob::Hit>& VHits, art::PtrVector<recob::Hit>& WHits);
 
-    std::vector<std::vector< recob::Seed > > OrganizeSeedsIntoTracksNew(std::vector<recob::Seed >& AllSeeds, std::vector<art::PtrVector<recob::Hit> * >& AllHits, std::vector<art::PtrVector<recob::Hit> >& WhichHitsPerSeed, std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits, std::vector<std::vector<std::vector<int> > >& WhichHitsPerTrack);
+    std::vector<std::vector< recob::Seed > > OrganizeSeedsIntoTracks(std::vector<recob::Seed >& AllSeeds, std::vector<art::PtrVector<recob::Hit> * >& AllHits, std::vector<art::PtrVector<recob::Hit> >& WhichHitsPerSeed, std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits, std::vector<std::vector<std::vector<int> > >& WhichHitsPerTrack);
 
     void GetSeedDirProjected(recob::Seed const& TheSeed, std::vector<double>& WireCoord, std::vector<double>& TimeCoord);
 
@@ -73,7 +75,8 @@ namespace trkf {
     void SortTracksByLength(std::vector<trkf::BezierTrack>& BTracks, std::vector<art::PtrVector<recob::Hit> > & HitVecs);
     
     void CalculateGeometricalElements();
-
+    
+    trkf::BezierTrack JoinTracks(trkf::BezierTrack& BT1, trkf::BezierTrack& BT2);
 
 
     
