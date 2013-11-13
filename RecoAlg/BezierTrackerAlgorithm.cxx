@@ -107,35 +107,46 @@ namespace trkf {
 	  }
     
 
-    std::vector< std::map<uint32_t, std::vector<int> > > OrgHitsU(UEntries);
-    std::vector< std::map<uint32_t, std::vector<int> > > OrgHitsV(VEntries);
-    std::vector< std::map<uint32_t, std::vector<int> > > OrgHitsW(WEntries);
-
+    std::vector< std::vector< std::vector<int> > > OrgHitsU(UEntries);
+    std::vector< std::vector< std::vector<int> > > OrgHitsV(VEntries);
+    std::vector< std::vector< std::vector<int> > > OrgHitsW(WEntries);
+    
+    art::ServiceHandle<geo::Geometry> geo;
+    size_t NChannels = geo->Nchannels();
+    
     for(size_t nU=0; nU!=UEntries; ++nU)
       {
 	if(MapNeeded[0][nU])
-	  for(size_t iH=0; iH!=SortedHits[geo::kU][nU].size(); ++iH)
-	    {
-	      OrgHitsU[nU][SortedHits[geo::kU][nU][iH]->Channel()].push_back(iH);
-	    }
+	  {
+	    OrgHitsU[nU].resize(NChannels);
+	    for(size_t iH=0; iH!=SortedHits[geo::kU][nU].size(); ++iH)
+	      {
+		OrgHitsU[nU][SortedHits[geo::kU][nU][iH]->Channel()].push_back(iH);
+	      }
+	  }
       }
     for(size_t nV=0; nV!=VEntries; ++nV)
       {
 	if(MapNeeded[1][nV])
-	  for(size_t iH=0; iH!=SortedHits[geo::kV][nV].size(); ++iH)
-	    {
-	      OrgHitsV[nV][SortedHits[geo::kV][nV][iH]->Channel()].push_back(iH);
-	    }
+	  {
+	    OrgHitsV[nV].resize(NChannels);
+	    for(size_t iH=0; iH!=SortedHits[geo::kV][nV].size(); ++iH)
+	      {
+		OrgHitsV[nV][SortedHits[geo::kV][nV][iH]->Channel()].push_back(iH);
+	      }
+	  }
       }
     for(size_t nW=0; nW!=WEntries; ++nW)
       {
 	if(MapNeeded[2][nW])
-	  for(size_t iH=0; iH!=SortedHits[geo::kW][nW].size(); ++iH)
-	    {
-	      OrgHitsW[nW][SortedHits[geo::kW][nW][iH]->Channel()].push_back(iH);
-	    }
+	  {  
+	    OrgHitsW[nW].resize(NChannels);
+	    for(size_t iH=0; iH!=SortedHits[geo::kW][nW].size(); ++iH)
+	      {
+		OrgHitsW[nW][SortedHits[geo::kW][nW][iH]->Channel()].push_back(iH);
+	      }
+	  }
       }
-
     std::vector<std::vector<std::vector<std::vector<int> > > > WhichHitsPerTrackPerCombo(UEntries * VEntries * WEntries);
     std::vector<std::vector<std::vector<recob::Seed> > >       WhichSeedsPerTrackPerCombo(UEntries * VEntries * WEntries);
     
@@ -158,7 +169,7 @@ namespace trkf {
 		HitStruct[1] = & SortedHits[geo::kV].at(nV);
 		HitStruct[2] = & SortedHits[geo::kW].at(nW);
 		
-		std::vector<std::map<uint32_t, std::vector<int> >* > OrgHits(3);
+		std::vector<std::vector< std::vector<int> >* > OrgHits(3);
 		OrgHits[0] = & OrgHitsU[nU];
 		OrgHits[1] = & OrgHitsV[nV];
 		OrgHits[2] = & OrgHitsW[nW];
@@ -467,7 +478,7 @@ namespace trkf {
 
   //-----------------------------------------------------
 
-  std::vector<std::vector< recob::Seed > > BezierTrackerAlgorithm::OrganizeSeedsIntoTracks(std::vector<recob::Seed > & AllSeeds, std::vector<art::PtrVector<recob::Hit>*>& AllHits, std::vector<art::PtrVector<recob::Hit> >& WhichHitsPerSeed, std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits, std::vector<std::vector<std::vector<int> > >& HitsWithTracks )
+  std::vector<std::vector< recob::Seed > > BezierTrackerAlgorithm::OrganizeSeedsIntoTracks(std::vector<recob::Seed > & AllSeeds, std::vector<art::PtrVector<recob::Hit>*>& AllHits, std::vector<art::PtrVector<recob::Hit> >& WhichHitsPerSeed, std::vector<std::vector< std::vector<int> >* >& OrgHits, std::vector<std::vector<std::vector<int> > >& HitsWithTracks )
   {
     mf::LogVerbatim("BezierTrackerAlgorithm")<<"Organizing seed collection into track collections ";
 
@@ -542,14 +553,14 @@ namespace trkf {
 		
 		double      eta     = 0.01;
 		
-		for(size_t iH=0; iH!=OrgHits[ViewID]->operator[](Channel).size();++iH)
+		for(size_t iH=0; iH!=OrgHits[ViewID]->at(Channel).size();++iH)
 		  {
-		    double PeakTime1 = AllHits[ViewID]->at(OrgHits[ViewID]->operator[](Channel).at(iH))->PeakTime();
+		    double PeakTime1 = AllHits[ViewID]->at(OrgHits[ViewID]->at(Channel).at(iH))->PeakTime();
 		    double PeakTime2 = WhichHitsPerSeed.at(iSeed).at(iHit)->PeakTime();
 		    
 		    if( fabs(PeakTime1-PeakTime2)<eta)
 		      
-		      SeedToHitMap[ViewID][iSeed].push_back(OrgHits[ViewID]->operator[](Channel).at(iH));
+		      SeedToHitMap[ViewID][iSeed].push_back(OrgHits[ViewID]->at(Channel).at(iH));
 		  }
 		
 	    
@@ -891,12 +902,12 @@ namespace trkf {
 
   //-------------------------------------------------
 
-  bool BezierTrackerAlgorithm::EvaluateOccupancy(recob::Seed& Seed1, recob::Seed& Seed2, double dThresh,  std::vector<art::PtrVector<recob::Hit>*>& AllHits,  std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits, std::vector<uint32_t>& LowChan, std::vector<uint32_t>& HighChan, std::vector<std::vector<int> >& HitStatus, std::vector<std::vector<int> >& TheseHits)
+  bool BezierTrackerAlgorithm::EvaluateOccupancy(recob::Seed& Seed1, recob::Seed& Seed2, double dThresh,  std::vector<art::PtrVector<recob::Hit>*>& AllHits,  std::vector<std::vector< std::vector<int> >* >& OrgHits, std::vector<uint32_t>& LowChan, std::vector<uint32_t>& HighChan, std::vector<std::vector<int> >& HitStatus, std::vector<std::vector<int> >& TheseHits)
   {
     art::ServiceHandle<util::DetectorProperties> det;
       
     int NSteps = 2 * Seed1.GetDistance(Seed2) / dThresh;
-    if(NSteps<10) NSteps=10;
+    if(NSteps<2) NSteps=2;
     BezierCurveHelper bhlp(NSteps);
   
     std::vector<TVector3> Pts = bhlp.GetBezierPointsNew(Seed2, Seed1, NSteps);
@@ -913,11 +924,11 @@ namespace trkf {
 	      {
 		bool GotThisChannel=false;
 	
-		for(size_t iH = 0; iH!=OrgHits[n]->operator[](iChan).size(); ++iH)
+		for(size_t iH = 0; iH!=OrgHits[n]->at(iChan).size(); ++iH)
 		  {
-		    if(HitStatus[n][OrgHits[n]->operator[](iChan).at(iH)]==0)
+		    if(HitStatus[n][OrgHits[n]->at(iChan).at(iH)]==0)
 		      {
-			art::Ptr<recob::Hit> ThisHit = AllHits[n]->at(OrgHits[n]->operator[](iChan)[iH]);
+			art::Ptr<recob::Hit> ThisHit = AllHits[n]->at(OrgHits[n]->at(iChan)[iH]);
 		
 			TVector3 WirePoint1 = ( fPitchDir[n]*(fWireZeroOffset[n] + fPitches[n] * ThisHit->WireID().Wire) )+ fXDir * det->ConvertTicksToX(ThisHit->PeakTime(), n, 0, 0);
 		
@@ -926,7 +937,7 @@ namespace trkf {
 			    float d = ((WirePoint1-Pts.at(ipt))-fWireDir[n]*((WirePoint1-Pts.at(ipt)).Dot(fWireDir[n]))).Mag();
 			    if(d < dThresh) 
 			      {
-				TheseHits[n].push_back(OrgHits[n]->operator[](iChan).at(iH));
+				TheseHits[n].push_back(OrgHits[n]->at(iChan).at(iH));
 				GotThisChannel=true;
 				break;
 			      }

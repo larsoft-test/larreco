@@ -39,7 +39,6 @@ namespace trkf {
     
 
     reconfigure(pset);
-  
     CalculateGeometricalElements();
 
   }
@@ -70,6 +69,7 @@ namespace trkf {
     fMaxViewRMS.resize(3);
     fMaxViewRMS            = pset.get<std::vector<double> >("MaxViewRMS"); 
  
+    CalculateGeometricalElements(); 
     
   }
 
@@ -106,9 +106,11 @@ namespace trkf {
     // This is table will let us quickly look up which hits are in a given view / channel.
     //  structure is OrgHits[View][Channel] = {index1,index2...}
     // where the indices are of HitsFlat[index].
- 
-    std::map<geo::View_t, std::map<uint32_t, std::vector<int> > > OrgHits;
-  
+    
+    
+    std::vector< std::vector< std::vector<int> > > OrgHits(3);
+    for(size_t n=0; n!=3; ++n) OrgHits[n].resize(fNChannels);
+    
     // These two tables contain the hit to spacepoint mappings
     
     std::vector<std::vector<int> > SpacePointsPerHit(HitsFlat.size(), std::vector<int>());
@@ -452,7 +454,7 @@ namespace trkf {
   //
 
   void SeedFinderAlgorithm::ConsolidateSeed(recob::Seed& TheSeed, art::PtrVector<recob::Hit> const& HitsFlat, std::vector<char>& HitStatus,
-					    std::map<geo::View_t, std::map<uint32_t, std::vector<int> > >& OrgHits, bool Extend)
+					    std::vector< std::vector< std::vector<int> > >& OrgHits, bool Extend)
   {
     
     
@@ -538,30 +540,25 @@ namespace trkf {
     
     // Check seed occupancy
     
-    uint32_t LowestChanInSeed[3], HighestChanInSeed[3], LowestChanInView[3], HighestChanInView[3];
+    uint32_t LowestChanInSeed[3], HighestChanInSeed[3];
     double Occupancy[3];
     
     for(auto itP = HitsInThisSeed.begin(); itP!=HitsInThisSeed.end(); ++itP)
       {
-	int ViewID;
-	geo::View_t View = itP->first;
-	if(View==geo::kU) ViewID=0;
-	if(View==geo::kV) ViewID=1;
-	if(View==geo::kW) ViewID=2;
 
-        LowestChanInSeed[ViewID]  = itP->second.begin()->first;
-	HighestChanInSeed[ViewID] = itP->second.rbegin()->first;
-	LowestChanInView[ViewID]  =  OrgHits[View].begin()->first;
-	HighestChanInView[ViewID] = OrgHits[View].rbegin()->first;
-	
+	geo::View_t View = itP->first;
+
+        LowestChanInSeed[View]  = itP->second.begin()->first;
+	HighestChanInSeed[View] = itP->second.rbegin()->first;
+
 	int FilledChanCount=0;
 	
-	for(size_t c  = LowestChanInSeed[ViewID]; c!=HighestChanInSeed[ViewID]; ++c)
+	for(size_t c  = LowestChanInSeed[View]; c!=HighestChanInSeed[View]; ++c)
 	  {
 	    if(itP->second[c].size()>0) ++FilledChanCount;
 	  }
 	
-	Occupancy[ViewID] = float(FilledChanCount) / float(HighestChanInSeed[ViewID]-LowestChanInSeed[ViewID]);
+	Occupancy[View] = float(FilledChanCount) / float(HighestChanInSeed[View]-LowestChanInSeed[View]);
       }	
     
     
@@ -578,18 +575,12 @@ namespace trkf {
 	for(auto itP = HitsInThisSeed.begin(); itP!=HitsInThisSeed.end(); ++itP)
 	  {
 	    double dist, s;
-	    int ViewID=0;
 
 	    geo::View_t View = itP->first;
 
-	    if(View==geo::kU) ViewID=0;
-	    if(View==geo::kV) ViewID=1;
-	    if(View==geo::kW) ViewID=2;
-	    
-	    
-	    if(LowestChanInSeed[ViewID]>LowestChanInView[ViewID])
+	    if(LowestChanInSeed[View]>0)
 	      {
-		for(uint32_t c=LowestChanInSeed[ViewID]-1; c!=LowestChanInView[ViewID]; --c)
+		for(uint32_t c=LowestChanInSeed[View]-1; c!=0; --c)
 		  {
 		    bool GotOneThisChannel=false;
 		    for(size_t h=0; h!=OrgHits[View][c].size(); ++h)
@@ -602,24 +593,25 @@ namespace trkf {
 				GotOneThisChannel=true;
 				if(s<0) 
 				  {
-				    ToAddNegativeS[ViewID].push_back(s);
-				    ToAddNegativeH[ViewID].push_back(OrgHits[View][c].at(h));
+				    ToAddNegativeS[View].push_back(s);
+				    ToAddNegativeH[View].push_back(OrgHits[View][c].at(h));
 				  }
 				else
 				  {
-				    ToAddPositiveS[ViewID].push_back(s);
-				    ToAddPositiveH[ViewID].push_back(OrgHits[View][c].at(h));
+				    ToAddPositiveS[View].push_back(s);
+				    ToAddPositiveH[View].push_back(OrgHits[View][c].at(h));
 				  }
 			      }
 			  }
 		      }
 		    if(GotOneThisChannel==false) break;
 		    
+		  
 		  }
 	      }
-	    if(HighestChanInSeed < HighestChanInView)
+	    if(HighestChanInSeed[View] < fNChannels)
 	      
-	      for(uint32_t c=HighestChanInSeed[ViewID]+1; c!=HighestChanInView[ViewID]; ++c)
+	      for(uint32_t c=HighestChanInSeed[View]+1; c!=fNChannels; ++c)
 		{
 		  bool GotOneThisChannel=false;
 		  for(size_t h=0; h!=OrgHits[View][c].size(); ++h)
@@ -632,13 +624,13 @@ namespace trkf {
 			      GotOneThisChannel=true;
 			      if(s<0) 
 				{
-				  ToAddNegativeS[ViewID].push_back(s);
-				  ToAddNegativeH[ViewID].push_back(OrgHits[View][c].at(h));
+				  ToAddNegativeS[View].push_back(s);
+				  ToAddNegativeH[View].push_back(OrgHits[View][c].at(h));
 				}
 			      else
 				{
-				  ToAddPositiveS[ViewID].push_back(s);
-				  ToAddPositiveH[ViewID].push_back(OrgHits[View][c].at(h));
+				  ToAddPositiveS[View].push_back(s);
+				  ToAddPositiveH[View].push_back(OrgHits[View][c].at(h));
 				}
 			    }
 			}
@@ -765,7 +757,7 @@ namespace trkf {
   // Try to find one seed at the high Z end of a set of spacepoints 
   //
 
-  recob::Seed  SeedFinderAlgorithm::FindSeedAtEnd(std::vector<recob::SpacePoint> const& Points, std::vector<char>& PointStatus, std::vector<int>& PointsInRange, art::PtrVector<recob::Hit> const& HitsFlat, std::map<geo::View_t, std::map<uint32_t, std::vector<int> > >& OrgHits)
+  recob::Seed  SeedFinderAlgorithm::FindSeedAtEnd(std::vector<recob::SpacePoint> const& Points, std::vector<char>& PointStatus, std::vector<int>& PointsInRange, art::PtrVector<recob::Hit> const& HitsFlat, std::vector< std::vector< std::vector<int> > >& OrgHits)
   {
     // This pointer will be returned later
     recob::Seed ReturnSeed;
@@ -1070,6 +1062,9 @@ namespace trkf {
   {
     art::ServiceHandle<geo::Geometry> geom;
     
+    // Total number of channels in the detector
+    fNChannels = geom->Nchannels();
+	
     // Find pitch of each wireplane
     fPitches.resize(3);
     fPitches.at(0) = fabs(geom->WirePitch(geo::kU));

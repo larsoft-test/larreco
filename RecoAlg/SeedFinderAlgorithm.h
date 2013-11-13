@@ -84,7 +84,7 @@ namespace trkf {
 
 
     recob::Seed                 FindSeedAtEnd(std::vector<recob::SpacePoint> const&, std::vector<char>&, std::vector<int>&,
-					      art::PtrVector<recob::Hit> const& HitsFlat, std::map<geo::View_t, std::map<uint32_t, std::vector<int> > >& OrgHits);
+					      art::PtrVector<recob::Hit> const& HitsFlat, std::vector< std::vector< std::vector<int> > >& OrgHits);
                                     // Find one seed at high Z from the spacepoint collection given. Latter arguments are 
                                     //  for internal book keeping.
 
@@ -99,7 +99,7 @@ namespace trkf {
 
   
     void                        ConsolidateSeed(recob::Seed& TheSeed, art::PtrVector<recob::Hit> const&, std::vector<char>& HitStatus,
-						std::map<geo::View_t, std::map<uint32_t, std::vector<int> > >& OrgHits, bool Extend);
+						std::vector< std::vector< std::vector<int> > >& OrgHits, bool Extend);
 
     void                        GetHitDistAndProj( recob::Seed const& ASeed,  art::Ptr<recob::Hit> const& AHit, double& disp, double& s);
     
@@ -134,6 +134,7 @@ namespace trkf {
     std::vector<TVector3> fWireDir;
     std::vector<double>   fWireZeroOffset;
     TVector3              fXDir, fYDir, fZDir;
+    size_t                fNChannels;
   };
   
 }

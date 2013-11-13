@@ -41,9 +41,6 @@ namespace trkf {
     virtual ~BezierTrackerAlgorithm();
 
 
-    std::vector<int> DetermineNearbyHits(art::PtrVector<recob::Hit> const& Hits, 
-					 BezierTrack const& BTrack, 
-					 std::vector<double>& SValues);
     
     void FilterOverlapTracks(std::vector<trkf::BezierTrack>& BTracks, std::vector<art::PtrVector<recob::Hit> > & HitVecs);
 
@@ -57,7 +54,6 @@ namespace trkf {
 
     void  MakeVertexJoins(std::vector<trkf::BezierTrack>& BTracks, std::vector<recob::Vertex>& Vertices, std::vector<std::vector<int> >& Mapping);
     
-    void  FilterAndJoin(std::vector<std::vector<std::vector<recob::Seed> > > Seeds, std::vector<std::vector<std::vector<std::vector<int> > > > HitsPerSeed, size_t UEntries, size_t VEntries, size_t WEntries);
 
     void MakeOverlapJoins(std::vector<trkf::BezierTrack>& BTracks, std::vector<art::PtrVector<recob::Hit> > & HitVecs);
 
@@ -66,11 +62,11 @@ namespace trkf {
      
     void GetTracksForCombo(std::vector<recob::Seed>& Seeds, art::PtrVector<recob::Hit>& UHits, art::PtrVector<recob::Hit>& VHits, art::PtrVector<recob::Hit>& WHits);
 
-    std::vector<std::vector< recob::Seed > > OrganizeSeedsIntoTracks(std::vector<recob::Seed >& AllSeeds, std::vector<art::PtrVector<recob::Hit> * >& AllHits, std::vector<art::PtrVector<recob::Hit> >& WhichHitsPerSeed, std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits, std::vector<std::vector<std::vector<int> > >& WhichHitsPerTrack);
+    std::vector<std::vector< recob::Seed > > OrganizeSeedsIntoTracks(std::vector<recob::Seed >& AllSeeds, std::vector<art::PtrVector<recob::Hit> * >& AllHits, std::vector<art::PtrVector<recob::Hit> >& WhichHitsPerSeed, std::vector<std::vector< std::vector<int> >* >& OrgHits, std::vector<std::vector<std::vector<int> > >& WhichHitsPerTrack);
 
     void GetSeedDirProjected(recob::Seed const& TheSeed, std::vector<double>& WireCoord, std::vector<double>& TimeCoord);
 
-    bool EvaluateOccupancy(recob::Seed& Seed1, recob::Seed& Seed2, double dThresh,  std::vector<art::PtrVector<recob::Hit>*>& AllHits,  std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits,  std::vector<uint32_t>& LowChan, std::vector<uint32_t>& HighChan, std::vector<std::vector<int> >& HitStatus, std::vector<std::vector<int> >& TheseHits);
+    bool EvaluateOccupancy(recob::Seed& Seed1, recob::Seed& Seed2, double dThresh,  std::vector<art::PtrVector<recob::Hit>*>& AllHits,  std::vector<std::vector< std::vector<int> >* >& OrgHits,  std::vector<uint32_t>& LowChan, std::vector<uint32_t>& HighChan, std::vector<std::vector<int> >& HitStatus, std::vector<std::vector<int> >& TheseHits);
 
     void SortTracksByLength(std::vector<trkf::BezierTrack>& BTracks, std::vector<art::PtrVector<recob::Hit> > & HitVecs);
     
