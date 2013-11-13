@@ -41,25 +41,6 @@ namespace trkf {
     reconfigure(pset);
   
     CalculateGeometricalElements();
-    
-    art::ServiceHandle<art::TFileService> tfs;
-    ftMonitoringTree = (TTree*)tfs->make<TTree>("SeedTree","SeedTree");
- 
-    ftMonitoringTree->Branch("ThetaXZ",   &ftThetaXZ,   "ThetaXZ/F");
-    ftMonitoringTree->Branch("ThetaYZ",   &ftThetaYZ,   "ThetaYZ/F");
-    ftMonitoringTree->Branch("Theta",     &ftTheta,     "Theta/F");
-    ftMonitoringTree->Branch("NSpts",     &ftNSpts,     "NSpts/I");
-    ftMonitoringTree->Branch("NUHits",    &ftNUHits,    "NUHits/I");
-    ftMonitoringTree->Branch("NVHits",    &ftNVHits,    "NVHits/I");
-    ftMonitoringTree->Branch("NWHits",    &ftNWHits,    "NWHits/I");
-    ftMonitoringTree->Branch("URMS",      &ftURMS,      "URMS/F");
-    ftMonitoringTree->Branch("VRMS",      &ftVRMS,      "VRMS/F");
-    ftMonitoringTree->Branch("WRMS",      &ftWRMS,      "WRMS/F");
-    ftMonitoringTree->Branch("Keep",      &ftKeep,      "Keep/B");
-
-    
-
-  
 
   }
 
@@ -852,15 +833,13 @@ namespace trkf {
     // Check we have enough points in here to form a seed,
     // otherwise return a dud
     int NPoints = PointsInRange.size();
-    ftNSpts = NPoints;
-   
+     
     if(NPoints<fMinPointsInSeed) return  recob::Seed();
     
       
     std::map<int, bool> HitMap;
     std::vector<int>    HitList;	
 
-    ftNUHits=0; ftNVHits=0; ftNWHits=0;
 
     for(unsigned int i=0; i!=PointsInRange.size(); i++)
       {
@@ -873,9 +852,6 @@ namespace trkf {
 	    uint32_t Channel =  (*itHit)->Channel();
 	    geo::View_t View =  (*itHit)->View();
 	
-	    if(View==geo::kU) ftNUHits++;
-	    if(View==geo::kV) ftNVHits++;
-	    if(View==geo::kW) ftNWHits++;
 	    
 	    double eta = 0.01;
 	    for(size_t iH=0; iH!=OrgHits[View][Channel].size(); ++iH)
@@ -934,12 +910,6 @@ namespace trkf {
 	  }
       }
     
-    ftURMS = ViewRMS[0];
-    ftVRMS = ViewRMS[1];
-    ftWRMS = ViewRMS[2];
-    
-    ftKeep = ThrowOutSeed;
-    ftMonitoringTree->Fill();
 
     // If the seed is marked as bad, return a dud, otherwise
     //  return the ReturnSeed pointer
@@ -1082,10 +1052,6 @@ namespace trkf {
 	    Center    = Center2D[n];
 	    Direction = ViewDir2D[n];
 	  
-	    ftTheta = Direction.Theta();
-	    TVector3 NX(1,0,0), NY(0,1,0);
-	    ftThetaYZ = (Direction - Direction.Dot(NX)*NX).Theta();
-	    ftThetaXZ = (Direction - Direction.Dot(NY)*NY).Theta();
 
 	    ViewRMS[n]  = -fabs(ViewRMS[n]);
             ViewRMS[n1] =  fabs(ViewRMS[n1]);

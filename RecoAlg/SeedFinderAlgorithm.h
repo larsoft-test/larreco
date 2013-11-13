@@ -128,23 +128,6 @@ namespace trkf {
     
     bool                  fExtendSeeds;
 
-    TTree *   ftMonitoringTree;
-    Float_t   ftThetaXZ;
-    Float_t   ftThetaYZ;
-    Float_t   ftTheta;
-    Float_t   ftEigenvalue;
-    Int_t     ftNSpts;
-    Int_t     ftNUHits;
-    Int_t     ftNVHits;
-    Int_t     ftNWHits;
-    Float_t   ftURMS;
-    Float_t   ftVRMS;
-    Float_t   ftWRMS;
-    Float_t   ftURMSb;
-    Float_t   ftVRMSb;
-    Float_t   ftWRMSb;
-    bool      ftKeep;
-
 
     std::vector<double>   fPitches;
     std::vector<TVector3> fPitchDir;

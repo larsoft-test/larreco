@@ -56,8 +56,7 @@ namespace trkf {
     fVertexImpactThreshold = pset.get<double>("VertexImpactThreshold");
     fVertexExtrapDistance = pset.get<double>("VertexExtrapDistance");
     
-    fOccupancyThresh.resize(3);
-    fOccupancyThresh = pset.get<std::vector<double> >("OccupancyThresh");
+    fOccupancyThresh = pset.get<double>("OccupancyThresh");
     fTrackResolution = pset.get<double>("TrackResolution");
     fOverlapCut      = pset.get<double>("OverlapCut");
 
@@ -733,88 +732,70 @@ namespace trkf {
 		    
 		    std::vector<std::vector<int> > TheseHits(3);
 		    
-		    std::vector<double> Occupancy = GetOccupancy(AllSeeds.at(a), AllSeeds.at(b), fTrackResolution, AllHits, OrgHits, LowChan, HighChan, HitStatus, TheseHits);
 		    
-		  
-		    /*
-		      std::cout<<"HighLow "<<a<<" : " << b <<
-		      " " <<HighChan[0]-LowChan[0]<<
-		      " " <<HighChan[1]-LowChan[1]<<
-		      " " <<HighChan[2]-LowChan[2]<<
-		      " " <<Occupancy[0]<<
-		      " " <<Occupancy[1]<<
-		      " " <<Occupancy[2]<<
-		      std::endl;
-		    */
-
-		    if( (Occupancy[0] > fOccupancyThresh[0]) &&
-			(Occupancy[1] > fOccupancyThresh[1]) &&
-			(Occupancy[2] > fOccupancyThresh[2]) )		    
-		      {		    
-			SeedFits = true;
-			InterpHits=TheseHits;
-		      }
-
-		  }
-		if(SeedFits) 
-		  {
-		    // This seed is good! Store it on the track
-		    TrackParts.push_back(LowestLeft);
-		    SeedNotAvailable[LowestLeft]=true;
-
-		    // Remove the hits that went with this seed from consideration
-		    for(size_t View=0; View!=3; ++View)
-		      for(size_t iH=0; iH!=SeedToHitMap[View][LowestLeft].size();++iH)
-			HitStatus[View][SeedToHitMap[View][LowestLeft][iH]] = 2;
-		    // Remove the hits that were interpolated through from consideration
-		    for(size_t n=0; n!=3; ++n)
-		      for(size_t i=0; i!=InterpHits[n].size(); ++i)
-			{
-			  HitStatus[n][InterpHits[n][i]] = 1;
-			}
-		    // Kick out any seeds which are not invalidated by their
-		    //  hits being stolen
-		    for(size_t j=0; j!=AllSeeds.size(); ++j)
+		    SeedFits = EvaluateOccupancy(AllSeeds.at(a), AllSeeds.at(b), fTrackResolution, AllHits, OrgHits, LowChan, HighChan, HitStatus, TheseHits);
+		    
+		    if(SeedFits) 
 		      {
-			if(!SeedNotAvailable[j])
+			// This seed is good! Store it on the track
+			TrackParts.push_back(LowestLeft);
+			SeedNotAvailable[LowestLeft]=true;
+			
+			// Remove the hits that went with this seed from consideration
+			for(size_t View=0; View!=3; ++View)
+			  for(size_t iH=0; iH!=SeedToHitMap[View][LowestLeft].size();++iH)
+			    HitStatus[View][SeedToHitMap[View][LowestLeft][iH]] = 2;
+			// Remove the hits that were interpolated through from consideration
+			for(size_t n=0; n!=3; ++n)
+			  for(size_t i=0; i!=InterpHits[n].size(); ++i)
+			    {
+			      HitStatus[n][InterpHits[n][i]] = 1;
+			    }
+			// Kick out any seeds which are not invalidated by their
+			//  hits being stolen
+			for(size_t j=0; j!=AllSeeds.size(); ++j)
 			  {
-			    double OverlapFrac[3];
-			    for(size_t n=0; n!=3; ++n)
+			    if(!SeedNotAvailable[j])
 			      {
-				int TotalInSeed=0;
-				int TotalRejected=0;
-				for(size_t iH=0; iH!=SeedToHitMap[n][j].size(); ++iH)
+				double OverlapFrac[3];
+				for(size_t n=0; n!=3; ++n)
 				  {
-				    TotalInSeed++;
-				    if(HitStatus[n][SeedToHitMap[n][j][iH]]!=0)
-				      TotalRejected++;
-				  }
-				OverlapFrac[n] = float(TotalRejected)/float(TotalInSeed);
-			      }
-			    for(size_t n=0; n!=3; ++n)
-			      {
-				size_t n1=(n+1)%3; size_t n2=(n+2)%3;
-				if( (OverlapFrac[n]<=OverlapFrac[n1]) &&
-				    (OverlapFrac[n]<=OverlapFrac[n2]) )
-				  {
-				    if(OverlapFrac[n] > fOverlapCut)
+				    int TotalInSeed=0;
+				    int TotalRejected=0;
+				    for(size_t iH=0; iH!=SeedToHitMap[n][j].size(); ++iH)
 				      {
-					SeedNotAvailable[j]=true;
-					ThrownByHits.push_back(j);
-					break;
+					TotalInSeed++;
+					if(HitStatus[n][SeedToHitMap[n][j][iH]]!=0)
+					  TotalRejected++;
 				      }
+				    OverlapFrac[n] = float(TotalRejected)/float(TotalInSeed);
 				  }
-			      }// End view loop (seed tossing)
-			  } // End checking seed availability (seed tossing)
-		      } // End seed loop (seed tossing)
-		  } // End if positive seed fit
-		else 
+				for(size_t n=0; n!=3; ++n)
+				  {
+				    size_t n1=(n+1)%3; size_t n2=(n+2)%3;
+				    if( (OverlapFrac[n]<=OverlapFrac[n1]) &&
+					(OverlapFrac[n]<=OverlapFrac[n2]) )
+				      {
+					if(OverlapFrac[n] > fOverlapCut)
+					  {
+					    SeedNotAvailable[j]=true;
+					    ThrownByHits.push_back(j);
+					    break;
+					  }
+				      }
+				  
+				  }// End view loop (seed tossing)
+			      } // End checking seed availability (seed tossing)
+			  } // End seed loop (seed tossing)
+		      } // End if positive seed fit
+		  }
+		if(!SeedFits)
 		  {
 		    // If seed doesn't fit, mark it as such, and make it
 		    //  temporarily unavailable.
 		    DoesNotFit.push_back(LowestLeft);
 		    SeedNotAvailable[LowestLeft]=true;
-		  } 
+		  }
 	      } // End if(not first seed)
 	  } // End loop over all remaining seeds
 	if(TrackParts.size()>0)
@@ -910,11 +891,10 @@ namespace trkf {
 
   //-------------------------------------------------
 
-  std::vector<double> BezierTrackerAlgorithm::GetOccupancy(recob::Seed& Seed1, recob::Seed& Seed2, double dThresh,  std::vector<art::PtrVector<recob::Hit>*>& AllHits,  std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits, std::vector<uint32_t>& LowChan, std::vector<uint32_t>& HighChan, std::vector<std::vector<int> >& HitStatus, std::vector<std::vector<int> >& TheseHits)
+  bool BezierTrackerAlgorithm::EvaluateOccupancy(recob::Seed& Seed1, recob::Seed& Seed2, double dThresh,  std::vector<art::PtrVector<recob::Hit>*>& AllHits,  std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits, std::vector<uint32_t>& LowChan, std::vector<uint32_t>& HighChan, std::vector<std::vector<int> >& HitStatus, std::vector<std::vector<int> >& TheseHits)
   {
     art::ServiceHandle<util::DetectorProperties> det;
-    std::vector<double> Occupation(3);
-    
+      
     int NSteps = 2 * Seed1.GetDistance(Seed2) / dThresh;
     if(NSteps<10) NSteps=10;
     BezierCurveHelper bhlp(NSteps);
@@ -924,14 +904,15 @@ namespace trkf {
 
     for(size_t n=0; n!=3; ++n)
       {
+	if((HighChan[n]-LowChan[n])<=2) continue;
 	
-	int NClaimedChannels=0;
-	std::vector<bool> ChannelsClaimed(HighChan[n]-LowChan[n]+1, false);
-	if((HighChan[n]-LowChan[n])<=2) Occupation[n]=1;
-	else
-	  {
-	    for(uint32_t iChan = LowChan[n]+1; iChan < (HighChan[n]-1); ++iChan)
+	size_t EmptyChanLimit = int((1.-fOccupancyThresh)*(HighChan[n]-LowChan[n]-2));
+	size_t NEmptyChannels=0;
+
+	for(uint32_t iChan = LowChan[n]+1; iChan < (HighChan[n]-1); ++iChan)
 	      {
+		bool GotThisChannel=false;
+	
 		for(size_t iH = 0; iH!=OrgHits[n]->operator[](iChan).size(); ++iH)
 		  {
 		    if(HitStatus[n][OrgHits[n]->operator[](iChan).at(iH)]==0)
@@ -939,32 +920,27 @@ namespace trkf {
 			art::Ptr<recob::Hit> ThisHit = AllHits[n]->at(OrgHits[n]->operator[](iChan)[iH]);
 		
 			TVector3 WirePoint1 = ( fPitchDir[n]*(fWireZeroOffset[n] + fPitches[n] * ThisHit->WireID().Wire) )+ fXDir * det->ConvertTicksToX(ThisHit->PeakTime(), n, 0, 0);
-			// TVector3 WirePoint2 = WirePoint1 + fWireDir[n];
+		
 			for(size_t ipt=0; ipt!=Pts.size(); ++ipt)
 			  {
 			    float d = ((WirePoint1-Pts.at(ipt))-fWireDir[n]*((WirePoint1-Pts.at(ipt)).Dot(fWireDir[n]))).Mag();
 			    if(d < dThresh) 
 			      {
 				TheseHits[n].push_back(OrgHits[n]->operator[](iChan).at(iH));
-				if(!ChannelsClaimed.at(iChan-LowChan[n]))
-				  {
-				    ChannelsClaimed.at(iChan - LowChan[n])=true;
-				    ++NClaimedChannels;
-				    ipt = Pts.size()-1;
-				    continue;
-				  }
+				GotThisChannel=true;
+				break;
 			      }
 			  }
 		      }
 		  }
+		if(!GotThisChannel) NEmptyChannels++;
+		if(NEmptyChannels > EmptyChanLimit) return false; 
 	      }
-	    Occupation[n] =  double(NClaimedChannels)/double(HighChan[n]-LowChan[n]-2);
-	  }
       }
-    return Occupation;
+     return true;
     
   }
-
+  
 
   //-------------------------------------------------
 

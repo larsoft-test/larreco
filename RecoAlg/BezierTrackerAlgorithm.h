@@ -70,7 +70,7 @@ namespace trkf {
 
     void GetSeedDirProjected(recob::Seed const& TheSeed, std::vector<double>& WireCoord, std::vector<double>& TimeCoord);
 
-    std::vector<double> GetOccupancy(recob::Seed& Seed1, recob::Seed& Seed2, double dThresh,  std::vector<art::PtrVector<recob::Hit>*>& AllHits,  std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits,  std::vector<uint32_t>& LowChan, std::vector<uint32_t>& HighChan, std::vector<std::vector<int> >& HitStatus, std::vector<std::vector<int> >& TheseHits);
+    bool EvaluateOccupancy(recob::Seed& Seed1, recob::Seed& Seed2, double dThresh,  std::vector<art::PtrVector<recob::Hit>*>& AllHits,  std::vector<std::map<uint32_t, std::vector<int> >* >& OrgHits,  std::vector<uint32_t>& LowChan, std::vector<uint32_t>& HighChan, std::vector<std::vector<int> >& HitStatus, std::vector<std::vector<int> >& TheseHits);
 
     void SortTracksByLength(std::vector<trkf::BezierTrack>& BTracks, std::vector<art::PtrVector<recob::Hit> > & HitVecs);
     
@@ -96,7 +96,7 @@ namespace trkf {
     double fOverlapCut;
     double fDirectJoinDistance;
     double fTrackJoinAngle;
-    std::vector<double> fOccupancyThresh;
+    double fOccupancyThresh;
     double fTrackResolution;
 
     double fVertexImpactThreshold;
