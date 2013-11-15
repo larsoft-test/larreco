@@ -158,6 +158,8 @@ std::vector<float> RFFHitFinder::GaussianElimination(std::vector< std::vector<fl
   std::vector<float> solutions;
   const size_t N_PEAKS = scaled_distances.size();
 
+  //std::cout << "We've entered and looking for " << N_PEAKS << " solutions." << std::endl;
+
   if(peak_heights.size() != N_PEAKS ) {
     std::cout << "ERROR!!!! cannot do Guassian elimination of non-square matrix" << std::endl;
     return solutions;
@@ -207,7 +209,7 @@ std::vector<float> RFFHitFinder::GaussianElimination(std::vector< std::vector<fl
   solutions.resize(N_PEAKS);
   //solutions.insert(solutions.begin()+(N_PEAKS-1),matrix[N_PEAKS-1][N_PEAKS]/matrix[N_PEAKS-1][N_PEAKS-1]);
 
-  for(uint i=N_PEAKS-1; i>=0; i--){
+  for(int i=N_PEAKS-1; i>=0; i--){
     
     //std::cout << "getting solution " << i+1 << std::endl;
 
@@ -461,8 +463,8 @@ void RFFHitFinder::produce(art::Event& evt)
 
       
       
-      std::vector< std::pair<float,int> >mean_matches;
-      std::vector< std::pair<float,int> >sigma_matches;
+      std::vector< std::tuple<int,float,float> >mean_matches;
+      std::vector< std::tuple<int,float,float> >sigma_matches;
       float prev_dev=0; float slope=0; float sigma=0; float intercept=0; float my_mean=0;
       for(int i = (int)startT; i < (int)endT; i++){
 	
@@ -488,56 +490,58 @@ void RFFHitFinder::produce(art::Event& evt)
 	if(my_mean<=0) continue;
 	
 	bool add_new_element = true;
+	float delta = 0;
 	for(size_t i_means=0; i_means<mean_matches.size(); i_means++){
-	  if( std::abs(my_mean-mean_matches.at(i_means).first)>2.5) continue;
+	  if( std::abs(my_mean-std::get<1>(mean_matches.at(i_means)))>2.5) continue;
 	  else{
-	    mean_matches.at(i_means).first = (mean_matches.at(i_means).first*mean_matches.at(i_means).second + my_mean) / (mean_matches.at(i_means).second+1);
-	    mean_matches.at(i_means).second+=1;
-	    sigma_matches.at(i_means).first = (sigma_matches.at(i_means).first*sigma_matches.at(i_means).second + sigma) / (sigma_matches.at(i_means).second+1);
-	    sigma_matches.at(i_means).second+=1;
+	    delta = my_mean - std::get<1>(mean_matches.at(i_means));
+	    std::get<0>(mean_matches.at(i_means))++;
+	    std::get<1>(mean_matches.at(i_means)) += delta / std::get<0>(mean_matches.at(i_means));
+	    std::get<2>(mean_matches.at(i_means)) += delta*(my_mean -std::get<1>(mean_matches.at(i_means)));
+
+	    delta = sigma - std::get<1>(sigma_matches.at(i_means));
+	    std::get<0>(sigma_matches.at(i_means))++;
+	    std::get<1>(sigma_matches.at(i_means)) += delta / std::get<0>(sigma_matches.at(i_means));
+	    std::get<2>(sigma_matches.at(i_means)) += delta*(sigma -std::get<1>(sigma_matches.at(i_means)));
+
 	    add_new_element=false;
 	  }
 	}
 	if(add_new_element){
-	  mean_matches.push_back(std::make_pair(my_mean,1));
-	  sigma_matches.push_back(std::make_pair(sigma,1));
+	  mean_matches.push_back(std::make_tuple(1,my_mean,0));
+	  sigma_matches.push_back(std::make_tuple(1,sigma,0));
 	}
 	
       }//<---End for looping over startT and endT
       
-      uint i_means=0;
-      std::vector<float> hit_sigmas;
-      std::vector<float> hit_means;
-      std::vector<float> peak_signals;
-      std::vector<int> hit_multiplicity;
-      while(i_means < mean_matches.size()){
-	//std::cout << "i_mean=" << i_means << "\tmean=" << mean_matches.at(i_means).first << "  multiplicity=" << mean_matches.at(i_means).second << std::endl;
-	if(mean_matches.at(i_means).second>=3){
-	  hit_means.push_back((mean_matches.at(i_means).first));
-	  hit_sigmas.push_back((sigma_matches.at(i_means).first));
-	  peak_signals.push_back(signal[(int)(mean_matches.at(i_means).first)]);
-	  hit_multiplicity.push_back((mean_matches.at(i_means).second));
-	}
-	i_means++; 
-      }
-      
+
+      //std::cout << "We've created all the hits. Sizes are " << mean_matches.size() << " and " << sigma_matches.size() << std::endl;
+
+      //go back through and join together anything still close
       bool try_reduce=true;
       while(try_reduce){
 	try_reduce=false;
 	
-	for(uint i=0; i<hit_means.size(); i++){
-	  for(uint j=i+1; j<hit_means.size(); j++){
-	    
-	    if(std::abs(hit_means.at(i) - hit_means.at(j))<2.5){
-	      hit_means.at(i) = (hit_means.at(i)*hit_multiplicity.at(i) + hit_means.at(j)*hit_multiplicity.at(j))/(hit_multiplicity.at(i)+hit_multiplicity.at(j));
-	      hit_sigmas.at(i) = (hit_sigmas.at(i)*hit_multiplicity.at(i) + hit_sigmas.at(j)*hit_multiplicity.at(j))/(hit_multiplicity.at(i)+hit_multiplicity.at(j));
-	      hit_multiplicity.at(i) += hit_multiplicity.at(j);
-	      
-	      hit_means.erase(hit_means.begin()+j);
-	      hit_sigmas.erase(hit_sigmas.begin()+j);
-	      hit_multiplicity.erase(hit_multiplicity.begin()+j);
-	      peak_signals.erase(peak_signals.begin()+j);
-	      
+	float delta = 0;
+	for(uint i=0; i<mean_matches.size(); i++){
+	  for(uint j=i+1; j<mean_matches.size(); j++){
+
+	    delta = std::get<1>(mean_matches.at(j)) - std::get<1>(mean_matches.at(i));
+
+	    if( std::abs(delta) < 2.5){
+
+	      std::get<0>(mean_matches.at(i)) += std::get<0>(mean_matches.at(j));
+	      std::get<1>(mean_matches.at(i)) += (delta*std::get<0>(mean_matches.at(j))) / std::get<0>(mean_matches.at(i));
+	      std::get<2>(mean_matches.at(i)) += delta*std::get<0>(mean_matches.at(j))*(std::get<1>(mean_matches.at(j)) - std::get<1>(mean_matches.at(i)));
+	      mean_matches.erase(mean_matches.begin()+j);
+
+	      delta = std::get<1>(sigma_matches.at(j)) - std::get<1>(sigma_matches.at(i));
+	      std::get<0>(sigma_matches.at(i)) += std::get<0>(sigma_matches.at(j));
+	      std::get<1>(sigma_matches.at(i)) += (delta*std::get<0>(sigma_matches.at(j))) / std::get<0>(sigma_matches.at(i));
+	      std::get<2>(sigma_matches.at(i)) += delta*std::get<0>(sigma_matches.at(j))*(std::get<1>(sigma_matches.at(j)) - std::get<1>(sigma_matches.at(i)));
+	      sigma_matches.erase(sigma_matches.begin()+j);
+	     
+	      j--;
 	      try_reduce=true;
 	    }
 	    
@@ -545,26 +549,54 @@ void RFFHitFinder::produce(art::Event& evt)
 	}
 	
       }
-      
+
+      //std::cout << "We've reduced all the hits. Sizes are " << mean_matches.size() << " and " << sigma_matches.size() << std::endl;
+
+
+
+
+      uint i_means=0;
+      std::vector<float> peak_signals;
+      while(i_means < mean_matches.size()){
+
+	if(std::get<0>(mean_matches.at(i_means))>=3){
+
+	  std::get<2>(mean_matches.at(i_means)) = std::get<2>(mean_matches.at(i_means)) / (std::get<0>(mean_matches.at(i_means)));
+	  std::get<2>(sigma_matches.at(i_means)) = std::get<2>(sigma_matches.at(i_means)) / (std::get<0>(sigma_matches.at(i_means)));
+
+	  peak_signals.push_back( signal[ (int)( std::get<1>(mean_matches.at(i_means)) ) ] );
+	  i_means++; 
+	}
+	else{
+	  mean_matches.erase(mean_matches.begin()+i_means);
+	  sigma_matches.erase(sigma_matches.begin()+i_means);
+	}
+
+      }
+            
+      //std::cout << "We've prepped all the good hits. Sizes are " << mean_matches.size() << " and " << sigma_matches.size() << " and " << peak_signals.size() << std::endl;
+
+
       std::vector< std::vector<float> > scaled_distances;
       for(uint i=0; i<peak_signals.size(); i++){
 	
 	std::vector<float> scaled_distance_row;
-	float this_mean = hit_means.at(i);
-	//float this_sigma = hit_sigmas.at(i);
+	float this_mean = std::get<1>(mean_matches.at(i));
 	
-	for(uint j=0; j<hit_sigmas.size(); j++)
-	  scaled_distance_row.push_back( std::abs(this_mean - hit_means.at(j))/hit_sigmas.at(j) );
+	for(uint j=0; j<mean_matches.size(); j++)
+	  scaled_distance_row.push_back( std::abs(this_mean - std::get<1>(mean_matches.at(j))) / std::get<1>(sigma_matches.at(j)) );
 	
 	scaled_distances.push_back(scaled_distance_row);
       }
       
+      //std::cout << "We've prepped for Gaussian Elimination. Sizes are " << mean_matches.size() << " and " << sigma_matches.size() 
+      //	<< " and " << peak_signals.size() << " and " << scaled_distances.size() << std::endl;
+
       std::vector<float> solutions = GaussianElimination(scaled_distances,peak_signals);
       
+      //std::cout << "OK, we got the solutions. Size " << solutions.size() << std::endl;
       
-      //std::cout << "We have " << solutions.size() << " solutions." << std::endl;
       for(uint i=0; i<solutions.size(); i++){
-
 
 	// get the WireID for this hit
 	std::vector<geo::WireID> wids = geom->ChannelToWire(channel);
@@ -574,13 +606,13 @@ void RFFHitFinder::produce(art::Event& evt)
 	
 	recob::Hit hit(wire, 
 		       wid,
-		       hit_means.at(i)-hit_sigmas.at(i),
-		       hit_sigmas.at(i),
-		       hit_means.at(i)+hit_sigmas.at(i),
-		       hit_sigmas.at(i),
-		       hit_means.at(i),
-		       hit_sigmas.at(i),
-		       solutions.at(i)*hit_sigmas.at(i)*SQRT_TWO_PI, 
+		       std::get<1>(mean_matches.at(i))-std::get<1>(sigma_matches.at(i)),
+		       std::sqrt(std::get<2>(mean_matches.at(i))+std::get<2>(sigma_matches.at(i))),
+		       std::get<1>(mean_matches.at(i))+std::get<1>(sigma_matches.at(i)),
+		       std::sqrt(std::get<2>(mean_matches.at(i))+std::get<2>(sigma_matches.at(i))),
+		       std::get<1>(mean_matches.at(i)),
+		       std::sqrt(std::get<2>(mean_matches.at(i))),
+		       solutions.at(i)*std::get<1>(sigma_matches.at(i))*SQRT_TWO_PI, 
 		       0,
 		       solutions.at(i),
 		       0, 
@@ -590,6 +622,8 @@ void RFFHitFinder::produce(art::Event& evt)
 
       }
       
+      //std::cout << "OK, we added the hit." << std::endl;
+
       hitIndex+=numHits;
       
       
