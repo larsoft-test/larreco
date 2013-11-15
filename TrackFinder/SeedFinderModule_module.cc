@@ -43,7 +43,7 @@ namespace trkf {
   
     
     art::PtrVector<recob::Hit>       GetHitsFromEvent(std::string HitModuleLabel, art::Event & evt);
-    void                             GetSortedHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::map<geo::View_t, std::vector< art::PtrVector<recob::Hit> > > & SortedHits );
+    void                             GetSortedHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::vector< std::vector< art::PtrVector<recob::Hit> > > & SortedHits );
 
 
 
@@ -142,7 +142,7 @@ namespace trkf {
       {
 	std::vector<std::vector<art::PtrVector<recob::Hit> > > HitsPerSeed;
 	
-	std::map<geo::View_t, std::vector< art::PtrVector<recob::Hit> > > SortedHits;
+	std::vector< std::vector< art::PtrVector<recob::Hit> > > SortedHits;
         GetSortedHitsFromClusters(fInputModuleLabel, evt, SortedHits);
 
 	std::vector<std::vector<recob::Seed> > Seeds = fSeedAlg.GetSeedsFromSortedHits(SortedHits, HitsPerSeed);
@@ -190,9 +190,11 @@ namespace trkf {
   // Get the hits associated with stored clusters
   //
 
-  void SeedFinderModule::GetSortedHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::map<geo::View_t, std::vector< art::PtrVector<recob::Hit> > > & SortedHits )
+  void SeedFinderModule::GetSortedHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,std::vector< std::vector< art::PtrVector<recob::Hit> > > & SortedHits )
   {
-
+    
+    SortedHits.clear();
+    SortedHits.resize(3);
     std::vector<art::Ptr<recob::Cluster> > Clusters;
 
     art::Handle< std::vector<recob::Cluster> > clusterh;
@@ -231,6 +233,7 @@ namespace trkf {
 
   art::PtrVector<recob::Hit> SeedFinderModule::GetHitsFromEvent(std::string HitModuleLabel, art::Event & evt)
   {
+    
     art::PtrVector<recob::Hit> TheHits;
     art::Handle< std::vector<recob::Hit> > hith;
     evt.getByLabel(HitModuleLabel, hith);

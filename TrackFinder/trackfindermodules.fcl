@@ -27,7 +27,7 @@ standard_seedfindermodule:
 standard_beziertrackermodule:
 {
  module_type:         "BezierTrackerModule"
- ClusterModuleLabel:  "cccluster"
+ ClusterModuleLabel:  "dbcluster"
  BezierTrackerAlgorithm: @local::standard_beziertrackeralgorithm
 }
 

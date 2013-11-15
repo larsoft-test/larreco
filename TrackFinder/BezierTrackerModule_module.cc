@@ -61,7 +61,7 @@ namespace trkf {
     trkf::BezierTrackerAlgorithm * fBTrackAlg;
     
 
-    void GetHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,     std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >& ReturnVec);
+    void GetHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,     std::vector< std::vector<art::PtrVector<recob::Hit> > >& ReturnVec);
     
   };
 }
@@ -142,7 +142,7 @@ namespace trkf {
     std::vector<art::PtrVector<recob::Hit> >  HitsForAssns;
     
    
-    std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > SortedHits;
+    std::vector< std::vector<art::PtrVector<recob::Hit> > > SortedHits;
     // Produce appropriately organized hit object
     GetHitsFromClusters(fClusterModuleLabel, evt, SortedHits);
  
@@ -150,11 +150,11 @@ namespace trkf {
     BTracks = fBTrackAlg->MakeTracks(SortedHits, HitsForAssns);
     
     // Attempt to mitigate clustering imperfections
-    fBTrackAlg->FilterOverlapTracks( BTracks, HitsForAssns );
     fBTrackAlg->SortTracksByLength(  BTracks, HitsForAssns );
+    fBTrackAlg->FilterOverlapTracks( BTracks, HitsForAssns );
     fBTrackAlg->MakeOverlapJoins(    BTracks, HitsForAssns );      
-    fBTrackAlg->SortTracksByLength(  BTracks, HitsForAssns );  
     fBTrackAlg->MakeDirectJoins(     BTracks, HitsForAssns );
+    fBTrackAlg->SortTracksByLength(  BTracks, HitsForAssns );  
     fBTrackAlg->FilterOverlapTracks( BTracks, HitsForAssns );    
     
     // Perform bezier vertexing
@@ -197,8 +197,10 @@ namespace trkf {
   }
   //-----------------------------------------
 
-  void BezierTrackerModule::GetHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,  std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > > & ReturnVec )
+  void BezierTrackerModule::GetHitsFromClusters(std::string ClusterModuleLabel, art::Event& evt,  std::vector<std::vector<art::PtrVector<recob::Hit> > > & ReturnVec )
   {
+    ReturnVec.clear();
+    ReturnVec.resize(3);
     
     std::vector<art::Ptr<recob::Cluster> > Clusters;
     
