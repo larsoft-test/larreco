@@ -44,7 +44,7 @@ namespace trkf {
     //----------------------
 
 
-    std::vector<std::vector<recob::Seed> > GetSeedsFromSortedHits( std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >  const& SortedHits, 
+    std::vector<std::vector<recob::Seed> > GetSeedsFromSortedHits( std::vector< std::vector<art::PtrVector<recob::Hit> > >  const& SortedHits, 
 								   std::vector<std::vector<art::PtrVector<recob::Hit> > >& HitsPerSeed, unsigned int StopAfter=0);
                                     // Return a vector of vectors of seeds, one vector for each supplied cluster 
                                     //   combination which has sufficient overlap. The second argument returns

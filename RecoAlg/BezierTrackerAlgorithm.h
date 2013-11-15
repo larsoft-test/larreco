@@ -58,7 +58,7 @@ namespace trkf {
     void MakeOverlapJoins(std::vector<trkf::BezierTrack>& BTracks, std::vector<art::PtrVector<recob::Hit> > & HitVecs);
 
 
-    std::vector<trkf::BezierTrack> MakeTracks(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >& SortedHits, std::vector<art::PtrVector<recob::Hit> >& HitAssocs);
+    std::vector<trkf::BezierTrack> MakeTracks(std::vector<std::vector<art::PtrVector<recob::Hit> > >& SortedHits, std::vector<art::PtrVector<recob::Hit> >& HitAssocs);
      
     void GetTracksForCombo(std::vector<recob::Seed>& Seeds, art::PtrVector<recob::Hit>& UHits, art::PtrVector<recob::Hit>& VHits, art::PtrVector<recob::Hit>& WHits);
 

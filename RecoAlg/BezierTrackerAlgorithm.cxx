@@ -68,153 +68,171 @@ namespace trkf {
 
 
   //-----------------------------------------------
-  std::vector<trkf::BezierTrack> BezierTrackerAlgorithm::MakeTracks(std::map<geo::View_t, std::vector<art::PtrVector<recob::Hit> > >& SortedHits, std::vector<art::PtrVector<recob::Hit> >& HitAssocs)
+  std::vector<trkf::BezierTrack> BezierTrackerAlgorithm::MakeTracks(std::vector< std::vector<art::PtrVector<recob::Hit> > >& SortedHits, std::vector<art::PtrVector<recob::Hit> >& HitAssocs)
   {
     
     std::vector<trkf::BezierTrack> ReturnVector;
 
-    size_t UEntries = SortedHits[geo::kU].size();
-    size_t VEntries = SortedHits[geo::kV].size();
-    size_t WEntries = SortedHits[geo::kW].size();
+    size_t UEntries = SortedHits[0].size();
+    size_t VEntries = SortedHits[1].size();
+    size_t WEntries = SortedHits[2].size();
 
-    
     // Get seeds from the hit collection    
-    std::vector<std::map<size_t, bool> > MapNeeded(3);
- 
-
-    std::vector<std::vector<art::PtrVector<recob::Hit> > > HitsPerSeed;
-    std::vector<std::vector<recob::Seed> > Seeds = GetSeedFinderAlgorithm()->GetSeedsFromSortedHits(SortedHits, HitsPerSeed);
-
-
-    // Find the longest seed
-    for(size_t nU =0; nU != UEntries; ++nU)
-      for(size_t nV =0; nV != VEntries; ++nV)
-	for(size_t nW =0; nW != WEntries; ++nW)
-	  
-	  {
-	    size_t iCombo = 
-	      nU * VEntries * WEntries + 
-	      nV * WEntries +
-	      nW;
-	    
-	    
-	    if(Seeds.at(iCombo).size()>0)
-	      {
-		MapNeeded[0][nU]=true;
-		MapNeeded[1][nV]=true;
-		MapNeeded[2][nW]=true;
-	      }
-	  }
-    
 
     std::vector< std::vector< std::vector<int> > > OrgHitsU(UEntries);
     std::vector< std::vector< std::vector<int> > > OrgHitsV(VEntries);
     std::vector< std::vector< std::vector<int> > > OrgHitsW(WEntries);
-    
+
+
     art::ServiceHandle<geo::Geometry> geo;
     size_t NChannels = geo->Nchannels();
     
+    std::vector<double> MinUTime(UEntries,10000);
+    std::vector<double> MaxUTime(UEntries,0);
+    std::vector<double> MinVTime(VEntries,10000);
+    std::vector<double> MaxVTime(VEntries,0);
+    std::vector<double> MinWTime(WEntries,10000);
+    std::vector<double> MaxWTime(WEntries,0);
+
+    std::vector<int> MinUWire(UEntries,10000);
+    std::vector<int> MaxUWire(UEntries,0);
+    std::vector<int> MinVWire(VEntries,10000);
+    std::vector<int> MaxVWire(VEntries,0);
+    std::vector<int> MinWWire(WEntries,10000);
+    std::vector<int> MaxWWire(WEntries,0);
+    
+
     for(size_t nU=0; nU!=UEntries; ++nU)
       {
-	if(MapNeeded[0][nU])
+	OrgHitsU[nU].resize(NChannels);
+	for(size_t iH=0; iH!=SortedHits[0][nU].size(); ++iH)
 	  {
-	    OrgHitsU[nU].resize(NChannels);
-	    for(size_t iH=0; iH!=SortedHits[geo::kU][nU].size(); ++iH)
-	      {
-		OrgHitsU[nU][SortedHits[geo::kU][nU][iH]->Channel()].push_back(iH);
-	      }
+	    OrgHitsU[nU][SortedHits[0][nU][iH]->Channel()].push_back(iH);
+	    double Time = SortedHits[0][nU][iH]->PeakTime();
+	    if(Time<MinUTime[nU]) MinUTime[nU]=Time;
+	    if(Time>MaxUTime[nU]) MaxUTime[nU]=Time;
+	    int    Wire = SortedHits[0][nU][iH]->WireID().Wire;
+	    if(Wire<MinUWire[nU]) MinUWire[nU]=Wire;
+	    if(Wire>MaxUWire[nU]) MaxUWire[nU]=Wire;
+	  
 	  }
       }
     for(size_t nV=0; nV!=VEntries; ++nV)
       {
-	if(MapNeeded[1][nV])
+	OrgHitsV[nV].resize(NChannels);
+	for(size_t iH=0; iH!=SortedHits[1][nV].size(); ++iH)
 	  {
-	    OrgHitsV[nV].resize(NChannels);
-	    for(size_t iH=0; iH!=SortedHits[geo::kV][nV].size(); ++iH)
-	      {
-		OrgHitsV[nV][SortedHits[geo::kV][nV][iH]->Channel()].push_back(iH);
-	      }
+	    OrgHitsV[nV][SortedHits[1][nV][iH]->Channel()].push_back(iH);
+	    double Time = SortedHits[1][nV][iH]->PeakTime();
+	    if(Time<MinVTime[nV]) MinVTime[nV]=Time;
+	    if(Time>MaxVTime[nV]) MaxVTime[nV]=Time;
+	    int    Wire = SortedHits[1][nV][iH]->WireID().Wire;
+	    if(Wire<MinVWire[nV]) MinVWire[nV]=Wire;
+	    if(Wire>MaxVWire[nV]) MaxVWire[nV]=Wire;
 	  }
       }
-    for(size_t nW=0; nW!=WEntries; ++nW)
-      {
-	if(MapNeeded[2][nW])
-	  {  
-	    OrgHitsW[nW].resize(NChannels);
-	    for(size_t iH=0; iH!=SortedHits[geo::kW][nW].size(); ++iH)
-	      {
-		OrgHitsW[nW][SortedHits[geo::kW][nW][iH]->Channel()].push_back(iH);
-	      }
-	  }
-      }
-    std::vector<std::vector<std::vector<std::vector<int> > > > WhichHitsPerTrackPerCombo(UEntries * VEntries * WEntries);
-    std::vector<std::vector<std::vector<recob::Seed> > >       WhichSeedsPerTrackPerCombo(UEntries * VEntries * WEntries);
     
+   for(size_t nW=0; nW!=WEntries; ++nW)
+     {
+       OrgHitsW[nW].resize(NChannels);
+       for(size_t iH=0; iH!=SortedHits[2][nW].size(); ++iH)
+	 {
+	   OrgHitsW[nW][SortedHits[2][nW][iH]->Channel()].push_back(iH);
+	   double Time = SortedHits[2][nW][iH]->PeakTime();
+	   if(Time<MinWTime[nW]) MinWTime[nW]=Time;
+	   if(Time>MaxWTime[nW]) MaxWTime[nW]=Time;
+	   int    Wire = SortedHits[2][nW][iH]->WireID().Wire;
+	   if(Wire<MinWWire[nW]) MinWWire[nW]=Wire;
+	   if(Wire>MaxWWire[nW]) MaxWWire[nW]=Wire;
+	 }
+     }
+    
+   
     for(size_t nU =0; nU != UEntries; ++nU)
       for(size_t nV =0; nV != VEntries; ++nV)
 	for(size_t nW =0; nW != WEntries; ++nW)
 	  
 	  {
-	    size_t iCombo = 
-	      nU * VEntries * WEntries + 
-	      nV * WEntries +
-	      nW;
+	    //	    std::cout<<"Trying combo " << nU <<", " <<nV<<", " <<nW<<std::endl;
+	    // First check if there is some chance of overlap. If not, move on.
+
+	    // check time region	    
+	    if(MaxUTime[nU] < MinWTime[nW] ) continue;
+	    if(MaxUTime[nU] < MinVTime[nV] ) continue;
+	    if(MaxVTime[nV] < MinUTime[nU] ) continue;
+	    if(MaxVTime[nV] < MinWTime[nW] ) continue;
+	    if(MaxWTime[nW] < MinUTime[nU] ) continue;
+	    if(MaxWTime[nW] < MinVTime[nV] ) continue;
+
+	    // check wire region
+	    double y=0,z=0;
+	    geo->IntersectionPoint(MaxUWire[nU],MaxVWire[nV],0,1,0,0,y,z);
+	    double MaxUVOnW = ( z - fWireZeroOffset[2] ) / fPitches[2];
+	    if(MaxUVOnW < MinWWire[nW]) continue;
+	    geo->IntersectionPoint(MinUWire[nU],MinVWire[nV],0,1,0,0,y,z);
+	    double MinUVOnW = ( z - fWireZeroOffset[2] ) / fPitches[2];
+	    if(MinUVOnW > MaxWWire[nW]) continue;
+
 	    
+	    //	    std::cout<<" proceeding..."<<std::endl;
 	    
-	    if(Seeds.at(iCombo).size()>0)
+	    art::PtrVector<recob::Hit> HitsFlat;
+	    for(size_t i=0; i!=SortedHits[0][nU].size(); ++i)
+	      HitsFlat.push_back(SortedHits[0][nU][i]);
+	    for(size_t i=0; i!=SortedHits[1][nV].size(); ++i)
+	      HitsFlat.push_back(SortedHits[1][nV][i]);
+	    for(size_t i=0; i!=SortedHits[2][nW].size(); ++i)
+	      HitsFlat.push_back(SortedHits[2][nW][i]);
+	    
+	    std::vector<art::PtrVector<recob::Hit> > HitsPerSeed;
+	    
+	    std::vector<recob::Seed> SeedsThisCombo = 
+	      GetSeedFinderAlgorithm()->GetSeedsFromUnSortedHits(HitsFlat, HitsPerSeed, 0);
+	    
+	    //	    std::cout<<" done seeding"<<std::endl;
+	  	   
+	    if(SeedsThisCombo.size()>0)
 	      {
-		
+
+
 		std::vector<art::PtrVector<recob::Hit>* > HitStruct(3);
-		HitStruct[0] = & SortedHits[geo::kU].at(nU);
-		HitStruct[1] = & SortedHits[geo::kV].at(nV);
-		HitStruct[2] = & SortedHits[geo::kW].at(nW);
+		HitStruct[0] = & SortedHits[0].at(nU);
+		HitStruct[1] = & SortedHits[1].at(nV);
+		HitStruct[2] = & SortedHits[2].at(nW);
 		
 		std::vector<std::vector< std::vector<int> >* > OrgHits(3);
 		OrgHits[0] = & OrgHitsU[nU];
 		OrgHits[1] = & OrgHitsV[nV];
 		OrgHits[2] = & OrgHitsW[nW];
+
 		
 
-		std::vector<std::vector<recob::Seed> > SeedsForTracks = OrganizeSeedsIntoTracks(Seeds.at(iCombo), HitStruct, HitsPerSeed.at(iCombo), OrgHits, WhichHitsPerTrackPerCombo.at(iCombo));
-			
-		WhichSeedsPerTrackPerCombo.at(iCombo) = SeedsForTracks;
+		std::vector<std::vector<std::vector<int > > > HitsPerTrack;
+	
+		std::vector<std::vector<recob::Seed> > SeedsForTracks = OrganizeSeedsIntoTracks(SeedsThisCombo, HitStruct, HitsPerSeed, OrgHits, HitsPerTrack);
+		for(size_t iTrack=0; iTrack!=SeedsForTracks.size(); ++iTrack)
+		  {
+		    ReturnVector.push_back(trkf::BezierTrack(SeedsForTracks.at(iTrack)));
+		    // Fill up the hit vector
+		    art::PtrVector<recob::Hit> HitsForThisTrack;
+		    
+		    for(size_t iH=0; iH!=HitsPerTrack.at(iTrack)[0].size(); ++iH)
+		      HitsForThisTrack.push_back(SortedHits[geo::kU][nU][HitsPerTrack.at(iTrack)[0].at(iH)]);
+		    
+		    for(size_t iH=0; iH!=HitsPerTrack.at(iTrack)[1].size(); ++iH)
+		      HitsForThisTrack.push_back(SortedHits[geo::kV][nV][HitsPerTrack.at(iTrack)[1].at(iH)]);
+		    
+		    for(size_t iH=0; iH!=HitsPerTrack.at(iTrack)[2].size(); ++iH)
+		      HitsForThisTrack.push_back(SortedHits[geo::kW][nW][HitsPerTrack.at(iTrack)[2].at(iH)]);
+		    
+		    HitAssocs.push_back(HitsForThisTrack);
+		    
+		  }
+				
 	      }
 	    
-	    
-
 	  }
-
-
-    for(size_t nU =0; nU != UEntries; ++nU)
-      for(size_t nV =0; nV != VEntries; ++nV)
-	for(size_t nW =0; nW != WEntries; ++nW)
-	  {
-	    
-	    size_t iCombo =
-	      nU * VEntries * WEntries +
-              nV * WEntries +
-	      nW;
-	    
-	    for(size_t iTrack=0; iTrack!=WhichSeedsPerTrackPerCombo.at(iCombo).size(); ++iTrack)
-	      {
-		// Make a bezier track
-		ReturnVector.push_back(trkf::BezierTrack(WhichSeedsPerTrackPerCombo.at(iCombo).at(iTrack)));
-		
-		// Fill up the hit vector
-		art::PtrVector<recob::Hit> HitsForThisTrack;
-		
-		for(size_t iH=0; iH!=WhichHitsPerTrackPerCombo.at(iCombo).at(iTrack)[0].size(); ++iH)
-		  HitsForThisTrack.push_back(SortedHits[geo::kU][nU][WhichHitsPerTrackPerCombo.at(iCombo).at(iTrack)[0].at(iH)]);
-
-		for(size_t iH=0; iH!=WhichHitsPerTrackPerCombo.at(iCombo).at(iTrack)[1].size(); ++iH)
-		  HitsForThisTrack.push_back(SortedHits[geo::kV][nV][WhichHitsPerTrackPerCombo.at(iCombo).at(iTrack)[1].at(iH)]);
-
-		for(size_t iH=0; iH!=WhichHitsPerTrackPerCombo.at(iCombo).at(iTrack)[2].size(); ++iH)
-		  HitsForThisTrack.push_back(SortedHits[geo::kW][nW][WhichHitsPerTrackPerCombo.at(iCombo).at(iTrack)[2].at(iH)]);
-		
-		HitAssocs.push_back(HitsForThisTrack);
-	      }
-	  }
+    
     return ReturnVector;
   }
 
@@ -223,53 +241,49 @@ namespace trkf {
   
   void BezierTrackerAlgorithm::FilterOverlapTracks(std::vector<trkf::BezierTrack>& BTracks, std::vector<art::PtrVector<recob::Hit> > & HitVecs)
   {
-    mf::LogInfo("BezierTrackerAlgorithm")<<"Making Direct Track Joins";
     
     std::map<int, bool> ToErase;
 
     std::vector<double> Lengths;
-    std::vector<TVector3> End1Directions, End1Points, End2Directions, End2Points;
+    std::vector<TVector3> End1Points, End2Points;
+
+   
     for(size_t i=0; i!=BTracks.size(); ++i)
       {
-	Lengths.push_back(BTracks.at(i).GetLength());
 	End1Points.push_back(BTracks.at(i).GetTrackPointV(0));
 	End2Points.push_back(BTracks.at(i).GetTrackPointV(1));
-	End1Directions.push_back(BTracks.at(i).GetTrackDirectionV(0).Unit());
-	End2Directions.push_back(BTracks.at(i).GetTrackDirectionV(1).Unit());
+	Lengths.push_back(BTracks.at(i).GetLength());
       }
     
-    
     for(size_t t1=0; t1!=BTracks.size(); ++t1)
-      for(size_t t2=0; t2!=BTracks.size(); ++t2)
+      for(size_t t2=0; t2!=t1; ++t2)
 	{
-	  if(t1!=t2)
+	  if(Lengths.at(t1)>Lengths.at(t2))
 	    {
-	      if(Lengths.at(t1)>Lengths.at(t2))
+	      double s1,d1,s2,d2;
+	      BTracks.at(t1).GetClosestApproach(End1Points.at(t2),s1,d1);
+	      BTracks.at(t1).GetClosestApproach(End2Points.at(t2),s2,d2);
+	      if((s1>0.01)&&(s1<0.99)&&(s2>0.01)&&(s2<0.99)&&
+		 (d1<fTrackResolution)&&(d2<fTrackResolution))
 		{
-		  double s1,d1,s2,d2;
-		  BTracks.at(t1).GetClosestApproach(End1Points.at(t2),s1,d1);
-		  BTracks.at(t1).GetClosestApproach(End2Points.at(t2),s2,d2);
-		  if((s1>0.01)&&(s1<0.99)&&(s2>0.01)&&(s2<0.99)&&
-		     (d1<fTrackResolution)&&(d2<fTrackResolution))
-		    {
-		      // Track t2 is a fraud - toss it
-		      ToErase[t2]=true;
-		    }
+		  // Track t2 is a fraud - toss it
+		  ToErase[t2]=true;
 		}
-	      else
+	    }
+	  else
+	    {
+	      double s1,d1,s2,d2;
+	      BTracks.at(t2).GetClosestApproach(End1Points.at(t1),s1,d1);
+	      BTracks.at(t2).GetClosestApproach(End2Points.at(t1),s2,d2);
+	      if((s1>0.01)&&(s1<0.99)&&(s2>0.01)&&(s2<0.99)&&
+		 (d1<fTrackResolution)&&(d2<fTrackResolution))
 		{
-		  double s1,d1,s2,d2;
-		  BTracks.at(t2).GetClosestApproach(End1Points.at(t1),s1,d1);
-		  BTracks.at(t2).GetClosestApproach(End2Points.at(t1),s2,d2);
-		  if((s1>0.01)&&(s1<0.99)&&(s2>0.01)&&(s2<0.99)&&
-		     (d1<fTrackResolution)&&(d2<fTrackResolution))
-		    {
-		      // Track t2 is a fraud - toss it
-		      ToErase[t1]=true;
-		    }
+		  // Track t2 is a fraud - toss it
+		  ToErase[t1]=true;
 		}
 	    }
 	}
+ 
     
     // Remove the tracks we marked for deletion
      for(int i=BTracks.size()-1; i >= 0; --i)
