@@ -150,11 +150,11 @@ namespace trkf {
     BTracks = fBTrackAlg->MakeTracks(SortedHits, HitsForAssns);
     
     // Attempt to mitigate clustering imperfections
-    fBTrackAlg->SortTracksByLength(  BTracks, HitsForAssns );
     fBTrackAlg->FilterOverlapTracks( BTracks, HitsForAssns );
+    fBTrackAlg->SortTracksByLength(  BTracks, HitsForAssns );
     fBTrackAlg->MakeOverlapJoins(    BTracks, HitsForAssns );      
+    fBTrackAlg->SortTracksByLength(  BTracks, HitsForAssns );     
     fBTrackAlg->MakeDirectJoins(     BTracks, HitsForAssns );
-    fBTrackAlg->SortTracksByLength(  BTracks, HitsForAssns );  
     fBTrackAlg->FilterOverlapTracks( BTracks, HitsForAssns );    
     
     // Perform bezier vertexing
