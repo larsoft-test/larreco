@@ -116,7 +116,10 @@ namespace trkf {
 	    if(Wire>MaxUWire[nU]) MaxUWire[nU]=Wire;
 	  
 	  }
+	MaxUTime[nU] -= fPlaneTimeOffsets[0];
+	MinUTime[nU] -= fPlaneTimeOffsets[0];
       }
+    
     for(size_t nV=0; nV!=VEntries; ++nV)
       {
 	OrgHitsV[nV].resize(NChannels);
@@ -130,8 +133,10 @@ namespace trkf {
 	    if(Wire<MinVWire[nV]) MinVWire[nV]=Wire;
 	    if(Wire>MaxVWire[nV]) MaxVWire[nV]=Wire;
 	  }
+	MaxVTime[nV] -= fPlaneTimeOffsets[1];
+	MinVTime[nV] -= fPlaneTimeOffsets[1];    
       }
-    
+
    for(size_t nW=0; nW!=WEntries; ++nW)
      {
        OrgHitsW[nW].resize(NChannels);
@@ -145,8 +150,9 @@ namespace trkf {
 	   if(Wire<MinWWire[nW]) MinWWire[nW]=Wire;
 	   if(Wire>MaxWWire[nW]) MaxWWire[nW]=Wire;
 	 }
+       MaxWTime[nW] -= fPlaneTimeOffsets[2];
+       MinWTime[nW] -= fPlaneTimeOffsets[2];
      }
-    
    
     for(size_t nU =0; nU != UEntries; ++nU)
       for(size_t nV =0; nV != VEntries; ++nV)
@@ -157,12 +163,18 @@ namespace trkf {
 	    // First check if there is some chance of overlap. If not, move on.
 
 	    // check time region	    
+	    
 	    if(MaxUTime[nU] < MinWTime[nW] ) continue;
 	    if(MaxUTime[nU] < MinVTime[nV] ) continue;
 	    if(MaxVTime[nV] < MinUTime[nU] ) continue;
 	    if(MaxVTime[nV] < MinWTime[nW] ) continue;
 	    if(MaxWTime[nW] < MinUTime[nU] ) continue;
 	    if(MaxWTime[nW] < MinVTime[nV] ) continue;
+
+	    // We won't need to include hits outside this time range
+	    double SpacePointRes = GetSeedFinderAlgorithm()->GetSpacePointAlg()->maxDT();
+	    double MinTime = std::max(std::max(MinUTime[nU],MinVTime[nV]),MinWTime[nW])-SpacePointRes;
+	    double MaxTime = std::min(std::min(MaxUTime[nU],MaxVTime[nV]),MaxWTime[nW])+SpacePointRes;
 
 	    // check wire region
 	    double y=0,z=0;
@@ -172,17 +184,35 @@ namespace trkf {
 	    geo->IntersectionPoint(MinUWire[nU],MinVWire[nV],0,1,0,0,y,z);
 	    double MinUVOnW = ( z - fWireZeroOffset[2] ) / fPitches[2];
 	    if(MinUVOnW > MaxWWire[nW]) continue;
-
+	  
 	    
 	    //	    std::cout<<" proceeding..."<<std::endl;
 	    
 	    art::PtrVector<recob::Hit> HitsFlat;
+	    
+	    double EffMinTime =  MinTime + fPlaneTimeOffsets[0];
+	    double EffMaxTime =  MaxTime + fPlaneTimeOffsets[0];
+
 	    for(size_t i=0; i!=SortedHits[0][nU].size(); ++i)
-	      HitsFlat.push_back(SortedHits[0][nU][i]);
+	      if((SortedHits[0][nU][i]->EndTime() > EffMinTime)
+		 &&(SortedHits[0][nU][i]->StartTime()<EffMaxTime))
+		HitsFlat.push_back(SortedHits[0][nU][i]);
+
+	    EffMinTime =  MinTime + fPlaneTimeOffsets[1];
+	    EffMaxTime =  MaxTime + fPlaneTimeOffsets[1];
+
 	    for(size_t i=0; i!=SortedHits[1][nV].size(); ++i)
+	      if((SortedHits[1][nV][i]->EndTime()>EffMinTime)
+	      	 &&(SortedHits[1][nV][i]->StartTime()<EffMaxTime))
 	      HitsFlat.push_back(SortedHits[1][nV][i]);
+
+	    EffMinTime =  MinTime + fPlaneTimeOffsets[2];
+	    EffMaxTime =  MaxTime + fPlaneTimeOffsets[2];
+
 	    for(size_t i=0; i!=SortedHits[2][nW].size(); ++i)
-	      HitsFlat.push_back(SortedHits[2][nW][i]);
+	      if((SortedHits[2][nW][i]->EndTime()>EffMinTime)
+	      	 &&(SortedHits[2][nW][i]->StartTime()<EffMaxTime))
+		HitsFlat.push_back(SortedHits[2][nW][i]);
 	    
 	    std::vector<art::PtrVector<recob::Hit> > HitsPerSeed;
 	    
@@ -256,34 +286,36 @@ namespace trkf {
       }
     
     for(size_t t1=0; t1!=BTracks.size(); ++t1)
-      for(size_t t2=0; t2!=t1; ++t2)
+      for(size_t t2=0; t2!=BTracks.size(); ++t2)
 	{
-	  if(Lengths.at(t1)>Lengths.at(t2))
+	  if(t1!=t2)
 	    {
-	      double s1,d1,s2,d2;
-	      BTracks.at(t1).GetClosestApproach(End1Points.at(t2),s1,d1);
-	      BTracks.at(t1).GetClosestApproach(End2Points.at(t2),s2,d2);
-	      if((s1>0.01)&&(s1<0.99)&&(s2>0.01)&&(s2<0.99)&&
-		 (d1<fTrackResolution)&&(d2<fTrackResolution))
+	      if(Lengths.at(t1)>Lengths.at(t2))
 		{
-		  // Track t2 is a fraud - toss it
-		  ToErase[t2]=true;
+		  double s1,d1,s2,d2;
+		  BTracks.at(t1).GetClosestApproach(End1Points.at(t2),s1,d1);
+		  BTracks.at(t1).GetClosestApproach(End2Points.at(t2),s2,d2);
+		  if((s1>0.01)&&(s1<0.99)&&(s2>0.01)&&(s2<0.99)&&
+		     (d1<fTrackResolution)&&(d2<fTrackResolution))
+		    {
+		      // Track t2 is a fraud - toss it
+		      ToErase[t2]=true;
+		    }
 		}
-	    }
-	  else
-	    {
-	      double s1,d1,s2,d2;
-	      BTracks.at(t2).GetClosestApproach(End1Points.at(t1),s1,d1);
-	      BTracks.at(t2).GetClosestApproach(End2Points.at(t1),s2,d2);
-	      if((s1>0.01)&&(s1<0.99)&&(s2>0.01)&&(s2<0.99)&&
-		 (d1<fTrackResolution)&&(d2<fTrackResolution))
+	      else
 		{
-		  // Track t2 is a fraud - toss it
-		  ToErase[t1]=true;
+		  double s1,d1,s2,d2;
+		  BTracks.at(t2).GetClosestApproach(End1Points.at(t1),s1,d1);
+		  BTracks.at(t2).GetClosestApproach(End2Points.at(t1),s2,d2);
+		  if((s1>0.01)&&(s1<0.99)&&(s2>0.01)&&(s2<0.99)&&
+		     (d1<fTrackResolution)&&(d2<fTrackResolution))
+		    {
+		      // Track t2 is a fraud - toss it
+		      ToErase[t1]=true;
+		    }
 		}
 	    }
 	}
- 
     
     // Remove the tracks we marked for deletion
      for(int i=BTracks.size()-1; i >= 0; --i)
@@ -1000,6 +1032,8 @@ namespace trkf {
   void BezierTrackerAlgorithm::CalculateGeometricalElements()
   {
     art::ServiceHandle<geo::Geometry> geom;
+    art::ServiceHandle<util::DetectorProperties> det;
+
 
     // Find pitch of each wireplane
     fPitches.resize(3);
@@ -1007,6 +1041,10 @@ namespace trkf {
     fPitches.at(1) = fabs(geom->WirePitch(geo::kV));
     fPitches.at(2) = fabs(geom->WirePitch(geo::kW));
 
+    fPlaneTimeOffsets.resize(3);
+    for(size_t n=0; n!=3; ++n)
+      fPlaneTimeOffsets.at(n) = det->GetXTicksOffset(n,0,0);
+    
     // Setup basis vectors
     fXDir = TVector3(1,0,0);
     fYDir = TVector3(0,1,0);

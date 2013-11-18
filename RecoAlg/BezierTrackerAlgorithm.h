@@ -99,6 +99,7 @@ namespace trkf {
     double fVertexExtrapDistance;
 
     std::vector<double>   fPitches;
+    std::vector<double>   fPlaneTimeOffsets;
     std::vector<TVector3> fPitchDir;
     std::vector<TVector3> fWireDir;
     std::vector<double>   fWireZeroOffset;
