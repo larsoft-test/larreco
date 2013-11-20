@@ -128,16 +128,24 @@ namespace cluster{
       ChgNorm = fChgNorms[thePlane];
 
       // debugging
-//  prt = (thePlane == 1 && theWireNum == 1933);
+//  prt = (thePlane == 1 && theWireNum == 1259);
 
       std::vector<float> signal(theWire->Signal());
 
       unsigned short nabove = 0;
       unsigned short tstart = 0;
       unsigned short maxtime = signal.size() - 2;
+      // find the min time when the signal is below threshold
+      unsigned short mintime = 3;
+      for(unsigned short time = 3; time < maxtime; ++time) {
+        if(signal[time] < minSig) {
+          mintime = time;
+          break;
+        }
+      }
       float maxSig = 0.;
       unsigned short maxSigT = 0;
-      for(unsigned short time = 3; time < maxtime; ++time) {
+      for(unsigned short time = mintime; time < maxtime; ++time) {
         if(signal[time] > minSig) {
           if(nabove == 0) {
             tstart = time;
