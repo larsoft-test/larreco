@@ -159,7 +159,6 @@ namespace trkf {
 	for(size_t nW =0; nW != WEntries; ++nW)
 	  
 	  {
-	    //	    std::cout<<"Trying combo " << nU <<", " <<nV<<", " <<nW<<std::endl;
 	    // First check if there is some chance of overlap. If not, move on.
 
 	    // check time region	    
@@ -186,7 +185,6 @@ namespace trkf {
 	    if(MinUVOnW > MaxWWire[nW]) continue;
 	  
 	    
-	    //	    std::cout<<" proceeding..."<<std::endl;
 	    
 	    art::PtrVector<recob::Hit> HitsFlat;
 	    
@@ -204,8 +202,8 @@ namespace trkf {
 	    for(size_t i=0; i!=SortedHits[1][nV].size(); ++i)
 	      if((SortedHits[1][nV][i]->EndTime()>EffMinTime)
 	      	 &&(SortedHits[1][nV][i]->StartTime()<EffMaxTime))
-	      HitsFlat.push_back(SortedHits[1][nV][i]);
-
+		HitsFlat.push_back(SortedHits[1][nV][i]);
+	    
 	    EffMinTime =  MinTime + fPlaneTimeOffsets[2];
 	    EffMaxTime =  MaxTime + fPlaneTimeOffsets[2];
 
@@ -213,13 +211,12 @@ namespace trkf {
 	      if((SortedHits[2][nW][i]->EndTime()>EffMinTime)
 	      	 &&(SortedHits[2][nW][i]->StartTime()<EffMaxTime))
 		HitsFlat.push_back(SortedHits[2][nW][i]);
-	    
+		 
 	    std::vector<art::PtrVector<recob::Hit> > HitsPerSeed;
 	    
 	    std::vector<recob::Seed> SeedsThisCombo = 
 	      GetSeedFinderAlgorithm()->GetSeedsFromUnSortedHits(HitsFlat, HitsPerSeed, 0);
 	    
-	    //	    std::cout<<" done seeding"<<std::endl;
 	  	   
 	    if(SeedsThisCombo.size()>0)
 	      {
@@ -956,7 +953,7 @@ namespace trkf {
     if(NSteps<2) NSteps=2;
     BezierCurveHelper bhlp(NSteps);
   
-    std::vector<TVector3> Pts = bhlp.GetBezierPointsNew(Seed2, Seed1, NSteps);
+    std::vector<TVector3> Pts = bhlp.GetBezierPoints(Seed2, Seed1, NSteps);
   
 
     for(size_t n=0; n!=3; ++n)
