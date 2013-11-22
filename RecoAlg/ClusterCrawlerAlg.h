@@ -90,7 +90,7 @@ namespace cluster {
     std::vector<bool> fDoMerge;     ///< try to merge clusters?
     std::vector<float> fTimeDelta;  ///< max time difference for matching
     std::vector<bool> fDoVertex;    ///< run vertexing code after clustering?
-    bool fLAClusterFix;             ///< Fix Large Angle cluster hits?
+    std::vector<bool> fLAClFollow;  ///< Follow large angle clusters (and merge hits)?
 
     // global cuts and parameters 
     float fHitErrFac;   ///< hit time error = fHitErrFac * (EndTime - PeakTime)
@@ -144,6 +144,7 @@ namespace cluster {
                         ///< +   10 cl2ChkMerge
                         ///< +  100 cl2ChkMerge12
                         ///< +  200 cl2ClusterFix
+                        ///< 666 LAClFollow
                         ///< + 2000 failed pass N cuts but passes pass N=1 cuts
     short clAssn;         ///< index of a parent cluster. -1 if no parent.
                         ///< Parent clusters are not associated with daughters
@@ -171,6 +172,8 @@ namespace cluster {
     std::vector<float> hitwid;     ///< hit width
     
     std::vector<unsigned short> fcl2hits;  ///< vector of hits used in the cluster
+    std::vector<float> chifits;   ///< fit chisq for monitoring kinks, etc
+    bool followLACluster;   ///< following a Large Angle Cluster?
 
     std::string fhitsModuleLabel;
     
@@ -194,11 +197,13 @@ namespace cluster {
     void cl2FitChg(std::vector<CCHitFinderAlg::CCHit>& allhits);
     // Follows a trail of hits UpStream
     void cl2FollowUS(std::vector<CCHitFinderAlg::CCHit>& allhits);
+    // Follows a trail of hits UpStream - Large Angle version
+    void LAClFollow(std::vector<CCHitFinderAlg::CCHit>& allhits);
+    // fix up hits on large angle clusters
+    void cl2MergeHits(std::vector<CCHitFinderAlg::CCHit>& allhits,
+      unsigned short theHit);
     // Do a quality control check on clusters
     void cl2QACheck(std::vector<CCHitFinderAlg::CCHit>& allhits);
-    // fix up hits on large angle clusters
-    void cl2LAClusterFix(std::vector<CCHitFinderAlg::CCHit>& allhits,
-      std::vector<ClusterStore>& tcl);
     // Stores cluster information in a temporary vector
     void cl2TmpStore(std::vector<CCHitFinderAlg::CCHit>& allhits, 
       std::vector<ClusterStore>& tcl);

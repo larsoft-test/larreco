@@ -18,7 +18,7 @@ standard_clustercrawleralg:
   DoMerge:   [false, true, true] # run cluster merging code?
   TimeDelta: [2., 3., 10.] # max time difference for cluster merging
   DoVertex:  [ false, true, true]  # make 2D vertices after clustering?
-  LAClusterFix:       true # Fix hits on Large Angle Clusters?
+  LAClFollow:[ false, false, true] # Fix hits on Large Angle Clusters?
   HitErrFac:           0.4 # hit time error for fitting = fHitErrFac * (hit width)
   HitWidFac:           2.0 # hit width for tracking = fHitWidFac * (hit width)
   DebugPlane:          -1  # print info only in this plane
