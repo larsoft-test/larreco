@@ -122,9 +122,13 @@ namespace cluster {
       unsigned short firsthit = hitcnt;
       for(unsigned short itt = 0; itt < clstr.tclhits.size(); ++itt) {
         unsigned short iht = clstr.tclhits[itt];
+  if(iht > fCCHFAlg.allhits.size() - 1) {
+    mf::LogError("ClusterCrawler")<<"Bad hit index "<<iht;
+    continue;
+  }
         CCHitFinderAlg::CCHit& theHit = fCCHFAlg.allhits[iht];
   if(theHit.Charge < 0) {
-    mf::LogError("ClusterCrawler")<<"Using dead hit "<<std::endl;
+    mf::LogError("ClusterCrawler")<<"Using dead hit";
     continue;
   }
         art::Ptr<recob::Wire> theWire = theHit.Wire;
@@ -132,7 +136,7 @@ namespace cluster {
         // get the Wire ID from the channel
         std::vector<geo::WireID> wids = geo->ChannelToWire(channel);
   if(!wids[0].isValid) {
-    mf::LogError("ClusterCrawler")<<"Invalid Wire ID "<<theWire<<" "<<channel<<std::endl;
+    mf::LogError("ClusterCrawler")<<"Invalid Wire ID "<<theWire<<" "<<channel;
     continue;
   }
         recob::Hit hit(theHit.Wire,  wids[0],
@@ -146,7 +150,7 @@ namespace cluster {
         shcol.push_back(hit);
         // mark the hit used in a cluster
   if(inCluster[iht]) {
-    mf::LogError("ClusterCrawler")<<"Module: Hit already used "<<hit<<std::endl;
+    mf::LogError("ClusterCrawler")<<"Module: Hit already used "<<hit;
   }
         inCluster[iht] = true;
         ++hitcnt;
@@ -183,7 +187,7 @@ namespace cluster {
       // get the Wire ID from the channel
       std::vector<geo::WireID> wids = geo->ChannelToWire(channel);
   if(!wids[0].isValid) {
-    mf::LogError("ClusterCrawler")<<"Invalid Wire ID "<<theWire<<" "<<channel<<std::endl;
+    mf::LogError("ClusterCrawler")<<"Invalid Wire ID "<<theWire<<" "<<channel;
   }
       recob::Hit hit(theHit.Wire,  wids[0],
             (double) theHit.Time - theHit.RMS, 0.,
@@ -216,7 +220,7 @@ namespace cluster {
       ClusterCrawlerAlg::VtxStore vtx = fCCAlg.vtx[iv];
       if(vtx.Wght <= 0) continue;
   if(vtx.CTP > 2) {
-    mf::LogError("ClusterCrawler")<<"Bad vtx CTP "<<vtx.CTP<<std::endl;
+    mf::LogError("ClusterCrawler")<<"Bad vtx CTP "<<vtx.CTP;
     continue;
   }
       unsigned int cstat = vtx.CTP / 100;
@@ -224,14 +228,14 @@ namespace cluster {
       unsigned int plane = vtx.CTP - 100 * cstat - 10 * tpc;
       unsigned int wire = vtx.Wire;
   if(wire > geo->Nwires(plane) - 1) {
-    mf::LogError("ClusterCrawler")<<"Bad vtx wire "<<wire<<" "<<plane<<std::endl;
+    mf::LogError("ClusterCrawler")<<"Bad vtx wire "<<wire<<" "<<plane;
     continue;
   }
       uint32_t channel = geo->PlaneWireToChannel(plane, wire, tpc, cstat);
       // get the Wire ID from the channel
       std::vector<geo::WireID> wids = geo->ChannelToWire(channel);
   if(!wids[0].isValid) {
-    mf::LogError("ClusterCrawler")<<"Invalid Wire ID "<<plane<<" "<<wire<<" "<<tpc<<" "<<cstat<<std::endl;
+    mf::LogError("ClusterCrawler")<<"Invalid Wire ID "<<plane<<" "<<wire<<" "<<tpc<<" "<<cstat;
     continue;
   }
       recob::EndPoint2D myvtx((double)vtx.Time, wids[0], (double)vtx.Wght,
