@@ -1380,7 +1380,7 @@ void cluster::ShowerAngleClusterAna::HitsPurity(std::vector< art::Ptr<recob::Hit
 
 namespace cluster {
 
-  DEFINE_ART_MODULE(ShowerAngleClusterAna);
+  DEFINE_ART_MODULE(ShowerAngleClusterAna)
 
 }
 

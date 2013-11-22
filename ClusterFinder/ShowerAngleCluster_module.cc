@@ -449,7 +449,7 @@ else // no matching was done. Need to do it ourselves, but first run through all
 
 	art::Ptr<recob::Cluster> cl(clusterListHandle, iClust);
 	std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iClust);
-	if(hitlist.size() > maximums[cl->View()])  
+	if( (int)hitlist.size() > maximums[cl->View()])  
 	  {
 	     maximums[cl->View()]=hitlist.size();
 	     maxclusts[cl->View()]=iClust;
