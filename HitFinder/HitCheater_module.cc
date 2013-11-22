@@ -65,7 +65,7 @@ private:
   double              fMinCharge;            	   ///< Minimum charge required to make a hit                 
   double              fElectronsToADC;             ///< Conversion factor of electrons to ADC counts
   std::string         fCalDataProductInstanceName; ///< label name for module making recob::Wires
-  int                 fReadOutWindowSize;          ///< Number of samples in a readout window; NOT #total samples
+  int                 fReadOutWindowSize;          ///< Number of samples in a readout window; NOT total samples
   int                 fNumberTimeSamples;          ///< Number of total time samples (N*readoutwindowsize)
   double              fSamplingRate;               ///< from util::DetectorProperties
   int                 fTriggerOffset;              ///< from util::DetectorProperties
