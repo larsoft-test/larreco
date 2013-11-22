@@ -6,14 +6,14 @@ include_directories ( $ENV{G4INCLUDE} )
 art_make( BASENAME_ONLY 
           EXCLUDE Track3DKalman_module.cc Track3DKalmanSPS_module.cc
           MODULE_LIBRARIES  RecoAlg
-			    ${SIMULATION}
-			    ${RECOOBJECTS}
-			    ${RECOBASE}
-			    ${GEOMETRY}
-			    ${GEOMETRY_SERVICE}
-			    ${ANALYSISALG}
-			    ${ANALYSISBASE}
-			    ${UTILITIES}
+			    Simulation
+			    RecoObjects
+			    RecoBase
+			    Geometry
+			    Geometry_service
+			    AnalysisAlg
+			    AnalysisBase
+			    Utilities
 			    ${MAGNETICFIELD_SERVICE}
 			    ${SIMULATIONBASE}
 			    ${ART_FRAMEWORK_CORE}
@@ -37,14 +37,14 @@ art_make( BASENAME_ONLY
 simple_plugin( Track3DKalman "module"
   			 Genfit 
 			 RecoAlg
-			 ${SIMULATION}
-			 ${RECOOBJECTS}
-			 ${RECOBASE}
-			 ${GEOMETRY}
-			 ${GEOMETRY_SERVICE}
-			 ${ANALYSISALG}
-			 ${ANALYSISBASE}
-			 ${UTILITIES}
+			 Simulation
+			 RecoObjects
+			 RecoBase
+			 Geometry
+			 Geometry_service
+			 AnalysisAlg
+			 AnalysisBase
+			 Utilities
 			 ${MAGNETICFIELD_SERVICE}
 			 ${SIMULATIONBASE}
 			 ${ART_FRAMEWORK_CORE}
@@ -66,14 +66,14 @@ simple_plugin( Track3DKalman "module"
 simple_plugin( Track3DKalmanSPS "module"
 			 Genfit 
 			 RecoAlg
-			 ${SIMULATION}
-			 ${RECOOBJECTS}
-			 ${RECOBASE}
-			 ${GEOMETRY}
-			 ${GEOMETRY_SERVICE}
-			 ${ANALYSISALG}
-			 ${ANALYSISBASE}
-			 ${UTILITIES}
+			 Simulation
+			 RecoObjects
+			 RecoBase
+			 Geometry
+			 Geometry_service
+			 AnalysisAlg
+			 AnalysisBase
+			 Utilities
 			 ${MAGNETICFIELD_SERVICE}
 			 ${SIMULATIONBASE}
 			 ${ART_FRAMEWORK_CORE}

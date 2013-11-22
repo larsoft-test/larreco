@@ -1,15 +1,15 @@
 
 art_make( BASENAME_ONLY
           MODULE_LIBRARIES 
-                        ${BACKTRACKER_SERVICE}
-                        ${ANALYSISBASE}
-                        ${RECOBASE}
-                        ${GEOMETRY}
-                        ${GEOMETRY_SERVICE}
-                        ${ANALYSISALG}
-                        ${ANALYSISBASE}
-                        ${SIMULATION}
-                        ${UTILITIES}
+                        BackTracker_service
+                        AnalysisBase
+                        RecoBase
+                        Geometry
+                        Geometry_service
+                        AnalysisAlg
+                        AnalysisBase
+                        Simulation
+                        Utilities
                         ${SIMULATIONBASE}
                         ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}

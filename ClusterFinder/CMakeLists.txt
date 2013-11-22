@@ -1,11 +1,11 @@
 
 art_make( BASENAME_ONLY
           MODULE_LIBRARIES RecoAlg
-                           ${BACKTRACKER_SERVICE}
-                           ${FILTERS}
-                           ${RECOBASE}
-                           ${GEOMETRY}
-                           ${GEOMETRY_SERVICE}
+                           BackTracker_service
+                           Filters
+                           RecoBase
+                           Geometry
+                           Geometry_service
                            ${SIMULATIONBASE}
                            ${ART_FRAMEWORK_CORE}
 			   ${ART_FRAMEWORK_PRINCIPAL}

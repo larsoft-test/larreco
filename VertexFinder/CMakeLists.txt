@@ -4,15 +4,15 @@ cet_remove_compiler_flag( CXX -Werror )
 art_make( BASENAME_ONLY
           EXCLUDE FeatureVertexFinder_module.cc
           MODULE_LIBRARIES 
-                        ${BACKTRACKER_SERVICE}
-                        ${FILTERS}
-                        ${RECOBASE}
-                        ${GEOMETRY}
-                        ${GEOMETRY_SERVICE}
-                        ${LARPROPERTIES_SERVICE}
-                        ${DETECTORPROPERTIES_SERVICE}
-                        ${UTILITIES}
-                        ${SIMULATION}
+                        BackTracker_service
+                        Filters
+                        RecoBase
+                        Geometry
+                        Geometry_service
+                        LArProperties_service
+                        DetectorProperties_service
+                        Utilities
+                        Simulation
                         ${SIMULATIONBASE}
                         ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}
@@ -32,14 +32,14 @@ art_make( BASENAME_ONLY
 
 simple_plugin ( FeatureVertexFinder "module"
                         RecoAlg
-                        ${BACKTRACKER_SERVICE}
-                        ${FILTERS}
-                        ${RECOBASE}
-                        ${GEOMETRY}
-                        ${GEOMETRY_SERVICE}
-                        ${LARPROPERTIES_SERVICE}
-                        ${DETECTORPROPERTIES_SERVICE}
-                        ${UTILITIES}
+                        BackTracker_service
+                        Filters
+                        RecoBase
+                        Geometry
+                        Geometry_service
+                        LArProperties_service
+                        DetectorProperties_service
+                        Utilities
                         ${SIMULATIONBASE}
                         ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}

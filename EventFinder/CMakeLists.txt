@@ -1,9 +1,9 @@
 
 art_make( BASENAME_ONLY
           MODULE_LIBRARIES 
-                        ${RECOBASE}
-                        ${GEOMETRY}
-                        ${GEOMETRY_SERVICE}
+                        RecoBase
+                        Geometry
+                        Geometry_service
                         ${SIMULATIONBASE}
                         ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}

@@ -1,17 +1,19 @@
 
-art_make( 
+cet_remove_compiler_flag( CXX -Werror )
+
+art_make( LIBRARY_NAME  RecoAlg
           LIB_LIBRARIES HarrisVertexFinder_module
-                        ${BACKTRACKER_SERVICE}
-                        ${RECOBASE}
-                        ${SIMULATION}
-                        ${FILTERS}
-                        ${GEOMETRY}
-                        ${GEOMETRY_SERVICE}
-                        ${RECOOBJECTS}
-                        ${ANALYSISBASE}
-                        ${LARPROPERTIES_SERVICE}
-                        ${DETECTORPROPERTIES_SERVICE}
-                        ${UTILITIES}
+                        BackTracker_service
+                        RecoBase
+                        Simulation
+                        Filters
+                        Geometry
+                        Geometry_service
+                        RecoObjects
+                        AnalysisBase
+                        LArProperties_service
+                        DetectorProperties_service
+                        Utilities
                         ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}
 			${ART_FRAMEWORK_SERVICES_REGISTRY}

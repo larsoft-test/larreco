@@ -1,14 +1,17 @@
 
+cet_remove_compiler_flag( CXX -Werror )
+
 art_make( BASENAME_ONLY
           MODULE_LIBRARIES 
-                        ${BACKTRACKER_SERVICE}
-                        ${RECOBASE}
-                        ${GEOMETRY}
-                        ${GEOMETRY_SERVICE}
-                        ${LARPROPERTIES_SERVICE}
-                        ${DETECTORPROPERTIES_SERVICE}
-                        ${UTILITIES}
-                        ${SIMULATION}
+                        BackTracker_service
+			RecoAlg
+                        RecoBase
+                        Geometry
+                        Geometry_service
+                        LArProperties_service
+                        DetectorProperties_service
+                        Utilities
+                        Simulation
                         ${SIMULATIONBASE}
                         ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}
