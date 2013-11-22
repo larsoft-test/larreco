@@ -167,7 +167,7 @@ void APAHitFinder::produce(art::Event& evt)
 }
 
 
-DEFINE_ART_MODULE(APAHitFinder);
+DEFINE_ART_MODULE(APAHitFinder)
 
 } // end of apa namespace
 #endif // APAHITFINDER_H
