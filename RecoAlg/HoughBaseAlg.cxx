@@ -402,18 +402,14 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
       clusterHits.clear();    
 
       //if(lastHits.size() < 5) continue;
-      if(lastHits.size() < fMinHits) continue;
-
-
-
-
-
-
+      if(lastHits.size() < (size_t)fMinHits) continue;
 
       // Check if lastHits has hits with big gaps in it
       // lastHits[i] is ordered in increasing channel and then increasing peak time,
-      // as a consequence, if the line has a negative slope and there are multiple hits in the line for a channel,
-      // we have to go back to the first hit (in terms of lastHits[i]) of that channel to find the distance
+      // as a consequence, if the line has a negative slope and there are multiple 
+      // hits in the line for a channel,
+      // we have to go back to the first hit (in terms of lastHits[i]) of that 
+      // channel to find the distance
       // between hits
       //std::cout << "New line" << std::endl;
       //std::cout << "slope: " << slope << std::endl;
@@ -936,7 +932,6 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
   CLHEP::HepRandomEngine & engine = rng -> getEngine();
   CLHEP::RandFlat flat(engine);
 
-  extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   std::vector< art::Ptr<recob::Hit> > hit;
 
   for(size_t cs = 0; cs < geom->Ncryostats(); ++cs){
@@ -1307,7 +1302,6 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
   CLHEP::HepRandomEngine & engine = rng -> getEngine();
   CLHEP::RandFlat flat(engine);
 
-  extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   std::vector< art::Ptr<recob::Hit> > hit;
 
 //   for(size_t cs = 0; cs < geom->Ncryostats(); ++cs){
@@ -1661,7 +1655,7 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 	      }
 	    }
 	    	    
-	    SaveBMPFile("houghaccum.bmp", outPix, accDx, accDy);
+	    HLSSaveBMPFile("houghaccum.bmp", outPix, accDx, accDy);
 	    delete [] outPix;
 	  }// end if saving accumulator
 	  

@@ -1299,10 +1299,14 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
 
       // Check if both lines is in region that looks showerlike
       // Or merge if the distance between the lines is zero and one looks showerlike
-      double segmentDistance = HoughLineDistance(linesFound->at(clusIndexStart).pMin0,linesFound->at(clusIndexStart).pMin1,
-                                                 linesFound->at(clusIndexStart).pMax0,linesFound->at(clusIndexStart).pMax1, 
-                                                 linesFound->at(*toMergeItr).pMin0,linesFound->at(*toMergeItr).pMin1,
-                                                 linesFound->at(*toMergeItr).pMax0,linesFound->at(*toMergeItr).pMax1);
+//       double segmentDistance = HoughLineDistance(linesFound->at(clusIndexStart).pMin0,
+// 						 linesFound->at(clusIndexStart).pMin1,
+//                                                  linesFound->at(clusIndexStart).pMax0,
+// 						 linesFound->at(clusIndexStart).pMax1, 
+//                                                  linesFound->at(*toMergeItr).pMin0,
+// 						 linesFound->at(*toMergeItr).pMin1,
+//                                                  linesFound->at(*toMergeItr).pMax0,
+// 						 linesFound->at(*toMergeItr).pMax1);
       //std::cout << "segmentDistance: " << segmentDistance << std::endl;
       //std::cout << linesFound->at(*toMergeItr).showerLikeness << " " << linesFound->at(clusIndexStart).showerLikeness << std::endl;
 
