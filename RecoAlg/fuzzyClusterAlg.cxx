@@ -63,8 +63,8 @@ namespace cluster{
 // fuzzyClusterAlg stuff
 //----------------------------------------------------------
 cluster::fuzzyClusterAlg::fuzzyClusterAlg(fhicl::ParameterSet const& pset) 
-   : fHBAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg")),
-    fDBScan(pset.get< fhicl::ParameterSet >("DBScanAlg"))
+   : fHBAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg"))
+   , fDBScan(pset.get< fhicl::ParameterSet >("DBScanAlg"))
 {
  this->reconfigure(pset); 
 }
@@ -268,8 +268,8 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
   
   int iNumClusters = k;
   TMatrixT<float> mNormOneXiMinusCj(fpsMat.GetNrows(),iNumClusters);
-  TMatrixT<float> clusterCovarianceMats[iNumClusters];
-  double clusterRadii[iNumClusters];
+  std::vector< TMatrixT<float> > clusterCovarianceMats(iNumClusters);
+  std::vector<double> clusterRadii(iNumClusters);
 
   // Determine the elements of u^m_ij
   TMatrixT<float> Uji_m(iNumClusters, fpsMat.GetNrows());
@@ -291,12 +291,12 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
   TMatrixT<float> fpsDistances(iNumClusters,fpsMat.GetNrows());
   // Calculate the covariance matrix
   // For each clusters
-  for ( int j = 0; j < iNumClusters; j++){
+  for ( int j = 0; j < iNumClusters; ++j){
     fpsCentroids_row = TMatrixFRow(fpsCentroids,j);
     TMatrixT<float> clusCovarianceMat(2,2);
     float Uji_m_sum = 0;
     //For each hit
-    for ( int i = 0; i < fpsMat.GetNrows(); i++){
+    for ( int i = 0; i < fpsMat.GetNrows(); ++i){
       fpsMat_row = TMatrixFRow(fpsMat,i);
       TMatrixT<float> fpsMatMinusCent_col(1,2);
       TMatrixT<float> fpsMatMinusCent_row(2,1);
@@ -337,7 +337,7 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
     //clusCovarianceMatsEigen.GetEigenValues().Print();
   //}
 
-  for ( int j = 0; j < iNumClusters; j++){
+  for ( int j = 0; j < iNumClusters; ++j){
     TMatrixT<float> clusCovarianceMatInv = clusterCovarianceMats[j];
     try
     {
@@ -347,7 +347,7 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
       mf::LogVerbatim("fuzzyCluster") << "updateMembership: Covariance matrix is singular 2";
     }
     fpsCentroids_row = TMatrixFRow(fpsCentroids,j);
-    for ( int i = 0; i < fpsMat.GetNrows(); i++){
+    for ( int i = 0; i < fpsMat.GetNrows(); ++i){
       fpsMat_row = TMatrixFRow(fpsMat,i);
       TMatrixT<float> fpsMatMinusCent_row(1,2);
       TMatrixT<float> fpsMatMinusCent_col(2,1);
@@ -473,16 +473,16 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
     return;
   
   //factor to make x and y scale the same units
-  uint32_t     channel = allhits[0]->Wire()->RawDigit()->Channel();
-  double wirePitch = geom->WirePitch(geom->View(channel));
-  double xyScale  = .001*larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
-  xyScale        *= detprop->SamplingRate()/wirePitch;
-  double wire_dist = wirePitch;
-  double tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
-  tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
+  uint32_t channel    = allhits[0]->Wire()->RawDigit()->Channel();
+  double   wirePitch  = geom->WirePitch(geom->View(channel));
+  double   xyScale    = .001*larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
+  xyScale            *= detprop->SamplingRate()/wirePitch;
+  double   wire_dist  = wirePitch;
+  double   tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
+  tickToDist         *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
   
-  float indcolscaling = 0.;       //a parameter to account for the different 
-        			   ////characteristic hit width of induction and collection plane
+  float indcolscaling = 0.; // a parameter to account for the different 
+        		    // characteristic hit width of induction and collection plane
   /// \todo: the collection plane's characteristic hit width's are, 
   /// \todo: on average, about 5 time samples wider than the induction plane's. 
   /// \todo: this is hard-coded for now.
@@ -555,23 +555,8 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   //} 
 
 
-
-
-
   fpsMembershipFinal.ResizeTo(k, fps.size());
   fpsMembershipFinal = fpsMembership; 
-
-
-
-
-
-
-
-
-
-
-
- 
 
   int nClusters = 0;
   if(k > 0) nClusters = fpsMembershipFinal.GetNrows();
@@ -646,24 +631,9 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
     std::cout << "showerLikeness: " << totalBkgDistCharge/(double)linesFoundItr->hits.size() << std::endl;
   }/// end loop over lines found
 
-
-
-
-
-
-
-
-
   if(fDoShowerHoughLineMerge)  mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeShower,wire_dist,tickToDist);
   if(fDoShowerHoughLineInterceptMerge)     mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeShowerIntercept,wire_dist,tickToDist);
   if(fDoChargeAsymAngleMerge)  mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeChargeAsymAngle,wire_dist,tickToDist);
-
-
-
-
-
-
-
 
   // Accumulate the merged lines
   std::map<int,mergedLines> mergedLinesMap; 
@@ -766,34 +736,15 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
               showerLinesItr->lineSize,
               showerLinesItr->iMinWire,
               showerLinesItr->iMaxWire));
-    std::cout << "slope: " << averageSlope <<
-      " intercept: " << averageInt
-      << " min wire: " << allhits[showerLinesItr->iMinWire]->WireID().Wire
-      << " max wire: " << allhits[showerLinesItr->iMaxWire]->WireID().Wire
-      << " mid wire: " << midWire
-      << " midPeakTime: " << midPeakTime
-      << " line size: " << showerLinesItr->lineSize
-      << std::endl;
+    mf::LogVerbatim("fuzzyClusterAlg") << "slope: " << averageSlope 
+				       << " intercept: " << averageInt
+				       << " min wire: " << allhits[showerLinesItr->iMinWire]->WireID().Wire
+				       << " max wire: " << allhits[showerLinesItr->iMaxWire]->WireID().Wire
+				       << " mid wire: " << midWire
+				       << " midPeakTime: " << midPeakTime
+				       << " line size: " << showerLinesItr->lineSize;
 
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
   // Reassign the merged lines
@@ -896,18 +847,6 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
     }
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
   cid = nClusters + nDBClusters;
   
   //mf::LogInfo("fuzzyCluster") << "cid: " << cid ;
@@ -947,20 +886,6 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   mf::LogVerbatim("fuzzyCluster") << "\t" << "...and " << noise << " noise points.";
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //----------------------------------------------------------
 bool cluster::fuzzyClusterAlg::mergeClusters()
 {
@@ -995,10 +920,6 @@ bool cluster::fuzzyClusterAlg::mergeClusters()
     }
   }
   
-  
-  
-  
-  
   //std::cout << "largest Sij: " << largestSij << std::endl;
   if( largestSij > 1/(fpsMembership.GetNrows()-1)){
     mf::LogVerbatim("fuzzyCluster") << "You're going to Merge!";
@@ -1022,17 +943,14 @@ bool cluster::fuzzyClusterAlg::mergeClusters()
 
 }
 
-
-
-
-
+//--------------------------------------------------------------------
 // Merges based on the distance between line segments
 void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart,
-						     std::vector<lineSlope> *linesFound,
-						     double xyScale,
-                                                     int mergeStyle,
-                                                     double wire_dist,
-                                                     double tickToDist)
+							std::vector<lineSlope> *linesFound,
+							double xyScale,
+							int mergeStyle,
+							double wire_dist,
+							double tickToDist)
 {
 
 
@@ -1210,24 +1128,6 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
           mergeStyle == iMergeChargeAsymAngle)
         continue;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
       //double lineLengthAsymm = std::abs((double)linesFound->at(clusIndexStart).hits.size() - (double)linesFound->at(*toMergeItr).hits.size())/((double)linesFound->at(clusIndexStart).hits.size() + (double)linesFound->at(*toMergeItr).hits.size());
 
       //std::cout << "Length Asymm: " << lineLengthAsymm << std::endl;
@@ -1235,24 +1135,6 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
 
       //if(lineLengthAsymm > 0.75) 
         //continue; 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
       // Veto the merge if the lines are not colinear 
       if(mergeStyle == iMergeNormal || mergeStyle == iMergeChargeAsymAngle) {
@@ -1376,9 +1258,9 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
 
 //------------------------------------------------------------------------------
 double cluster::fuzzyClusterAlg::DistanceBetweenHits(art::Ptr<recob::Hit> hit0,
-                                                art::Ptr<recob::Hit> hit1,
-                                                double wire_dist,
-                                                double tickToDist)
+						     art::Ptr<recob::Hit> hit1,
+						     double wire_dist,
+						     double tickToDist)
 {
   double pHit0[2];
   pHit0[0] = (hit0->Wire()->RawDigit()->Channel())*wire_dist;
@@ -1391,18 +1273,15 @@ double cluster::fuzzyClusterAlg::DistanceBetweenHits(art::Ptr<recob::Hit> hit0,
 
 }
 
-
-
-
 //------------------------------------------------------------------------------
 double cluster::fuzzyClusterAlg::HoughLineDistance(double p0MinLine1, 
-						double p1MinLine1, 
-						double p0MaxLine1, 
-						double p1MaxLine1, 
-						double p0MinLine2, 
-						double p1MinLine2, 
-						double p0MaxLine2, 
-						double p1MaxLine2)
+						   double p1MinLine1, 
+						   double p0MaxLine1, 
+						   double p1MaxLine1, 
+						   double p0MinLine2, 
+						   double p1MinLine2, 
+						   double p0MaxLine2, 
+						   double p1MaxLine2)
 {
   //distance between two segments in the plane:
   //  one segment is (x11, y11) to (x12, y12) or (p0MinLine1, p1MinLine1) to (p0MaxLine1, p1MaxLine1)
@@ -1439,13 +1318,13 @@ double cluster::fuzzyClusterAlg::HoughLineDistance(double p0MinLine1,
 
 //------------------------------------------------------------------------------
 bool cluster::fuzzyClusterAlg::HoughLineIntersect(double x11,
-					       double  y11,
-					       double  x12,
-					       double  y12,
-					       double  x21,
-					       double  y21,
-					       double  x22,
-					       double  y22)
+						  double  y11,
+						  double  x12,
+						  double  y12,
+						  double  x21,
+						  double  y21,
+						  double  x22,
+						  double  y22)
 {
   //whether two segments in the plane intersect:
   //one segment is (x11, y11) to (x12, y12)
@@ -1466,15 +1345,13 @@ bool cluster::fuzzyClusterAlg::HoughLineIntersect(double x11,
 
 }
 
-
-
 //------------------------------------------------------------------------------
 double cluster::fuzzyClusterAlg::PointSegmentDistance(double px,
-						   double  py,
-						   double  x1,
-						   double  y1,
-						   double  x2,
-						   double  y2)
+						      double  py,
+						      double  x1,
+						      double  y1,
+						      double  x2,
+						      double  y2)
 {
   double dx = x2 - x1;
   double dy = y2 - y1;
@@ -1504,6 +1381,3 @@ double cluster::fuzzyClusterAlg::PointSegmentDistance(double px,
   return std::sqrt(dx*dx + dy*dy);
 
 }
-
-
-
