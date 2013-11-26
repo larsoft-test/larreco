@@ -9,7 +9,7 @@ standard_clustercrawleralg:
                            # at the end of the cluster. NHitsAve should be 1 or 2
   ChgCut:   [.65, .65, .7] # max fractional hit charge difference for adding hits
   WidCut:     [.5, .5, .8] # max fractional hit width difference for adding hits
-  ChiCut:     [4., 4., 8.] # stop adding hits to clusters if ChiCut is reached
+  ChiCut:     [3., 3., 3.] # stop adding hits to clusters if ChiCut is reached
   MaxWirSkip:   [25, 8, 2] # max number of wires to skip without adding a hit
   MinWirAfterSkip: [1, 1, 1] # min reqd number of consecutive wires with a hit after a skip
   KinkChiRat: [1.2, 1.2, 0.] # Max consecutive chisq increase for the last 3 hits on the cluster
@@ -18,7 +18,7 @@ standard_clustercrawleralg:
   DoMerge:   [false, true, true] # run cluster merging code?
   TimeDelta: [2., 3., 10.] # max time difference for cluster merging
   DoVertex:  [ false, true, true]  # make 2D vertices after clustering?
-  LAClFollow:[ false, false, true] # Fix hits on Large Angle Clusters?
+  LAClusAngleCut:       60 # Large cluster angle cut (0 < 90 degrees). <0 to turn off
   HitErrFac:           0.4 # hit time error for fitting = fHitErrFac * (hit width)
   HitWidFac:           2.0 # hit width for tracking = fHitWidFac * (hit width)
   DebugPlane:          -1  # print info only in this plane
