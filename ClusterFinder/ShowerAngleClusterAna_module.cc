@@ -92,7 +92,8 @@ namespace cluster {
     void Get2DVariables(unsigned int nClust,std::vector < art::Ptr < recob::Hit> > hitlist);   /** Calculate 2D variables to be saved into 	  */ 
  
     void GetVertexCluster(std::vector < art::Ptr < recob::Hit> > hitlist,int iClust);
-    
+    void GetVertexN(const art::Event& evt);
+	
     void HitsPurity(std::vector< art::Ptr<recob::Hit> > const& hits, int& trackid, double& purity, double& maxe);
     
   private:
@@ -228,7 +229,9 @@ namespace cluster {
     std::vector<double> fVerticalness;
     // unsigned int tpc;    //tpc type
     unsigned int fNPlanes; // number of planes  
-
+    unsigned int fNClusters; // number of planes  
+    unsigned int fNParticles; // number of planes  
+    
     TH1F *  fh_omega_single;
    
     
@@ -251,6 +254,14 @@ namespace cluster {
     std::vector < double > mcenergy;
     std::vector <double > mcphi;
     std::vector <double > mctheta;
+    
+    std::vector<int> fMCPDGstart;
+    std::vector<double> fMCenergystart;
+    std::vector<double> fMCPhistart;
+    std::vector<double> fMCThetastart;
+    
+    double fMCZOrig,fMCYOrig,fMCXOrig;
+    
     
     std::vector< unsigned int> mcwirevertex;  // wire coordinate of vertex for each plane
     std::vector< double> mctimevertex;  // time coordinate of vertex for each plane
@@ -291,12 +302,7 @@ cluster::ShowerAngleClusterAna::ShowerAngleClusterAna(fhicl::ParameterSet const&
   , fCParAlg(pset.get< fhicl::ParameterSet >("ClusterParamsAlg"),pset.get< std::string >("module_type"))
 {
   this->reconfigure(pset);
-  //   produces< std::vector<recob::Cluster> >();
-  //   produces< art::Assns<recob::Cluster, recob::Hit>  >(); 
-  //  // produces< art::Assns<recob::Cluster, recob::Hit>  >(); 
-  //   //produces< art::Assns<recob::Cluster, recob::Cluster>  >(); 
-  //   produces< std::vector < art::PtrVector <recob::Cluster> >  >();
-  
+   
   // Create random number engine needed for PPHT
   createEngine(SeedCreator::CreateRandomNumberSeed(),"HepJamesRandom");
 
@@ -308,7 +314,7 @@ void cluster::ShowerAngleClusterAna::reconfigure(fhicl::ParameterSet const& pset
 {
   fClusterModuleLabel 		=pset.get< std::string >("ClusterModuleLabel");
   fCParAlg.reconfigure(pset.get< fhicl::ParameterSet >("ClusterParamsAlg"));
-}
+ }
 
 // ***************** //
 cluster::ShowerAngleClusterAna::~ShowerAngleClusterAna()
@@ -396,11 +402,22 @@ void cluster::ShowerAngleClusterAna::beginJob()
   ftree_cluster->Branch("nplanes",&fNPlanes,"nplanes/I");
   
     
+  ftree_cluster->Branch("nclusters",&fNClusters,"nclusters/I");
+  ftree_cluster->Branch("nparticles",&fNParticles,"nparticles/I");
+   
   ftree_cluster->Branch("mcpdg","std::vector< int>", &mcpdg);
   ftree_cluster->Branch("mcenergy","std::vector<double>", &mcenergy);
   ftree_cluster->Branch("mcphi","std::vector< double >", &mcphi);
   ftree_cluster->Branch("mctheta","std::vector<double >", &mctheta);
   ftree_cluster->Branch("mcomega","std::vector<double >", &mcomega);
+    
+  ftree_cluster->Branch("MCpdgOrig","std::vector< int>", &fMCPDGstart);
+  ftree_cluster->Branch("MCenergyOrig","std::vector<double>", &fMCenergystart);
+  ftree_cluster->Branch("MCphiOrig","std::vector< double >", &fMCPhistart);
+  ftree_cluster->Branch("MCthetaOrig","std::vector<double >", &fMCThetastart);
+  ftree_cluster->Branch("MCXOrig",&fMCXOrig,"MCXOrig/D");
+  ftree_cluster->Branch("MCYOrig",&fMCYOrig,"MCYOrig/D");
+  ftree_cluster->Branch("MCZOrig",&fMCZOrig,"MCZOrig/D");
     
   ftree_cluster->Branch("mcwirevertex","std::vector<unsigned int>", &mcwirevertex);
   ftree_cluster->Branch("mctimevertex","std::vector<double>", &mctimevertex);
@@ -785,20 +802,23 @@ void cluster::ShowerAngleClusterAna::analyze(const art::Event& evt)
   art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fClusterModuleLabel);
   art::PtrVector<recob::Cluster> clusters;
 
-
-  std::cout << " ++++ Clusters received " << clusterListHandle->size() << " +++++ " << std::endl;
+  
+  std::cout <<  " Getting Vertex? " << std::endl; 
+  GetVertexN(evt);
+  
+  fNClusters=clusterListHandle->size();
+  std::cout << " ++++ Clusters received " << fNClusters << " +++++ " << std::endl;
   if(clusterListHandle->size() ==0 )
-    {
-      std::cout << " no clusters received! exiting " << std::endl;
-      return;
-    }
-  ClearandResizeVectors(clusterListHandle->size());
+  {
+    std::cout << " no clusters received! exiting " << std::endl;
+    ftree_cluster->Fill();
+    return;
+  }
+  ClearandResizeVectors(fNClusters);
   // resizing once cluster size is known.
   
   endflag=false;
-  std::cout <<  " Getting Vertex? " << std::endl; 
-  //GetVertexN(evt);
-  
+
   //sim::ParticleList plist = sim::SimListUtils::GetParticleList(evt,"largeant");
   const sim::ParticleList& plist = bt->ParticleList();
   for ( sim::ParticleList::const_iterator ipar = plist.begin(); ipar!=plist.end(); ++ipar){
@@ -811,7 +831,7 @@ void cluster::ShowerAngleClusterAna::analyze(const art::Event& evt)
   
   
   
-  for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++){
+  for(unsigned int iClust = 0; iClust < fNClusters; iClust++){
 
     art::Ptr<recob::Cluster> cl(clusterListHandle, iClust);
     std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iClust);
@@ -1112,22 +1132,49 @@ void cluster::ShowerAngleClusterAna::GetVertexCluster(std::vector < art::Ptr < r
      
     miny= (y>-halfheight && y< halfheight ) ? y : ( ( y<= -halfheight) ? -halfheight+0.1 : halfheight-0.1) ; 
     // miny= (y< halfheight && y>-halfheight) ? y : halfheight;
-    std::cout << "halfheight" << halfheight << std::endl;
-    std::cout << "first min x,y,z " << minx << " "<< miny << " " << minz << std::endl;
-    double mindist=9999999.0;
-    double depenergy=0.;
-    std::cout << " @trajectory 0" <<x << " "<< y << " "<<z << std::endl; 
+     std::cout << "halfheight" << halfheight << std::endl;
+      std::cout << "first min x,y,z " << minx << " "<< miny << " " << minz << std::endl;
+     double mindist=9999999.0;
+     double depenergy=0.;
+       std::cout << " @trajectory 0 " <<x << " "<< y << " "<<z << std::endl; 
        
      
        
     if(particle->Trajectory().size()>2 && x>0 && x< width && z>0 && z<length && fabs(y)<halfheight  )
       {
       
-	double xyz1[]={particle->Trajectory().X(0),particle->Trajectory().Y(0),particle->Trajectory().Z(0)};
-	double xyz2[]={particle->Trajectory().X(1),particle->Trajectory().Y(1),particle->Trajectory().Z(1)};
-	util::pxpoint pN1=gser.Get2DPointProjection(xyz1,mcplane[iClust]);
-	util::pxpoint pN2=gser.Get2DPointProjection(xyz2,mcplane[iClust]);
-     
+      double xyz1[]={particle->Trajectory().X(0),particle->Trajectory().Y(0),particle->Trajectory().Z(0)};
+      double xyz2[]={particle->Trajectory().X(1),particle->Trajectory().Y(1),particle->Trajectory().Z(1)};
+      std::cout << " xyz1,xyz2 " << xyz1[0]<<","<<xyz1[1]<<","<<xyz1[2]<<"||"<<xyz2[0]<<","<<xyz2[1]<<","<<xyz2[2]<<","<<std::endl;
+      util::pxpoint pN1;
+      util::pxpoint pN2;
+     try{
+        pN1=gser.Get2DPointProjection(xyz1,mcplane[iClust]);
+	}
+      catch(cet::exception& e){
+     // writeErrMsg("ShowerAngleClusterAna", e);
+        pN1.w = atoi(e.explain_self().substr(e.explain_self().find("#")+1,5).c_str());
+	pN1.t = gser.GetTimeTicks(xyz1[0], mcplane[iClust]);
+	pN1.plane = mcplane[iClust];
+      }
+
+      
+      
+      
+      
+      try{
+        pN2=gser.Get2DPointProjection(xyz2,mcplane[iClust]);
+     }
+      catch(cet::exception& e){
+     // writeErrMsg("ShowerAngleClusterAna", e);
+        pN2.w = atoi(e.explain_self().substr(e.explain_self().find("#")+1,5).c_str());
+	pN2.t = gser.GetTimeTicks(xyz2[0], mcplane[iClust]);
+	pN2.plane = mcplane[iClust];
+      }
+
+      
+      
+      
 	std::cout << " @looping through trajectory" << std::endl; 
 	for(unsigned int xx=1;xx<particle->Trajectory().size();xx++)
 	  {
@@ -1207,11 +1254,23 @@ void cluster::ShowerAngleClusterAna::GetVertexCluster(std::vector < art::Ptr < r
      
      
     mf::LogVerbatim("ShowerAngleClusterAna") <<"particle->Vx()= "<<minx<<" ,y= "<<miny<<" ,z= "<<minz<<std::endl;
+  std::cout << " xyz: " << mcx[iClust]<< ","<< mcy[iClust]<< ","<< mcz[iClust] << std::endl;
+  double xyz[]={mcx[iClust],mcy[iClust],mcz[iClust]};
+  util::pxpoint pN;
+  try{
+        pN=gser.Get2DPointProjection(xyz,mcplane[iClust]);
+     }
+  catch(cet::exception& e){
+     // writeErrMsg("ShowerAngleClusterAna", e);
+        pN.w = atoi(e.explain_self().substr(e.explain_self().find("#")+1,5).c_str());
+	pN.t = gser.GetTimeTicks(mcx[iClust], mcplane[iClust]);
+	pN.plane = mcplane[iClust];
+    }
+
   
-    double xyz[]={mcx[iClust],mcy[iClust],mcz[iClust]};
-    util::pxpoint pN=gser.Get2DPointProjection(xyz,mcplane[iClust]);
-    mcwirevertex[iClust]=pN.w;  // wire coordinate of vertex for each plane
-    mctimevertex[iClust]=pN.t;  // time coordinate of vertex for each plane
+ 
+  mcwirevertex[iClust]=pN.w;  // wire coordinate of vertex for each plane
+  mctimevertex[iClust]=pN.t;  // time coordinate of vertex for each plane
 
     mf::LogVerbatim("ShowerAngleClusterAna") << "wirevertex= "<< mcwirevertex[iClust]
 					     << " timevertex " << mctimevertex[iClust] 
@@ -1231,65 +1290,116 @@ void cluster::ShowerAngleClusterAna::GetVertexCluster(std::vector < art::Ptr < r
    
    
 //------------------------------------------------------------------------------
-// // old version - picks up the mother particle only 
-// void cluster::ShowerAngleClusterAna::GetVertexN(const art::Event& evt){
-// 
-//   
+//------------------------------------------------------------------------------
+// old version - picks up the mother particle only 
+void cluster::ShowerAngleClusterAna::GetVertexN(const art::Event& evt){
+
+  fMCPDGstart.clear(); 
+  fMCenergystart.clear();
+  fMCPhistart.clear();
+  fMCThetastart.clear();
+  
+  fMCXOrig=0;
+  fMCYOrig=0;
+  fMCZOrig=0;
+   art::ServiceHandle<cheat::BackTracker> bt;
 //   art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
-//   evt.getByLabel("generator",mctruthListHandle);
+//   std::vector<art::Ptr<simb::MCTruth> > mclist;
+//   if (evt.getByLabel("nugenerator",mctruthListHandle))
+//   art::fill_ptr_vector(mclist, mctruthListHandle);
+//   art::Ptr<simb::MCTruth> mctruth = mclist[0];
 //   
+  const sim::ParticleList& plist = bt->ParticleList();
+  fNParticles=0;
+
+  
+  std::cout << " plist size: " << fNParticles << std::endl; 
+//   fMCPDGstart.resize(mctruth->NParticles()); 
+//   fMCenergystart.resize(mctruth->NParticles());
+//   fMCPhistart.resize(mctruth->NParticles());
+//   fMCThetastart.resize(mctruth->NParticles());
+  
+  fMCPDGstart.resize(plist.size()); 
+  fMCenergystart.resize(plist.size());
+  fMCPhistart.resize(plist.size());
+  fMCThetastart.resize(plist.size());
+  
+  if(plist.size())
+  {
+    fMCXOrig=plist.begin()->second->Vx();
+    fMCYOrig=plist.begin()->second->Vy();
+    fMCZOrig=plist.begin()->second->Vz();
+       
+  }
+//   art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
+//   evt.getByLabel("nugenerator",mctruthListHandle);
 //   art::PtrVector<simb::MCTruth> mclist;
+
 //   for (unsigned int ii = 0; ii <  mctruthListHandle->size(); ++ii)
 //     {
 //       art::Ptr<simb::MCTruth> mctparticle(mctruthListHandle,ii);	
 //       mclist.push_back(mctparticle);
 //     } 
 //    
-//   mf::LogVerbatim("ShowerAngleClusterAna")  << "%%%%%%% mc size size,  "<<mclist.size() <<    std::endl;
-//   
-//   
-//   art::Ptr<simb::MCTruth> mc(mclist[0]);
-//   simb::MCParticle neut(mc->GetParticle(0));
-//   
-//   mcpdg=neut.PdgCode();
-//   mcenergy=neut.P();  
-//   
-//   if (neut.P()){
-//     double lep_dcosx_truth = neut.Px()/neut.P();
-//     double lep_dcosy_truth = neut.Py()/neut.P();
-//     double lep_dcosz_truth = neut.Pz()/neut.P();
-//     
-//     mf::LogVerbatim("ShowerAngleClusterAna")  << "-----  cx,cy,cz " << lep_dcosx_truth << " " << lep_dcosy_truth << " " << lep_dcosz_truth << std::endl;
-//     
-//     
-//     mcphi=  (lep_dcosx_truth == 0.0 && lep_dcosz_truth == 0.0) ? 0.0 : TMath::ATan2(lep_dcosx_truth,lep_dcosz_truth);
-//     mctheta= (lep_dcosx_truth == 0.0 && lep_dcosy_truth == 0.0 && lep_dcosz_truth == 0.0) ? 0.0 : TMath::Pi()*0.5-TMath::ATan2(std::sqrt(lep_dcosx_truth*lep_dcosx_truth + lep_dcosz_truth*lep_dcosz_truth),lep_dcosy_truth);
-//     
-//     
-//     mcphi=180*mcphi/TMath::Pi();
-//     mctheta= 180*mctheta/TMath::Pi();
-//     mf::LogVerbatim("ShowerAngleClusterAna")  << "-----  phi, theta " <<  mcphi << " " << mctheta << std::endl;
-//     
-//   }
-//   
+//   mf::LogVerbatim("ShowerAngleClusterAna")  << "%%%%%%% mc size size,  "<<mctruth->NParticles() <<    std::endl;
+    mf::LogVerbatim("ShowerAngleClusterAna")  << "%%%%%%% mc size size,  "<<plist.size() <<    std::endl;
+  std::cout << "after  plist size: " << fNParticles << std::endl; 
+  //art::Ptr<simb::MCTruth> mc(mclist[0]);
+//   for(int iParticle = 0; iParticle < mctruth->NParticles(); ++iParticle){
+     // for(unsigned int iParticle = 0; iParticle < plist.size(); ++iParticle){
+       int iParticle=0;
+    for ( sim::ParticleList::const_iterator ipar = plist.begin(); ipar!=plist.end(); ++ipar){
+      simb::MCParticle *neut = ipar->second;
+    
+      //simb::MCParticle neut(mctruth->GetParticle(iParticle));
+//       if(neut->PdgCode()>10000 || !(neut->P()>0))
+// 	continue;
+//       
+      if(!(neut->Process()=="primary") )
+	continue;
+      
+      fNParticles++;
+      fMCPDGstart[iParticle]=(neut->PdgCode());
+      fMCenergystart[iParticle]=(neut->P());  
+  
+    if (neut->P()){
+      double lep_dcosx_truth = neut->Px()/neut->P();
+      double lep_dcosy_truth = neut->Py()/neut->P();
+      double lep_dcosz_truth = neut->Pz()/neut->P();
+    
+      mf::LogVerbatim("ShowerAngleClusterAna")  << "-----  cx,cy,cz " << lep_dcosx_truth << " " << lep_dcosy_truth << " " << lep_dcosz_truth << std::endl;
+    
+    
+      fMCPhistart[iParticle]=( (lep_dcosx_truth == 0.0 && lep_dcosz_truth == 0.0) ? 0.0 : TMath::ATan2(lep_dcosx_truth,lep_dcosz_truth));
+      fMCThetastart[iParticle]=( (lep_dcosx_truth == 0.0 && lep_dcosy_truth == 0.0 && lep_dcosz_truth == 0.0) ? 0.0 : TMath::Pi()*0.5-TMath::ATan2(std::sqrt(lep_dcosx_truth*lep_dcosx_truth + lep_dcosz_truth*lep_dcosz_truth),lep_dcosy_truth) );
+    
+   
+      fMCPhistart[iParticle]=180*fMCPhistart[iParticle]/TMath::Pi();
+      fMCThetastart[iParticle]= 180*fMCThetastart[iParticle]/TMath::Pi();
+      mf::LogVerbatim("ShowerAngleClusterAna") << " Particle: " << iParticle << " PDG, En: " << fMCPDGstart[iParticle] << " " << fMCenergystart[iParticle] <<
+       "-----  phi, theta " <<   fMCPhistart[iParticle] << " " << fMCThetastart[iParticle] << std::endl;
+    
+      }
+  iParticle++;
+  }
 //   int npart=0;
 //   //  while(&& npart < mc->NParticles() )
 //   //     {
-//   mf::LogVerbatim("ShowerAngleClusterAna")  << "%%%%%%%####### is PDG: "<< npart <<" " << neut.PdgCode() << std::endl; 
+//   mf::LogVerbatim("ShowerAngleClusterAna")  << "%%%%%%%####### is PDG: "<< npart <<" " << neut->PdgCode() << std::endl; 
 //   //	neut=mc->GetParticle(npart++);
 //   
 //   //   }       
 //   
-//   mf::LogVerbatim("ShowerAngleClusterAna")  << "%%%%%%%####### after loop is PDG: "<< npart <<" " << neut.PdgCode() << std::endl; 
-//   //if((neut.PdgCode()==11 || neut.PdgCode()==-11 )&& neut.StatusCode()==1){
+//   mf::LogVerbatim("ShowerAngleClusterAna")  << "%%%%%%%####### after loop is PDG: "<< npart <<" " << neut->PdgCode() << std::endl; 
+//   //if((neut->PdgCode()==11 || neut->PdgCode()==-11 )&& neut->StatusCode()==1){
 //   
 //   xyz_vertex.resize(3);
-//   xyz_vertex[0] =neut.Vx();
-//   xyz_vertex[1] =neut.Vy();
-//   xyz_vertex[2] =neut.Vz();
+//   xyz_vertex[0] =neut->Vx();
+//   xyz_vertex[1] =neut->Vy();
+//   xyz_vertex[2] =neut->Vz();
 //   
-//   mf::LogVerbatim("ShowerAngleClusterAna") <<"neut.Vx()= "<<neut.Vx()<<" ,y= "<<neut.Vy()<<" ,z= "<<neut.Vz()<<std::endl;
-//   //if(((neut.PdgCode()==11 || neut.PdgCode()==-11 )&& neut.StatusCode()==1))
+//   mf::LogVerbatim("ShowerAngleClusterAna") <<"neut->Vx()= "<<neut->Vx()<<" ,y= "<<neut->Vy()<<" ,z= "<<neut->Vz()<<std::endl;
+//   //if(((neut->PdgCode()==11 || neut->PdgCode()==-11 )&& neut->StatusCode()==1))
 //   //    break;
 //   
 //   
@@ -1323,12 +1433,13 @@ void cluster::ShowerAngleClusterAna::GetVertexCluster(std::vector < art::Ptr < r
 //  
 // 
 //     }
-// 
-// 
-// 
-//   return (void)0;
-// }
+
+
+
+  return (void)0;
+}
   
+    
   
 
 

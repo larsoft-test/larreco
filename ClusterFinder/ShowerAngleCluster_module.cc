@@ -390,15 +390,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
        classn->push_back(cvec); 
      
   
-    
-    // fix me
-    
-   classn->push_back((*clusterCollectionHandle)[iCol]);  
   }
-//  std::cout << " the else: " << clusterAssociationHandle->size() << " " << (*ShowerAngleCluster).size() << " condition: " << 
-//      (0<clusterAssociationHandle->size() && 0<(*ShowerAngleCluster).size()) << std::endl;
-//    for(unsigned int i=0;i<clusterAssociationHandle->size() && i<(*ShowerAngleCluster).size();i++)   // do not save associations if clusters are not saved
-  
    
  }
 else // no matching was done. Need to do it ourselves, but first run through all of the clusters
