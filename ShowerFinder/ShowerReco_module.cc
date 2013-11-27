@@ -825,7 +825,7 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
   
   
   
-  double totCnrg = 0,totCnrg_corr =0, totNewCnrg=0 ; // tot enegry of the shower in collection
+  double totCnrg = 0,totCnrg_corr =0;//, totNewCnrg=0 ; // tot enegry of the shower in collection
 //   art::ServiceHandle<geo::Geometry> geom;
 //   art::ServiceHandle<util::LArProperties> larp;
 //   art::ServiceHandle<util::DetectorProperties> detprop;
@@ -859,21 +859,21 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
     plane=  theHit->WireID().Plane;
     
     double dEdx_new;
-    double dEdx_MIP;
+   // double dEdx_MIP;
     
     if(fUseArea)
     { dEdx_new = calalg.dEdx_AREA((*hitIter), newpitch ); 
-      dEdx_MIP = calalg.dEdx_AREA_forceMIP((*hitIter), newpitch ); 
+     // dEdx_MIP = calalg.dEdx_AREA_forceMIP((*hitIter), newpitch ); 
     }
     else  //this will hopefully go away, once all of the calibration factors are calculated.
     {
       dEdx_new = calalg.dEdx_AMP((*hitIter), newpitch ); 
-      dEdx_MIP = calalg.dEdx_AMP_forceMIP((*hitIter), newpitch );
+     // dEdx_MIP = calalg.dEdx_AMP_forceMIP((*hitIter), newpitch );
     }
    
     //calculate total energy.
     totCnrg_corr += dEdx_new; 
-    totNewCnrg+=dEdx_MIP;
+   //totNewCnrg+=dEdx_MIP;
 
     // calculate the wire,time coordinates of the hit projection on to the 2D shower axis
     gser.GetPointOnLine(slope[plane]/fWireTimetoCmCm,fWire_vertex[plane],fTime_vertex[plane],wire,time,wire_on_line,time_on_line);
@@ -927,7 +927,7 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
 	{
       fTotChargeADC[set]=totCnrg*newpitch; 
       fTotChargeMeV[set]=totCnrg_corr*newpitch;  
-      fTotChargeMeV_MIPs[set]=totNewCnrg*newpitch;
+      //fTotChargeMeV_MIPs[set]=totNewCnrg*newpitch;
 	}
       
 
@@ -1031,8 +1031,8 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
   }
   
 
-std::cout << " total ENERGY, birks: " << fTotChargeMeV[set] << " MeV " << " assumeMIPs:  " << fTotChargeMeV_MIPs[set] << "MeV " <<  std::endl;
- 
+//std::cout << " total ENERGY, birks: " << fTotChargeMeV[set] << " MeV " << " assumeMIPs:  " << fTotChargeMeV_MIPs[set] << "MeV " <<  std::endl;
+ std::cout << " total ENERGY, birks: " << fTotChargeMeV[set] << " MeV "  <<  std::endl;
 }
 
 
