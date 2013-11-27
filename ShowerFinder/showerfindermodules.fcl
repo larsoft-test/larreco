@@ -1,4 +1,3 @@
-#include "calorimetry.fcl"
 
 BEGIN_PROLOG
 
@@ -6,9 +5,22 @@ standard_shower:
 {
  module_type:              "ShowerReco"
  ClusterModuleLabel:       "showeranglecluster"
- VertexClusterModuleLabel: "linemerger" 
  CaloAlg:            	   @local::standard_calorimetryalgmc
+ UseArea:		   true
+ dEdxlength:		   2.4	#distance that gets used to determine e/gamma separation
+ calodEdxlength:	   30   # cutoff distance for hits saved to the calo object.
 }
+
+
+#standard_showerana:
+#{
+# module_type:              "ShowerRecoAna"
+# ClusterModuleLabel:       "showeranglecluster"
+# CaloAlg:            	   @local::standard_calorimetryalgmc
+# UseArea:		   true
+# dEdxlength:		   2.4	#distance that gets used to determine e/gamma separation
+# calodEdxlength:	   30   # cutoff distance for hits saved to the calo object.
+#}
 
 
 
@@ -20,10 +32,12 @@ standard_showercheater:
 }
 
 argoneut_shower:     @local::standard_shower
-
 microboone_shower:   @local::standard_shower 
+microboone_shower.UseArea:   false
 
-
+#argoneut_showerana:     @local::standard_showerana
+#microboone_showerana:   @local::standard_showerana 
+#microboone_showerana.UseArea:   false
 
 
 
