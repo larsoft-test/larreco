@@ -17,6 +17,8 @@
 //     Sobel --- apply a Sobel mask (neighborhood of 1 or 2 supported)
 //     local --- take slope from immediately neighboring bins (neighborhood of 1 supported)
 //
+//  Derivative_BlurFunc options:  none. You're stuck with a double gaussian.
+//
 //  CornerScore_algorithm options:
 //     Noble  --- determinant / (trace + Noble_epsilon)
 //     Harris --- determinant - (trace)^2 * Harris_kappa
@@ -73,6 +75,8 @@ cluster::CornerFinderAlg::CornerFinderAlg(fhicl::ParameterSet const& pset)
   // set the sizes of the WireData_histos and WireData_IDs
   unsigned int nPlanes = fGeom->Nplanes();
   WireData_histos.resize(nPlanes);
+  WireData_histos_ProjectionX.resize(nPlanes);
+  WireData_histos_ProjectionY.resize(nPlanes);
   fConversion_histos.resize(nPlanes);
   fDerivativeX_histos.resize(nPlanes);
   fDerivativeY_histos.resize(nPlanes);
@@ -85,15 +89,17 @@ cluster::CornerFinderAlg::CornerFinderAlg(fhicl::ParameterSet const& pset)
   for(uint i_plane=0; i_plane < nPlanes; ++i_plane)
     WireData_IDs[i_plane].resize(fGeom->Nwires(i_plane));
   
+  WireData_trimmed_histos.resize(0);
 
 }
 
 //-----------------------------------------------------------------------------
 cluster::CornerFinderAlg::~CornerFinderAlg()
 {
-  for (auto wd_histo : WireData_histos)
-    delete wd_histo;
-
+  
+  for (auto wd_histo : WireData_histos) delete wd_histo;
+  for (auto wd_histo : WireData_histos_ProjectionX) delete wd_histo;
+  for (auto wd_histo : WireData_histos_ProjectionY) delete wd_histo;
   for (auto histo : fConversion_histos) delete histo;
   for (auto histo : fDerivativeX_histos) delete histo;
   for (auto histo : fDerivativeY_histos) delete histo;
@@ -101,7 +107,13 @@ cluster::CornerFinderAlg::~CornerFinderAlg()
   for (auto histo : fMaxSuppress_histos) delete histo;
 
   WireData_histos.clear();
+  WireData_histos_ProjectionX.clear();
+  WireData_histos_ProjectionY.clear();
   WireData_IDs.clear();
+  
+  for (auto wd_histo : WireData_trimmed_histos) delete std::get<1>(wd_histo);
+  WireData_trimmed_histos.clear();
+  
 }
 
 //-----------------------------------------------------------------------------
@@ -109,6 +121,8 @@ void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
 {
   // ### These are all the tuneable .fcl file parameters from the event ###
   fCalDataModuleLabel  			 = p.get< std::string 	 >("CalDataModuleLabel");
+  fTrimming_threshold     		 = p.get< float    	 >("Trimming_threshold");
+  fTrimmed_totalThreshold                = p.get< double         >("Trimmed_totalThreshold");
   fConversion_threshold     		 = p.get< float    	 >("Conversion_threshold");
   fConversion_bins_per_input_x  	 = p.get< int      	 >("Conversion_bins_per_input_x");
   fConversion_bins_per_input_y       	 = p.get< int      	 >("Conversion_bins_per_input_y");
@@ -117,6 +131,8 @@ void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
   fConversion_func_neighborhood     	 = p.get< int		 >("Conversion_func_neighborhood");
   fDerivative_method        		 = p.get< std::string    >("Derivative_method");
   fDerivative_neighborhood     	         = p.get< int		 >("Derivative_neighborhood");
+  fDerivative_BlurFunc        		 = p.get< std::string    >("Derivative_BlurFunc");
+  fDerivative_BlurNeighborhood           = p.get< int		 >("Derivative_BlurNeighborhood");
   fCornerScore_neighborhood     	 = p.get< int		 >("CornerScore_neighborhood");
   fCornerScore_algorithm		 = p.get< std::string    >("CornerScore_algorithm");
   fCornerScore_Noble_epsilon		 = p.get< float          >("CornerScore_Noble_epsilon");
@@ -125,12 +141,25 @@ void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
   fMaxSuppress_threshold		 = p.get< int		 >("MaxSuppress_threshold");
   fIntegral_bin_threshold                = p.get< float          >("Integral_bin_threshold");
   fIntegral_fraction_threshold           = p.get< float          >("Integral_fraction_threshold");
+
+  int neighborhoods[] = { fConversion_func_neighborhood,
+			  fDerivative_neighborhood,
+			  fDerivative_BlurNeighborhood,
+			  fCornerScore_neighborhood,
+			  fMaxSuppress_neighborhood };
+  fTrimming_buffer = *std::max_element(neighborhoods,neighborhoods+5);
+
 }
 
 
 //-----------------------------------------------------------------------------
 void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
 {
+
+  //first, make sure the trimmed histos are not here
+  for (auto wd_histo : WireData_trimmed_histos) delete std::get<1>(wd_histo);
+  WireData_trimmed_histos.clear();
+
   // Use the TFile service in art
   art::ServiceHandle<art::TFileService> tfs;
 
@@ -216,6 +245,11 @@ void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
         
   }//<-- End loop over wires
   
+
+  for (uint i_plane=0; i_plane < fGeom->Nplanes(); i_plane++){
+    WireData_histos_ProjectionX[i_plane] = WireData_histos[i_plane]->ProjectionX();
+    WireData_histos_ProjectionY[i_plane] = WireData_histos[i_plane]->ProjectionY();
+  }
   
 }//<---End TakeInRaw
 
@@ -238,6 +272,35 @@ void cluster::CornerFinderAlg::get_feature_points(std::vector<recob::EndPoint2D>
 }
 
 //-----------------------------------------------------------------------------------
+// This gives us a vecotr of EndPoint2D objects that correspond to possible corners, but quickly!
+void cluster::CornerFinderAlg::get_feature_points_fast(std::vector<recob::EndPoint2D> & corner_vector){
+
+  create_smaller_histos();
+  
+  for(unsigned int cstat = 0; cstat < fGeom->Ncryostats(); ++cstat){
+    for(unsigned int tpc = 0; tpc < fGeom->Cryostat(cstat).NTPC(); ++tpc){
+      std::cout << "OK, about to loop over " << WireData_trimmed_histos.size() << " histograms." << std::endl;
+      for(size_t histos=0; histos!= WireData_trimmed_histos.size(); histos++){
+	
+	int plane = std::get<0>(WireData_trimmed_histos.at(histos));
+	int startx = std::get<2>(WireData_trimmed_histos.at(histos));
+	int starty = std::get<3>(WireData_trimmed_histos.at(histos));
+
+	std::cout << "Doing histogram " << histos << ", of plane " << plane << " with start points " << startx << " " << starty << std::endl;
+	attach_feature_points(std::get<1>(WireData_trimmed_histos.at(histos)),
+			      WireData_IDs[plane],fGeom->Cryostat(cstat).TPC(tpc).Plane(plane).View(),corner_vector,startx,starty);
+
+	std::cout << "\tTotal feature points now is " << corner_vector.size() << std::endl;
+      }
+      
+      //remove_duplicates(corner_vector);
+      
+    }
+  }
+
+}
+
+//-----------------------------------------------------------------------------------
 // This gives us a vecotr of EndPoint2D objects that correspond to possible corners
 // Uses line integral score as corner strength
 void cluster::CornerFinderAlg::get_feature_points_LineIntegralScore(std::vector<recob::EndPoint2D> & corner_vector){
@@ -252,12 +315,283 @@ void cluster::CornerFinderAlg::get_feature_points_LineIntegralScore(std::vector<
 
 }
 
+void cluster::CornerFinderAlg::remove_duplicates(std::vector<recob::EndPoint2D> & corner_vector){
+
+  int i_wire, j_wire;
+  float i_time, j_time;
+  for(size_t i=0; i != corner_vector.size(); i++){
+
+    i_wire = corner_vector.at(i).WireID().Wire;
+    i_time = corner_vector.at(i).DriftTime();
+
+    for(size_t j=i+1; j != corner_vector.size(); j++){
+
+      j_wire = corner_vector.at(j).WireID().Wire;
+      j_time = corner_vector.at(j).DriftTime();
+
+      if(std::abs(i_wire-j_wire) < 5 && std::abs(i_time - j_time) < 10){
+	corner_vector.erase(corner_vector.begin()+j);
+	j--;
+      }
+
+    }
+
+  }
+
+}
+
+struct compare_to_value{
+
+  compare_to_value(int b) {this->b = b;}
+  bool operator() (int i, int j) {
+    return std::abs(b-i)<std::abs(b-j);
+  }
+
+  int b;
+
+};
+
+struct compare_to_range{
+
+  compare_to_range(int a, int b) {this->a = a; this->b = b;}
+  bool operator() (int i, int j) {
+
+    int mid = (b-a)/2 + a;
+    if(i>=a && i<=b && j>=a && j<=b)
+      return std::abs(mid-i)<std::abs(mid-j);
+
+    else if(j>=a && j<=b && (i<a || i>b) )
+      return false;
+    
+    else if(i>=a && i<=b && (j<a || j>b) )
+      return true;
+    
+    else 
+      return true;
+  }
+
+  int a;
+  int b;
+
+};
+
+//-----------------------------------------------------------------------------
+// This looks for areas of the wires that are non-noise, to speed up evaluation
+void cluster::CornerFinderAlg::create_smaller_histos(){
+
+  std::cout << "OK, creating the smaller histograms." << std::endl;
+
+  for(unsigned int cstat = 0; cstat < fGeom->Ncryostats(); ++cstat){
+    for(unsigned int tpc = 0; tpc < fGeom->Cryostat(cstat).NTPC(); ++tpc){
+      for(unsigned int plane = 0; plane < fGeom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
+
+	std::cout << "Working plane " << plane << "." << std::endl;
+
+	int x_bins = WireData_histos_ProjectionX[plane]->GetNbinsX();
+	//float x_min = WireData_histos_ProjectionX[plane]->GetXaxis()->GetBinLowEdge(1);
+	//float x_max = WireData_histos_ProjectionX[plane]->GetXaxis()->GetBinUpEdge(x_bins);
+	
+	int y_bins = WireData_histos_ProjectionY[plane]->GetNbinsX();
+	//float y_min = WireData_histos_ProjectionY[plane]->GetXaxis()->GetBinLowEdge(1);
+	//float y_max = WireData_histos_ProjectionY[plane]->GetXaxis()->GetBinUpEdge(y_bins);
+
+
+	std::vector<int> cut_points_x {0};
+	std::vector<int> cut_points_y {0};
+
+	for (int ix=1; ix<=x_bins; ix++){
+	  //if(ix==1) std::cout << "Projection X values:" << std::endl;
+
+	  float this_value = WireData_histos_ProjectionX[plane]->GetBinContent(ix);
+	  //float next_value = WireData_histos_ProjectionX[plane]->GetBinContent(ix+1);
+	  //std::cout << "\t\tBin " << ix 
+	  //	    << ", (Projection,Change) = (" << this_value << "," << next_value << ")" << std::endl;
+
+	  if(ix<fTrimming_buffer || ix>(x_bins-fTrimming_buffer)) continue;
+	  
+	  int jx=ix-fTrimming_buffer;
+	  while(this_value<fTrimming_threshold){
+	    if(jx==ix+fTrimming_buffer) break;
+	    this_value = WireData_histos_ProjectionX[plane]->GetBinContent(jx);
+	    jx++;
+	  }
+	  if(this_value<fTrimming_threshold){
+	    //std::cout << "\t\t\tWe have a cut point at " << ix << std::endl;
+	    cut_points_x.push_back(ix);
+	  }
+
+	}
+
+	for (int iy=1; iy<=y_bins; iy++){
+	  //if(iy==1) std::cout << "Projection Y values:" << std::endl;
+
+	  float this_value = WireData_histos_ProjectionY[plane]->GetBinContent(iy);
+	  //float next_value = WireData_histos_ProjectionY[plane]->GetBinContent(iy+1);
+	  //std::cout << "\t\tBin " << iy 
+	  //	    << ", (Projection,Change) = (" << this_value << "," << next_value << ")" << std::endl;
+
+	  if(iy<fTrimming_buffer || iy>(y_bins-fTrimming_buffer)) continue;
+	  
+	  int jy=iy-fTrimming_buffer;
+	  while(this_value<fTrimming_threshold){
+	    if(jy==iy+fTrimming_buffer) break;
+	    this_value = WireData_histos_ProjectionY[plane]->GetBinContent(jy);
+	    jy++;
+	  }
+	  if(this_value<fTrimming_threshold){
+	    //std::cout << "\t\t\tWe have a cut point at " << iy << std::endl;
+	    cut_points_y.push_back(iy);
+	  }
+
+	}
+
+	std::cout << "We have a total of " << cut_points_x.size() << " x cut points." << std::endl;
+	std::cout << "We have a total of " << cut_points_y.size() << " y cut points." << std::endl;
+
+	std::vector<int> x_low{1};
+	std::vector<int> x_high{x_bins};
+	std::vector<int> y_low{1};
+	std::vector<int> y_high{y_bins};
+	bool x_change = true;
+	bool y_change = true;
+	while(x_change || y_change){
+
+	  std::cout << "OK, let's trim things down!" << std::endl;
+
+	  x_change = false;
+	  y_change = false;
+
+	  size_t current_size = x_low.size();
+
+	  for(size_t il=0; il<current_size; il++){
+	    
+	    int comp_value = (x_high.at(il) + x_low.at(il)) / 2;
+	    std::cout << "x low point is " << x_low.at(il) << " and high point is " << x_high.at(il) << std::endl;
+	    //std::sort(cut_points_x.begin(),cut_points_x.end(),compare_to_range(x_low.at(il),x_high.at(il)));
+	    std::sort(cut_points_x.begin(),cut_points_x.end(),compare_to_value(comp_value));
+	    
+	    std::cout << "\tClosest cut point in x is " << cut_points_x.at(0) << std::endl;
+
+	    if(cut_points_x.at(0) <= x_low.at(il) || cut_points_x.at(0) >= x_high.at(il))
+	      continue;
+	    
+	    double integral_low = WireData_histos[plane]->Integral(x_low.at(il),cut_points_x.at(0),y_low.at(il),y_high.at(il));
+	    double integral_high = WireData_histos[plane]->Integral(cut_points_x.at(0),x_high.at(il),y_low.at(il),y_high.at(il));
+	    if(integral_low > fTrimmed_totalThreshold && integral_high > fTrimmed_totalThreshold){
+	      x_low.push_back(cut_points_x.at(0));
+	      x_high.push_back(x_high.at(il));
+	      y_low.push_back(y_low.at(il));
+	      y_high.push_back(y_high.at(il));
+	      
+	      x_high[il] = cut_points_x.at(0);
+	      x_change = true;
+	    }
+	    else if(integral_low > fTrimmed_totalThreshold && integral_high < fTrimmed_totalThreshold){
+	      x_high[il] = cut_points_x.at(0);
+	      x_change = true;
+	    }
+	    else if(integral_low < fTrimmed_totalThreshold && integral_high > fTrimmed_totalThreshold){
+	      x_low[il] = cut_points_x.at(0);
+	      x_change = true;
+	    }
+	  }
+
+	  if(x_change) std::cout << "\tTrimmed in x!" << std::endl;
+
+	  current_size = x_low.size();
+
+	  for(size_t il=0; il<current_size; il++){
+	    
+	    int comp_value = (y_high.at(il) - y_low.at(il)) / 2;
+	    std::sort(cut_points_y.begin(),cut_points_y.end(),compare_to_value(comp_value));
+	    
+	    if(cut_points_y.at(0) <= y_low.at(il) || cut_points_y.at(0) >= y_high.at(il))
+	      continue;
+	    
+	    double integral_low = WireData_histos[plane]->Integral(x_low.at(il),x_high.at(il),y_low.at(il),cut_points_y.at(0));
+	    double integral_high = WireData_histos[plane]->Integral(x_low.at(il),x_high.at(il),cut_points_y.at(0),y_high.at(il));
+	    if(integral_low > fTrimmed_totalThreshold && integral_high > fTrimmed_totalThreshold){
+	      y_low.push_back(cut_points_y.at(0));
+	      y_high.push_back(y_high.at(il));
+	      x_low.push_back(x_low.at(il));
+	      x_high.push_back(x_high.at(il));
+	      
+	      y_high[il] = cut_points_y.at(0);
+	      y_change = true;
+	    }
+	    else if(integral_low > fTrimmed_totalThreshold && integral_high < fTrimmed_totalThreshold){
+	      y_high[il] = cut_points_y.at(0);
+	      y_change = true;
+	    }
+	    else if(integral_low < fTrimmed_totalThreshold && integral_high > fTrimmed_totalThreshold){
+	      y_low[il] = cut_points_y.at(0);
+	      y_change = true;
+	    }
+	  }
+
+	  if(y_change) std::cout << "\tTrimmed in y!" << std::endl;
+
+	}
+
+	/*
+	std::cout << "First point in x is " << cut_points_x.at(0) << std::endl;
+	std::sort(cut_points_x.begin(),cut_points_x.end(),compare_to_value(x_bins/2));	
+	std::cout << "Now the first point in x is " << cut_points_x.at(0) << std::endl;
+
+	std::cout << "First point in y is " << cut_points_y.at(0) << std::endl;
+	std::sort(cut_points_y.begin(),cut_points_y.end(),compare_to_value(y_bins/2));	
+	std::cout << "Now the first point in y is " << cut_points_y.at(0) << std::endl;
+
+	std::cout << "Integral on the SW side is " 
+		  << WireData_histos[plane]->Integral(1,cut_points_x.at(0),1,cut_points_y.at(0)) << std::endl;
+	std::cout << "Integral on the SE side is " 
+		  << WireData_histos[plane]->Integral(cut_points_x.at(0),x_bins,1,cut_points_y.at(0)) << std::endl;
+	std::cout << "Integral on the NW side is " 
+		  << WireData_histos[plane]->Integral(1,cut_points_x.at(0),cut_points_y.at(0),y_bins) << std::endl;
+	std::cout << "Integral on the NE side is " 
+		  << WireData_histos[plane]->Integral(cut_points_x.at(0),x_bins,cut_points_y.at(0),y_bins) << std::endl;
+	*/
+
+	std::cout << "Total of " << x_low.size() << " sub-histograms." << std::endl;
+	for(size_t il=0; il<x_low.size(); il++){
+	  std::cout << "\t(x1,x2,y1,y2) = (" 
+		    << x_low.at(il) << ","
+		    << x_high.at(il) << ","
+		    << y_low.at(il) << ","
+		    << y_high.at(il) << ")" << std::endl;
+
+	  std::stringstream h_name;
+	  h_name << "h_" << cstat << "_" << tpc << "_" << plane << "_sub" << il;
+	  TH2F *h_tmp = new TH2F((h_name.str()).c_str(),"",
+				 x_high.at(il)-x_low.at(il)+1,x_low.at(il),x_high.at(il),
+				 y_high.at(il)-y_low.at(il)+1,y_low.at(il),y_high.at(il));
+
+	  for(int ix=1; ix<=(x_high.at(il)-x_low.at(il)+1); ix++){
+	    for(int iy=1; iy<=(y_high.at(il)-y_low.at(il)+1); iy++){
+	      h_tmp->SetBinContent(ix,iy,WireData_histos[plane]->GetBinContent(x_low.at(il)+(ix-1),y_low.at(il)+(iy-1)));
+	    }
+	  }
+
+	  WireData_trimmed_histos.push_back(std::make_tuple(plane,h_tmp,x_low.at(il),y_low.at(il)));
+	}
+
+      }
+    }
+  }
+  
+
+  std::cout << "Done! Total of " << WireData_trimmed_histos.size() << " histograms." << std::endl;
+
+}
+
 //-----------------------------------------------------------------------------
 // This puts on all the feature points in a given view, using a given data histogram
 void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data, 
 						     std::vector<geo::WireID> wireIDs, 
 						     geo::View_t view, 
-						     std::vector<recob::EndPoint2D> & corner_vector){
+						     std::vector<recob::EndPoint2D> & corner_vector,
+						     int startx,
+						     int starty){
 
 
   const int x_bins = h_wire_data->GetNbinsX();
@@ -325,8 +659,9 @@ void cluster::CornerFinderAlg::attach_feature_points(TH2F *h_wire_data,
   create_image_histo(h_wire_data,fConversion_histos[view]);  
   create_derivative_histograms(fConversion_histos[view],fDerivativeX_histos[view],fDerivativeY_histos[view]);
   create_cornerScore_histogram(fDerivativeX_histos[view],fDerivativeY_histos[view],fCornerScore_histos[view]);
-  perform_maximum_suppression(fCornerScore_histos[view],corner_vector,wireIDs,view,fMaxSuppress_histos[view]);
+  perform_maximum_suppression(fCornerScore_histos[view],corner_vector,wireIDs,view,fMaxSuppress_histos[view],startx,starty);
 }
+
 
 //-----------------------------------------------------------------------------
 // This puts on all the feature points in a given view, using a given data histogram
@@ -516,9 +851,8 @@ void cluster::CornerFinderAlg::create_derivative_histograms(TH2F *h_conversion, 
 	  std::cout << "Local derivative not yet supported for neighborhoods > 1." << std::endl;
 	  return;
 	}
-	
-	} //end if local
-
+      } //end if local
+      
       else{
 	std::cout << "Bad derivative algorithm! " << fDerivative_method << std::endl;
 	return;
@@ -527,6 +861,175 @@ void cluster::CornerFinderAlg::create_derivative_histograms(TH2F *h_conversion, 
     }
   }
 
+
+  std::cout << "(Almost) Finished derivatives." << std::endl;
+
+  //this is just a double Gaussian
+  float func_blur[10][10];
+  func_blur[0][0] = 0.000000;
+  func_blur[0][1] = 0.000000;
+  func_blur[0][2] = 0.000000;
+  func_blur[0][3] = 0.000001;
+  func_blur[0][4] = 0.000002;
+  func_blur[0][5] = 0.000004;
+  func_blur[0][6] = 0.000002;
+  func_blur[0][7] = 0.000001;
+  func_blur[0][8] = 0.000000;
+  func_blur[0][9] = 0.000000;
+  func_blur[0][10] = 0.000000;
+  func_blur[1][0] = 0.000000;
+  func_blur[1][1] = 0.000000;
+  func_blur[1][2] = 0.000004;
+  func_blur[1][3] = 0.000045;
+  func_blur[1][4] = 0.000203;
+  func_blur[1][5] = 0.000335;
+  func_blur[1][6] = 0.000203;
+  func_blur[1][7] = 0.000045;
+  func_blur[1][8] = 0.000004;
+  func_blur[1][9] = 0.000000;
+  func_blur[1][10] = 0.000000;
+  func_blur[2][0] = 0.000000;
+  func_blur[2][1] = 0.000004;
+  func_blur[2][2] = 0.000123;
+  func_blur[2][3] = 0.001503;
+  func_blur[2][4] = 0.006738;
+  func_blur[2][5] = 0.011109;
+  func_blur[2][6] = 0.006738;
+  func_blur[2][7] = 0.001503;
+  func_blur[2][8] = 0.000123;
+  func_blur[2][9] = 0.000004;
+  func_blur[2][10] = 0.000000;
+  func_blur[3][0] = 0.000001;
+  func_blur[3][1] = 0.000045;
+  func_blur[3][2] = 0.001503;
+  func_blur[3][3] = 0.018316;
+  func_blur[3][4] = 0.082085;
+  func_blur[3][5] = 0.135335;
+  func_blur[3][6] = 0.082085;
+  func_blur[3][7] = 0.018316;
+  func_blur[3][8] = 0.001503;
+  func_blur[3][9] = 0.000045;
+  func_blur[3][10] = 0.000001;
+  func_blur[4][0] = 0.000002;
+  func_blur[4][1] = 0.000203;
+  func_blur[4][2] = 0.006738;
+  func_blur[4][3] = 0.082085;
+  func_blur[4][4] = 0.367879;
+  func_blur[4][5] = 0.606531;
+  func_blur[4][6] = 0.367879;
+  func_blur[4][7] = 0.082085;
+  func_blur[4][8] = 0.006738;
+  func_blur[4][9] = 0.000203;
+  func_blur[4][10] = 0.000002;
+  func_blur[5][0] = 0.000004;
+  func_blur[5][1] = 0.000335;
+  func_blur[5][2] = 0.011109;
+  func_blur[5][3] = 0.135335;
+  func_blur[5][4] = 0.606531;
+  func_blur[5][5] = 1.000000;
+  func_blur[5][6] = 0.606531;
+  func_blur[5][7] = 0.135335;
+  func_blur[5][8] = 0.011109;
+  func_blur[5][9] = 0.000335;
+  func_blur[5][10] = 0.000004;
+  func_blur[6][0] = 0.000002;
+  func_blur[6][1] = 0.000203;
+  func_blur[6][2] = 0.006738;
+  func_blur[6][3] = 0.082085;
+  func_blur[6][4] = 0.367879;
+  func_blur[6][5] = 0.606531;
+  func_blur[6][6] = 0.367879;
+  func_blur[6][7] = 0.082085;
+  func_blur[6][8] = 0.006738;
+  func_blur[6][9] = 0.000203;
+  func_blur[6][10] = 0.000002;
+  func_blur[7][0] = 0.000001;
+  func_blur[7][1] = 0.000045;
+  func_blur[7][2] = 0.001503;
+  func_blur[7][3] = 0.018316;
+  func_blur[7][4] = 0.082085;
+  func_blur[7][5] = 0.135335;
+  func_blur[7][6] = 0.082085;
+  func_blur[7][7] = 0.018316;
+  func_blur[7][8] = 0.001503;
+  func_blur[7][9] = 0.000045;
+  func_blur[7][10] = 0.000001;
+  func_blur[8][0] = 0.000000;
+  func_blur[8][1] = 0.000004;
+  func_blur[8][2] = 0.000123;
+  func_blur[8][3] = 0.001503;
+  func_blur[8][4] = 0.006738;
+  func_blur[8][5] = 0.011109;
+  func_blur[8][6] = 0.006738;
+  func_blur[8][7] = 0.001503;
+  func_blur[8][8] = 0.000123;
+  func_blur[8][9] = 0.000004;
+  func_blur[8][10] = 0.000000;
+  func_blur[9][0] = 0.000000;
+  func_blur[9][1] = 0.000000;
+  func_blur[9][2] = 0.000004;
+  func_blur[9][3] = 0.000045;
+  func_blur[9][4] = 0.000203;
+  func_blur[9][5] = 0.000335;
+  func_blur[9][6] = 0.000203;
+  func_blur[9][7] = 0.000045;
+  func_blur[9][8] = 0.000004;
+  func_blur[9][9] = 0.000000;
+  func_blur[9][10] = 0.000000;
+  func_blur[10][0] = 0.000000;
+  func_blur[10][1] = 0.000000;
+  func_blur[10][2] = 0.000000;
+  func_blur[10][3] = 0.000001;
+  func_blur[10][4] = 0.000002;
+  func_blur[10][5] = 0.000004;
+  func_blur[10][6] = 0.000002;
+  func_blur[10][7] = 0.000001;
+  func_blur[10][8] = 0.000000;
+  func_blur[10][9] = 0.000000;
+  func_blur[10][10] = 0.000000;
+  
+  double temp_integral_x = 0;
+  double temp_integral_y = 0;
+
+  if(fDerivative_BlurNeighborhood>0){
+	
+    if(fDerivative_BlurNeighborhood>10){
+      std::cout << "WARNING...BlurNeighborhoods>10 not currently allowed. Shrinking to 10." << std::endl;
+      fDerivative_BlurNeighborhood=10;
+    }
+
+    TH2F *h_clone_derivative_x = (TH2F*)h_derivative_x->Clone("h_clone_derivative_x");
+    TH2F *h_clone_derivative_y = (TH2F*)h_derivative_y->Clone("h_clone_derivative_y");
+    
+    temp_integral_x = 0;
+    temp_integral_y = 0;
+    
+    for(int ix=1; ix<=h_derivative_x->GetNbinsX(); ix++){
+      for(int iy=1; iy<=h_derivative_y->GetNbinsY(); iy++){
+
+	temp_integral_x = 0;
+	temp_integral_y = 0;
+	
+	for(int jx=ix-fDerivative_BlurNeighborhood; jx<=ix+fDerivative_BlurNeighborhood; jx++){
+	  for(int jy=iy-fDerivative_BlurNeighborhood; jy<=iy+fDerivative_BlurNeighborhood; jy++){
+	    temp_integral_x += h_clone_derivative_x->GetBinContent(jx,jy)*func_blur[(ix-jx)+5][(iy-jy)+5];
+	    temp_integral_y += h_clone_derivative_y->GetBinContent(jx,jy)*func_blur[(ix-jx)+5][(iy-jy)+5];
+	  }
+	}
+	h_derivative_x->SetBinContent(ix,iy,temp_integral_x);
+	h_derivative_y->SetBinContent(ix,iy,temp_integral_y);
+
+      }
+    }
+
+    delete h_clone_derivative_x;
+    delete h_clone_derivative_y;
+
+
+  } //end if blur
+
+
+  std::cout << "Finished derivatives." << std::endl;
 
 }
 
@@ -599,7 +1102,9 @@ size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore
 							     std::vector<recob::EndPoint2D> & corner_vector,
 							     std::vector<geo::WireID> wireIDs, 
 							     geo::View_t view, 
-							     TH2D *h_maxSuppress=NULL){
+							     TH2D *h_maxSuppress=NULL,
+							     int startx,
+							     int starty){
 
   const int x_bins = h_cornerScore->GetNbinsX();
   const int y_bins = h_cornerScore->GetNbinsY();
@@ -630,8 +1135,8 @@ size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore
 
       if(temp_center_bin){
 	
-	float time_tick = 0.5 * (float)((2*iy-1) * fConversion_bins_per_input_y);
-	int wire_number = ( (2*ix-1)*fConversion_bins_per_input_x ) / 2;
+	float time_tick = 0.5 * (float)((2*iy+starty) * fConversion_bins_per_input_y);
+	int wire_number = ( (2*ix+startx)*fConversion_bins_per_input_x ) / 2;
 	double totalQ = 0;
 	int id = 0;
 	recob::EndPoint2D corner(time_tick,
@@ -652,6 +1157,7 @@ size_t cluster::CornerFinderAlg::perform_maximum_suppression(TH2D *h_cornerScore
   return corner_vector.size();
 
 }
+
 
 /* Silly little function for doing a line integral type thing. Needs improvement. */
 float cluster::CornerFinderAlg::line_integral(TH2F *hist, int begin_x, float begin_y, int end_x, float end_y, float threshold){

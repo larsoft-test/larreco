@@ -80,6 +80,8 @@ standard_cornerfinderalg:
 {
   RawDataModuleLabel:           "daq"
   CalDataModuleLabel:		"caldata"
+  Trimming_threshold:      10
+  Trimming_totalThreshold: 5e4
   Conversion_algorithm:         "standard"
   Conversion_function:          "TMath::Gaus(x,0,1)*TMath::Gaus(y,0,1)"
   Conversion_func_neighborhood: 3
@@ -88,6 +90,8 @@ standard_cornerfinderalg:
   Conversion_bins_per_input_y:	1
   Derivative_method: 		"Sobel" #Noble
   Derivative_neighborhood:	1 
+  Derivative_BlurFunc:	"NotImplemented" 
+  Derivative_BlurNeighborhood:	5 
   CornerScore_Noble_epsilon:    1e-5
   CornerScore_Harris_kappa:     0.05
   CornerScore_neighborhood:	1
