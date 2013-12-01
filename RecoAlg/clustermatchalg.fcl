@@ -6,7 +6,7 @@ standard_clustermatchalg:
   DebugMode: true
   MatchAlgoList:                [0, 1, 2]  # Algorithms enum to be enabled
   CutParam_NumSpacePoint:       100        # Number of minimum space point to claim a cluster by kSpacePoint 
-  CutParam_OverlayTimeFraction: 0.1        # Minimum fraction of overlayed time period used by kRoughTime 
+  CutParam_OverlayTimeFraction: 0.05       # Minimum fraction of overlayed time period used by kRoughTime 
   CutParam_SumChargeRatio:      2.0        # Maximum difference in fraction of clusters' charge sum used by kSumCharge
   SpacePointAlg:                @local::microboone_spacepointalg
 }

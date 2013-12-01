@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////
 // \file ClusterMatchAlg.h
 //
-// \brief Trigger logic base class. 
+// \brief ClusterMatchAlg header file
 //
 // \author kazuhiro@nevis.columbia.edu
 //
