@@ -30,6 +30,7 @@
 #include "Utilities/DetectorProperties.h"
 //#include "RecoAlg/HoughBaseAlg.h"
 #include "RecoAlg/ClusterParamsAlg.h"
+#include "RecoAlg/ClusterMatchAlg.h"
 
 extern "C" {
 #include <sys/types.h>
@@ -108,6 +109,7 @@ namespace cluster {
  
     //HoughBaseAlg fHBAlg; 
     ClusterParamsAlg fCParAlg;
+    ClusterMatchAlg fCMatchAlg;
     bool fExternalStartPoints;
  //   double fWiretoCm,fTimetoCm,fWireTimetoCmCm;
     
@@ -164,7 +166,8 @@ namespace cluster {
 //------------------------------------------------------------------------------
 cluster::ShowerAngleCluster::ShowerAngleCluster(fhicl::ParameterSet const& pset)
  :// fHBAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg")),
-   fCParAlg(pset.get< fhicl::ParameterSet >("ClusterParamsAlg"),pset.get< std::string >("module_type"))
+  fCParAlg(pset.get< fhicl::ParameterSet >("ClusterParamsAlg"),pset.get< std::string >("module_type")),
+  fCMatchAlg(pset.get< fhicl::ParameterSet >("ClusterMatchAlg"))
 {
   this->reconfigure(pset);
   produces< std::vector<recob::Cluster> >();
@@ -429,60 +432,104 @@ else // no matching was done. Need to do it ourselves, but first run through all
    
     if(!matchflag)
       {
-      //matching code here.
-      //// declare,  matching table
-      std::vector< std::vector < unsigned int > > ClusterSets;
-      std::vector < int > maximums;
-      std::vector < unsigned int > maxclusts;
+	//matching code here.
+	//// declare,  matching table
+	std::vector< std::vector < unsigned int > > ClusterSets;
+
+	//
+	// Following code segment added by Kazu to use a separate module
+	// to find possible cluster combination pairs and fill ClusterSets variable.
+	// -- Kazu on Nov. 30 2013
+
+	//
+	// Step 1: We want to match only clusters that is shower-like.
+	//         Prepare a boolean vector of the length same as the
+	//         number of recob::Cluster products to be used.
+	std::vector<bool> ShowerClusterFlags(clusterListHandle->size(),true);
+	// Loop over cluters to set the boolean flag 
+	for(size_t i=0; i<clusterListHandle->size(); ++i) {
+	  // Flagging code here
+	  const recob::Cluster& cluster = clusterListHandle->at(i);
+	  // Do something ... Kazu does not fill this part for now
+	}
+	
+	// Step 2: Call ClusterMatchAlg
+	fCMatchAlg.SetClusterModName(fClusterModuleLabel);
+	fCMatchAlg.SetMCTruthModName("generator"); // No worries: this won't crash even if data product do not exist.
+	fCMatchAlg.FillEventInfo(evt);
+	if(fNPlanes==2)
+	  fCMatchAlg.MatchTwoPlanes();
+	else if(fNPlanes==3)
+	  fCMatchAlg.MatchThreePlanes();
+	else
+	  mf::LogError("ShowerAngleCluster")<<"Matching with NPlanes <2 or >3 not supported!";
+
+	// Retrieve the result
+	ClusterSets = fCMatchAlg.GetMatchedClusters();
+
+	//
+	// End of Kazu's added code on Nov. 30 2013
+	//
+
+	std::vector < int > maximums;
+	std::vector < unsigned int > maxclusts;
 	maximums.resize(fNPlanes);
 	maxclusts.resize(fNPlanes,0);
-          
-       for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++){
-
-	art::Ptr<recob::Cluster> cl(clusterListHandle, iClust);
-	std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iClust);
-	if( (int)hitlist.size() > maximums[cl->View()])  
-	  {
+	
+	for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++){
+	  
+	  art::Ptr<recob::Cluster> cl(clusterListHandle, iClust);
+	  std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iClust);
+	  if( (int)hitlist.size() > maximums[cl->View()])  
+	   {
 	     maximums[cl->View()]=hitlist.size();
 	     maxclusts[cl->View()]=iClust;
-	  }
+	   }
 	}
+
+	//
+	// Now that ClusterSets are filled, I comment out the following section
+	// -- Kazu on Nov. 30 2013
+	//
+	/*
 	//sanity check:
-      for(unsigned int ii=0;ii<maxclusts.size();ii++)
-	std::cout << "ii" << ii << " " << maxclusts[ii] << std::endl;
-      
-      ClusterSets.push_back(maxclusts);  
-      
-    //  for(unsigned int ii=0;ii<clusterListHandle->size();ii++){
+	for(unsigned int ii=0;ii<maxclusts.size();ii++)
+	  std::cout << "ii" << ii << " " << maxclusts[ii] << std::endl;
+	  ClusterSets.push_back(maxclusts);  
+
+	*/ //End of commented out block by Kazu on Nov. 30 2013
+	
+	//  for(unsigned int ii=0;ii<clusterListHandle->size();ii++){
 	//for(unsigned int jj=ii+1;jj<clusterListHandle->size();jj++){
 	//  // don't try to match clusters in the same view.
 	//  if(ShowerAngleCluster[ii]->View()==ShowerAngleCluster[jj]->View())
-	 //   continue;
-	  
-	 // std::vector<double > xpos1=ShowerAngleCluster[ii]->StartPos();
-	 // std::vector<double > xpos2=ShowerAngleCluster[jj]->StartPos();
+	//   continue;
 	
-	  
+	// std::vector<double > xpos1=ShowerAngleCluster[ii]->StartPos();
+	// std::vector<double > xpos2=ShowerAngleCluster[jj]->StartPos();
+	
+	
 	//} //end jj loop
-     // } // end ii loop
-       
-     //
-       
-      art::PtrVector < recob::Cluster > cvec;
+	// } // end ii loop
 	
-      for(unsigned int ip=0;ip<fNPlanes;ip++)  {
-	art::ProductID aid = this->getProductID< std::vector < recob::Cluster > >(evt);
-	art::Ptr< recob::Cluster > aptr(aid, maxclusts[ip], evt.productGetter(aid));
-	//std::cout << "---------- going into aptr " << aptr->StartPos()[0] << " " << aptr->StartPos()[1] << std::endl;
-	cvec.push_back(aptr);
+	//
+       
+	art::PtrVector < recob::Cluster > cvec;
+	
+	for(unsigned int ip=0;ip<fNPlanes;ip++)  {
+	  art::ProductID aid = this->getProductID< std::vector < recob::Cluster > >(evt);
+
+	  art::Ptr< recob::Cluster > aptr(aid, maxclusts[ip], evt.productGetter(aid));
+	  //std::cout << "---------- going into aptr " << aptr->StartPos()[0] << " " << aptr->StartPos()[1] << std::endl;
+	  cvec.push_back(aptr);
 	}
-      if((*ShowerAngleCluster).size()>0)   //make sure to make associations to something that exists.
-	classn->push_back(cvec); 
-     }
+	if((*ShowerAngleCluster).size()>0)   //make sure to make associations to something that exists.
+	  classn->push_back(cvec); 
+      }
 
-  /**Fill the output tree with all information */
-  ftree_cluster->Fill();
-
+    /**Fill the output tree with all information */
+    ftree_cluster->Fill();
+    
  } // end else if collection is valid
 //  std::cout << "--- classn size, saving: " << classn.size() << std::endl << std::endl;
   
