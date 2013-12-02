@@ -132,29 +132,26 @@ namespace cluster{
     int nIterations;
     // The parameter beta used in determining the radius of a cluster
     float fBeta;
+ 
     int    fDoFuzzyRemnantMerge;           ///< Tell the algorithm to merge fuzzy cluster remnants into showers or tracks (0-off, 1-on)
-    float fShowerClusterMergeAngle;       ///< Max angle between slopes before two lines are merged, for lines in shower line regions
-    float fShowerTrackClusterMergeAngle;  ///< Max angle between slopes before two lines are merged, for lines in shower line regions
-    int    fDoShowerClusterMerge;          ///< Turns on shower Hough line merging (0-off, 1-on)
-                                           ///< for (electron showers), only for fuzzy clustering
+    float  fFuzzyRemnantMergeCutoff;       ///< cut off on merging the fuzzy cluster remnants into the nearest shower or track 
+
     int    fDoTrackClusterMerge;           ///< Turn on cut on product of charge asymmetry and sin of angle between slopes of lines
-    float fTrackClusterMergeCutoff;          ///< Max distance between Hough lines before two lines are merged (muon tracks), 
-                                           ///< only for fuzzy clustering
-    float fChargeAsymAngleCut;            ///< Cut on product of charge asymmetry and sin of angle between slopes of lines
-    float fSigmaChargeAsymAngleCut;       ///< Cut on product of charge asymmetry and sin of angle between slopes of lines
-    float fChargeAsymAngleCutoff;         ///< Distance between lines before cut on product of charge asymmetry and sin of angle between slopes of lines
-                                           ///< is applied
-    float fFuzzyRemnantMergeCutoff;       ///< cut off on merging the fuzzy cluster remnants into the nearest shower or track 
-    float fShowerWidthAngle;              ///< Half of the angle defining how wide a shower is 
-    float fShowerClusterMergeCutoff;    ///< Max distance between Hough lines before two lines are merged (electron showers),
-    float fShowerTrackClusterMergeCutoff;    ///< Max distance between Hough lines before two lines are merged (electron showers),
-    int    fDoShowerHoughLineInterceptMerge;///< Turns on Hough line merging for shower like lines, merging if they intercept (0-off, 1-on)
-                                           ///< line closest to each other
-    float fShowerLikenessCut;             ///< Cut on shower likeness (larger the more shower like, smaller the less shower like)
+    float  fTrackClusterMergeCutoff;          ///< Max distance between Hough lines before two lines are merged (muon tracks), 
+    float  fChargeAsymAngleCut;            ///< Cut on product of charge asymmetry and sin of angle between slopes of lines
+    float  fSigmaChargeAsymAngleCut;       ///< Cut on product of charge asymmetry and sin of angle between slopes of lines
+  
+    int    fDoShowerClusterMerge;          ///< Turns on shower Hough line merging (0-off, 1-on)
+    float  fShowerClusterMergeAngle;       ///< Max angle between slopes before two lines are merged, for lines in shower line regions
+    float  fShowerClusterMergeCutoff;    ///< Max distance between Hough lines before two lines are merged (electron showers),
 
     int    fDoShowerTrackClusterMerge;     ///< Turn on cut on product of charge asymmetry and sin of angle between slopes of lines
+    float  fShowerTrackClusterMergeCutoff;    ///< Max distance between Hough lines before two lines are merged (electron showers),
+    float  fShowerTrackClusterMergeAngle;  ///< Max angle between slopes before two lines are merged, for lines in shower line regions
+    
+    float  fShowerLikenessCut;             ///< Cut on shower likeness (larger the more shower like, smaller the less shower like)
 
-    int   fMaxVertexLines;                ///< Max number of line end points allowed in a Hough line merge region for a merge to happen
+    int    fMaxVertexLines;                ///< Max number of line end points allowed in a Hough line merge region for a merge to happen
 
 
 
