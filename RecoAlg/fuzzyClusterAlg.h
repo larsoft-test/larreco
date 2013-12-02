@@ -19,9 +19,9 @@
 #include "Geometry/Geometry.h"
 
 #include "TMatrixF.h"
-#include "TMatrixDEigen.h"
 #include "TVectorF.h"
 #include "TVector.h"
+#include "TH1.h"
 
 
 class TH1F;
@@ -29,6 +29,58 @@ class TH1F;
 namespace recob { class Hit; }
 
 namespace cluster{
+
+
+  // This stores information about a showerlike cluster
+  class showerCluster
+    {
+      public:
+        int clusterNumber=-999999;
+        std::vector<protoTrack> clusterProtoTracks;
+        showerCluster (protoTrack protoTrackTemp)
+        {
+          clusterNumber=protoTrackTemp.clusterNumber;
+          clusterProtoTracks.push_back(protoTrackTemp);
+        }
+
+        void addProtoTracks(std::vector<protoTrack> tracksToAdd){
+          
+          for(auto tracksToAddItr = tracksToAdd.begin(); tracksToAddItr != tracksToAdd.end(); tracksToAddItr++)
+            tracksToAddItr->clusterNumber = clusterNumber;
+          clusterProtoTracks.insert(clusterProtoTracks.end(),tracksToAdd.begin(),tracksToAdd.end());
+        }
+        
+        void clearProtoTracks(){
+          clusterProtoTracks.clear();
+        }
+
+    };
+
+  // This stores information about a tracklike cluster
+  class trackCluster
+    {
+      public:
+        int clusterNumber=-999999;
+        std::vector<protoTrack> clusterProtoTracks;
+        trackCluster (protoTrack protoTrackTemp)
+        {
+          clusterNumber=protoTrackTemp.clusterNumber;
+          clusterProtoTracks.push_back(protoTrackTemp);
+        }
+
+        void addProtoTracks(std::vector<protoTrack> tracksToAdd){
+
+          for(auto tracksToAddItr = tracksToAdd.begin(); tracksToAddItr != tracksToAdd.end(); tracksToAddItr++)
+            tracksToAddItr->clusterNumber = clusterNumber;
+          clusterProtoTracks.insert(clusterProtoTracks.end(),tracksToAdd.begin(),tracksToAdd.end());
+        }
+        
+        void clearProtoTracks(){
+          clusterProtoTracks.clear();
+        }
+
+    };
+
 
   //--------------------------------------------------------------- 
   class fuzzyClusterAlg {
@@ -49,9 +101,9 @@ namespace cluster{
     bool mergeClusters();
     bool updateMembership(int k);
     inline bool canStop(){
-      double epsilon = 0.01;
+      float epsilon = 0.01;
       TMatrixF diffMatrix = fpsMembership - fpsNewMembership;
-      double difference = diffMatrix.Norm1();
+      float difference = diffMatrix.Norm1();
       return difference < epsilon;
     }
 
@@ -81,63 +133,89 @@ namespace cluster{
     // The parameter beta used in determining the radius of a cluster
     float fBeta;
     int    fDoFuzzyRemnantMerge;           ///< Tell the algorithm to merge fuzzy cluster remnants into showers or tracks (0-off, 1-on)
-    int    fDoHoughLineMerge;              ///< Turns on Hough line merging (0-off, 1-on)
-    double fHoughLineMergeAngle;           ///< Max angle between slopes before two lines are merged (muon tracks), only for fuzzy clustering
-    double fShowerHoughLineMergeAngle;     ///< Max angle between slopes before two lines are merged, for lines in shower line regions
-    int    fDoShowerHoughLineMerge;        ///< Turns on shower Hough line merging (0-off, 1-on)
+    float fShowerClusterMergeAngle;       ///< Max angle between slopes before two lines are merged, for lines in shower line regions
+    float fShowerTrackClusterMergeAngle;  ///< Max angle between slopes before two lines are merged, for lines in shower line regions
+    int    fDoShowerClusterMerge;          ///< Turns on shower Hough line merging (0-off, 1-on)
                                            ///< for (electron showers), only for fuzzy clustering
-    int    fDoChargeAsymAngleMerge;        ///< Turn on cut on product of charge asymmetry and sin of angle between slopes of lines
-    double fChargeAsymAngleCut;            ///< Cut on product of charge asymmetry and sin of angle between slopes of lines
-    double fSigmaChargeAsymAngleCut;       ///< Cut on product of charge asymmetry and sin of angle between slopes of lines
-    double fChargeAsymAngleCutoff;         ///< Distance between lines before cut on product of charge asymmetry and sin of angle between slopes of lines
-                                           ///< is applied
-    double fFuzzyRemnantMergeCutoff;       ///< cut off on merging the fuzzy cluster remnants into the nearest shower or track 
-    double fShowerWidthAngle;              ///< Half of the angle defining how wide a shower is 
-    double fHoughLineMergeCutoff;          ///< Max distance between Hough lines before two lines are merged (muon tracks), 
+    int    fDoTrackClusterMerge;           ///< Turn on cut on product of charge asymmetry and sin of angle between slopes of lines
+    float fTrackClusterMergeCutoff;          ///< Max distance between Hough lines before two lines are merged (muon tracks), 
                                            ///< only for fuzzy clustering
-    double fShowerHoughLineMergeCutoff;    ///< Max distance between Hough lines before two lines are merged (electron showers),
+    float fChargeAsymAngleCut;            ///< Cut on product of charge asymmetry and sin of angle between slopes of lines
+    float fSigmaChargeAsymAngleCut;       ///< Cut on product of charge asymmetry and sin of angle between slopes of lines
+    float fChargeAsymAngleCutoff;         ///< Distance between lines before cut on product of charge asymmetry and sin of angle between slopes of lines
+                                           ///< is applied
+    float fFuzzyRemnantMergeCutoff;       ///< cut off on merging the fuzzy cluster remnants into the nearest shower or track 
+    float fShowerWidthAngle;              ///< Half of the angle defining how wide a shower is 
+    float fShowerClusterMergeCutoff;    ///< Max distance between Hough lines before two lines are merged (electron showers),
+    float fShowerTrackClusterMergeCutoff;    ///< Max distance between Hough lines before two lines are merged (electron showers),
     int    fDoShowerHoughLineInterceptMerge;///< Turns on Hough line merging for shower like lines, merging if they intercept (0-off, 1-on)
                                            ///< line closest to each other
-    double fShowerLikenessCut;             ///< Cut on shower likeness (larger the more shower like, smaller the less shower like)
+    float fShowerLikenessCut;             ///< Cut on shower likeness (larger the more shower like, smaller the less shower like)
+
+    int    fDoShowerTrackClusterMerge;     ///< Turn on cut on product of charge asymmetry and sin of angle between slopes of lines
+
+    int   fMaxVertexLines;                ///< Max number of line end points allowed in a Hough line merge region for a merge to happen
+
+
+
+
+
+
 
     void mergeHoughLinesBySegment(unsigned int k,
-        std::vector<lineSlope> *linesFound, 
-        double xyScale,
+        std::vector<protoTrack> *protoTracks, 
+        float xyScale,
         int mergeStyle,
-        double wire_dist,
-        double tickToDist);
+        float wire_dist,
+        float tickToDist);
+
+    bool mergeTrackClusters(unsigned int k,
+        std::vector<trackCluster> *trackClusters, 
+        float xyScale,
+        float wire_dist,
+        float tickToDist);
+
+    bool mergeShowerClusters(unsigned int k,
+        std::vector<showerCluster> *showerClusters, 
+        float xyScale,
+        float wire_dist,
+        float tickToDist);
+    
+    bool mergeShowerTrackClusters(showerCluster *showerClusterI, 
+        trackCluster *trackClusterJ, 
+        float xyScale,
+        float wire_dist,
+        float tickToDist);
 
     //std::vector<lineSlope> linesFound;
-    double HoughLineDistance(double p0MinLine1, 
-        double p1MinLine1, 
-        double p0MaxLine1, 
-        double p1MaxLine1, 
-        double p0MinLine2, 
-        double p1MinLine2, 
-        double p0MaxLine2, 
-        double p1MaxLine2);
-    bool   HoughLineIntersect(double x11,
-        double  y11,
-        double  x12,
-        double  y12,
-        double  x21,
-        double  y21,
-        double  x22,
-        double  y22);
-    double PointSegmentDistance(double px,
-        double  py,
-        double  x1,
-        double  y1,
-        double  x2,
-        double  y2);
+    float HoughLineDistance(float p0MinLine1, 
+        float p1MinLine1, 
+        float p0MaxLine1, 
+        float p1MaxLine1, 
+        float p0MinLine2, 
+        float p1MinLine2, 
+        float p0MaxLine2, 
+        float p1MaxLine2);
+    bool   HoughLineIntersect(float x11,
+        float  y11,
+        float  x12,
+        float  y12,
+        float  x21,
+        float  y21,
+        float  x22,
+        float  y22);
+    float PointSegmentDistance(float px,
+        float  py,
+        float  x1,
+        float  y1,
+        float  x2,
+        float  y2);
 
-    double DistanceBetweenHits(
+    float DistanceBetweenHits(
         art::Ptr<recob::Hit> hit0,
         art::Ptr<recob::Hit> hit1,
-        double wire_dist,
-        double tickToDist);
-
-
+        float wire_dist,
+        float tickToDist);
 
     // noise vector
     std::vector<bool>      fnoise;	
@@ -162,7 +240,25 @@ namespace cluster{
     art::ServiceHandle<geo::Geometry> fGeom; ///< handle to geometry service
 
   }; // class fuzzyClusterAlg
+    
+
+
+
 
 } // namespace
 
 #endif // ifndef fuzzyClusterALG_H
+
+
+
+
+
+
+
+
+
+
+
+
+
+
