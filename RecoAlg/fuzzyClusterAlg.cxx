@@ -87,16 +87,13 @@ void cluster::fuzzyClusterAlg::reconfigure(fhicl::ParameterSet const& p)
   fTrackClusterMergeCutoff        = p.get< float >("TrackClusterMergeCutoff"        );
   fChargeAsymAngleCut             = p.get< float >("ChargeAsymAngleCut"             );
   fSigmaChargeAsymAngleCut        = p.get< float >("SigmaChargeAsymAngleCut"        );
-  fChargeAsymAngleCutoff          = p.get< float >("ChargeAsymAngleCutoff"          );
   fDoShowerClusterMerge           = p.get< int    >("DoShowerClusterMerge"           );
   fDoShowerTrackClusterMerge      = p.get< int    >("DoShowerTrackClusterMerge"      );
   fShowerClusterMergeCutoff       = p.get< float >("ShowerClusterMergeCutoff"       );
   fShowerClusterMergeAngle        = p.get< float >("ShowerClusterMergeAngle"        );
   fShowerTrackClusterMergeCutoff  = p.get< float >("ShowerTrackClusterMergeCutoff"  );
   fShowerTrackClusterMergeAngle   = p.get< float >("ShowerTrackClusterMergeAngle"   );
-  fDoShowerHoughLineInterceptMerge= p.get< int    >("DoShowerHoughLineInterceptMerge");
   fShowerLikenessCut              = p.get< float >("ShowerLikenessCut"              );
-  fShowerWidthAngle               = p.get< float >("ShowerWidthAngle"               );
   fMaxVertexLines                 = p.get< int   >("MaxVertexLines"                 );
   fHBAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughBaseAlg"));
   fDBScan.reconfigure(p.get< fhicl::ParameterSet >("DBScanAlg"));
@@ -1920,7 +1917,7 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
                                                tracksFoundToMergeItr->pMax0,tracksFoundToMergeItr->pMax1);
     if( (segmentDistance<fTrackClusterMergeCutoff && mergeStyle == iMergeNormal) 
         || (segmentDistance<fShowerClusterMergeCutoff && (mergeStyle == iMergeShower || mergeStyle == iMergeShowerIntercept))
-        || (segmentDistance<fChargeAsymAngleCutoff && mergeStyle == iMergeChargeAsymAngle))
+        || (segmentDistance<fTrackClusterMergeCutoff && mergeStyle == iMergeChargeAsymAngle))
     {
       //std::cout << std::endl;
       //std::cout << tracksFoundClusIndStItr->minWire << " " << tracksFoundClusIndStItr->maxWire << std::endl;
