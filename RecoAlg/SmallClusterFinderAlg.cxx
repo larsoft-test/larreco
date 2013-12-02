@@ -36,6 +36,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 }
+#include <iostream>
 
 // Framework includes
 #include "art/Framework/Principal/Event.h" 
