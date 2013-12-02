@@ -1256,7 +1256,7 @@ bool cluster::fuzzyClusterAlg::mergeShowerTrackClusters(showerCluster *showerClu
     if(performedBestMerge){ 
       showerClusterI->addProtoTracks(trackClusterJ->clusterProtoTracks);
       trackClusterJ->clearProtoTracks();
-      std::cout << "Merged shower-track" << std::endl;
+      //std::cout << "Merged shower-track" << std::endl;
     }
 
   }
@@ -1622,7 +1622,7 @@ bool cluster::fuzzyClusterAlg::mergeTrackClusters(unsigned int clusIndexStart,
     if(performedBestMerge){ 
       trackClusters->at(clusIndexStart).addProtoTracks(trackClusters->at(bestToMergeTrackCluster).clusterProtoTracks);
       trackClusters->at(bestToMergeTrackCluster).clearProtoTracks();
-      std::cout << "Merged track-track" << std::endl;
+      //std::cout << "Merged track-track" << std::endl;
     }
 
   }
