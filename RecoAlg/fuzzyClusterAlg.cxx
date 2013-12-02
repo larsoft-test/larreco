@@ -23,6 +23,7 @@
 #include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+//#include <TStopwatch.h>
 
 #include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Ptr.h" 
@@ -40,7 +41,7 @@
 #include "Geometry/WireGeo.h"
 #include "Utilities/AssociationUtil.h"
 
-
+#include <time.h>
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -63,8 +64,8 @@ namespace cluster{
 // fuzzyClusterAlg stuff
 //----------------------------------------------------------
 cluster::fuzzyClusterAlg::fuzzyClusterAlg(fhicl::ParameterSet const& pset) 
-   : fHBAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg"))
-   , fDBScan(pset.get< fhicl::ParameterSet >("DBScanAlg"))
+   : fHBAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg")),
+    fDBScan(pset.get< fhicl::ParameterSet >("DBScanAlg"))
 {
  this->reconfigure(pset); 
 }
@@ -81,20 +82,22 @@ void cluster::fuzzyClusterAlg::reconfigure(fhicl::ParameterSet const& p)
   fMaxNumClusters                 = p.get< int    >("MaxNumClusters");
   nIterations                     = p.get< int    >("Iterations");
   fDoFuzzyRemnantMerge            = p.get< int    >("DoFuzzyRemnantMerge"            );
-  fFuzzyRemnantMergeCutoff        = p.get< double >("FuzzyRemnantMergeCutoff"        );
-  fDoHoughLineMerge               = p.get< int    >("DoHoughLineMerge"               );
-  fHoughLineMergeAngle            = p.get< double >("HoughLineMergeAngle"            );
-  fHoughLineMergeCutoff           = p.get< double >("HoughLineMergeCutoff"           );
-  fDoChargeAsymAngleMerge         = p.get< int    >("DoChargeAsymAngleMerge"         );
-  fChargeAsymAngleCut             = p.get< double >("ChargeAsymAngleCut"             );
-  fSigmaChargeAsymAngleCut        = p.get< double >("SigmaChargeAsymAngleCut"        );
-  fChargeAsymAngleCutoff          = p.get< double >("ChargeAsymAngleCutoff"          );
-  fDoShowerHoughLineMerge         = p.get< int    >("DoShowerHoughLineMerge"         );
-  fShowerHoughLineMergeAngle      = p.get< double >("ShowerHoughLineMergeAngle"      );
-  fShowerHoughLineMergeCutoff     = p.get< double >("ShowerHoughLineMergeCutoff"     );
+  fFuzzyRemnantMergeCutoff        = p.get< float >("FuzzyRemnantMergeCutoff"        );
+  fDoTrackClusterMerge            = p.get< int    >("DoTrackClusterMerge"            );
+  fTrackClusterMergeCutoff        = p.get< float >("TrackClusterMergeCutoff"        );
+  fChargeAsymAngleCut             = p.get< float >("ChargeAsymAngleCut"             );
+  fSigmaChargeAsymAngleCut        = p.get< float >("SigmaChargeAsymAngleCut"        );
+  fChargeAsymAngleCutoff          = p.get< float >("ChargeAsymAngleCutoff"          );
+  fDoShowerClusterMerge           = p.get< int    >("DoShowerClusterMerge"           );
+  fDoShowerTrackClusterMerge      = p.get< int    >("DoShowerTrackClusterMerge"      );
+  fShowerClusterMergeCutoff       = p.get< float >("ShowerClusterMergeCutoff"       );
+  fShowerClusterMergeAngle        = p.get< float >("ShowerClusterMergeAngle"        );
+  fShowerTrackClusterMergeCutoff  = p.get< float >("ShowerTrackClusterMergeCutoff"  );
+  fShowerTrackClusterMergeAngle   = p.get< float >("ShowerTrackClusterMergeAngle"   );
   fDoShowerHoughLineInterceptMerge= p.get< int    >("DoShowerHoughLineInterceptMerge");
-  fShowerLikenessCut              = p.get< double >("ShowerLikenessCut"              );
-  fShowerWidthAngle               = p.get< double >("ShowerWidthAngle"               );
+  fShowerLikenessCut              = p.get< float >("ShowerLikenessCut"              );
+  fShowerWidthAngle               = p.get< float >("ShowerWidthAngle"               );
+  fMaxVertexLines                 = p.get< int   >("MaxVertexLines"                 );
   fHBAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughBaseAlg"));
   fDBScan.reconfigure(p.get< fhicl::ParameterSet >("DBScanAlg"));
 }
@@ -133,18 +136,18 @@ void cluster::fuzzyClusterAlg::InitFuzzy(std::vector<art::Ptr<recob::Hit> >& all
   // Collect the hits in a useful form,
   // and take note of the maximum time width
   fMaxWidth=0.0;
-  //fpsMat = TMatrixT<double>(allhits.size(),2);
-  //fpsMembership = TMatrixT<double>(iNumClusters, allhits.size());
+  //fpsMat = TMatrixT<float>(allhits.size(),2);
+  //fpsMembership = TMatrixT<float>(iNumClusters, allhits.size());
   fpsMat.ResizeTo(allhits.size(),2);
-  for (unsigned int j = 0; j < allhits.size(); ++j){
-    int dims = 3;//our point is defined by 3 elements:wire#,center of the hit, and the hit width
-    std::vector<float> p(dims);
+  float tickToDist = larp->DriftVelocity(larp->Efield(),larp->Temperature());
+  tickToDist *= 1.e-3 * detp->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
+  int dims = 3;//our point is defined by 3 elements:wire#,center of the hit, and the hit width
+  std::vector<float> p(dims);
+  for (auto allhitsItr = allhits.begin(); allhitsItr < allhits.end(); ++allhitsItr){
         
-    float tickToDist = larp->DriftVelocity(larp->Efield(),larp->Temperature());
-    tickToDist *= 1.e-3 * detp->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
-    p[0] = (allhits[j]->Channel())*fGeom->WirePitch(fGeom->View(allhits[j]->Channel()));
-    p[1] = ((allhits[j]->StartTime()+allhits[j]->EndTime()  )/2.)*tickToDist;
-    p[2] = (allhits[j]->EndTime()  -allhits[j]->StartTime())*tickToDist;   //width of a hit in cm
+    p[0] = ((*allhitsItr)->Channel())*fGeom->WirePitch(fGeom->View((*allhitsItr)->Channel()));
+    p[1] = (((*allhitsItr)->StartTime()+(*allhitsItr)->EndTime()  )/2.)*tickToDist;
+    p[2] = ((*allhitsItr)->EndTime()  -(*allhitsItr)->StartTime())*tickToDist;   //width of a hit in cm
 
     // check on the maximum width condition
     if ( p[2] > fMaxWidth ) fMaxWidth = p[2];
@@ -152,8 +155,8 @@ void cluster::fuzzyClusterAlg::InitFuzzy(std::vector<art::Ptr<recob::Hit> >& all
     fps.push_back(p);
 
     // Store hits in the matrix needed for fuzzy clustering
-    fpsMat(j,0) = p[0];
-    fpsMat(j,1) = p[1];
+    fpsMat(allhitsItr-allhits.begin(),0) = p[0];
+    fpsMat(allhitsItr-allhits.begin(),1) = p[1];
 
   }
 
@@ -164,7 +167,7 @@ void cluster::fuzzyClusterAlg::InitFuzzy(std::vector<art::Ptr<recob::Hit> >& all
 
 
 //----------------------------------------------------------
-void cluster::fuzzyClusterAlg::computeCentroids(int k)
+inline void cluster::fuzzyClusterAlg::computeCentroids(int k)
 {
   // fpsCentroids are the weighted centers of the clusters.
   // We multiply fpsMembership by fpsMat to find fpsCentroids, then
@@ -212,7 +215,7 @@ void cluster::fuzzyClusterAlg::computeCentroids(int k)
 
 }
 //----------------------------------------------------------
-void cluster::fuzzyClusterAlg::computeCentroids2(int k)
+inline void cluster::fuzzyClusterAlg::computeCentroids2(int k)
 {
   // Centroids are defined by c_j = (sum^N_i=1 u^m_ij*x_i)/(sum^N_i=1 u^m_ij)
 
@@ -256,7 +259,7 @@ void cluster::fuzzyClusterAlg::computeCentroids2(int k)
   }
 }
 //----------------------------------------------------------
-bool cluster::fuzzyClusterAlg::updateMembership(int k)
+inline bool cluster::fuzzyClusterAlg::updateMembership(int k)
 {
   // We are updating the membership of the data points based on the centroids
   // determined. This is determined using
@@ -268,8 +271,8 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
   
   int iNumClusters = k;
   TMatrixT<float> mNormOneXiMinusCj(fpsMat.GetNrows(),iNumClusters);
-  std::vector< TMatrixT<float> > clusterCovarianceMats(iNumClusters);
-  std::vector<double> clusterRadii(iNumClusters);
+  TMatrixT<float> clusterCovarianceMats[iNumClusters];
+  float clusterRadii[iNumClusters];
 
   // Determine the elements of u^m_ij
   TMatrixT<float> Uji_m(iNumClusters, fpsMat.GetNrows());
@@ -291,15 +294,16 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
   TMatrixT<float> fpsDistances(iNumClusters,fpsMat.GetNrows());
   // Calculate the covariance matrix
   // For each clusters
-  for ( int j = 0; j < iNumClusters; ++j){
+  float Uji_m_sum;
+  for ( int j = 0; j < iNumClusters; j++){
     fpsCentroids_row = TMatrixFRow(fpsCentroids,j);
     TMatrixT<float> clusCovarianceMat(2,2);
-    float Uji_m_sum = 0;
+    Uji_m_sum = 0;
     //For each hit
-    for ( int i = 0; i < fpsMat.GetNrows(); ++i){
+    TMatrixT<float> fpsMatMinusCent_col(1,2);
+    TMatrixT<float> fpsMatMinusCent_row(2,1);
+    for ( int i = 0; i < fpsMat.GetNrows(); i++){
       fpsMat_row = TMatrixFRow(fpsMat,i);
-      TMatrixT<float> fpsMatMinusCent_col(1,2);
-      TMatrixT<float> fpsMatMinusCent_row(2,1);
       fpsMatMinusCent_col(0,0)=fpsMat_row(0)-fpsCentroids_row(0);
       fpsMatMinusCent_col(0,1)=fpsMat_row(1)-fpsCentroids_row(1);
       fpsMatMinusCent_row(0,0)=fpsMat_row(0)-fpsCentroids_row(0);
@@ -320,7 +324,7 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
     clusterCovarianceMats[j] = clusCovarianceMat;
     try
     {
-      clusterRadii[j] = fBeta*pow(clusCovarianceMat.Determinant(),0.25)/(double)iNumClusters;
+      clusterRadii[j] = fBeta*pow(clusCovarianceMat.Determinant(),0.25)/(float)iNumClusters;
     }
     catch(...){
       mf::LogVerbatim("fuzzyCluster") << "updateMembership: Covariance matrix is singular 1";
@@ -337,7 +341,7 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
     //clusCovarianceMatsEigen.GetEigenValues().Print();
   //}
 
-  for ( int j = 0; j < iNumClusters; ++j){
+  for ( int j = 0; j < iNumClusters; j++){
     TMatrixT<float> clusCovarianceMatInv = clusterCovarianceMats[j];
     try
     {
@@ -347,10 +351,10 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
       mf::LogVerbatim("fuzzyCluster") << "updateMembership: Covariance matrix is singular 2";
     }
     fpsCentroids_row = TMatrixFRow(fpsCentroids,j);
-    for ( int i = 0; i < fpsMat.GetNrows(); ++i){
+    TMatrixT<float> fpsMatMinusCent_row(1,2);
+    TMatrixT<float> fpsMatMinusCent_col(2,1);
+    for ( int i = 0; i < fpsMat.GetNrows(); i++){
       fpsMat_row = TMatrixFRow(fpsMat,i);
-      TMatrixT<float> fpsMatMinusCent_row(1,2);
-      TMatrixT<float> fpsMatMinusCent_col(2,1);
       fpsMatMinusCent_row(0,0)=fpsMat_row(0)-fpsCentroids_row(0);
       fpsMatMinusCent_row(0,1)=fpsMat_row(1)-fpsCentroids_row(1);
       fpsMatMinusCent_col(0,0)=fpsMat_row(0)-fpsCentroids_row(0);
@@ -364,8 +368,8 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
       //std::cout << tempDistanceSquared(0,0)/sqrt(clusCovarianceMatInv.Determinant()) << " " << pow(clusterRadii[j],2) << std::endl;
       try
       {
-        //fpsDistances(j,i) = std::sqrt(std::max((double)0,tempDistanceSquared(0,0)/sqrt(clusterCovarianceMats[j].Determinant()) - pow(clusterRadii[j],2)));
-        fpsDistances(j,i) = std::sqrt(std::max((double)0,tempDistanceSquared(0,0)/sqrt(clusCovarianceMatInv.Determinant()) - pow(clusterRadii[j],2)));
+        //fpsDistances(j,i) = std::sqrt(std::max((float)0,tempDistanceSquared(0,0)/sqrt(clusterCovarianceMats[j].Determinant()) - pow(clusterRadii[j],2)));
+        fpsDistances(j,i) = std::sqrt(std::max((double)0,tempDistanceSquared(0,0)/sqrt(clusCovarianceMatInv.Determinant()) - (clusterRadii[j])*(clusterRadii[j])));
       }
       catch(...){
         mf::LogVerbatim("fuzzyCluster") << "updateMembership: Covariance matrix is singular 2";
@@ -396,10 +400,11 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
   //fpsDistances.Print();
   fpsNewMembership.ResizeTo(fpsMembership);
   float fCoeff;
+  int clusWithZeroDistance = 0;
   // For each hit
   for ( int i = 0; i < fpsMat.GetNrows(); i++){
     // Does the hit have nonzero distance to all clusters?
-    int clusWithZeroDistance = 0;
+    clusWithZeroDistance = 0;
     for ( int j = 0; j < iNumClusters; j++){
       if(fpsDistances(j,i) == 0)
         clusWithZeroDistance++;
@@ -427,8 +432,8 @@ bool cluster::fuzzyClusterAlg::updateMembership(int k)
           fpsNewMembership(j,i) = 0;
         }
         if(fpsDistances(j,i) == 0){
-          fpsNewMembership(j,i) = 1/(double)clusWithZeroDistance;
-          //fpsNewMembership(j,i) = 1/(double)iNumClusters;
+          fpsNewMembership(j,i) = 1/(float)clusWithZeroDistance;
+          //fpsNewMembership(j,i) = 1/(float)iNumClusters;
         }
       }
     }
@@ -473,16 +478,16 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
     return;
   
   //factor to make x and y scale the same units
-  uint32_t channel    = allhits[0]->Wire()->RawDigit()->Channel();
-  double   wirePitch  = geom->WirePitch(geom->View(channel));
-  double   xyScale    = .001*larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
-  xyScale            *= detprop->SamplingRate()/wirePitch;
-  double   wire_dist  = wirePitch;
-  double   tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
-  tickToDist         *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
+  uint32_t     channel = allhits[0]->Wire()->RawDigit()->Channel();
+  float wirePitch = geom->WirePitch(geom->View(channel));
+  float xyScale  = .001*larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
+  xyScale        *= detprop->SamplingRate()/wirePitch;
+  float wire_dist = wirePitch;
+  float tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
+  tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
   
-  float indcolscaling = 0.; // a parameter to account for the different 
-        		    // characteristic hit width of induction and collection plane
+  float indcolscaling = 0.;       //a parameter to account for the different 
+        			   ////characteristic hit width of induction and collection plane
   /// \todo: the collection plane's characteristic hit width's are, 
   /// \todo: on average, about 5 time samples wider than the induction plane's. 
   /// \todo: this is hard-coded for now.
@@ -499,7 +504,6 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   if (k > fpsMat.GetNrows() || k <= 0)
     return;
 
-  int i = 0;
   fpsMembership.ResizeTo(k, fps.size());
   fpsNewMembership.ResizeTo(k, fps.size());
   fpsMembershipStore[k-1].ResizeTo(k, fps.size());
@@ -533,6 +537,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
 
   // Run iterations of the clustering algorithm
   fBeta = 1;
+  int i = 0;
   while(!updateMembership(k)){
     //std::cout << "k: " << k << std::endl;
     if(k == 1)
@@ -555,8 +560,23 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   //} 
 
 
+
+
+
   fpsMembershipFinal.ResizeTo(k, fps.size());
   fpsMembershipFinal = fpsMembership; 
+
+
+
+
+
+
+
+
+
+
+
+ 
 
   int nClusters = 0;
   if(k > 0) nClusters = fpsMembershipFinal.GetNrows();
@@ -569,10 +589,12 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
 
   //mf::LogInfo("fuzzyCluster") << iMinXBClusterNum  << nClusters ;
   //std::cout << "nClusters: " << nClusters  << std::endl;
+  int iCluster;
+  float maxClusMembership;
   for (size_t pid = 0; pid < fps.size(); pid++){
     //mf::LogInfo("fuzzyCluster") << pid ;
-    int iCluster = kNO_CLUSTER;
-    float maxClusMembership = -1;
+    iCluster = kNO_CLUSTER;
+    maxClusMembership = -1;
     // not already visited
     if (fpointId_to_clusterId[pid] == kNO_CLUSTER) {
       for (int i = 0; i <= nClusters-1; i++){
@@ -591,237 +613,251 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   std::vector<unsigned int> corners;
   corners.clear();
   // nClustersTEmp is how many fuzzy clusters we originally found, it is not how many hough lines we found
-  int nClustersTemp = nClusters;
+  unsigned int nClustersTemp = nClusters;
 
  
   
+
+
+
+
+  
   // Loop over clusters with the Hough line finder to break the clusters up further
   // list of lines
-  std::vector<lineSlope> linesFound;
+  //std::cout << "Starting Hough" << std::endl;
+  std::vector<protoTrack> protoTracksFound;
+  //TStopwatch w;
+  //float timeTotal = 0;
   if(nClustersTemp > 0)
     for (unsigned int i = 0; i <= (unsigned int)nClustersTemp-1; i++){
-      fHBAlg.Transform(allhits, &fpointId_to_clusterId, i, &nClusters, corners, &linesFound);
+      //w.Start();
+      fHBAlg.Transform(allhits, &fpointId_to_clusterId, i, &nClusters, &protoTracksFound);
+      //w.Stop();
+      //timeTotal+=w.CpuTime();
     }
+  //std::cout << "Hough over, took for cpu time: " << timeTotal << std::endl;
 
   // Determine the shower likeness of lines
-  for(auto linesFoundItr = linesFound.begin(); linesFoundItr < linesFound.end(); linesFoundItr++){
-    float totalBkgDist = 0;
-    float totalBkgDistCharge = 0;
-    int   totalBkg = 0;
-    float fMaxDistance = 0.1;
+  std::vector<showerCluster> showerClusters; 
+  std::vector<trackCluster>  trackClusters; 
+  float totalBkgDistCharge;
+  float fMaxDistance;
+  float distance;
+  float peakTimePerpMin;
+  float peakTimePerpMax;
+  for(auto protoTracksFoundItr = protoTracksFound.begin(); protoTracksFoundItr < protoTracksFound.end(); protoTracksFoundItr++){
+    totalBkgDistCharge = 0;
+    fMaxDistance = 0.1;
     for(auto hitsItr = allhits.cbegin(); hitsItr != allhits.cend(); ++hitsItr){
-      /// Veto the hit if it already belongs to a line
-      //if(fpointId_to_clusterId->at(hitsItr-hits.cbegin()) != clusterId)
+      /// Veto the hit if it already belongs to a line, proto tracks (Hough lines) are added after the fuzzy clusters
+      //if(fpointId_to_clusterId.at(hitsItr-allhits.cbegin()) < nClustersTemp)
         //continue;
-      float distance = (TMath::Abs((*hitsItr)->PeakTime()-linesFoundItr->clusterSlope*(double)((*hitsItr)->WireID().Wire)-linesFoundItr->clusterIntercept)/(std::sqrt(pow(xyScale*linesFoundItr->clusterSlope,2)+1)));
+      distance = (TMath::Abs((*hitsItr)->PeakTime()-protoTracksFoundItr->clusterSlope*(float)((*hitsItr)->WireID().Wire)-protoTracksFoundItr->clusterIntercept)/(std::sqrt(pow(xyScale*protoTracksFoundItr->clusterSlope,2)+1)));
       /// Sum up background hits, use smart distance
-      double peakTimePerpMin=-(1/linesFoundItr->clusterSlope)*(double)((*hitsItr)->WireID().Wire)+allhits[linesFoundItr->iMinWire]->PeakTime()+(1/linesFoundItr->clusterSlope)*(allhits[linesFoundItr->iMinWire]->WireID().Wire);
-      double peakTimePerpMax=-(1/linesFoundItr->clusterSlope)*(double)((*hitsItr)->WireID().Wire)+allhits[linesFoundItr->iMaxWire]->PeakTime()+(1/linesFoundItr->clusterSlope)*(allhits[linesFoundItr->iMaxWire]->WireID().Wire);
+      peakTimePerpMin=-(1/protoTracksFoundItr->clusterSlope)*(float)((*hitsItr)->WireID().Wire)+allhits[protoTracksFoundItr->iMinWire]->PeakTime()+(1/protoTracksFoundItr->clusterSlope)*(allhits[protoTracksFoundItr->iMinWire]->WireID().Wire);
+      peakTimePerpMax=-(1/protoTracksFoundItr->clusterSlope)*(float)((*hitsItr)->WireID().Wire)+allhits[protoTracksFoundItr->iMaxWire]->PeakTime()+(1/protoTracksFoundItr->clusterSlope)*(allhits[protoTracksFoundItr->iMaxWire]->WireID().Wire);
       if(distance > 1*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling)
-         && distance < 100*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling)){
-        if((linesFoundItr->clusterSlope < 0 && (*hitsItr)->PeakTime() < peakTimePerpMin && (*hitsItr)->PeakTime() > peakTimePerpMax)
-            || (linesFoundItr->clusterSlope > 0 && (*hitsItr)->PeakTime() > peakTimePerpMin && (*hitsItr)->PeakTime() < peakTimePerpMax)){
-          totalBkgDist+=distance;
+         && distance < 25*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling)){
+        if((protoTracksFoundItr->clusterSlope < 0 && (*hitsItr)->PeakTime() < peakTimePerpMin && (*hitsItr)->PeakTime() > peakTimePerpMax)
+            || (protoTracksFoundItr->clusterSlope > 0 && (*hitsItr)->PeakTime() > peakTimePerpMin && (*hitsItr)->PeakTime() < peakTimePerpMax)){
           totalBkgDistCharge+=distance/(*hitsItr)->Charge();
-          totalBkg++;
         }
       }
     }/// end loop over hits
-    linesFoundItr->showerLikeness = totalBkgDistCharge/(double)linesFoundItr->hits.size();
-    std::cout << "showerLikeness: " << totalBkgDistCharge/(double)linesFoundItr->hits.size() << std::endl;
+    protoTracksFoundItr->showerLikeness = totalBkgDistCharge/(float)protoTracksFoundItr->hits.size();
+    //std::cout << "showerLikeness: " << totalBkgDistCharge/(float)protoTracksFoundItr->hits.size() << std::endl;
+
+    if(protoTracksFoundItr->showerLikeness > fShowerLikenessCut)
+      showerClusters.push_back(showerCluster(*protoTracksFoundItr));
+    else
+      trackClusters.push_back(trackCluster(*protoTracksFoundItr));
+
   }/// end loop over lines found
 
-  if(fDoShowerHoughLineMerge)  mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeShower,wire_dist,tickToDist);
-  if(fDoShowerHoughLineInterceptMerge)     mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeShowerIntercept,wire_dist,tickToDist);
-  if(fDoChargeAsymAngleMerge)  mergeHoughLinesBySegment(0,&linesFound,xyScale,iMergeChargeAsymAngle,wire_dist,tickToDist);
 
-  // Accumulate the merged lines
-  std::map<int,mergedLines> mergedLinesMap; 
-  for(auto linesFoundItr = linesFound.begin(); linesFoundItr != linesFound.end(); linesFoundItr++){
-    if(!linesFoundItr->merged)
-      continue;
-    if(!mergedLinesMap.count(linesFoundItr->clusterNumber))
-      mergedLinesMap.insert(std::make_pair(linesFoundItr->clusterNumber,mergedLines(linesFoundItr->totalQ,linesFoundItr->pMin0,linesFoundItr->pMin1,linesFoundItr->pMax0,linesFoundItr->pMax1,linesFoundItr->clusterNumber,linesFoundItr->showerLikeness)));
-    else {
-      // Check if new line has minimum that is lower
-      if(linesFoundItr->pMin0 < mergedLinesMap.at(linesFoundItr->clusterNumber).pMin0){
-        mergedLinesMap.at(linesFoundItr->clusterNumber).pMin0=linesFoundItr->pMin0;
-        mergedLinesMap.at(linesFoundItr->clusterNumber).pMin1=linesFoundItr->pMin1;
-      }
-      if(linesFoundItr->pMax0 > mergedLinesMap.at(linesFoundItr->clusterNumber).pMax0){
-        mergedLinesMap.at(linesFoundItr->clusterNumber).pMax0=linesFoundItr->pMax0;
-        mergedLinesMap.at(linesFoundItr->clusterNumber).pMax1=linesFoundItr->pMax1;
-      }
-      mergedLinesMap.at(linesFoundItr->clusterNumber).totalQ+=linesFoundItr->totalQ;
-      //mergedLinesMap.at(linesFoundItr->clusterNumber).showerLikeness+=linesFoundItr->showerLikeness;
-      if(linesFoundItr->showerLikeness > mergedLinesMap.at(linesFoundItr->clusterNumber).showerLikeness){
-        mergedLinesMap.at(linesFoundItr->clusterNumber).showerLikeness=linesFoundItr->showerLikeness;
-      }
-    }
-  }
 
-  /// Average the slopes and y-intercepts of Hough lines in shower like regions
-  std::vector<showerLine> showerLines; 
-  for(auto linesFoundItr = linesFound.begin(); linesFoundItr != linesFound.end(); linesFoundItr++){
-    if(linesFoundItr->showerLikeness<fShowerLikenessCut && !linesFoundItr->merged)
-      continue;
-    if(linesFoundItr->merged)
-      if(mergedLinesMap.at(linesFoundItr->clusterNumber).showerLikeness < fShowerLikenessCut)
+
+
+
+
+
+
+
+  // Merge Hough lines
+  bool trackMerged;
+  bool showerMerged;
+  bool showerTrackMerged;
+
+  if(fDoTrackClusterMerge && trackClusters.size() > 1){
+    unsigned int i = 0;
+    while(i < trackClusters.size()-1){ 
+      trackMerged = mergeTrackClusters(i,&trackClusters,xyScale,wire_dist,tickToDist);
+      if(trackMerged)
         continue;
-    int lineSize = linesFoundItr->hits.size();
-    double lineSlope = linesFoundItr->clusterSlope;
-    double lineIntercept = linesFoundItr->clusterIntercept;
-    //std::cout << "line slopey: " << lineSlope << " intercepty: " << linesFoundItr->clusterIntercept << " line size: " << lineSize  << std::endl;
-    // Check if showerLines contains a line with this cluster number already
-    bool alreadyInserted=false;
-    int insertedIndex=-999999;
-    for(auto showerLinesItr = showerLines.begin(); showerLinesItr!=showerLines.end();showerLinesItr++){
-      if(showerLinesItr->clusterNumber == linesFoundItr->clusterNumber){
-        alreadyInserted=true;
-        insertedIndex=showerLinesItr-showerLines.begin();
-        break;
+      else
+        i++;
+    } 
+  }
+
+  if(fDoShowerClusterMerge && showerClusters.size() > 1){
+    unsigned int i = 0;
+    while(i < showerClusters.size()-1){ 
+      showerMerged = mergeShowerClusters(i,&showerClusters,xyScale,wire_dist,tickToDist);
+      if(showerMerged)
+        continue;
+      else
+        i++;
+    } 
+  }
+
+  if(fDoShowerTrackClusterMerge && showerClusters.size() > 0 && trackClusters.size() >0){
+    unsigned int i = 0;
+    while(i < showerClusters.size()){ 
+      unsigned int j = 0;
+      while(j < trackClusters.size()){
+        showerTrackMerged = mergeShowerTrackClusters(&showerClusters[i],&trackClusters[j],xyScale,wire_dist,tickToDist);
+        if(showerTrackMerged)
+          continue;
+        else
+          j++;
       }
-    }
-    if(!alreadyInserted){
-      showerLines.push_back(showerLine(linesFoundItr->clusterSlope*lineSize,
-              linesFoundItr->clusterIntercept*lineSize,
-              linesFoundItr->clusterNumber,
-              linesFoundItr->clusterNumber,
-              linesFoundItr->hits.size(),
-              linesFoundItr->iMinWire,
-              linesFoundItr->iMaxWire));
-      //std::cout << "min wire: " << hits[linesFoundItr->iMinWire]->WireID().Wire << std::endl;
-      //std::cout << "max wire: " << hits[linesFoundItr->iMaxWire]->WireID().Wire << std::endl;
-      continue;
-    }
-    if(allhits[linesFoundItr->iMinWire]->WireID().Wire < allhits[showerLines.at(insertedIndex).iMinWire]->WireID().Wire)
-      showerLines.at(insertedIndex).iMinWire=linesFoundItr->iMinWire;
-    if(allhits[linesFoundItr->iMaxWire]->WireID().Wire > allhits[showerLines.at(insertedIndex).iMaxWire]->WireID().Wire)
-      showerLines.at(insertedIndex).iMaxWire=linesFoundItr->iMaxWire;
-    showerLines.at(insertedIndex).slope+=lineSlope*lineSize;
-    showerLines.at(insertedIndex).intercept+=lineIntercept*lineSize;
-    showerLines.at(insertedIndex).lineSize+=lineSize;
-    //std::cout << "min wire: " << hits[showerLines[insertedIndex].iMinWire]->WireID().Wire << std::endl;
-    //std::cout << "max wire: " << hits[showerLines[insertedIndex].iMaxWire]->WireID().Wire << std::endl;
+      i++;
+    } 
   }
-  // Sort the averaged lines by size
-  std::sort(showerLines.begin(),showerLines.end());
-  std::reverse(showerLines.begin(),showerLines.end());
 
-  /// Now actually do the averaging and find line direction
-  std::vector<showerLine> showerLinesAverage; // 
-  for(auto showerLinesItr = showerLines.begin(); showerLinesItr!= showerLines.end(); showerLinesItr++){
-
-    if(showerLinesItr->showerMerged)
-      continue;
-
-    // If the line was already merged, skip it to prevent showers from splintering off
-    if(showerLinesItr->clusterNumber != showerLinesItr->oldClusterNumber)
-      continue;
-
-    //showerLines.at(showerLinesItr->first).slope/=(showerLinesItr->second.lineSize);
-    //showerLines.at(showerLinesItr->first).intercept/=(showerLinesItr->second.lineSize);
-    //std::cout << showerLines.at(showerLinesItr-showerLines.begin()).slope << std::endl;
-    //std::cout << showerLines.at(showerLinesItr-showerLines.begin()).intercept << std::endl;
-    double averageSlope = showerLines.at(showerLinesItr-showerLines.begin()).slope/showerLinesItr->lineSize;
-    double averageInt = showerLines.at(showerLinesItr-showerLines.begin()).intercept/showerLinesItr->lineSize;
-    int midWire = allhits[showerLinesItr->iMinWire]->WireID().Wire/2 + 
-      allhits[showerLinesItr->iMaxWire]->WireID().Wire/2 + 
-      (allhits[showerLinesItr->iMinWire]->WireID().Wire & allhits[showerLinesItr->iMaxWire]->WireID().Wire & 1);
-    double midPeakTime = averageSlope*midWire+averageInt;
-    showerLinesAverage.push_back(showerLine(averageSlope,
-              averageInt,
-              showerLinesItr->clusterNumber,
-              showerLinesItr->clusterNumber,
-              showerLinesItr->lineSize,
-              showerLinesItr->iMinWire,
-              showerLinesItr->iMaxWire));
-    mf::LogVerbatim("fuzzyClusterAlg") << "slope: " << averageSlope 
-				       << " intercept: " << averageInt
-				       << " min wire: " << allhits[showerLinesItr->iMinWire]->WireID().Wire
-				       << " max wire: " << allhits[showerLinesItr->iMaxWire]->WireID().Wire
-				       << " mid wire: " << midWire
-				       << " midPeakTime: " << midPeakTime
-				       << " line size: " << showerLinesItr->lineSize;
-
+  if(fDoShowerClusterMerge && showerClusters.size() > 1){
+    unsigned int i = 0;
+    while(i < showerClusters.size()-1){ 
+      showerMerged = mergeShowerClusters(i,&showerClusters,xyScale,wire_dist,tickToDist);
+      if(showerMerged)
+        continue;
+      else
+        i++;
+    } 
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   // Reassign the merged lines
   for(auto fpointId_to_clusterIdItr = fpointId_to_clusterId.begin(); fpointId_to_clusterIdItr != fpointId_to_clusterId.end(); ++fpointId_to_clusterIdItr){
-    //if(*fpointId_to_clusterIdItr == clusterId)
-      //continue;
-    for(auto linesFoundItr = linesFound.begin(); linesFoundItr < linesFound.end(); linesFoundItr++){
-      if(*fpointId_to_clusterIdItr == (unsigned int)linesFoundItr->oldClusterNumber)
-        *fpointId_to_clusterIdItr = linesFoundItr->clusterNumber;
+    for(auto trackClustersItr = trackClusters.begin(); trackClustersItr != trackClusters.end(); trackClustersItr++){
+      for(auto protoTracksFoundItr = trackClustersItr->clusterProtoTracks.begin(); protoTracksFoundItr < trackClustersItr->clusterProtoTracks.end(); protoTracksFoundItr++){
+        if(*fpointId_to_clusterIdItr == (unsigned int)protoTracksFoundItr->oldClusterNumber)
+          *fpointId_to_clusterIdItr = protoTracksFoundItr->clusterNumber;
+      }
+    }
+    for(auto showerClustersItr = showerClusters.begin(); showerClustersItr != showerClusters.end(); showerClustersItr++){
+      for(auto protoTracksFoundItr = showerClustersItr->clusterProtoTracks.begin(); protoTracksFoundItr < showerClustersItr->clusterProtoTracks.end(); protoTracksFoundItr++){
+        if(*fpointId_to_clusterIdItr == (unsigned int)protoTracksFoundItr->oldClusterNumber){
+          *fpointId_to_clusterIdItr = protoTracksFoundItr->clusterNumber;
+        }
+      }
     }
   }
 
 
+
+
+
+
+
+
+
+
+
+
   // Find sizes of all merged lines combined
-  // For linesFoundSizes, key is cluster number and size is the mapped value
-  std::map<int,float> linesFoundSizes;
-  for(auto linesFoundItr = linesFound.begin(); linesFoundItr < linesFound.end(); linesFoundItr++){
-    if(!linesFoundSizes.count(linesFoundItr->clusterNumber))
-      linesFoundSizes[linesFoundItr->clusterNumber] = std::sqrt( pow(linesFoundItr->pMin0-linesFoundItr->pMax0,2)+pow(linesFoundItr->pMin1-linesFoundItr->pMax1,2));
+  // For protoTracksFoundSizes, key is cluster number and size is the mapped value
+  std::map<int,float> protoTracksFoundSizes;
+  for(auto protoTracksFoundItr = protoTracksFound.begin(); protoTracksFoundItr < protoTracksFound.end(); protoTracksFoundItr++){
+    if(!protoTracksFoundSizes.count(protoTracksFoundItr->clusterNumber))
+      protoTracksFoundSizes[protoTracksFoundItr->clusterNumber] = std::sqrt( pow(protoTracksFoundItr->pMin0-protoTracksFoundItr->pMax0,2)+pow(protoTracksFoundItr->pMin1-protoTracksFoundItr->pMax1,2));
     else 
-      linesFoundSizes[linesFoundItr->clusterNumber]+= std::sqrt( pow(linesFoundItr->pMin0-linesFoundItr->pMax0,2)+pow(linesFoundItr->pMin1-linesFoundItr->pMax1,2));
+      protoTracksFoundSizes[protoTracksFoundItr->clusterNumber]+= std::sqrt( pow(protoTracksFoundItr->pMin0-protoTracksFoundItr->pMax0,2)+pow(protoTracksFoundItr->pMin1-protoTracksFoundItr->pMax1,2));
   }
   
   art::PtrVector<recob::Hit> unclusteredhits;
   std::vector<unsigned int> unclusteredhitsToallhits;
   int nDBClusters = 0;
+  bool unclustered;
+  float p0;
+  float p1;
+  float minDistance;
   if(fDoFuzzyRemnantMerge){
     for(auto allhitsItr = allhits.cbegin(); allhitsItr != allhits.cend(); ++allhitsItr){
-      bool unclustered = true;
+      unclustered = true;
       // nClusters is the number of fuzzy clusters we found, we only assign hits to lines here
       // if they are not already part of hough lines
       if(fpointId_to_clusterId.at(allhitsItr-allhits.begin()) >= (unsigned int) nClustersTemp){
         unclustered = false;
         continue;
       }
-      double p0 = ((*allhitsItr)->Wire()->RawDigit()->Channel())*wire_dist;
-      double p1 = (((*allhitsItr)->StartTime()+(*allhitsItr)->EndTime())/2.)*tickToDist;
-      double minDistance = 999999;
-      for(auto linesFoundItr = linesFound.begin(); linesFoundItr < linesFound.end(); linesFoundItr++){
-        
-        double distance = PointSegmentDistance( p0, p1, linesFoundItr->pMin0, linesFoundItr->pMin1, linesFoundItr->pMax0, linesFoundItr->pMax1);
-        // Is the point behind or ahead of the line?
-        //if(linesFoundItr->pMin0 > p0){
-           //float linesFoundSlope = (linesFoundItr->pMax1 - linesFoundItr->pMin1)/(linesFoundItr->pMax0 - linesFoundItr->pMin0);
-           //float pMinHitSlope = (p1 - linesFoundItr->pMin1)/(p0 - linesFoundItr->pMin0);
-           //float slopeAngle = atan(std::abs((linesFoundSlope - pMinHitSlope)/(1 + linesFoundSlope*pMinHitSlope)))*(180/TMath::Pi());
-           //if(distance < 10 && slopeAngle < 10){
-             //fpointId_to_clusterId.at(allhitsItr-allhits.begin()) = linesFoundItr->clusterNumber;
-             //unclustered = false;
-             //break;
-           //}
-        //}
-        //if (linesFoundItr->pMax0 < p0){
-           //float linesFoundSlope = (linesFoundItr->pMax1 - linesFoundItr->pMin1)/(linesFoundItr->pMax0 - linesFoundItr->pMin0);
-           //float pMaxHitSlope = (linesFoundItr->pMax1-p1)/(linesFoundItr->pMax0-p0);
-           //float slopeAngle = atan(std::abs((linesFoundSlope - pMaxHitSlope)/(1 + linesFoundSlope*pMaxHitSlope)))*(180/TMath::Pi());
-           //if(distance < 10 && slopeAngle < 10){
-             //fpointId_to_clusterId.at(allhitsItr-allhits.begin()) = linesFoundItr->clusterNumber;
-             //unclustered = false;
-             //break;
-           //}
-        //}
-        
-        // If the line does not look showerlike, skip it
-        if(linesFoundItr->showerLikeness<fShowerLikenessCut)
-          continue;
+      p0 = ((*allhitsItr)->Wire()->RawDigit()->Channel())*wire_dist;
+      p1 = (((*allhitsItr)->StartTime()+(*allhitsItr)->EndTime())/2.)*tickToDist;
+      minDistance = 999999;
 
-        if(distance > fFuzzyRemnantMergeCutoff)
-          continue;
+      for(auto showerClustersItr = showerClusters.begin(); showerClustersItr != showerClusters.end(); showerClustersItr++){
+        for(auto protoTracksItr = showerClustersItr->clusterProtoTracks.begin(); protoTracksItr < showerClustersItr->clusterProtoTracks.end(); protoTracksItr++){
+          
+          distance = PointSegmentDistance( p0, p1, protoTracksItr->pMin0, protoTracksItr->pMin1, protoTracksItr->pMax0, protoTracksItr->pMax1);
+          // Is the point behind or ahead of the line?
+          //if(protoTracksFoundItr->pMin0 > p0){
+             //float protoTracksFoundSlope = (protoTracksFoundItr->pMax1 - protoTracksFoundItr->pMin1)/(protoTracksFoundItr->pMax0 - protoTracksFoundItr->pMin0);
+             //float pMinHitSlope = (p1 - protoTracksFoundItr->pMin1)/(p0 - protoTracksFoundItr->pMin0);
+             //float slopeAngle = atan(std::abs((protoTracksFoundSlope - pMinHitSlope)/(1 + protoTracksFoundSlope*pMinHitSlope)))*(180/TMath::Pi());
+             //if(distance < 10 && slopeAngle < 10){
+               //fpointId_to_clusterId.at(allhitsItr-allhits.begin()) = protoTracksFoundItr->clusterNumber;
+               //unclustered = false;
+               //break;
+             //}
+          //}
+          //if (protoTracksFoundItr->pMax0 < p0){
+             //float protoTracksFoundSlope = (protoTracksFoundItr->pMax1 - protoTracksFoundItr->pMin1)/(protoTracksFoundItr->pMax0 - protoTracksFoundItr->pMin0);
+             //float pMaxHitSlope = (protoTracksFoundItr->pMax1-p1)/(protoTracksFoundItr->pMax0-p0);
+             //float slopeAngle = atan(std::abs((protoTracksFoundSlope - pMaxHitSlope)/(1 + protoTracksFoundSlope*pMaxHitSlope)))*(180/TMath::Pi());
+             //if(distance < 10 && slopeAngle < 10){
+               //fpointId_to_clusterId.at(allhitsItr-allhits.begin()) = protoTracksFoundItr->clusterNumber;
+               //unclustered = false;
+               //break;
+             //}
+          //}
+          
+          // If the line does not look showerlike, skip it
+          if(protoTracksItr->showerLikeness<fShowerLikenessCut)
+            continue;
 
-        distance/=pow(linesFoundSizes[linesFoundItr->clusterNumber],1/4);
-        if(distance < minDistance){
-          fpointId_to_clusterId.at(allhitsItr-allhits.begin()) = linesFoundItr->clusterNumber;
-          minDistance = distance;
-          unclustered = false;
+          if(distance > fFuzzyRemnantMergeCutoff)
+            continue;
+
+          distance/=pow(protoTracksFoundSizes[protoTracksItr->clusterNumber],1/4);
+          if(distance < minDistance){
+            fpointId_to_clusterId.at(allhitsItr-allhits.begin()) = protoTracksItr->clusterNumber;
+            minDistance = distance;
+            unclustered = false;
+          }
         }
       }
+
+
       if(unclustered){
         unclusteredhitsToallhits.push_back(allhitsItr-allhits.begin());
         unclusteredhits.push_back(*allhitsItr);
@@ -838,7 +874,6 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
     nDBClusters = fDBScan.fclusters.size();
     for(size_t j = 0; j < fDBScan.fpointId_to_clusterId.size(); ++j){	  
       if (fDBScan.fpointId_to_clusterId[j]== kNO_CLUSTER || fDBScan.fpointId_to_clusterId[j]==kNOISE_CLUSTER) {
-      // This shouldn't happen...all points should be clasified by now!
         fpointId_to_clusterId.at(unclusteredhitsToallhits[j]) = kNOISE_CLUSTER;
       } 
       else {
@@ -846,6 +881,18 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
       }
     }
   }
+
+
+
+
+
+
+
+
+
+
+
+
 
   cid = nClusters + nDBClusters;
   
@@ -857,6 +904,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
 
   // Construct clusters, count noise, etc..
   int noise = 0;
+  unsigned int c;
   fclusters.resize(cid);
   for(size_t y = 0; y < fpointId_to_clusterId.size(); ++y){
     if (fpointId_to_clusterId[y] == kNO_CLUSTER) {
@@ -867,7 +915,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
       ++noise;
     } 
     else {
-      unsigned int c = fpointId_to_clusterId[y];
+      c = fpointId_to_clusterId[y];
       if (c >= cid) {
 	mf::LogWarning("fuzzyCluster") << "Point in cluster " << c 
 			      << " when only " << cid 
@@ -886,6 +934,20 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
   mf::LogVerbatim("fuzzyCluster") << "\t" << "...and " << noise << " noise points.";
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //----------------------------------------------------------
 bool cluster::fuzzyClusterAlg::mergeClusters()
 {
@@ -900,12 +962,15 @@ bool cluster::fuzzyClusterAlg::mergeClusters()
   float largestSij=0;
   float largesti=-1;
   float largestj=-1;
+  float sumMinUikUjk = 0;
+  float sumUik = 0;
+  float sumUjk = 0;
   for( int i = 0; i < fpsMembership.GetNrows()-1; i++){
     for( int j = i+1; j < fpsMembership.GetNrows(); j++){
       //std::cout << i << " " << j << std::endl;
-      float sumMinUikUjk = 0;
-      float sumUik = 0;
-      float sumUjk = 0;
+      sumMinUikUjk = 0;
+      sumUik = 0;
+      sumUjk = 0;
       for( int k = 0; k < fpsMembership.GetNcols(); k++){
         sumMinUikUjk+=std::min(fpsMembership(i,k),fpsMembership(j,k));
         sumUik += fpsMembership(i,k);
@@ -919,6 +984,10 @@ bool cluster::fuzzyClusterAlg::mergeClusters()
       }
     }
   }
+  
+  
+  
+  
   
   //std::cout << "largest Sij: " << largestSij << std::endl;
   if( largestSij > 1/(fpsMembership.GetNrows()-1)){
@@ -943,52 +1012,922 @@ bool cluster::fuzzyClusterAlg::mergeClusters()
 
 }
 
-//--------------------------------------------------------------------
+
+
 // Merges based on the distance between line segments
-void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart,
-							std::vector<lineSlope> *linesFound,
-							double xyScale,
-							int mergeStyle,
-							double wire_dist,
-							double tickToDist)
+bool cluster::fuzzyClusterAlg::mergeShowerTrackClusters(showerCluster *showerClusterI,
+						        trackCluster *trackClusterJ,
+						        float xyScale,
+                                                        float wire_dist,
+                                                        float tickToDist)
 {
 
 
 
   // If we have zero or one Hough lines, move on 
-  if(linesFound->size() == 0 || linesFound->size() == 1)
+  //if(trackCluster->size() == 0 || trackCluster->size() == 1)
+    //return false;
+
+  //// If we reach the last Hough line, move on 
+  //if(trackCluster->size() == clusIndexStart+1)
+    //return false;
+
+  std::vector<unsigned int> toMerge; 
+  std::vector<float> mergeSlope;
+  std::vector<float> mergeTheta;
+
+  // toMerge trackCluster index, toMerge trackCluster proto track index
+  bool potentialBestMerge=false;
+  bool performedBestMerge=false;
+  unsigned int bestTrackClusterProtoTrack;
+  unsigned int bestShowerClusterProtoTrack;
+  // Did we merge left (0) or right (1)?
+  int bestShowerRightLeft = -1;
+  //int bestClusIndexStartRightLeft = -1;
+  float bestToMergeTrackClusterProtoTrackDistance=999999;
+  float x11; 
+  float y11; 
+  float x12; 
+  float y12; 
+  float x21; 
+  float y21; 
+  float x22; 
+  float y22; 
+  
+
+
+  for(auto trackClusterProtoTrackItr = trackClusterJ->clusterProtoTracks.begin();
+           trackClusterProtoTrackItr != trackClusterJ->clusterProtoTracks.end();
+           trackClusterProtoTrackItr++){ 
+
+    //for(auto trackClustersToMergeItr = trackClusters->begin()+clusIndexStart+1; trackClustersToMergeItr != trackClusters->end(); trackClustersToMergeItr++){
+      //if(trackClusters->at(clusIndexStart).clusterNumber == trackClustersToMergeItr->clusterNumber)
+        //continue;
+      //std::cout << "Made it here" << std::endl;
+
+      toMerge.clear();
+      mergeSlope.clear();
+      mergeTheta.clear();
+
+      //Count up how many lines are in merging distance to clusIndexStartProtoTrackItr
+      int nInDistanceTrackClusterLeft = 1;
+      int nInDistanceTrackClusterRight = 1;
+
+
+
+      for(auto showerClusterProtoTrackItr = showerClusterI->clusterProtoTracks.begin();
+               showerClusterProtoTrackItr != showerClusterI->clusterProtoTracks.end();
+               showerClusterProtoTrackItr++){ 
+
+        float segmentDistance = HoughLineDistance(trackClusterProtoTrackItr->pMin0,trackClusterProtoTrackItr->pMin1,
+                                                   trackClusterProtoTrackItr->pMax0,trackClusterProtoTrackItr->pMax1, 
+          					   showerClusterProtoTrackItr->pMin0,showerClusterProtoTrackItr->pMin1,
+                                                   showerClusterProtoTrackItr->pMax0,showerClusterProtoTrackItr->pMax1);
+        if(segmentDistance<fShowerTrackClusterMergeCutoff) 
+        {
+          toMerge.push_back(showerClusterProtoTrackItr-showerClusterI->clusterProtoTracks.begin());
+          mergeSlope.push_back(trackClusterProtoTrackItr->clusterSlope*xyScale);
+        
+        
+          // Sum up number of protoTracks at the vertex
+          //distance between two segments in the plane:
+          //  one segment is (x11, y11) to (x12, y12) or (p0MinLine1, p1MinLine1) to (p0MaxLine1, p1MaxLine1)
+          //  the other is   (x21, y21) to (x22, y22) or (p0MinLine2, p1MinLine2) to (p0MaxLine2, p1MaxLine2)
+          float x11 = showerClusterProtoTrackItr->pMin0; 
+          float y11 = showerClusterProtoTrackItr->pMin1; 
+          float x12 = showerClusterProtoTrackItr->pMax0; 
+          float y12 = showerClusterProtoTrackItr->pMax1; 
+          float x21 = trackClusterProtoTrackItr->pMin0; 
+          float y21 = trackClusterProtoTrackItr->pMin1; 
+          float x22 = trackClusterProtoTrackItr->pMax0; 
+          float y22 = trackClusterProtoTrackItr->pMax1; 
+
+          // Compare toMergerItr min with clusIndexStart max
+          float mergeRightClusIndexStartDist = std::sqrt(pow(x11-x22,2) + pow(y11-y22,2));
+          // Compare toMergerItr max with clusIndexStart min
+          float mergeLeftClusIndexStartDist = std::sqrt(pow(x12-x21,2) + pow(y12-y21,2));
+          
+          if( mergeRightClusIndexStartDist > mergeLeftClusIndexStartDist )
+            nInDistanceTrackClusterLeft++;
+          else
+            nInDistanceTrackClusterRight++;
+        
+        
+        }
+
+      }// End of loop over trackClustersToMergeItr->clusterProtoTracks.begin()
+
+
+      mergeTheta.resize(toMerge.size());
+
+      // Find the angle between the slopes
+      for(auto mergeThetaItr = mergeTheta.begin(); mergeThetaItr != mergeTheta.end(); mergeThetaItr++){
+        float toMergeSlope = showerClusterI->clusterProtoTracks[toMerge[mergeThetaItr-mergeTheta.begin()]].clusterSlope*xyScale;
+        mergeTheta[mergeThetaItr-mergeTheta.begin()] = atan(std::abs(( toMergeSlope - mergeSlope[mergeThetaItr-mergeTheta.begin()])/(1 + toMergeSlope*mergeSlope[mergeThetaItr-mergeTheta.begin()] )))*(180/TMath::Pi());
+      }
+
+
+      // Perform the merge
+      for(auto toMergeItr = toMerge.begin(); toMergeItr != toMerge.end(); toMergeItr++){
+        
+        // Apply the angle cut
+        if(mergeTheta[toMergeItr-toMerge.begin()] > fShowerTrackClusterMergeAngle)
+          continue;
+
+        // First check averages of charge and sigma charge for hits in lines closest to each other
+        //int closestShower=-1;
+        //int closestTrack=-1;
+        float closestDistance=999999;
+        for (auto showerClusterProtoTrackHitItr = showerClusterI->clusterProtoTracks[*toMergeItr].hits.begin(); showerClusterProtoTrackHitItr != showerClusterI->clusterProtoTracks[*toMergeItr].hits.end(); showerClusterProtoTrackHitItr++) {
+          for (auto trackClusterProtoTrackHitItr = trackClusterProtoTrackItr->hits.begin(); trackClusterProtoTrackHitItr != trackClusterProtoTrackItr->hits.end(); trackClusterProtoTrackHitItr++) {
+            //float distance = std::sqrt(pow(clusIndStHitItr->first-(*toMergeHitItr).first,2)+
+                      //pow(clusIndStHitItr->second-toMergeHitItr->second,2));
+            
+            float distance = DistanceBetweenHits(*trackClusterProtoTrackHitItr,
+                                                  *showerClusterProtoTrackHitItr,
+                                                  wire_dist,
+                                                  tickToDist);
+            if(distance < closestDistance){
+              closestDistance = distance;
+              //closestShower=showerClusterProtoTrackHitItr-showerClusterI->clusterProtoTracks[*toMergeItr].hits.begin();
+              //closestTrack=trackClusterProtoTrackHitItr-trackClusterProtoTrackItr->hits.begin();
+            }
+          }
+        }
+
+
+        // Veto the merge if the lines are not colinear 
+      
+        //distance between two segments in the plane:
+        //  one segment is (x11, y11) to (x12, y12) or (p0MinLine1, p1MinLine1) to (p0MaxLine1, p1MaxLine1)
+        //  the other is   (x21, y21) to (x22, y22) or (p0MinLine2, p1MinLine2) to (p0MaxLine2, p1MaxLine2)
+        x11 = showerClusterI->clusterProtoTracks[*toMergeItr].pMin0; 
+        y11 = showerClusterI->clusterProtoTracks[*toMergeItr].pMin1; 
+        x12 = showerClusterI->clusterProtoTracks[*toMergeItr].pMax0; 
+        y12 = showerClusterI->clusterProtoTracks[*toMergeItr].pMax1; 
+        x21 = trackClusterProtoTrackItr->pMin0; 
+        y21 = trackClusterProtoTrackItr->pMin1; 
+        x22 = trackClusterProtoTrackItr->pMax0; 
+        y22 = trackClusterProtoTrackItr->pMax1; 
+        std::vector<float> distances;
+
+        // Compare toMergerItr min with clusIndexStart min, if this is the min distance, lines are not colinear, merge is vetoed
+        distances.push_back(std::sqrt((x11-x21)*(x11-x21)+ (y11-y21)*(y11-y21)));
+        // Compare toMergerItr min with clusIndexStart max
+        distances.push_back(std::sqrt((x11-x22)*(x11-x22) + (y11-y22)*(y11-y22)));
+        // Compare toMergerItr max with clusIndexStart min
+        distances.push_back(std::sqrt((x12-x21)*(x12-x21) + (y12-y21)*(y12-y21)));
+        // Compare toMergerItr max with clusIndexStart max, if this is the min distance, lines are not colinear, merge is vetoed
+        distances.push_back(std::sqrt((x12-x22)*(x12-x22) + (y12-y22)*(y12-y22)));
+
+        float minDistance = 999999; 
+        int minDistanceIndex = -1;
+        for(unsigned int j = 0; j < distances.size(); j++){
+          if (distances[j] < minDistance){
+            minDistance = distances[j];
+            minDistanceIndex = j;
+          }
+        }
+
+        if(minDistanceIndex  == 0 || minDistanceIndex  == 3)
+          continue;
+
+        // How many lines do we have at the merging point? If too many, veto the merge
+        std::cout << nInDistanceTrackClusterLeft << " " << nInDistanceTrackClusterRight << std::endl;
+
+        if(nInDistanceTrackClusterLeft > fMaxVertexLines) {
+          trackClusterProtoTrackItr->mergedLeft = true;
+          showerClusterI->clusterProtoTracks[*toMergeItr].mergedRight = true;
+        }
+        if(nInDistanceTrackClusterRight > fMaxVertexLines) {
+          trackClusterProtoTrackItr->mergedRight = true;
+          showerClusterI->clusterProtoTracks[*toMergeItr].mergedLeft = true;
+        }
+          
+
+        // Check if we merged left or right already for clusIndexStart, we only do it once for each side
+        if(trackClusterProtoTrackItr->mergedLeft == true && minDistanceIndex == 2)
+          continue;
+        if(trackClusterProtoTrackItr->mergedRight == true && minDistanceIndex == 1)
+          continue;
+        if(showerClusterI->clusterProtoTracks[*toMergeItr].mergedLeft == true && minDistanceIndex == 1)
+          continue;
+        if(showerClusterI->clusterProtoTracks[*toMergeItr].mergedRight == true && minDistanceIndex == 2)
+          continue;
+
+        //std::cout << "Potential merge" << std::endl;
+        //std::cout << "main trackClustersItr slope: " << trackClusters->at(*toMergeItr).clusterSlope << " clusIndexStart slope: " << trackClusters->at(clusIndexStart).clusterSlope << std::endl;
+        potentialBestMerge=true;     
+
+
+        if(minDistance < bestToMergeTrackClusterProtoTrackDistance){
+          bestShowerClusterProtoTrack=*toMergeItr;
+          bestTrackClusterProtoTrack=trackClusterProtoTrackItr-trackClusterJ->clusterProtoTracks.begin();
+          // Did we merge left (0) or right (1)?
+          if(minDistanceIndex == 1){
+            bestShowerRightLeft = 0;
+            //bestClusIndexStartRightLeft = 1;
+          }
+          if(minDistanceIndex == 2){
+            bestShowerRightLeft = 1;
+            //bestClusIndexStartRightLeft = 0;
+          }
+
+        }
+
+      }// End of loop over toMerge
+    //}// End of loop over trackClusters->begin()+clusIndexStart+1
+  }//End of loop over trackClusters->at(clusIndexStart).clusterProtoTracks
+
+  if(potentialBestMerge){
+    showerClusterI->clusterProtoTracks[bestShowerClusterProtoTrack].merged=true;
+    trackClusterJ->clusterProtoTracks[bestTrackClusterProtoTrack].merged=true;   
+    if(bestShowerRightLeft == 0){
+      showerClusterI->clusterProtoTracks[bestShowerClusterProtoTrack].mergedLeft = true;
+      trackClusterJ->clusterProtoTracks[bestTrackClusterProtoTrack].mergedRight = true;   
+      performedBestMerge=true;
+    }
+    if(bestShowerRightLeft == 1){
+      showerClusterI->clusterProtoTracks[bestShowerClusterProtoTrack].mergedRight = true;
+      trackClusterJ->clusterProtoTracks[bestTrackClusterProtoTrack].mergedLeft = true;   
+      performedBestMerge=true;
+    }
+   
+    if(performedBestMerge){ 
+      showerClusterI->addProtoTracks(trackClusterJ->clusterProtoTracks);
+      trackClusterJ->clearProtoTracks();
+      std::cout << "Merged shower-track" << std::endl;
+    }
+
+  }
+
+
+
+
+  //lineMerged = true;
+  //trackClustersClusIndexStartProtoTrackItr->merged = true;
+  //trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].merged = true;
+
+  //// For loop over all lines found to reassign lines to clusIndexStart that already belonged to toMerge 
+  //// Need to delete trackClustersItr that gets merged, load protoTracks from one to the other 
+  ////
+  ////
+  //for(auto trackClustersItr = trackClusters->begin(); trackClustersItr != trackClusters->end(); trackClustersItr++){
+    //if((unsigned int)(*toMergeItr) == trackClustersItr-trackClusters->begin())
+      //continue;
+
+    //if(trackClustersItr->clusterNumber == trackClusters->at(*toMergeItr).clusterNumber){
+      //trackClustersItr->clusterNumber = trackClusters->at(clusIndexStart).clusterNumber;
+    //}
+  //}
+  //trackClusters->at(*toMergeItr).clusterNumber = trackClusters->at(clusIndexStart).clusterNumber;
+  
+  
+  return performedBestMerge;
+
+}
+
+
+
+
+
+
+
+// Merges based on the distance between line segments
+bool cluster::fuzzyClusterAlg::mergeTrackClusters(unsigned int clusIndexStart,
+						     std::vector<trackCluster> *trackClusters,
+						     float xyScale,
+                                                     float wire_dist,
+                                                     float tickToDist)
+{
+
+
+
+  // If we have zero or one Hough lines, move on 
+  if(trackClusters->size() == 0 || trackClusters->size() == 1)
+    return false;
+
+  // If we reach the last Hough line, move on 
+  if(trackClusters->size() == clusIndexStart+1)
+    return false;
+
+  std::vector<unsigned int> toMerge; 
+  std::vector<float> mergeSlope;
+  std::vector<float> mergeTheta;
+
+  // toMerge trackCluster index, toMerge trackCluster proto track index
+  bool potentialBestMerge=false;
+  bool performedBestMerge=false;
+  unsigned int bestToMergeTrackCluster;
+  unsigned int bestTrackClustersClusIndexStartProtoTrack;
+  unsigned int bestToMergeTrackClusterProtoTrack;
+  // Did we merge left (0) or right (1)?
+  int bestToMergeRightLeft = -1;
+  //int bestClusIndexStartRightLeft = -1;
+  float bestToMergeTrackClusterProtoTrackDistance=999999;
+
+  for(auto trackClustersClusIndexStartProtoTrackItr = trackClusters->at(clusIndexStart).clusterProtoTracks.begin();
+           trackClustersClusIndexStartProtoTrackItr != trackClusters->at(clusIndexStart).clusterProtoTracks.end();
+           trackClustersClusIndexStartProtoTrackItr++){ 
+
+    //Count up how many lines are in merging distance to clusIndexStartProtoTrackItr
+    int nInDistanceClusIndexStartLeft = 1;
+    int nInDistanceClusIndexStartRight = 1;
+
+    
+    for(auto trackClustersToMergeItr = trackClusters->begin()+clusIndexStart+1; trackClustersToMergeItr != trackClusters->end(); trackClustersToMergeItr++){
+      if(trackClusters->at(clusIndexStart).clusterNumber == trackClustersToMergeItr->clusterNumber)
+        continue;
+      //std::cout << "Made it here" << std::endl;
+
+      toMerge.clear();
+      mergeSlope.clear();
+      mergeTheta.clear();
+
+      for(auto trackClustersToMergeProtoTrackItr = trackClustersToMergeItr->clusterProtoTracks.begin();
+               trackClustersToMergeProtoTrackItr != trackClustersToMergeItr->clusterProtoTracks.end();
+               trackClustersToMergeProtoTrackItr++){ 
+
+        float segmentDistance = HoughLineDistance(trackClustersClusIndexStartProtoTrackItr->pMin0,trackClustersClusIndexStartProtoTrackItr->pMin1,
+                                                   trackClustersClusIndexStartProtoTrackItr->pMax0,trackClustersClusIndexStartProtoTrackItr->pMax1, 
+          					   trackClustersToMergeProtoTrackItr->pMin0,trackClustersToMergeProtoTrackItr->pMin1,
+                                                   trackClustersToMergeProtoTrackItr->pMax0,trackClustersToMergeProtoTrackItr->pMax1);
+        if(segmentDistance<fTrackClusterMergeCutoff) 
+        {
+          toMerge.push_back(trackClustersToMergeProtoTrackItr-trackClustersToMergeItr->clusterProtoTracks.begin());
+          mergeSlope.push_back(trackClustersClusIndexStartProtoTrackItr->clusterSlope*xyScale);
+       
+
+          // Sum up number of protoTracks at the vertex
+          //distance between two segments in the plane:
+          //  one segment is (x11, y11) to (x12, y12) or (p0MinLine1, p1MinLine1) to (p0MaxLine1, p1MaxLine1)
+          //  the other is   (x21, y21) to (x22, y22) or (p0MinLine2, p1MinLine2) to (p0MaxLine2, p1MaxLine2)
+          float x11 = trackClustersToMergeProtoTrackItr->pMin0; 
+          float y11 = trackClustersToMergeProtoTrackItr->pMin1; 
+          float x12 = trackClustersToMergeProtoTrackItr->pMax0; 
+          float y12 = trackClustersToMergeProtoTrackItr->pMax1; 
+          float x21 = trackClustersClusIndexStartProtoTrackItr->pMin0; 
+          float y21 = trackClustersClusIndexStartProtoTrackItr->pMin1; 
+          float x22 = trackClustersClusIndexStartProtoTrackItr->pMax0; 
+          float y22 = trackClustersClusIndexStartProtoTrackItr->pMax1; 
+
+          // Compare toMergerItr min with clusIndexStart max
+          float mergeRightClusIndexStartDist = std::sqrt(pow(x11-x22,2) + pow(y11-y22,2));
+          // Compare toMergerItr max with clusIndexStart min
+          float mergeLeftClusIndexStartDist = std::sqrt(pow(x12-x21,2) + pow(y12-y21,2));
+          
+          if( mergeRightClusIndexStartDist > mergeLeftClusIndexStartDist )
+            nInDistanceClusIndexStartLeft++;
+          else
+            nInDistanceClusIndexStartRight++;
+        
+        }
+
+      }// End of loop over trackClustersToMergeItr->clusterProtoTracks.begin()
+
+
+      mergeTheta.resize(toMerge.size());
+
+      // Find the angle between the slopes
+      for(auto mergeThetaItr = mergeTheta.begin(); mergeThetaItr != mergeTheta.end(); mergeThetaItr++){
+        float toMergeSlope = trackClustersToMergeItr->clusterProtoTracks[toMerge[mergeThetaItr-mergeTheta.begin()]].clusterSlope*xyScale;
+        mergeTheta[mergeThetaItr-mergeTheta.begin()] = atan(std::abs(( toMergeSlope - mergeSlope[mergeThetaItr-mergeTheta.begin()])/(1 + toMergeSlope*mergeSlope[mergeThetaItr-mergeTheta.begin()] )))*(180/TMath::Pi());
+      }
+
+
+      // Perform the merge
+      for(auto toMergeItr = toMerge.begin(); toMergeItr != toMerge.end(); toMergeItr++){
+
+        // First check averages of charge and sigma charge for hits in lines closest to each other
+        int closestToMerge=-1;
+        int closestClusIndexStart=-1;
+        float closestDistance=999999;
+        for (auto toMergeHitItr = trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits.begin(); toMergeHitItr != trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits.end(); toMergeHitItr++) {
+          for (auto clusIndStHitItr = trackClustersClusIndexStartProtoTrackItr->hits.begin(); clusIndStHitItr != trackClustersClusIndexStartProtoTrackItr->hits.end(); clusIndStHitItr++) {
+            //float distance = std::sqrt(pow(clusIndStHitItr->first-(*toMergeHitItr).first,2)+
+                      //pow(clusIndStHitItr->second-toMergeHitItr->second,2));
+            
+            float distance = DistanceBetweenHits(*clusIndStHitItr,
+                                                    *toMergeHitItr,
+                                                    wire_dist,
+                                                    tickToDist);
+            if(distance < closestDistance){
+              closestDistance = distance;
+              closestToMerge=toMergeHitItr-trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits.begin();
+              closestClusIndexStart=clusIndStHitItr-trackClustersClusIndexStartProtoTrackItr->hits.begin();
+            }
+          }
+        }
+
+        // Find up to 9 more points closest to closestToMerge on the toMerge[i] line
+        // check if it's closer, insert, delete
+        std::vector<std::pair<int,float> > closestToMergeDist;
+        for (auto toMergeHitItr = trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits.begin(); toMergeHitItr != trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits.end(); toMergeHitItr++) {
+          if(closestToMerge==toMergeHitItr-trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits.begin())
+            continue;
+            float distance = DistanceBetweenHits(trackClustersClusIndexStartProtoTrackItr->hits[closestClusIndexStart],
+                                                  *toMergeHitItr,
+                                                  wire_dist,
+                                                  tickToDist);
+
+          bool foundCloser = false;
+          for(auto closestToMergeDistItr = closestToMergeDist.begin(); closestToMergeDistItr != closestToMergeDist.end(); closestToMergeDistItr++) {
+            if(closestToMergeDistItr->second > distance){
+                foundCloser = true;
+                break;
+              }
+            }
+            if(foundCloser 
+                || closestToMergeDist.size() < trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits.size()-1
+                || closestToMergeDist.size() < 9){
+              closestToMergeDist.push_back(std::make_pair(toMergeHitItr-trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits.begin(),distance));
+              std::sort(closestToMergeDist.begin(), closestToMergeDist.end(), boost::bind(&std::pair<int,float>::second,_1) < boost::bind(&std::pair<int,float>::second,_2));
+            }
+            if(closestToMergeDist.size() > trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits.size()-1 ||
+              closestToMergeDist.size() > 9)
+              closestToMergeDist.erase(closestToMergeDist.end());
+        }
+        //for(auto closestToMergeDistItr = closestToMergeDist.begin(); closestToMergeDistItr != closestToMergeDist.end();
+          //closestToMergeDistItr++) 
+          //std::cout << closestToMergeDistItr->first << " " << closestToMergeDistItr->second << std::endl;
+
+
+
+        // Find up to 9 more points closest to closestToMerge on the clusIndexStart line
+        std::vector<std::pair<int,float> > closestClusIndexStartDist;
+        for (auto clusIndexStartHitItr = trackClustersClusIndexStartProtoTrackItr->hits.begin(); clusIndexStartHitItr != trackClustersClusIndexStartProtoTrackItr->hits.end(); clusIndexStartHitItr++) {
+          if(closestClusIndexStart==clusIndexStartHitItr-trackClustersClusIndexStartProtoTrackItr->hits.begin())
+            continue;
+
+          float distance = DistanceBetweenHits(*clusIndexStartHitItr,
+                                                trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits[closestToMerge],
+                                                wire_dist,
+                                                tickToDist);
+
+          bool foundCloser = false;
+          for(auto closestClusIndexStartDistItr = closestClusIndexStartDist.begin(); closestClusIndexStartDistItr != closestClusIndexStartDist.end(); closestClusIndexStartDistItr++) {
+            if(closestClusIndexStartDistItr->second > distance){
+              foundCloser = true;
+              break;
+            }
+          }
+          if(foundCloser 
+              || closestClusIndexStartDist.size() < trackClustersClusIndexStartProtoTrackItr->hits.size()-1
+              || closestClusIndexStartDist.size() < 9){
+            closestClusIndexStartDist.push_back(std::make_pair(clusIndexStartHitItr-trackClustersClusIndexStartProtoTrackItr->hits.begin(),distance));
+            std::sort(closestClusIndexStartDist.begin(), closestClusIndexStartDist.end(), boost::bind(&std::pair<int,float>::second,_1) < boost::bind(&std::pair<int,float>::second,_2));
+          }
+          if(closestClusIndexStartDist.size() > trackClustersClusIndexStartProtoTrackItr->hits.size()-1 ||
+            closestClusIndexStartDist.size() > 9)
+            closestClusIndexStartDist.erase(closestClusIndexStartDist.end());
+       }
+
+
+
+        float toMergeAveCharge = trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits[closestToMerge]->Charge();
+        float toMergeAveSigmaCharge = trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits[closestToMerge]->SigmaCharge();
+        for(auto closestToMergeDistItr = closestToMergeDist.begin(); closestToMergeDistItr != closestToMergeDist.end(); closestToMergeDistItr++) {
+          toMergeAveCharge+= trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits[closestToMergeDistItr->first]->Charge();
+          toMergeAveSigmaCharge+= trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits[closestToMergeDistItr->first]->SigmaCharge();
+        }
+        float clusIndexStartAveCharge = trackClustersClusIndexStartProtoTrackItr->hits[closestClusIndexStart]->Charge();
+        float clusIndexStartAveSigmaCharge = trackClustersClusIndexStartProtoTrackItr->hits[closestClusIndexStart]->SigmaCharge();
+        for(auto closestClusIndexStartDistItr = closestClusIndexStartDist.begin(); closestClusIndexStartDistItr != closestClusIndexStartDist.end(); closestClusIndexStartDistItr++) {
+          clusIndexStartAveCharge+= trackClustersClusIndexStartProtoTrackItr->hits[closestClusIndexStartDistItr->first]->Charge();
+          clusIndexStartAveSigmaCharge+=trackClustersClusIndexStartProtoTrackItr->hits[closestClusIndexStartDistItr->first]->SigmaCharge();
+        }
+
+
+
+        float chargeAsymmetry = std::abs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
+        float sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
+        float chargeAsymmetrySinAngle = chargeAsymmetry*pow(std::fabs(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180)),1);
+        float sigmaChargeAsymmetrySinAngle = sigmaChargeAsymmetry*pow(std::fabs(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180)),1);
+
+        //std::cout << std::endl;
+        //std::cout << chargeAsymmetry*pow(std::fabs(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180)),1) << std::endl;
+        //std::cout << sigmaChargeAsymmetry*pow(std::fabs(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180)),1) << std::endl;
+        
+
+        if(chargeAsymmetrySinAngle > fChargeAsymAngleCut)
+          continue;
+
+        if(sigmaChargeAsymmetrySinAngle > fSigmaChargeAsymAngleCut)
+          continue;
+
+
+        // Veto the merge if the lines are not colinear 
+      
+        //distance between two segments in the plane:
+        //  one segment is (x11, y11) to (x12, y12) or (p0MinLine1, p1MinLine1) to (p0MaxLine1, p1MaxLine1)
+        //  the other is   (x21, y21) to (x22, y22) or (p0MinLine2, p1MinLine2) to (p0MaxLine2, p1MaxLine2)
+        float x11 = trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].pMin0; 
+        float y11 = trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].pMin1; 
+        float x12 = trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].pMax0; 
+        float y12 = trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].pMax1; 
+        float x21 = trackClustersClusIndexStartProtoTrackItr->pMin0; 
+        float y21 = trackClustersClusIndexStartProtoTrackItr->pMin1; 
+        float x22 = trackClustersClusIndexStartProtoTrackItr->pMax0; 
+        float y22 = trackClustersClusIndexStartProtoTrackItr->pMax1; 
+        std::vector<float> distances;
+
+        // Compare toMergerItr min with clusIndexStart min, if this is the min distance, lines are not colinear, merge is vetoed
+        distances.push_back(std::sqrt(pow(x11-x21,2) + pow(y11-y21,2)));
+        // Compare toMergerItr min with clusIndexStart max
+        distances.push_back(std::sqrt(pow(x11-x22,2) + pow(y11-y22,2)));
+        // Compare toMergerItr max with clusIndexStart min
+        distances.push_back(std::sqrt(pow(x12-x21,2) + pow(y12-y21,2)));
+        // Compare toMergerItr max with clusIndexStart max, if this is the min distance, lines are not colinear, merge is vetoed
+        distances.push_back(std::sqrt(pow(x12-x22,2) + pow(y12-y22,2)));
+
+        float minDistance = 999999; 
+        int minDistanceIndex = -1;
+        for(unsigned int j = 0; j < distances.size(); j++){
+          if (distances[j] < minDistance){
+            minDistance = distances[j];
+            minDistanceIndex = j;
+          }
+        }
+
+        if(minDistanceIndex  == 0 || minDistanceIndex  == 3)
+          continue;
+
+
+        // How many lines do we have at the merging point? If too many, veto the merge
+        std::cout << nInDistanceClusIndexStartLeft << " " << nInDistanceClusIndexStartRight << std::endl;
+
+        if(nInDistanceClusIndexStartLeft > fMaxVertexLines) {
+          trackClustersClusIndexStartProtoTrackItr->mergedLeft = true;
+          trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].mergedRight = true;
+        }
+        if(nInDistanceClusIndexStartRight > fMaxVertexLines) {
+          trackClustersClusIndexStartProtoTrackItr->mergedRight = true;
+          trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].mergedLeft = true;
+        }
+
+
+
+
+        // Check if we merged left or right already for clusIndexStart, we only do it once for each side
+        if(trackClustersClusIndexStartProtoTrackItr->mergedLeft == true && minDistanceIndex == 2)
+          continue;
+        if(trackClustersClusIndexStartProtoTrackItr->mergedRight == true && minDistanceIndex == 1)
+          continue;
+        if(trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].mergedLeft == true && minDistanceIndex == 1)
+          continue;
+        if(trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].mergedRight == true && minDistanceIndex == 2)
+          continue;
+
+        //std::cout << "Potential merge" << std::endl;
+        //std::cout << "main trackClustersItr slope: " << trackClusters->at(*toMergeItr).clusterSlope << " clusIndexStart slope: " << trackClusters->at(clusIndexStart).clusterSlope << std::endl;
+        potentialBestMerge=true;     
+
+
+        if(minDistance < bestToMergeTrackClusterProtoTrackDistance){
+          bestToMergeTrackCluster=trackClustersToMergeItr-trackClusters->begin();
+          bestToMergeTrackClusterProtoTrack=*toMergeItr;
+          bestTrackClustersClusIndexStartProtoTrack=trackClustersClusIndexStartProtoTrackItr-trackClusters->at(clusIndexStart).clusterProtoTracks.begin();
+          bestToMergeTrackClusterProtoTrackDistance=minDistance;
+
+          // Did we merge left (0) or right (1)?
+          if(minDistanceIndex == 1){
+            bestToMergeRightLeft = 0;
+            //bestClusIndexStartRightLeft = 1;
+          }
+          if(minDistanceIndex == 2){
+            bestToMergeRightLeft = 1;
+            //bestClusIndexStartRightLeft = 0;
+          }
+
+        }
+
+      }// End of loop over toMerge
+    }// End of loop over trackClusters->begin()+clusIndexStart+1
+  }//End of loop over trackClusters->at(clusIndexStart).clusterProtoTracks
+
+  if(potentialBestMerge){
+    trackClusters->at(bestToMergeTrackCluster).clusterProtoTracks[bestToMergeTrackClusterProtoTrack].merged=true;
+    trackClusters->at(clusIndexStart).clusterProtoTracks[bestTrackClustersClusIndexStartProtoTrack].merged=true;   
+    if(bestToMergeRightLeft == 0){
+      trackClusters->at(bestToMergeTrackCluster).clusterProtoTracks[bestToMergeTrackClusterProtoTrack].mergedLeft = true;
+      trackClusters->at(clusIndexStart).clusterProtoTracks[bestTrackClustersClusIndexStartProtoTrack].mergedRight = true;   
+      performedBestMerge=true;
+    }
+    if(bestToMergeRightLeft == 1){
+      trackClusters->at(bestToMergeTrackCluster).clusterProtoTracks[bestToMergeTrackClusterProtoTrack].mergedRight = true;
+      trackClusters->at(clusIndexStart).clusterProtoTracks[bestTrackClustersClusIndexStartProtoTrack].mergedLeft = true;   
+      performedBestMerge=true;
+    }
+   
+    if(performedBestMerge){ 
+      trackClusters->at(clusIndexStart).addProtoTracks(trackClusters->at(bestToMergeTrackCluster).clusterProtoTracks);
+      trackClusters->at(bestToMergeTrackCluster).clearProtoTracks();
+      std::cout << "Merged track-track" << std::endl;
+    }
+
+  }
+
+
+
+
+  //lineMerged = true;
+  //trackClustersClusIndexStartProtoTrackItr->merged = true;
+  //trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].merged = true;
+
+  //// For loop over all lines found to reassign lines to clusIndexStart that already belonged to toMerge 
+  //// Need to delete trackClustersItr that gets merged, load protoTracks from one to the other 
+  ////
+  ////
+  //for(auto trackClustersItr = trackClusters->begin(); trackClustersItr != trackClusters->end(); trackClustersItr++){
+    //if((unsigned int)(*toMergeItr) == trackClustersItr-trackClusters->begin())
+      //continue;
+
+    //if(trackClustersItr->clusterNumber == trackClusters->at(*toMergeItr).clusterNumber){
+      //trackClustersItr->clusterNumber = trackClusters->at(clusIndexStart).clusterNumber;
+    //}
+  //}
+  //trackClusters->at(*toMergeItr).clusterNumber = trackClusters->at(clusIndexStart).clusterNumber;
+  
+  
+  return performedBestMerge;
+
+}
+
+
+
+
+
+
+// Merges based on the distance between line segments
+bool cluster::fuzzyClusterAlg::mergeShowerClusters(unsigned int clusIndexStart,
+						     std::vector<showerCluster> *showerClusters,
+						     float xyScale,
+                                                     float wire_dist,
+                                                     float tickToDist)
+{
+
+
+
+  // If we have zero or one Hough lines, move on 
+  if(showerClusters->size() == 0 || showerClusters->size() == 1)
+    return false;
+
+  // If we reach the last Hough line, move on 
+  if(showerClusters->size() == clusIndexStart+1)
+    return false;
+
+  std::vector<unsigned int> toMerge; 
+  std::vector<float> mergeSlope;
+  std::vector<float> mergeTheta;
+
+  // toMerge trackCluster index, toMerge trackCluster proto track index
+  //bool potentialBestMerge=false;
+  bool performedBestMerge=false;
+  unsigned int bestToMergeShowerCluster;
+  unsigned int bestShowerClustersClusIndexStartProtoTrack;
+  unsigned int bestToMergeShowerClusterProtoTrack;
+  int bestToMergeRightLeft = -1;
+  //int bestClusIndexStartRightLeft = -1;
+  float bestToMergeShowerClusterProtoTrackDistance=999999;
+
+
+  for(auto showerClustersClusIndexStartProtoTrackItr = showerClusters->at(clusIndexStart).clusterProtoTracks.begin();
+           showerClustersClusIndexStartProtoTrackItr != showerClusters->at(clusIndexStart).clusterProtoTracks.end();
+           showerClustersClusIndexStartProtoTrackItr++){ 
+
+    for(auto showerClustersToMergeItr = showerClusters->begin()+clusIndexStart+1; showerClustersToMergeItr != showerClusters->end(); showerClustersToMergeItr++){
+      //std::cout << "Made it here" << std::endl;
+
+      toMerge.clear();
+      mergeSlope.clear();
+      mergeTheta.clear();
+
+      for(auto showerClustersToMergeProtoTrackItr = showerClustersToMergeItr->clusterProtoTracks.begin();
+               showerClustersToMergeProtoTrackItr != showerClustersToMergeItr->clusterProtoTracks.end();
+               showerClustersToMergeProtoTrackItr++){ 
+
+        if(showerClustersToMergeProtoTrackItr->clusterNumber == showerClustersClusIndexStartProtoTrackItr->clusterNumber)
+          continue;
+
+
+        float segmentDistance = HoughLineDistance(showerClustersClusIndexStartProtoTrackItr->pMin0,showerClustersClusIndexStartProtoTrackItr->pMin1,
+                                                   showerClustersClusIndexStartProtoTrackItr->pMax0,showerClustersClusIndexStartProtoTrackItr->pMax1, 
+          					   showerClustersToMergeProtoTrackItr->pMin0,showerClustersToMergeProtoTrackItr->pMin1,
+                                                   showerClustersToMergeProtoTrackItr->pMax0,showerClustersToMergeProtoTrackItr->pMax1);
+        if(segmentDistance<fShowerClusterMergeCutoff) 
+        {
+          toMerge.push_back(showerClustersToMergeProtoTrackItr-showerClustersToMergeItr->clusterProtoTracks.begin());
+          mergeSlope.push_back(showerClustersClusIndexStartProtoTrackItr->clusterSlope*xyScale);
+        }
+
+      }// End of loop over showerClustersToMergeItr->clusterProtoTracks.begin()
+
+
+      mergeTheta.resize(toMerge.size());
+
+      // Find the angle between the slopes
+      for(auto mergeThetaItr = mergeTheta.begin(); mergeThetaItr != mergeTheta.end(); mergeThetaItr++){
+        float toMergeSlope = showerClustersToMergeItr->clusterProtoTracks[toMerge[mergeThetaItr-mergeTheta.begin()]].clusterSlope*xyScale;
+        mergeTheta[mergeThetaItr-mergeTheta.begin()] = atan(std::abs(( toMergeSlope - mergeSlope[mergeThetaItr-mergeTheta.begin()])/(1 + toMergeSlope*mergeSlope[mergeThetaItr-mergeTheta.begin()] )))*(180/TMath::Pi());
+      }
+
+
+      // Perform the merge
+      for(auto toMergeItr = toMerge.begin(); toMergeItr != toMerge.end(); toMergeItr++){
+
+        // Apply the angle cut
+        if(mergeTheta[toMergeItr-toMerge.begin()] > fShowerClusterMergeAngle)
+          continue;
+
+        // Find the closest distance 
+        //int closestToMerge=-1;
+        //int closestClusIndexStart=-1;
+        float closestDistance=999999;
+        for (auto toMergeHitItr = showerClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits.begin(); toMergeHitItr != showerClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits.end(); toMergeHitItr++) {
+          for (auto clusIndStHitItr = showerClustersClusIndexStartProtoTrackItr->hits.begin(); clusIndStHitItr != showerClustersClusIndexStartProtoTrackItr->hits.end(); clusIndStHitItr++) {
+            //float distance = std::sqrt(pow(clusIndStHitItr->first-(*toMergeHitItr).first,2)+
+                      //pow(clusIndStHitItr->second-toMergeHitItr->second,2));
+            
+            float distance = DistanceBetweenHits(*clusIndStHitItr,
+                                                    *toMergeHitItr,
+                                                    wire_dist,
+                                                    tickToDist);
+            if(distance < closestDistance){
+              closestDistance = distance;
+              //closestToMerge=toMergeHitItr-showerClustersToMergeItr->clusterProtoTracks[*toMergeItr].hits.begin();
+              //closestClusIndexStart=clusIndStHitItr-showerClustersClusIndexStartProtoTrackItr->hits.begin();
+            }
+          }
+        }
+
+
+        // Veto the merge if the lines are not colinear 
+      
+        //distance between two segments in the plane:
+        //  one segment is (x11, y11) to (x12, y12) or (p0MinLine1, p1MinLine1) to (p0MaxLine1, p1MaxLine1)
+        //  the other is   (x21, y21) to (x22, y22) or (p0MinLine2, p1MinLine2) to (p0MaxLine2, p1MaxLine2)
+        float x11 = showerClustersToMergeItr->clusterProtoTracks[*toMergeItr].pMin0; 
+        float y11 = showerClustersToMergeItr->clusterProtoTracks[*toMergeItr].pMin1; 
+        float x12 = showerClustersToMergeItr->clusterProtoTracks[*toMergeItr].pMax0; 
+        float y12 = showerClustersToMergeItr->clusterProtoTracks[*toMergeItr].pMax1; 
+        float x21 = showerClustersClusIndexStartProtoTrackItr->pMin0; 
+        float y21 = showerClustersClusIndexStartProtoTrackItr->pMin1; 
+        float x22 = showerClustersClusIndexStartProtoTrackItr->pMax0; 
+        float y22 = showerClustersClusIndexStartProtoTrackItr->pMax1; 
+        std::vector<float> distances;
+
+        // Compare toMergerItr min with clusIndexStart min, if this is the min distance, lines are not colinear, merge is vetoed
+        distances.push_back(std::sqrt(pow(x11-x21,2) + pow(y11-y21,2)));
+        // Compare toMergerItr min with clusIndexStart max
+        distances.push_back(std::sqrt(pow(x11-x22,2) + pow(y11-y22,2)));
+        // Compare toMergerItr max with clusIndexStart min
+        distances.push_back(std::sqrt(pow(x12-x21,2) + pow(y12-y21,2)));
+        // Compare toMergerItr max with clusIndexStart max, if this is the min distance, lines are not colinear, merge is vetoed
+        distances.push_back(std::sqrt(pow(x12-x22,2) + pow(y12-y22,2)));
+
+        float minDistance = 999999; 
+        int minDistanceIndex = -1;
+        for(unsigned int j = 0; j < distances.size(); j++){
+          if (distances[j] < minDistance){
+            minDistance = distances[j];
+            minDistanceIndex = j;
+          }
+        }
+
+        if(minDistanceIndex  == 0 || minDistanceIndex  == 3)
+          continue;
+
+          
+
+        // Check if we merged left or right already for clusIndexStart, we only do it once for each side
+        //if(showerClustersClusIndexStartProtoTrackItr->mergedLeft == true && minDistanceIndex == 2)
+          //continue;
+        //if(showerClustersClusIndexStartProtoTrackItr->mergedRight == true && minDistanceIndex == 1)
+          //continue;
+        //if(showerClustersToMergeItr->clusterProtoTracks[*toMergeItr].mergedLeft == true && minDistanceIndex == 1)
+          //continue;
+        //if(showerClustersToMergeItr->clusterProtoTracks[*toMergeItr].mergedRight == true && minDistanceIndex == 2)
+          //continue;
+
+        //std::cout << "Potential merge" << std::endl;
+        //std::cout << "main showerClustersItr slope: " << showerClusters->at(*toMergeItr).clusterSlope << " clusIndexStart slope: " << showerClusters->at(clusIndexStart).clusterSlope << std::endl;
+        performedBestMerge=true;     
+
+
+        if(closestDistance < bestToMergeShowerClusterProtoTrackDistance){
+          bestToMergeShowerCluster=showerClustersToMergeItr-showerClusters->begin();
+          bestToMergeShowerClusterProtoTrack=*toMergeItr;
+          bestShowerClustersClusIndexStartProtoTrack=showerClustersClusIndexStartProtoTrackItr-showerClusters->at(clusIndexStart).clusterProtoTracks.begin();
+          // Did we merge left (0) or right (1)?
+          if(minDistanceIndex == 1){
+            bestToMergeRightLeft = 0;
+            //bestClusIndexStartRightLeft = 1;
+          }
+          if(minDistanceIndex == 2){
+            bestToMergeRightLeft = 1;
+            //bestClusIndexStartRightLeft = 0;
+          }
+
+        }
+
+      }// End of loop over toMerge
+    }// End of loop over showerClusters->begin()+clusIndexStart+1
+  }//End of loop over showerClusters->at(clusIndexStart).clusterProtoTracks
+
+  if(performedBestMerge){
+    showerClusters->at(bestToMergeShowerCluster).clusterProtoTracks[bestToMergeShowerClusterProtoTrack].merged=true;
+    showerClusters->at(clusIndexStart).clusterProtoTracks[bestShowerClustersClusIndexStartProtoTrack].merged=true;   
+    if(bestToMergeRightLeft == 0){
+      showerClusters->at(bestToMergeShowerCluster).clusterProtoTracks[bestToMergeShowerClusterProtoTrack].mergedLeft = true;
+      showerClusters->at(clusIndexStart).clusterProtoTracks[bestShowerClustersClusIndexStartProtoTrack].mergedRight = true;   
+    }
+    if(bestToMergeRightLeft == 1){
+      showerClusters->at(bestToMergeShowerCluster).clusterProtoTracks[bestToMergeShowerClusterProtoTrack].mergedRight = true;
+      showerClusters->at(clusIndexStart).clusterProtoTracks[bestShowerClustersClusIndexStartProtoTrack].mergedLeft = true;   
+    }
+   
+      showerClusters->at(clusIndexStart).addProtoTracks(showerClusters->at(bestToMergeShowerCluster).clusterProtoTracks);
+      showerClusters->at(bestToMergeShowerCluster).clearProtoTracks();
+      std::cout << "Merged shower-shower" << std::endl;
+
+  }
+
+  return performedBestMerge;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Merges based on the distance between line segments
+void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexStart,
+						     std::vector<protoTrack> *tracksFound,
+						     float xyScale,
+                                                     int mergeStyle,
+                                                     float wire_dist,
+                                                     float tickToDist)
+{
+
+
+
+  // If we have zero or one Hough lines, move on 
+  if(tracksFound->size() == 0 || tracksFound->size() == 1)
     return;
 
   // If a merge happened, trigger this function again to look at this cluster again!
   bool lineMerged = false;
 
   // If we reach the last Hough line, move on 
-  if(linesFound->size() == clusIndexStart+1)
+  if(tracksFound->size() == clusIndexStart+1)
     return;
 
   // Min to merge
   std::vector<unsigned int> toMerge; 
-  std::vector<double> mergeSlope;
-  std::vector<double> mergeTheta;
+  std::vector<float> mergeSlope;
+  std::vector<float> mergeTheta;
 
   // Check if segments are close enough
-  for(auto linesFoundToMergeItr = linesFound->begin(); linesFoundToMergeItr != linesFound->end(); linesFoundToMergeItr++){
-    if(linesFound->at(clusIndexStart).clusterNumber == linesFoundToMergeItr->clusterNumber)
+  for(auto tracksFoundToMergeItr = tracksFound->begin(); tracksFoundToMergeItr != tracksFound->end(); tracksFoundToMergeItr++){
+    if(tracksFound->at(clusIndexStart).clusterNumber == tracksFoundToMergeItr->clusterNumber)
       continue;
-    double segmentDistance = HoughLineDistance(linesFound->at(clusIndexStart).pMin0,linesFound->at(clusIndexStart).pMin1,
-                                               linesFound->at(clusIndexStart).pMax0,linesFound->at(clusIndexStart).pMax1, 
-      					       linesFoundToMergeItr->pMin0,linesFoundToMergeItr->pMin1,
-                                               linesFoundToMergeItr->pMax0,linesFoundToMergeItr->pMax1);
-    if( (segmentDistance<fHoughLineMergeCutoff && mergeStyle == iMergeNormal) 
-        || (segmentDistance<fShowerHoughLineMergeCutoff && (mergeStyle == iMergeShower || mergeStyle == iMergeShowerIntercept))
+    float segmentDistance = HoughLineDistance(tracksFound->at(clusIndexStart).pMin0,tracksFound->at(clusIndexStart).pMin1,
+                                               tracksFound->at(clusIndexStart).pMax0,tracksFound->at(clusIndexStart).pMax1, 
+      					       tracksFoundToMergeItr->pMin0,tracksFoundToMergeItr->pMin1,
+                                               tracksFoundToMergeItr->pMax0,tracksFoundToMergeItr->pMax1);
+    if( (segmentDistance<fTrackClusterMergeCutoff && mergeStyle == iMergeNormal) 
+        || (segmentDistance<fShowerClusterMergeCutoff && (mergeStyle == iMergeShower || mergeStyle == iMergeShowerIntercept))
         || (segmentDistance<fChargeAsymAngleCutoff && mergeStyle == iMergeChargeAsymAngle))
     {
       //std::cout << std::endl;
-      //std::cout << linesFoundClusIndStItr->minWire << " " << linesFoundClusIndStItr->maxWire << std::endl;
-      //std::cout << linesFoundToMergeItr->minWire << " " << linesFoundToMergeItr->maxWire << std::endl;
+      //std::cout << tracksFoundClusIndStItr->minWire << " " << tracksFoundClusIndStItr->maxWire << std::endl;
+      //std::cout << tracksFoundToMergeItr->minWire << " " << tracksFoundToMergeItr->maxWire << std::endl;
       //std::cout << segmentDistance << std::endl;
-      toMerge.push_back(linesFoundToMergeItr-linesFound->begin());
-      mergeSlope.push_back(linesFound->at(clusIndexStart).clusterSlope*xyScale);
+      toMerge.push_back(tracksFoundToMergeItr-tracksFound->begin());
+      mergeSlope.push_back(tracksFound->at(clusIndexStart).clusterSlope*xyScale);
     }
   }
 
@@ -996,7 +1935,7 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
 
   // Find the angle between the slopes
   for(auto mergeThetaItr = mergeTheta.begin(); mergeThetaItr != mergeTheta.end(); mergeThetaItr++){
-    double toMergeSlope = linesFound->at(toMerge[mergeThetaItr-mergeTheta.begin()]).clusterSlope*xyScale;
+    float toMergeSlope = tracksFound->at(toMerge[mergeThetaItr-mergeTheta.begin()]).clusterSlope*xyScale;
     mergeTheta[mergeThetaItr-mergeTheta.begin()] = atan(std::abs(( toMergeSlope - mergeSlope[mergeThetaItr-mergeTheta.begin()])/(1 + toMergeSlope*mergeSlope[mergeThetaItr-mergeTheta.begin()] )))*(180/TMath::Pi());
     //std::cout << std::endl;
     //std::cout << "toMergeSlope: " << toMergeSlope/xyScale<< " mergeSlope[clusIndexStart]: " << mergeSlope[mergeThetaItr-mergeTheta.begin()]/tickToDist << std::endl;
@@ -1005,8 +1944,8 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
 
   // Perform the merge
   for(auto toMergeItr = toMerge.begin(); toMergeItr != toMerge.end(); toMergeItr++){
-    if( (mergeTheta[toMergeItr-toMerge.begin()] < fHoughLineMergeAngle && mergeStyle == iMergeNormal) 
-        || (mergeTheta[toMergeItr-toMerge.begin()] < fShowerHoughLineMergeAngle && mergeStyle == iMergeShower)
+    if(  
+        (mergeTheta[toMergeItr-toMerge.begin()] < fShowerClusterMergeAngle && mergeStyle == iMergeShower)
         || mergeStyle == iMergeShowerIntercept
         || mergeStyle == iMergeChargeAsymAngle){
      
@@ -1014,30 +1953,30 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
       // First check averages of charge and sigma charge for hits in lines closest to each other
       int closestToMerge=-1;
       int closestClusIndexStart=-1;
-      double closestDistance=999999;
-      for (auto toMergeHitItr = linesFound->at(*toMergeItr).hits.begin(); toMergeHitItr != linesFound->at(*toMergeItr).hits.end(); toMergeHitItr++) {
-        for (auto clusIndStHitItr = linesFound->at(clusIndexStart).hits.begin(); clusIndStHitItr != linesFound->at(clusIndexStart).hits.end(); clusIndStHitItr++) {
-          //double distance = std::sqrt(pow(clusIndStHitItr->first-(*toMergeHitItr).first,2)+
+      float closestDistance=999999;
+      for (auto toMergeHitItr = tracksFound->at(*toMergeItr).hits.begin(); toMergeHitItr != tracksFound->at(*toMergeItr).hits.end(); toMergeHitItr++) {
+        for (auto clusIndStHitItr = tracksFound->at(clusIndexStart).hits.begin(); clusIndStHitItr != tracksFound->at(clusIndexStart).hits.end(); clusIndStHitItr++) {
+          //float distance = std::sqrt(pow(clusIndStHitItr->first-(*toMergeHitItr).first,2)+
                     //pow(clusIndStHitItr->second-toMergeHitItr->second,2));
-          double distance = DistanceBetweenHits(*clusIndStHitItr,
+          float distance = DistanceBetweenHits(*clusIndStHitItr,
                                                 *toMergeHitItr,
                                                 wire_dist,
                                                 tickToDist);
           if(distance < closestDistance){
             closestDistance = distance;
-            closestToMerge=toMergeHitItr-linesFound->at(*toMergeItr).hits.begin();
-            closestClusIndexStart=clusIndStHitItr-linesFound->at(clusIndexStart).hits.begin();
+            closestToMerge=toMergeHitItr-tracksFound->at(*toMergeItr).hits.begin();
+            closestClusIndexStart=clusIndStHitItr-tracksFound->at(clusIndexStart).hits.begin();
           }
         }
       }
 
       // Find up to 9 more points closest to closestToMerge on the toMerge[i] line
       // check if it's closer, insert, delete
-      std::vector<std::pair<int,double> > closestToMergeDist;
-      for (auto toMergeHitItr = linesFound->at(*toMergeItr).hits.begin(); toMergeHitItr != linesFound->at(*toMergeItr).hits.end(); toMergeHitItr++) {
-        if(closestToMerge==toMergeHitItr-linesFound->at(*toMergeItr).hits.begin())
+      std::vector<std::pair<int,float> > closestToMergeDist;
+      for (auto toMergeHitItr = tracksFound->at(*toMergeItr).hits.begin(); toMergeHitItr != tracksFound->at(*toMergeItr).hits.end(); toMergeHitItr++) {
+        if(closestToMerge==toMergeHitItr-tracksFound->at(*toMergeItr).hits.begin())
           continue;
-          double distance = DistanceBetweenHits(linesFound->at(clusIndexStart).hits[closestClusIndexStart],
+          float distance = DistanceBetweenHits(tracksFound->at(clusIndexStart).hits[closestClusIndexStart],
                                                 *toMergeHitItr,
                                                 wire_dist,
                                                 tickToDist);
@@ -1050,12 +1989,12 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
           }
         }
         if(foundCloser 
-            || closestToMergeDist.size() < linesFound->at(*toMergeItr).hits.size()-1
+            || closestToMergeDist.size() < tracksFound->at(*toMergeItr).hits.size()-1
             || closestToMergeDist.size() < 9){
-          closestToMergeDist.push_back(std::make_pair(toMergeHitItr-linesFound->at(*toMergeItr).hits.begin(),distance));
-          std::sort(closestToMergeDist.begin(), closestToMergeDist.end(), boost::bind(&std::pair<int,double>::second,_1) < boost::bind(&std::pair<int,double>::second,_2));
+          closestToMergeDist.push_back(std::make_pair(toMergeHitItr-tracksFound->at(*toMergeItr).hits.begin(),distance));
+          std::sort(closestToMergeDist.begin(), closestToMergeDist.end(), boost::bind(&std::pair<int,float>::second,_1) < boost::bind(&std::pair<int,float>::second,_2));
         }
-        if(closestToMergeDist.size() > linesFound->at(*toMergeItr).hits.size()-1 ||
+        if(closestToMergeDist.size() > tracksFound->at(*toMergeItr).hits.size()-1 ||
           closestToMergeDist.size() > 9)
           closestToMergeDist.erase(closestToMergeDist.end());
       }
@@ -1066,13 +2005,13 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
 
 
       // Find up to 9 more points closest to closestToMerge on the clusIndexStart line
-      std::vector<std::pair<int,double> > closestClusIndexStartDist;
-      for (auto clusIndexStartHitItr = linesFound->at(clusIndexStart).hits.begin(); clusIndexStartHitItr != linesFound->at(clusIndexStart).hits.end(); clusIndexStartHitItr++) {
-        if(closestClusIndexStart==clusIndexStartHitItr-linesFound->at(clusIndexStart).hits.begin())
+      std::vector<std::pair<int,float> > closestClusIndexStartDist;
+      for (auto clusIndexStartHitItr = tracksFound->at(clusIndexStart).hits.begin(); clusIndexStartHitItr != tracksFound->at(clusIndexStart).hits.end(); clusIndexStartHitItr++) {
+        if(closestClusIndexStart==clusIndexStartHitItr-tracksFound->at(clusIndexStart).hits.begin())
           continue;
 
-        double distance = DistanceBetweenHits(*clusIndexStartHitItr,
-                                              linesFound->at(*toMergeItr).hits[closestToMerge],
+        float distance = DistanceBetweenHits(*clusIndexStartHitItr,
+                                              tracksFound->at(*toMergeItr).hits[closestToMerge],
                                               wire_dist,
                                               tickToDist);
 
@@ -1084,41 +2023,42 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
           }
         }
         if(foundCloser 
-            || closestClusIndexStartDist.size() < linesFound->at(clusIndexStart).hits.size()-1
+            || closestClusIndexStartDist.size() < tracksFound->at(clusIndexStart).hits.size()-1
             || closestClusIndexStartDist.size() < 9){
-          closestClusIndexStartDist.push_back(std::make_pair(clusIndexStartHitItr-linesFound->at(clusIndexStart).hits.begin(),distance));
-          std::sort(closestClusIndexStartDist.begin(), closestClusIndexStartDist.end(), boost::bind(&std::pair<int,double>::second,_1) < boost::bind(&std::pair<int,double>::second,_2));
+          closestClusIndexStartDist.push_back(std::make_pair(clusIndexStartHitItr-tracksFound->at(clusIndexStart).hits.begin(),distance));
+          std::sort(closestClusIndexStartDist.begin(), closestClusIndexStartDist.end(), boost::bind(&std::pair<int,float>::second,_1) < boost::bind(&std::pair<int,float>::second,_2));
         }
-        if(closestClusIndexStartDist.size() > linesFound->at(clusIndexStart).hits.size()-1 ||
+        if(closestClusIndexStartDist.size() > tracksFound->at(clusIndexStart).hits.size()-1 ||
           closestClusIndexStartDist.size() > 9)
           closestClusIndexStartDist.erase(closestClusIndexStartDist.end());
      }
 
 
 
-      double toMergeAveCharge = linesFound->at(*toMergeItr).hits[closestToMerge]->Charge();
-      double toMergeAveSigmaCharge = linesFound->at(*toMergeItr).hits[closestToMerge]->SigmaCharge();
+      float toMergeAveCharge = tracksFound->at(*toMergeItr).hits[closestToMerge]->Charge();
+      float toMergeAveSigmaCharge = tracksFound->at(*toMergeItr).hits[closestToMerge]->SigmaCharge();
       for(auto closestToMergeDistItr = closestToMergeDist.begin(); closestToMergeDistItr != closestToMergeDist.end(); closestToMergeDistItr++) {
-        toMergeAveCharge+=linesFound->at(*toMergeItr).hits[closestToMergeDistItr->first]->Charge();
-        toMergeAveSigmaCharge+=linesFound->at(*toMergeItr).hits[closestToMergeDistItr->first]->SigmaCharge();
+        toMergeAveCharge+=tracksFound->at(*toMergeItr).hits[closestToMergeDistItr->first]->Charge();
+        toMergeAveSigmaCharge+=tracksFound->at(*toMergeItr).hits[closestToMergeDistItr->first]->SigmaCharge();
       }
-      double clusIndexStartAveCharge = linesFound->at(clusIndexStart).hits[closestClusIndexStart]->Charge();
-      double clusIndexStartAveSigmaCharge = linesFound->at(clusIndexStart).hits[closestClusIndexStart]->SigmaCharge();
+      float clusIndexStartAveCharge = tracksFound->at(clusIndexStart).hits[closestClusIndexStart]->Charge();
+      float clusIndexStartAveSigmaCharge = tracksFound->at(clusIndexStart).hits[closestClusIndexStart]->SigmaCharge();
       for(auto closestClusIndexStartDistItr = closestClusIndexStartDist.begin(); closestClusIndexStartDistItr != closestClusIndexStartDist.end(); closestClusIndexStartDistItr++) {
-        clusIndexStartAveCharge+=linesFound->at(clusIndexStart).hits[closestClusIndexStartDistItr->first]->Charge();
-        clusIndexStartAveSigmaCharge+=linesFound->at(clusIndexStart).hits[closestClusIndexStartDistItr->first]->SigmaCharge();
+        clusIndexStartAveCharge+=tracksFound->at(clusIndexStart).hits[closestClusIndexStartDistItr->first]->Charge();
+        clusIndexStartAveSigmaCharge+=tracksFound->at(clusIndexStart).hits[closestClusIndexStartDistItr->first]->SigmaCharge();
       }
 
 
 
-      double chargeAsymmetry = std::abs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
-      double sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
-      double chargeAsymmetrySinAngle = chargeAsymmetry*pow(std::fabs(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180)),1);
-      double sigmaChargeAsymmetrySinAngle = sigmaChargeAsymmetry*pow(std::fabs(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180)),1);
+      float chargeAsymmetry = std::abs(toMergeAveCharge-clusIndexStartAveCharge)/(toMergeAveCharge+clusIndexStartAveCharge);
+      float sigmaChargeAsymmetry = std::abs(toMergeAveSigmaCharge-clusIndexStartAveSigmaCharge)/(toMergeAveSigmaCharge+clusIndexStartAveSigmaCharge);
+      float chargeAsymmetrySinAngle = chargeAsymmetry*pow(std::fabs(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180)),1);
+      float sigmaChargeAsymmetrySinAngle = sigmaChargeAsymmetry*pow(std::fabs(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180)),1);
 
       //std::cout << std::endl;
       //std::cout << chargeAsymmetry*pow(std::fabs(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180)),1) << std::endl;
       //std::cout << sigmaChargeAsymmetry*pow(std::fabs(sin(mergeTheta[toMergeItr-toMerge.begin()]*TMath::Pi()/180)),1) << std::endl;
+      
 
       if(chargeAsymmetrySinAngle > fChargeAsymAngleCut &&
           mergeStyle == iMergeChargeAsymAngle)
@@ -1128,13 +2068,49 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
           mergeStyle == iMergeChargeAsymAngle)
         continue;
 
-      //double lineLengthAsymm = std::abs((double)linesFound->at(clusIndexStart).hits.size() - (double)linesFound->at(*toMergeItr).hits.size())/((double)linesFound->at(clusIndexStart).hits.size() + (double)linesFound->at(*toMergeItr).hits.size());
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      //float lineLengthAsymm = std::abs((float)tracksFound->at(clusIndexStart).hits.size() - (float)tracksFound->at(*toMergeItr).hits.size())/((float)tracksFound->at(clusIndexStart).hits.size() + (float)tracksFound->at(*toMergeItr).hits.size());
 
       //std::cout << "Length Asymm: " << lineLengthAsymm << std::endl;
-      //std::cout << linesFound->at(clusIndexStart).hits.size() << std::endl;
+      //std::cout << tracksFound->at(clusIndexStart).hits.size() << std::endl;
 
       //if(lineLengthAsymm > 0.75) 
         //continue; 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
       // Veto the merge if the lines are not colinear 
       if(mergeStyle == iMergeNormal || mergeStyle == iMergeChargeAsymAngle) {
@@ -1143,15 +2119,15 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
         //distance between two segments in the plane:
         //  one segment is (x11, y11) to (x12, y12) or (p0MinLine1, p1MinLine1) to (p0MaxLine1, p1MaxLine1)
         //  the other is   (x21, y21) to (x22, y22) or (p0MinLine2, p1MinLine2) to (p0MaxLine2, p1MaxLine2)
-        double x11 = linesFound->at(*toMergeItr).pMin0; 
-        double y11 = linesFound->at(*toMergeItr).pMin1; 
-        double x12 = linesFound->at(*toMergeItr).pMax0; 
-        double y12 = linesFound->at(*toMergeItr).pMax1; 
-        double x21 = linesFound->at(clusIndexStart).pMin0; 
-        double y21 = linesFound->at(clusIndexStart).pMin1; 
-        double x22 = linesFound->at(clusIndexStart).pMax0; 
-        double y22 = linesFound->at(clusIndexStart).pMax1; 
-        std::vector<double> distances;
+        float x11 = tracksFound->at(*toMergeItr).pMin0; 
+        float y11 = tracksFound->at(*toMergeItr).pMin1; 
+        float x12 = tracksFound->at(*toMergeItr).pMax0; 
+        float y12 = tracksFound->at(*toMergeItr).pMax1; 
+        float x21 = tracksFound->at(clusIndexStart).pMin0; 
+        float y21 = tracksFound->at(clusIndexStart).pMin1; 
+        float x22 = tracksFound->at(clusIndexStart).pMax0; 
+        float y22 = tracksFound->at(clusIndexStart).pMax1; 
+        std::vector<float> distances;
 
         // Compare toMergerItr min with clusIndexStart min, if this is the min distance, lines are not colinear, merge is vetoed
         distances.push_back(std::sqrt(pow(x11-x21,2) + pow(y11-y21,2)));
@@ -1162,7 +2138,7 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
         // Compare toMergerItr max with clusIndexStart max, if this is the min distance, lines are not colinear, merge is vetoed
         distances.push_back(std::sqrt(pow(x12-x22,2) + pow(y12-y22,2)));
 
-        double minDistance = 999999; 
+        float minDistance = 999999; 
         int minDistanceIndex = -1;
         for(unsigned int j = 0; j < distances.size(); j++){
           if (distances[j] < minDistance){
@@ -1175,81 +2151,77 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
           continue;
 
       }
-      //std::cout << linesFound->at(*toMergeItr).clusterSlope << " " << linesFound->at(clusIndexStart).clusterSlope << std::endl;
+      //std::cout << tracksFound->at(*toMergeItr).clusterSlope << " " << tracksFound->at(clusIndexStart).clusterSlope << std::endl;
 
 
 
       // Check if both lines is in region that looks showerlike
       // Or merge if the distance between the lines is zero and one looks showerlike
-//       double segmentDistance = HoughLineDistance(linesFound->at(clusIndexStart).pMin0,
-// 						 linesFound->at(clusIndexStart).pMin1,
-//                                                  linesFound->at(clusIndexStart).pMax0,
-// 						 linesFound->at(clusIndexStart).pMax1, 
-//                                                  linesFound->at(*toMergeItr).pMin0,
-// 						 linesFound->at(*toMergeItr).pMin1,
-//                                                  linesFound->at(*toMergeItr).pMax0,
-// 						 linesFound->at(*toMergeItr).pMax1);
+      //float segmentDistance = HoughLineDistance(tracksFound->at(clusIndexStart).pMin0,tracksFound->at(clusIndexStart).pMin1,
+                                                 //tracksFound->at(clusIndexStart).pMax0,tracksFound->at(clusIndexStart).pMax1, 
+                                                 //tracksFound->at(*toMergeItr).pMin0,tracksFound->at(*toMergeItr).pMin1,
+                                                 //tracksFound->at(*toMergeItr).pMax0,tracksFound->at(*toMergeItr).pMax1);
       //std::cout << "segmentDistance: " << segmentDistance << std::endl;
-      //std::cout << linesFound->at(*toMergeItr).showerLikeness << " " << linesFound->at(clusIndexStart).showerLikeness << std::endl;
+      //std::cout << tracksFound->at(*toMergeItr).showerLikeness << " " << tracksFound->at(clusIndexStart).showerLikeness << std::endl;
 
       
      
       // If doing a shower merge, only merge if the Hough lines look showerlike
       if(mergeStyle == iMergeShower){
-        if(!(linesFound->at(*toMergeItr).showerLikeness>fShowerLikenessCut) || !(linesFound->at(clusIndexStart).showerLikeness>fShowerLikenessCut))
+        if(!(tracksFound->at(*toMergeItr).showerLikeness>fShowerLikenessCut) || !(tracksFound->at(clusIndexStart).showerLikeness>fShowerLikenessCut))
           continue;
       }
       
       
       //// If not doing a shower merge, only merge if one of the Hough lines doesn't look showerlike
       //if(mergeStyle == iMergeChargeAsymAngle){
-        //if(linesFound->at(*toMergeItr).showerLikeness>fShowerLikenessCut && linesFound->at(clusIndexStart).showerLikeness>fShowerLikenessCut)
+        //if(tracksFound->at(*toMergeItr).showerLikeness>fShowerLikenessCut && tracksFound->at(clusIndexStart).showerLikeness>fShowerLikenessCut)
           //continue;
       //}
 
       
       if(mergeStyle == iMergeShowerIntercept){
-        if((linesFound->at(*toMergeItr).showerLikeness<fShowerLikenessCut) && (linesFound->at(clusIndexStart).showerLikeness<fShowerLikenessCut))
+        if((tracksFound->at(*toMergeItr).showerLikeness<fShowerLikenessCut) && (tracksFound->at(clusIndexStart).showerLikeness<fShowerLikenessCut))
           continue;
-        double x11 = linesFound->at(*toMergeItr).pMin0; 
-        double y11 = linesFound->at(*toMergeItr).pMin1; 
-        double x12 = linesFound->at(*toMergeItr).pMax0; 
-        double y12 = linesFound->at(*toMergeItr).pMax1; 
-        double x21 = linesFound->at(clusIndexStart).pMin0; 
-        double y21 = linesFound->at(clusIndexStart).pMin1; 
-        double x22 = linesFound->at(clusIndexStart).pMax0; 
-        double y22 = linesFound->at(clusIndexStart).pMax1; 
+        float x11 = tracksFound->at(*toMergeItr).pMin0; 
+        float y11 = tracksFound->at(*toMergeItr).pMin1; 
+        float x12 = tracksFound->at(*toMergeItr).pMax0; 
+        float y12 = tracksFound->at(*toMergeItr).pMax1; 
+        float x21 = tracksFound->at(clusIndexStart).pMin0; 
+        float y21 = tracksFound->at(clusIndexStart).pMin1; 
+        float x22 = tracksFound->at(clusIndexStart).pMax0; 
+        float y22 = tracksFound->at(clusIndexStart).pMax1; 
         if(HoughLineIntersect(x11, y11, x12, y12, x21, y21, x22, y22) == 0)
           continue;
       }
 
       //std::cout << "Merging" << std::endl;
       lineMerged = true;
-      linesFound->at(clusIndexStart).merged = true;
-      linesFound->at(*toMergeItr).merged = true;
+      tracksFound->at(clusIndexStart).merged = true;
+      tracksFound->at(*toMergeItr).merged = true;
 
       // For loop over all lines found to reassign lines to clusIndexStart that already belonged to toMerge 
-      for(auto linesFoundItr = linesFound->begin(); linesFoundItr != linesFound->end(); linesFoundItr++){
-        if((unsigned int)(*toMergeItr) == linesFoundItr-linesFound->begin())
+      for(auto tracksFoundItr = tracksFound->begin(); tracksFoundItr != tracksFound->end(); tracksFoundItr++){
+        if((unsigned int)(*toMergeItr) == tracksFoundItr-tracksFound->begin())
           continue;
 
-        if(linesFoundItr->clusterNumber == linesFound->at(*toMergeItr).clusterNumber){
-          linesFoundItr->clusterNumber = linesFound->at(clusIndexStart).clusterNumber;
-          //std::cout << "linesFoundItr slope: " << linesFoundItr->clusterSlope << " clusIndexStart slope: " << linesFound->at(clusIndexStart).clusterSlope << std::endl;
+        if(tracksFoundItr->clusterNumber == tracksFound->at(*toMergeItr).clusterNumber){
+          tracksFoundItr->clusterNumber = tracksFound->at(clusIndexStart).clusterNumber;
+          //std::cout << "tracksFoundItr slope: " << tracksFoundItr->clusterSlope << " clusIndexStart slope: " << tracksFound->at(clusIndexStart).clusterSlope << std::endl;
 
         }
       }
-      linesFound->at(*toMergeItr).clusterNumber = linesFound->at(clusIndexStart).clusterNumber;
-      //std::cout << "main linesFoundItr slope: " << linesFound->at(*toMergeItr).clusterSlope << " clusIndexStart slope: " << linesFound->at(clusIndexStart).clusterSlope << std::endl;
+      tracksFound->at(*toMergeItr).clusterNumber = tracksFound->at(clusIndexStart).clusterNumber;
+      //std::cout << "main tracksFoundItr slope: " << tracksFound->at(*toMergeItr).clusterSlope << " clusIndexStart slope: " << tracksFound->at(clusIndexStart).clusterSlope << std::endl;
      
     }  
   }
 
                                                 
   if(lineMerged)
-    mergeHoughLinesBySegment(clusIndexStart,linesFound,xyScale,mergeStyle,wire_dist,tickToDist);
+    mergeHoughLinesBySegment(clusIndexStart,tracksFound,xyScale,mergeStyle,wire_dist,tickToDist);
   else
-    mergeHoughLinesBySegment(clusIndexStart+1,linesFound,xyScale,mergeStyle,wire_dist,tickToDist);
+    mergeHoughLinesBySegment(clusIndexStart+1,tracksFound,xyScale,mergeStyle,wire_dist,tickToDist);
   
   return;
 
@@ -1257,15 +2229,15 @@ void cluster::fuzzyClusterAlg::mergeHoughLinesBySegment(unsigned int clusIndexSt
 
 
 //------------------------------------------------------------------------------
-double cluster::fuzzyClusterAlg::DistanceBetweenHits(art::Ptr<recob::Hit> hit0,
-						     art::Ptr<recob::Hit> hit1,
-						     double wire_dist,
-						     double tickToDist)
+float cluster::fuzzyClusterAlg::DistanceBetweenHits(art::Ptr<recob::Hit> hit0,
+                                                art::Ptr<recob::Hit> hit1,
+                                                float wire_dist,
+                                                float tickToDist)
 {
-  double pHit0[2];
+  float pHit0[2];
   pHit0[0] = (hit0->Wire()->RawDigit()->Channel())*wire_dist;
   pHit0[1] = ((hit0->StartTime()+hit0->EndTime())/2.)*tickToDist;
-  double pHit1[2];
+  float pHit1[2];
   pHit1[0] = (hit1->Wire()->RawDigit()->Channel())*wire_dist;
   pHit1[1] = ((hit1->StartTime()+hit1->EndTime())/2.)*tickToDist;
 
@@ -1273,37 +2245,40 @@ double cluster::fuzzyClusterAlg::DistanceBetweenHits(art::Ptr<recob::Hit> hit0,
 
 }
 
+
+
+
 //------------------------------------------------------------------------------
-double cluster::fuzzyClusterAlg::HoughLineDistance(double p0MinLine1, 
-						   double p1MinLine1, 
-						   double p0MaxLine1, 
-						   double p1MaxLine1, 
-						   double p0MinLine2, 
-						   double p1MinLine2, 
-						   double p0MaxLine2, 
-						   double p1MaxLine2)
+float cluster::fuzzyClusterAlg::HoughLineDistance(float p0MinLine1, 
+						float p1MinLine1, 
+						float p0MaxLine1, 
+						float p1MaxLine1, 
+						float p0MinLine2, 
+						float p1MinLine2, 
+						float p0MaxLine2, 
+						float p1MaxLine2)
 {
   //distance between two segments in the plane:
   //  one segment is (x11, y11) to (x12, y12) or (p0MinLine1, p1MinLine1) to (p0MaxLine1, p1MaxLine1)
   //  the other is   (x21, y21) to (x22, y22) or (p0MinLine2, p1MinLine2) to (p0MaxLine2, p1MaxLine2)
-  double x11 = p0MinLine1; 
-  double y11 = p1MinLine1; 
-  double x12 = p0MaxLine1; 
-  double y12 = p1MaxLine1; 
-  double x21 = p0MinLine2; 
-  double y21 = p1MinLine2; 
-  double x22 = p0MaxLine2; 
-  double y22 = p1MaxLine2; 
+  float x11 = p0MinLine1; 
+  float y11 = p1MinLine1; 
+  float x12 = p0MaxLine1; 
+  float y12 = p1MaxLine1; 
+  float x21 = p0MinLine2; 
+  float y21 = p1MinLine2; 
+  float x22 = p0MaxLine2; 
+  float y22 = p1MaxLine2; 
 
   if(HoughLineIntersect(x11, y11, x12, y12, x21, y21, x22, y22)) return 0;
   // try each of the 4 vertices w/the other segment
-  std::vector<double> distances;
+  std::vector<float> distances;
   distances.push_back(PointSegmentDistance(x11, y11, x21, y21, x22, y22));
   distances.push_back(PointSegmentDistance(x12, y12, x21, y21, x22, y22));
   distances.push_back(PointSegmentDistance(x21, y21, x11, y11, x12, y12));
   distances.push_back(PointSegmentDistance(x22, y22, x11, y11, x12, y12));
 
-  double minDistance = 999999; 
+  float minDistance = 999999; 
   for(unsigned int j = 0; j < distances.size(); j++){
     if (distances[j] < minDistance)
       minDistance = distances[j];
@@ -1317,49 +2292,51 @@ double cluster::fuzzyClusterAlg::HoughLineDistance(double p0MinLine1,
 
 
 //------------------------------------------------------------------------------
-bool cluster::fuzzyClusterAlg::HoughLineIntersect(double x11,
-						  double  y11,
-						  double  x12,
-						  double  y12,
-						  double  x21,
-						  double  y21,
-						  double  x22,
-						  double  y22)
+bool cluster::fuzzyClusterAlg::HoughLineIntersect(float x11,
+					       float  y11,
+					       float  x12,
+					       float  y12,
+					       float  x21,
+					       float  y21,
+					       float  x22,
+					       float  y22)
 {
   //whether two segments in the plane intersect:
   //one segment is (x11, y11) to (x12, y12)
   //the other is   (x21, y21) to (x22, y22)
   
-  double dx1 = x12 - x11; // x2-x1
-  double dy1 = y12 - y11; // y2-y1
-  double dx2 = x22 - x21; // x4-x3
-  double dy2 = y22 - y21; // y4-y3
-  //double delta = dx2*dy1 - dy2*dx1; // (x4-x3)(y2-y1) - (y4-y3)(x2-x1)
-  double delta = dy2*dx1 - dx2*dy1; // (y4-y3)(x2-x1) - (x4-x3)(y2-y1) 
+  float dx1 = x12 - x11; // x2-x1
+  float dy1 = y12 - y11; // y2-y1
+  float dx2 = x22 - x21; // x4-x3
+  float dy2 = y22 - y21; // y4-y3
+  //float delta = dx2*dy1 - dy2*dx1; // (x4-x3)(y2-y1) - (y4-y3)(x2-x1)
+  float delta = dy2*dx1 - dx2*dy1; // (y4-y3)(x2-x1) - (x4-x3)(y2-y1) 
   if (delta == 0) return false;  // parallel segments
 
-  double t = (dx2*(y11 - y21) + dy2*(x21 - x11)) / delta; // ua
-  double s = (dx1*(y11 - y21) + dy1*(x21 - x11)) / delta; // ub
+  float t = (dx2*(y11 - y21) + dy2*(x21 - x11)) / delta; // ua
+  float s = (dx1*(y11 - y21) + dy1*(x21 - x11)) / delta; // ub
   
   return (0 <= s && s <= 1 && 0 <= t && t <= 1);
 
 }
 
+
+
 //------------------------------------------------------------------------------
-double cluster::fuzzyClusterAlg::PointSegmentDistance(double px,
-						      double  py,
-						      double  x1,
-						      double  y1,
-						      double  x2,
-						      double  y2)
+float cluster::fuzzyClusterAlg::PointSegmentDistance(float px,
+						   float  py,
+						   float  x1,
+						   float  y1,
+						   float  x2,
+						   float  y2)
 {
-  double dx = x2 - x1;
-  double dy = y2 - y1;
+  float dx = x2 - x1;
+  float dy = y2 - y1;
   if ( dx == 0 && dy == 0 )  // the segment's just a point
     return std::sqrt( pow(px - x1,2) + pow(py - y1,2));
 
   // Calculate the t that minimizes the distance.
-  double t = ((px - x1)*dx + (py - y1)*dy) / (dx*dx + dy*dy);
+  float t = ((px - x1)*dx + (py - y1)*dy) / (dx*dx + dy*dy);
 
   // See if this represents one of the segment's
   // end points or a point in the middle.
@@ -1372,8 +2349,8 @@ double cluster::fuzzyClusterAlg::PointSegmentDistance(double px,
     dy = py - y2;
   }
   else if(0 <= t && t <= 1) {
-    double near_x = x1 + t * dx;
-    double near_y = y1 + t * dy;
+    float near_x = x1 + t * dx;
+    float near_y = y1 + t * dy;
     dx = px - near_x;
     dy = py - near_y;
   }
@@ -1381,3 +2358,6 @@ double cluster::fuzzyClusterAlg::PointSegmentDistance(double px,
   return std::sqrt(dx*dx + dy*dy);
 
 }
+
+
+
