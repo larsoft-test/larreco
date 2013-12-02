@@ -31,6 +31,7 @@ extern "C" {
 
 #include <TF1.h>
 #include <TH1D.h>
+#include <TStopwatch.h>
 
 #include "CLHEP/Random/RandFlat.h"
 
@@ -57,6 +58,18 @@ extern "C" {
 #include "Utilities/DetectorProperties.h"
 #include "Utilities/AssociationUtil.h"
 
+#define PI TMath::Pi()
+#define a0  0 /*-4.172325e-7f*/   /*(-(float)0x7)/((float)0x1000000); */
+#define a1 1.000025f        /*((float)0x1922253)/((float)0x1000000)*2/Pi; */
+#define a2 -2.652905e-4f    /*(-(float)0x2ae6)/((float)0x1000000)*4/(Pi*Pi); */
+#define a3 -0.165624f       /*(-(float)0xa45511)/((float)0x1000000)*8/(Pi*Pi*Pi); */
+#define a4 -1.964532e-3f    /*(-(float)0x30fd3)/((float)0x1000000)*16/(Pi*Pi*Pi*Pi); */
+#define a5 1.02575e-2f      /*((float)0x191cac)/((float)0x1000000)*32/(Pi*Pi*Pi*Pi*Pi); */
+#define a6 -9.580378e-4f    /*(-(float)0x3af27)/((float)0x1000000)*64/(Pi*Pi*Pi*Pi*Pi*Pi); */
+
+#define _sin(x) ((((((a6*(x) + a5)*(x) + a4)*(x) + a3)*(x) + a2)*(x) + a1)*(x) + a0)
+#define _cos(x) _sin(TMath::Pi()*0.5 - (x))
+
 //------------------------------------------------------------------------------
 cluster::HoughBaseAlg::HoughBaseAlg(fhicl::ParameterSet const& pset)
 {
@@ -75,21 +88,22 @@ void cluster::HoughBaseAlg::reconfigure(fhicl::ParameterSet const& pset)
   fMinHits                        = pset.get< int    >("MinHits"                        );
   fSaveAccumulator                = pset.get< int    >("SaveAccumulator"                );
   fNumAngleCells                  = pset.get< int    >("NumAngleCells"                  );
-  fMaxDistance                    = pset.get< double >("MaxDistance"                    );
-  fMaxSlope                       = pset.get< double >("MaxSlope"                       );
+  fMaxDistance                    = pset.get< float  >("MaxDistance"                    );
+  fMaxSlope                       = pset.get< float  >("MaxSlope"                       );
   fRhoZeroOutRange                = pset.get< int    >("RhoZeroOutRange"                );
   fThetaZeroOutRange              = pset.get< int    >("ThetaZeroOutRange"              );
-  fRhoResolutionFactor            = pset.get< int    >("RhoResolutionFactor"            );
+  fRhoResolutionFactor            = pset.get< float  >("RhoResolutionFactor"            );
   fPerCluster                     = pset.get< int    >("HitsPerCluster"                 );
   fMissedHits                     = pset.get< int    >("MissedHits"                     );
-  fMissedHitsDistance             = pset.get< double >("MissedHitsDistance"             );
-  fMissedHitsToLineSize           = pset.get< double >("MissedHitsToLineSize"           );
+  fMissedHitsDistance             = pset.get< float  >("MissedHitsDistance"             );
+  fMissedHitsToLineSize           = pset.get< float  >("MissedHitsToLineSize"           );
   return;
 }
 
 //------------------------------------------------------------------------------
 cluster::HoughTransform::HoughTransform()
 {  
+  //m_accum=NULL;
 }
 
 
@@ -98,15 +112,13 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 					std::vector<unsigned int>                 *fpointId_to_clusterId,
 					unsigned int                               clusterId, // The id of the cluster we are examining
 					int                                       *nClusters,
-					std::vector<unsigned int>                  corners,
-                                        std::vector<lineSlope>                    *linesFound
+                                        std::vector<protoTrack>                    *linesFound
 					)
 {
 
   int nClustersTemp = *nClusters;
   
   HoughTransform c;
-  std::vector< art::Ptr<recob::Hit> > hit;
 
   art::ServiceHandle<geo::Geometry> geom;
   art::ServiceHandle<util::LArProperties> larprop;
@@ -125,16 +137,15 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
   //geo::View_t    view = geom->Cryostat(cs).TPC(t).Plane(p).View();
   geo::SigType_t sigt = geom->SignalType(channel);
   std::vector<int> skip;  
-  hit.clear();
   
   //factor to make x and y scale the same units
   float wirePitch = geom->WirePitch(geom->View(channel));
-  float xyScale  = 0.001*larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
-  xyScale        *= detprop->SamplingRate()/wirePitch;
+  float xyScale  = 0.001*larprop->DriftVelocity(larprop->Efield(),larprop->Temperature())*detprop->SamplingRate()/wirePitch;
+  //xyScale        *= detprop->SamplingRate()/wirePitch;
 
   float wire_dist = wirePitch;
-  float tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
-  tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
+  float tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature())*1.e-3 * detprop->SamplingRate();
+  //tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
 
 
   //mf::LogInfo("HoughBaseAlg") << "xyScale: " << xyScale;
@@ -172,10 +183,25 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
   //this array keeps track of the hits that have already been associated with a line. 
   int xMax = 0;
   int yMax = 0;
+  int yClearStart;
+  int yClearEnd;
+  int xClearStart;
+  int xClearEnd;
+  int maxCell = 0;
   float rho;
   float theta; 
   int accDx(0), accDy(0);
+  float pCornerMin[2];
+  float pCornerMax[2];
+  //float pCorner0[2];
+  //float pCorner1[2];
+  //bool newChannel = false;
+  //unsigned int lastChannel;
 
+  unsigned int fMaxWire = 0;
+  int iMaxWire = 0;
+  unsigned int fMinWire = 99999999;
+  int iMinWire = -1;
 
 
 
@@ -203,6 +229,10 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 
   c.GetAccumSize(accDy, accDx);
 
+  // Define the prototrack object
+  protoTrack protoTrackToLoad;
+
+
   // The number of lines we've found
   unsigned int nLinesFound = 0;
   std::vector<unsigned int> accumPoints(hits.size(),0);
@@ -214,20 +244,20 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     if(*fpointId_to_clusterIdItr == clusterId)
       count++;
 
-
+  unsigned int randInd;
 
   /// Get the random number generator
   art::ServiceHandle<art::RandomNumberGenerator> rng;
   CLHEP::HepRandomEngine & engine = rng -> getEngine();
   CLHEP::RandFlat flat(engine);
+  TStopwatch w;
+  //float timeTotal = 0;
 
   for( ; count > 0; ){
 
-
-
     /// The random hit we are examining
     ///unsigned int randInd = rand() % hits.size();
-    unsigned int randInd = (unsigned int)(flat.fire()*hits.size());
+    randInd = (unsigned int)(flat.fire()*hits.size());
 
     //std::cout << count << " " << randInd << std::endl;
     
@@ -249,16 +279,16 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
    
     /// zeroes out the neighborhood of all previous lines  
     for(auto listofxmaxItr = listofxmax.begin(); listofxmaxItr != listofxmax.end(); ++listofxmaxItr) {
-      int yClearStart = listofymax[listofxmaxItr-listofxmax.begin()] - fRhoZeroOutRange;
+      yClearStart = listofymax[listofxmaxItr-listofxmax.begin()] - fRhoZeroOutRange;
       if (yClearStart < 0) yClearStart = 0;
       
-      int yClearEnd = listofymax[listofxmaxItr-listofxmax.begin()] + fRhoZeroOutRange;
+      yClearEnd = listofymax[listofxmaxItr-listofxmax.begin()] + fRhoZeroOutRange;
       if (yClearEnd >= accDy) yClearEnd = accDy - 1;
       
-      int xClearStart = *listofxmaxItr - fThetaZeroOutRange;
+      xClearStart = *listofxmaxItr - fThetaZeroOutRange;
       if (xClearStart < 0) xClearStart = 0;
       
-      int xClearEnd = *listofxmaxItr + fThetaZeroOutRange;
+      xClearEnd = *listofxmaxItr + fThetaZeroOutRange;
       if (xClearEnd >= accDx) xClearEnd = accDx - 1;
       
       for (y = yClearStart; y <= yClearEnd; ++y){
@@ -269,14 +299,18 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     }/// end loop over size of listxmax
   
     /// Find the weightiest cell in the accumulator.
-    int maxCell = 0;
+    maxCell = 0;
     xMax = 0;
     yMax = 0;
     uint32_t channel = hits[randInd]->Wire()->RawDigit()->Channel();
     wireMax = hits[randInd]->WireID().Wire;
 
     /// Add the randomly selected point to the accumulator
-    maxCell = c.AddPointReturnMax(wireMax, (int)(hits[randInd]->PeakTime()), &yMax, &xMax, fMinHits);
+    //w.Start();
+    maxCell = c.AddPointReturnMax(wireMax, (int)(hits[randInd]->PeakTime()), &yMax, &xMax);
+    //w.Stop();
+    //std::cout << "Real Time: " << w.RealTime() << std::endl;
+    //timeTotal += w.CpuTime();
     nAccum++; 
 
     //mf::LogVerbatim("HoughBaseAlg") << "cout: " << count << " maxCell: " << maxCell << std::endl;
@@ -360,22 +394,21 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     c.GetEquation(yMax+centerofmassy, xMax+centerofmassx, rho, theta);
     slope = -1./tan(theta);    
     intercept = (rho/sin(theta));
-    double distance;
+    float distance;
 
     if(!isinf(slope) && !isnan(slope)){
       sequenceHolder.clear();
-      unsigned int fMaxWire = 0;
-      int iMaxWire = 0;
-      unsigned int fMinWire = 99999999;
-      int iMinWire = -1;
-      float background = 0;
+      fMaxWire = 0;
+      iMaxWire = 0;
+      fMinWire = 99999999;
+      iMinWire = -1;
       hitsTemp.clear();
       for(auto hitsItr = hits.cbegin(); hitsItr != hits.cend(); ++hitsItr){
         wire = (*hitsItr)->WireID().Wire;
         if(fpointId_to_clusterId->at(hitsItr - hits.begin()) != clusterId)
           continue;
         channel = (*hitsItr)->Wire()->RawDigit()->Channel();
-        distance = (std::abs((*hitsItr)->PeakTime()-slope*(double)((*hitsItr)->WireID().Wire)-intercept)/(std::sqrt(pow(xyScale*slope,2)+1)));
+        distance = (std::abs((*hitsItr)->PeakTime()-slope*(float)((*hitsItr)->WireID().Wire)-intercept)/(std::sqrt(xyScale*xyScale*slope*slope+1)));
         if(distance < fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling && skip[hitsItr-hits.begin()]!=1){
           hitsTemp.push_back(hitsItr-hits.begin());
           sequenceHolder.push_back(channel);
@@ -402,104 +435,76 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
       clusterHits.clear();    
 
       //if(lastHits.size() < 5) continue;
-      if(lastHits.size() < (size_t)fMinHits) continue;
-
-      // Check if lastHits has hits with big gaps in it
-      // lastHits[i] is ordered in increasing channel and then increasing peak time,
-      // as a consequence, if the line has a negative slope and there are multiple 
-      // hits in the line for a channel,
-      // we have to go back to the first hit (in terms of lastHits[i]) of that 
-      // channel to find the distance
-      // between hits
-      //std::cout << "New line" << std::endl;
-      //std::cout << "slope: " << slope << std::endl;
-      int missedHits=0;
-      int lastHitsChannel = 0;
-      unsigned int lastChannel = hits[hitsTemp[lastHits[0]]]->Wire()->RawDigit()->Channel();
-      for(size_t i = 0; i < lastHits.size()-1; ++i) {
-        bool newChannel = false;
-        if(slope < 0){
-          if(hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel() != lastChannel){
-            newChannel = true;
-          }           
-        }
-        if(slope > 0 || !newChannel){
-          //std::cout << hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[i]]]->StartTime()+hits[hitsTemp[lastHits[i]]]->EndTime())/2.) << std::endl;
-          double pCorner0[2];
-          pCorner0[0] = (hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel())*wire_dist;
-          pCorner0[1] = ((hits[hitsTemp[lastHits[i]]]->StartTime()+hits[hitsTemp[lastHits[i]]]->EndTime())/2.)*tickToDist;
-          double pCorner1[2];
-          pCorner1[0] = (hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel())*wire_dist;
-          pCorner1[1] = ((hits[hitsTemp[lastHits[i+1]]]->StartTime()+hits[hitsTemp[lastHits[i+1]]]->EndTime())/2.)*tickToDist;
-          //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
-          if(std::sqrt(pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance)
-            missedHits++;
-        //} else if (slope < 0 && newChannel && nHitsInChannel > 1){
-        } else if (slope < 0 && newChannel){
-          //std::cout << lastHitsChannel << " " << lastHits[i+1] << " " << lastChannel << std::endl;
-          //std::cout << hits[hitsTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[lastHitsChannel]]]->StartTime()+hits[hitsTemp[lastHits[lastHitsChannel]]]->EndTime())/2.) << std::endl;
-          double pCorner0[2];
-          pCorner0[0] = (hits[hitsTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel())*wire_dist;
-          pCorner0[1] = ((hits[hitsTemp[lastHits[lastHitsChannel]]]->StartTime()+hits[hitsTemp[lastHits[lastHitsChannel]]]->EndTime())/2.)*tickToDist;
-          double pCorner1[2];
-          pCorner1[0] = (hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel())*wire_dist;
-          pCorner1[1] = ((hits[hitsTemp[lastHits[i+1]]]->StartTime()+hits[hitsTemp[lastHits[i+1]]]->EndTime())/2.)*tickToDist;
-          //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
-          if(std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance             )
-            missedHits++;
-          lastChannel=hits[hitsTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel();
-          lastHitsChannel=i+1;
-        }
-      }
-      //std::cout << "missedHits " << missedHits << std::endl;
-      //std::cout << "lastHits.size() " << lastHits.size() << std::endl;
-      //std::cout << "missedHits/lastHits.size() " << (double)missedHits/((double)lastHits.size()-1) << std::endl;
-      if((double)missedHits/((double)lastHits.size()-1) > fMissedHitsToLineSize)
-        continue;
+      if(lastHits.size() < (unsigned int)fMinHits) continue;
 
 
 
 
 
 
-      // Find minimum and maximum wires in the Hough line
-      fMaxWire = 0;
-      iMaxWire = 0;
-      fMinWire = 99999999;
-      iMinWire = -1;
-      for(std::vector<int>::iterator lastHitsItr = lastHits.begin(); lastHitsItr != lastHits.end(); ++lastHitsItr) {
-        if(fpointId_to_clusterId->at(hitsTemp[(*lastHitsItr)]) != clusterId)
-          continue;
-        wire = hits[hitsTemp[(*lastHitsItr)]]->WireID().Wire;
-        if(wire < fMinWire){
-          fMinWire = wire;
-          iMinWire = hitsTemp[(*lastHitsItr)];
-        }
-        if(wire > fMaxWire){
-          fMaxWire = wire;
-          iMaxWire = hitsTemp[(*lastHitsItr)];
-        }
-      }
 
-      // Loop over hits to sum up background around prospective Hough line
-      for(auto hitsItr = hits.cbegin(); hitsItr != hits.cend(); ++hitsItr){
-        distance = (std::abs((*hitsItr)->PeakTime()-slope*(double)((*hitsItr)->WireID().Wire)-intercept)/(std::sqrt(pow(xyScale*slope,2)+1)));
+      //// Check if lastHits has hits with big gaps in it
+      //// lastHits[i] is ordered in increasing channel and then increasing peak time,
+      //// as a consequence, if the line has a negative slope and there are multiple hits in the line for a channel,
+      //// we have to go back to the first hit (in terms of lastHits[i]) of that channel to find the distance
+      //// between hits
+      ////std::cout << "New line" << std::endl;
+      ////std::cout << "slope: " << slope << std::endl;
+      //int missedHits=0;
+      //int lastHitsChannel = 0;
+      //fMaxWire = 0;
+      //iMaxWire = 0;
+      //fMinWire = 99999999;
+      //iMinWire = -1;
+      //newChannel = false;
+      //lastChannel = hits[hitsTemp[lastHits[0]]]->Wire()->RawDigit()->Channel();
+      //for(auto lastHitsItr = lastHits.begin(); lastHitsItr != lastHits.end()-1; ++lastHitsItr) {
 
-        // Sum up background hits, use smart distance
-        if(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling < distance 
-           && distance < 100*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling) 
-	   ){
-          double peakTimePerpMin=-(1/slope)*(double)(wire)+hits[iMinWire]->PeakTime()+(1/slope)*(fMinWire);
-          double peakTimePerpMax=-(1/slope)*(double)(wire)+hits[iMaxWire]->PeakTime()+(1/slope)*(fMaxWire);
-          if((-1/slope) > 0 && hits[iMinWire]->PeakTime() < peakTimePerpMin && hits[iMaxWire]->PeakTime() > peakTimePerpMax)
-            background++;
-          if((-1/slope) < 0 && hits[iMinWire]->PeakTime() > peakTimePerpMin && hits[iMaxWire]->PeakTime() < peakTimePerpMax)
-            background++;
-        }
-      }// end loop over hits
+        //newChannel = false;
+        //if(slope < 0){
+          //if(hits[hitsTemp[*lastHitsItr+1]]->Wire()->RawDigit()->Channel() != lastChannel){
+            //newChannel = true;
+          //}           
+        //}
+        //if(slope > 0 || !newChannel){
 
-      double tickToDist = larprop->DriftVelocity(larprop->Efield(),larprop->Temperature());
-      tickToDist *= 1.e-3 * detprop->SamplingRate(); // 1e-3 is conversion of 1/us to 1/ns
+          ////std::cout << hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[i]]]->StartTime()+hits[hitsTemp[lastHits[i]]]->EndTime())/2.) << std::endl;
+          //pCorner0[0] = (hits[hitsTemp[*lastHitsItr]]->Wire()->RawDigit()->Channel())*wire_dist;
+          //pCorner0[1] = ((hits[hitsTemp[*lastHitsItr]]->StartTime()+hits[hitsTemp[*lastHitsItr]]->EndTime())/2.)*tickToDist;
+          //pCorner1[0] = (hits[hitsTemp[*lastHitsItr+1]]->Wire()->RawDigit()->Channel())*wire_dist;
+          //pCorner1[1] = ((hits[hitsTemp[*lastHitsItr+1]]->StartTime()+hits[hitsTemp[*lastHitsItr+1]]->EndTime())/2.)*tickToDist;
+          ////std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
+          ////if(std::sqrt(pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance)
+          //if((pCorner0[0]-pCorner1[0])*(pCorner0[0]-pCorner1[0]) + (pCorner0[1]-pCorner1[1])*(pCorner0[1]-pCorner1[1]) > fMissedHitsDistance*fMissedHitsDistance)
+            //missedHits++;
+        ////} else if (slope < 0 && newChannel && nHitsInChannel > 1){
+        //} else if (slope < 0 && newChannel){
+          ////std::cout << lastHitsChannel << " " << lastHits[i+1] << " " << lastChannel << std::endl;
+          ////std::cout << hits[hitsTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[lastHitsChannel]]]->StartTime()+hits[hitsTemp[lastHits[lastHitsChannel]]]->EndTime())/2.) << std::endl;
+          //pCorner0[0] = (hits[hitsTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel())*wire_dist;
+          //pCorner0[1] = ((hits[hitsTemp[lastHits[lastHitsChannel]]]->StartTime()+hits[hitsTemp[lastHits[lastHitsChannel]]]->EndTime())/2.)*tickToDist;
+          //pCorner1[0] = (hits[hitsTemp[*lastHitsItr+1]]->Wire()->RawDigit()->Channel())*wire_dist;
+          //pCorner1[1] = ((hits[hitsTemp[*lastHitsItr+1]]->StartTime()+hits[hitsTemp[*lastHitsItr+1]]->EndTime())/2.)*tickToDist;
+          ////std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
+          ////if(std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) > fMissedHitsDistance             )
+          //if((pCorner0[0]-pCorner1[0])*(pCorner0[0]-pCorner1[0]) + (pCorner0[1]-pCorner1[1])*(pCorner0[1]-pCorner1[1]) > fMissedHitsDistance*fMissedHitsDistance)
+            //missedHits++;
+          //lastChannel=hits[hitsTemp[*lastHitsItr+1]]->Wire()->RawDigit()->Channel();
+          //lastHitsChannel=lastHitsItr-lastHits.begin()+1;
+        //}
+      //}
+      ////std::cout << "missedHits " << missedHits << std::endl;
+      ////std::cout << "lastHits.size() " << lastHits.size() << std::endl;
+      ////std::cout << "missedHits/lastHits.size() " << (double)missedHits/((double)lastHits.size()-1) << std::endl;
+      //if((float)missedHits/((float)lastHits.size()-1) > fMissedHitsToLineSize)
+        //continue;
+
+
+
+
+
+
+
       if(std::abs(slope)>fMaxSlope ){
         continue;
       }
@@ -516,14 +521,15 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 
 
       // Add new line to list of lines
-      double totalQ = 0;
+      float totalQ = 0;
       std::vector< art::Ptr<recob::Hit> > lineHits;
       nClustersTemp++;
       ///std::cout << "nClusters: " << *nClusters << std::endl;
       for(auto lastHitsItr = lastHits.begin(); lastHitsItr != lastHits.end(); ++lastHitsItr) {
         fpointId_to_clusterId->at(hitsTemp[(*lastHitsItr)]) = nClustersTemp-1;
-        clusterHits.push_back(hits[hitsTemp[(*lastHitsItr)]]);
-        totalQ += clusterHits.back()->Charge();
+        //clusterHits.push_back(hits[hitsTemp[(*lastHitsItr)]]);
+        //totalQ += clusterHits.back()->Charge();
+        totalQ += hits[hitsTemp[(*lastHitsItr)]]->Charge();
         wire = hits[hitsTemp[(*lastHitsItr)]]->WireID().Wire;
 
         if(!accumPoints[hitsTemp[(*lastHitsItr)]])
@@ -547,17 +553,15 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
           iMaxWire = hitsTemp[(*lastHitsItr)];
         }
       }
-      double pCornerMin[2];
       pCornerMin[0] = (hits[iMinWire]->Wire()->RawDigit()->Channel())*wire_dist;
       pCornerMin[1] = ((hits[iMinWire]->StartTime()+hits[iMinWire]->EndTime())/2.)*tickToDist;
-      double pCornerMax[2];
       pCornerMax[0] = (hits[iMaxWire]->Wire()->RawDigit()->Channel())*wire_dist;
       pCornerMax[1] = ((hits[iMaxWire]->StartTime()+hits[iMaxWire]->EndTime())/2.)*tickToDist;
 
       ///std::cout << std::endl;
       ///std::cout << "pCornerMin[0]: " << pCornerMin[0] << " pCornerMin[1]: " << pCornerMin[1] << std::endl;
       ///std::cout << "pCornerMax[0]: " << pCornerMax[0] << " pCornerMax[1]: " << pCornerMax[1] << std::endl;
-      linesFound->push_back(lineSlope(nClustersTemp-1,
+      protoTrackToLoad.Init(nClustersTemp-1,
             slope,
             intercept,
             totalQ,
@@ -569,7 +573,8 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
             iMaxWire,
             fMinWire,
             fMaxWire,
-            lineHits));
+            lineHits);
+      linesFound->push_back(protoTrackToLoad);
        
     }/// end if !isnan
 
@@ -581,53 +586,13 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 
   }/// end loop over hits
 
-
-  // Loop over hits to sum up background around the Hough lines
-  for(auto linesFoundItr = linesFound->begin(); linesFoundItr < linesFound->end(); linesFoundItr++){
-    float totalBkgDist = 0;
-    float totalBkgDistCharge = 0;
-    int   totalBkg = 0;
-    float background = 0;
-    for(auto hitsItr = hits.cbegin(); hitsItr != hits.cend(); ++hitsItr){
-      // Veto the hit if it already belongs to a line
-      //if(fpointId_to_clusterId->at(hitsItr-hits.cbegin()) != clusterId)
-      //continue;
-      float distance = (TMath::Abs((*hitsItr)->PeakTime()-linesFoundItr->clusterSlope*(double)((*hitsItr)->WireID().Wire)-linesFoundItr->clusterIntercept)/(std::sqrt(pow(xyScale*linesFoundItr->clusterSlope,2)+1)));
-      /// Sum up background hits, use smart distance
-      double peakTimePerpMin=-(1/linesFoundItr->clusterSlope)*(double)((*hitsItr)->WireID().Wire)+hits[linesFoundItr->iMinWire]->PeakTime()+(1/linesFoundItr->clusterSlope)*(hits[linesFoundItr->iMinWire]->WireID().Wire);
-      double peakTimePerpMax=-(1/linesFoundItr->clusterSlope)*(double)((*hitsItr)->WireID().Wire)+hits[linesFoundItr->iMaxWire]->PeakTime()+(1/linesFoundItr->clusterSlope)*(hits[linesFoundItr->iMaxWire]->WireID().Wire);
-      if(distance > 1*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling)
-        && distance < 10*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling)){
-        if((slope < 0 && (*hitsItr)->PeakTime() < peakTimePerpMin && (*hitsItr)->PeakTime() > peakTimePerpMax)
-        || (slope > 0 && (*hitsItr)->PeakTime() > peakTimePerpMin && (*hitsItr)->PeakTime() < peakTimePerpMax)){
-          totalBkgDist+=distance;
-          totalBkgDistCharge+=distance/(*hitsItr)->Charge();
-          totalBkg++;
-        }
-      }
-      if(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling < distance 
-          && distance < 50*(fMaxDistance+(((*hitsItr)->EndTime()-(*hitsItr)->StartTime())/2.)+indcolscaling) 
-        ){
-        if((-1/slope) > 0 && (*hitsItr)->PeakTime() < peakTimePerpMin && (*hitsItr)->PeakTime() > peakTimePerpMax){
-          background++;
-        }
-        if((-1/slope) < 0 && (*hitsItr)->PeakTime() > peakTimePerpMin && (*hitsItr)->PeakTime() < peakTimePerpMax){
-          background++;
-        }
-      }
-    }/// end loop over hits
-    //std::cout << std::endl << "total BkgDist: " << totalBkgDist << std::endl;
-    //std::cout << "total BkgDistCharge: " << totalBkgDistCharge/linesFoundItr->pHit.size() << std::endl;
-    linesFoundItr->showerLikeness = totalBkgDistCharge/linesFoundItr->hits.size();
-    //linesFoundItr->showerLikeness = totalBkgDist;
-    linesFoundItr->isolation = background/linesFoundItr->hits.size();
-  }/// end loop over lines found
+  //std::cout << "Average cpu time: " << timeTotal/nAccum << std::endl;
+  //std::cout << "Total cpu time: " << timeTotal << std::endl;
 
 
 
 
 
-  hit.clear();
   lastHits.clear();
 
   listofxmax.clear();
@@ -666,7 +631,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
 
 //------------------------------------------------------------------------------
 cluster::HoughTransform::~HoughTransform()
-{  
+{
 }
 
 //------------------------------------------------------------------------------
@@ -679,21 +644,20 @@ bool cluster::HoughTransform::AddPoint(int x, int y)
 
 
 //------------------------------------------------------------------------------
-int cluster::HoughTransform::AddPointReturnMax(int x, 
+inline int cluster::HoughTransform::AddPointReturnMax(int x, 
 					       int y, 
 					       int *yMax, 
-					       int *xMax, 
-					       int minHits)
+					       int *xMax)
 {
   if (x>m_dx || y>m_dy || x<0.0 || y<0.0)
     return 0;
-  return DoAddPointReturnMax(x, y, yMax, xMax, minHits);
+  return DoAddPointReturnMax(x, y, yMax, xMax);
 }
 
 
 
 //------------------------------------------------------------------------------
-bool cluster::HoughTransform::SubtractPoint(int x, int y)
+inline bool cluster::HoughTransform::SubtractPoint(int x, int y)
 {
   if (x>m_dx || y>m_dy || x<0.0 || y<0.0)
     return false;
@@ -710,25 +674,28 @@ void cluster::HoughTransform::Init(int dx,
   m_numAngleCells=numACells;
   m_rhoResolutionFactor = rhores;
   m_accum.clear();
-  m_accum.resize(m_numAngleCells);
+  //m_accum.resize(m_numAngleCells);
   m_numAccumulated = 0;   
   //   m_cosTable.clear();
   //   m_sinTable.clear();
-  m_cosTable.resize(m_numAngleCells);
-  m_sinTable.resize(m_numAngleCells);
+  //m_cosTable.resize(m_numAngleCells);
+  //m_sinTable.resize(m_numAngleCells);
   //if (dx == m_dx && dy == m_dy)
   //return;
   m_dx = dx;
   m_dy = dy;
-  m_rowLength = (int)(m_rhoResolutionFactor*2. * std::sqrt(dx*dx + dy*dy));
-  
-  int angleIndex;
-  float a, angleStep = TMath::Pi()/m_numAngleCells;
-  for (a=0.0, angleIndex = 0; angleIndex < m_numAngleCells; ++angleIndex){
-    m_cosTable[angleIndex] = cos(a);
-    m_sinTable[angleIndex] = sin(a);
-    a += angleStep;
-  }
+  m_rowLength = (int)(m_rhoResolutionFactor*2 * std::sqrt(dx*dx + dy*dy));
+  m_accum.resize(m_numAngleCells);
+  //for(int i = 0; i < m_numAngleCells; i++)
+    //m_accum[i].resize((int)(m_rowLength));
+
+  //int angleIndex;
+  //float a, angleStep = TMath::Pi()/m_numAngleCells;
+  //for (a=0.0, angleIndex = 0; angleIndex < m_numAngleCells; ++angleIndex){
+    //m_cosTable[angleIndex] = (cos(a));
+    //m_sinTable[angleIndex] = (sin(a));
+    //a += angleStep;
+  //}
 }
 
 
@@ -740,9 +707,12 @@ int cluster::HoughTransform::GetMax(int &xmax,
   for(unsigned int i = 0; i < m_accum.size(); i++){
     for(auto rhoIter=m_accum[i].begin(); rhoIter!=m_accum[i].end(); ++rhoIter){
       if((*rhoIter).second > maxVal) {
-	maxVal = (*rhoIter).second;
+      //if((*rhoIter) > maxVal) {
+        maxVal = (*rhoIter).second;
+	//maxVal = (*rhoIter);
 	xmax = i;
-	ymax = (*rhoIter).first;
+        ymax = (*rhoIter).first;
+	//ymax = rhoIter-m_accum[i].begin();
       }
     }
   }
@@ -750,122 +720,146 @@ int cluster::HoughTransform::GetMax(int &xmax,
   return maxVal;
 }
 
-
 //------------------------------------------------------------------------------
-int cluster::HoughTransform::DoAddPointReturnMax(int x, 
-						 int y, 
-						 int *ymax, 
-						 int *xmax, 
-						 int minHits)
+inline int cluster::HoughTransform::DoAddPointReturnMax(int x, 
+                                                 int y, 
+                                                 int *ymax, 
+                                                 int *xmax)
 {
+
   int distCenter = (int)(m_rowLength/2.);
- 
+  
   // prime the lastDist variable so our linear fill works below
-  int lastDist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[0]*x + m_sinTable[0]*y)));
+  int lastDist = (int)(distCenter+(m_rhoResolutionFactor*x));
 
   //int max_val = minHits-1;
   int max_val = 0;
+  int dist;
+  int val;
+  int stepDir;
+  int cell;
+
+  //std::pair<std::map<int,int>::iterator,bool> m_accumA;
+  std::map<int,int>::iterator m_accumA;
+  std::map<int,int>::iterator m_accumALast;
 
   // loop through all angles a from 0 to 180 degrees
-  for (unsigned int a=1; a<m_cosTable.size(); ++a){
+  float angleStep = PI/m_numAngleCells;
+  float angleStepInverse = m_numAngleCells/PI;
+  float angleStepInt;
+  //for (float a = angleStep; a < TMath::Pi(); a+=angleStep){
+  for (float a = angleStep; a < PI; a+=angleStep){
+   
+    angleStepInt = (a*angleStepInverse);
     // Calculate the basic line equation dist = cos(a)*x + sin(a)*y.
     // Shift to center of row to cover negative values
-    int dist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[a]*x + m_sinTable[a]*y)));
+    dist = (int)(distCenter+(m_rhoResolutionFactor*(cos(a)*x + sin(a)*y)));
     // sanity check to make sure we stay within our row
-    if (dist >= 0 && dist<m_rowLength){
+    //if (dist >= 0 && dist<m_rowLength){
       if(lastDist==dist){
-	m_accum[a][lastDist]++;
-        if( max_val < m_accum[a][lastDist]){
-          max_val = m_accum[a][lastDist];
+        m_accumA = m_accum[angleStepInt].insert(m_accum[angleStepInt].end(),std::pair<int,int>(lastDist,0));
+        //val = m_accumA.first->second++;
+        val = m_accumA->second++;
+        
+        if( max_val < val){
+          max_val = val;
           *xmax = lastDist;
-          *ymax = a;
+          *ymax = (angleStepInt);
         }
+        m_accumALast = m_accumA;
         //mf::LogVerbatim("HoughBaseAlg") << "First, a: " << a << " lastDist: " << lastDist << std::endl;
       }
       else{
-	// fill in all values in row a, not just a single cell
-	int stepDir = dist>lastDist ? 1 : -1;
-	for (int cell=lastDist; cell!=dist; cell+=stepDir){   
-	  m_accum[a][cell]++;//maybe add weight of hit here?
-          // Note, m_accum is a vector of associative containers, "a" calls the vector element, "cell" is the container key, and the ++ iterates the value correspoding to the key
-          if(max_val < m_accum[a][cell]){
-            max_val = m_accum[a][cell];
+        // fill in all values in row a, not just a single cell
+        m_accumALast = m_accum[angleStepInt].begin();
+        stepDir = dist>lastDist ? 1 : -1;
+        for (cell=lastDist; cell!=dist; cell+=stepDir){  
+          m_accumA = m_accum[angleStepInt].insert(m_accumALast,std::pair<int,int>(cell,0));
+          //val = m_accumA.first->second++;
+          val = m_accumA->second++;
+          //// Note, m_accum is a vector of associative containers, "a" calls the vector element, "cell" is the container key, and the ++ iterates the value correspoding to the key
+          if(max_val < val){
+            max_val = val;
             *xmax = cell;
-            *ymax = a;
+            *ymax = (angleStepInt);
           }
-	}      
+          m_accumALast = m_accumA;
+        }      
       }
-    }      
+    //}
     lastDist = dist;
   }
   m_numAccumulated++;
-  
+
+
   //mf::LogVerbatim("HoughBaseAlg") << "Add point says xmax: " << *xmax << " ymax: " << *ymax << std::endl;
 
   return max_val;
 }
 
 
+
+////------------------------------------------------------------------------------
+//bool cluster::HoughTransform::DoAddPoint(int x, int y)
+//{
+  //int distCenter = (int)(m_rowLength/2.);
+ 
+  //// prime the lastDist variable so our linear fill works below
+  //int lastDist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[0]*x + m_sinTable[0]*y)));
+
+  //// loop through all angles a from 0 to 180 degrees
+  //for (unsigned int a=1; a<m_cosTable.size(); ++a){
+    //// Calculate the basic line equation dist = cos(a)*x + sin(a)*y.
+    //// Shift to center of row to cover negative values
+    //int dist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[a]*x + m_sinTable[a]*y)));
+    //// sanity check to make sure we stay within our row
+    //if (dist >= 0 && dist<m_rowLength){
+      //if(lastDist==dist){
+	//m_accum[a][lastDist]++;
+        ////mf::LogVerbatim("HoughBaseAlg") << "First, a: " << a << " lastDist: " << lastDist << std::endl;
+      //}
+      //else{
+	//// fill in all values in row a, not just a single cell
+	//int stepDir = dist>lastDist ? 1 : -1;
+	//for (int cell=lastDist; cell!=dist; cell+=stepDir){   
+	  //m_accum[a][cell]++;//maybe add weight of hit here?
+          //// Note, m_accum is a vector of associative containers, "a" calls the vector element, "cell" is the container key, and the ++ iterates the value correspoding to the key
+	//}      
+      //}
+    //}      
+    //lastDist = dist;
+  //}
+  //m_numAccumulated++;
+
+  //return true;
+//}
+
 //------------------------------------------------------------------------------
-bool cluster::HoughTransform::DoAddPoint(int x, int y)
+inline bool cluster::HoughTransform::DoSubtractPoint(int x, int y)
 {
   int distCenter = (int)(m_rowLength/2.);
  
   // prime the lastDist variable so our linear fill works below
-  int lastDist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[0]*x + m_sinTable[0]*y)));
-
+  int lastDist = (int)(distCenter+(m_rhoResolutionFactor*x));
+  int dist;
+  int stepDir;
   // loop through all angles a from 0 to 180 degrees
-  for (unsigned int a=1; a<m_cosTable.size(); ++a){
+  float angleStep = PI/m_numAngleCells;
+  for (float a = angleStep; a < PI; a+=angleStep){
     // Calculate the basic line equation dist = cos(a)*x + sin(a)*y.
     // Shift to center of row to cover negative values
-    int dist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[a]*x + m_sinTable[a]*y)));
+    dist = (int)(distCenter+(m_rhoResolutionFactor*((cos(a)*x + sin(a)*y))));
     // sanity check to make sure we stay within our row
-    if (dist >= 0 && dist<m_rowLength){
-      if(lastDist==dist){
-	m_accum[a][lastDist]++;
-        //mf::LogVerbatim("HoughBaseAlg") << "First, a: " << a << " lastDist: " << lastDist << std::endl;
-      }
-      else{
-	// fill in all values in row a, not just a single cell
-	int stepDir = dist>lastDist ? 1 : -1;
-	for (int cell=lastDist; cell!=dist; cell+=stepDir){   
-	  m_accum[a][cell]++;//maybe add weight of hit here?
-          // Note, m_accum is a vector of associative containers, "a" calls the vector element, "cell" is the container key, and the ++ iterates the value correspoding to the key
-	}      
-      }
-    }      
-    lastDist = dist;
-  }
-  m_numAccumulated++;
-
-  return true;
-}
-
-//------------------------------------------------------------------------------
-bool cluster::HoughTransform::DoSubtractPoint(int x, int y)
-{
-  int distCenter = (int)(m_rowLength/2.);
- 
-  // prime the lastDist variable so our linear fill works below
-  int lastDist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[0]*x + m_sinTable[0]*y)));
-  // loop through all angles a from 0 to 180 degrees
-  for (unsigned int a=1; a<m_cosTable.size(); ++a){
-    // Calculate the basic line equation dist = cos(a)*x + sin(a)*y.
-    // Shift to center of row to cover negative values
-    int dist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[a]*x + m_sinTable[a]*y)));
-    // sanity check to make sure we stay within our row
-    if (dist >= 0 && dist<m_rowLength){
       if(lastDist==dist)
-	m_accum[a][lastDist]--;
+	m_accum[(int)(a/angleStep)][lastDist]--;
       else{
 	// fill in all values in row a, not just a single cell
-	int stepDir = dist>lastDist ? 1 : -1;
+	stepDir = dist>lastDist ? 1 : -1;
 	for (int cell=lastDist; cell!=dist; cell+=stepDir){   
-	  m_accum[a][cell]--;//maybe add weight of hit here?
+	  m_accum[(int)(a/angleStep)][cell]--;//maybe add weight of hit here?
           // Note, m_accum is a vector of associative containers, "a" calls the vector element, "cell" is the container key, and the -- iterates the value correspoding to the key
 	}      
       }
-    }      
     lastDist = dist;
   }
   m_numAccumulated--;
@@ -932,6 +926,7 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
   CLHEP::HepRandomEngine & engine = rng -> getEngine();
   CLHEP::RandFlat flat(engine);
 
+  extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   std::vector< art::Ptr<recob::Hit> > hit;
 
   for(size_t cs = 0; cs < geom->Ncryostats(); ++cs){
@@ -1302,6 +1297,7 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
   CLHEP::HepRandomEngine & engine = rng -> getEngine();
   CLHEP::RandFlat flat(engine);
 
+  extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   std::vector< art::Ptr<recob::Hit> > hit;
 
 //   for(size_t cs = 0; cs < geom->Ncryostats(); ++cs){
@@ -1434,7 +1430,7 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
             yMax = 0;
 
             // Add the randomly selected point to the accumulator
-            maxCell = c.AddPointReturnMax(wireMax, (int)(hit[randInd]->PeakTime()), &yMax, &xMax, fMinHits);
+            maxCell = c.AddPointReturnMax(wireMax, (int)(hit[randInd]->PeakTime()), &yMax, &xMax);
             nAccum++; 
 
             // Continue if the biggest maximum for the randomly selected point is smaller than fMinHits
@@ -1532,6 +1528,8 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
               int missedHits=0;
               int lastHitsChannel = lastHits[0];
               int nHitsPerChannel = 1;
+              double pCorner0[2];
+              double pCorner1[2];
               unsigned int lastChannel = hit[hitTemp[lastHits[0]]]->Wire()->RawDigit()->Channel();
               for(size_t i = 0; i < lastHits.size()-1; ++i) {
                 bool newChannel = false;
@@ -1544,10 +1542,8 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
                 }
                 if(slope > 0 || (!newChannel && nHitsPerChannel <= 1)){
                   //std::cout << hits[hitsTemp[lastHits[i]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[i]]]->StartTime()+hits[hitsTemp[lastHits[i]]]->EndTime())/2.) << std::endl;
-                  double pCorner0[2];
                   pCorner0[0] = (hit[hitTemp[lastHits[i]]]->Wire()->RawDigit()->Channel())*wire_dist;
                   pCorner0[1] = ((hit[hitTemp[lastHits[i]]]->StartTime()+hit[hitTemp[lastHits[i]]]->EndTime())/2.)*tickToDist;
-                  double pCorner1[2];
                   pCorner1[0] = (hit[hitTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel())*wire_dist;
                   pCorner1[1] = ((hit[hitTemp[lastHits[i+1]]]->StartTime()+hit[hitTemp[lastHits[i+1]]]->EndTime())/2.)*tickToDist;
                   //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
@@ -1555,10 +1551,8 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
                     missedHits++;
                 } else if (slope < 0 && newChannel && nHitsPerChannel > 1){
                   //std::cout << hits[hitsTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel() << " " << ((hits[hitsTemp[lastHits[lastHitsChannel]]]->StartTime()+hits[hitsTemp[lastHits[lastHitsChannel]]]->EndTime())/2.) << std::endl;
-                  double pCorner0[2];
                   pCorner0[0] = (hit[hitTemp[lastHits[lastHitsChannel]]]->Wire()->RawDigit()->Channel())*wire_dist;
                   pCorner0[1] = ((hit[hitTemp[lastHits[lastHitsChannel]]]->StartTime()+hit[hitTemp[lastHits[lastHitsChannel]]]->EndTime())/2.)*tickToDist;
-                  double pCorner1[2];
                   pCorner1[0] = (hit[hitTemp[lastHits[i+1]]]->Wire()->RawDigit()->Channel())*wire_dist;
                   pCorner1[1] = ((hit[hitTemp[lastHits[i+1]]]->StartTime()+hit[hitTemp[lastHits[i+1]]]->EndTime())/2.)*tickToDist;
                   //std::cout << std::sqrt( pow(pCorner0[0]-pCorner1[0],2) + pow(pCorner0[1]-pCorner1[1],2)) << std::endl;
@@ -1655,7 +1649,7 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 	      }
 	    }
 	    	    
-	    HLSSaveBMPFile("houghaccum.bmp", outPix, accDx, accDy);
+	    SaveBMPFile("houghaccum.bmp", outPix, accDx, accDy);
 	    delete [] outPix;
 	  }// end if saving accumulator
 	  
