@@ -122,7 +122,7 @@ void cluster::CornerFinderAlg::reconfigure(fhicl::ParameterSet const& p)
   // ### These are all the tuneable .fcl file parameters from the event ###
   fCalDataModuleLabel  			 = p.get< std::string 	 >("CalDataModuleLabel");
   fTrimming_threshold     		 = p.get< float    	 >("Trimming_threshold");
-  fTrimmed_totalThreshold                = p.get< double         >("Trimmed_totalThreshold");
+  fTrimming_totalThreshold                = p.get< double         >("Trimming_totalThreshold");
   fConversion_threshold     		 = p.get< float    	 >("Conversion_threshold");
   fConversion_bins_per_input_x  	 = p.get< int      	 >("Conversion_bins_per_input_x");
   fConversion_bins_per_input_y       	 = p.get< int      	 >("Conversion_bins_per_input_y");
@@ -477,7 +477,7 @@ void cluster::CornerFinderAlg::create_smaller_histos(){
 	    
 	    double integral_low = WireData_histos[plane]->Integral(x_low.at(il),cut_points_x.at(0),y_low.at(il),y_high.at(il));
 	    double integral_high = WireData_histos[plane]->Integral(cut_points_x.at(0),x_high.at(il),y_low.at(il),y_high.at(il));
-	    if(integral_low > fTrimmed_totalThreshold && integral_high > fTrimmed_totalThreshold){
+	    if(integral_low > fTrimming_totalThreshold && integral_high > fTrimming_totalThreshold){
 	      x_low.push_back(cut_points_x.at(0));
 	      x_high.push_back(x_high.at(il));
 	      y_low.push_back(y_low.at(il));
@@ -486,11 +486,11 @@ void cluster::CornerFinderAlg::create_smaller_histos(){
 	      x_high[il] = cut_points_x.at(0);
 	      x_change = true;
 	    }
-	    else if(integral_low > fTrimmed_totalThreshold && integral_high < fTrimmed_totalThreshold){
+	    else if(integral_low > fTrimming_totalThreshold && integral_high < fTrimming_totalThreshold){
 	      x_high[il] = cut_points_x.at(0);
 	      x_change = true;
 	    }
-	    else if(integral_low < fTrimmed_totalThreshold && integral_high > fTrimmed_totalThreshold){
+	    else if(integral_low < fTrimming_totalThreshold && integral_high > fTrimming_totalThreshold){
 	      x_low[il] = cut_points_x.at(0);
 	      x_change = true;
 	    }
@@ -510,7 +510,7 @@ void cluster::CornerFinderAlg::create_smaller_histos(){
 	    
 	    double integral_low = WireData_histos[plane]->Integral(x_low.at(il),x_high.at(il),y_low.at(il),cut_points_y.at(0));
 	    double integral_high = WireData_histos[plane]->Integral(x_low.at(il),x_high.at(il),cut_points_y.at(0),y_high.at(il));
-	    if(integral_low > fTrimmed_totalThreshold && integral_high > fTrimmed_totalThreshold){
+	    if(integral_low > fTrimming_totalThreshold && integral_high > fTrimming_totalThreshold){
 	      y_low.push_back(cut_points_y.at(0));
 	      y_high.push_back(y_high.at(il));
 	      x_low.push_back(x_low.at(il));
@@ -519,11 +519,11 @@ void cluster::CornerFinderAlg::create_smaller_histos(){
 	      y_high[il] = cut_points_y.at(0);
 	      y_change = true;
 	    }
-	    else if(integral_low > fTrimmed_totalThreshold && integral_high < fTrimmed_totalThreshold){
+	    else if(integral_low > fTrimming_totalThreshold && integral_high < fTrimming_totalThreshold){
 	      y_high[il] = cut_points_y.at(0);
 	      y_change = true;
 	    }
-	    else if(integral_low < fTrimmed_totalThreshold && integral_high > fTrimmed_totalThreshold){
+	    else if(integral_low < fTrimming_totalThreshold && integral_high > fTrimming_totalThreshold){
 	      y_low[il] = cut_points_y.at(0);
 	      y_change = true;
 	    }

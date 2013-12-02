@@ -68,7 +68,7 @@ namespace cluster { //<---Not sure if this is the right namespace
     std::string    fConversion_func;
     float          fTrimming_threshold;
     int            fTrimming_buffer;
-    double         fTrimmed_totalThreshold;
+    double         fTrimming_totalThreshold;
     int            fConversion_func_neighborhood;
     float          fConversion_threshold;
     int            fConversion_bins_per_input_x;
