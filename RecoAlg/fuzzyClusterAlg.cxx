@@ -1190,7 +1190,7 @@ bool cluster::fuzzyClusterAlg::mergeShowerTrackClusters(showerCluster *showerClu
           continue;
 
         // How many lines do we have at the merging point? If too many, veto the merge
-        std::cout << nInDistanceTrackClusterLeft << " " << nInDistanceTrackClusterRight << std::endl;
+        //std::cout << nInDistanceTrackClusterLeft << " " << nInDistanceTrackClusterRight << std::endl;
 
         if(nInDistanceTrackClusterLeft > fMaxVertexLines) {
           trackClusterProtoTrackItr->mergedLeft = true;
@@ -1551,7 +1551,7 @@ bool cluster::fuzzyClusterAlg::mergeTrackClusters(unsigned int clusIndexStart,
 
 
         // How many lines do we have at the merging point? If too many, veto the merge
-        std::cout << nInDistanceClusIndexStartLeft << " " << nInDistanceClusIndexStartRight << std::endl;
+        //std::cout << nInDistanceClusIndexStartLeft << " " << nInDistanceClusIndexStartRight << std::endl;
 
         if(nInDistanceClusIndexStartLeft > fMaxVertexLines) {
           trackClustersClusIndexStartProtoTrackItr->mergedLeft = true;
@@ -1845,7 +1845,7 @@ bool cluster::fuzzyClusterAlg::mergeShowerClusters(unsigned int clusIndexStart,
    
       showerClusters->at(clusIndexStart).addProtoTracks(showerClusters->at(bestToMergeShowerCluster).clusterProtoTracks);
       showerClusters->at(bestToMergeShowerCluster).clearProtoTracks();
-      std::cout << "Merged shower-shower" << std::endl;
+      //std::cout << "Merged shower-shower" << std::endl;
 
   }
 
