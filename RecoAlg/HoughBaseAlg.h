@@ -11,6 +11,7 @@
 
 #include "TMath.h"
 #include <vector>
+#include <unordered_map>
 
 #include "fhiclcpp/ParameterSet.h" 
 #include "art/Persistency/Common/Ptr.h" 
@@ -73,69 +74,40 @@ namespace recob {
     };
 
 
-    // This stores information about merged lines
-    struct showerLine
-    {
-      double slope=0;
-      double intercept=0;
-      int clusterNumber=-999999;
-      int oldClusterNumber=-999999;
-      int lineSize=0;
-      int iMinWire=0;
-      int iMaxWire=0;
-      bool showerMerged=false;
-      showerLine (double slopeTemp=0,
-          double interceptTemp=0,
-          int clusterNumberTemp=-999999,
-          int oldClusterNumberTemp=-999999,
-          int lineSizeTemp=0,
-          int iMinWireTemp=0,
-          int iMaxWireTemp=0)
-      {
-        slope=slopeTemp;
-        intercept=interceptTemp;
-        clusterNumber=clusterNumberTemp;
-        oldClusterNumber=oldClusterNumberTemp;
-        lineSize=lineSizeTemp;
-        iMinWire=iMinWireTemp;
-        iMaxWire=iMaxWireTemp;
-      }
-      bool operator < (const showerLine& showerLineComp) const
-      {
-        return (lineSize < showerLineComp.lineSize);
-      }
-    };
 
-
-
-    struct lineSlope
+    struct protoTrack
     {
       int clusterNumber=999999;
       int oldClusterNumber=999999;
-      double clusterSlope=999999;
-      double clusterIntercept=999999;
-      double totalQ=-999999;
-      double pMin0=999999;
-      double pMin1=999999;
-      double pMax0=-999999;
-      double pMax1=-999999;
-      double iMinWire=999999;
-      double iMaxWire=-999999;
-      double minWire=999999;
-      double maxWire=-999999;
-      double isolation=-999999;
-      double showerLikeness=-999999;
+      float clusterSlope=999999;
+      float clusterIntercept=999999;
+      float totalQ=-999999;
+      float pMin0=999999;
+      float pMin1=999999;
+      float pMax0=-999999;
+      float pMax1=-999999;
+      float iMinWire=999999;
+      float iMaxWire=-999999;
+      float minWire=999999;
+      float maxWire=-999999;
+      float isolation=-999999;
+      float showerLikeness=-999999;
       bool merged=false;
       bool showerMerged=false;
+      bool mergedLeft=false;
+      bool mergedRight=false;
       std::vector<art::Ptr<recob::Hit>> hits;
-      lineSlope(unsigned int num=999999, 
-          double slope=999999, 
-          double intercept=999999,
-          double totalQTemp=-999999,
-          double Min0=999999, 
-          double Min1=999999, 
-          double Max0=-999999, 
-          double Max1=-999999,
+      protoTrack(){
+      }
+      
+      void Init(unsigned int num=999999, 
+          float slope=999999, 
+          float intercept=999999,
+          float totalQTemp=-999999,
+          float Min0=999999, 
+          float Min1=999999, 
+          float Max0=-999999, 
+          float Max1=-999999,
           int    iMinWireTemp=999999,
           int    iMaxWireTemp=-999999,
           int    minWireTemp=999999,
@@ -174,9 +146,9 @@ namespace cluster {
     void Init(int dx, int dy, int rhoresfact, int numACells);
     bool AddPoint(int x, int y);
     bool AddPointReturnMax(int x, int y);
-    int  AddPointReturnMax(int x, int y, int *yMax, int *xMax, int minHits);
+    int  AddPointReturnMax(int x, int y, int *yMax, int *xMax);
     bool SubtractPoint(int x, int y);
-    int  GetCell(int row, int col)            { return m_accum[row][col]; }
+    inline int  GetCell(int row, int col)            { return m_accum[row][col]; }
     void SetCell(int row, int col, int value) { m_accum[row][col] = value; }
     void IncrementCell(int row, int col)      { m_accum[row][col]++;}
     void GetAccumSize(int &numRows, int &numCols) 
@@ -200,14 +172,15 @@ namespace cluster {
     int m_dy;
     // Note, m_accum is a vector of associative containers, the vector elements are called by rho, theta is the container key, the number of hits is the value corresponding to the key
     std::vector<std::map<int,int> > m_accum;  // column=rho, row=theta
+    //std::vector< std::vector<int> > m_accum;  // column=rho, row=theta
     int m_rowLength;
     int m_numAccumulated;
     int m_rhoResolutionFactor;
     int m_numAngleCells;
-    std::vector<float> m_cosTable;
-    std::vector<float> m_sinTable;
+    //std::vector<float> m_cosTable;
+    //std::vector<float> m_sinTable;
     bool DoAddPoint(int x, int y);
-    int  DoAddPointReturnMax(int x, int y, int *yMax, int *xMax, int minHits);
+    int  DoAddPointReturnMax(int x, int y, int *yMax, int *xMax);
     bool DoSubtractPoint(int x, int y);
 
 
@@ -234,8 +207,7 @@ namespace cluster {
                      std::vector<unsigned int>     *fpointId_to_clusterId,
                      unsigned int clusterId, // The id of the cluster we are examining
                      int *nClusters,
-                     std::vector<unsigned int> corners,
-                     std::vector<lineSlope> *linesFound);
+                     std::vector<protoTrack> *protoTracks);
     
     
     // interface to look for lines only on a set of hits,without slope and totalQ arrays
@@ -272,17 +244,17 @@ namespace cluster {
                                            ///< (a measure of the angular resolution of the line finder). 
                                            ///< If this number is too large than the number of votes 
                                            ///< that fall into the "correct" bin will be small and consistent with noise.
-    double fMaxDistance;                   ///< Max distance that a hit can be from a line to be considered part of that line
-    double fMaxSlope;                      ///< Max slope a line can have
+    float  fMaxDistance;                   ///< Max distance that a hit can be from a line to be considered part of that line
+    float  fMaxSlope;                      ///< Max slope a line can have
     int    fRhoZeroOutRange;               ///< Range in rho over which to zero out area around previously found lines in the accumulator
     int    fThetaZeroOutRange;             ///< Range in theta over which to zero out area around previously found lines in the accumulator
-    int    fRhoResolutionFactor;           ///< Factor determining the resolution in rho
+    float  fRhoResolutionFactor;           ///< Factor determining the resolution in rho
     int    fPerCluster;                    ///< Tells the original Hough algorithm to look at clusters individually, or all hits
                                            ///< at once
     int    fMissedHits;                    ///< Number of wires that are allowed to be missed before a line is broken up into
                                            ///< segments
-    double fMissedHitsDistance;            ///< Distance between hits in a hough line before a hit is considered missed
-    double fMissedHitsToLineSize;          ///< Ratio of missed hits to line size for a line to be considered a fake
+    float  fMissedHitsDistance;            ///< Distance between hits in a hough line before a hit is considered missed
+    float  fMissedHitsToLineSize;          ///< Ratio of missed hits to line size for a line to be considered a fake
 
 
 
