@@ -452,13 +452,13 @@ else // no matching was done. Need to do it ourselves, but first run through all
 	   //const recob::Cluster& cluster = clusterListHandle->at(i);
 	   std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(i);
 	   ShowerClusterFlags[i]=fCParAlg.isShower(lineslopetest[i],fWireVertex[i],fTimeVertex[i],fWireEnd[i],fTimeEnd[i], hitlist);
-	  // Do something ... Kazu does not fill this part for now
 	}
 	
 	// Step 2: Call ClusterMatchAlg
-	fCMatchAlg.SetClusterModName(fClusterModuleLabel);
-	fCMatchAlg.SetMCTruthModName("generator"); // No worries: this won't crash even if data product do not exist.
-	fCMatchAlg.FillEventInfo(evt);
+	fCMatchAlg.SetClusterModName(fClusterModuleLabel); // Set input clusters' producer module name
+	fCMatchAlg.SetInputBoolArray(ShowerClusterFlags);  // Set boolean vector to skip some clusters for matching
+	fCMatchAlg.SetMCTruthModName("generator");         // Won't crash even if data product do not exist.
+	fCMatchAlg.FillEventInfo(evt);                    
 	if(fNPlanes==2)
 	  fCMatchAlg.MatchTwoPlanes();
 	else if(fNPlanes==3)
