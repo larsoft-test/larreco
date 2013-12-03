@@ -937,6 +937,8 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
    }
    //double RMS_ADC_2cm=0.;
   
+  
+  
   //second loop to calculate RMS      
   for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end(); hitIter++){
     art::Ptr<recob::Hit> theHit = (*hitIter);
@@ -953,17 +955,25 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
       dEdx = calalg.dEdx_AMP((*hitIter), newpitch ); 
      }
     
+    
+    
     gser.GetPointOnLine(slope[plane]/fWireTimetoCmCm,fWire_vertex[plane],fTime_vertex[plane],wire,time,wire_on_line,time_on_line);
     linedist=gser.Get2DDistance(wire_on_line,time_on_line,fWire_vertex[plane],fTime_vertex[plane]);
     ortdist=gser.Get2DDistance(wire_on_line,time_on_line,wire,time);
     
-    double wdist=((wire-fWire_vertex[plane])*fNPitch[set][plane]);
+    
+    
+    double wdist=(((double)wire-(double)fWire_vertex[plane])*newpitch);
+    
+ //    std::cout << dEdx << " MeV, outside of if;; wd " << wdist << " ld " << linedist << " od " << ortdist << std::endl;
+    
     if( (wdist<fcalodEdxlength)&&(wdist>0.2)){ 
       if(wdist<fdEdxlength
 	  && ((direction==1 && wire>fWire_vertex[plane]) || 
 	  (direction==-1 && wire<fWire_vertex[plane])  ) 
 	     && ortdist<3 && linedist < fdEdxlength)
 	{
+//	  std::cout << dEdx << " MeV " << std::endl;
 	fRMS_2cm[set]+= (dEdx-mevav2cm)*(dEdx-mevav2cm); 
 	}
         
@@ -975,6 +985,8 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
     {
     fRMS_2cm[set]=TMath::Sqrt(fRMS_2cm[set]/fNpoints_2cm[set]);
      }
+  
+  std::cout << " average dE/dx: " << mevav2cm << " RMS::  " << fRMS_2cm[set] << " " << fNpoints_2cm[set] <<  std::endl;
   
   /// third loop to get only points inside of 1RMS of value.      
     
@@ -997,7 +1009,7 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
     linedist=gser.Get2DDistance(wire_on_line,time_on_line,fWire_vertex[plane],fTime_vertex[plane]);
     ortdist=gser.Get2DDistance(wire_on_line,time_on_line,wire,time);
     
-    double wdist=((wire-fWire_vertex[plane])*fNPitch[set][plane]);
+    double wdist=(((double)wire-(double)fWire_vertex[plane])*newpitch);
     
     
     if( (wdist < fcalodEdxlength) && (wdist > 0.2
@@ -1032,7 +1044,7 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
   
 
 //std::cout << " total ENERGY, birks: " << fTotChargeMeV[set] << " MeV " << " assumeMIPs:  " << fTotChargeMeV_MIPs[set] << "MeV " <<  std::endl;
- std::cout << " total ENERGY, birks: " << fTotChargeMeV[set] << " MeV "  <<  std::endl;
+ std::cout << " total ENERGY, birks: " << fTotChargeMeV[set] << " MeV "  << " |average:  " << fChargeMeV_2cm_refined[set] <<   std::endl;
 }
 
 
