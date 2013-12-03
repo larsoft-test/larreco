@@ -113,6 +113,15 @@ namespace cluster
     void SetMCTruthModName(std::string name)
     {_ModName_MCTruth = name;}
 
+    /** 
+	Method to set boolean vector which tells which cluster to ignroe.
+	The input vector must have the same length as the cluster pointer vector
+	that can be retrieved with the set cluster module name. Index with false
+	entry is ignored from cluster vector.
+    */
+    void SetInputBoolArray(std::vector<bool> input_cluster_index)
+    {_input_cluster_index = input_cluster_index;}
+
     /**
        Method to run matching algorithms for three planes. 
        Event info must be provided prior to this function call through FillEventInfo() 
@@ -137,7 +146,7 @@ namespace cluster
   protected:
 
     /// Internal method to fill cluster-wise information
-    void FillClusterInfo(const art::Event &evt);
+    bool FillClusterInfo(const art::Event &evt);
     /// Internal method to fill MCTruth information when available
     void FillMCInfo(const art::Event &evt);
     /// Internal method, called only once, to fill detector-wise information
@@ -199,6 +208,7 @@ namespace cluster
     //
     // Run control variables
     //
+    std::vector<bool> _input_cluster_index; ///< Boolean vector to ignore some clusters
     bool _match_methods[kMATCH_METHOD_MAX]; ///< Boolean list for enabled algorithms
     bool _event_var_filled;                 ///< Boolean to keep track of whether the even data is received or not
     bool _debug_mode;                       ///< Boolean to enable debug mode (call all enabled matching methods)

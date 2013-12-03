@@ -97,6 +97,7 @@ namespace cluster{
     _event_id = 0;
     _run = 0;
     _subrun = 0;
+    _input_cluster_index.clear();
 
     /// QC variables
     _mc_E  = 0;
@@ -183,12 +184,14 @@ namespace cluster{
     }
     else if(_event_var_filled && SameEvent(evt)) return;
     ClearEventInfo();
-    FillMCInfo(evt);
-    FillClusterInfo(evt);
-    _event_id = evt.id().event();
-    _run = evt.run();
-    _subrun = evt.subRun();
-    _event_var_filled = true;
+    if(FillClusterInfo(evt)) {
+      FillMCInfo(evt);
+      _event_id = evt.id().event();
+      _run = evt.run();
+      _subrun = evt.subRun();
+      _event_var_filled = true;
+    }else
+      ClearEventInfo(); 
   }
 
   //##########################################################################################
@@ -240,7 +243,7 @@ namespace cluster{
 
 
   //##########################################################################################
-  void ClusterMatchAlg::FillClusterInfo(const art::Event &evt)
+  bool ClusterMatchAlg::FillClusterInfo(const art::Event &evt)
   //##########################################################################################
   {
 
@@ -253,6 +256,18 @@ namespace cluster{
     if(cluster_handle.isValid()) {
       art::fill_ptr_vector(cluster_ptr_v, cluster_handle);
     }
+
+    // Check the set cluster-enable-boolean vector length here
+    if(_input_cluster_index.size()) {
+      if(_input_cluster_index.size()!=cluster_ptr_v.size()) {
+	
+	mf::LogError("ClusterMatchAlg")
+	  << Form("Found cluster vector length = %zu mismatched with provided boolean vector length = %zu",
+		  cluster_ptr_v.size(),_input_cluster_index.size());
+	return false;
+      }
+    }
+    else _input_cluster_index.resize(_input_cluster_index.size(),true);
 
     //
     // Next, we loop over clusters & save art::PtrVector<recob::Hit> per cluster
@@ -271,7 +286,13 @@ namespace cluster{
     double time_offset_wplane = det_h->GetXTicksOffset(geo::kW,0,0);
 
     // Start looping over clusters
+    std::ostringstream msg;
     for(size_t i = 0; i < cluster_ptr_v.size(); ++i) {
+
+      if(!_input_cluster_index[i]) {
+	msg<<Form("Skipping cluster index %zu",i)<<std::endl;
+	continue;
+      }
 
       const art::Ptr<recob::Cluster> cluster_ptr = cluster_ptr_v.at(i);
       cluster_info ci((unsigned short)(i));
@@ -343,17 +364,19 @@ namespace cluster{
       
     }
 
-    mf::LogWarning("ClusterMatchAlg")
-      << Form("Found (U,V,W) = (%zu,%zu,%zu) clusters...",
-	      _uhits_v.size(),
-	      _vhits_v.size(),
-	      _whits_v.size())
-      << std::endl;
+    msg << Form("Found (U,V,W) = (%zu,%zu,%zu) clusters...",
+		_uhits_v.size(),
+		_vhits_v.size(),
+		_whits_v.size())
+	<< std::endl;
     
+    mf::LogWarning("ClusterMatchAlg")<<msg.str()<<std::endl;
+
     _tot_u = _ucluster_v.size();
     _tot_v = _vcluster_v.size();
     _tot_w = _wcluster_v.size();
-    
+
+    return true;
   }
 
   //########################################################################################
