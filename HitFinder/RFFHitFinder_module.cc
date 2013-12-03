@@ -66,31 +66,27 @@ namespace hit{
 
   private:
     std::string     fCalDataModuleLabel;
-    double          fMinSigInd;     ///<Induction signal height threshold 
-    double          fMinSigCol;     ///<Collection signal height threshold 
-    double          fIndWidth;      ///<Initial width for induction fit
-    double          fColWidth;      ///<Initial width for collection fit
-    double          fIndMinWidth;   ///<Minimum induction hit width
-    double          fColMinWidth;   ///<Minimum collection hit width
-    int             fMaxMultiHit;   ///<maximum hits for multi fit 
-    int             fAreaMethod;    ///<Type of area calculation  
-    std::vector<double> fAreaNorms; ///<factors for converting area to same units as peak height 
-    double	    fChi2NDF;       ///maximum Chisquared / NDF allowed for a hit to be saved
-    
-    	double	WireNumber[100000];
-	double 	TotalSignal[100000];
-	double 	StartIime;
-	double 	StartTimeError;
-	double 	EndTime;
-	double 	EndTimeError;
-	int	NumOfHits;
-	double	MeanPosition;
-	double 	MeanPosError;
-	double	Amp;
-	double	AmpError;
-	double	Charge;
-	double	ChargeError;
-	double	FitGoodnes;
+    double          fMinSigInd;        ///<Induction signal height threshold 
+    double          fMinSigCol;        ///<Collection signal height threshold 
+    int             fMaxMultiHit;      ///<maximum hits for multi fit 
+    float           fSigmaLimit;       ///maximum allowed hit width
+    float           fMeanMerge;        ///maximum distance to merge means together into same hit
+    int             fMeanMultiplicity; ///minimum number of means needed to form hit 
+
+    double	WireNumber[100000];
+    double 	TotalSignal[100000];
+    double 	StartIime;
+    double 	StartTimeError;
+    double 	EndTime;
+    double 	EndTimeError;
+    int	        NumOfHits;
+    double	MeanPosition;
+    double 	MeanPosError;
+    double	Amp;
+    double	AmpError;
+    double	Charge;
+    double	ChargeError;
+    double	FitGoodnes;
 		
   protected: 
     
@@ -123,15 +119,11 @@ void RFFHitFinder::reconfigure(fhicl::ParameterSet const& p)
   fCalDataModuleLabel = p.get< std::string  >("CalDataModuleLabel");
   fMinSigInd          = p.get< double       >("MinSigInd");
   fMinSigCol          = p.get< double       >("MinSigCol"); 
-  fIndWidth           = p.get< double       >("IndWidth");  
-  fColWidth           = p.get< double       >("ColWidth");
-  fIndMinWidth        = p.get< double       >("IndMinWidth");
-  fColMinWidth        = p.get< double       >("ColMinWidth"); 	  	
   fMaxMultiHit        = p.get< int          >("MaxMultiHit");
-  fAreaMethod         = p.get< int          >("AreaMethod");
-  fAreaNorms          = p.get< std::vector< double > >("AreaNorms");
-  fChi2NDF	      = p.get< double       >("Chi2NDF");
-  
+  fSigmaLimit         = p.get< float        >("SigmaLimit");
+  fMeanMerge          = p.get< float        >("MeanMerge");
+  fMeanMultiplicity   = p.get< int          >("MeanMultiplicity");
+
 }  
 
 //-------------------------------------------------
@@ -250,8 +242,6 @@ void RFFHitFinder::produce(art::Event& evt)
   // ### List of useful variables used throughout the code ###
   // #########################################################  
   double threshold              = 0.;               // minimum signal size for id'ing a hit
-  //double fitWidth               = 0.;               //hit fit width initial value
-  //double minWidth               = 0.;               //minimum hit width
   uint32_t channel              = 0;                // channel number
   geo::SigType_t sigType;                           // Signal Type (Collection or Induction)
   std::vector<int> startTimes;             	    // stores time of 1st local minimum
@@ -260,10 +250,6 @@ void RFFHitFinder::produce(art::Event& evt)
   int time             = 0;                         // current time bin
   int minTimeHolder    = 0;                         // current start time
 
-  std::string eqn        = "gaus(0)";      // string for equation for gaus fit
-  //std::string seed        = "gaus(0)";      // string for equation seed gaus fit
-  
-  
   bool maxFound        = false;            // Flag for whether a peak > threshold has been found
   std::stringstream numConv;
 
@@ -294,13 +280,9 @@ void RFFHitFinder::produce(art::Event& evt)
     // --    for either the collection or induction plane      --
     if(sigType == geo::kInduction){
       threshold     = fMinSigInd;
-      //fitWidth      = fIndWidth;
-      //minWidth      = fIndMinWidth;
     }//<-- End if Induction Plane
     else if(sigType == geo::kCollection){
       threshold = fMinSigCol;
-      //fitWidth  = fColWidth;
-      //minWidth  = fColMinWidth;
     }//<-- End if Collection Plane
       
       
@@ -372,13 +354,11 @@ void RFFHitFinder::produce(art::Event& evt)
     //to the hit vector and when all wires are complete 
     //saving them 
 	
-    //double totSig(0); 						//stores the total hit signal
     double startT(0); 						//stores the start time
     double endT(0);  						//stores the end time
     int numHits(0);  						//number of consecutive hits being fitted
     int size(0);     						//size of data vector for fit
     int hitIndex(0);						//index of current hit in sequence
-    //double amplitude(0);             			        //fit parameters
     double minPeakHeight(0);  					//lowest peak height in multi-hit fit
 		
 	
@@ -489,10 +469,12 @@ void RFFHitFinder::produce(art::Event& evt)
 	
 	if(my_mean<=0) continue;
 	
+	if(fSigmaLimit>0 && sigma > fSigmaLimit) continue;
+
 	bool add_new_element = true;
 	float delta = 0;
 	for(size_t i_means=0; i_means<mean_matches.size(); i_means++){
-	  if( std::abs(my_mean-std::get<1>(mean_matches.at(i_means)))>2.5) continue;
+	  if( std::abs(my_mean-std::get<1>(mean_matches.at(i_means)))>fMeanMerge) continue;
 	  else{
 	    delta = my_mean - std::get<1>(mean_matches.at(i_means));
 	    std::get<0>(mean_matches.at(i_means))++;
@@ -528,7 +510,7 @@ void RFFHitFinder::produce(art::Event& evt)
 
 	    delta = std::get<1>(mean_matches.at(j)) - std::get<1>(mean_matches.at(i));
 
-	    if( std::abs(delta) < 2.5){
+	    if( std::abs(delta) < fMeanMerge){
 
 	      std::get<0>(mean_matches.at(i)) += std::get<0>(mean_matches.at(j));
 	      std::get<1>(mean_matches.at(i)) += (delta*std::get<0>(mean_matches.at(j))) / std::get<0>(mean_matches.at(i));
@@ -559,7 +541,7 @@ void RFFHitFinder::produce(art::Event& evt)
       std::vector<float> peak_signals;
       while(i_means < mean_matches.size()){
 
-	if(std::get<0>(mean_matches.at(i_means))>=3){
+	if(std::get<0>(mean_matches.at(i_means))>=fMeanMultiplicity){
 
 	  std::get<2>(mean_matches.at(i_means)) = std::get<2>(mean_matches.at(i_means)) / (std::get<0>(mean_matches.at(i_means)));
 	  std::get<2>(sigma_matches.at(i_means)) = std::get<2>(sigma_matches.at(i_means)) / (std::get<0>(sigma_matches.at(i_means)));
@@ -617,7 +599,7 @@ void RFFHitFinder::produce(art::Event& evt)
 		       solutions.at(i),
 		       0, 
 		       1,     
-		       FitGoodnes);   
+		       std::get<0>(mean_matches.at(i_means)));   
 	hcol->push_back(hit);
 
       }
