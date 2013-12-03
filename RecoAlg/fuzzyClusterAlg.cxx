@@ -95,6 +95,7 @@ void cluster::fuzzyClusterAlg::reconfigure(fhicl::ParameterSet const& p)
   fShowerTrackClusterMergeAngle   = p.get< float >("ShowerTrackClusterMergeAngle"   );
   fShowerLikenessCut              = p.get< float >("ShowerLikenessCut"              );
   fMaxVertexLines                 = p.get< int   >("MaxVertexLines"                 );
+  fVertexLinesCutoff              = p.get< float >("VertexLinesCutoff"              );
   fHBAlg.reconfigure(p.get< fhicl::ParameterSet >("HoughBaseAlg"));
   fDBScan.reconfigure(p.get< fhicl::ParameterSet >("DBScanAlg"));
 }
@@ -1103,11 +1104,14 @@ bool cluster::fuzzyClusterAlg::mergeShowerTrackClusters(showerCluster *showerClu
           float mergeRightClusIndexStartDist = std::sqrt(pow(x11-x22,2) + pow(y11-y22,2));
           // Compare toMergerItr max with clusIndexStart min
           float mergeLeftClusIndexStartDist = std::sqrt(pow(x12-x21,2) + pow(y12-y21,2));
-          
-          if( mergeRightClusIndexStartDist > mergeLeftClusIndexStartDist )
-            nInDistanceTrackClusterLeft++;
-          else
-            nInDistanceTrackClusterRight++;
+         
+          // Are we inside the vertex distance? This is smaller than the merge cutoff
+          if(segmentDistance < fVertexLinesCutoff){ 
+            if( mergeRightClusIndexStartDist > mergeLeftClusIndexStartDist )
+              nInDistanceTrackClusterLeft++;
+            else
+              nInDistanceTrackClusterRight++;
+          }
         
         
         }
@@ -1203,14 +1207,14 @@ bool cluster::fuzzyClusterAlg::mergeShowerTrackClusters(showerCluster *showerClu
           
 
         // Check if we merged left or right already for clusIndexStart, we only do it once for each side
-        if(trackClusterProtoTrackItr->mergedLeft == true && minDistanceIndex == 2)
-          continue;
-        if(trackClusterProtoTrackItr->mergedRight == true && minDistanceIndex == 1)
-          continue;
-        if(showerClusterI->clusterProtoTracks[*toMergeItr].mergedLeft == true && minDistanceIndex == 1)
-          continue;
-        if(showerClusterI->clusterProtoTracks[*toMergeItr].mergedRight == true && minDistanceIndex == 2)
-          continue;
+        //if(trackClusterProtoTrackItr->mergedLeft == true && minDistanceIndex == 2)
+          //continue;
+        //if(trackClusterProtoTrackItr->mergedRight == true && minDistanceIndex == 1)
+          //continue;
+        //if(showerClusterI->clusterProtoTracks[*toMergeItr].mergedLeft == true && minDistanceIndex == 1)
+          //continue;
+        //if(showerClusterI->clusterProtoTracks[*toMergeItr].mergedRight == true && minDistanceIndex == 2)
+          //continue;
 
         //std::cout << "Potential merge" << std::endl;
         //std::cout << "main trackClustersItr slope: " << trackClusters->at(*toMergeItr).clusterSlope << " clusIndexStart slope: " << trackClusters->at(clusIndexStart).clusterSlope << std::endl;
@@ -1220,6 +1224,9 @@ bool cluster::fuzzyClusterAlg::mergeShowerTrackClusters(showerCluster *showerClu
         if(minDistance < bestToMergeTrackClusterProtoTrackDistance){
           bestShowerClusterProtoTrack=*toMergeItr;
           bestTrackClusterProtoTrack=trackClusterProtoTrackItr-trackClusterJ->clusterProtoTracks.begin();
+          
+          bestToMergeTrackClusterProtoTrackDistance=minDistance;
+         
           // Did we merge left (0) or right (1)?
           if(minDistanceIndex == 1){
             bestShowerRightLeft = 0;
@@ -1259,26 +1266,6 @@ bool cluster::fuzzyClusterAlg::mergeShowerTrackClusters(showerCluster *showerClu
   }
 
 
-
-
-  //lineMerged = true;
-  //trackClustersClusIndexStartProtoTrackItr->merged = true;
-  //trackClustersToMergeItr->clusterProtoTracks[*toMergeItr].merged = true;
-
-  //// For loop over all lines found to reassign lines to clusIndexStart that already belonged to toMerge 
-  //// Need to delete trackClustersItr that gets merged, load protoTracks from one to the other 
-  ////
-  ////
-  //for(auto trackClustersItr = trackClusters->begin(); trackClustersItr != trackClusters->end(); trackClustersItr++){
-    //if((unsigned int)(*toMergeItr) == trackClustersItr-trackClusters->begin())
-      //continue;
-
-    //if(trackClustersItr->clusterNumber == trackClusters->at(*toMergeItr).clusterNumber){
-      //trackClustersItr->clusterNumber = trackClusters->at(clusIndexStart).clusterNumber;
-    //}
-  //}
-  //trackClusters->at(*toMergeItr).clusterNumber = trackClusters->at(clusIndexStart).clusterNumber;
-  
   
   return performedBestMerge;
 
@@ -1373,11 +1360,13 @@ bool cluster::fuzzyClusterAlg::mergeTrackClusters(unsigned int clusIndexStart,
           // Compare toMergerItr max with clusIndexStart min
           float mergeLeftClusIndexStartDist = std::sqrt(pow(x12-x21,2) + pow(y12-y21,2));
           
-          if( mergeRightClusIndexStartDist > mergeLeftClusIndexStartDist )
-            nInDistanceClusIndexStartLeft++;
-          else
-            nInDistanceClusIndexStartRight++;
-        
+          // Are we inside the vertex distance? This is smaller than the merge cutoff
+          if(segmentDistance < fVertexLinesCutoff){ 
+            if( mergeRightClusIndexStartDist > mergeLeftClusIndexStartDist )
+              nInDistanceClusIndexStartLeft++;
+            else
+              nInDistanceClusIndexStartRight++;
+          } 
         }
 
       }// End of loop over trackClustersToMergeItr->clusterProtoTracks.begin()
