@@ -152,6 +152,7 @@ namespace cluster{
     float  fShowerLikenessCut;             ///< Cut on shower likeness (larger the more shower like, smaller the less shower like)
 
     int    fMaxVertexLines;                ///< Max number of line end points allowed in a Hough line merge region for a merge to happen
+    float  fVertexLinesCutoff;             ///< Size of the vertex region to count up lines for fMaxVertexLines 
 
 
 
