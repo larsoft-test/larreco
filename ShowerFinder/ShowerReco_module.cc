@@ -648,6 +648,7 @@ for(unsigned int ij = 0; ij < fNPlanes; ++ij)
     }
   // Assuming there is no problem ( and we found the best pair that comes close in time )
   // we try to get the Y and Z coordinates for the start of the shower. 
+    try{
 	int chan1=geom->PlaneWireToChannel(bp1,fWire_vertex[bp1], 0);
 	int chan2=geom->PlaneWireToChannel(bp2,fWire_vertex[bp2], 0);
 
@@ -661,7 +662,15 @@ for(unsigned int ij = 0; ij < fNPlanes; ++ij)
 
 
 	std::cout << ":::::: found x,y,z vertex " << wires_cross << " " << xyz_vertex_fit[0] << " " << y << " " << z << std::endl;
-
+    }
+    catch(cet::exception e) {
+      mf::LogWarning("ShowerReco") << "caught exception \n" << e;
+      xyz_vertex_fit[1]=0;
+      xyz_vertex_fit[2]=0;
+      xyz_vertex_fit[0]=0;
+     }
+  
+	
    // if collection is not best plane, project starting point from that   
       if(bp1!=fNPlanes-1 && bp2!=fNPlanes-1)
       {
