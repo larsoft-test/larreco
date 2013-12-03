@@ -236,13 +236,13 @@ ShowerReco::~ShowerReco()
 {
 }
 
-struct SortByWire 
-  {
-    bool operator() (art::Ptr<recob::Hit> const& h1, art::Ptr<recob::Hit> const& h2) const  
-    { 
-      return (h1->Wire()->RawDigit()->Channel() < h2->Wire()->RawDigit()->Channel());
-    }
-  };
+// struct SortByWire 
+//   {
+//     bool operator() (art::Ptr<recob::Hit> const& h1, art::Ptr<recob::Hit> const& h2) const  
+//     { 
+//       return (h1->Wire()->RawDigit()->Channel() < h2->Wire()->RawDigit()->Channel());
+//     }
+//   };
 
 // ***************** //
 void ShowerReco::beginJob()
@@ -590,10 +590,10 @@ void ShowerReco::produce(art::Event& evt)
   // Now I have the Hitlists and the relevent clusters parameters saved.
 
   
-  for(unsigned int i = 0; i < fNPlanes; ++i){
-    std::sort(hitlist_all[i].begin(), hitlist_all[i].end(),SortByWire());
-   
-  }
+//   for(unsigned int i = 0; i < fNPlanes; ++i){
+//     std::sort(hitlist_all[i].begin(), hitlist_all[i].end(),SortByWire());
+//    
+//   }
  
   //find best set:
   unsigned int bp1,bp2;
