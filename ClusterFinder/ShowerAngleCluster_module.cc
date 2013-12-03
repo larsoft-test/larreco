@@ -449,7 +449,9 @@ else // no matching was done. Need to do it ourselves, but first run through all
 	// Loop over cluters to set the boolean flag 
 	for(size_t i=0; i<clusterListHandle->size(); ++i) {
 	  // Flagging code here
-	  const recob::Cluster& cluster = clusterListHandle->at(i);
+	   //const recob::Cluster& cluster = clusterListHandle->at(i);
+	   std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(i);
+	   ShowerClusterFlags[i]=fCParAlg.isShower(lineslopetest[i],fWireVertex[i],fTimeVertex[i],fWireEnd[i],fTimeEnd[i], hitlist);
 	  // Do something ... Kazu does not fill this part for now
 	}
 	
@@ -471,21 +473,21 @@ else // no matching was done. Need to do it ourselves, but first run through all
 	// End of Kazu's added code on Nov. 30 2013
 	//
 
-	std::vector < int > maximums;
-	std::vector < unsigned int > maxclusts;
-	maximums.resize(fNPlanes);
-	maxclusts.resize(fNPlanes,0);
-	
-	for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++){
-	  
-	  art::Ptr<recob::Cluster> cl(clusterListHandle, iClust);
-	  std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iClust);
-	  if( (int)hitlist.size() > maximums[cl->View()])  
-	   {
-	     maximums[cl->View()]=hitlist.size();
-	     maxclusts[cl->View()]=iClust;
-	   }
-	}
+// 	std::vector < int > maximums;
+// 	std::vector < unsigned int > maxclusts;
+// 	maximums.resize(fNPlanes);
+// 	maxclusts.resize(fNPlanes,0);
+// 	
+// 	for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++){
+// 	  
+// 	  art::Ptr<recob::Cluster> cl(clusterListHandle, iClust);
+// 	  std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iClust);
+// 	  if( (int)hitlist.size() > maximums[cl->View()])  
+// 	   {
+// 	     maximums[cl->View()]=hitlist.size();
+// 	     maxclusts[cl->View()]=iClust;
+// 	   }
+// 	}
 
 	//
 	// Now that ClusterSets are filled, I comment out the following section
@@ -515,14 +517,16 @@ else // no matching was done. Need to do it ourselves, but first run through all
 	//
        
 	art::PtrVector < recob::Cluster > cvec;
-	
-	for(unsigned int ip=0;ip<fNPlanes;ip++)  {
-	  art::ProductID aid = this->getProductID< std::vector < recob::Cluster > >(evt);
+	for(unsigned int iSet=0;iSet<ClusterSets.size();iSet++)
+	{
+	  for(unsigned int ip=0;ip<fNPlanes;ip++)  {
+	    art::ProductID aid = this->getProductID< std::vector < recob::Cluster > >(evt);
 
-	  art::Ptr< recob::Cluster > aptr(aid, maxclusts[ip], evt.productGetter(aid));
-	  //std::cout << "---------- going into aptr " << aptr->StartPos()[0] << " " << aptr->StartPos()[1] << std::endl;
-	  cvec.push_back(aptr);
-	}
+	    art::Ptr< recob::Cluster > aptr(aid, ClusterSets[iSet][ip], evt.productGetter(aid));
+	    //std::cout << "---------- going into aptr " << aptr->StartPos()[0] << " " << aptr->StartPos()[1] << std::endl;
+	    cvec.push_back(aptr);
+	    }
+	}    
 	if((*ShowerAngleCluster).size()>0)   //make sure to make associations to something that exists.
 	  classn->push_back(cvec); 
       }
