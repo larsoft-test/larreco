@@ -133,7 +133,7 @@ standard_fuzzyclusteralg:
     MaxLines:             25
     MaxDistance:          0.1
     MinHits:              5
-    NumAngleCells:        10000
+    NumAngleCells:        3600
     SaveAccumulator:          0
     RhoResolutionFactor:      5    # Was set to 5
     MaxSlope:                 80.0 # 80 was working fine previously
@@ -149,17 +149,18 @@ standard_fuzzyclusteralg:
   DoFuzzyRemnantMerge:      1    # Tell the algorithm to merge fuzzy cluster remnants into showers or tracks (0-off, 1-on)
   FuzzyRemnantMergeCutoff: 20    # Cut off on distance from hough line to hit in the remnant of the fuzzy cluster
   DoTrackClusterMerge:     1  # Turns on merging of track-like Hough lines (0-off, 1-on)
-  TrackClusterMergeCutoff: 7.5 # The maximum distance between track-like Hough line endpoints before they can be merged,
   ChargeAsymAngleCut:        0.1 # Cut on product of charge asymmetry and the square of the sin of angle between slopes of lines, only for track-like
   SigmaChargeAsymAngleCut:   1.0  # Cut on product of charge sigma asymmetry and the sin of angle between slopes of lines, only for track-like
-  DoShowerClusterMerge:     1  # Turns on merging of shower-like Hough line (0-off, 1-on)
-  ShowerClusterMergeAngle: 30  # The maximum angle between slopes of shower-like lines to be merged,
-  ShowerClusterMergeCutoff: 7.5 # The maximum distance between shower-like line endpoints before they can be merged,
-  DoShowerTrackClusterMerge:     1  # Turns on merging of shower-like and track-like lines (0-off, 1-on)
-  ShowerTrackClusterMergeAngle: 15  # The maximum angle between slopes of shower-like and track-like lines to be merged,
-  ShowerTrackClusterMergeCutoff: 7.5 # The maximum distance between shower-like and track-like line endpoints before they can be merged,
-  ShowerLikenessCut:        0.1  # Cut on shower likeness (the larger the more shower like, the smaller the less shower like)
-  MaxVertexLines:           2    # Max number of line end points allowed in a Hough line merge region for a merge to happen 
+  TrackClusterMergeCutoff: 5.0 # The maximum distance between track-like Hough line endpoints before they can be merged,
+  DoShowerClusterMerge:     1    # Turns on merging of shower-like Hough line (0-off, 1-on)
+  ShowerClusterMergeAngle: 30    # The maximum angle between slopes of shower-like lines to be merged,
+  ShowerClusterMergeCutoff:  7.5 # The maximum distance between shower-like line endpoints before they can be merged,
+  DoShowerTrackClusterMerge:     1    # Turns on merging of shower-like and track-like lines (0-off, 1-on)
+  ShowerTrackClusterMergeAngle:  15   # The maximum angle between slopes of shower-like and track-like lines to be merged,
+  ShowerTrackClusterMergeCutoff: 7.5  # The maximum distance between shower-like and track-like line endpoints before they can be merged,
+  ShowerLikenessCut:       0.1   # Cut on shower likeness (the larger the more shower like, the smaller the less shower like)
+  MaxVertexLines:          100   # Max number of line end points allowed in a Hough line merge region for a merge to happen 
+  VertexLinesCutoff:       1.0   #  Size of the vertex region to count up lines for MaxVertexLines 
 }
 
 
