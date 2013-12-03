@@ -188,7 +188,7 @@ void cluster::ShowerAngleCluster::reconfigure(fhicl::ParameterSet const& pset)
   fClusterModuleLabel 		=pset.get< std::string >("ClusterModuleLabel");
   fCParAlg.reconfigure(pset.get< fhicl::ParameterSet >("ClusterParamsAlg"));
   fExternalStartPoints		=pset.get< bool >("ExternalStartPoints");
-  fMinHitListSize	  =pset.get<unsigned int >("MinHitListSize");
+  fMinHitListSize	  	=pset.get<unsigned int >("MinHitListSize");
  }
 
 // ***************** //
@@ -211,15 +211,15 @@ cluster::ShowerAngleCluster::~ShowerAngleCluster()
 
 
 //-----------------------------------------------
-namespace cluster {
-struct SortByWire 
-{
-  bool operator() (recob::Hit const& h1, recob::Hit const& h2) const 
-  { return 
-      h1.Wire()->RawDigit()->Channel() < h2.Wire()->RawDigit()->Channel() ;
-  }
-};
-}
+// namespace cluster {
+// struct SortByWire 
+// {
+//   bool operator() (recob::Hit const& h1, recob::Hit const& h2) const 
+//   { return 
+//       h1.Wire()->RawDigit()->Channel() < h2.Wire()->RawDigit()->Channel() ;
+//   }
+// };
+// }
 
 // ***************** //
 void cluster::ShowerAngleCluster::beginJob()
@@ -449,15 +449,16 @@ else // no matching was done. Need to do it ourselves, but first run through all
 	// Loop over cluters to set the boolean flag 
 	for(size_t i=0; i<clusterListHandle->size(); ++i) {
 	  // Flagging code here
-	  std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(i);
-	  ShowerClusterFlags[i]=fCParAlg.isShower(lineslopetest[i],fWireVertex[i],fTimeVertex[i],fWireEnd[i],fTimeEnd[i], hitlist);
+	   //const recob::Cluster& cluster = clusterListHandle->at(i);
+	   std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(i);
+	   ShowerClusterFlags[i]=fCParAlg.isShower(lineslopetest[i],fWireVertex[i],fTimeVertex[i],fWireEnd[i],fTimeEnd[i], hitlist);
+	  // Do something ... Kazu does not fill this part for now
 	}
-
+	
 	// Step 2: Call ClusterMatchAlg
-	fCMatchAlg.SetClusterModName(fClusterModuleLabel); // Set input clusters' producer module name
-	fCMatchAlg.SetInputBoolArray(ShowerClusterFlags);  // Set boolean vector to skip some clusters for matching
-	fCMatchAlg.SetMCTruthModName("generator");         // Won't crash even if data product do not exist.
-	fCMatchAlg.FillEventInfo(evt);                    
+	fCMatchAlg.SetClusterModName(fClusterModuleLabel);
+	fCMatchAlg.SetMCTruthModName("generator"); // No worries: this won't crash even if data product do not exist.
+	fCMatchAlg.FillEventInfo(evt);
 	if(fNPlanes==2)
 	  fCMatchAlg.MatchTwoPlanes();
 	else if(fNPlanes==3)

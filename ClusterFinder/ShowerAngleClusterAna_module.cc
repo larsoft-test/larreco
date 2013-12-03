@@ -336,15 +336,15 @@ void cluster::ShowerAngleClusterAna::beginRun(const art::Run& run)
 
 
 //-----------------------------------------------
-namespace cluster {
-  struct SortByWire 
-  {
-    bool operator() (recob::Hit const& h1, recob::Hit const& h2) const 
-    { return 
-	h1.Wire()->RawDigit()->Channel() < h2.Wire()->RawDigit()->Channel() ;
-    }
-  };
-}
+// namespace cluster {
+//   struct SortByWire 
+//   {
+//     bool operator() (recob::Hit const& h1, recob::Hit const& h2) const 
+//     { return 
+// 	h1.Wire()->RawDigit()->Channel() < h2.Wire()->RawDigit()->Channel() ;
+//     }
+//   };
+// }
 
 // ***************** //
 void cluster::ShowerAngleClusterAna::beginJob()
