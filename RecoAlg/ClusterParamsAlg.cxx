@@ -896,10 +896,10 @@ bool cluster::ClusterParamsAlg::isShower(double lineslope,double wstn,double tst
    std::string ororand= (fShowerSelisORorAND) ? " && " : " || ";
          
    //////std::cout << "##########3 Cutting on: ModHitDensit:" << MODHitDensity << " > " << fHitDensityCutoff << ororand 
-   << " MultiHitWires " << multihit << " > " << fMultiHitWireCutoff << ororand 
-   << " OffAxisHits " << altWeight << " > " << fOffAxisHitsCutoff << ororand 
-   << " PrincipalComponent " << ModPV << " < " << fPrincipalComponentCutoff
-   << std::endl;
+//   << " MultiHitWires " << multihit << " > " << fMultiHitWireCutoff << ororand 
+//   << " OffAxisHits " << altWeight << " > " << fOffAxisHitsCutoff << ororand 
+//   << " PrincipalComponent " << ModPV << " < " << fPrincipalComponentCutoff
+//   << std::endl;
    
       //(fHitDensity[0]>1.9  || fOffAxisNorm[0] > 1.) &&(fHitDensity[1]>1.9  || fOffAxisNorm[1] > 1.)
     if( !fShowerSelisORorAND && 
@@ -1445,7 +1445,7 @@ int cluster::ClusterParamsAlg::DecideClusterDirection(std::vector < art::Ptr<rec
   int houghdirection=fDirection;
   RefineStartPointsHough(hitlist,wire_start,time_start,wire_end,time_end,houghdirection);
   
-  int principaldirection=FindPrincipalDirection(hitlist,wire_start,time_start,wire_end,time_end,lineslope);
+//  int principaldirection=FindPrincipalDirection(hitlist,wire_start,time_start,wire_end,time_end,lineslope);
   
  //////std::cout << " direction based on principal components. " << principaldirection << std::endl;
   
