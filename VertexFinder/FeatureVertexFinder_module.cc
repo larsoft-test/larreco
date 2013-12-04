@@ -185,11 +185,11 @@ namespace vertex{
     // ########################################
     // ### cout Run Number and Event Number ###
     // ########################################
-    std::cout<< std::endl;
-    std::cout << " ======================================================" << std::endl;
-    std::cout << "Run    : " << evt.run() <<" Event  : "<<evt.id().event() << std::endl;
-    std::cout << " ======================================================" << std::endl;
-    std::cout << std::endl;
+    //std::cout<< std::endl;
+    //std::cout << " ======================================================" << std::endl;
+    //std::cout << "Run    : " << evt.run() <<" Event  : "<<evt.id().event() << std::endl;
+    //std::cout << " ======================================================" << std::endl;
+    //std::cout << std::endl;
 
     
     
@@ -220,11 +220,11 @@ namespace vertex{
     // =============================================
     // === Wire Pitch variable (to be set later) ===
     // =============================================
-    double wire_pitch   = 0;
+    //double wire_pitch   = 0;   //commented out, Wes, 12.4.13
     // ===========================================================
     // === Number of planes in this detector (to be set later) ===
     // ===========================================================
-    int nplanes = 0;
+    //int nplanes = 0;   //commented out, Wes, 12.4.13
     
     std::vector<double> vtx_wire = {0.};
     std::vector<double> vtx_time = {0.};
@@ -292,8 +292,8 @@ namespace vertex{
     std::vector<unsigned int>   feature_plane = {0};
     std::vector<double>	  feature_strength = {0.};
     std::vector<uint32_t> feature_channel =  {0};
-    int nFeatures = 0;
-    
+    int nFeatures = 0;  
+
     float x_feature[1000] = {0.}, y_feature[1000] = {0.}, z_feature[1000] = {0.}, strength_feature[1000] = {0.};
     double y = 0., z = 0.;
     double yy = 0., zz = 0.;
@@ -302,7 +302,7 @@ namespace vertex{
     int n3dFeatures = 0;
     
     
-/*    
+
     // ###################################################
     // ### Take in the raw information about the event ###
     // ###################################################
@@ -312,7 +312,7 @@ namespace vertex{
     // ### Push the features into a vector of Endpoint2d's ###
     // #######################################################
     std::vector<recob::EndPoint2D> EndPoints;
-    fCorner.get_feature_points(EndPoints);
+    fCorner.get_feature_points_fast(EndPoints);
     
     // ########################################################
     // ### Loop over all the features and record their info ###
@@ -336,7 +336,7 @@ namespace vertex{
 	
 	
        	}//<---End i loop finding 2d Features
-*/    
+    
     
     bool GT2PlaneDetector = false;
     
@@ -595,7 +595,7 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
  //std::cout<<"n3dFeatures matched across 3 planes = "<<n3dFeatures<<std::endl; 
  
 
-
+/*
 for(int aaa = 0; aaa < n3dFeatures; aaa++)
 	{
 	std::cout<<"Strength = "<<strength_feature[aaa]<<std::endl;
@@ -605,7 +605,7 @@ for(int aaa = 0; aaa < n3dFeatures; aaa++)
 
 
 	}
-
+*/
 //-----------------------------------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------- CLUSTER INTERCEPT INFORMATION -------------------------------------------------------- 
 //-----------------------------------------------------------------------------------------------------------------------------------------------
@@ -778,18 +778,18 @@ for(int aaa = 0; aaa < n3dFeatures; aaa++)
       	// ##########################
       	for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc)
 		{
-		nplanes = geom->Cryostat(cstat).TPC(tpc).Nplanes();
+		  //nplanes = geom->Cryostat(cstat).TPC(tpc).Nplanes();   //commented out, Wes, 12.4.13
 		
 		// === Defining some variables to be used later JA: Update this ===
-		std::vector<int> cluvtx[nplanes];
+		//std::vector<int> cluvtx[nplanes]; //Wes, 12/4/13 --- comment out since not being used
     		
     		// #################################
 		// ### Loop over the wire planes ###
 		// #################################
-		for (int i = 0; i < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++i)
+		for (uint i = 0; i < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++i)
 			{
     			//           geom->WirePitch(Wire1, Wire2, Plane#, TPC#, Cyro#);
-    			wire_pitch = geom->WirePitch(0,1,i,tpc,cstat);
+    			//wire_pitch = geom->WirePitch(0,1,i,tpc,cstat);   //commented out, Wes, 12.4.13
     			
 			// ##############################################
 	  		// ### If there is at least one cluster found ###
@@ -1101,8 +1101,8 @@ for(int aaa = 0; aaa < n3dFeatures; aaa++)
     double vtx_time_merged[100000]  = {0.};
     double vtx_plane_merged[100000] = {0.};
     
-    double temp_wire1 = 0, temp_time1 = 0, temp_plane1 = 0;
-    double temp_wire2 = 0, temp_time2 = 0, temp_plane2 = 0;
+    //double temp_wire1 = 0, temp_time1 = 0, temp_plane1 = 0;   //commented out, Wes, 12.4.13
+    //double temp_wire2 = 0, temp_time2 = 0, temp_plane2 = 0;   //commented out, Wes, 12.4.13
     bool merged = false;
     
     int n2dMergedVertices = 0;
@@ -1342,7 +1342,7 @@ for(int dup = 0; dup < n3dVertex; dup ++)
 	
 	bool duplicate_found = false;
 	
-	for(size_t check = dup+1; check < n3dVertex; check++)
+	for(int check = dup+1; check < n3dVertex; check++)
 		{
 		
 		// #############################################################################
@@ -1521,7 +1521,7 @@ double TwoDvertexStrength = 0;
 	double x_good[10000] = {0.}, y_good[10000] = {0.}, z_good[10000] = {0.}, strength_good[10000] = {0.};
 	
 	int totalGood2 = 0;
-	double x_good2[10000] = {0.}, y_good2[10000] = {0.}, z_good2[10000] = {0.}, strength_good2[10000] = {0.};
+	double x_good2[10000] = {0.}, y_good2[10000] = {0.}, z_good2[10000] = {0.};//, strength_good2[10000] = {0.};   //commented out, Wes, 12.4.13
 	
 	int match2planes = 0;
 	

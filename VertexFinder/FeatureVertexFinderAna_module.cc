@@ -393,7 +393,7 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
    // ##############################################
    float    truth_vertex[5] = {0.};		//<---Truth x,y,z information
    
-   uint32_t VtxWireNum[3] = {0.};		//<---Wire number in each plane ( WireNum[plane#] )
+   uint32_t VtxWireNum[3] = {0};		//<---Wire number in each plane ( WireNum[plane#] )
    double   VtxTimeTick[3] = {0.};		//<---Time tick in each plane   ( TimeTick[plane#] )
    
    double   VtxWireNum_InCM[3] = {0.};		//<---Wire number in each plane in CM ( WireNum[plane#] )
@@ -496,7 +496,7 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
    
    int n2dVtxPlane0 = 0, n2dVtxPlane1 = 0, n2dVtxPlane2 = 0;
    
-   bool vertexWstrengthplane0 = false , vertexWstrengthplane1 = false, vertexWstrengthplane2 = false;
+   bool vertexWstrengthplane0 = false , vertexWstrengthplane1 = false;//, vertexWstrengthplane2 = false;   //commented out, Wes, 12.4.13
    
    // ######################################
    // ### Loop over the EndPoint2d List  ###
@@ -601,7 +601,7 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
 					
 					if(plane == 2)
 						{
-						vertexWstrengthplane2 = true;
+						  //vertexWstrengthplane2 = true;
 						fTwoDWireNumberPlane2->Fill( Vertex2d_Wire[n2dVtx]  );
    						fTwoDTimeTickPlane2->Fill( Vertex2d_TimeTick[n2dVtx] );
 						fTwoDWireInCmPlane2->Fill( Vertex2d_Wire_InCM[n2dVtx] );
@@ -653,7 +653,7 @@ fTwoDNVtxPlane2->Fill( n2dVtxPlane2 );
     	{
 	
 	fRecoVtxN3d->Fill(Vertexlist.size());
-	for(int ww = 0; ww<Vertexlist.size(); ww++)
+	for(uint ww = 0; ww<Vertexlist.size(); ww++)
 		{
 		Vertexlist[ww]->XYZ(xyz);
 		
