@@ -232,130 +232,7 @@ namespace vertex{
     
     
     
-    
-    
-//-------------------------------------------------------------------------------------------------------------------------------------------------   
-    // ####################################################################
-    // ### Utilizing the CornerFinderAlg to get a list of EndPoint2d's  ###
-    // ####################################################################
-    
-    std::vector<double>   feature_wire = {0.};
-    std::vector<double>   feature_time = {0.};
-    std::vector<double>   feature_plane = {0.};
-    std::vector<double>	  feature_strength = {0.};
-    std::vector<uint32_t> feature_channel =  {0};
-    int nFeatures = 0;
-    
-    float x_feature[1000] = {0.}, y_feature[1000] = {0.}, z_feature[1000] = {0.}, strength_feature[1000] = {0.};
-    double yy = 0., zz = 0.;
-    int n3dFeatures = 0;
-    
-    
-/*    
-    // ###################################################
-    // ### Take in the raw information about the event ###
-    // ###################################################
-    fCorner.TakeInRaw(evt);
-    
-    // #######################################################
-    // ### Push the features into a vector of Endpoint2d's ###
-    // #######################################################
-    std::vector<recob::EndPoint2D> EndPoints;
-    fCorner.get_feature_points(EndPoints);
-    
-    // ########################################################
-    // ### Loop over all the features and record their info ###
-    // ########################################################
-    for(size_t i=0; i!=EndPoints.size(); ++i)
-    	{
-	
-	feature_wire.push_back(EndPoints.at(i).WireID().Wire);
-	feature_time.push_back(EndPoints.at(i).DriftTime());
-	feature_plane.push_back(EndPoints.at(i).WireID().Plane);
-	feature_channel.push_back(geom->PlaneWireToChannel(EndPoints.at(i).WireID().Plane, EndPoints.at(i).WireID().Wire, 0, 0));
-	feature_strength.push_back(EndPoints.at(i).Strength());
-	nFeatures++;
-	
-	//std::cout<<std::endl;
-	//std::cout<<"EndPoints View() = "<<EndPoints.at(i).WireID().Plane<<std::endl;
-	//std::cout<<"EndPoints DriftTime() = "<<EndPoints.at(i).DriftTime()<<std::endl;
-	//std::cout<<"EndPoints Wire = "<<EndPoints.at(i).WireID().Wire<<std::endl;
-	//std::cout<<"EndPoints Channel = "<<geom->PlaneWireToChannel(EndPoints.at(i).WireID().Plane, EndPoints.at(i).WireID().Wire, 0, 0)<<std::endl;
-	//std::cout<<std::endl;
-	
-	
-       	}//<---End i loop finding 2d Features
-    
-    
-    
-    // ##############################
-    // ### Looping over cryostats ###
-    // ##############################
-    for(size_t cstat = 0; cstat < geom->Ncryostats(); ++cstat)
-    	{
-    	// ##########################
-      	// ### Looping over TPC's ###
-      	// ##########################
-      	for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc)
-		{
-     
-    		// ##############################################################################
-    		// ### Now loop over those features and see if they match up in between views ###
-    		// ##############################################################################
-    		for(int feature1 = nFeatures; feature1 > 0; feature1 --)
-    			{
-			for(int feature2 = 0; feature2 < feature1; feature2++)
-				{
-				// ##########################################################################
-				// ### Check to make sure we are comparing features from different planes ###
-				// ##########################################################################
-				if(feature_plane[feature1] != feature_plane[feature2])
-					{
-					
-					// #############################################################################
-					// ### Get the appropriate time offset for the two planes we are considering ###
-					// #############################################################################
-					float tempXFeature1 = detprop->ConvertTicksToX(feature_time[feature1], feature_plane[feature1], tpc, cstat);
-					
-					float tempXFeature2 = detprop->ConvertTicksToX(feature_time[feature2], feature_plane[feature2], tpc, cstat);
-					
-					
-					// ####################################################################
-					// ### Checking to see if these features have intersecting channels ###
-					// ###               and are within 1 cm in projected X             ###
-					// ####################################################################
-					if( geom->ChannelsIntersect( feature_channel[feature2], feature_channel[feature1], yy, zz) &&
-					    std::abs(tempXFeature1 - tempXFeature2) < 0.5)
-					    	{
-				
-						x_feature[n3dFeatures] = detprop->ConvertTicksToX(feature_time[feature1], feature_plane[feature1], tpc, cstat); 
-						y_feature[n3dFeatures] = yy;
-						z_feature[n3dFeatures] = zz;
-						strength_feature[n3dFeatures] = feature_strength[feature1] + feature_strength[feature1];
-				
-				
-						//std::cout<<std::endl;
-						//std::cout<<"feature_time[feature1] = "<<feature_time[feature1]<<std::endl;
-						//std::cout<<"### Found a 3d Feature ###"<<std::endl;
-						//std::cout<<"X = "<<x_feature[n3dFeatures]<<" , Y = "<<y_feature[n3dFeatures]<<" , Z = "<<z_feature[n3dFeatures]<<std::endl;
-						//std::cout<<"Strength = "<<strength_feature[n3dFeatures]<<std::endl;
-						//std::cout<<std::endl;
-						n3dFeatures++;
-	
-						}//<---End Checking if the feature matches in 3d
-					}//<---End Checking features are in different planes
-				}//<---End feature2 loop
-			}//<---End feature1 loop
-		}//<---End looping over TPC's
-	}//<---End looping over cryostats
- 	
-*/	
- 
- 
- 
- 
- 
-//-------------------------------------------------------------------------------------------------------------------------------------------------    
+ //-------------------------------------------------------------------------------------------------------------------------------------------------    
     
     //std::cout<<"Making new collections for output"<<std::endl;
     //Point to a collection of vertices to output.
@@ -400,7 +277,333 @@ namespace vertex{
     // ### Putting Hits into a vector (hits) ###
     // #########################################
     std::vector< art::Ptr<recob::Hit> > hits;
-    art::fill_ptr_vector(hits, hitListHandle);
+    art::fill_ptr_vector(hits, hitListHandle);   
+    
+//-------------------------------------------------------------------------------------------------------------------------------------------------   
+    // ####################################################################
+    // ### Utilizing the CornerFinderAlg to get a list of EndPoint2d's  ###
+    // ####################################################################
+    
+    std::vector<unsigned int>   feature_wire = {0};
+    std::vector<double>   feature_time = {0.};
+    std::vector<unsigned int>   feature_plane = {0};
+    std::vector<double>	  feature_strength = {0.};
+    std::vector<uint32_t> feature_channel =  {0};
+    int nFeatures = 0;
+    
+    float x_feature[1000] = {0.}, y_feature[1000] = {0.}, z_feature[1000] = {0.}, strength_feature[1000] = {0.};
+    double y = 0., z = 0.;
+    double yy = 0., zz = 0.;
+    double yy2 = 0., zz2 = 0.;
+    double yy3 = 0., zz3 = 0.;
+    int n3dFeatures = 0;
+    
+    
+    
+    // ###################################################
+    // ### Take in the raw information about the event ###
+    // ###################################################
+    fCorner.TakeInRaw(evt);
+    
+    // #######################################################
+    // ### Push the features into a vector of Endpoint2d's ###
+    // #######################################################
+    std::vector<recob::EndPoint2D> EndPoints;
+    fCorner.get_feature_points(EndPoints);
+    
+    // ########################################################
+    // ### Loop over all the features and record their info ###
+    // ########################################################
+    for(size_t i=0; i!=EndPoints.size(); ++i)
+    	{
+	
+	feature_wire.push_back(EndPoints.at(i).WireID().Wire);
+	feature_time.push_back(EndPoints.at(i).DriftTime());
+	feature_plane.push_back(EndPoints.at(i).WireID().Plane);
+	feature_channel.push_back(geom->PlaneWireToChannel(EndPoints.at(i).WireID().Plane, EndPoints.at(i).WireID().Wire, 0, 0));
+	feature_strength.push_back(EndPoints.at(i).Strength());
+	nFeatures++;
+	
+	//std::cout<<std::endl;
+	//std::cout<<"EndPoints View() = "<<EndPoints.at(i).WireID().Plane<<std::endl;
+	//std::cout<<"EndPoints DriftTime() = "<<EndPoints.at(i).DriftTime()<<std::endl;
+	//std::cout<<"EndPoints Wire = "<<EndPoints.at(i).WireID().Wire<<std::endl;
+	//std::cout<<"EndPoints Channel = "<<geom->PlaneWireToChannel(EndPoints.at(i).WireID().Plane, EndPoints.at(i).WireID().Wire, 0, 0)<<std::endl;
+	//std::cout<<std::endl;
+	
+	
+       	}//<---End i loop finding 2d Features
+    
+    
+    bool GT2PlaneDetector = false;
+    
+    
+    std::cout<<"nFeatures = "<<nFeatures<<std::endl;
+    // ##############################
+    // ### Looping over cryostats ###
+    // ##############################
+    for(size_t cstat = 0; cstat < geom->Ncryostats(); ++cstat)
+    	{
+    	// ##########################
+      	// ### Looping over TPC's ###
+      	// ##########################
+      	for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc)
+		{
+     		if (geom->Cryostat(cstat).TPC(tpc).Nplanes() > 2){GT2PlaneDetector = true;}
+    		// ##############################################################################
+    		// ### Now loop over those features and see if they match up in between views ###
+    		// ##############################################################################
+    		for(int feature1 = 0; feature1 < nFeatures; feature1 ++)
+    			{
+			for(int feature2 = feature1+1; feature2 < nFeatures; feature2++)
+				{
+				// ##########################################################################
+				// ### Check to make sure we are comparing features from different planes ###
+				// ##########################################################################
+				if(feature_plane[feature1] != feature_plane[feature2])
+					{
+					
+					// #############################################################################
+					// ### Get the appropriate time offset for the two planes we are considering ###
+					// #############################################################################
+					float tempXFeature1 = detprop->ConvertTicksToX(feature_time[feature1], feature_plane[feature1], tpc, cstat);
+					
+					float tempXFeature2 = detprop->ConvertTicksToX(feature_time[feature2], feature_plane[feature2], tpc, cstat);
+					
+					
+					// ####################################################################
+					// ### Checking to see if these features have intersecting channels ###
+					// ###               and are within 1 cm in projected X             ###
+					// ####################################################################
+					if( geom->ChannelsIntersect( feature_channel[feature2], feature_channel[feature1], yy, zz) &&
+					    std::abs(tempXFeature1 - tempXFeature2) < 0.5)
+					    	{
+						// #####################################################################################
+						// ### Use this fill if we are in a detector with fewer than 3 plane (e.g. ArgoNeuT) ###
+						// #####################################################################################
+						if(!GT2PlaneDetector)
+							{
+							x_feature[n3dFeatures] = detprop->ConvertTicksToX(feature_time[feature1], feature_plane[feature1], tpc, cstat); 
+							y_feature[n3dFeatures] = yy;
+							z_feature[n3dFeatures] = zz;
+							strength_feature[n3dFeatures] = feature_strength[feature1] + feature_strength[feature1];
+				
+				
+							//std::cout<<std::endl;
+							//std::cout<<"feature_time[feature1] = "<<feature_time[feature1]<<std::endl;
+							//std::cout<<"### Found a 3d Feature ###"<<std::endl;
+							//std::cout<<"X = "<<x_feature[n3dFeatures]<<" , Y = "<<y_feature[n3dFeatures]<<" , Z = "<<z_feature[n3dFeatures]<<std::endl;
+							//std::cout<<"Strength = "<<strength_feature[n3dFeatures]<<std::endl;
+							//std::cout<<std::endl;
+							n3dFeatures++;
+							}//<---End fill for 2 plane detector
+						
+						
+						// ##############################################################################
+						// ### Adding a check to see if I am in a 3-plane detector and therefore need ###
+						// ###           to check for a match across more than 2 planes               ###
+						// ##############################################################################
+						if(GT2PlaneDetector)
+							{
+							
+							for(int feature3 = feature2+1; feature3 < nFeatures; feature3++)
+								{
+								// ##########################################################################
+								// ### Check to make sure we are comparing features from different planes ###
+								// ##########################################################################
+								if(feature_plane[feature3] != feature_plane[feature2] && feature_plane[feature3] != feature_plane[feature1] && 
+								   feature_plane[feature1] != feature_plane[feature2] )
+									{
+									float tempXFeature3 = detprop->ConvertTicksToX(feature_time[feature3], feature_plane[feature3], tpc, cstat);
+									
+									// ####################################################################################
+									// ### Checking to make sure our third feature has an intersecting channel with our ###
+									// ###         other two channels and is within 1 cm projected in X                 ###
+									// ####################################################################################
+									if( geom->ChannelsIntersect( feature_channel[feature3], feature_channel[feature1], yy3, zz3) &&
+									    geom->ChannelsIntersect( feature_channel[feature3], feature_channel[feature2], yy2, zz2) &&
+									    geom->ChannelsIntersect( feature_channel[feature2], feature_channel[feature1], yy, zz) &&
+					    				     std::abs(tempXFeature3 - tempXFeature2) < 0.5 && std::abs(tempXFeature3 - tempXFeature1) < 0.5 &&
+									     std::abs(tempXFeature1 - tempXFeature2) < 0.5 )
+										{
+										x_feature[n3dFeatures] = detprop->ConvertTicksToX(feature_time[feature1], feature_plane[feature1], tpc, cstat); 
+										geom->IntersectionPoint(feature_wire[feature1], feature_wire[feature2], feature_plane[feature1], feature_plane[feature2], cstat, tpc, y, z);
+										//std::cout<<"y = "<<y<<" , z = "<<z<<std::endl;
+										y_feature[n3dFeatures] = y;
+										z_feature[n3dFeatures] = z;
+										strength_feature[n3dFeatures] = feature_strength[feature1] + feature_strength[feature2] + feature_strength[feature3];
+				
+				
+										/*std::cout<<std::endl;
+										std::cout<<"feature_time[feature1] = "<<feature_time[feature1]<<std::endl;
+										std::cout<<"### Found a 3d Feature ###"<<std::endl;
+										std::cout<<"X = "<<x_feature[n3dFeatures]<<" , Y = "<<y_feature[n3dFeatures]<<" , Z = "<<z_feature[n3dFeatures]<<std::endl;
+										std::cout<<"Strength = "<<strength_feature[n3dFeatures]<<std::endl;
+										std::cout<<std::endl;*/
+										n3dFeatures++;
+										
+										
+										// ### Note: If I've made it here I have a matched triplet...since I don't want to use any of these ###
+										// ###    features again I am going to iterate each of the counters so we move to the next one      ###
+										if(feature1 < nFeatures)
+											{feature1++;}
+										if(feature2 < nFeatures)
+											{feature2++;}
+										if(feature3 < nFeatures)
+											{feature3++;}
+									
+									
+										}//<---End Finding a 3d point that matches in all three planes
+									}//<----End checking that we have different planes
+								}//<---End feature3 loop
+							}//<---End Greater than 2 plane detector check
+	
+						}//<---End Checking if the feature matches in 3d
+					}//<---End Checking features are in different planes
+				}//<---End feature2 loop
+			}//<---End feature1 loop
+		}//<---End looping over TPC's
+	}//<---End looping over cryostats
+ 	
+	
+ 	
+ std::cout<<"End of finding all 3d features, n3dFeatures = "<<n3dFeatures<<std::endl;
+ std::cout<<std::endl;
+ int nGood3dFeatures = 0;
+ float temp_x[1000] = {0.}, temp_y[1000] = {0.}, temp_z[1000] = {0.}, temp_s[1000];
+ 
+ for(int check = n3dFeatures; check > 0; check--)
+ 	{
+	if(strength_feature[check] < 100){continue;}
+
+	if(std::abs(x_feature[check] - x_feature[check-1]) < 0.1 && std::abs(y_feature[check] - y_feature[check-1]) < 0.1 && 
+	   std::abs(z_feature[check] - z_feature[check-1]) < 0.1 )
+	   	{continue;}
+		
+	temp_x[nGood3dFeatures] = x_feature[check];
+	temp_y[nGood3dFeatures] = y_feature[check];
+	temp_z[nGood3dFeatures] = z_feature[check];
+	temp_s[nGood3dFeatures] = strength_feature[check];
+	std::cout<<"temp X = "<<temp_x[nGood3dFeatures] <<" , temp Y = "<<temp_y[nGood3dFeatures]<<" , temp Z = "<<temp_z[nGood3dFeatures]<<" temp strength = "<<temp_s[nGood3dFeatures]<<std::endl;
+	nGood3dFeatures++;
+
+	}
+  
+ std::cout<<std::endl;
+ std::cout<<"######################################"<<std::endl;
+ std::cout<<"After removing duplicates nGood3dFeatures = "<<nGood3dFeatures<<std::endl;
+ std::cout<<"######################################"<<std::endl;
+ std::cout<<std::endl;
+ 
+
+// #########################################################################
+// ### Zeroing the main counter since we are looping over a trimmed list ###
+// #########################################################################
+n3dFeatures = 0;
+
+bool Plane0HitMatch = false;
+bool Plane1HitMatch = false;
+bool Plane2HitMatch = false;	
+for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
+	{
+	if(temp_x[checkz] == temp_x[checkz-1] && temp_y[checkz] == temp_y[checkz-1] && 
+	   temp_z[checkz] == temp_z[checkz-1] )
+	   	{continue;}
+	
+	
+	
+	
+	
+	double temp_xyz[3] = {0.};
+	temp_xyz[0] = temp_x[checkz];
+	temp_xyz[1] = temp_y[checkz];
+	temp_xyz[2] = temp_z[checkz];
+	
+	
+	// =============================================================
+	// === Looping over hits to see if any are near this feature ===
+	for(size_t nFeatureHits = 0; nFeatureHits < hitListHandle->size(); nFeatureHits++)
+		{
+							
+		// === Finding Wire/Plane associated with the hit ===
+       		art::Ptr<recob::Hit> FeatureHit(hitListHandle, nFeatureHits);
+		
+		// ==========================
+		// === Looking in Plane 0 ===
+		// ==========================
+		if(FeatureHit->WireID().Plane == 0)
+			{
+			//std::cout<<"Checking Plane 0"<<std::endl;
+			// ===========================================================================================
+			// === If there is a hit within 5 wires and 20 time ticks in this plane set boolian = true ===
+			if(std::abs(FeatureHit->WireID().Wire - geom->NearestWire(temp_xyz , 0, 0, 0)) < 6 &&
+			   std::abs(FeatureHit->PeakTime() - detprop->ConvertXToTicks(temp_xyz[0],0, 0, 0)) < 20)
+			   	{//std::cout<<"Plane 0 Match!"<<std::endl;
+				Plane0HitMatch = true;}
+			
+			
+			}//<---End Plane 0
+		// ==========================
+		// === Looking in Plane 1 ===
+		// ==========================
+		if(FeatureHit->WireID().Plane == 1)
+			{
+			//std::cout<<"Checking Plane 1"<<std::endl;
+			// ===========================================================================================
+			// === If there is a hit within 5 wires and 20 time ticks in this plane set boolian = true ===
+			if(std::abs(FeatureHit->WireID().Wire - geom->NearestWire(temp_xyz , 1, 0, 0)) < 6 &&
+			   std::abs(FeatureHit->PeakTime() - detprop->ConvertXToTicks(temp_xyz[0],1, 0, 0)) < 20)
+			   	{//std::cout<<"Plane 1 Match!"<<std::endl;
+				Plane1HitMatch = true;}
+			
+			
+			}//<---End Plane 1
+			
+		// ==========================
+		// === Looking in Plane 2 ===
+		// ==========================
+		if(GT2PlaneDetector && FeatureHit->WireID().Plane == 2)
+			{
+			//std::cout<<"Checking Plane 2 "<<std::endl;
+			// ===========================================================================================
+			// === If there is a hit within 5 wires and 20 time ticks in this plane set boolian = true ===
+			if(std::abs(FeatureHit->WireID().Wire - geom->NearestWire(temp_xyz , 2, 0, 0)) < 6 &&
+			   std::abs(FeatureHit->PeakTime() - detprop->ConvertXToTicks(temp_xyz[0],2, 0, 0)) < 20)
+			   	{//std::cout<<"Plane 2 Match !"<<std::endl;
+				Plane2HitMatch = true;}
+			
+			
+			}//<---End Plane 1
+	
+		}//<---End nFeatureHit loop 
+	
+	// ==========================================================================================
+	// === Requiring that the feature can be matched to a nearby hit in all possible views to === 
+	// ===              be considered as a candidate 3d fearture vertex point                 ===
+	// ==========================================================================================
+	if(Plane0HitMatch && Plane1HitMatch && Plane2HitMatch)
+		{
+		std::cout<<"X = "<<temp_x[checkz] <<" , Y = "<<temp_y[checkz]<<" , Z = "<<temp_z[checkz]<<" strength = "<<temp_s[checkz]<<std::endl;
+		std::cout<<std::endl;
+		std::cout<<"Plane = 0 , Wire = "<<geom->NearestWire(temp_xyz , 0, 0, 0)<<" Time = "<<detprop->ConvertXToTicks(temp_xyz[0],0, 0, 0)<<std::endl;
+		std::cout<<"Plane = 1 , Wire = "<<geom->NearestWire(temp_xyz , 1, 0, 0)<<" Time = "<<detprop->ConvertXToTicks(temp_xyz[0],1, 0, 0)<<std::endl;
+		std::cout<<"Plane = 2 , Wire = "<<geom->NearestWire(temp_xyz , 2, 0, 0)<<" Time = "<<detprop->ConvertXToTicks(temp_xyz[0],2, 0, 0)<<std::endl;
+		std::cout<<std::endl;
+	
+		x_feature[n3dFeatures] = temp_x[checkz];
+		y_feature[n3dFeatures] = temp_y[checkz];
+		z_feature[n3dFeatures] = temp_z[checkz];
+		strength_feature[n3dFeatures] = temp_s[checkz];
+		n3dFeatures++;
+		
+		}
+	}
+ std::cout<<"n3dFeatures matched across 3 planes = "<<n3dFeatures<<std::endl; 
+ 
+
+
+
+
     
     
 
@@ -549,8 +752,6 @@ namespace vertex{
 			// ############################################################
 			// ### Skipping the fitted slope if the 0.5 < Chi2/NDF < 5  ###
 			// ############################################################
-			
-			
 			if( fitGoodness > 5)
 				{
 				mf::LogWarning("FeatureVertexFinder") << "Fitter returned poor Chi2/NDF, using the clusters default dTdW()";
@@ -604,17 +805,17 @@ namespace vertex{
     int   n2dVertexCandidates = 0;			//<---Number of candidate 2d Vertices found
     float Clu_Plane[10000] = {0};         	     	//<---Plane of the current cluster
     float Clu_StartPos_Wire[10000]= {0};     		//<---Starting wire number of cluster
-    float Clu_StartPosUncer_Wire[10000]= {0};		//<---Starting wire number uncertainty
+    //float Clu_StartPosUncer_Wire[10000]= {0};		//<---Starting wire number uncertainty
     float Clu_StartPos_TimeTick[10000]= {0};      	//<---Starting TDC value of the cluster
-    float Clu_StartPosUncer_TimeTick[10000]= {0}; 	//<---Starting TDC value uncertainty
+    //float Clu_StartPosUncer_TimeTick[10000]= {0}; 	//<---Starting TDC value uncertainty
   
     float Clu_EndPos_Wire[10000]= {0};       		//<---Ending wire number of cluster
-    float Clu_EndPosUncer_Wire[10000]= {0};  		//<---Ending wire number uncertainty
+    //float Clu_EndPosUncer_Wire[10000]= {0};  		//<---Ending wire number uncertainty
     float Clu_EndPos_TimeTick[10000]= {0};        	//<---Ending TDC value of the cluster
-    float Clu_EndPosUncer_TimeTick[10000]= {0};   	//<---Ending TDC value uncertainty
+    //float Clu_EndPosUncer_TimeTick[10000]= {0};   	//<---Ending TDC value uncertainty
   
     float Clu_Slope[10000]= {0};	  	   		//<---Calculated Slope of the cluster (TDC/Wire)
-    float Clu_SlopeUncer[10000]= {0};        		//<---Slope Error
+    //float Clu_SlopeUncer[10000]= {0};        		//<---Slope Error
     float Clu_Yintercept[10000]= {0};			//<---Clusters Y Intercept using start positions
     float Clu_Yintercept2[10000]= {0};			//<---Clusters Y Intercept using end positions
     float Clu_Length[10000]= {0};			//<---Calculated Length of the cluster
@@ -669,22 +870,22 @@ namespace vertex{
 					// === Current Clusters StartPos ===
 					Clu_StartPos_Wire[nClustersFound]	  = clusters[Cls[i][j]]->StartPos()[0];
 					AllCluster_StartWire[AllCluster]	  = Clu_StartPos_Wire[nClustersFound];
-					Clu_StartPosUncer_Wire[nClustersFound]	  = clusters[Cls[i][j]]->SigmaStartPos()[0];
+					//Clu_StartPosUncer_Wire[nClustersFound]	  = clusters[Cls[i][j]]->SigmaStartPos()[0];
 					Clu_StartPos_TimeTick[nClustersFound]	  = clusters[Cls[i][j]]->StartPos()[1];
 					AllCluster_StartTime[AllCluster]	  = Clu_StartPos_TimeTick[nClustersFound];
-					Clu_StartPosUncer_TimeTick[nClustersFound]= clusters[Cls[i][j]]->SigmaStartPos()[1];
+					//Clu_StartPosUncer_TimeTick[nClustersFound]= clusters[Cls[i][j]]->SigmaStartPos()[1];
 					
 					// === Current Clusters EndPos ===
 					Clu_EndPos_Wire[nClustersFound]		  = clusters[Cls[i][j]]->EndPos()[0];
 					AllCluster_EndWire[AllCluster]		  = Clu_EndPos_Wire[nClustersFound];
-					Clu_EndPosUncer_Wire[nClustersFound]	  = clusters[Cls[i][j]]->SigmaEndPos()[0];
+					//Clu_EndPosUncer_Wire[nClustersFound]	  = clusters[Cls[i][j]]->SigmaEndPos()[0];
 					Clu_EndPos_TimeTick[nClustersFound]	  = clusters[Cls[i][j]]->EndPos()[1];
 					AllCluster_EndTime[AllCluster]		  = Clu_EndPos_TimeTick[nClustersFound];
-					Clu_EndPosUncer_TimeTick[nClustersFound]  = clusters[Cls[i][j]]->SigmaEndPos()[1];
+					//Clu_EndPosUncer_TimeTick[nClustersFound]  = clusters[Cls[i][j]]->SigmaEndPos()[1];
 					
 					// === Current Clusters Slope (In Wire and Time Tick)
 					Clu_Slope[nClustersFound] 		  = dtdwstart[Cls[i][j]];
-					Clu_SlopeUncer[nClustersFound]		  = dtdwstartError[Cls[i][j]];
+					//Clu_SlopeUncer[nClustersFound]		  = dtdwstartError[Cls[i][j]];
 					
 					
 					Clu_Length[nClustersFound] 		  = std::sqrt(pow((clusters[Cls[i][j]]->StartPos()[0]-clusters[Cls[i][j]]->EndPos()[0])*13.5,2) //<---JA: Note this 13.5 is a hard coded
@@ -910,7 +1111,7 @@ namespace vertex{
     double Time[100000]  = {0.};
     double Plane[100000] = {0.};
     
-    for(unsigned int vtxloop = 0 ; vtxloop < n2dVertexCandidates; vtxloop++)
+    for(int vtxloop = 0 ; vtxloop < n2dVertexCandidates; vtxloop++)
 	{
 	Wire[vtxloop]  = vtx_wire[vtxloop];
 	Time[vtxloop]  = vtx_time[vtxloop];
@@ -932,7 +1133,7 @@ namespace vertex{
     // #########################################
     // ### Looping over 2d-verticies (loop1) ###
     // #########################################
-    for(unsigned int vtxloop1 = 0 ; vtxloop1 < n2dVertexCandidates; vtxloop1++)
+    for(int vtxloop1 = 0 ; vtxloop1 < n2dVertexCandidates; vtxloop1++)
 	{
 	if(Wire[vtxloop1] < 0){continue;}
 	
@@ -945,7 +1146,7 @@ namespace vertex{
 	// #########################################
 	// ### Looping over 2d-verticies (loop2) ###
 	// #########################################
-	for(unsigned int vtxloop2 = n2dVertexCandidates; vtxloop2 > vtxloop1; vtxloop2--)
+	for(int vtxloop2 = n2dVertexCandidates; vtxloop2 > vtxloop1; vtxloop2--)
     		{
 		if(Wire[vtxloop2] < 0){continue;} 
 		
@@ -1162,7 +1363,7 @@ double x_3dVertex_dupRemoved[100000] = {0.}, y_3dVertex_dupRemoved[100000] = {0.
 double strength_3dVertex_dubRemoved[10000] = {0.};
 int n3dVertex_dupRemoved = 0;
 
-for(size_t dup = 0; dup < n3dVertex; dup ++)
+for(int dup = 0; dup < n3dVertex; dup ++)
 	{
 	float tempX_dup = x_3dVertex[dup];
 	float tempY_dup = y_3dVertex[dup];
@@ -1729,7 +1930,7 @@ double TwoDvertexStrength = 0;
 					float StartTime_LongestClusterInPlane = 0;
 					float EndWire_LongestClusterInPlane = 0;
 					float EndTime_LongestClusterInPlane = 0;
-					float Plane_LongestClusterInPlane = 0;
+					//float Plane_LongestClusterInPlane = 0;
 					//std::cout<<" AllCluster = "<< AllCluster<<std::endl;
 					// #######################################################################
 					// ### Looping over clusters to find the longest cluster in each plane ###
@@ -1759,7 +1960,7 @@ double TwoDvertexStrength = 0;
 								StartTime_LongestClusterInPlane = AllCluster_StartTime[clus];
 								EndWire_LongestClusterInPlane   = AllCluster_EndWire[clus];
 								EndTime_LongestClusterInPlane   = AllCluster_EndTime[clus];
-								Plane_LongestClusterInPlane     = AllCluster_Plane[clus];
+								//Plane_LongestClusterInPlane     = AllCluster_Plane[clus];
 								}//<---End saving the longest cluster
 							}//<---Current cluster in current plane	
 						}///<---End clus for loop

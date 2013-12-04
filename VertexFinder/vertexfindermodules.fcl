@@ -44,7 +44,7 @@ standard_vertexfinder2d:
 standard_featurevertexfinder:
 {
  module_type:        	"FeatureVertexFinder"		# module name
- ClusterModuleLabel: 	"crawler"			# clusters the module takes in
+ ClusterModuleLabel: 	"hough"			# clusters the module takes in
  HitModuleLabel:	"ffthit"		# hits the module takes in
  CornerPset:          	@local::standard_cornerfinderalg	# using the cornerfinder alg
  ClusterParamsAlg: 	@local::standard_clusterparamsalg
