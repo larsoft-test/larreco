@@ -467,8 +467,8 @@ namespace vertex{
  	
 	
  	
- std::cout<<"End of finding all 3d features, n3dFeatures = "<<n3dFeatures<<std::endl;
- std::cout<<std::endl;
+ //std::cout<<"End of finding all 3d features, n3dFeatures = "<<n3dFeatures<<std::endl;
+ //std::cout<<std::endl;
  int nGood3dFeatures = 0;
  float temp_x[1000] = {0.}, temp_y[1000] = {0.}, temp_z[1000] = {0.}, temp_s[1000];
  
@@ -484,16 +484,16 @@ namespace vertex{
 	temp_y[nGood3dFeatures] = y_feature[check];
 	temp_z[nGood3dFeatures] = z_feature[check];
 	temp_s[nGood3dFeatures] = strength_feature[check];
-	std::cout<<"temp X = "<<temp_x[nGood3dFeatures] <<" , temp Y = "<<temp_y[nGood3dFeatures]<<" , temp Z = "<<temp_z[nGood3dFeatures]<<" temp strength = "<<temp_s[nGood3dFeatures]<<std::endl;
+	//std::cout<<"temp X = "<<temp_x[nGood3dFeatures] <<" , temp Y = "<<temp_y[nGood3dFeatures]<<" , temp Z = "<<temp_z[nGood3dFeatures]<<" temp strength = "<<temp_s[nGood3dFeatures]<<std::endl;
 	nGood3dFeatures++;
 
 	}
   
- std::cout<<std::endl;
+ /*std::cout<<std::endl;
  std::cout<<"######################################"<<std::endl;
  std::cout<<"After removing duplicates nGood3dFeatures = "<<nGood3dFeatures<<std::endl;
  std::cout<<"######################################"<<std::endl;
- std::cout<<std::endl;
+ std::cout<<std::endl;*/
  
 
 // #########################################################################
@@ -583,12 +583,12 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
 	// ==========================================================================================
 	if(Plane0HitMatch && Plane1HitMatch && Plane2HitMatch)
 		{
-		std::cout<<"X = "<<temp_x[checkz] <<" , Y = "<<temp_y[checkz]<<" , Z = "<<temp_z[checkz]<<" strength = "<<temp_s[checkz]<<std::endl;
+		/*std::cout<<"X = "<<temp_x[checkz] <<" , Y = "<<temp_y[checkz]<<" , Z = "<<temp_z[checkz]<<" strength = "<<temp_s[checkz]<<std::endl;
 		std::cout<<std::endl;
 		std::cout<<"Plane = 0 , Wire = "<<geom->NearestWire(temp_xyz , 0, 0, 0)<<" Time = "<<detprop->ConvertXToTicks(temp_xyz[0],0, 0, 0)<<std::endl;
 		std::cout<<"Plane = 1 , Wire = "<<geom->NearestWire(temp_xyz , 1, 0, 0)<<" Time = "<<detprop->ConvertXToTicks(temp_xyz[0],1, 0, 0)<<std::endl;
 		std::cout<<"Plane = 2 , Wire = "<<geom->NearestWire(temp_xyz , 2, 0, 0)<<" Time = "<<detprop->ConvertXToTicks(temp_xyz[0],2, 0, 0)<<std::endl;
-		std::cout<<std::endl;
+		std::cout<<std::endl;*/
 	
 		x_feature[n3dFeatures] = temp_x[checkz];
 		y_feature[n3dFeatures] = temp_y[checkz];
@@ -598,7 +598,7 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
 		
 		}
 	}
- std::cout<<"n3dFeatures matched across 3 planes = "<<n3dFeatures<<std::endl; 
+ //std::cout<<"n3dFeatures matched across 3 planes = "<<n3dFeatures<<std::endl; 
  
 
 
@@ -2271,10 +2271,10 @@ double TwoDvertexStrength = 0;
     //for(size_t i = 0; i<vcol->size(); ++i) mf::LogVerbatim("Summary") << vcol->at(i) ;
     
     
-    for(size_t j = 0; j<epcol->size(); ++j) std::cout<<" EndPoint2d = " << epcol->at(j) ;
+    /*for(size_t j = 0; j<epcol->size(); ++j) std::cout<<" EndPoint2d = " << epcol->at(j) ;
     std::cout<<std::endl;
     for(size_t j = 0; j<vcol->size(); ++j) {std::cout<< " Vertex 3d = " << vcol->at(j) << std::endl;}
-    std::cout<<std::endl;
+    std::cout<<std::endl;*/
     
     evt.put(std::move(epcol));
     evt.put(std::move(vcol));
