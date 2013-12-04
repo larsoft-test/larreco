@@ -515,22 +515,33 @@ else // no matching was done. Need to do it ourselves, but first run through all
 	// } // end ii loop
 	
 	//
-       
+
+	//
+	// Tip: ClusterSets is std::vector<std::vector<unsigned int> > of length J x K
+	// where J is the # of wire planes and K is the length of matched vector in each plane.
+	// ShowerReco code prefers a different index convention: a 1-D vector of consecutive
+	// Cluster index ID, which totally makes sense for a conventional purpose. 
+	// So we do a little bit unusual looping here over ClusterSets.
+	// -- Kazu 03 Dec 2013
+	//
 	art::PtrVector < recob::Cluster > cvec;
-	for(unsigned int iSet=0;iSet<ClusterSets.size();iSet++)
-	{
-	  for(unsigned int ip=0;ip<fNPlanes;ip++)  {
+        for(unsigned int iSet=0; iSet<ClusterSets[geo::kU].size(); iSet++) {
+
+          for(unsigned int ip=0; ip<fNPlanes; ++ip) {
+	    
+            unsigned int iClust = ClusterSets[ip][iSet];
+	    
 	    art::ProductID aid = this->getProductID< std::vector < recob::Cluster > >(evt);
+	    
+	    art::Ptr< recob::Cluster > aptr(aid, iClust, evt.productGetter(aid));
 
-	    art::Ptr< recob::Cluster > aptr(aid, ClusterSets[iSet][ip], evt.productGetter(aid));
-	    //std::cout << "---------- going into aptr " << aptr->StartPos()[0] << " " << aptr->StartPos()[1] << std::endl;
-	    cvec.push_back(aptr);
-	    }
-	}    
-	if((*ShowerAngleCluster).size()>0)   //make sure to make associations to something that exists.
-	  classn->push_back(cvec); 
+            cvec.push_back(aptr);
+          }
+        }
+        if((*ShowerAngleCluster).size()>0)   //make sure to make associations to something that exists.  
+          classn->push_back(cvec);
       }
-
+       
     /**Fill the output tree with all information */
     ftree_cluster->Fill();
     
