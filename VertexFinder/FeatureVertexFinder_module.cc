@@ -279,7 +279,10 @@ namespace vertex{
     std::vector< art::Ptr<recob::Hit> > hits;
     art::fill_ptr_vector(hits, hitListHandle);   
     
-//-------------------------------------------------------------------------------------------------------------------------------------------------   
+//-------------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------ CORNERFINDER ALG -------------------------------------------------------------------  
+//-------------------------------------------------------------------------------------------------------------------------------------------------
+ 
     // ####################################################################
     // ### Utilizing the CornerFinderAlg to get a list of EndPoint2d's  ###
     // ####################################################################
@@ -299,7 +302,7 @@ namespace vertex{
     int n3dFeatures = 0;
     
     
-    
+/*    
     // ###################################################
     // ### Take in the raw information about the event ###
     // ###################################################
@@ -333,12 +336,11 @@ namespace vertex{
 	
 	
        	}//<---End i loop finding 2d Features
-    
+*/    
     
     bool GT2PlaneDetector = false;
     
     
-    std::cout<<"nFeatures = "<<nFeatures<<std::endl;
     // ##############################
     // ### Looping over cryostats ###
     // ##############################
@@ -465,10 +467,8 @@ namespace vertex{
 		}//<---End looping over TPC's
 	}//<---End looping over cryostats
  	
-	
- 	
- //std::cout<<"End of finding all 3d features, n3dFeatures = "<<n3dFeatures<<std::endl;
- //std::cout<<std::endl;
+
+ // === Skipping 3-d 	
  int nGood3dFeatures = 0;
  float temp_x[1000] = {0.}, temp_y[1000] = {0.}, temp_z[1000] = {0.}, temp_s[1000];
  
@@ -484,16 +484,10 @@ namespace vertex{
 	temp_y[nGood3dFeatures] = y_feature[check];
 	temp_z[nGood3dFeatures] = z_feature[check];
 	temp_s[nGood3dFeatures] = strength_feature[check];
-	//std::cout<<"temp X = "<<temp_x[nGood3dFeatures] <<" , temp Y = "<<temp_y[nGood3dFeatures]<<" , temp Z = "<<temp_z[nGood3dFeatures]<<" temp strength = "<<temp_s[nGood3dFeatures]<<std::endl;
 	nGood3dFeatures++;
 
 	}
-  
- /*std::cout<<std::endl;
- std::cout<<"######################################"<<std::endl;
- std::cout<<"After removing duplicates nGood3dFeatures = "<<nGood3dFeatures<<std::endl;
- std::cout<<"######################################"<<std::endl;
- std::cout<<std::endl;*/
+ 
  
 
 // #########################################################################
@@ -602,70 +596,20 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
  
 
 
-
-
-    
-    
-
-
-
-// -------------------------------------------------------------------------------------------------------------------------
-
-// #######################################################################
-// ###   Trying to incorporate ClusterParmsAlg into here to utilize    ###
-// ### the finding axis of a cluster instead of doing simple pol1 fits ###
-// #######################################################################
-
-/*    // ##########################################
-    // ### Start by looping over the clusters ###
-    // ##########################################
-    for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++)
-    	{
-
-    	art::Ptr<recob::Cluster> cl(clusterListHandle, iClust);
-	
-   	std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iClust);
-	
-	double lineslope, lineintercept,goodness,wire_start,time_start,wire_end,time_end;
-
-	fClParAlg.Find2DAxisRough(lineslope,lineintercept,goodness,hitlist);
-	// hmmm...seems that my hitlist is always too small....that's strange....
-	
+for(int aaa = 0; aaa < n3dFeatures; aaa++)
+	{
+	std::cout<<"Strength = "<<strength_feature[aaa]<<std::endl;
+	std::cout<<"X = "<<x_feature[aaa] <<" , Y = "<<y_feature[aaa]<<" , Z = "<<z_feature[aaa]<<std::endl;
 	std::cout<<std::endl;
-	std::cout<<"iClust = "<<iClust<<" , StartWire = "<<cl->StartPos()[0]<<" , StartTime = "<<cl->StartPos()[1]<<std::endl;
-	std::cout<<"iClust = "<<iClust<<" , EndWire   = "<<cl->EndPos()[0]<<" , EndTime   = "<<cl->EndPos()[1]<<std::endl;
-	std::cout<<"iClust = "<<iClust<<" , Slope     = "<<lineslope<<" , intercept = "<<lineintercept<<" , goodness = "<<goodness<<std::endl;
-	
-	
-	fClParAlg.Find2DStartPointsHighCharge( hitlist,wire_start,time_start,wire_end,time_end);
-	
-	std::cout<<std::endl;
-	std::cout<<"Recalculated StartWire = "<<wire_start<<" , Recalculated StartTime = "<<time_start<<std::endl;
-	std::cout<<"Recalculated EndWire   = "<<wire_end<<" , Recalculated EndTime = "<<time_end<<std::endl;
-
-
-	}//<---End Cluster list
-
-*/
 
 
 
+	}
 
+//-----------------------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------- CLUSTER INTERCEPT INFORMATION -------------------------------------------------------- 
+//-----------------------------------------------------------------------------------------------------------------------------------------------
 
-
-
-
-
-
-
-
-
-
-
-
-
-// ----------------------------------------------------------------------------------------------------------------------------    
-    
 
 
     // ==============================================================================
@@ -805,17 +749,12 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
     int   n2dVertexCandidates = 0;			//<---Number of candidate 2d Vertices found
     float Clu_Plane[10000] = {0};         	     	//<---Plane of the current cluster
     float Clu_StartPos_Wire[10000]= {0};     		//<---Starting wire number of cluster
-    //float Clu_StartPosUncer_Wire[10000]= {0};		//<---Starting wire number uncertainty
     float Clu_StartPos_TimeTick[10000]= {0};      	//<---Starting TDC value of the cluster
-    //float Clu_StartPosUncer_TimeTick[10000]= {0}; 	//<---Starting TDC value uncertainty
   
     float Clu_EndPos_Wire[10000]= {0};       		//<---Ending wire number of cluster
-    //float Clu_EndPosUncer_Wire[10000]= {0};  		//<---Ending wire number uncertainty
     float Clu_EndPos_TimeTick[10000]= {0};        	//<---Ending TDC value of the cluster
-    //float Clu_EndPosUncer_TimeTick[10000]= {0};   	//<---Ending TDC value uncertainty
   
     float Clu_Slope[10000]= {0};	  	   		//<---Calculated Slope of the cluster (TDC/Wire)
-    //float Clu_SlopeUncer[10000]= {0};        		//<---Slope Error
     float Clu_Yintercept[10000]= {0};			//<---Clusters Y Intercept using start positions
     float Clu_Yintercept2[10000]= {0};			//<---Clusters Y Intercept using end positions
     float Clu_Length[10000]= {0};			//<---Calculated Length of the cluster
@@ -870,22 +809,17 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
 					// === Current Clusters StartPos ===
 					Clu_StartPos_Wire[nClustersFound]	  = clusters[Cls[i][j]]->StartPos()[0];
 					AllCluster_StartWire[AllCluster]	  = Clu_StartPos_Wire[nClustersFound];
-					//Clu_StartPosUncer_Wire[nClustersFound]	  = clusters[Cls[i][j]]->SigmaStartPos()[0];
 					Clu_StartPos_TimeTick[nClustersFound]	  = clusters[Cls[i][j]]->StartPos()[1];
 					AllCluster_StartTime[AllCluster]	  = Clu_StartPos_TimeTick[nClustersFound];
-					//Clu_StartPosUncer_TimeTick[nClustersFound]= clusters[Cls[i][j]]->SigmaStartPos()[1];
 					
 					// === Current Clusters EndPos ===
 					Clu_EndPos_Wire[nClustersFound]		  = clusters[Cls[i][j]]->EndPos()[0];
 					AllCluster_EndWire[AllCluster]		  = Clu_EndPos_Wire[nClustersFound];
-					//Clu_EndPosUncer_Wire[nClustersFound]	  = clusters[Cls[i][j]]->SigmaEndPos()[0];
 					Clu_EndPos_TimeTick[nClustersFound]	  = clusters[Cls[i][j]]->EndPos()[1];
 					AllCluster_EndTime[AllCluster]		  = Clu_EndPos_TimeTick[nClustersFound];
-					//Clu_EndPosUncer_TimeTick[nClustersFound]  = clusters[Cls[i][j]]->SigmaEndPos()[1];
 					
 					// === Current Clusters Slope (In Wire and Time Tick)
 					Clu_Slope[nClustersFound] 		  = dtdwstart[Cls[i][j]];
-					//Clu_SlopeUncer[nClustersFound]		  = dtdwstartError[Cls[i][j]];
 					
 					
 					Clu_Length[nClustersFound] 		  = std::sqrt(pow((clusters[Cls[i][j]]->StartPos()[0]-clusters[Cls[i][j]]->EndPos()[0])*13.5,2) //<---JA: Note this 13.5 is a hard coded
@@ -944,7 +878,6 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
 						// --- Skip the vertex if the lines slope don't intercept ---
 						if(Clu_Slope[m] - Clu_Slope[n] == 0){break;}
 						
-						/*
 						// ============================================================
 						// === X intersection = (yInt2 - yInt1) / (slope1 - slope2) ===
 						float intersection_X = (Clu_Yintercept[n] - Clu_Yintercept[m]) / (Clu_Slope[m] - Clu_Slope[n]);
@@ -953,27 +886,7 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
 						float intersection_Y = (Clu_Slope[m] * intersection_X) + Clu_Yintercept[m];
 						
 						
-						// ##########################################################
-						// ### Filling the vector of Vertex Wire, Time, and Plane ###
-						// ##########################################################
-						
-						// -----------------------------------------------------------------------------
-						// --- Skip this vertex if the X  and Y intersection is outside the detector ---
-						// --- using geom->Nwires(plane,tpc,cyrostat) & detprop->NumberTimeSamples() ---
-						// -----------------------------------------------------------------------------
-						if( intersection_X > 1 && intersection_Y > 0 && 
-						    (intersection_X < geom->Nwires(Clu_Plane[n],0,0) || intersection_X < geom->Nwires(Clu_Plane[m],tpc,cstat) ) &&
-						    intersection_Y < detprop->NumberTimeSamples() )
-							{
 							
-							
-							vtx_wire.push_back(intersection_X);
-							vtx_time.push_back(intersection_Y);
-							vtx_plane.push_back(Clu_Plane[m]);
-							n2dVertexCandidates++;
-							}//<---End saving a "good 2d vertex" candidate
-						*/	
-						
 						
 						// #####################################################
 						// ### Skipping calculating for end points to reduce ###
@@ -991,40 +904,64 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
 						// #########################################
 						// ### Skipping crap intersection points ###
 						// #########################################
-						if(intersection_X2 < 1){continue;}
-						if(intersection_X2 > geom->Nwires(Clu_Plane[m],tpc,cstat)){continue;}
-						if(intersection_Y2 < 0){continue;}
-						if(intersection_Y2 > detprop->NumberTimeSamples() ){continue;}
+						if(intersection_X2 < 1){intersection_X2 = -999;}
+						if(intersection_X2 > geom->Nwires(Clu_Plane[m],tpc,cstat)){intersection_X2 = -999;}
+						if(intersection_Y2 < 0){intersection_Y2 = -999;}
+						if(intersection_Y2 > detprop->NumberTimeSamples() ){intersection_Y2 = -999;}
+						
+						if(intersection_X < 1){intersection_X = -999;}
+						if(intersection_X > geom->Nwires(Clu_Plane[m],tpc,cstat)){intersection_X = -999;}
+						if(intersection_Y < 0){intersection_Y = -999;}
+						if(intersection_Y > detprop->NumberTimeSamples() ){intersection_Y = -999;}
 						
 						
 						// ### If the intersection point is 80 or more wires away from either cluster
-						// ### and the one of the clusters has fewer than 10 hits the intersection
+						// ### and one of the clusters has fewer than 8 hits the intersection
 						// ### is likely a crap one and we won't save this point 
 						
 						// ### Gathering the hits associated with the current cluster ###
 						std::vector< art::Ptr<recob::Hit> > hitClu1 = fmh.at(m);
 						std::vector< art::Ptr<recob::Hit> > hitClu2 = fmh.at(n);
 						
-						if( abs( Clu_EndPos_Wire[m] - intersection_X2 ) > 80 && hitClu1.size() < 8 ||
-						    abs( Clu_EndPos_Wire[n] - intersection_X2 ) > 80 && hitClu2.size() < 8 )
-						    {std::cout<<"Skipping this intersection"<<std::endl;
-						    continue;}
+						if( (abs( Clu_EndPos_Wire[m] - intersection_X2 ) > 80 && hitClu1.size() < 8) ||
+						    (abs( Clu_EndPos_Wire[n] - intersection_X2 ) > 80 && hitClu2.size() < 8) )
+						    {
+						    intersection_X2 = -999;
+						    intersection_Y2 = -999;
+						    }
+						    
+						if( (abs( Clu_StartPos_Wire[m] - intersection_X ) > 80 && hitClu1.size() < 8) ||
+						    (abs( Clu_StartPos_Wire[n] - intersection_X ) > 80 && hitClu2.size() < 8) )
+						    {
+						    intersection_X = -999;
+						    intersection_Y = -999;
+						    }
 						
 						// ### If the intersection point is 50 or more wires away from either cluster
 						// ### and the one of the clusters has fewer than 3 hits the intersection
 						// ### is likely a crap one and we won't save this point 
-						if( abs( Clu_EndPos_Wire[m] - intersection_X2 ) > 50 && hitClu1.size() < 4 ||
-						    abs( Clu_EndPos_Wire[n] - intersection_X2 ) > 50 && hitClu2.size() < 4 )
-						    {std::cout<<"Skipping this intersection"<<std::endl;
-						    continue;}    
+						if( (abs( Clu_EndPos_Wire[m] - intersection_X2 ) > 50 && hitClu1.size() < 4) ||
+						    (abs( Clu_EndPos_Wire[n] - intersection_X2 ) > 50 && hitClu2.size() < 4) )
+						    {
+						    intersection_X2 = -999;
+						    intersection_Y2 = -999;
+						    }
+						    
+						if( (abs( Clu_StartPos_Wire[m] - intersection_X ) > 50 && hitClu1.size() < 4) ||
+						    (abs( Clu_StartPos_Wire[n] - intersection_X ) > 50 && hitClu2.size() < 4) )
+						    {
+						    intersection_X = -999;
+						    intersection_Y = -999;
+						    }     
 						    
 						
 						// ##################################################
 						// ### Now checking if this intersection point is ###
-						// ###       near a 3 (???) or more hits          ###
+						// ###       near 1 (???) or more hits            ###
 						// ##################################################
 						
-						int nOverlapHits = 0;
+						int nOverlapHitsEndPoint   = 0;
+						int nOverlapHitsStartPoint = 0;
 						// =========================
 						// === Looping over hits ===
 						for(size_t nHits = 0; nHits < hitListHandle->size(); nHits++)
@@ -1045,7 +982,20 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
 							
 							if( fabs(intersection_X2 - hit_wire) < 4 && fabs(intersection_Y2 - hit_time) < 20)
 								{
-								nOverlapHits++;
+								nOverlapHitsEndPoint++;
+								/*std::cout<<std::endl;
+								std::cout<<"intersection_X2 = "<<intersection_X2<<std::endl;
+								std::cout<<"hit_wire = "<<hit_wire<<std::endl;
+								std::cout<<"intersection_Y2 = "<<intersection_Y2<<std::endl;
+								std::cout<<"hit_time = "<<hit_time<<std::endl;
+								std::cout<<std::endl;*/
+								
+								
+								}//<--End checking the hit overlap with the intersection
+								
+							if( fabs(intersection_X - hit_wire) < 4 && fabs(intersection_Y - hit_time) < 20)
+								{
+								nOverlapHitsStartPoint++;
 								/*std::cout<<std::endl;
 								std::cout<<"intersection_X2 = "<<intersection_X2<<std::endl;
 								std::cout<<"hit_wire = "<<hit_wire<<std::endl;
@@ -1060,9 +1010,19 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
 							}//<---End nHits loop
 						
 						
-						
-						if(nOverlapHits <1)
-							{continue;}
+						// ### If there was no hit found near this intercept point this is likely ###
+						// ###                          not a 2-d vertex                          ###
+						if(nOverlapHitsEndPoint <1)
+							{
+							intersection_X2 = -999;
+							intersection_Y2 = -999;
+							}
+							
+						if(nOverlapHitsStartPoint < 1)
+							{
+							intersection_X = -999;
+							intersection_Y = -999;
+							}
 							
 						//std::cout<<std::endl;
 						//std::cout<<"Wire = "<<intersection_X2<<std::endl;
@@ -1078,9 +1038,10 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
 						// --- Skip this vertex if the X  and Y intersection is outside the detector ---
 						// --- using geom->Nwires(plane,tpc,cyrostat) & detprop->NumberTimeSamples() ---
 						// -----------------------------------------------------------------------------
-						if( intersection_X2 > 1 && intersection_Y2 > 0 && 
-						    ( intersection_X2 < geom->Nwires(Clu_Plane[m],tpc,cstat) ) &&
-						    intersection_Y2 < detprop->NumberTimeSamples() )
+						if( intersection_X2 > 1 && 
+						    intersection_Y2 > 0 && 
+						  ( intersection_X2 < geom->Nwires(Clu_Plane[m],tpc,cstat) ) &&
+						  ( intersection_Y2 < detprop->NumberTimeSamples() ) )
 							{
 							
 							
@@ -1089,6 +1050,23 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
 							vtx_plane.push_back(Clu_Plane[m]);
 							n2dVertexCandidates++;
 							}//<---End saving a "good 2d vertex" candidate	
+							
+						// -----------------------------------------------------------------------------
+						// --- Skip this vertex if the X  and Y intersection is outside the detector ---
+						// --- using geom->Nwires(plane,tpc,cyrostat) & detprop->NumberTimeSamples() ---
+						// -----------------------------------------------------------------------------
+						if( intersection_X > 1 && 
+						    intersection_Y > 0 && 
+						  ( intersection_X < geom->Nwires(Clu_Plane[m],tpc,cstat) ) &&
+						  ( intersection_Y < detprop->NumberTimeSamples() ) )
+							{
+							
+							
+							vtx_wire.push_back(intersection_X);
+							vtx_time.push_back(intersection_Y);
+							vtx_plane.push_back(Clu_Plane[m]);
+							n2dVertexCandidates++;
+							}//<---End saving a "good 2d vertex" candidate
 						
 						
 						}//<---End making sure we are in the same plane
@@ -1102,8 +1080,6 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
     	}//<---End looping over cryostats
 
 
-
-
     // ########################################################################
     // ### Introducing a merge step for the candidate 2-d vertex candidates ###
     // ########################################################################
@@ -1113,6 +1089,8 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
     
     for(int vtxloop = 0 ; vtxloop < n2dVertexCandidates; vtxloop++)
 	{
+	//std::cout<<std::endl;
+	//std::cout<<"vtx_wire[vtxloop] = "<<vtx_wire[vtxloop]<<" , vtx_time[vtxloop] = "<<vtx_time[vtxloop]<<" , vtx_plane[vtxloop] = "<<vtx_plane[vtxloop]<<std::endl;
 	Wire[vtxloop]  = vtx_wire[vtxloop];
 	Time[vtxloop]  = vtx_time[vtxloop];
 	Plane[vtxloop] = vtx_plane[vtxloop];
@@ -1137,77 +1115,69 @@ for(int checkz = nGood3dFeatures; checkz > 0; checkz--)
 	{
 	if(Wire[vtxloop1] < 0){continue;}
 	
-	//std::cout<<"Wire[vtxloop1] = "<<Wire[vtxloop1]<<std::endl;
-	
-	temp_wire1  = Wire[vtxloop1];
-	temp_time1  = Time[vtxloop1];
-	temp_plane1 = Plane[vtxloop1];
-	
+	merged = false;
 	// #########################################
 	// ### Looping over 2d-verticies (loop2) ###
 	// #########################################
-	for(int vtxloop2 = n2dVertexCandidates; vtxloop2 > vtxloop1; vtxloop2--)
+	for(int vtxloop2 = vtxloop1+1; vtxloop2 < n2dVertexCandidates; vtxloop2++)
     		{
 		if(Wire[vtxloop2] < 0){continue;} 
 		
-		
-		temp_wire2  = Wire[vtxloop2];
-		temp_time2  = Time[vtxloop2];
-		temp_plane2 = Plane[vtxloop2];
-		
-		merged = false;
 		// ########################################################
 		// ### Make sure the 2d-Verticies are in the same plane ###
 		// ########################################################
-		if(temp_plane1 == temp_plane2)
+		if(Plane[vtxloop1] == Plane[vtxloop2])
 			{
 			// ###############################################			
 			// ### Considering merging 2d vertices if they ###
 			// ###    are within 3 wires of each other     ###
 			// ###############################################
-			if( fabs(temp_wire1 - temp_wire2) < 4 )
+			if( fabs(Wire[vtxloop1] - Wire[vtxloop2]) < 4 )
 				{
 				// ############################################################
-				// ### Merge the verticies if they are within 15 time ticks ###
+				// ### Merge the verticies if they are within 10 time ticks ###
 				// ############################################################
-				if( fabs(temp_time1 - temp_time2) < 16 )
+				if( fabs(Time[vtxloop1] - Time[vtxloop2]) < 10 )
 					{
-					vtx_wire_merged[n2dMergedVertices] = ((temp_wire2 + temp_wire1)/ 2) ;
-					vtx_time_merged[n2dMergedVertices] = ((temp_time2 + temp_time1)/ 2) ;
-					vtx_plane_merged[n2dMergedVertices] = temp_plane2;
-					
+					vtx_wire_merged[n2dMergedVertices] = ((Wire[vtxloop2] + Wire[vtxloop1])/ 2) ;
+					vtx_time_merged[n2dMergedVertices] = ((Time[vtxloop2] + Time[vtxloop1])/ 2) ;
+					vtx_plane_merged[n2dMergedVertices] = Plane[vtxloop1];
 					
 					merged = true;
-					Wire[vtxloop1] = -999;
-					Time[vtxloop1] = -999;
-					Plane[vtxloop1] = -999;
+					n2dMergedVertices++;
 					
-					Wire[vtxloop2] = -999;
-					Time[vtxloop2] = -999;
-					Plane[vtxloop2] = -999;
-					}//<---End the check within 15 time ticks for merging
+					if(vtxloop2<n2dVertexCandidates)
+						{vtxloop2++;}
+					if(vtxloop1<n2dVertexCandidates)
+						{vtxloop1++;}	
+					
+					
+					}//<---End the check within 10 time ticks for merging
 				}//<---Looking at vertices that are within 3 wires of each other
 			}//<---Only looking at vertices that are in the same plane
 		
 		}//<---End vtxloop2
 	if(!merged)
 		{
-		vtx_wire_merged[n2dMergedVertices]  = temp_wire1;
-		vtx_time_merged[n2dMergedVertices]  = temp_time1 ;
-		vtx_plane_merged[n2dMergedVertices] = temp_plane1;
-
+		vtx_wire_merged[n2dMergedVertices]  = Wire[vtxloop1];
+		vtx_time_merged[n2dMergedVertices]  = Time[vtxloop1] ;
+		vtx_plane_merged[n2dMergedVertices] = Plane[vtxloop1];
+		n2dMergedVertices++;
 		}//<---end saving unmerged verticies
 			
 	//std::cout<<"vtx_wire_merged[n2dMergedVertices] = "<<vtx_wire_merged[n2dMergedVertices]<<std::endl;
-	n2dMergedVertices++;
+	
 	}//<---End vtxloop1
+	
+	
+	
 	
     
     
-    //std::cout<<std::endl;
-    //std::cout<<"n2dVertexCandidates = "<<n2dVertexCandidates<<std::endl;
-    //std::cout<<"n2dMergedVertices   = "<<n2dMergedVertices<<std::endl;
-    //std::cout<<std::endl;
+    std::cout<<std::endl;
+    std::cout<<"n2dVertexCandidates = "<<n2dVertexCandidates<<std::endl;
+    std::cout<<"n2dMergedVertices   = "<<n2dMergedVertices<<std::endl;
+    std::cout<<std::endl;
 
     
     double y_coord = 0, z_coord = 0;
@@ -2290,6 +2260,44 @@ double TwoDvertexStrength = 0;
 // =====================================================================================================
 // =====================================================================================================
 
+// -------------------------------------------------------------------------------------------------------------------------
+
+// #######################################################################
+// ###   Trying to incorporate ClusterParmsAlg into here to utilize    ###
+// ### the finding axis of a cluster instead of doing simple pol1 fits ###
+// #######################################################################
+
+/*    // ##########################################
+    // ### Start by looping over the clusters ###
+    // ##########################################
+    for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++)
+    	{
+
+    	art::Ptr<recob::Cluster> cl(clusterListHandle, iClust);
+	
+   	std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iClust);
+	
+	double lineslope, lineintercept,goodness,wire_start,time_start,wire_end,time_end;
+
+	fClParAlg.Find2DAxisRough(lineslope,lineintercept,goodness,hitlist);
+	// hmmm...seems that my hitlist is always too small....that's strange....
+	
+	std::cout<<std::endl;
+	std::cout<<"iClust = "<<iClust<<" , StartWire = "<<cl->StartPos()[0]<<" , StartTime = "<<cl->StartPos()[1]<<std::endl;
+	std::cout<<"iClust = "<<iClust<<" , EndWire   = "<<cl->EndPos()[0]<<" , EndTime   = "<<cl->EndPos()[1]<<std::endl;
+	std::cout<<"iClust = "<<iClust<<" , Slope     = "<<lineslope<<" , intercept = "<<lineintercept<<" , goodness = "<<goodness<<std::endl;
+	
+	
+	fClParAlg.Find2DStartPointsHighCharge( hitlist,wire_start,time_start,wire_end,time_end);
+	
+	std::cout<<std::endl;
+	std::cout<<"Recalculated StartWire = "<<wire_start<<" , Recalculated StartTime = "<<time_start<<std::endl;
+	std::cout<<"Recalculated EndWire   = "<<wire_end<<" , Recalculated EndTime = "<<time_end<<std::endl;
+
+
+	}//<---End Cluster list
+
+*/
 
 
 
