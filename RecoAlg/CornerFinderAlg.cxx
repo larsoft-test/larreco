@@ -279,18 +279,18 @@ void cluster::CornerFinderAlg::get_feature_points_fast(std::vector<recob::EndPoi
   
   for(unsigned int cstat = 0; cstat < fGeom->Ncryostats(); ++cstat){
     for(unsigned int tpc = 0; tpc < fGeom->Cryostat(cstat).NTPC(); ++tpc){
-      std::cout << "OK, about to loop over " << WireData_trimmed_histos.size() << " histograms." << std::endl;
+      //std::cout << "OK, about to loop over " << WireData_trimmed_histos.size() << " histograms." << std::endl;
       for(size_t histos=0; histos!= WireData_trimmed_histos.size(); histos++){
 	
 	int plane = std::get<0>(WireData_trimmed_histos.at(histos));
 	int startx = std::get<2>(WireData_trimmed_histos.at(histos));
 	int starty = std::get<3>(WireData_trimmed_histos.at(histos));
 
-	std::cout << "Doing histogram " << histos << ", of plane " << plane << " with start points " << startx << " " << starty << std::endl;
+	//std::cout << "Doing histogram " << histos << ", of plane " << plane << " with start points " << startx << " " << starty << std::endl;
 	attach_feature_points(std::get<1>(WireData_trimmed_histos.at(histos)),
 			      WireData_IDs[plane],fGeom->Cryostat(cstat).TPC(tpc).Plane(plane).View(),corner_vector,startx,starty);
 
-	std::cout << "\tTotal feature points now is " << corner_vector.size() << std::endl;
+	//std::cout << "\tTotal feature points now is " << corner_vector.size() << std::endl;
       }
       
       //remove_duplicates(corner_vector);
@@ -379,13 +379,13 @@ struct compare_to_range{
 // This looks for areas of the wires that are non-noise, to speed up evaluation
 void cluster::CornerFinderAlg::create_smaller_histos(){
 
-  std::cout << "OK, creating the smaller histograms." << std::endl;
+  //std::cout << "OK, creating the smaller histograms." << std::endl;
 
   for(unsigned int cstat = 0; cstat < fGeom->Ncryostats(); ++cstat){
     for(unsigned int tpc = 0; tpc < fGeom->Cryostat(cstat).NTPC(); ++tpc){
       for(unsigned int plane = 0; plane < fGeom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
 
-	std::cout << "Working plane " << plane << "." << std::endl;
+	//std::cout << "Working plane " << plane << "." << std::endl;
 
 	int x_bins = WireData_histos_ProjectionX[plane]->GetNbinsX();
 	//float x_min = WireData_histos_ProjectionX[plane]->GetXaxis()->GetBinLowEdge(1);
@@ -445,8 +445,8 @@ void cluster::CornerFinderAlg::create_smaller_histos(){
 
 	}
 
-	std::cout << "We have a total of " << cut_points_x.size() << " x cut points." << std::endl;
-	std::cout << "We have a total of " << cut_points_y.size() << " y cut points." << std::endl;
+	//std::cout << "We have a total of " << cut_points_x.size() << " x cut points." << std::endl;
+	//std::cout << "We have a total of " << cut_points_y.size() << " y cut points." << std::endl;
 
 	std::vector<int> x_low{1};
 	std::vector<int> x_high{x_bins};
@@ -456,7 +456,7 @@ void cluster::CornerFinderAlg::create_smaller_histos(){
 	bool y_change = true;
 	while(x_change || y_change){
 
-	  std::cout << "OK, let's trim things down!" << std::endl;
+	  //std::cout << "OK, let's trim things down!" << std::endl;
 
 	  x_change = false;
 	  y_change = false;
@@ -466,11 +466,11 @@ void cluster::CornerFinderAlg::create_smaller_histos(){
 	  for(size_t il=0; il<current_size; il++){
 	    
 	    int comp_value = (x_high.at(il) + x_low.at(il)) / 2;
-	    std::cout << "x low point is " << x_low.at(il) << " and high point is " << x_high.at(il) << std::endl;
+	    //std::cout << "x low point is " << x_low.at(il) << " and high point is " << x_high.at(il) << std::endl;
 	    //std::sort(cut_points_x.begin(),cut_points_x.end(),compare_to_range(x_low.at(il),x_high.at(il)));
 	    std::sort(cut_points_x.begin(),cut_points_x.end(),compare_to_value(comp_value));
 	    
-	    std::cout << "\tClosest cut point in x is " << cut_points_x.at(0) << std::endl;
+	    //std::cout << "\tClosest cut point in x is " << cut_points_x.at(0) << std::endl;
 
 	    if(cut_points_x.at(0) <= x_low.at(il) || cut_points_x.at(0) >= x_high.at(il))
 	      continue;
@@ -496,7 +496,7 @@ void cluster::CornerFinderAlg::create_smaller_histos(){
 	    }
 	  }
 
-	  if(x_change) std::cout << "\tTrimmed in x!" << std::endl;
+	  //if(x_change) std::cout << "\tTrimmed in x!" << std::endl;
 
 	  current_size = x_low.size();
 
@@ -529,7 +529,7 @@ void cluster::CornerFinderAlg::create_smaller_histos(){
 	    }
 	  }
 
-	  if(y_change) std::cout << "\tTrimmed in y!" << std::endl;
+	  //if(y_change) std::cout << "\tTrimmed in y!" << std::endl;
 
 	}
 
@@ -552,13 +552,13 @@ void cluster::CornerFinderAlg::create_smaller_histos(){
 		  << WireData_histos[plane]->Integral(cut_points_x.at(0),x_bins,cut_points_y.at(0),y_bins) << std::endl;
 	*/
 
-	std::cout << "Total of " << x_low.size() << " sub-histograms." << std::endl;
+	//std::cout << "Total of " << x_low.size() << " sub-histograms." << std::endl;
 	for(size_t il=0; il<x_low.size(); il++){
-	  std::cout << "\t(x1,x2,y1,y2) = (" 
-		    << x_low.at(il) << ","
-		    << x_high.at(il) << ","
-		    << y_low.at(il) << ","
-		    << y_high.at(il) << ")" << std::endl;
+	  //std::cout << "\t(x1,x2,y1,y2) = (" 
+	  //	    << x_low.at(il) << ","
+	  //	    << x_high.at(il) << ","
+	  //	    << y_low.at(il) << ","
+	  //	    << y_high.at(il) << ")" << std::endl;
 
 	  std::stringstream h_name;
 	  h_name << "h_" << cstat << "_" << tpc << "_" << plane << "_sub" << il;
@@ -580,7 +580,7 @@ void cluster::CornerFinderAlg::create_smaller_histos(){
   }
   
 
-  std::cout << "Done! Total of " << WireData_trimmed_histos.size() << " histograms." << std::endl;
+  //std::cout << "Done! Total of " << WireData_trimmed_histos.size() << " histograms." << std::endl;
 
 }
 
@@ -862,7 +862,7 @@ void cluster::CornerFinderAlg::create_derivative_histograms(TH2F *h_conversion, 
   }
 
 
-  std::cout << "(Almost) Finished derivatives." << std::endl;
+  //std::cout << "(Almost) Finished derivatives." << std::endl;
 
   //this is just a double Gaussian
   float func_blur[10][10];
@@ -1029,7 +1029,7 @@ void cluster::CornerFinderAlg::create_derivative_histograms(TH2F *h_conversion, 
   } //end if blur
 
 
-  std::cout << "Finished derivatives." << std::endl;
+  //std::cout << "Finished derivatives." << std::endl;
 
 }
 
