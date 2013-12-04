@@ -104,8 +104,8 @@ void cluster::ClusterParamsAlg::FindMinMaxWiresTimes(double &MinWire, double &Ma
   
   //fClusterPlane=plane;  // time coordinate of last point for each plane
       
- // std::cout << " +++ maximums " << MinWire << " " << MaxWire << " " <<MinTime << " " << MaxTime << std::endl;
- // std::cout << " +++ meancharge " << MeanCharge << std::endl;
+ // //////std::cout << " +++ maximums " << MinWire << " " << MaxWire << " " <<MinTime << " " << MaxTime << std::endl;
+ // //////std::cout << " +++ meancharge " << MeanCharge << std::endl;
 }
 
 
@@ -119,7 +119,7 @@ int cluster::ClusterParamsAlg::Find2DAxisRoughHighCharge(double &lineslope,doubl
   double kMinWire=99999,kMinTime=999999,kMaxWire=0,kMaxTime=0,kMeanCharge=0;
   FindMinMaxWiresTimes(kMinWire,kMaxWire,kMinTime,kMaxTime,kMeanCharge,hitlist);
   std::vector< art::Ptr<recob::Hit> > highhitlist=CreateHighHitlist(kMeanCharge,hitlist);
- // std::cout << "$$$$$$$ highhitlist size: " << highhitlist.size() << " " << kMeanCharge <<  std::endl;
+ // //////std::cout << "$$$$$$$ highhitlist size: " << highhitlist.size() << " " << kMeanCharge <<  std::endl;
     
   if(Find2DAxisRough(lineslope,lineintercept,goodness,highhitlist)==-1)
     return -1;
@@ -136,7 +136,7 @@ int cluster::ClusterParamsAlg::Find2DAxisPrincipalHighCharge(double &lineslope,d
   double kMinWire=99999,kMinTime=999999,kMaxWire=0,kMaxTime=0,kMeanCharge=0;
   FindMinMaxWiresTimes(kMinWire,kMaxWire,kMinTime,kMaxTime,kMeanCharge,hitlist);
   std::vector< art::Ptr<recob::Hit> > highhitlist=CreateHighHitlist(kMeanCharge,hitlist);
-//   std::cout << "$$$$$$$ highhitlist size: " << highhitlist.size() << " " << kMeanCharge <<  std::endl;
+//   //////std::cout << "$$$$$$$ highhitlist size: " << highhitlist.size() << " " << kMeanCharge <<  std::endl;
   if(Find2DAxisRough(lineslope,lineintercept,goodness,highhitlist)==-1)
     return -1;
   else
@@ -160,7 +160,7 @@ int cluster::ClusterParamsAlg::Find2DAxisPrincipal(double &lineslope,double &lin
      //TVector2 HitMean=GetHitCenter(hitlist);
   if(hitlist.size()<5)
   {
-   std::cout << " hitlist too small," <<hitlist.size() << " bailing " << std::endl;
+   //////std::cout << " hitlist too small," <<hitlist.size() << " bailing " << std::endl;
     return -1;
   }
  
@@ -212,7 +212,7 @@ int cluster::ClusterParamsAlg::Find2DAxisRough(double &lineslope,double &lineint
  
   if(hitlist.size()<5)
   {
-   std::cout << " hitlist too small," <<hitlist.size() << " bailing " << std::endl;
+   //////std::cout << " hitlist too small," <<hitlist.size() << " bailing " << std::endl;
     return -1;
   }
   
@@ -318,7 +318,7 @@ int   cluster::ClusterParamsAlg::Find2DStartPointsHighCharge(std::vector< art::P
 
  if(Find2DAxisRoughHighCharge(lineslope,lineintercept,goodness,hitlist)==-1 )
     return -1;
- //std::cout << " lineslope: " << lineslope << " " << lineintercept << std::endl;
+ ////////std::cout << " lineslope: " << lineslope << " " << lineintercept << std::endl;
  Find2DStartPointsBasic(lineslope,lineintercept,hitlist,wire_start,time_start,wire_end,time_end);
  
  return 0;   
@@ -343,7 +343,7 @@ int   cluster::ClusterParamsAlg::Find2DStartPointsBasic(double lineslope,double 
 //     double time =  (*hitIter)->PeakTime();  
 //     int wire= (*hitIter)->WireID().Wire;
 //   
-//    std::cout << "in StartPoints Basic time " << time << " " << wire << std::endl; 
+//    //////std::cout << "in StartPoints Basic time " << time << " " << wire << std::endl; 
 //   }
 //   
   
@@ -365,7 +365,7 @@ int   cluster::ClusterParamsAlg::Find2DStartPointsBasic(double lineslope,double 
   
 
  
- //std::cout << "in starting points basic, line slope, intercept, a,c: " << lineslope << " " << lineintercept << " " << a << " " << c << std::endl;
+ ////////std::cout << "in starting points basic, line slope, intercept, a,c: " << lineslope << " " << lineintercept << " " << a << " " << c << std::endl;
  // find extreme intercepts. For the time being we don't care which one is the start point and which one is the endpoint.
   
   double extreme_intercept_high,extreme_intercept_low;
@@ -387,7 +387,7 @@ int   cluster::ClusterParamsAlg::Find2DStartPointsBasic(double lineslope,double 
     extreme_intercept_end=extreme_intercept_low;
   }
   
- // std::cout << " extreme intercepts: " << extreme_intercept_start << " " << extreme_intercept_end << std::endl;
+ // //////std::cout << " extreme intercepts: " << extreme_intercept_start << " " << extreme_intercept_end << std::endl;
 
   
   double wire_online_end,wire_online_begin,time_online_end,time_online_begin;
@@ -395,8 +395,8 @@ int   cluster::ClusterParamsAlg::Find2DStartPointsBasic(double lineslope,double 
   gser.GetPointOnLineWSlopes(a,c,extreme_intercept_end,wire_online_end,time_online_end);
   gser.GetPointOnLineWSlopes(a,c,extreme_intercept_start,wire_online_begin,time_online_begin);
   
-// std::cout << " ---------:::::::: wire_online begin point " << wire_online_begin << " " << time_online_begin << std::endl;
-// std::cout << " ----------:::::::: wire_online end point " << wire_online_end << " " << time_online_end << std::endl;
+// //////std::cout << " ---------:::::::: wire_online begin point " << wire_online_begin << " " << time_online_begin << std::endl;
+// //////std::cout << " ----------:::::::: wire_online end point " << wire_online_end << " " << time_online_end << std::endl;
   //calculate the first and last cluster points on the through line:
   
   art::Ptr<recob::Hit> startHit=FindClosestHit(hitlist, wire_online_begin,time_online_begin);
@@ -585,7 +585,7 @@ int cluster::ClusterParamsAlg::FindTrunk(std::vector < art::Ptr < recob::Hit> > 
   t_on_begin=time_online_begin+dts;
   t_on_end=time_online_begin+dte;
 
-  //std::cout << "inside findTrunk, start points: " << w_on_begin << " "<<t_on_begin << " | "<< w_on_end << "  " << t_on_end << std::endl;
+  ////////std::cout << "inside findTrunk, start points: " << w_on_begin << " "<<t_on_begin << " | "<< w_on_end << "  " << t_on_end << std::endl;
   /////// create new, two bin histogram, to test where the front and back are:
    double lowbin=0,highbin=0;
    double relowbin=0,rehighbin=0;
@@ -604,11 +604,11 @@ int cluster::ClusterParamsAlg::FindTrunk(std::vector < art::Ptr < recob::Hit> > 
   //////////////////////////////////////////////////////
   
  
-//   std::cout << "==== low and highbin " << lowbin << " " << highbin << std::endl;
-//   std::cout << "==== reverse low and highbin " << relowbin << " " << rehighbin << std::endl;
-//   std::cout << "==== reverse low and highbin hist" << hitreinv2->GetBinContent(1)<< " " << hitreinv2->GetBinContent(2) << std::endl;
+//   //////std::cout << "==== low and highbin " << lowbin << " " << highbin << std::endl;
+//   //////std::cout << "==== reverse low and highbin " << relowbin << " " << rehighbin << std::endl;
+//   //////std::cout << "==== reverse low and highbin hist" << hitreinv2->GetBinContent(1)<< " " << hitreinv2->GetBinContent(2) << std::endl;
 //   
-//   std::cout << " histo coords: LowE " <<  hitreinv2->GetBinLowEdge(1) << " " <<  hitreinv2->GetBinLowEdge(2) << " " << hitreinv2->GetBinWidth(1) << " " <<  hitreinv2->GetBinWidth(2) << std::endl;
+//   //////std::cout << " histo coords: LowE " <<  hitreinv2->GetBinLowEdge(1) << " " <<  hitreinv2->GetBinLowEdge(2) << " " << hitreinv2->GetBinWidth(1) << " " <<  hitreinv2->GetBinWidth(2) << std::endl;
   
   /////////Refine start points to real hits:
   double wstartnorm=0,tstartnorm=0,wendnorm=0,tendnorm=0;
@@ -678,8 +678,8 @@ int cluster::ClusterParamsAlg::FindTrunk(std::vector < art::Ptr < recob::Hit> > 
     tendwght=tendnorm;
     }
   
- // std::cout << "**** starting points. standard: " << wstartnorm << "," << tstartnorm << " weighted: " << wstartwght <<","<<tstartwght << std::endl;
- // std::cout << "**** ending points. standard: " << wendnorm << "," << tendnorm << " weighted: " << wendwght <<","<<tendwght << std::endl;
+ // //////std::cout << "**** starting points. standard: " << wstartnorm << "," << tstartnorm << " weighted: " << wstartwght <<","<<tstartwght << std::endl;
+ // //////std::cout << "**** ending points. standard: " << wendnorm << "," << tendnorm << " weighted: " << wendwght <<","<<tendwght << std::endl;
   
   if(highbin>lowbin)  // cluster is leftward going
   {
@@ -699,7 +699,7 @@ int cluster::ClusterParamsAlg::FindTrunk(std::vector < art::Ptr < recob::Hit> > 
    fDirection=1;
   }
     
-//  std::cout << "**** Final starting points. standard: " << wstn << "," << tstn << std::endl;
+//  //////std::cout << "**** Final starting points. standard: " << wstn << "," << tstn << std::endl;
     
 
 return fDirection;
@@ -719,7 +719,7 @@ void cluster::ClusterParamsAlg::FindDirectionWeights(double lineslope,double w_o
   //double ct=lineintercept*fTimetoCm;
   double smallprojlength= TMath::Sqrt( ((double)w_on_end-(double)w_on_begin)*((double)w_on_end-(double)w_on_begin)*fWiretoCm*fWiretoCm +  ((double)w_on_end-(double)w_on_begin)*((double)w_on_end-(double)w_on_begin)*at*at/fWireTimetoCmCm/fWireTimetoCmCm*fTimetoCm*fTimetoCm  );
   
-  //std::cout << " smallprojlength: "<< smallprojlength << std::endl;
+  ////////std::cout << " smallprojlength: "<< smallprojlength << std::endl;
   
   //get slope of lines orthogonal to those found crossing the shower.
   double aprimt=0;
@@ -753,7 +753,7 @@ void cluster::ClusterParamsAlg::FindDirectionWeights(double lineslope,double w_o
    double inv_intercept_start=t_on_begin*fTimetoCm-aprimt*(double)w_on_begin*fWiretoCm;
    double inv_intercept_end=t_on_end*fTimetoCm-aprimt*(double)w_on_end*fWiretoCm;
     
-  // std::cout << "intercepts in weights: " << inv_intercept_start << " " << inv_intercept_end << " " << hitlist.size()  <<std::endl;
+  // //////std::cout << "intercepts in weights: " << inv_intercept_start << " " << inv_intercept_end << " " << hitlist.size()  <<std::endl;
  
    ///////// Calculate weights
     for(std::vector < art::Ptr < recob::Hit > >::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
@@ -895,7 +895,7 @@ bool cluster::ClusterParamsAlg::isShower(double lineslope,double wstn,double tst
    
    std::string ororand= (fShowerSelisORorAND) ? " && " : " || ";
          
-   std::cout << "##########3 Cutting on: ModHitDensit:" << MODHitDensity << " > " << fHitDensityCutoff << ororand 
+   //////std::cout << "##########3 Cutting on: ModHitDensit:" << MODHitDensity << " > " << fHitDensityCutoff << ororand 
    << " MultiHitWires " << multihit << " > " << fMultiHitWireCutoff << ororand 
    << " OffAxisHits " << altWeight << " > " << fOffAxisHitsCutoff << ororand 
    << " PrincipalComponent " << ModPV << " < " << fPrincipalComponentCutoff
@@ -1069,7 +1069,7 @@ std::vector< art::Ptr<recob::Hit> > cluster::ClusterParamsAlg::CreateHighHitlist
    if(hitlistlocal.size()<10 && hitlist_high.size() > ix && hitlist_high.size()>0 ){
       hitlist_high.erase(hitlist_high.begin()+ix);
       ix--;
-    //  std::cout << " erasing hit @ w,t" << wire << " "<< time << " (start) "  << std::endl;
+    //  //////std::cout << " erasing hit @ w,t" << wire << " "<< time << " (start) "  << std::endl;
     }
    hitlistlocal.clear();
 	
@@ -1112,7 +1112,7 @@ int cluster::ClusterParamsAlg::FindPrincipalDirection(std::vector< art::Ptr < re
  double PrincipalEigenvalue_start = (*pc_start.GetEigenValues())[0];
  double PrincipalEigenvalue_end = (*pc_end.GetEigenValues())[0];
  
- std::cout << " EigenValue_start: " << PrincipalEigenvalue_start << " "<< PrincipalEigenvalue_end << std::endl;
+ //////std::cout << " EigenValue_start: " << PrincipalEigenvalue_start << " "<< PrincipalEigenvalue_end << std::endl;
  
  if(PrincipalEigenvalue_start/hitlistlocal_start.size() > PrincipalEigenvalue_end/hitlistlocal_end.size() )
    direction_local=1;
@@ -1147,7 +1147,7 @@ int cluster::ClusterParamsAlg::FindMultiHitDirection(std::vector< art::Ptr < rec
  int multihit_start=MultiHitWires(hitlistlocal_start);
  int multihit_end=MultiHitWires(hitlistlocal_start);
  
- std::cout << "-------- multihits; start: " << multihit_start << " end: " << multihit_end << std::endl;
+ //////std::cout << "-------- multihits; start: " << multihit_start << " end: " << multihit_end << std::endl;
  
  
  if( multihit_start <  multihit_end )
@@ -1159,7 +1159,7 @@ int cluster::ClusterParamsAlg::FindMultiHitDirection(std::vector< art::Ptr < rec
  { 
    direction_local*=-1;     //make the principal calculated direction absolute.
  }
-  std::cout << " -- multihit direction: " << direction_local << std::endl;
+  //////std::cout << " -- multihit direction: " << direction_local << std::endl;
   
   return direction_local;
 }
@@ -1183,7 +1183,7 @@ int cluster::ClusterParamsAlg::FindHitCountDirection(std::vector< art::Ptr < rec
 int hitcount_start=hitlistlocal_start.size();
 int hitcount_end=hitlistlocal_end.size(); 
  
- std::cout << "+++++++++ HitCount; start: " << hitcount_start << " end: " << hitcount_end << std::endl;
+ //////std::cout << "+++++++++ HitCount; start: " << hitcount_start << " end: " << hitcount_end << std::endl;
  
  
  if( hitcount_start <  hitcount_end )
@@ -1196,7 +1196,7 @@ int hitcount_end=hitlistlocal_end.size();
    direction_local*=-1;     //make the principal calculated direction absolute.
  }
  
-   std::cout << " -- HitCount direction: " << direction_local << std::endl;
+   //////std::cout << " -- HitCount direction: " << direction_local << std::endl;
   return direction_local;
 }
 
@@ -1257,8 +1257,8 @@ void cluster::ClusterParamsAlg::RefineStartPointsHough(std::vector< art::Ptr < r
   
  SelectLocalHitlist(hitlist, hitlistlocal_start, wire_start,time_start,linearlimit,ortlimit,lineslope);
  SelectLocalHitlist(hitlist, hitlistlocal_end, wire_end,time_end,linearlimit,ortlimit,lineslope);
- //std::cout << "Hough hitlist_local start size " <<  hitlistlocal_start.size() << std::endl;
- //std::cout << "Hough hitlist_local end size " <<  hitlistlocal_end.size() << std::endl;
+ ////////std::cout << "Hough hitlist_local start size " <<  hitlistlocal_start.size() << std::endl;
+ ////////std::cout << "Hough hitlist_local end size " <<  hitlistlocal_end.size() << std::endl;
  std::vector < art::PtrVector<recob::Hit> > houghlines; 
  std::vector < art::PtrVector<recob::Hit> > houghlinesend; 
  
@@ -1272,9 +1272,9 @@ void cluster::ClusterParamsAlg::RefineStartPointsHough(std::vector< art::Ptr < r
 //    //unsigned int c = (*hitlistlocal_start[ix]).Wire()->RawDigit()->Channel(); 
 //    //geo->ChannelToWire(c,cs,t,p,w);
 //    w  = (*hitlistlocal_start[ix]).WireID().Wire;
-//   //  std::cout << " local hits for: " << " plane: " << p << " w,t: "  << w<< " "<< (*hitlistlocal_start[ix]).PeakTime() << std::endl;
+//   //  //////std::cout << " local hits for: " << " plane: " << p << " w,t: "  << w<< " "<< (*hitlistlocal_start[ix]).PeakTime() << std::endl;
 //    }
-  // std::cout<<std::endl<<std::endl;    
+  // //////std::cout<<std::endl<<std::endl;    
     
   unsigned int iplane,cstat,tpc,wire;
   GetPlaneAndTPC((*hitlist.begin()),iplane,cstat,tpc,wire);
@@ -1286,14 +1286,14 @@ void cluster::ClusterParamsAlg::RefineStartPointsHough(std::vector< art::Ptr < r
   if(hitlistlocal_end.size()>5) numclusend=fHBAlg.FastTransform(hitlistlocal_end, houghlinesend);
  
  
- // std::cout << "found " << numclus << "lines with HoughBaseAlg ";
+ // //////std::cout << "found " << numclus << "lines with HoughBaseAlg ";
  // if(numclus>0)
- //  std::cout << houghlines[0].size();
- // std::cout << std::endl;
-//  std::cout << "found " << numclusend << "end lines with HoughBaseAlg ";
+ //  //////std::cout << houghlines[0].size();
+ // //////std::cout << std::endl;
+//  //////std::cout << "found " << numclusend << "end lines with HoughBaseAlg ";
  // if(numclusend>0)
- //  std::cout << houghlinesend[0].size();
-//  std::cout << std::endl; 
+ //  //////std::cout << houghlinesend[0].size();
+//  //////std::cout << std::endl; 
 
   //int nhoughlines=numclus;
   //int nhoughlinesend=numclusend;
@@ -1338,7 +1338,7 @@ void cluster::ClusterParamsAlg::RefineStartPointsHough(std::vector< art::Ptr < r
    if(endsize/lochitlistendsize  > stsize/lochitlistsize  )
    {
      direction_local=-1; 
-     std::cout << "!!! Hough direction is different! " << direction_local << std::endl;
+     //////std::cout << "!!! Hough direction is different! " << direction_local << std::endl;
    //  numclusfunc=numclusend;
    //  houghutil=&houghlinesend; 
    }
@@ -1348,8 +1348,8 @@ void cluster::ClusterParamsAlg::RefineStartPointsHough(std::vector< art::Ptr < r
  
  
  
- //std::cout << "new parameters: " << numclusfunc << " " << (*houghutil)[0].size() << std::endl;
- std::cout << " direction in:  " << direction << std::endl;
+ ////////std::cout << "new parameters: " << numclusfunc << " " << (*houghutil)[0].size() << std::endl;
+ //////std::cout << " direction in:  " << direction << std::endl;
  double houghdirection=1;    //direction as it currently is
  if(wire_start>wire_end)
  { houghdirection=-1; 
@@ -1395,7 +1395,7 @@ void cluster::ClusterParamsAlg::RefineStartPointsHough(std::vector< art::Ptr < r
   }
   
   
- std::cout << " low, high wire,time: " << startwire <<","<<starttime << " | " << endwire<<","<<endtime<<std::endl;
+ //////std::cout << " low, high wire,time: " << startwire <<","<<starttime << " | " << endwire<<","<<endtime<<std::endl;
  direction=direction_local;  // returning the newfound direction for a decision outside.
  
  
@@ -1447,7 +1447,7 @@ int cluster::ClusterParamsAlg::DecideClusterDirection(std::vector < art::Ptr<rec
   
   int principaldirection=FindPrincipalDirection(hitlist,wire_start,time_start,wire_end,time_end,lineslope);
   
- std::cout << " direction based on principal components. " << principaldirection << std::endl;
+ //////std::cout << " direction based on principal components. " << principaldirection << std::endl;
   
   //check whether it makes sense to reverse direction based on the findings of RefineStartPointsHough
    if(fDirection!=houghdirection 
@@ -1473,7 +1473,7 @@ int cluster::ClusterParamsAlg::DecideClusterDirection(std::vector < art::Ptr<rec
   {
    if(wstn > wendn  || fDirection==-1 )  //change only if decided it's backwards up to now. otherwise it's fine as is.
    {
-     std::cout << "forcing right going shower" << std::endl;
+     //////std::cout << "forcing right going shower" << std::endl;
      fDirection=1;
    
      wstn=wire_end;
@@ -1538,7 +1538,7 @@ void cluster::ClusterParamsAlg::SelectLocalHitlist(std::vector< art::Ptr < recob
   
   double locintercept=time_start-wire_start*lineslopetest;
   
-  //std::cout << "$$$$$$$$$$$$$ locintercept: " << locintercept << " " << lineinterctest << std::endl;
+  ////////std::cout << "$$$$$$$$$$$$$ locintercept: " << locintercept << " " << lineinterctest << std::endl;
   
   for(std::vector < art::Ptr < recob::Hit > >::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     	art::Ptr<recob::Hit> theHit = (*hitIter);
@@ -1554,7 +1554,7 @@ void cluster::ClusterParamsAlg::SelectLocalHitlist(std::vector< art::Ptr < recob
 	double lindist=gser.Get2DDistance(wonline,tonline,wire_start,time_start);
 	double ortdist=gser.Get2DDistance(wire,time,wonline,tonline);
 	
-	//std::cout << " w,t: " << wire << " " << time << " ws,ts " << wonline << " "<< tonline <<" "<< lindist << " " << ortdist << std::endl;
+	////////std::cout << " w,t: " << wire << " " << time << " ws,ts " << wonline << " "<< tonline <<" "<< lindist << " " << ortdist << std::endl;
 	
 	if(lindist<linearlimit && ortdist<ortlimit)
 	  hitlistlocal.push_back(theHit);
@@ -1640,7 +1640,7 @@ art::Ptr<recob::Hit> cluster::ClusterParamsAlg::FindClosestHit(std::vector < art
     art::Ptr<recob::Hit> theHit = (*hitIter);
     double time = theHit->PeakTime() ;  
     GetPlaneAndTPC(theHit,plane,cstat,tpc,wire);
-  //  std::cout << " in find closest hit " << std::endl;
+  //  //////std::cout << " in find closest hit " << std::endl;
     double dist_mod=gser.Get2DDistance(wire_online,time_online,wire,time);
     //TMath::Sqrt( pow(((double)wire_online-(double)wire*fWirePitch),2)+pow((time_online-time*fDriftVelocity*fTimeTick),2) );	
 
