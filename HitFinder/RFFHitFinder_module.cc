@@ -598,8 +598,8 @@ void RFFHitFinder::produce(art::Event& evt)
 		       0,
 		       solutions.at(i),
 		       0, 
-		       1,     
-		       std::get<0>(mean_matches.at(i_means)));   
+		       std::get<0>(mean_matches.at(i)),
+		       0.);   
 	hcol->push_back(hit);
 
       }
