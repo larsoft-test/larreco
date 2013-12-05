@@ -475,7 +475,7 @@ void ShowerReco::produce(art::Event& evt)
   
   art::FindManyP<recob::Hit> fmh(clusterListHandle, evt,fClusterModuleLabel);
   
-  std::cout << " ---------- ShowerReco!!! -------------- " << std::endl;
+  //std::cout << " ---------- ShowerReco!!! -------------- " << std::endl;
   fRun = evt.id().run();
   fSubRun = evt.id().subRun();
   fEvent = evt.id().event();
@@ -492,7 +492,7 @@ void ShowerReco::produce(art::Event& evt)
 //       auto pcoll { pclust };
 //       art::FindManyP<recob::Hit> fs( pcoll, evt, fClusterModuleLabel);
 //       std::vector< art::Ptr<recob::Hit> > hitlist = fs.at(0);
-//       std::cout << " hitlist size for coll " << iCol << " clust " << iClust << " " << hitlist.size() << std::endl;
+//       //std::cout << " hitlist size for coll " << iCol << " clust " << iClust << " " << hitlist.size() << std::endl;
 //     }
 //   } 
   
@@ -504,7 +504,7 @@ void ShowerReco::produce(art::Event& evt)
  
     const art::PtrVector<recob::Cluster>  CurrentClusters=(*(clusterSet++));
      
-    std::cout << " Cluster Set: " << iClustSet << " " << std::endl; 
+    //std::cout << " Cluster Set: " << iClustSet << " " << std::endl; 
     
     ClearandResizeVectors( fNPlanes);
     
@@ -516,12 +516,12 @@ void ShowerReco::produce(art::Event& evt)
   // do some error checking - i.e. are the clusters themselves present.
     for(size_t iClust = 0; iClust < CurrentClusters.size(); iClust++){
         //size_t ii=0; 
-	std::cout << " clusterListHandle  " << clusterListHandle->size() << " fNPlanes " << fNPlanes << " "<< CurrentClusters.size() << std::endl;
+	//std::cout << " clusterListHandle  " << clusterListHandle->size() << " fNPlanes " << fNPlanes << " "<< CurrentClusters.size() << std::endl;
     
 	if(clusterListHandle->size() < 2 || CurrentClusters.size() < 2)
 	{
-	  std::cout << "not enough clusters to reconstruct" << std::endl;
-	  std::cout << "emergency filling tree @ run, evt," <<  fRun << " " << fEvent << std::endl;
+	  //std::cout << "not enough clusters to reconstruct" << std::endl;
+	  //std::cout << "emergency filling tree @ run, evt," <<  fRun << " " << fEvent << std::endl;
 	  ftree_shwf->Fill();
 	  return;
   
@@ -531,11 +531,11 @@ void ShowerReco::produce(art::Event& evt)
       auto pcoll { pclust };
       art::FindManyP<recob::Hit> fs( pcoll, evt, fClusterModuleLabel);
       std::vector< art::Ptr<recob::Hit> > hitlist = fs.at(0);
-      std::cout << " hitlist size for coll " << iClustSet << " clust " << iClust << " " << hitlist.size() << std::endl;
+      //std::cout << " hitlist size for coll " << iClustSet << " clust " << iClust << " " << hitlist.size() << std::endl;
     
       unsigned int p(0); //c=channel, p=plane, w=wire
     
-      std::cout << " hitlist size " << hitlist.size() << std::endl;
+      //std::cout << " hitlist size " << hitlist.size() << std::endl;
       if(hitlist.size() == 0) continue;
       
       p=  (*hitlist.begin())->WireID().Plane;
@@ -566,7 +566,7 @@ void ShowerReco::produce(art::Event& evt)
 //       auto pcoll { pclust };
 //       art::FindManyP<recob::Hit> fs( pcoll, evt, fClusterModuleLabel);
 //       std::vector< art::Ptr<recob::Hit> > hitlist = fs.at(0);
-//       std::cout << " hitlist size for coll " << iCol << " clust " << iClust << " " << hitlist.size() << std::endl;
+//       //std::cout << " hitlist size for coll " << iCol << " clust " << iClust << " " << hitlist.size() << std::endl;
 //     }
 //   } 
     
@@ -620,10 +620,10 @@ void ShowerReco::produce(art::Event& evt)
   }
   //bp1=0;
   //bp1=2;
-  std::cout << " best planes " << bp1 << " " << bp2 << std::endl;
+  //std::cout << " best planes " << bp1 << " " << bp2 << std::endl;
 for(unsigned int ij = 0; ij < fNPlanes; ++ij) 
   {
-   std::cout << " wire distances: " << ij << " " << fabs((double)fWire_vertex[ij]-(double)fWire_last[ij]);
+   //std::cout << " wire distances: " << ij << " " << fabs((double)fWire_vertex[ij]-(double)fWire_last[ij]);
     
   }
     
@@ -653,15 +653,15 @@ for(unsigned int ij = 0; ij < fNPlanes; ++ij)
 	int chan2=geom->PlaneWireToChannel(bp2,fWire_vertex[bp2], 0);
 
 	double y,z;
-	bool wires_cross = geom->ChannelsIntersect(chan1,chan2,y,z);
-
+//	bool wires_cross = geom->ChannelsIntersect(chan1,chan2,y,z);
+       geom->ChannelsIntersect(chan1,chan2,y,z);
 	
 	xyz_vertex_fit[1]=y;
 	xyz_vertex_fit[2]=z;
 	xyz_vertex_fit[0]=(fTime_vertex[bp1]-detprop->TriggerOffset()) *fDriftVelocity*fTimeTick+position[0][0];
 
 
-	std::cout << ":::::: found x,y,z vertex " << wires_cross << " " << xyz_vertex_fit[0] << " " << y << " " << z << std::endl;
+	//std::cout << ":::::: found x,y,z vertex " << wires_cross << " " << xyz_vertex_fit[0] << " " << y << " " << z << std::endl;
     }
     catch(cet::exception e) {
       mf::LogWarning("ShowerReco") << "caught exception \n" << e;
@@ -679,7 +679,7 @@ for(unsigned int ij = 0; ij < fNPlanes; ++ij)
 
 	geom->Plane(fNPlanes-1).LocalToWorld(origin, pos);
 	//planex[p] = pos[0];
-	std::cout << "plane X positionp " << 2 << " " << pos[0] << std::endl;
+	//std::cout << "plane X positionp " << 2 << " " << pos[0] << std::endl;
 
 	pos[1]=xyz_vertex_fit[1];
 	pos[2]=xyz_vertex_fit[2];
@@ -698,13 +698,13 @@ for(unsigned int ij = 0; ij < fNPlanes; ++ij)
       }
       
       
-     std::cout << "^^^^^^cross-check xphi and xtheta: " << xphi << " " << xtheta << std::endl;
+     //std::cout << "^^^^^^cross-check xphi and xtheta: " << xphi << " " << xtheta << std::endl;
       
      
    //   if(fabs(xphi) < 2 )
   //	 xtheta= gser.Get3DSpecialCaseTheta(bp1,bp2,fWire_last[bp1]-fWire_vertex[bp1], fWire_last[bp2]-fWire_vertex[bp2]);
 	
-	//std::cout << "xphi, xtheta1:" << xphi << " " << xtheta  <<std::endl;
+	////std::cout << "xphi, xtheta1:" << xphi << " " << xtheta  <<std::endl;
       
     //}
     
@@ -800,7 +800,7 @@ for(unsigned int ij = 0; ij < fNPlanes; ++ij)
   //util::CreateAssn(*this, evt, *Shower3DVector, calorimetrycol, *calassn);
    util::CreateAssn(*this, evt, *calorimetrycol,ssvec,*calassn);
   /**Fill the output tree with all information */
-  std::cout << " filling tree @ run, evt," <<  fRun << " " << fEvent << std::endl;
+  //std::cout << " filling tree @ run, evt," <<  fRun << " " << fEvent << std::endl;
   ftree_shwf->Fill();
   
   //for(unsigned int iplane = 0; iplane < fNPlanes; ++iplane)
@@ -908,7 +908,7 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
     
     
     
-//    std::cout << " CALORIMETRY:" << " Pitch " <<newpitch << " dist: " << wdist <<  " dE/dx: " << dEdx_new << "MeV/cm "  << " average: " <<  sum/npoints_calo  << "hit: wire, time " << wire << " " << time << " line,ort " << linedist << " " << ortdist<< " direction " << direction << std::endl;
+//    //std::cout << " CALORIMETRY:" << " Pitch " <<newpitch << " dist: " << wdist <<  " dE/dx: " << dEdx_new << "MeV/cm "  << " average: " <<  sum/npoints_calo  << "hit: wire, time " << wire << " " << time << " line,ort " << linedist << " " << ortdist<< " direction " << direction << std::endl;
     
    
      if(wdist<fdEdxlength 
@@ -917,7 +917,7 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
 	     && ortdist<3 && linedist < fdEdxlength ){
 	      fChargeMeV_2cm[set]+= dEdx_new ; 
 	      fNpoints_2cm[set]++;
-	      std::cout << " CALORIMETRY:" << " Pitch " <<newpitch << " dist: " << wdist <<  " dE/dx: " << dEdx_new << "MeV/cm "  << " average: " <<  sum/npoints_calo  << "hit: wire, time " << wire << " " << time << " line,ort " << linedist << " " << ortdist<< " direction " << direction << std::endl;
+	      //std::cout << " CALORIMETRY:" << " Pitch " <<newpitch << " dist: " << wdist <<  " dE/dx: " << dEdx_new << "MeV/cm "  << " average: " <<  sum/npoints_calo  << "hit: wire, time " << wire << " " << time << " line,ort " << linedist << " " << ortdist<< " direction " << direction << std::endl;
 	     }
 
         // fill out for 4cm preshower
@@ -974,7 +974,7 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
     
     double wdist=(((double)wire-(double)fWire_vertex[plane])*newpitch);
     
- //    std::cout << dEdx << " MeV, outside of if;; wd " << wdist << " ld " << linedist << " od " << ortdist << std::endl;
+ //    //std::cout << dEdx << " MeV, outside of if;; wd " << wdist << " ld " << linedist << " od " << ortdist << std::endl;
     
     if( (wdist<fcalodEdxlength)&&(wdist>0.2)){ 
       if(wdist<fdEdxlength
@@ -982,7 +982,7 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
 	  (direction==-1 && wire<fWire_vertex[plane])  ) 
 	     && ortdist<3 && linedist < fdEdxlength)
 	{
-//	  std::cout << dEdx << " MeV " << std::endl;
+//	  //std::cout << dEdx << " MeV " << std::endl;
 	fRMS_2cm[set]+= (dEdx-mevav2cm)*(dEdx-mevav2cm); 
 	}
         
@@ -995,7 +995,7 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
     fRMS_2cm[set]=TMath::Sqrt(fRMS_2cm[set]/fNpoints_2cm[set]);
      }
   
-  std::cout << " average dE/dx: " << mevav2cm << " RMS::  " << fRMS_2cm[set] << " " << fNpoints_2cm[set] <<  std::endl;
+  //std::cout << " average dE/dx: " << mevav2cm << " RMS::  " << fRMS_2cm[set] << " " << fNpoints_2cm[set] <<  std::endl;
   
   /// third loop to get only points inside of 1RMS of value.      
     
@@ -1040,20 +1040,20 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
   } //end of third loop on hits  
   
   if(fNpoints_corr_MeV_2cm[set]>0){
-	std::cout << " ++ NPoints 2cm, ADC and MeV " 
-				  << fNpoints_corr_MeV_2cm[set] << " " 
-				  << fNpoints_corr_ADC_2cm[set] 
-				  << " corrected average De/Dx, charge, MeV:  " 
-				  << fCorr_Charge_2cm[set]/fNpoints_corr_ADC_2cm[set] 
-				  << " " << fCorr_MeV_2cm[set]/fNpoints_corr_MeV_2cm[set] << std::endl;
+	//std::cout << " ++ NPoints 2cm, ADC and MeV " 
+	//			  << fNpoints_corr_MeV_2cm[set] << " " 
+	//			  << fNpoints_corr_ADC_2cm[set] 
+	//			  << " corrected average De/Dx, charge, MeV:  " 
+	//			  << fCorr_Charge_2cm[set]/fNpoints_corr_ADC_2cm[set] 
+	//			  << " " << fCorr_MeV_2cm[set]/fNpoints_corr_MeV_2cm[set] << std::endl;
 	//fCorr_Charge_2cm[set]/=fNpoints_corr_ADC_2cm[set];
         fCorr_MeV_2cm[set]/=fNpoints_corr_MeV_2cm[set];
 	fChargeMeV_2cm_refined[set]=fCorr_MeV_2cm[set];
   }
   
 
-//std::cout << " total ENERGY, birks: " << fTotChargeMeV[set] << " MeV " << " assumeMIPs:  " << fTotChargeMeV_MIPs[set] << "MeV " <<  std::endl;
- std::cout << " total ENERGY, birks: " << fTotChargeMeV[set] << " MeV "  << " |average:  " << fChargeMeV_2cm_refined[set] <<   std::endl;
+////std::cout << " total ENERGY, birks: " << fTotChargeMeV[set] << " MeV " << " assumeMIPs:  " << fTotChargeMeV_MIPs[set] << "MeV " <<  std::endl;
+ //std::cout << " total ENERGY, birks: " << fTotChargeMeV[set] << " MeV "  << " |average:  " << fChargeMeV_2cm_refined[set] <<   std::endl;
 }
 
 
@@ -1075,11 +1075,11 @@ void   ShowerReco::GetVertexAndAnglesFromCluster(art::Ptr< recob::Cluster > clus
   
   ////////// insert detector offset
 
-  std::cout << "======= setting slope for view: " << plane 
-			    << " " << slope[plane] << " " << fWire_vertex[plane] 
-			    << " " << fTime_vertex[plane] << " " 
-			    <<  fWire_vertex[plane]+50<< " "
-			    << fTime_vertex[plane] + slope[plane]*(fWire_vertex[plane]+50)<< std::endl;
+  //std::cout << "======= setting slope for view: " << plane 
+	//		    << " " << slope[plane] << " " << fWire_vertex[plane] 
+	//		    << " " << fTime_vertex[plane] << " " 
+	//		    <<  fWire_vertex[plane]+50<< " "
+	//		    << fTime_vertex[plane] + slope[plane]*(fWire_vertex[plane]+50)<< std::endl;
   
 }
 
@@ -1111,7 +1111,7 @@ void   ShowerReco::GetVertexAndAnglesFromCluster(art::Ptr< recob::Cluster > clus
 //   
 //   mcpdg=neut.PdgCode();
 //   mcenergy=neut.E();  
-//   std::cout << " ----------- mcenergy:: " << mcenergy << std::endl;
+//   //std::cout << " ----------- mcenergy:: " << mcenergy << std::endl;
 //   if (neut.P()){
 //     double lep_dcosx_truth = neut.Px()/neut.P();
 //     double lep_dcosy_truth = neut.Py()/neut.P();
