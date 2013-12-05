@@ -633,7 +633,9 @@ void Track3DKalmanSPS::produce(art::Event& evt)
 
 
   // std::cout<<"Run "<<evt.run()<<" Event "<<evt.id().event()<<std::endl;
-  mf::LogWarning("Track3DKalmanSPS") << "There are " <<  spptListHandle->size() << " Spacepoint PtrVectors (spacepoint clumps) in this event.";
+
+  // Put this back when Wes's reign of terror ends ...
+  //  mf::LogWarning("Track3DKalmanSPS") << "There are " <<  spptListHandle->size() << " Spacepoint PtrVectors (spacepoint clumps) in this event.";
 
   std::vector < art::PtrVector<recob::SpacePoint> > spptIn(spptListHandle->begin(),spptListHandle->end());
   // Get the spptvectors that are largest to be first, and smallest last.

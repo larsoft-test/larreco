@@ -176,7 +176,7 @@ namespace trkf {
     art::Handle< std::vector< recob::Track > > tListHandle;
     evt.getByLabel(fTrackModuleLabel,tListHandle);
 
-    mf::LogWarning("TrackStitcher.beginning") << "There are " <<  tListHandle->size() << " Tracks in this event before stitching.";
+    //mf::LogWarning("TrackStitcher.beginning") << "There are " <<  tListHandle->size() << " Tracks in this event before stitching.";
     
     int ntrack = tListHandle->size();
     for(int ii = 0; ii < ntrack; ++ii) {
@@ -279,7 +279,7 @@ namespace trkf {
 
       }
     
-    mf::LogWarning("TrackStitcher.end") << "There are " <<  tvcol->size() << " Tracks in this event after stitching.";
+    //    mf::LogWarning("TrackStitcher.end") << "There are " <<  tvcol->size() << " Tracks in this event after stitching.";
     evt.put(std::move(tcol)); 
     evt.put(std::move(tvcol));
     // Add Hit-to-Track and Sppt-to-Track Assns.
