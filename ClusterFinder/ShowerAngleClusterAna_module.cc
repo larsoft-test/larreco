@@ -298,7 +298,7 @@ namespace cluster {
 
 //------------------------------------------------------------------------------
 cluster::ShowerAngleClusterAna::ShowerAngleClusterAna(fhicl::ParameterSet const& pset)
-  : EDAnalyzer(/*pset*/)
+  : EDAnalyzer(pset)
   , fCParAlg(pset.get< fhicl::ParameterSet >("ClusterParamsAlg"),pset.get< std::string >("module_type"))
 {
   this->reconfigure(pset);
