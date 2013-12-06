@@ -902,7 +902,7 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
     vdQdx.push_back((*hitIter)->Charge(true)/newpitch);
     Trk_Length=wdist;
     fTrkPitchC=fNPitch[set][plane];
-    Kin_En+=dEdx_new*fTrkPitchC;
+    Kin_En+=dEdx_new*newpitch;
     npoints_calo++;
     sum+=dEdx_new;
     
