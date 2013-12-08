@@ -176,7 +176,7 @@ namespace trkf {
     art::Handle< std::vector< recob::Track > > tListHandle;
     evt.getByLabel(fTrackModuleLabel,tListHandle);
 
-    //mf::LogWarning("TrackStitcher.beginning") << "There are " <<  tListHandle->size() << " Tracks in this event before stitching.";
+    mf::LogVerbatim("TrackStitcher.beginning") << "There are " <<  tListHandle->size() << " Tracks in this event before stitching.";
     
     int ntrack = tListHandle->size();
     for(int ii = 0; ii < ntrack; ++ii) {
@@ -276,10 +276,13 @@ namespace trkf {
 	const art::PtrVector<recob::Hit>& hits(GetHitsFromComponentTracks(tcolTmp, evt));
 	// Now make the Assns of relevant Hits to stitched Track
 	util::CreateAssn(*this, evt, *tcol, hits, *thassn, tcol->size()-1);
+	const art::PtrVector<recob::SpacePoint>& sppts(GetSpacePointsFromComponentTracks(tcolTmp, evt));
+	// Now make the Assns of relevant Spptts to stitched Track
+	util::CreateAssn(*this, evt, *tcol, sppts, *tsptassn, tcol->size()-1);
 
       }
     
-    //    mf::LogWarning("TrackStitcher.end") << "There are " <<  tvcol->size() << " Tracks in this event after stitching.";
+        mf::LogVerbatim("TrackStitcher.end") << "There are " <<  tvcol->size() << " Tracks in this event after stitching.";
     evt.put(std::move(tcol)); 
     evt.put(std::move(tvcol));
     // Add Hit-to-Track and Sppt-to-Track Assns.
