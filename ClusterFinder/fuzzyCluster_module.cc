@@ -156,103 +156,98 @@ namespace cluster{
     // get the ChannelFilter
     filter::ChannelFilter chanFilt;
       
-  
-
-    //std::cout << "hitcol->size() " << hitcol->size() << std::endl;
-
-    for(unsigned int cstat = 0; cstat < geom->Ncryostats(); ++cstat){
-      for(unsigned int tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
-        for(unsigned int plane = 0; plane < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
-	  geo::SigType_t sigType = geom->Cryostat(cstat).TPC(tpc).Plane(plane).SignalType();
-	  for(size_t i = 0; i< hitcol->size(); ++i){
-	    art::Ptr<recob::Hit> hit(hitcol, i);
-	    if(hit->WireID().Plane    == plane && 
-	       hit->WireID().TPC      == tpc   && 
-	       hit->WireID().Cryostat == cstat) allhits.push_back(hit);  
-	  }  
-
-	  //double maxStrength = 0;
-	  //int iMaxStrength = -1;
-	  //for(size_t i = 0; i< endcol.size(); ++i){
-	    //if(endcol[i].WireID().Plane    == plane && 
-	       //endcol[i].WireID().TPC      == tpc   && 
-	       //endcol[i].WireID().Cryostat == cstat){allends.push_back(endcol[i]);  
-	      //std::cout << "wire: " << endcol[i].WireID().Wire << " time: " << endcol[i].DriftTime() << " strength: " << endcol[i].Strength() << std::endl;
-	      //if(maxStrength < endcol[i].Strength()){
-		//maxStrength = endcol[i].Strength();
-		//iMaxStrength = i;
-	      //}
-	    //}
-	  //}  
-
-	  //std::cout << "Strongest vertex" << std::endl;
-	  //std::cout << "wire: " << endcol[iMaxStrength].WireID().Wire << " time: " << endcol[iMaxStrength].DriftTime() << " strength: " << endcol[iMaxStrength].Strength() << std::endl;
+    // make a map of the geo::PlaneID to vectors of art::Ptr<recob::Hit>
+    std::map<geo::PlaneID, std::vector< art::Ptr<recob::Hit> > > planeIDToHits;
+    for(size_t i = 0; i < hitcol->size(); ++i)
+      planeIDToHits[hitcol->at(i).WireID().planeID()].push_back(art::Ptr<recob::Hit>(hitcol, i));
 
 
-          //Begin clustering with fuzzy
-          
-	  ffuzzyCluster.InitFuzzy(allhits, chanFilt.SetOfBadChannels());
+    for(auto & itr : planeIDToHits){
+      
+      geo::SigType_t sigType = geom->SignalType(itr.first);
+      allhits.resize(itr.second.size());
+      allhits.swap(itr.second);
 
-	  //----------------------------------------------------------------
-	  for(unsigned int j = 0; j < ffuzzyCluster.fps.size(); ++j){
-  	  
-	    if(allhits.size() != ffuzzyCluster.fps.size()) break;
-  	  
-	    fhitwidth->Fill(ffuzzyCluster.fps[j][2]);
-  	  
-	    if(sigType == geo::kInduction)  fhitwidth_ind_test->Fill(ffuzzyCluster.fps[j][2]);
-	    if(sigType == geo::kCollection) fhitwidth_coll_test->Fill(ffuzzyCluster.fps[j][2]);
-	  }
-   
-	  //*******************************************************************
-	  ffuzzyCluster.run_fuzzy_cluster(allhits);
+      //double maxStrength = 0;
+      //int iMaxStrength = -1;
+      //for(size_t i = 0; i< endcol.size(); ++i){
+      //if(endcol[i].WireID().Plane    == plane && 
+      //endcol[i].WireID().TPC      == tpc   && 
+      //endcol[i].WireID().Cryostat == cstat){allends.push_back(endcol[i]);  
+      //std::cout << "wire: " << endcol[i].WireID().Wire << " time: " << endcol[i].DriftTime() << " strength: " << endcol[i].Strength() << std::endl;
+      //if(maxStrength < endcol[i].Strength()){
+      //maxStrength = endcol[i].Strength();
+      //iMaxStrength = i;
+      //}
+      //}
+      //}  
 
-	  //End clustering with fuzzy
-  
-  
-	  for(size_t i = 0; i < ffuzzyCluster.fclusters.size(); ++i){
-            std::vector<art::Ptr<recob::Hit> > clusterHits;
-	    double totalQ = 0.;
-  	  
-	    for(size_t j = 0; j < ffuzzyCluster.fpointId_to_clusterId.size(); ++j){
-	      if(ffuzzyCluster.fpointId_to_clusterId[j]==i){ 
-		clusterHits.push_back(allhits[j]);
-		totalQ += clusterHits.back()->Charge();
-	      }
-	    } 
-  
-  
-	    ////////
-	    if (clusterHits.size()>0){
-	      /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
-	      unsigned int sw = clusterHits[0]->WireID().Wire;
-	      unsigned int ew = clusterHits[clusterHits.size()-1]->WireID().Wire;
-  	 
-	      recob::Cluster cluster(sw*1., 0.,
-				     clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
-				     ew*1., 0.,
-				     clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
-				     -999., 0., 
-				     -999., 0.,
-				     totalQ,
-				     clusterHits[0]->View(),
-				     ccol->size());
-  	    
-	      ccol->push_back(cluster);
-  
-	      // associate the hits to this cluster
-	      util::CreateAssn(*this, evt, *ccol, clusterHits, *assn);
-  	    
-	      clusterHits.clear();
-  	    
-	    }//end if clusterHits has at least one hit
-     
-	  }//end loop over fclusters
+      //std::cout << "Strongest vertex" << std::endl;
+      //std::cout << "wire: " << endcol[iMaxStrength].WireID().Wire << " time: " << endcol[iMaxStrength].DriftTime() << " strength: " << endcol[iMaxStrength].Strength() << std::endl;
+      
+      
+      //Begin clustering with fuzzy
+      
+      ffuzzyCluster.InitFuzzy(allhits, chanFilt.SetOfBadChannels());
+      
+      //----------------------------------------------------------------
+      for(unsigned int j = 0; j < ffuzzyCluster.fps.size(); ++j){
   	
-	  allhits.clear();
-        } // end loop over planes
-      } // end loop over tpcs
-    } // end loop over cryostats
+	if(allhits.size() != ffuzzyCluster.fps.size()) break;
+  	
+	fhitwidth->Fill(ffuzzyCluster.fps[j][2]);
+  	
+	if(sigType == geo::kInduction)  fhitwidth_ind_test->Fill(ffuzzyCluster.fps[j][2]);
+	if(sigType == geo::kCollection) fhitwidth_coll_test->Fill(ffuzzyCluster.fps[j][2]);
+      }
+      
+      //*******************************************************************
+      ffuzzyCluster.run_fuzzy_cluster(allhits);
+      
+      //End clustering with fuzzy
+      
+      
+      for(size_t i = 0; i < ffuzzyCluster.fclusters.size(); ++i){
+	std::vector<art::Ptr<recob::Hit> > clusterHits;
+	double totalQ = 0.;
+  	
+	for(size_t j = 0; j < ffuzzyCluster.fpointId_to_clusterId.size(); ++j){
+	  if(ffuzzyCluster.fpointId_to_clusterId[j]==i){ 
+	    clusterHits.push_back(allhits[j]);
+	    totalQ += clusterHits.back()->Charge();
+	  }
+	} 
+	
+	
+	////////
+	if (clusterHits.size()>0){
+	  /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
+	  unsigned int sw = clusterHits[0]->WireID().Wire;
+	  unsigned int ew = clusterHits[clusterHits.size()-1]->WireID().Wire;
+	  
+	  recob::Cluster cluster(sw*1., 0.,
+				 clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
+				 ew*1., 0.,
+				 clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
+				 -999., 0., 
+				 -999., 0.,
+				 totalQ,
+				 clusterHits[0]->View(),
+				 ccol->size());
+	  
+	  ccol->push_back(cluster);
+	  
+	  // associate the hits to this cluster
+	  util::CreateAssn(*this, evt, *ccol, clusterHits, *assn);
+  	  
+	  clusterHits.clear();
+  	  
+	}//end if clusterHits has at least one hit
+     
+      }//end loop over fclusters
+  	
+      allhits.clear();
+    } // end loop over map
   
     mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
     mf::LogVerbatim("Summary") << "fuzzyCluster Summary:";
