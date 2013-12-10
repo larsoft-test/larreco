@@ -793,7 +793,7 @@ void cluster::fuzzyClusterAlg::run_fuzzy_cluster(std::vector<art::Ptr<recob::Hit
       protoTracksFoundSizes[protoTracksFoundItr->clusterNumber]+= std::sqrt( pow(protoTracksFoundItr->pMin0-protoTracksFoundItr->pMax0,2)+pow(protoTracksFoundItr->pMin1-protoTracksFoundItr->pMax1,2));
   }
   
-  art::PtrVector<recob::Hit> unclusteredhits;
+  std::vector< art::Ptr<recob::Hit> > unclusteredhits;
   std::vector<unsigned int> unclusteredhitsToallhits;
   int nDBClusters = 0;
   bool unclustered;

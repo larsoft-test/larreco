@@ -39,14 +39,20 @@ namespace cluster{
     virtual ~DBScanAlg();
     
     void reconfigure(fhicl::ParameterSet const& p);
-    void InitScan(art::PtrVector<recob::Hit>& allhits, std::set<uint32_t> badChannels);
-    double getSimilarity(const std::vector<double> v1, const std::vector<double> v2); 
-    std::vector<unsigned int> findNeighbors( unsigned int pid, double threshold, double threshold2);
+    void InitScan(std::vector< art::Ptr<recob::Hit> >& allhits, 
+		  std::set<uint32_t> badChannels);
+    double getSimilarity(const std::vector<double> v1, 
+			 const std::vector<double> v2); 
+    std::vector<unsigned int> findNeighbors( unsigned int pid, 
+					     double threshold, 
+					     double threshold2);
     void computeSimilarity();
     void run_cluster();     
-    double getSimilarity2(const std::vector<double> v1, const std::vector<double> v2); 
+    double getSimilarity2(const std::vector<double> v1, 
+			  const std::vector<double> v2); 
     void computeSimilarity2();
-    double getWidthFactor(const std::vector<double> v1, const std::vector<double> v2); 
+    double getWidthFactor(const std::vector<double> v1, 
+			  const std::vector<double> v2); 
     void computeWidthFactor();
     
     
