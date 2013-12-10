@@ -201,9 +201,9 @@ namespace cluster {
       dbclusters.push_back(dbcluster);
     }
     
-    std::cout << "run    : " << evt.id().run() << std::endl;
+    LOG_VERBATIM("HoughLineFinderAna") << "run    : " << evt.id().run();
     //std::cout << "subrun : " << evt.subRun() << std::endl;
-    std::cout << "event  : " << evt.id().event() << std::endl;
+    LOG_VERBATIM("HoughLineFinderAna") << "event  : " << evt.id().event();
     fm_run=evt.id().run();
     fm_event=evt.id().event();
     fm_run_timestamp=evt.time().value(); // won't cast, EC, 7-Oct-2010.
@@ -213,60 +213,51 @@ namespace cluster {
     fm_sizeHitZ=0;
     fm_dbsize=0;  
     art::ServiceHandle<geo::Geometry> geo;
-  
-    for(size_t cstat = 0; cstat < geo->Ncryostats(); ++cstat){
-      for(size_t tpc = 0; tpc < geo->Cryostat(cstat).NTPC(); ++tpc){
-        for(size_t plane = 0; plane < geo->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
-  	fm_dbsize       = 0;
-  	fm_plane        = plane;
-  	fm_sizeClusterZ = clusters.size();
-  	
-  	geo::View_t view = geo->Cryostat(cstat).TPC(tpc).Plane(plane).View();
-  
-  	for(size_t j = 0; j < dbclusters.size(); ++j) {
-  	  if(dbclusters[j]->View() == view){
-  	    std::vector< art::Ptr<recob::Hit> > _dbhits = fmh.at(j);
-  	    fm_dbsize += _dbhits.size();
-  	  } 
-  	}
+
+    for(auto view : geo->Views()){
+
+      fm_dbsize       = 0;
+      fm_sizeClusterZ = clusters.size();
       
-  	for(size_t j = 0; j < clusters.size(); ++j) {
-  	  if(clusters[j]->View() == view){
-  	    fm_clusterid=clusters[j]->ID();
-  	    std::vector< art::Ptr<recob::Hit> > _hits = fmhhl.at(j);
-  	    fm_clusterslope=(double)clusters[j]->dTdW();
-  	    fm_clusterintercept=(double)clusters[j]->StartPos()[1];
-  	    if(_hits.size()!=0){
-	      firstwire = _hits[0]->WireID().Wire;
-  	      lastwire  = _hits[_hits.size()-1]->WireID().Wire;
-  	      fm_wirespan = lastwire-firstwire;
-  	      fm_sizeHitZ = _hits.size();
+      for(size_t j = 0; j < dbclusters.size(); ++j) {
+	if(dbclusters[j]->View() == view){
+	  std::vector< art::Ptr<recob::Hit> > _dbhits = fmh.at(j);
+	  fm_dbsize += _dbhits.size();
+	  if(_dbhits.size() > 0) fm_plane   = _dbhits.at(0)->WireID().Plane;
+	} 
+      }
+      
+      for(size_t j = 0; j < clusters.size(); ++j) {
+	if(clusters[j]->View() == view){
+	  fm_clusterid=clusters[j]->ID();
+	  std::vector< art::Ptr<recob::Hit> > _hits = fmhhl.at(j);
+	  fm_clusterslope=(double)clusters[j]->dTdW();
+	  fm_clusterintercept=(double)clusters[j]->StartPos()[1];
+	  if(_hits.size()!=0){
+	    fm_plane   = _hits.at(0)->WireID().Plane;
+	    firstwire = _hits[0]->WireID().Wire;
+	    lastwire  = _hits[_hits.size()-1]->WireID().Wire;
+	    fm_wirespan = lastwire-firstwire;
+	    fm_sizeHitZ = _hits.size();
   	    
-  	      for(unsigned int i = 0; i < _hits.size(); ++i){	     
-  		
-  		fm_hitidZ[i]     = i;         
-  		fm_wireZ[i]      = _hits[i]->WireID().Wire;
-  		fm_mipZ[i]       = (double)_hits[i]->Charge();
-  		fm_drifttimeZ[i] = (double)_hits[i]->PeakTime();
-  		fm_widthZ[i]     = (double)_hits[i]->EndTime()-_hits[i]->StartTime();
-  		fm_upadcZ[i]     = (double)_hits[i]->Charge();
-  	      } 
-  		
-  	      ftree->Fill();  
-  	    }
-  	  }//end if in the correct view
-  	}// end loop over clusters
-        }//end loop over planes
-      }//end loop over tpc
-    }// end loop over cryostats
+	    for(unsigned int i = 0; i < _hits.size(); ++i){	     
+	      
+	      fm_hitidZ[i]     = i;         
+	      fm_wireZ[i]      = _hits[i]->WireID().Wire;
+	      fm_mipZ[i]       = (double)_hits[i]->Charge();
+	      fm_drifttimeZ[i] = (double)_hits[i]->PeakTime();
+	      fm_widthZ[i]     = (double)_hits[i]->EndTime()-_hits[i]->StartTime();
+	      fm_upadcZ[i]     = (double)_hits[i]->Charge();
+	    } 
+	    
+	    ftree->Fill();  
+	  }
+	}//end if in the correct view
+      }// end loop over clusters
+    }// end loop over views
   
   }
   
-  
-  
-  
-
-
 }// end namespace
 
 

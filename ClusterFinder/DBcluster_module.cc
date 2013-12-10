@@ -115,84 +115,82 @@ namespace cluster{
     evt.getByLabel(fhitsModuleLabel,hitcol);
     
     // loop over all hits in the event and look for clusters (for each plane)
-    art::PtrVector<recob::Hit> allhits;
+    std::vector< art::Ptr<recob::Hit> > allhits;
   
     // get the ChannelFilter
     filter::ChannelFilter chanFilt;
         
-    for(unsigned int cstat = 0; cstat < geom->Ncryostats(); ++cstat){
-      for(unsigned int tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
-        for(unsigned int plane = 0; plane < geom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
-  	geo::SigType_t sigType = geom->Cryostat(cstat).TPC(tpc).Plane(plane).SignalType();
-  	for(size_t i = 0; i< hitcol->size(); ++i){
-        
-  	  art::Ptr<recob::Hit> hit(hitcol, i);
-        
-  	  if(hit->WireID().Plane    == plane && 
-	     hit->WireID().TPC      == tpc   && 
-	     hit->WireID().Cryostat == cstat) allhits.push_back(hit);
+    // make a map of the geo::PlaneID to vectors of art::Ptr<recob::Hit>
+    std::map<geo::PlaneID, std::vector< art::Ptr<recob::Hit> > > planeIDToHits;
+    for(size_t i = 0; i < hitcol->size(); ++i)
+      planeIDToHits[hitcol->at(i).WireID().planeID()].push_back(art::Ptr<recob::Hit>(hitcol, i));
+
+
+    for(auto & itr : planeIDToHits){
+
+      geo::SigType_t sigType = geom->SignalType(itr.first);
+      allhits.resize(itr.second.size());
+      allhits.swap(itr.second);
+
+      fDBScan.InitScan(allhits, chanFilt.SetOfBadChannels());
+      
+      //----------------------------------------------------------------
+      for(unsigned int j = 0; j < fDBScan.fps.size(); ++j){
   	
-  	}  
+	if(allhits.size() != fDBScan.fps.size()) break;
+  	
+	fhitwidth->Fill(fDBScan.fps[j][2]);
+  	
+	if(sigType == geo::kInduction)  fhitwidth_ind_test->Fill(fDBScan.fps[j][2]);
+	if(sigType == geo::kCollection) fhitwidth_coll_test->Fill(fDBScan.fps[j][2]);
+      }
+      
+      //*******************************************************************
+      fDBScan.run_cluster();
+      
+      for(size_t i = 0; i < fDBScan.fclusters.size(); ++i){
+	art::PtrVector<recob::Hit> clusterHits;
+	double totalQ = 0.;
+	
+	for(size_t j = 0; j < fDBScan.fpointId_to_clusterId.size(); ++j){	  
+	  if(fDBScan.fpointId_to_clusterId[j]==i){
+	    clusterHits.push_back(allhits[j]);
+	    totalQ += clusterHits.back()->Charge();
+	  }
+	}
         
-  	fDBScan.InitScan(allhits, chanFilt.SetOfBadChannels());
+	////////
+	if (clusterHits.size()>0){
+	  
+	  /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
+	  unsigned int sw = clusterHits[0]->WireID().Wire;
+	  unsigned int ew = clusterHits[clusterHits.size()-1]->WireID().Wire;
+	  
+	  recob::Cluster cluster(sw*1., 0.,
+				 clusterHits[0]->PeakTime(), 
+				 clusterHits[0]->SigmaPeakTime(),
+				 ew*1., 0.,
+				 clusterHits[clusterHits.size()-1]->PeakTime(), 
+				 clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
+				 -999., 0., 
+				 -999., 0.,
+				 totalQ,
+				 geom->View(clusterHits[0]->Channel()),
+				 ccol->size());
+  	    
+	  ccol->push_back(cluster);
   
-  	//----------------------------------------------------------------
-  	for(unsigned int j = 0; j < fDBScan.fps.size(); ++j){
+	  // associate the hits to this cluster
+	  util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
+	  
+	  clusterHits.clear();
   	  
-  	  if(allhits.size() != fDBScan.fps.size()) break;
-  	  
-  	  fhitwidth->Fill(fDBScan.fps[j][2]);
-  	  
-  	  if(sigType == geo::kInduction)  fhitwidth_ind_test->Fill(fDBScan.fps[j][2]);
-  	  if(sigType == geo::kCollection) fhitwidth_coll_test->Fill(fDBScan.fps[j][2]);
-  	}
-   
-  	//*******************************************************************
-  	fDBScan.run_cluster();
+	}//end if clusterHits has at least one hit
+	
+      }//end loop over fclusters
   	
-  	for(size_t i = 0; i < fDBScan.fclusters.size(); ++i){
-  	  art::PtrVector<recob::Hit> clusterHits;
-  	  double totalQ = 0.;
-  
-  	  for(size_t j = 0; j < fDBScan.fpointId_to_clusterId.size(); ++j){	  
-  	    if(fDBScan.fpointId_to_clusterId[j]==i){
-  	      clusterHits.push_back(allhits[j]);
-  	      totalQ += clusterHits.back()->Charge();
-  	    }
-  	  }
-           
-  	  ////////
-  	  if (clusterHits.size()>0){
-  	    
-  	    /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
-  	    unsigned int sw = clusterHits[0]->WireID().Wire;
-  	    unsigned int ew = clusterHits[clusterHits.size()-1]->WireID().Wire;
-  	 
-  	    recob::Cluster cluster(sw*1., 0.,
-  				   clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
-  				   ew*1., 0.,
-  				   clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
-  				   -999., 0., 
-  				   -999., 0.,
-  				   totalQ,
-  				   geom->View(clusterHits[0]->Channel()),
-  				   ccol->size());
-  	    
-  	    ccol->push_back(cluster);
-  
-  	    // associate the hits to this cluster
-  	    util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
-  	    
-  	    clusterHits.clear();
-  	    
-  	  }//end if clusterHits has at least one hit
-     
-  	}//end loop over fclusters
-  	
-  	allhits.clear();
-        } // end loop over planes
-      } // end loop over tpcs
-    } // end loop over cryostats
+      allhits.clear();
+    } // end loop over PlaneID map
   
     mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
     mf::LogVerbatim("Summary") << "DBcluster Summary:";

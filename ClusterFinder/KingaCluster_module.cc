@@ -114,7 +114,7 @@ namespace cluster {
    
     art::ServiceHandle<geo::Geometry> fGeom;
 
-    art::PtrVector<recob::Hit> allhits;
+    std::vector< art::Ptr<recob::Hit> > allhits;
     std::vector<int>           maxBin;             ///< stores bin # of local maximum
     std::vector<int>           MaxStartPoint;      ///< bin no of the starting point of a peak
     std::vector<int>           MaxEndPoint;        ///< bin no of the end point of a peak
@@ -268,182 +268,176 @@ namespace cluster{
     art::FindManyP<recob::Hit> fmh(clusterListHandle, evt, fDBScanModuleLabel);
     mf::LogInfo("KingaCluster")<<"No of DBSCAN clusters= "<<clusIn.size();
   
-    for(unsigned int cstat = 0; cstat < fGeom->Ncryostats(); ++cstat){
-      for(unsigned int tpc = 0; tpc < fGeom->Cryostat(cstat).NTPC(); ++tpc){
-        mf::LogInfo("KingaCluster") << "No of planes = " << fGeom->Cryostat(cstat).TPC(tpc).Nplanes();
+        // make a map of the geo::PlaneID to vectors of art::Ptr<recob::Hit>
+    std::map<geo::PlaneID, std::vector< art::Ptr<recob::Hit> > > planeIDToHits;
+
+    for(size_t j = 0; j < clusIn.size(); ++j) {
       
-        for(unsigned int plane = 0; plane < fGeom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane) {
+      hits = fmh.at(j);
+      
+      for(size_t i = 0; i < hits.size(); ++i)
+	planeIDToHits[hits.at(i)->WireID().planeID()].push_back(hits.at(i));
+    }
+
+
+    for(auto & itr : planeIDToHits){
+      geo::PlaneID planeID = itr.first;
+      need_to_reassign_hitsIDs=0;
+      go_ahead_at_reassign=0;
+      
+      allhits.resize(itr.second.size());
+      allhits.swap(itr.second);
+
+      //mf::LogInfo("KingaCluster")<<"allhits.size()="<<allhits.size();
+      
+      //Now we have hits for the plane that we are on right now, so let's do some work:
+      //maxBin.clear();
+      mf::LogInfo("KingaCluster") << "ATTENTION, STARTING WORK ON PLANE# " << planeID.Plane;
+  
+      AngularDistribution(planeID.Cryostat, planeID.TPC, planeID.Plane);
+  
+      FindMax(planeID.Cryostat, planeID.TPC, planeID.Plane);
+  
+      if(fpeak_problem == 1){
+	mf::LogInfo("KingaCluster") << "bye bye";
+  	  
+	allhits.clear();
+	maxBin.clear();
+	maxBinValues.clear();
+	SortedMaxBin.clear();
+	MaxStartPoint.clear();
+	MaxEndPoint.clear();
+	MaxStartPointTheta.clear();
+	MaxEndPointTheta.clear();
+	HitsWithClusterID.clear();
+	FinalPeaks.clear();
+	OriginalmaxBinValues.clear();
   	
-  	need_to_reassign_hitsIDs=0;
-  	go_ahead_at_reassign=0;
-  	for(size_t j = 0; j < clusIn.size(); ++j) {
-  	  
-  	  hits = fmh.at(j);
-  
-  	  for(size_t i = 0; i < hits.size(); ++i){
-  	    
-  	    if(hits[i]->WireID().Plane    == plane && 
-	       hits[i]->WireID().TPC      == tpc   && 
-	       hits[i]->WireID().Cryostat == cstat){
-  	      allhits.push_back(hits[i]);
-  	      //mf::LogInfo("KingaCluster")<<"plane= "<<plane<<" wire= "<<w<<" time= "<<hits[i]->PeakTime();
-  	    }
-  	    
-  	  }// end loop over hits
-  	  // mf::LogInfo("KingaCluster")<<"hits.size()= "<<hits.size();
-  	}// end loop over clusters
+	clusterHits.clear();
   	
-  	//mf::LogInfo("KingaCluster")<<"allhits.size()="<<allhits.size();
+	for(int bin = 0; bin < fh_theta_ind_2D->GetNbinsX(); ++bin){
+	  
+	  fh_theta_ind_2D->SetBinContent(bin,0);
+	  fh_theta_coll_2D->SetBinContent(bin,0);
+	  fh_theta_ind->SetBinContent(bin,0);
+	  fh_theta_coll->SetBinContent(bin,0);
+	  fh_theta_coll_Area->SetBinContent(bin,0);
+	  fh_theta_ind_Area->SetBinContent(bin,0);
+	}
+	return;
+      }// end if peak problem
+  
+      if(fpeaks_found == 0){
+	mf::LogInfo("KingaCluster") << "KingaClusters FAILED on this event because "
+				    << "no peaks were found. Perhaps your threshold "
+				    << "for peak's height is too big. Goodbye! ";
+	allhits.clear();
+	maxBin.clear();
+	maxBinValues.clear();
+	SortedMaxBin.clear();
+	MaxStartPoint.clear();
+	MaxEndPoint.clear();
+	MaxStartPointTheta.clear();
+	MaxEndPointTheta.clear();
+	HitsWithClusterID.clear();
+	FinalPeaks.clear();
+	OriginalmaxBinValues.clear();
+	for(int bin = 0; bin< fh_theta_ind_2D->GetNbinsX(); ++bin){
+	  
+	  fh_theta_ind_2D->SetBinContent(bin,0);
+	  fh_theta_coll_2D->SetBinContent(bin,0);
+	  fh_theta_ind->SetBinContent(bin,0);
+	  fh_theta_coll->SetBinContent(bin,0);
+	  fh_theta_coll_Area->SetBinContent(bin,0);
+	  fh_theta_ind_Area->SetBinContent(bin,0);
+	}
   	
-  	//Now we have hits for the plane that we are on right now, so let's do some work:
-  	//maxBin.clear();
-  	mf::LogInfo("KingaCluster") << "ATTENTION, STARTING WORK ON PLANE# " << plane;
-  
-  	AngularDistribution(cstat, tpc, plane);
-  
-  	FindMax(cstat, tpc, plane);
-  
-  	if(fpeak_problem == 1){
-  	  mf::LogInfo("KingaCluster") << "bye bye";
-  	  
-  	  allhits.clear();
-  	  maxBin.clear();
-  	  maxBinValues.clear();
-  	  SortedMaxBin.clear();
-  	  MaxStartPoint.clear();
-  	  MaxEndPoint.clear();
-  	  MaxStartPointTheta.clear();
-  	  MaxEndPointTheta.clear();
-  	  HitsWithClusterID.clear();
-  	  FinalPeaks.clear();
-  	  OriginalmaxBinValues.clear();
-  	  
-  	  clusterHits.clear();
-  	  
-  	  for(int bin = 0; bin < fh_theta_ind_2D->GetNbinsX(); ++bin){
-  	    
-  	    fh_theta_ind_2D->SetBinContent(bin,0);
-  	    fh_theta_coll_2D->SetBinContent(bin,0);
-  	    fh_theta_ind->SetBinContent(bin,0);
-  	    fh_theta_coll->SetBinContent(bin,0);
-  	    fh_theta_coll_Area->SetBinContent(bin,0);
-  	    fh_theta_ind_Area->SetBinContent(bin,0);
-  	  }
-  	  return;
-  	}// end if peak problem
-  
-  	if(fpeaks_found == 0){
-  	  mf::LogInfo("KingaCluster") << "KingaClusters FAILED on this event because "
-  				      << "no peaks were found. Perhaps your threshold "
-  				      << "for peak's height is too big. Goodbye! ";
-  	  allhits.clear();
-  	  maxBin.clear();
-  	  maxBinValues.clear();
-  	  SortedMaxBin.clear();
-  	  MaxStartPoint.clear();
-  	  MaxEndPoint.clear();
-  	  MaxStartPointTheta.clear();
-  	  MaxEndPointTheta.clear();
-  	  HitsWithClusterID.clear();
-  	  FinalPeaks.clear();
-  	  OriginalmaxBinValues.clear();
-  	  for(int bin = 0; bin< fh_theta_ind_2D->GetNbinsX(); ++bin){
-  	    
-  	    fh_theta_ind_2D->SetBinContent(bin,0);
-  	    fh_theta_coll_2D->SetBinContent(bin,0);
-  	    fh_theta_ind->SetBinContent(bin,0);
-  	    fh_theta_coll->SetBinContent(bin,0);
-  	    fh_theta_coll_Area->SetBinContent(bin,0);
-  	    fh_theta_ind_Area->SetBinContent(bin,0);
-  	  }
-  	  
-  	  return;
-  	}
-  
-  	//FinalPeaks();
-  
-  	FindClusters(cstat, tpc,plane);
-  	if(need_to_reassign_hitsIDs==1){
-  	  mf::LogInfo("KingaCluster") <<"***************************************************************\n"
-  				      <<"***************  ATTENTION   ***********************\n"
-  				      <<" WILL NEED TO REASSIGN HIT IDs\n"
-  				      <<"***************************************************************\n";
-  	  FindClusters(cstat, tpc, plane);
-  	}
-  	mf::LogInfo("KingaCluster")<<"HitsWithClusterID.size()= "<< HitsWithClusterID.size()
-  				   << "compare with allhits.size()= "<< allhits.size();
+	return;
+      }
+      
+      //FinalPeaks();
+      
+      FindClusters(planeID.Cryostat, planeID.TPC, planeID.Plane);
+      if(need_to_reassign_hitsIDs==1){
+	mf::LogInfo("KingaCluster") <<"***************************************************************\n"
+				    <<"***************  ATTENTION   ***********************\n"
+				    <<" WILL NEED TO REASSIGN HIT IDs\n"
+				    <<"***************************************************************\n";
+	FindClusters(planeID.Cryostat, planeID.TPC, planeID.Plane);
+      }
+      mf::LogInfo("KingaCluster")<<"HitsWithClusterID.size()= "<< HitsWithClusterID.size()
+				 << "compare with allhits.size()= "<< allhits.size();
   	
   	
-  	//********************************************************************         
-  	for(size_t ClusterNo = 0; ClusterNo < MaxStartPoint.size(); ++ClusterNo) {
+      //********************************************************************         
+      for(size_t ClusterNo = 0; ClusterNo < MaxStartPoint.size(); ++ClusterNo) {
+	
+	double totalQ = 0.;
+	for(size_t j = 0; j < HitsWithClusterID.size(); ++j){
+	  
+	  if(HitsWithClusterID[j] == (ClusterNo+1)){
+	    clusterHits.push_back(allhits[j]);
+	    totalQ += clusterHits.back()->Charge();
+	  } //if
   	  
-  	  double totalQ = 0.;
-  	  for(size_t j = 0; j < HitsWithClusterID.size(); ++j){
-  	    
-  	    if(HitsWithClusterID[j] == (ClusterNo+1)){
-  	      clusterHits.push_back(allhits[j]);
-  	      totalQ += clusterHits.back()->Charge();
-  	    } //if
-  	    
-  	  } //loop over HitsWithClusterID
-  	  
+	} //loop over HitsWithClusterID
+  	
   	  // let's look at the clusters produced:
-  	  mf::LogInfo("KingaCluster")<<"For Cluster # "<<ClusterNo<<" we have "
-  				     <<clusterHits.size()<<" hits :";
+	mf::LogInfo("KingaCluster")<<"For Cluster # "<<ClusterNo<<" we have "
+				   <<clusterHits.size()<<" hits :";
+	
+	//.................................
+	if (clusterHits.size() > 0){
+	  
+	  /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
+	  unsigned int p = 0; 
+	  unsigned int t = 0; 
+	  unsigned int c = 0; 
+	  unsigned int sw = clusterHits[0]->WireID().Wire;
+	  unsigned int ew = clusterHits[clusterHits.size()-1]->WireID().Wire;
   	  
-  	  //.................................
-  	  if (clusterHits.size() > 0){
-  	    
-  	    /// \todo: need to define start and end positions for this cluster and slopes for dTdW, dQdW
-  	    unsigned int p = 0; 
-  	    unsigned int t = 0; 
-  	    unsigned int c = 0; 
-  	    unsigned int sw = clusterHits[0]->WireID().Wire;
-  	    unsigned int ew = clusterHits[clusterHits.size()-1]->WireID().Wire;
-  	    
-  	    clusterHits.sort(cluster::SortByWire());
-  	    
-  	    recob::Cluster cluster(sw*1., 0.,
-  				   clusterHits[0]->PeakTime(), clusterHits[0]->SigmaPeakTime(),
-  				   ew*1., 0.,
-  				   clusterHits[clusterHits.size()-1]->PeakTime(), clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
-  				   -999., 0., 
-  				   -999., 0.,
-  				   totalQ,
-  				   fGeom->Cryostat(c).TPC(t).Plane(p).View(),
-  				   ClusterNo);
-  	    
-  	    ccol->push_back(cluster);
-  	    
-  	    // associate the hits to this cluster
-  	    util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
-  	    
-  	    mf::LogInfo("KingaCluster") << "Produced Cluster #" << ClusterNo;
-  	    //mf::LogInfo("KingaCluster")<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
-  	    // mf::LogInfo("KingaCluster")<<cluster.StartPos()[0]<<", "<<cluster.StartPos()[1]<<" --> "
-  	    //<<cluster.EndPos()[0]<<", "<<cluster.EndPos()[1]<<std::endl;
-  	    clusterHits.clear();
-  	    //////
-  	  } // end if hits in current cluster
+	  clusterHits.sort(cluster::SortByWire());
   	  
-  	} //clusters
+	  recob::Cluster cluster(sw*1., 0.,
+				 clusterHits[0]->PeakTime(), 
+				 clusterHits[0]->SigmaPeakTime(),
+				 ew*1., 0.,
+				 clusterHits[clusterHits.size()-1]->PeakTime(), 
+				 clusterHits[clusterHits.size()-1]->SigmaPeakTime(),
+				 -999., 0., 
+				 -999., 0.,
+				 totalQ,
+				 fGeom->Cryostat(c).TPC(t).Plane(p).View(),
+				 ClusterNo);
+	  
+	  ccol->push_back(cluster);
+  	  
+	  // associate the hits to this cluster
+	  util::CreateAssn(*this, evt, *(ccol.get()), clusterHits, *(assn.get()));
+  	  
+	  mf::LogInfo("KingaCluster") << "Produced Cluster #" << ClusterNo;
+	  //mf::LogInfo("KingaCluster")<<"no of hits for this cluster is "<<clusterHits.size()<<std::endl;
+	  // mf::LogInfo("KingaCluster")<<cluster.StartPos()[0]<<", "<<cluster.StartPos()[1]<<" --> "
+	  //<<cluster.EndPos()[0]<<", "<<cluster.EndPos()[1]<<std::endl;
+	  clusterHits.clear();
+	  //////
+	} // end if hits in current cluster
   	
-  	allhits.clear();
-  	maxBin.clear();
-  	maxBinValues.clear();
-  	SortedMaxBin.clear();
-  	MaxStartPoint.clear();
-  	MaxEndPoint.clear();
-  	MaxStartPointTheta.clear();
-  	MaxEndPointTheta.clear();
-  	HitsWithClusterID.clear();
-  	FinalPeaks.clear();
-  	OriginalmaxBinValues.clear();
-  	mf::LogInfo("KingaCluster")<<"Should be starting to work on the other plane now";
-        }//Planes
-        
-      }// end loop over tpcs 
-    }// end loop over cryostats
+      } //clusters
+      
+      allhits.clear();
+      maxBin.clear();
+      maxBinValues.clear();
+      SortedMaxBin.clear();
+      MaxStartPoint.clear();
+      MaxEndPoint.clear();
+      MaxStartPointTheta.clear();
+      MaxEndPointTheta.clear();
+      HitsWithClusterID.clear();
+      FinalPeaks.clear();
+      OriginalmaxBinValues.clear();
+      mf::LogInfo("KingaCluster")<<"Should be starting to work on the other plane now";
+    }//PlaneIDs
    
     evt.put(std::move(ccol));
     evt.put(std::move(assn));
@@ -454,8 +448,8 @@ namespace cluster{
   //..............................................................  
   
   void KingaCluster::AngularDistribution(unsigned int cstat, 
-  						unsigned int tpc, 
-  						unsigned int plane){   
+					 unsigned int tpc, 
+					 unsigned int plane){   
     
     // get the signal type for the passed in plane
     geo::SigType_t sigType = fGeom->Plane(plane, tpc, cstat).SignalType();
@@ -585,8 +579,8 @@ namespace cluster{
       
   //..............................................................   
   void KingaCluster::FindMax(unsigned int cstat, 
-  				    unsigned int tpc, 
-  				    unsigned int plane){  
+			     unsigned int tpc, 
+			     unsigned int plane){  
   
     // mf::LogInfo("KingaCluster")<<"No of bins= "<<fh_theta_ind->GetNbinsX();
     //   mf::LogInfo("KingaCluster")<<" Bincontent= "<<fh_theta_ind->GetBinContent(48);
@@ -639,9 +633,9 @@ namespace cluster{
     int time=1;
     int ValidPeak=0;
     mf::LogInfo("KingaCluster")<< "Threshold that a peak must have in order to be considered a peak = "
-  			     << threshold
-  			     << ". For inflection points we must have the value to drop to "
-  			     <<MinThreshold;
+			       << threshold
+			       << ". For inflection points we must have the value to drop to "
+			       <<MinThreshold;
   
     // get the signal type for the passed in plane
     geo::SigType_t sigType = fGeom->Plane(plane, tpc, cstat).SignalType();
@@ -653,25 +647,25 @@ namespace cluster{
       for(int bin = 1; bin < fh_theta_coll_Area->GetNbinsX()+1; ++bin){
    
         if(fh_theta_coll_Area->GetBinContent(bin)   > fh_theta_coll_Area->GetBinContent(bin+1) && 
-  	 fh_theta_coll_Area->GetBinContent(bin+1) < fh_theta_coll_Area->GetBinContent(bin+2)) {
-  	//only add points if we've already found a local max above threshold.
-  	if(maxFound) {
-  	  endTimes.push_back(time+1);
-  	  maxFound = false;
-  	  //keep these in case new hit starts right away
-  	  minTimeHolder = time+2;
-  	}
-  	else minTimeHolder = time+1; 
+	   fh_theta_coll_Area->GetBinContent(bin+1) < fh_theta_coll_Area->GetBinContent(bin+2)) {
+	  //only add points if we've already found a local max above threshold.
+	  if(maxFound) {
+	    endTimes.push_back(time+1);
+	    maxFound = false;
+	    //keep these in case new hit starts right away
+	    minTimeHolder = time+2;
+	  }
+	  else minTimeHolder = time+1; 
         }
   
         //if not a minimum,-> test if we are at a local maximum
         //if so and the max value is above threshold add it and proceed.
         else if(fh_theta_coll_Area->GetBinContent(bin)   < fh_theta_coll_Area->GetBinContent(bin+1) &&
-  	      fh_theta_coll_Area->GetBinContent(bin+1) > fh_theta_coll_Area->GetBinContent(bin+2) &&
-  	      fh_theta_coll_Area->GetBinContent(bin+1) > threshold ) {
-  	maxFound = true;
-  	maxBin.push_back(time+1);
-  	startTimes.push_back(minTimeHolder);         
+		fh_theta_coll_Area->GetBinContent(bin+1) > fh_theta_coll_Area->GetBinContent(bin+2) &&
+		fh_theta_coll_Area->GetBinContent(bin+1) > threshold ) {
+	  maxFound = true;
+	  maxBin.push_back(time+1);
+	  startTimes.push_back(minTimeHolder);         
         }
   
         time++; 
@@ -682,7 +676,7 @@ namespace cluster{
     
         mf::LogInfo("KingaCluster")<<"COLLECTION PLANE: ";
         mf::LogInfo("KingaCluster")<<" COULDN'T FIND ANY MAXIMA IN YOUR THETA DISTRIBUTION!!!!"
-  				 << "  PROGRAM WILL NOT PROCEED!!!";
+				   << "  PROGRAM WILL NOT PROCEED!!!";
         fpeaks_found=0;
       }
       if(maxBin.size()>0){     
@@ -691,8 +685,8 @@ namespace cluster{
   
         //std::vector<double> maxBinValues;
         for(unsigned int i=0;i<maxBin.size();i++){
-  	maxBinValues.push_back(fh_theta_coll_Area->GetBinContent(maxBin[i]));
-  	OriginalmaxBinValues.push_back(fh_theta_coll_Area->GetBinContent(maxBin[i]));
+	  maxBinValues.push_back(fh_theta_coll_Area->GetBinContent(maxBin[i]));
+	  OriginalmaxBinValues.push_back(fh_theta_coll_Area->GetBinContent(maxBin[i]));
         }
         
         //       mf::LogInfo("KingaCluster")<<"The largest is at position:  "
@@ -715,10 +709,10 @@ namespace cluster{
   
         for(size_t i = 0; i < maxBinValues.size(); ++i){
   
-  	std::vector<double>::iterator pos = std::find(OriginalmaxBinValues.begin(), 
-  						      OriginalmaxBinValues.end(),
-  						      maxBinValues[i]);
-  	SortedMaxBin.push_back(maxBin[pos-OriginalmaxBinValues.begin()]);
+	  std::vector<double>::iterator pos = std::find(OriginalmaxBinValues.begin(), 
+							OriginalmaxBinValues.end(),
+							maxBinValues[i]);
+	  SortedMaxBin.push_back(maxBin[pos-OriginalmaxBinValues.begin()]);
   
         }
   
@@ -745,84 +739,84 @@ namespace cluster{
     
         for(size_t maxNo = 0; maxNo < SortedMaxBin.size(); ++maxNo){
     
-  	//loop over the ranges and make sure that your peaks don't fall into already formed clusters
-  	//mf::LogInfo("KingaCluster")<<"Right now we have "<<MaxStartPoint.size()<<" ranges";
-  	if(MaxStartPoint.size() == 0) ValidPeak = 1;
-  	for(size_t NoRange = 0; NoRange < MaxStartPoint.size(); ++NoRange){
-  	  //mf::LogInfo("KingaCluster")<<"Checking peak "<<SortedMaxBin[maxNo];
-  	  if(SortedMaxBin[maxNo]>MaxStartPoint[NoRange] && SortedMaxBin[maxNo]<MaxEndPoint[NoRange]){
-  	    //maxNo++;
-  	    //mf::LogInfo("KingaCluster")<<"this peak is out of the picture! --> "<<SortedMaxBin[maxNo]<<std::endl;
-  	    ValidPeak=0;
-  	    break;
-  	  }
-  	  else{
-  	    ValidPeak=1;
-  	    //mf::LogInfo("KingaCluster")<<"passed"<<std::endl;
-  	  }
-  	}
-  	if(ValidPeak==1){
+	  //loop over the ranges and make sure that your peaks don't fall into already formed clusters
+	  //mf::LogInfo("KingaCluster")<<"Right now we have "<<MaxStartPoint.size()<<" ranges";
+	  if(MaxStartPoint.size() == 0) ValidPeak = 1;
+	  for(size_t NoRange = 0; NoRange < MaxStartPoint.size(); ++NoRange){
+	    //mf::LogInfo("KingaCluster")<<"Checking peak "<<SortedMaxBin[maxNo];
+	    if(SortedMaxBin[maxNo]>MaxStartPoint[NoRange] && SortedMaxBin[maxNo]<MaxEndPoint[NoRange]){
+	      //maxNo++;
+	      //mf::LogInfo("KingaCluster")<<"this peak is out of the picture! --> "<<SortedMaxBin[maxNo]<<std::endl;
+	      ValidPeak=0;
+	      break;
+	    }
+	    else{
+	      ValidPeak=1;
+	      //mf::LogInfo("KingaCluster")<<"passed"<<std::endl;
+	    }
+	  }
+	  if(ValidPeak==1){
      
-  	  // mf::LogInfo("KingaCluster")<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
-  	  FinalPeaks.push_back(SortedMaxBin[maxNo]);
-  	  mf::LogInfo("KingaCluster")<<"We are working on peak at bin #"<<SortedMaxBin[maxNo];
+	    // mf::LogInfo("KingaCluster")<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
+	    FinalPeaks.push_back(SortedMaxBin[maxNo]);
+	    mf::LogInfo("KingaCluster")<<"We are working on peak at bin #"<<SortedMaxBin[maxNo];
   
-  	  //start at the peak and go left
-  	  for(int LeftBin = SortedMaxBin[maxNo]-1; LeftBin > SortedMaxBin[maxNo]-30; --LeftBin){
-  	    if(fh_theta_coll_Area->GetBinContent(LeftBin)   < MinThreshold && 
-  	       fh_theta_coll_Area->GetBinContent(LeftBin-1) > fh_theta_coll_Area->GetBinContent(LeftBin)) {
-  	      MaxStartPoint.push_back(LeftBin);
-  	      // mf::LogInfo("KingaCluster")<<"picked option 1, startin point @bin "<<LeftBin;
-  	      mf::LogInfo("KingaCluster")<<"For peak at bin= "<<SortedMaxBin[maxNo]
-  					 <<"("<<-180+2*SortedMaxBin[maxNo]<<" degrees)"
-  					 <<" LeftBin="<<LeftBin<<"("<<-180+2*LeftBin<<" degrees)"
-  					 <<" RightBin= ";
-  	      break;
-  	    }
-  	    else if(fh_theta_coll_Area->GetBinContent(LeftBin) < MinThreshold && 
-  		    fh_theta_coll_Area->GetBinContent(LeftBin-1) == 0){
-  	      MaxStartPoint.push_back(LeftBin-1);
-  	      //mf::LogInfo("KingaCluster")<<"picked option 2, startin point @bin "<<LeftBin-1;
-  	      mf::LogInfo("KingaCluster")<<"For peak at bin= "<<SortedMaxBin[maxNo]
-  					 <<"("<<-180+2*SortedMaxBin[maxNo]<<" degrees)"
-  					 <<" LeftBin="<<LeftBin-1<<"("<<-180+2*(LeftBin-1)<<" degrees)"
-  					 <<" RightBin= ";
-  	      break;
+	    //start at the peak and go left
+	    for(int LeftBin = SortedMaxBin[maxNo]-1; LeftBin > SortedMaxBin[maxNo]-30; --LeftBin){
+	      if(fh_theta_coll_Area->GetBinContent(LeftBin)   < MinThreshold && 
+		 fh_theta_coll_Area->GetBinContent(LeftBin-1) > fh_theta_coll_Area->GetBinContent(LeftBin)) {
+		MaxStartPoint.push_back(LeftBin);
+		// mf::LogInfo("KingaCluster")<<"picked option 1, startin point @bin "<<LeftBin;
+		mf::LogInfo("KingaCluster")<<"For peak at bin= "<<SortedMaxBin[maxNo]
+					   <<"("<<-180+2*SortedMaxBin[maxNo]<<" degrees)"
+					   <<" LeftBin="<<LeftBin<<"("<<-180+2*LeftBin<<" degrees)"
+					   <<" RightBin= ";
+		break;
+	      }
+	      else if(fh_theta_coll_Area->GetBinContent(LeftBin) < MinThreshold && 
+		      fh_theta_coll_Area->GetBinContent(LeftBin-1) == 0){
+		MaxStartPoint.push_back(LeftBin-1);
+		//mf::LogInfo("KingaCluster")<<"picked option 2, startin point @bin "<<LeftBin-1;
+		mf::LogInfo("KingaCluster")<<"For peak at bin= "<<SortedMaxBin[maxNo]
+					   <<"("<<-180+2*SortedMaxBin[maxNo]<<" degrees)"
+					   <<" LeftBin="<<LeftBin-1<<"("<<-180+2*(LeftBin-1)<<" degrees)"
+					   <<" RightBin= ";
+		break;
              
-  	    }
-  	    else if (LeftBin==SortedMaxBin[maxNo]-29){
-  	      mf::LogInfo("KingaCluster")<<" cannot find starting point of the peak!!!!!";
-  	      fpeak_problem=1;
-  	      return;
-  	    }
+	      }
+	      else if (LeftBin==SortedMaxBin[maxNo]-29){
+		mf::LogInfo("KingaCluster")<<" cannot find starting point of the peak!!!!!";
+		fpeak_problem=1;
+		return;
+	      }
            
-  	  }// end loop over sorted max
+	    }// end loop over sorted max
        
-  	  for(int RightBin = SortedMaxBin[maxNo]+1; RightBin < SortedMaxBin[maxNo]+30; ++RightBin){
+	    for(int RightBin = SortedMaxBin[maxNo]+1; RightBin < SortedMaxBin[maxNo]+30; ++RightBin){
   
-  	    if(fh_theta_coll_Area->GetBinContent(RightBin)   < MinThreshold && 
-  	       fh_theta_coll_Area->GetBinContent(RightBin+1) > fh_theta_coll_Area->GetBinContent(RightBin)) {
-  	      MaxEndPoint.push_back(RightBin);
-  	      mf::LogInfo("KingaCluster")<<RightBin<<"("<<-180+2*RightBin<<" degrees)";
-  	      break;
-  	    }
-  	    else if(fh_theta_coll_Area->GetBinContent(RightBin) < MinThreshold && 
-  		    fh_theta_coll_Area->GetBinContent(RightBin+1) == 0){
-  	      MaxEndPoint.push_back(RightBin+1);
-  	      mf::LogInfo("KingaCluster")<<RightBin+1<<"("<<-180+2*(RightBin+1)<<" degrees)";
-  	      break;
-  	    }
-  	    else if(RightBin == SortedMaxBin[maxNo]+29){
-  	      mf::LogInfo("KingaCluster")<<" cannot find end point of the peak!!!!!";
-  	      fpeak_problem=1;
-  	      return;
-  	    }
+	      if(fh_theta_coll_Area->GetBinContent(RightBin)   < MinThreshold && 
+		 fh_theta_coll_Area->GetBinContent(RightBin+1) > fh_theta_coll_Area->GetBinContent(RightBin)) {
+		MaxEndPoint.push_back(RightBin);
+		mf::LogInfo("KingaCluster")<<RightBin<<"("<<-180+2*RightBin<<" degrees)";
+		break;
+	      }
+	      else if(fh_theta_coll_Area->GetBinContent(RightBin) < MinThreshold && 
+		      fh_theta_coll_Area->GetBinContent(RightBin+1) == 0){
+		MaxEndPoint.push_back(RightBin+1);
+		mf::LogInfo("KingaCluster")<<RightBin+1<<"("<<-180+2*(RightBin+1)<<" degrees)";
+		break;
+	      }
+	      else if(RightBin == SortedMaxBin[maxNo]+29){
+		mf::LogInfo("KingaCluster")<<" cannot find end point of the peak!!!!!";
+		fpeak_problem=1;
+		return;
+	      }
            
-  	  } // end loop over sorted max
+	    } // end loop over sorted max
         
-  	} //valid peak
+	  } //valid peak
     
-  	ValidPeak=0;
+	  ValidPeak=0;
     
         }//peaks
   
@@ -847,28 +841,28 @@ namespace cluster{
       for(int bin = 1; bin < fh_theta_ind_Area->GetNbinsX()+1; ++bin){
    
         if(fh_theta_ind_Area->GetBinContent(bin)   > fh_theta_ind_Area->GetBinContent(bin+1) && 
-  	 fh_theta_ind_Area->GetBinContent(bin+1) < fh_theta_ind_Area->GetBinContent(bin+2)) {
-  	//only add points if we've already found a local max above threshold.
-  	if(maxFound) {
-  	  endTimes.push_back(time+1);
-  	  maxFound = false;
-  	  //keep these in case new hit starts right away
-  	  minTimeHolder = time+2;
-  	}
-  	else {
-  	  minTimeHolder = time+1; 
-  	}
+	   fh_theta_ind_Area->GetBinContent(bin+1) < fh_theta_ind_Area->GetBinContent(bin+2)) {
+	  //only add points if we've already found a local max above threshold.
+	  if(maxFound) {
+	    endTimes.push_back(time+1);
+	    maxFound = false;
+	    //keep these in case new hit starts right away
+	    minTimeHolder = time+2;
+	  }
+	  else {
+	    minTimeHolder = time+1; 
+	  }
         }
         //if not a minimum test if we are at a local maximum
         //if so and the max value is above threshold add it and proceed.
         else if(fh_theta_ind_Area->GetBinContent(bin)   < fh_theta_ind_Area->GetBinContent(bin+1) &&
-  	      fh_theta_ind_Area->GetBinContent(bin+1) > fh_theta_ind_Area->GetBinContent(bin+2) &&
-  	      fh_theta_ind_Area->GetBinContent(bin+1) > threshold) {
-  	maxFound = true;
-  	maxBin.push_back(time+1);
-  	startTimes.push_back(minTimeHolder); 
+		fh_theta_ind_Area->GetBinContent(bin+1) > fh_theta_ind_Area->GetBinContent(bin+2) &&
+		fh_theta_ind_Area->GetBinContent(bin+1) > threshold) {
+	  maxFound = true;
+	  maxBin.push_back(time+1);
+	  startTimes.push_back(minTimeHolder); 
         
-  	// && fh_theta_ind->GetBinContent(bin+1) > MinHitThreshold
+	  // && fh_theta_ind->GetBinContent(bin+1) > MinHitThreshold
         }
         time++;
    
@@ -877,7 +871,7 @@ namespace cluster{
   
       if(maxBin.size()==0){
         mf::LogInfo("KingaCluster")<< " COULDN'T FIND ANY MAXIMA IN YOUR THETA DISTRIBUTION!!!! "
-  				 << " PROGRAM WILL NOT PROCEED!!!"<<std::endl;
+				   << " PROGRAM WILL NOT PROCEED!!!"<<std::endl;
         fpeaks_found=0;
       }
       
@@ -886,11 +880,11 @@ namespace cluster{
   
         for(size_t i = 0; i < maxBin.size(); ++i){
   
-  	mf::LogInfo("KingaCluster")<<"maxTime is at bin = "
-  				   <<maxBin[i]<<" ("<<-180+2*maxBin[i]<<" degrees)"
-  				   <<" and its value is "
-  				   <<fh_theta_ind_Area->GetBinContent(maxBin[i])
-  				   <<"....................................";
+	  mf::LogInfo("KingaCluster")<<"maxTime is at bin = "
+				     <<maxBin[i]<<" ("<<-180+2*maxBin[i]<<" degrees)"
+				     <<" and its value is "
+				     <<fh_theta_ind_Area->GetBinContent(maxBin[i])
+				     <<"....................................";
         }//maxBin
         ///////////////////////////////////////////////////////////////////////
         ///////////////////////////////////////////////////////////////////////
@@ -899,8 +893,8 @@ namespace cluster{
   
         //std::vector<double> maxBinValues;
         for(size_t i = 0; i < maxBin.size(); ++i){
-  	maxBinValues.push_back(fh_theta_ind_Area->GetBinContent(maxBin[i]));
-  	OriginalmaxBinValues.push_back(fh_theta_ind_Area->GetBinContent(maxBin[i]));
+	  maxBinValues.push_back(fh_theta_ind_Area->GetBinContent(maxBin[i]));
+	  OriginalmaxBinValues.push_back(fh_theta_ind_Area->GetBinContent(maxBin[i]));
         }
   
         //       mf::LogInfo("KingaCluster")<<"The largest is at position:  "
@@ -919,10 +913,10 @@ namespace cluster{
         reverse (maxBinValues.begin(), maxBinValues.end());
   
         for(size_t i = 0; i < maxBinValues.size(); ++i){
-  	std::vector<double>::iterator pos = std::find( OriginalmaxBinValues.begin(), 
-  						       OriginalmaxBinValues.end(),
-  						       maxBinValues[i]);
-  	SortedMaxBin.push_back(maxBin[pos-OriginalmaxBinValues.begin()]);
+	  std::vector<double>::iterator pos = std::find( OriginalmaxBinValues.begin(), 
+							 OriginalmaxBinValues.end(),
+							 maxBinValues[i]);
+	  SortedMaxBin.push_back(maxBin[pos-OriginalmaxBinValues.begin()]);
         }
     
         //create SortedMaxBin vector whose first element is the global max:
@@ -949,76 +943,76 @@ namespace cluster{
     
         for(size_t maxNo = 0; maxNo < SortedMaxBin.size(); ++maxNo){
     
-  	//loop over the ranges and make sure that your peaks don't fall into already formed clusters
-  	if(MaxStartPoint.size()==0){ValidPeak=1;}
-  	for(size_t NoRange = 0; NoRange < MaxStartPoint.size(); ++NoRange){
-  	  if(SortedMaxBin[maxNo]>MaxStartPoint[NoRange] && SortedMaxBin[maxNo]<MaxEndPoint[NoRange]){
-  	    ValidPeak=0;
-  	    break;
-  	  }
-  	  else {ValidPeak=1;}
-  	}
+	  //loop over the ranges and make sure that your peaks don't fall into already formed clusters
+	  if(MaxStartPoint.size()==0){ValidPeak=1;}
+	  for(size_t NoRange = 0; NoRange < MaxStartPoint.size(); ++NoRange){
+	    if(SortedMaxBin[maxNo]>MaxStartPoint[NoRange] && SortedMaxBin[maxNo]<MaxEndPoint[NoRange]){
+	      ValidPeak=0;
+	      break;
+	    }
+	    else {ValidPeak=1;}
+	  }
     
-  	if(ValidPeak==1){
+	  if(ValidPeak==1){
      
-  	  //mf::LogInfo("KingaCluster")<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
-  	  FinalPeaks.push_back(SortedMaxBin[maxNo]);
-  	  //start at the peak and go left
-  	  for(int LeftBin = SortedMaxBin[maxNo]-1; LeftBin > SortedMaxBin[maxNo]-30; --LeftBin){
+	    //mf::LogInfo("KingaCluster")<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
+	    FinalPeaks.push_back(SortedMaxBin[maxNo]);
+	    //start at the peak and go left
+	    for(int LeftBin = SortedMaxBin[maxNo]-1; LeftBin > SortedMaxBin[maxNo]-30; --LeftBin){
   
-  	    if(fh_theta_ind_Area->GetBinContent(LeftBin)   < MinThreshold && 
-  	       fh_theta_ind_Area->GetBinContent(LeftBin-1) > fh_theta_ind_Area->GetBinContent(LeftBin)) {
-  	      MaxStartPoint.push_back(LeftBin);
+	      if(fh_theta_ind_Area->GetBinContent(LeftBin)   < MinThreshold && 
+		 fh_theta_ind_Area->GetBinContent(LeftBin-1) > fh_theta_ind_Area->GetBinContent(LeftBin)) {
+		MaxStartPoint.push_back(LeftBin);
               
-  	      mf::LogInfo("KingaCluster")<<"For peak at bin= "<<SortedMaxBin[maxNo]
-  					 <<"("<<-180+2*SortedMaxBin[maxNo]<<" degrees)"
-  					 <<" LeftBin="<<LeftBin<<"("<<-180+2*LeftBin<<" degrees)"
-  					 <<" RightBin= ";
+		mf::LogInfo("KingaCluster")<<"For peak at bin= "<<SortedMaxBin[maxNo]
+					   <<"("<<-180+2*SortedMaxBin[maxNo]<<" degrees)"
+					   <<" LeftBin="<<LeftBin<<"("<<-180+2*LeftBin<<" degrees)"
+					   <<" RightBin= ";
           
-  	      break;
-  	    }
-  	    else if(fh_theta_ind_Area->GetBinContent(LeftBin) < MinThreshold && 
-  		    fh_theta_ind_Area->GetBinContent(LeftBin-1) == 0){
-  	      MaxStartPoint.push_back(LeftBin-1);
-  	      //mf::LogInfo("KingaCluster")<<"picked option 2, startin point @bin "<<LeftBin-1;
-  	      mf::LogInfo("KingaCluster")<<"For peak at bin= "<<SortedMaxBin[maxNo]
-  					 <<"("<<-180+2*SortedMaxBin[maxNo]<<" degrees)"
-  					 <<" LeftBin="<<LeftBin-1<<"("<<-180+2*(LeftBin-1)<<" degrees)"
-  					 <<" RightBin= ";
-  	      break;
+		break;
+	      }
+	      else if(fh_theta_ind_Area->GetBinContent(LeftBin) < MinThreshold && 
+		      fh_theta_ind_Area->GetBinContent(LeftBin-1) == 0){
+		MaxStartPoint.push_back(LeftBin-1);
+		//mf::LogInfo("KingaCluster")<<"picked option 2, startin point @bin "<<LeftBin-1;
+		mf::LogInfo("KingaCluster")<<"For peak at bin= "<<SortedMaxBin[maxNo]
+					   <<"("<<-180+2*SortedMaxBin[maxNo]<<" degrees)"
+					   <<" LeftBin="<<LeftBin-1<<"("<<-180+2*(LeftBin-1)<<" degrees)"
+					   <<" RightBin= ";
+		break;
              
-  	    }
-  	    else if (LeftBin==SortedMaxBin[maxNo]-30){
-  	      mf::LogInfo("KingaCluster")<<"cannot find starting point of the peak!!!!!";
-  	      fpeak_problem=1;
-  	      return;
-  	    }         
-  	  }
+	      }
+	      else if (LeftBin==SortedMaxBin[maxNo]-30){
+		mf::LogInfo("KingaCluster")<<"cannot find starting point of the peak!!!!!";
+		fpeak_problem=1;
+		return;
+	      }         
+	    }
     
     
-  	  for(int RightBin = SortedMaxBin[maxNo]+1; RightBin < SortedMaxBin[maxNo]+30; ++RightBin){
-  	    if(fh_theta_ind_Area->GetBinContent(RightBin)   < MinThreshold && 
-  	       fh_theta_ind_Area->GetBinContent(RightBin+1) > fh_theta_ind_Area->GetBinContent(RightBin)) {
-  	      MaxEndPoint.push_back(RightBin);
-  	      mf::LogInfo("KingaCluster")<<RightBin<<"("<<-180+2*RightBin<<" degrees)";
-  	      break;
-  	    }
-  	    else if(fh_theta_ind_Area->GetBinContent(RightBin) < MinThreshold && 
-  		    fh_theta_ind_Area->GetBinContent(RightBin+1) == 0){
-  	      MaxEndPoint.push_back(RightBin+1);
-  	      mf::LogInfo("KingaCluster")<<RightBin+1<<"("<<-180+2*(RightBin+1)<<" degrees)";
-  	      break;
-  	    }
-  	    else if(RightBin == SortedMaxBin[maxNo]+20){
-  	      mf::LogInfo("KingaCluster")<<"cannot find end point of the peak!!!!!";
-  	      fpeak_problem=1;
-  	      return;
-  	    }
+	    for(int RightBin = SortedMaxBin[maxNo]+1; RightBin < SortedMaxBin[maxNo]+30; ++RightBin){
+	      if(fh_theta_ind_Area->GetBinContent(RightBin)   < MinThreshold && 
+		 fh_theta_ind_Area->GetBinContent(RightBin+1) > fh_theta_ind_Area->GetBinContent(RightBin)) {
+		MaxEndPoint.push_back(RightBin);
+		mf::LogInfo("KingaCluster")<<RightBin<<"("<<-180+2*RightBin<<" degrees)";
+		break;
+	      }
+	      else if(fh_theta_ind_Area->GetBinContent(RightBin) < MinThreshold && 
+		      fh_theta_ind_Area->GetBinContent(RightBin+1) == 0){
+		MaxEndPoint.push_back(RightBin+1);
+		mf::LogInfo("KingaCluster")<<RightBin+1<<"("<<-180+2*(RightBin+1)<<" degrees)";
+		break;
+	      }
+	      else if(RightBin == SortedMaxBin[maxNo]+20){
+		mf::LogInfo("KingaCluster")<<"cannot find end point of the peak!!!!!";
+		fpeak_problem=1;
+		return;
+	      }
            
-  	  }
+	    }
     
-  	}
-  	ValidPeak=0;
+	  }
+	  ValidPeak=0;
     
         }//peaks
       }// if maxBin.size()>0 this means that we can find peaks in the theta distribution 
@@ -1052,8 +1046,8 @@ namespace cluster{
   
   //..............................................................   
   void KingaCluster::FindClusters(unsigned int cstat, 
-  					 unsigned int tpc, 
-  					 unsigned int plane){ 
+				  unsigned int tpc, 
+				  unsigned int plane){ 
   
     // get the signal type for the passed in plane
     geo::SigType_t sigType = fGeom->Plane(plane, tpc, cstat).SignalType();
@@ -1071,13 +1065,13 @@ namespace cluster{
   
       for(size_t pk2 = 0; pk2 < FinalPeaks.size(); ++pk2){
         if(pk != (int) pk2 && 
-  	 ((MaxStartPoint[pk]<MaxEndPoint[pk2] && MaxStartPoint[pk]>MaxStartPoint[pk2]) ||
-  	  ( MaxEndPoint[pk]>MaxStartPoint[pk2] && MaxEndPoint[pk]<MaxEndPoint[pk2] ))
-  	 ){
-  	mf::LogInfo("KingaCluster")<<"WRONG RANGE, NEED TO FIX IT FOR PEAK AT BIN #"<<FinalPeaks[pk];
+	   ((MaxStartPoint[pk]<MaxEndPoint[pk2] && MaxStartPoint[pk]>MaxStartPoint[pk2]) ||
+	    ( MaxEndPoint[pk]>MaxStartPoint[pk2] && MaxEndPoint[pk]<MaxEndPoint[pk2] ))
+	   ){
+	  mf::LogInfo("KingaCluster")<<"WRONG RANGE, NEED TO FIX IT FOR PEAK AT BIN #"<<FinalPeaks[pk];
       
-  	peak_with_wrong_range.push_back(pk); //this gives peak#, NOT a bin#
-  	peak_with_which_it_ovelaps.push_back(pk2); //this gives peak#, NOT a bin#
+	  peak_with_wrong_range.push_back(pk); //this gives peak#, NOT a bin#
+	  peak_with_which_it_ovelaps.push_back(pk2); //this gives peak#, NOT a bin#
         }
       }
     }// end loop over pk
@@ -1155,12 +1149,12 @@ namespace cluster{
   
         //mf::LogInfo("KingaCluster")<<"bin= "<<bin<<std::endl;
         if(sigType == geo::kInduction){
-  	no_hits_in_range+=fh_theta_ind->GetBinContent(bin);
-  	//mf::LogInfo("KingaCluster")<<" plane= "<<plane<<" no_hits_in_range= "<<no_hits_in_range;
+	  no_hits_in_range+=fh_theta_ind->GetBinContent(bin);
+	  //mf::LogInfo("KingaCluster")<<" plane= "<<plane<<" no_hits_in_range= "<<no_hits_in_range;
         }
         if(sigType == geo::kCollection){
-  	no_hits_in_range+=fh_theta_coll->GetBinContent(bin);
-  	//mf::LogInfo("KingaCluster")<<" plane= "<<plane<<" no_hits_in_range= "<<no_hits_in_range;
+	  no_hits_in_range+=fh_theta_coll->GetBinContent(bin);
+	  //mf::LogInfo("KingaCluster")<<" plane= "<<plane<<" no_hits_in_range= "<<no_hits_in_range;
         }
    
       }//loop thru bins for each peak
@@ -1179,7 +1173,7 @@ namespace cluster{
     
     
       mf::LogInfo("KingaCluster")<<"no_hits_in_range= "<<no_hits_in_range
-  			       <<" for peak at bin# "<<FinalPeaks[peak];
+				 <<" for peak at bin# "<<FinalPeaks[peak];
       if(no_hits_in_range > 2){
         TempFinalPeaks.push_back(FinalPeaks[peak]);
         TempMaxStartPoint.push_back(MaxStartPoint[peak]);
@@ -1277,52 +1271,52 @@ namespace cluster{
       for(size_t i = 0; i < double_hit_peaks.size(); ++i){
         for(size_t j = 0; j < double_hit_peaks.size(); ++j){
       
-  	if(grouped_double_hit_peaks.size() == 0){
+	  if(grouped_double_hit_peaks.size() == 0){
         
-  	  // loop thru existing ranges and make sure that your 
-  	  // 2-hit peaks are close to each other but also well 
-  	  // separated from the existing ranges
-  	  for(size_t r = 0; r < FinalPeaks.size(); ++r){ 
-  	    mf::LogInfo("KingaCluster")<<"### FinalPeaks.size()= "<<FinalPeaks.size();
-  	    mf::LogInfo("KingaCluster")<<"MaxStartPoint["<<r<<"]= "<<MaxStartPoint[r]
-  				       <<"MaxEndPoint["<<r<<"]= "<<MaxEndPoint[r];
+	    // loop thru existing ranges and make sure that your 
+	    // 2-hit peaks are close to each other but also well 
+	    // separated from the existing ranges
+	    for(size_t r = 0; r < FinalPeaks.size(); ++r){ 
+	      mf::LogInfo("KingaCluster")<<"### FinalPeaks.size()= "<<FinalPeaks.size();
+	      mf::LogInfo("KingaCluster")<<"MaxStartPoint["<<r<<"]= "<<MaxStartPoint[r]
+					 <<"MaxEndPoint["<<r<<"]= "<<MaxEndPoint[r];
   
-  	    if(i!=j && 
-  	       abs(double_hit_peaks[i]-double_hit_peaks[j])<=diff_between_double_hit_peaks ){ 
+	      if(i!=j && 
+		 abs(double_hit_peaks[i]-double_hit_peaks[j])<=diff_between_double_hit_peaks ){ 
          
-  	      // 	     mf::LogInfo("KingaCluster")<<"abs(one_hit_peaks[i]-MaxStartPoint[r])= "
-  	      // 					<<abs(one_hit_peaks[i]-MaxStartPoint[r])<<" :: "
-  	      // 					<<one_hit_peaks[i]<<" - "<<MaxStartPoint[r];
+		// 	     mf::LogInfo("KingaCluster")<<"abs(one_hit_peaks[i]-MaxStartPoint[r])= "
+		// 					<<abs(one_hit_peaks[i]-MaxStartPoint[r])<<" :: "
+		// 					<<one_hit_peaks[i]<<" - "<<MaxStartPoint[r];
          
-  	      // 	      mf::LogInfo("KingaCluster")<<"MaxStartPoint["<<r<<"]= "<<MaxStartPoint[r]
-  	      // 					 <<"MaxEndPoint["<<r<<"]= "<<MaxEndPoint[r];
+		// 	      mf::LogInfo("KingaCluster")<<"MaxStartPoint["<<r<<"]= "<<MaxStartPoint[r]
+		// 					 <<"MaxEndPoint["<<r<<"]= "<<MaxEndPoint[r];
          
-  	      // 	      mf::LogInfo("KingaCluster")<<"one_hit_peaks[i]= "<<one_hit_peaks[i]
-  	      // 					 <<" one_hit_peaks[j]= "<<one_hit_peaks[j];
+		// 	      mf::LogInfo("KingaCluster")<<"one_hit_peaks[i]= "<<one_hit_peaks[i]
+		// 					 <<" one_hit_peaks[j]= "<<one_hit_peaks[j];
          
          
-  	      //if you can't find this peak in the group, then add it:
-  	      if(std::find(grouped_double_hit_peaks.begin(),
-  			   grouped_double_hit_peaks.end(),
-  			   double_hit_peaks[i])==grouped_double_hit_peaks.end()){
+		//if you can't find this peak in the group, then add it:
+		if(std::find(grouped_double_hit_peaks.begin(),
+			     grouped_double_hit_peaks.end(),
+			     double_hit_peaks[i])==grouped_double_hit_peaks.end()){
   
-  		grouped_double_hit_peaks.push_back(double_hit_peaks[i]);
+		  grouped_double_hit_peaks.push_back(double_hit_peaks[i]);
   
-  		mf::LogInfo("KingaCluster")<<"ADDING 2-HIT PEAK #"<<double_hit_peaks[i]<<" TO THE GROUP";
+		  mf::LogInfo("KingaCluster")<<"ADDING 2-HIT PEAK #"<<double_hit_peaks[i]<<" TO THE GROUP";
         
-  		used_peak.push_back(double_hit_peaks[i]);
-  	      }
-  	      if(std::find(grouped_double_hit_peaks.begin(),
-  			   grouped_double_hit_peaks.end(),
-  			   double_hit_peaks[j])==grouped_double_hit_peaks.end()){
-  		grouped_double_hit_peaks.push_back(double_hit_peaks[j]);
-  		mf::LogInfo("KingaCluster")<<"ADDING 2-HIT PEAK #"<<double_hit_peaks[j]<<" TO THE GROUP";
+		  used_peak.push_back(double_hit_peaks[i]);
+		}
+		if(std::find(grouped_double_hit_peaks.begin(),
+			     grouped_double_hit_peaks.end(),
+			     double_hit_peaks[j])==grouped_double_hit_peaks.end()){
+		  grouped_double_hit_peaks.push_back(double_hit_peaks[j]);
+		  mf::LogInfo("KingaCluster")<<"ADDING 2-HIT PEAK #"<<double_hit_peaks[j]<<" TO THE GROUP";
        
-  		used_peak.push_back(double_hit_peaks[j]);
-  	      }
-  	    } //if difference between peak bin#s is small 
-  	  }// loop thru already existing peaks 
-  	} //if size=0 
+		  used_peak.push_back(double_hit_peaks[j]);
+		}
+	      } //if difference between peak bin#s is small 
+	    }// loop thru already existing peaks 
+	  } //if size=0 
         } //first loop thru each 1-hit peak
       } //second loop thru each 1-hit peak
     
@@ -1330,28 +1324,28 @@ namespace cluster{
       //Now go thru all the peaks again to find the third matching peak:
       if(grouped_double_hit_peaks.size()>0){
         for(size_t y = 0; y < double_hit_peaks.size(); ++y){
-  	//now every added peak must be very close to EACH already added peak in the group
-  	for(size_t q = 0; q < grouped_double_hit_peaks.size(); ++q){
+	  //now every added peak must be very close to EACH already added peak in the group
+	  for(size_t q = 0; q < grouped_double_hit_peaks.size(); ++q){
          
-  	  if(abs(double_hit_peaks[y]-grouped_double_hit_peaks[q]) > 5){
-  	    failed=1;
-  	    break;
-  	  }
+	    if(abs(double_hit_peaks[y]-grouped_double_hit_peaks[q]) > 5){
+	      failed=1;
+	      break;
+	    }
          
-  	} //for
+	  } //for
          
          
-  	if(failed==0 && 
-  	   std::find(grouped_double_hit_peaks.begin(),
-  		     grouped_double_hit_peaks.end(),
-  		     double_hit_peaks[y]) == grouped_double_hit_peaks.end() ){
+	  if(failed==0 && 
+	     std::find(grouped_double_hit_peaks.begin(),
+		       grouped_double_hit_peaks.end(),
+		       double_hit_peaks[y]) == grouped_double_hit_peaks.end() ){
          
-  	  grouped_double_hit_peaks.push_back(double_hit_peaks[y]);
+	    grouped_double_hit_peaks.push_back(double_hit_peaks[y]);
          
-  	  used_peak.push_back(double_hit_peaks[y]);
+	    used_peak.push_back(double_hit_peaks[y]);
          
-  	}
-  	failed=0;
+	  }
+	  failed=0;
         } //loop thru all 2-hit peaks
       }// if size >0
     }
@@ -1374,7 +1368,7 @@ namespace cluster{
      
       made_peak=sum/grouped_double_hit_peaks.size();
       mf::LogInfo("KingaCluster")<<"---------MADE A HOME_MADE_PEAK FROM GROUPS OF ***2***"
-  			       << "-HIT CLUSTERS--------THIS PEAK IS AT BIN #"<<made_peak;
+				 << "-HIT CLUSTERS--------THIS PEAK IS AT BIN #"<<made_peak;
   
       FinalPeaks.push_back(made_peak);
       //Now work on the range. For now just start at the smallest peak bin-1 and end at the largest peak bin+1:    
@@ -1384,7 +1378,7 @@ namespace cluster{
       MaxEndPoint.push_back(grouped_double_hit_peaks[grouped_double_hit_peaks.size()-1]+1);
       
       mf::LogInfo("KingaCluster")<<" its range is ["<<grouped_double_hit_peaks[0]-1
-  			       <<", "<<grouped_double_hit_peaks[grouped_double_hit_peaks.size()-1]+1<<"]";
+				 <<", "<<grouped_double_hit_peaks[grouped_double_hit_peaks.size()-1]+1<<"]";
       
     }
   
@@ -1406,9 +1400,9 @@ namespace cluster{
   
     for(size_t peak = 0; peak < FinalPeaks.size(); ++peak){
       mf::LogInfo("KingaCluster")<<"peak at bin # "<<FinalPeaks[peak]
-  			       <<" ("<<-180+2*FinalPeaks[peak]
-  			       <<" degrees). Its range is ["<<-180+2*MaxStartPoint[peak]
-  			       <<", "<<-180+2*MaxEndPoint[peak]<<" ]";
+				 <<" ("<<-180+2*FinalPeaks[peak]
+				 <<" degrees). Its range is ["<<-180+2*MaxStartPoint[peak]
+				 <<", "<<-180+2*MaxEndPoint[peak]<<" ]";
     }
   
   
@@ -1427,8 +1421,8 @@ namespace cluster{
   
         if(abs(one_hit_peaks[i]-MaxStartPoint[g])<6 || abs(one_hit_peaks[i]-MaxEndPoint[g])<6){
      
-  	bad_one_hit_peak=1;
-  	break;
+	  bad_one_hit_peak=1;
+	  break;
      
         }
       }
@@ -1442,7 +1436,7 @@ namespace cluster{
   
   
     mf::LogInfo("KingaCluster")<<" ### NOW THE UPDATED NO OF one_hit_peaks= "
-  			     <<one_hit_peaks.size()<<" they are at bins : ";
+			       <<one_hit_peaks.size()<<" they are at bins : ";
   
     for(size_t u = 0; u < one_hit_peaks.size(); ++u){
   
@@ -1476,33 +1470,33 @@ namespace cluster{
       for(size_t i = 0; i < one_hit_peaks.size(); ++i){
         for(size_t j = 0; j < one_hit_peaks.size(); ++j){
       
-  	if(grouped_one_hit_peaks.size() == 0){
+	  if(grouped_one_hit_peaks.size() == 0){
         
-  	  // loop thru existing ranges and make sure that your 1-hit 
-  	  // peaks are not close to each other but also well separated 
-  	  // from the existing ranges
-  	  for(size_t r = 0; r < FinalPeaks.size(); ++r){ 
-  	    mf::LogInfo("KingaCluster")<<"### FinalPeaks.size()= "<<FinalPeaks.size();
-  	    mf::LogInfo("KingaCluster")<<"MaxStartPoint["<<r<<"]= "<<MaxStartPoint[r]
-  				       <<"MaxEndPoint["<<r<<"]= "<<MaxEndPoint[r];
-  	    if(i!=j && abs(one_hit_peaks[i]-one_hit_peaks[j])<=diff_between_one_hit_peaks ){ 
+	    // loop thru existing ranges and make sure that your 1-hit 
+	    // peaks are not close to each other but also well separated 
+	    // from the existing ranges
+	    for(size_t r = 0; r < FinalPeaks.size(); ++r){ 
+	      mf::LogInfo("KingaCluster")<<"### FinalPeaks.size()= "<<FinalPeaks.size();
+	      mf::LogInfo("KingaCluster")<<"MaxStartPoint["<<r<<"]= "<<MaxStartPoint[r]
+					 <<"MaxEndPoint["<<r<<"]= "<<MaxEndPoint[r];
+	      if(i!=j && abs(one_hit_peaks[i]-one_hit_peaks[j])<=diff_between_one_hit_peaks ){ 
          
-  	      //if you can't find this peak in the group, then add it:
-  	      if(std::find(grouped_one_hit_peaks.begin(),
-  			   grouped_one_hit_peaks.end(),
-  			   one_hit_peaks[i]) == grouped_one_hit_peaks.end()){
-  		grouped_one_hit_peaks.push_back(one_hit_peaks[i]);
-  		mf::LogInfo("KingaCluster")<<"ADDING PEAK #"<<one_hit_peaks[i]<<" TO THE GROUP";
-  	      }
-  	      if(std::find(grouped_one_hit_peaks.begin(),
-  			   grouped_one_hit_peaks.end(),
-  			   one_hit_peaks[j]) == grouped_one_hit_peaks.end()){
-  		grouped_one_hit_peaks.push_back(one_hit_peaks[j]);
-  		mf::LogInfo("KingaCluster")<<"ADDING PEAK #"<<one_hit_peaks[j]<<" TO THE GROUP";
-  	      }
-  	    } //if difference between peak bin#s is small 
-  	  }// loop thru already existing peaks 
-  	} //if size=0 
+		//if you can't find this peak in the group, then add it:
+		if(std::find(grouped_one_hit_peaks.begin(),
+			     grouped_one_hit_peaks.end(),
+			     one_hit_peaks[i]) == grouped_one_hit_peaks.end()){
+		  grouped_one_hit_peaks.push_back(one_hit_peaks[i]);
+		  mf::LogInfo("KingaCluster")<<"ADDING PEAK #"<<one_hit_peaks[i]<<" TO THE GROUP";
+		}
+		if(std::find(grouped_one_hit_peaks.begin(),
+			     grouped_one_hit_peaks.end(),
+			     one_hit_peaks[j]) == grouped_one_hit_peaks.end()){
+		  grouped_one_hit_peaks.push_back(one_hit_peaks[j]);
+		  mf::LogInfo("KingaCluster")<<"ADDING PEAK #"<<one_hit_peaks[j]<<" TO THE GROUP";
+		}
+	      } //if difference between peak bin#s is small 
+	    }// loop thru already existing peaks 
+	  } //if size=0 
         } //first loop thru each 1-hit peak
       } //second loop thru each 1-hit peak
     
@@ -1510,25 +1504,25 @@ namespace cluster{
       //Now go thru all the peaks again to find the third matching peak:
       if(grouped_one_hit_peaks.size() > 0){
         for(size_t y = 0;y < one_hit_peaks.size(); ++y){
-  	//now every added peak must be very close to EACH already added peak in the group
-  	for(size_t q = 0; q < grouped_one_hit_peaks.size(); ++q){
+	  //now every added peak must be very close to EACH already added peak in the group
+	  for(size_t q = 0; q < grouped_one_hit_peaks.size(); ++q){
          
-  	  if(abs(one_hit_peaks[y]-grouped_one_hit_peaks[q])>5){
-  	    failed=1;
-  	    break;
-  	  }
+	    if(abs(one_hit_peaks[y]-grouped_one_hit_peaks[q])>5){
+	      failed=1;
+	      break;
+	    }
          
-  	} //for
+	  } //for
          
-  	if(failed == 0 && 
-  	   std::find(grouped_one_hit_peaks.begin(),
-  		     grouped_one_hit_peaks.end(),
-  		     one_hit_peaks[y])==grouped_one_hit_peaks.end() ){
+	  if(failed == 0 && 
+	     std::find(grouped_one_hit_peaks.begin(),
+		       grouped_one_hit_peaks.end(),
+		       one_hit_peaks[y])==grouped_one_hit_peaks.end() ){
          
-  	  grouped_one_hit_peaks.push_back(one_hit_peaks[y]);
+	    grouped_one_hit_peaks.push_back(one_hit_peaks[y]);
          
-  	}
-  	failed=0;
+	  }
+	  failed=0;
         } //loop thru all 1-hit peaks
       }// if size >0
     } //if we have more than 3 1-hit peaks
@@ -1549,7 +1543,7 @@ namespace cluster{
      
       made_peak=sum/grouped_one_hit_peaks.size();
       mf::LogInfo("KingaCluster")<<"---------MADE A HOME_MADE_PEAK FROM GROUPS OF 1-HIT CLUSTERS"
-  			       << "--------THIS PEAK IS AT BIN #"<<made_peak;
+				 << "--------THIS PEAK IS AT BIN #"<<made_peak;
       FinalPeaks.push_back(made_peak);
       // Now work on the range. For now just start at the smallest 
       // peak bin-1 and end at the largest peak bin+1:
@@ -1560,7 +1554,7 @@ namespace cluster{
       MaxEndPoint.push_back(grouped_one_hit_peaks[grouped_one_hit_peaks.size()-1]+1);
       
       mf::LogInfo("KingaCluster")<<" its range is ["<<grouped_one_hit_peaks[0]-1
-  			       <<", "<<grouped_one_hit_peaks[grouped_one_hit_peaks.size()-1]+1<<"]";
+				 <<", "<<grouped_one_hit_peaks[grouped_one_hit_peaks.size()-1]+1<<"]";
       
       if(grouped_one_hit_peaks.size()>=3){hand_made_peak=1;}
       if(grouped_one_hit_peaks.size()==2){two_hits_only=1;}
@@ -1595,18 +1589,18 @@ namespace cluster{
       for(size_t peak2 = 0; peak2 < MaxStartPoint.size(); ++peak2){
     
         if(peak != peak2){
-  	diff_end_minus_start.push_back(MaxStartPoint[peak2]-MaxEndPoint[peak]);
-  	diff_start_minus_end.push_back(MaxStartPoint[peak]-MaxEndPoint[peak2]);
+	  diff_end_minus_start.push_back(MaxStartPoint[peak2]-MaxEndPoint[peak]);
+	  diff_start_minus_end.push_back(MaxStartPoint[peak]-MaxEndPoint[peak2]);
         }
       }
     
       for(size_t diff=0; diff < diff_end_minus_start.size(); ++diff){
       
         if(diff_end_minus_start[diff] >= 0){
-  	positive_diff_end_minus_start.push_back(diff_end_minus_start[diff]); 
+	  positive_diff_end_minus_start.push_back(diff_end_minus_start[diff]); 
         }
         if(diff_start_minus_end[diff] >= 0){
-  	positive_diff_start_minus_end.push_back(diff_start_minus_end[diff]); 
+	  positive_diff_start_minus_end.push_back(diff_start_minus_end[diff]); 
         }
       
       }
@@ -1614,13 +1608,13 @@ namespace cluster{
       //now take the minimum and this is your closest range in bin numbers:
       if(positive_diff_end_minus_start.size() > 0){
         closest_range_right_side = *std::min_element(positive_diff_end_minus_start.begin(),
-  						   positive_diff_end_minus_start.end());
+						     positive_diff_end_minus_start.end());
       }
       else if(positive_diff_end_minus_start.size() == 0) this_is_the_last_range = 1;
    
       if(positive_diff_start_minus_end.size() > 0){
         closest_range_left_side = *std::min_element(positive_diff_start_minus_end.begin(),
-  						  positive_diff_start_minus_end.end());
+						    positive_diff_start_minus_end.end());
       }
       else if(positive_diff_start_minus_end.size() == 0) this_is_the_first_range=1;
    
@@ -1645,12 +1639,12 @@ namespace cluster{
         if(this_is_the_last_range  == 1) mf::LogInfo("KingaCluster")<<" because it's the last range and ";
         if(this_is_the_first_range == 1) mf::LogInfo("KingaCluster")<<" because it's the first range and ";
         if(closest_range_right_side >= 8){
-  	mf::LogInfo("KingaCluster")<<"The closest range from right side is "
-  				   <<closest_range_right_side<<" bins away";
+	  mf::LogInfo("KingaCluster")<<"The closest range from right side is "
+				     <<closest_range_right_side<<" bins away";
         }
         if(closest_range_left_side >= 8){
-  	mf::LogInfo("KingaCluster")<<"The closest range from left side is "
-  				   <<closest_range_left_side<<" bins away";
+	  mf::LogInfo("KingaCluster")<<"The closest range from left side is "
+				     <<closest_range_left_side<<" bins away";
         }
    
       }
@@ -1662,54 +1656,54 @@ namespace cluster{
    
         //mf::LogInfo("KingaCluster")<<"bin= "<<bin<<std::endl;
         if(sigType == geo::kInduction){
-  	no_hits_in_range+=fh_theta_ind->GetBinContent(bin);
-  	//mf::LogInfo("KingaCluster")<<" plane= "<<plane<<" no_hits_in_range= "<<no_hits_in_range;
+	  no_hits_in_range+=fh_theta_ind->GetBinContent(bin);
+	  //mf::LogInfo("KingaCluster")<<" plane= "<<plane<<" no_hits_in_range= "<<no_hits_in_range;
         }
         if(sigType == geo::kCollection){
-  	no_hits_in_range+=fh_theta_coll->GetBinContent(bin);
-  	//mf::LogInfo("KingaCluster")<<" plane= "<<plane<<" no_hits_in_range= "<<no_hits_in_range;
+	  no_hits_in_range+=fh_theta_coll->GetBinContent(bin);
+	  //mf::LogInfo("KingaCluster")<<" plane= "<<plane<<" no_hits_in_range= "<<no_hits_in_range;
         }
    
       }
    
       mf::LogInfo("KingaCluster")<<"no_hits_in_range= "<<no_hits_in_range
-  			       <<" for peak at bin # "<<FinalPeaks[peak]
-  			       <<" ("<<-180+2*FinalPeaks[peak]<<" degrees). Its range is ["
-  			       <<-180+2*MaxStartPoint[peak]<<", "<<-180+2*MaxEndPoint[peak]<<" ]";
+				 <<" for peak at bin # "<<FinalPeaks[peak]
+				 <<" ("<<-180+2*FinalPeaks[peak]<<" degrees). Its range is ["
+				 <<-180+2*MaxStartPoint[peak]<<", "<<-180+2*MaxEndPoint[peak]<<" ]";
    
       if(sigType == geo::kInduction){
         if((fh_theta_ind_Area->GetBinContent(FinalPeaks[peak]) > 0.4 && 
-  	  no_hits_in_range>=MinHitsInRange) || 
-  	 hand_made_peak==1 || 
-  	 very_well_separated_two_hit_peak==1){
-  	TempFinalPeaks.push_back(FinalPeaks[peak]);
-  	TempMaxStartPoint.push_back(MaxStartPoint[peak]);
-  	TempMaxEndPoint.push_back(MaxEndPoint[peak]);
+	    no_hits_in_range>=MinHitsInRange) || 
+	   hand_made_peak==1 || 
+	   very_well_separated_two_hit_peak==1){
+	  TempFinalPeaks.push_back(FinalPeaks[peak]);
+	  TempMaxStartPoint.push_back(MaxStartPoint[peak]);
+	  TempMaxEndPoint.push_back(MaxEndPoint[peak]);
         }
         else if(fh_theta_ind_Area->GetBinContent(FinalPeaks[peak]) <= 0.4 && 
-  	      no_hits_in_range >= MinHitsInRange && 
-  	      well_separated == 1){
-  	TempFinalPeaks.push_back(FinalPeaks[peak]);
-  	TempMaxStartPoint.push_back(MaxStartPoint[peak]);
-  	TempMaxEndPoint.push_back(MaxEndPoint[peak]);
+		no_hits_in_range >= MinHitsInRange && 
+		well_separated == 1){
+	  TempFinalPeaks.push_back(FinalPeaks[peak]);
+	  TempMaxStartPoint.push_back(MaxStartPoint[peak]);
+	  TempMaxEndPoint.push_back(MaxEndPoint[peak]);
         }
    
       }//inductionplane 
    
       if(sigType == geo::kCollection){
         if((fh_theta_coll_Area->GetBinContent(FinalPeaks[peak]) > 0.4 && 
-  	  no_hits_in_range>=MinHitsInRange) || 
-  	 hand_made_peak==1){
-  	TempFinalPeaks.push_back(FinalPeaks[peak]);
-  	TempMaxStartPoint.push_back(MaxStartPoint[peak]);
-  	TempMaxEndPoint.push_back(MaxEndPoint[peak]);
+	    no_hits_in_range>=MinHitsInRange) || 
+	   hand_made_peak==1){
+	  TempFinalPeaks.push_back(FinalPeaks[peak]);
+	  TempMaxStartPoint.push_back(MaxStartPoint[peak]);
+	  TempMaxEndPoint.push_back(MaxEndPoint[peak]);
         }
         else if(fh_theta_coll_Area->GetBinContent(FinalPeaks[peak]) < 0.4 && 
-  	      no_hits_in_range>=MinHitsInRange && 
-  	      well_separated == 1){
-  	TempFinalPeaks.push_back(FinalPeaks[peak]);
-  	TempMaxStartPoint.push_back(MaxStartPoint[peak]);
-  	TempMaxEndPoint.push_back(MaxEndPoint[peak]);
+		no_hits_in_range>=MinHitsInRange && 
+		well_separated == 1){
+	  TempFinalPeaks.push_back(FinalPeaks[peak]);
+	  TempMaxStartPoint.push_back(MaxStartPoint[peak]);
+	  TempMaxEndPoint.push_back(MaxEndPoint[peak]);
    
         }
    
@@ -1755,14 +1749,14 @@ namespace cluster{
       for(size_t onepk = 0; onepk < one_hit_peaks.size(); ++onepk){
         for(size_t fpk = 0; fpk < FinalPeaks.size(); ++fpk){
   	
-  	//first pick the ones which are very far from the already existing peak
-  	/// \todo 17 is a magic number and should be made a parameter
-  	if(abs(one_hit_peaks[onepk]-FinalPeaks[fpk]) > 17){
+	  //first pick the ones which are very far from the already existing peak
+	  /// \todo 17 is a magic number and should be made a parameter
+	  if(abs(one_hit_peaks[onepk]-FinalPeaks[fpk]) > 17){
    
-  	  separated_one_hit_peaks.push_back(one_hit_peaks[onepk]);
-  	  mf::LogInfo("KingaCluster")<<"adding "<<one_hit_peaks[onepk]<<" to separated_one_hit_peaks";
+	    separated_one_hit_peaks.push_back(one_hit_peaks[onepk]);
+	    mf::LogInfo("KingaCluster")<<"adding "<<one_hit_peaks[onepk]<<" to separated_one_hit_peaks";
    
-  	}
+	  }
         }
       }
   
@@ -1770,13 +1764,13 @@ namespace cluster{
       for(size_t i = 0; i < separated_one_hit_peaks.size(); ++i){
         for(size_t j = 0; j < separated_one_hit_peaks.size(); ++j){
    
-  	/// \todo 11 is a magic number and should be a parameter
-  	if(i != j && abs(separated_one_hit_peaks[i]-separated_one_hit_peaks[j]) < 11){
-  	  separation=abs(separated_one_hit_peaks[i]-separated_one_hit_peaks[j]);
-  	  close_and_separated_one_h_pk.push_back(separated_one_hit_peaks[i]);
-  	  close_and_separated_one_h_pk.push_back(separated_one_hit_peaks[j]);
-  	  break;
-  	}
+	  /// \todo 11 is a magic number and should be a parameter
+	  if(i != j && abs(separated_one_hit_peaks[i]-separated_one_hit_peaks[j]) < 11){
+	    separation=abs(separated_one_hit_peaks[i]-separated_one_hit_peaks[j]);
+	    close_and_separated_one_h_pk.push_back(separated_one_hit_peaks[i]);
+	    close_and_separated_one_h_pk.push_back(separated_one_hit_peaks[j]);
+	    break;
+	  }
    
         }
         if(close_and_separated_one_h_pk.size() == 2) break;
@@ -1789,20 +1783,20 @@ namespace cluster{
   
         for(size_t y = 0; y < close_and_separated_one_h_pk.size(); ++y){
   
-  	sum+=close_and_separated_one_h_pk[y];
-  	// and the range should be the start point of the first hit, 
-  	// the end point should be the end point of the second hit, 
-  	// so you could sort them. But, actually the range doesnt 
-  	// really matter here, just make it a few bins to the right and left!
+	  sum+=close_and_separated_one_h_pk[y];
+	  // and the range should be the start point of the first hit, 
+	  // the end point should be the end point of the second hit, 
+	  // so you could sort them. But, actually the range doesnt 
+	  // really matter here, just make it a few bins to the right and left!
   
         }
   
         int made_peak = sum/close_and_separated_one_h_pk.size();
         mf::LogInfo("KingaCluster")<<"---------------------------------------------------------"
-  				 <<" WARNING:: WILL MAKE AN EXCEPTION FOR THIS EVENT "
-  				 << " (event is clean, only 1 peak originally found) "
-  				 << " AND CREATE A NEW PEAK AT BIN #"<<made_peak
-  				 <<"---------------------------------------------------------";
+				   <<" WARNING:: WILL MAKE AN EXCEPTION FOR THIS EVENT "
+				   << " (event is clean, only 1 peak originally found) "
+				   << " AND CREATE A NEW PEAK AT BIN #"<<made_peak
+				   <<"---------------------------------------------------------";
   
         FinalPeaks.push_back(made_peak);
         MaxStartPoint.push_back(made_peak-0.5*separation);
@@ -1832,32 +1826,32 @@ namespace cluster{
         /// \todo 3 is a magic number
         if(pk != (int)pk2 && abs(FinalPeaks[pk]-FinalPeaks[pk2]) < 3){
     
-  	for(size_t i = 0; i < FinalPeaks.size(); ++i){
-  	  if(int(i) != pk){ 
-  	    TempFinalPeaks.push_back(FinalPeaks[i]);
-  	    TempMaxStartPoint.push_back(MaxStartPoint[i]);
-  	    TempMaxEndPoint.push_back(MaxEndPoint[i]);
-  	  }
-  	}
+	  for(size_t i = 0; i < FinalPeaks.size(); ++i){
+	    if(int(i) != pk){ 
+	      TempFinalPeaks.push_back(FinalPeaks[i]);
+	      TempMaxStartPoint.push_back(MaxStartPoint[i]);
+	      TempMaxEndPoint.push_back(MaxEndPoint[i]);
+	    }
+	  }
     
-  	FinalPeaks.clear();
-  	MaxStartPoint.clear();
-  	MaxEndPoint.clear();
-  	FinalPeaks=TempFinalPeaks;
-  	MaxStartPoint=TempMaxStartPoint;
-  	MaxEndPoint=TempMaxEndPoint;
-  	TempFinalPeaks.clear();
-  	TempMaxStartPoint.clear();
-  	TempMaxEndPoint.clear();
-  	break;
+	  FinalPeaks.clear();
+	  MaxStartPoint.clear();
+	  MaxEndPoint.clear();
+	  FinalPeaks=TempFinalPeaks;
+	  MaxStartPoint=TempMaxStartPoint;
+	  MaxEndPoint=TempMaxEndPoint;
+	  TempFinalPeaks.clear();
+	  TempMaxStartPoint.clear();
+	  TempMaxEndPoint.clear();
+	  break;
    
         }
       }
     }
   
     mf::LogInfo("KingaCluster")<<" After making sure that each peak is more than "
-  			     << "3 bins away from the previous one, FinalPeaks.size()="
-  			     <<FinalPeaks.size();
+			       << "3 bins away from the previous one, FinalPeaks.size()="
+			       <<FinalPeaks.size();
   
     // Lastly, let's make sure that if there are ranges of peaks 
     // that lay right next to each other, their peak signal is 
@@ -1873,24 +1867,24 @@ namespace cluster{
       for(size_t peak2 = 0; peak2 < MaxStartPoint.size(); ++peak2){
   
         if((sigType == geo::kInduction && 
-  	  peak != peak2 && 
-  	  abs(MaxStartPoint[peak]-MaxEndPoint[peak2]) <= 1 && 
-  	  (fh_theta_ind_Area->GetBinContent(FinalPeaks[peak])  < 0.6 || 
-  	   fh_theta_ind_Area->GetBinContent(FinalPeaks[peak2]) < 0.6)) || 
-  	 (sigType == geo::kCollection && 
-  	  peak != peak2 && 
-  	  abs(MaxStartPoint[peak]-MaxEndPoint[peak2]) <= 1 && 
-  	  (fh_theta_coll_Area->GetBinContent(FinalPeaks[peak]) < 0.6 || 
-  	   fh_theta_coll_Area->GetBinContent(FinalPeaks[peak2]) < 0.6))
-  	 ) {
+	    peak != peak2 && 
+	    abs(MaxStartPoint[peak]-MaxEndPoint[peak2]) <= 1 && 
+	    (fh_theta_ind_Area->GetBinContent(FinalPeaks[peak])  < 0.6 || 
+	     fh_theta_ind_Area->GetBinContent(FinalPeaks[peak2]) < 0.6)) || 
+	   (sigType == geo::kCollection && 
+	    peak != peak2 && 
+	    abs(MaxStartPoint[peak]-MaxEndPoint[peak2]) <= 1 && 
+	    (fh_theta_coll_Area->GetBinContent(FinalPeaks[peak]) < 0.6 || 
+	     fh_theta_coll_Area->GetBinContent(FinalPeaks[peak2]) < 0.6))
+	   ) {
   
-  	//get rid of one of them
-  	if(std::find(marked.begin(), marked.end(),peak)  == marked.end() && 
-  	   std::find(marked.begin(), marked.end(),peak2) == marked.end()){
-  	  bad_small_peak.push_back(FinalPeaks[peak]);
-  	  marked.push_back(FinalPeaks[peak]);
-  	  marked.push_back(FinalPeaks[peak2]);
-  	}//if not analyzed already
+	  //get rid of one of them
+	  if(std::find(marked.begin(), marked.end(),peak)  == marked.end() && 
+	     std::find(marked.begin(), marked.end(),peak2) == marked.end()){
+	    bad_small_peak.push_back(FinalPeaks[peak]);
+	    marked.push_back(FinalPeaks[peak]);
+	    marked.push_back(FinalPeaks[peak2]);
+	  }//if not analyzed already
   
         }
       }
@@ -1899,8 +1893,8 @@ namespace cluster{
     //now copy the right peaks, if we found any small peak ranges right next to each other:
     if(bad_small_peak.size()>0){
       mf::LogInfo("KingaCluster")<<" ATTENTION: WILL NEED TO DELETE PEAKS AT THE FOLLOWING BIN #s"
-  			       << ", b/c its range is right next to some other range and the "
-  			       << "peak signal is < 0.6 ";
+				 << ", b/c its range is right next to some other range and the "
+				 << "peak signal is < 0.6 ";
   
       for(size_t bin = 0; bin < bad_small_peak.size(); ++bin){
         mf::LogInfo("KingaCluster") <<bin;
@@ -1912,9 +1906,9 @@ namespace cluster{
   
       for(size_t i = 0; i < FinalPeaks.size(); ++i){
         if(std::find(bad_small_peak.begin(),bad_small_peak.end(),FinalPeaks[i])==bad_small_peak.end()){
-  	TempFinalPeaks.push_back(FinalPeaks[i]);
-  	TempMaxStartPoint.push_back(MaxStartPoint[i]);
-  	TempMaxEndPoint.push_back(MaxEndPoint[i]);
+	  TempFinalPeaks.push_back(FinalPeaks[i]);
+	  TempMaxStartPoint.push_back(MaxStartPoint[i]);
+	  TempMaxEndPoint.push_back(MaxEndPoint[i]);
         }
       }
   
@@ -1938,13 +1932,13 @@ namespace cluster{
     mf::LogInfo("KingaCluster")<<"FinalPeaks are at bin(s):  ";
     for(size_t i = 0; i < FinalPeaks.size(); ++i){
       mf::LogInfo("KingaCluster")<<FinalPeaks[i]<<" which corresponds to angle=  "
-  			       <<-180+2*FinalPeaks[i];
+				 <<-180+2*FinalPeaks[i];
     }
   
   
     //int no_noise_hits=0;
     mf::LogInfo("KingaCluster")<<"In FindClusters(int plane), we should be producing "
-  			     <<MaxStartPoint.size()<<" clusters";
+			       <<MaxStartPoint.size()<<" clusters";
     double a_polar, b_polar,theta_polar;
    
     std::vector<double> DiffAngles;
@@ -1972,29 +1966,29 @@ namespace cluster{
       for(size_t ClusterNo = 0; ClusterNo < MaxStartPoint.size(); ++ClusterNo){
   
         if(theta_polar >= (-180+2*MaxStartPoint[ClusterNo]) && 
-  	 theta_polar <= (-180+2*MaxEndPoint[ClusterNo])){
-  	//want to start counting from 1, O is reserved for hits that will be marked as noise
-  	HitsWithClusterID.push_back(ClusterNo+1);
-  	break;
+	   theta_polar <= (-180+2*MaxEndPoint[ClusterNo])){
+	  //want to start counting from 1, O is reserved for hits that will be marked as noise
+	  HitsWithClusterID.push_back(ClusterNo+1);
+	  break;
         }
         else if(ClusterNo == MaxStartPoint.size()-1){
-  	//decide where noise hits go
+	  //decide where noise hits go
        
-  	for(unsigned int peakNo=0;peakNo<FinalPeaks.size();peakNo++){
-  	  DiffAngles.push_back(std::abs(-180+2*FinalPeaks[peakNo]-theta_polar));
-  	}
-  	// now take minimum of DiffAngles and find at which position 
-  	// it is at, this position corresponds to clusterNo +1 , 
-  	// because we don't want to mark hits with zero 
+	  for(unsigned int peakNo=0;peakNo<FinalPeaks.size();peakNo++){
+	    DiffAngles.push_back(std::abs(-180+2*FinalPeaks[peakNo]-theta_polar));
+	  }
+	  // now take minimum of DiffAngles and find at which position 
+	  // it is at, this position corresponds to clusterNo +1 , 
+	  // because we don't want to mark hits with zero 
        
-  	int position = std::distance(DiffAngles.begin(),std::min_element(DiffAngles.begin(),DiffAngles.end()));
+	  int position = std::distance(DiffAngles.begin(),std::min_element(DiffAngles.begin(),DiffAngles.end()));
      
-  	HitsWithClusterID.push_back(position+1);
-  	// if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
-  	//    mf::LogInfo("KingaCluster")<<"  This hit is closest to cluster # "<<position+1<<std::endl;
-  	//    }
-  	//no_noise_hits++;
-  	DiffAngles.clear();
+	  HitsWithClusterID.push_back(position+1);
+	  // if(w>95 && w<128 && allhits[i]->PeakTime()> 880 && allhits[i]->PeakTime()<1048){
+	  //    mf::LogInfo("KingaCluster")<<"  This hit is closest to cluster # "<<position+1<<std::endl;
+	  //    }
+	  //no_noise_hits++;
+	  DiffAngles.clear();
         }
       } //loop over all ranges
     } //allhits
@@ -2032,7 +2026,7 @@ namespace cluster{
   
       int NoHitsInCluster = std::count(HitsWithClusterID.begin(),HitsWithClusterID.end(),NClus+1);
       mf::LogInfo("KingaCluster") <<"*** No of Hits for cluster # "
-  				<<NClus+1<<" = "<<NoHitsInCluster;
+				  <<NClus+1<<" = "<<NoHitsInCluster;
   
       //........Check the span for small clusters................
       /// \todo 5 is now a magic number
@@ -2042,7 +2036,7 @@ namespace cluster{
         for(size_t h = 0; h < HitsWithClusterID.size(); ++h) {
       
           if(HitsWithClusterID[h] == NClus+1){
-  	  WireNo.push_back(allhits[h]->Channel());
+	    WireNo.push_back(allhits[h]->Channel());
           }
       
         }
@@ -2054,8 +2048,8 @@ namespace cluster{
   
         /// \todo and now 0.66 is magic
         if(span > (NoHitsInCluster+0.66*NoHitsInCluster)){
-  	need_to_reassign_hitsIDs=1;
-  	WrongPeakNo.push_back(NClus);
+	  need_to_reassign_hitsIDs=1;
+	  WrongPeakNo.push_back(NClus);
         }
       }//if clusters containing less than 5 hits
   
@@ -2074,18 +2068,18 @@ namespace cluster{
     
       if(NoHitsInCluster == 2){
         for(size_t pk = 0; pk < FinalPeaks.size(); ++pk){
-  	if(NClus != pk && abs(FinalPeaks[NClus]-FinalPeaks[pk]) < 30){ 
-  	  go_ahead_at_reassign=1;
-  	  break;
-  	}
+	  if(NClus != pk && abs(FinalPeaks[NClus]-FinalPeaks[pk]) < 30){ 
+	    go_ahead_at_reassign=1;
+	    break;
+	  }
         }
      
         if(go_ahead_at_reassign == 1) WrongPeakNo.push_back(NClus);
         if(go_ahead_at_reassign == 0){
      
-  	mf::LogInfo("KingaCluster")<<"FOUND A 2-HIT-CLUSTER WHICH IS VERY WELL "
-  				   << "SEPARATED FROM THE REST, I will leave it "
-  				   << "(This is peak at bin #"<<FinalPeaks[NClus];
+	  mf::LogInfo("KingaCluster")<<"FOUND A 2-HIT-CLUSTER WHICH IS VERY WELL "
+				     << "SEPARATED FROM THE REST, I will leave it "
+				     << "(This is peak at bin #"<<FinalPeaks[NClus];
         } 
      
       } //2-hit-clusters
@@ -2105,9 +2099,9 @@ namespace cluster{
       for(size_t f = 0; f < initialNoPeaks; ++f){
         iter = find(WrongPeakNo.begin(),WrongPeakNo.end(),f);
         if(iter == WrongPeakNo.end()){
-  	FinalPeaksTemporary.push_back(FinalPeaks[f]);
-  	MaxStartPointTemporary.push_back(MaxStartPoint[f]);
-  	MaxEndPointTemporary.push_back(MaxEndPoint[f]);
+	  FinalPeaksTemporary.push_back(FinalPeaks[f]);
+	  MaxStartPointTemporary.push_back(MaxStartPoint[f]);
+	  MaxEndPointTemporary.push_back(MaxEndPoint[f]);
         }
       }
       FinalPeaks.clear();
