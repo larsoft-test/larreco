@@ -216,7 +216,11 @@ bo_houghbasealg.NumAngleCells:  5000
 bo_houghbasealg.MaxDistance:    5.0
 bo_endpointalg:                 @local::standard_endpointalg
 
-argoneut_clustercrawleralg:          @local::standard_clustercrawleralg       
+argoneut_clustercrawleralg:          @local::standard_clustercrawleralg
+argoneut_cchitfinderalg:             @local::standard_cchitfinderalg
+argoneut_cchitfinderalg.MinSigInd:   5.
+argoneut_cchitfinderalg.MinSigCol:   3.
+argoneut_cchitrefineralg:            @local::standard_cchitrefineralg
 argoneut_dbscanalg:                  @local::standard_dbscanalg       
 argoneut_fuzzyclusteralg:            @local::standard_fuzzyclusteralg
 argoneut_houghbasealg:               @local::standard_houghbasealg   
