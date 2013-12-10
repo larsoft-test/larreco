@@ -178,15 +178,21 @@ namespace  trkf{
 
 	  if(report) {
 	    const double* xyz = tpcgeom.PlaneLocation(plane);
-	    mf::LogInfo("SpacePointAlg") << "\nCryostat, TPC, Plane: " << cstat << "," << tpc << ", " << plane << "\n"
-		<< "  View: " << viewname << "\n"
-		<< "  SignalType: " << sigtypename << "\n"
-		<< "  Orientation: " << orientname << "\n"
-		<< "  Plane location: " << xyz[0] << "\n"
-		<< "  Plane pitch: " << tpcgeom.Plane0Pitch(plane) << "\n"
-		<< "  Wire angle: " << tpcgeom.Plane(plane).Wire(0).ThetaZ() << "\n"
-		<< "  Wire pitch: " << tpcgeom.WirePitch() << "\n"
-		<< "  Time offset: " << detprop->GetXTicksOffset(plane,tpc,cstat) << "\n";
+	    mf::LogInfo("SpacePointAlg") << "\nCryostat, TPC, Plane: " 
+					 << cstat << "," 
+					 << tpc << ", " 
+					 << plane << "\n"
+					 << "  View: " << viewname << "\n"
+					 << "  SignalType: " << sigtypename << "\n"
+					 << "  Orientation: " << orientname << "\n"
+					 << "  Plane location: " << xyz[0] << "\n"
+					 << "  Plane pitch: " 
+					 << tpcgeom.Plane0Pitch(plane) << "\n"
+					 << "  Wire angle: " 
+					 << tpcgeom.Plane(plane).Wire(0).ThetaZ() << "\n"
+					 << "  Wire pitch: " << tpcgeom.WirePitch() << "\n"
+					 << "  Time offset: " 
+					 << detprop->GetXTicksOffset(plane,tpc,cstat) << "\n";
 	  }
 	
 	  if(orient != geo::kVertical)
