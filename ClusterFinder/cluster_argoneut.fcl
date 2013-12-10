@@ -13,7 +13,9 @@ argoneut_houghbasealg.MaxDistance:   5.0
 argoneut_endpointalg:                @local::standard_endpointalg
 
 argoneut_clustercrawler:               @local::standard_clustercrawler      
-argoneut_clustercrawler.ClusterCrawlerAlg: @local::argoneut_clustercrawleralg    
+argoneut_clustercrawler.ClusterCrawlerAlg: @local::argoneut_clustercrawleralg
+argoneut_clustercrawler.CCHitFinderAlg:    @local::argoneut_cchitfinderalg
+argoneut_clustercrawler.CCHitRefinerAlg:   @local::argoneut_cchitrefineralg
 argoneut_dbcluster:                    @local::standard_dbcluster      
 argoneut_dbcluster.DBScanAlg:          @local::argoneut_dbscanalg    
 argoneut_dbclusterana:                 @local::standard_dbclusterana   
