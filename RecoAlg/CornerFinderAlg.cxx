@@ -261,12 +261,11 @@ void cluster::CornerFinderAlg::TakeInRaw( art::Event const&evt)
 // This gives us a vecotr of EndPoint2D objects that correspond to possible corners
 void cluster::CornerFinderAlg::get_feature_points(std::vector<recob::EndPoint2D> & corner_vector){
 
-  for(unsigned int cstat = 0; cstat < fGeom->Ncryostats(); ++cstat){
-    for(unsigned int tpc = 0; tpc < fGeom->Cryostat(cstat).NTPC(); ++tpc){
-      for(unsigned int plane = 0; plane < fGeom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
-	attach_feature_points(WireData_histos[plane],WireData_IDs[plane],fGeom->Cryostat(cstat).TPC(tpc).Plane(plane).View(),corner_vector);
-      }
-    }
+  for(auto pid : fGeom->PlaneIDs()){
+    attach_feature_points(WireData_histos[pid.Plane],
+			  WireData_IDs[pid.Plane],
+			  fGeom->View(pid),
+			  corner_vector);
   }
 
 }
@@ -305,16 +304,16 @@ void cluster::CornerFinderAlg::get_feature_points_fast(std::vector<recob::EndPoi
 // Uses line integral score as corner strength
 void cluster::CornerFinderAlg::get_feature_points_LineIntegralScore(std::vector<recob::EndPoint2D> & corner_vector){
 
-  for(unsigned int cstat = 0; cstat < fGeom->Ncryostats(); ++cstat){
-    for(unsigned int tpc = 0; tpc < fGeom->Cryostat(cstat).NTPC(); ++tpc){
-      for(unsigned int plane = 0; plane < fGeom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
-	attach_feature_points_LineIntegralScore(WireData_histos[plane],WireData_IDs[plane],fGeom->Cryostat(cstat).TPC(tpc).Plane(plane).View(),corner_vector);
-      }
-    }
+  for(auto pid : fGeom->PlaneIDs()){
+    attach_feature_points_LineIntegralScore(WireData_histos[pid.Plane],
+					    WireData_IDs[pid.Plane],
+					    fGeom->View(pid),
+					    corner_vector);
   }
 
 }
 
+//-----------------------------------------------------------------------------------
 void cluster::CornerFinderAlg::remove_duplicates(std::vector<recob::EndPoint2D> & corner_vector){
 
   int i_wire, j_wire;
@@ -381,204 +380,199 @@ void cluster::CornerFinderAlg::create_smaller_histos(){
 
   //std::cout << "OK, creating the smaller histograms." << std::endl;
 
-  for(unsigned int cstat = 0; cstat < fGeom->Ncryostats(); ++cstat){
-    for(unsigned int tpc = 0; tpc < fGeom->Cryostat(cstat).NTPC(); ++tpc){
-      for(unsigned int plane = 0; plane < fGeom->Cryostat(cstat).TPC(tpc).Nplanes(); ++plane){
+  for(auto pid : fGeom->PlaneIDs() ){
+    //std::cout << "Working plane " << plane << "." << std::endl;
 
-	//std::cout << "Working plane " << plane << "." << std::endl;
-
-	int x_bins = WireData_histos_ProjectionX[plane]->GetNbinsX();
-	//float x_min = WireData_histos_ProjectionX[plane]->GetXaxis()->GetBinLowEdge(1);
-	//float x_max = WireData_histos_ProjectionX[plane]->GetXaxis()->GetBinUpEdge(x_bins);
-	
-	int y_bins = WireData_histos_ProjectionY[plane]->GetNbinsX();
-	//float y_min = WireData_histos_ProjectionY[plane]->GetXaxis()->GetBinLowEdge(1);
-	//float y_max = WireData_histos_ProjectionY[plane]->GetXaxis()->GetBinUpEdge(y_bins);
+    int x_bins = WireData_histos_ProjectionX[pid.Plane]->GetNbinsX();
+    //float x_min = WireData_histos_ProjectionX[plane]->GetXaxis()->GetBinLowEdge(1);
+    //float x_max = WireData_histos_ProjectionX[plane]->GetXaxis()->GetBinUpEdge(x_bins);
+    
+    int y_bins = WireData_histos_ProjectionY[pid.Plane]->GetNbinsX();
+    //float y_min = WireData_histos_ProjectionY[plane]->GetXaxis()->GetBinLowEdge(1);
+    //float y_max = WireData_histos_ProjectionY[plane]->GetXaxis()->GetBinUpEdge(y_bins);
 
 
-	std::vector<int> cut_points_x {0};
-	std::vector<int> cut_points_y {0};
-
-	for (int ix=1; ix<=x_bins; ix++){
-	  //if(ix==1) std::cout << "Projection X values:" << std::endl;
-
-	  float this_value = WireData_histos_ProjectionX[plane]->GetBinContent(ix);
-	  //float next_value = WireData_histos_ProjectionX[plane]->GetBinContent(ix+1);
-	  //std::cout << "\t\tBin " << ix 
-	  //	    << ", (Projection,Change) = (" << this_value << "," << next_value << ")" << std::endl;
-
-	  if(ix<fTrimming_buffer || ix>(x_bins-fTrimming_buffer)) continue;
-	  
-	  int jx=ix-fTrimming_buffer;
-	  while(this_value<fTrimming_threshold){
-	    if(jx==ix+fTrimming_buffer) break;
-	    this_value = WireData_histos_ProjectionX[plane]->GetBinContent(jx);
-	    jx++;
-	  }
-	  if(this_value<fTrimming_threshold){
-	    //std::cout << "\t\t\tWe have a cut point at " << ix << std::endl;
-	    cut_points_x.push_back(ix);
-	  }
-
-	}
-
-	for (int iy=1; iy<=y_bins; iy++){
-	  //if(iy==1) std::cout << "Projection Y values:" << std::endl;
-
-	  float this_value = WireData_histos_ProjectionY[plane]->GetBinContent(iy);
-	  //float next_value = WireData_histos_ProjectionY[plane]->GetBinContent(iy+1);
-	  //std::cout << "\t\tBin " << iy 
-	  //	    << ", (Projection,Change) = (" << this_value << "," << next_value << ")" << std::endl;
-
-	  if(iy<fTrimming_buffer || iy>(y_bins-fTrimming_buffer)) continue;
-	  
-	  int jy=iy-fTrimming_buffer;
-	  while(this_value<fTrimming_threshold){
-	    if(jy==iy+fTrimming_buffer) break;
-	    this_value = WireData_histos_ProjectionY[plane]->GetBinContent(jy);
-	    jy++;
-	  }
-	  if(this_value<fTrimming_threshold){
-	    //std::cout << "\t\t\tWe have a cut point at " << iy << std::endl;
-	    cut_points_y.push_back(iy);
-	  }
-
-	}
-
-	//std::cout << "We have a total of " << cut_points_x.size() << " x cut points." << std::endl;
-	//std::cout << "We have a total of " << cut_points_y.size() << " y cut points." << std::endl;
-
-	std::vector<int> x_low{1};
-	std::vector<int> x_high{x_bins};
-	std::vector<int> y_low{1};
-	std::vector<int> y_high{y_bins};
-	bool x_change = true;
-	bool y_change = true;
-	while(x_change || y_change){
-
-	  //std::cout << "OK, let's trim things down!" << std::endl;
-
-	  x_change = false;
-	  y_change = false;
-
-	  size_t current_size = x_low.size();
-
-	  for(size_t il=0; il<current_size; il++){
-	    
-	    int comp_value = (x_high.at(il) + x_low.at(il)) / 2;
-	    //std::cout << "x low point is " << x_low.at(il) << " and high point is " << x_high.at(il) << std::endl;
-	    //std::sort(cut_points_x.begin(),cut_points_x.end(),compare_to_range(x_low.at(il),x_high.at(il)));
-	    std::sort(cut_points_x.begin(),cut_points_x.end(),compare_to_value(comp_value));
-	    
-	    //std::cout << "\tClosest cut point in x is " << cut_points_x.at(0) << std::endl;
-
-	    if(cut_points_x.at(0) <= x_low.at(il) || cut_points_x.at(0) >= x_high.at(il))
-	      continue;
-	    
-	    double integral_low = WireData_histos[plane]->Integral(x_low.at(il),cut_points_x.at(0),y_low.at(il),y_high.at(il));
-	    double integral_high = WireData_histos[plane]->Integral(cut_points_x.at(0),x_high.at(il),y_low.at(il),y_high.at(il));
-	    if(integral_low > fTrimming_totalThreshold && integral_high > fTrimming_totalThreshold){
-	      x_low.push_back(cut_points_x.at(0));
-	      x_high.push_back(x_high.at(il));
-	      y_low.push_back(y_low.at(il));
-	      y_high.push_back(y_high.at(il));
-	      
-	      x_high[il] = cut_points_x.at(0);
-	      x_change = true;
-	    }
-	    else if(integral_low > fTrimming_totalThreshold && integral_high < fTrimming_totalThreshold){
-	      x_high[il] = cut_points_x.at(0);
-	      x_change = true;
-	    }
-	    else if(integral_low < fTrimming_totalThreshold && integral_high > fTrimming_totalThreshold){
-	      x_low[il] = cut_points_x.at(0);
-	      x_change = true;
-	    }
-	  }
-
-	  //if(x_change) std::cout << "\tTrimmed in x!" << std::endl;
-
-	  current_size = x_low.size();
-
-	  for(size_t il=0; il<current_size; il++){
-	    
-	    int comp_value = (y_high.at(il) - y_low.at(il)) / 2;
-	    std::sort(cut_points_y.begin(),cut_points_y.end(),compare_to_value(comp_value));
-	    
-	    if(cut_points_y.at(0) <= y_low.at(il) || cut_points_y.at(0) >= y_high.at(il))
-	      continue;
-	    
-	    double integral_low = WireData_histos[plane]->Integral(x_low.at(il),x_high.at(il),y_low.at(il),cut_points_y.at(0));
-	    double integral_high = WireData_histos[plane]->Integral(x_low.at(il),x_high.at(il),cut_points_y.at(0),y_high.at(il));
-	    if(integral_low > fTrimming_totalThreshold && integral_high > fTrimming_totalThreshold){
-	      y_low.push_back(cut_points_y.at(0));
-	      y_high.push_back(y_high.at(il));
-	      x_low.push_back(x_low.at(il));
-	      x_high.push_back(x_high.at(il));
-	      
-	      y_high[il] = cut_points_y.at(0);
-	      y_change = true;
-	    }
-	    else if(integral_low > fTrimming_totalThreshold && integral_high < fTrimming_totalThreshold){
-	      y_high[il] = cut_points_y.at(0);
-	      y_change = true;
-	    }
-	    else if(integral_low < fTrimming_totalThreshold && integral_high > fTrimming_totalThreshold){
-	      y_low[il] = cut_points_y.at(0);
-	      y_change = true;
-	    }
-	  }
-
-	  //if(y_change) std::cout << "\tTrimmed in y!" << std::endl;
-
-	}
-
-	/*
-	std::cout << "First point in x is " << cut_points_x.at(0) << std::endl;
-	std::sort(cut_points_x.begin(),cut_points_x.end(),compare_to_value(x_bins/2));	
-	std::cout << "Now the first point in x is " << cut_points_x.at(0) << std::endl;
-
-	std::cout << "First point in y is " << cut_points_y.at(0) << std::endl;
-	std::sort(cut_points_y.begin(),cut_points_y.end(),compare_to_value(y_bins/2));	
-	std::cout << "Now the first point in y is " << cut_points_y.at(0) << std::endl;
-
-	std::cout << "Integral on the SW side is " 
-		  << WireData_histos[plane]->Integral(1,cut_points_x.at(0),1,cut_points_y.at(0)) << std::endl;
-	std::cout << "Integral on the SE side is " 
-		  << WireData_histos[plane]->Integral(cut_points_x.at(0),x_bins,1,cut_points_y.at(0)) << std::endl;
-	std::cout << "Integral on the NW side is " 
-		  << WireData_histos[plane]->Integral(1,cut_points_x.at(0),cut_points_y.at(0),y_bins) << std::endl;
-	std::cout << "Integral on the NE side is " 
-		  << WireData_histos[plane]->Integral(cut_points_x.at(0),x_bins,cut_points_y.at(0),y_bins) << std::endl;
-	*/
-
-	//std::cout << "Total of " << x_low.size() << " sub-histograms." << std::endl;
-	for(size_t il=0; il<x_low.size(); il++){
-	  //std::cout << "\t(x1,x2,y1,y2) = (" 
-	  //	    << x_low.at(il) << ","
-	  //	    << x_high.at(il) << ","
-	  //	    << y_low.at(il) << ","
-	  //	    << y_high.at(il) << ")" << std::endl;
-
-	  std::stringstream h_name;
-	  h_name << "h_" << cstat << "_" << tpc << "_" << plane << "_sub" << il;
-	  TH2F *h_tmp = new TH2F((h_name.str()).c_str(),"",
-				 x_high.at(il)-x_low.at(il)+1,x_low.at(il),x_high.at(il),
-				 y_high.at(il)-y_low.at(il)+1,y_low.at(il),y_high.at(il));
-
-	  for(int ix=1; ix<=(x_high.at(il)-x_low.at(il)+1); ix++){
-	    for(int iy=1; iy<=(y_high.at(il)-y_low.at(il)+1); iy++){
-	      h_tmp->SetBinContent(ix,iy,WireData_histos[plane]->GetBinContent(x_low.at(il)+(ix-1),y_low.at(il)+(iy-1)));
-	    }
-	  }
-
-	  WireData_trimmed_histos.push_back(std::make_tuple(plane,h_tmp,x_low.at(il),y_low.at(il)));
-	}
-
+    std::vector<int> cut_points_x {0};
+    std::vector<int> cut_points_y {0};
+    
+    for (int ix=1; ix<=x_bins; ix++){
+      //if(ix==1) std::cout << "Projection X values:" << std::endl;
+      
+      float this_value = WireData_histos_ProjectionX[pid.Plane]->GetBinContent(ix);
+      //float next_value = WireData_histos_ProjectionX[plane]->GetBinContent(ix+1);
+      //std::cout << "\t\tBin " << ix 
+      //	    << ", (Projection,Change) = (" << this_value << "," << next_value << ")" << std::endl;
+      
+      if(ix<fTrimming_buffer || ix>(x_bins-fTrimming_buffer)) continue;
+      
+      int jx=ix-fTrimming_buffer;
+      while(this_value<fTrimming_threshold){
+	if(jx==ix+fTrimming_buffer) break;
+	this_value = WireData_histos_ProjectionX[pid.Plane]->GetBinContent(jx);
+	jx++;
       }
+      if(this_value<fTrimming_threshold){
+	//std::cout << "\t\t\tWe have a cut point at " << ix << std::endl;
+	cut_points_x.push_back(ix);
+      }
+      
     }
-  }
-  
+    
+    for (int iy=1; iy<=y_bins; iy++){
+      //if(iy==1) std::cout << "Projection Y values:" << std::endl;
+      
+      float this_value = WireData_histos_ProjectionY[pid.Plane]->GetBinContent(iy);
+      //float next_value = WireData_histos_ProjectionY[plane]->GetBinContent(iy+1);
+      //std::cout << "\t\tBin " << iy 
+      //	    << ", (Projection,Change) = (" << this_value << "," << next_value << ")" << std::endl;
+      
+      if(iy<fTrimming_buffer || iy>(y_bins-fTrimming_buffer)) continue;
+      
+      int jy=iy-fTrimming_buffer;
+      while(this_value<fTrimming_threshold){
+	if(jy==iy+fTrimming_buffer) break;
+	this_value = WireData_histos_ProjectionY[pid.Plane]->GetBinContent(jy);
+	jy++;
+      }
+      if(this_value<fTrimming_threshold){
+	//std::cout << "\t\t\tWe have a cut point at " << iy << std::endl;
+	cut_points_y.push_back(iy);
+      }
+      
+    }
+    
+    //std::cout << "We have a total of " << cut_points_x.size() << " x cut points." << std::endl;
+    //std::cout << "We have a total of " << cut_points_y.size() << " y cut points." << std::endl;
+    
+    std::vector<int> x_low{1};
+    std::vector<int> x_high{x_bins};
+    std::vector<int> y_low{1};
+    std::vector<int> y_high{y_bins};
+    bool x_change = true;
+    bool y_change = true;
+    while(x_change || y_change){
+      
+      //std::cout << "OK, let's trim things down!" << std::endl;
+      
+      x_change = false;
+      y_change = false;
+      
+      size_t current_size = x_low.size();
+      
+      for(size_t il=0; il<current_size; il++){
+	
+	int comp_value = (x_high.at(il) + x_low.at(il)) / 2;
+	//std::cout << "x low point is " << x_low.at(il) << " and high point is " << x_high.at(il) << std::endl;
+	//std::sort(cut_points_x.begin(),cut_points_x.end(),compare_to_range(x_low.at(il),x_high.at(il)));
+	std::sort(cut_points_x.begin(),cut_points_x.end(),compare_to_value(comp_value));
+	
+	//std::cout << "\tClosest cut point in x is " << cut_points_x.at(0) << std::endl;
+	
+	if(cut_points_x.at(0) <= x_low.at(il) || cut_points_x.at(0) >= x_high.at(il))
+	  continue;
+	
+	double integral_low = WireData_histos[pid.Plane]->Integral(x_low.at(il),cut_points_x.at(0),y_low.at(il),y_high.at(il));
+	double integral_high = WireData_histos[pid.Plane]->Integral(cut_points_x.at(0),x_high.at(il),y_low.at(il),y_high.at(il));
+	if(integral_low > fTrimming_totalThreshold && integral_high > fTrimming_totalThreshold){
+	  x_low.push_back(cut_points_x.at(0));
+	  x_high.push_back(x_high.at(il));
+	  y_low.push_back(y_low.at(il));
+	  y_high.push_back(y_high.at(il));
+	  
+	  x_high[il] = cut_points_x.at(0);
+	  x_change = true;
+	}
+	else if(integral_low > fTrimming_totalThreshold && integral_high < fTrimming_totalThreshold){
+	  x_high[il] = cut_points_x.at(0);
+	  x_change = true;
+	}
+	else if(integral_low < fTrimming_totalThreshold && integral_high > fTrimming_totalThreshold){
+	  x_low[il] = cut_points_x.at(0);
+	  x_change = true;
+	}
+      }
+      
+      //if(x_change) std::cout << "\tTrimmed in x!" << std::endl;
+      
+      current_size = x_low.size();
+      
+      for(size_t il=0; il<current_size; il++){
+	
+	int comp_value = (y_high.at(il) - y_low.at(il)) / 2;
+	std::sort(cut_points_y.begin(),cut_points_y.end(),compare_to_value(comp_value));
+	
+	if(cut_points_y.at(0) <= y_low.at(il) || cut_points_y.at(0) >= y_high.at(il))
+	  continue;
+	
+	double integral_low = WireData_histos[pid.Plane]->Integral(x_low.at(il),x_high.at(il),y_low.at(il),cut_points_y.at(0));
+	double integral_high = WireData_histos[pid.Plane]->Integral(x_low.at(il),x_high.at(il),cut_points_y.at(0),y_high.at(il));
+	if(integral_low > fTrimming_totalThreshold && integral_high > fTrimming_totalThreshold){
+	  y_low.push_back(cut_points_y.at(0));
+	  y_high.push_back(y_high.at(il));
+	  x_low.push_back(x_low.at(il));
+	  x_high.push_back(x_high.at(il));
+	  
+	  y_high[il] = cut_points_y.at(0);
+	  y_change = true;
+	}
+	else if(integral_low > fTrimming_totalThreshold && integral_high < fTrimming_totalThreshold){
+	  y_high[il] = cut_points_y.at(0);
+	  y_change = true;
+	}
+	else if(integral_low < fTrimming_totalThreshold && integral_high > fTrimming_totalThreshold){
+	  y_low[il] = cut_points_y.at(0);
+	  y_change = true;
+	}
+      }
+      
+      //if(y_change) std::cout << "\tTrimmed in y!" << std::endl;
+      
+    }
+    
+    /*
+      std::cout << "First point in x is " << cut_points_x.at(0) << std::endl;
+      std::sort(cut_points_x.begin(),cut_points_x.end(),compare_to_value(x_bins/2));	
+      std::cout << "Now the first point in x is " << cut_points_x.at(0) << std::endl;
+      
+      std::cout << "First point in y is " << cut_points_y.at(0) << std::endl;
+      std::sort(cut_points_y.begin(),cut_points_y.end(),compare_to_value(y_bins/2));	
+      std::cout << "Now the first point in y is " << cut_points_y.at(0) << std::endl;
+      
+      std::cout << "Integral on the SW side is " 
+      << WireData_histos[plane]->Integral(1,cut_points_x.at(0),1,cut_points_y.at(0)) << std::endl;
+      std::cout << "Integral on the SE side is " 
+      << WireData_histos[plane]->Integral(cut_points_x.at(0),x_bins,1,cut_points_y.at(0)) << std::endl;
+      std::cout << "Integral on the NW side is " 
+      << WireData_histos[plane]->Integral(1,cut_points_x.at(0),cut_points_y.at(0),y_bins) << std::endl;
+      std::cout << "Integral on the NE side is " 
+      << WireData_histos[plane]->Integral(cut_points_x.at(0),x_bins,cut_points_y.at(0),y_bins) << std::endl;
+    */
+    
+    //std::cout << "Total of " << x_low.size() << " sub-histograms." << std::endl;
+    for(size_t il=0; il<x_low.size(); il++){
+      //std::cout << "\t(x1,x2,y1,y2) = (" 
+      //	    << x_low.at(il) << ","
+      //	    << x_high.at(il) << ","
+      //	    << y_low.at(il) << ","
+      //	    << y_high.at(il) << ")" << std::endl;
+      
+      std::stringstream h_name;
+      h_name << "h_" << pid.Cryostat << "_" << pid.TPC << "_" << pid.Plane << "_sub" << il;
+      TH2F *h_tmp = new TH2F((h_name.str()).c_str(),"",
+			     x_high.at(il)-x_low.at(il)+1,x_low.at(il),x_high.at(il),
+			     y_high.at(il)-y_low.at(il)+1,y_low.at(il),y_high.at(il));
+      
+      for(int ix=1; ix<=(x_high.at(il)-x_low.at(il)+1); ix++){
+	for(int iy=1; iy<=(y_high.at(il)-y_low.at(il)+1); iy++){
+	  h_tmp->SetBinContent(ix,iy,WireData_histos[pid.Plane]->GetBinContent(x_low.at(il)+(ix-1),y_low.at(il)+(iy-1)));
+	}
+      }
+      
+      WireData_trimmed_histos.push_back(std::make_tuple(pid.Plane,h_tmp,x_low.at(il),y_low.at(il)));
+    }
+    
+  }// end loop over PlaneIDs
+
 
   //std::cout << "Done! Total of " << WireData_trimmed_histos.size() << " histograms." << std::endl;
 
