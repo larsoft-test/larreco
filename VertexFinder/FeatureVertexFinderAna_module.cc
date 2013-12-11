@@ -334,33 +334,17 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
   // ==========================================================
   // === Detector numbers that are useful (to be set later) ===
   // ==========================================================
-  size_t nplanes = 0;
-  double WirePitch_CurrentPlane[3] = {0.}; //<---Setting the Wire pitch for each plane
+  //size_t nplanes = 0;
+  std::vector<double> WirePitch_CurrentPlane(geom->Views().size(), 0.); //<---Setting the Wire pitch for each plane
   					   // Right now assuming only 3 planes
   // ##############################
-  // ### Looping over cryostats ###
+  // ### get the wire pitch for each view ###
   // ##############################
-  for(size_t cstat = 0; cstat < geom->Ncryostats(); ++cstat)
-  	{
-    	// ##########################
-      	// ### Looping over TPC's ###
-      	// ##########################
-      	for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc)
-		{
-		// ### Setting the number of planes for this detector ###
-   		nplanes = geom->Cryostat(cstat).TPC(tpc).Nplanes();
-		// ###############################
-		// ### Looping over the planes ###
-		// ###############################
-		for(size_t plane = 0; plane < nplanes; plane ++)
-			{
-			//                              geom->WirePitch(Wire1, Wire2, Plane#, TPC#, Cyro#);
-			WirePitch_CurrentPlane[plane] = geom->WirePitch(0,1,plane,tpc,cstat);
-			
-			
-			}//<---End plane loop
-		}//<---End tpc loop
-	}//<---End cstat loop
+  size_t vn = 0;
+  for(auto v : geom->Views() ){
+    WirePitch_CurrentPlane[vn] = geom->WirePitch(v);
+    ++vn;
+  }
 
   // ##################################################
   // ### Calculating the Timetick to CM conversion  ###
@@ -423,45 +407,29 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
   fTruthVtxZPos->Fill( truth_vertex[2] );
   
   // ##############################
-  // ### Looping over cryostats ###
+  // ### Looping over geo::PlaneIDs ###
   // ##############################
-  for(size_t cstat = 0; cstat < geom->Ncryostats(); ++cstat)
-  	{
-    	// ##########################
-      	// ### Looping over TPC's ###
-      	// ##########################
-      	for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc)
-		{
-		// ###############################
-		// ### Looping over the planes ###
-		// ###############################
-		for(size_t plane = 0; plane < nplanes; plane ++)
-			{
-			// ############################################################################
-			// ### Calculating the nearest wire the vertex corresponds to in each plane ###
-			// ############################################################################
-			
-			try
-				{
-				//                  geom->NearestWire(worldLoc[3], Plane#, TPC#, Cyrostat#)
-				VtxWireNum[plane] = geom->NearestWire(truth_vertex,plane,tpc,cstat);
-				}
-			catch(...)
-				{
-				mf::LogWarning("FeatureVertexFinderAna") << "Can't find nearest wire";
-				continue;
-				}
-			//             detp->ConvertXToTicks(xpos, plane#, TPC#, Cyrostat#)
-			VtxTimeTick[plane] = detp->ConvertXToTicks(truth_vertex[0],plane,tpc,cstat) +  detp->GetXTicksOffset(plane, tpc, cstat);
-			
-			// ======================== Translating each of these in cm =====================
-			VtxWireNum_InCM[plane]  = VtxWireNum[plane] * WirePitch_CurrentPlane[plane];
-			VtxTimeTick_InCM[plane] = VtxTimeTick[plane] * TimetoCm;
-			
-			
-			}//---End plane loop
-		}//<---End tpc loop
-	}//<---End cstat loop
+  for(auto pid : geom->PlaneIDs()){
+    // ############################################################################
+    // ### Calculating the nearest wire the vertex corresponds to in each plane ###
+    // ############################################################################
+    
+    try{
+      //                  geom->NearestWire(worldLoc[3], Plane#, TPC#, Cyrostat#)
+	VtxWireNum[pid.Plane] = geom->NearestWire(truth_vertex,pid.Plane,pid.TPC,pid.Cryostat);
+    }
+    catch(...){
+      mf::LogWarning("FeatureVertexFinderAna") << "Can't find nearest wire";
+      continue;
+    }
+    //             detp->ConvertXToTicks(xpos, plane#, TPC#, Cyrostat#)
+    VtxTimeTick[pid.Plane] = (detp->ConvertXToTicks(truth_vertex[0],pid.Plane, pid.TPC, pid.Cryostat)
+			  +  detp->GetXTicksOffset(pid.Plane, pid.TPC, pid.Cryostat));
+    
+    // ======================== Translating each of these in cm =====================
+    VtxWireNum_InCM[pid.Plane]  = VtxWireNum[pid.Plane] * WirePitch_CurrentPlane[pid.Plane];
+    VtxTimeTick_InCM[pid.Plane] = VtxTimeTick[pid.Plane] * TimetoCm;
+  }//<---End pid loop
    
    // ### Filling Histograms ###
    fTruthWireNumberPlane0->Fill( VtxWireNum[0]  );
@@ -513,129 +481,114 @@ void FeatureVertexFinderAna::analyze(const art::Event& evt)
   	{
 
    	// ##############################
-   	// ### Looping over cryostats ###
+   	// ### Looping over geo::PlaneIDs ###
    	// ##############################
-   	for(size_t cstat = 0; cstat < geom->Ncryostats(); ++cstat)
-  		{
-  		// ##########################
-  		// ### Looping over TPC's ###
-  		// ##########################
-  		for(size_t tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc)
-			{
-			// ###############################
-			// ### Looping over the planes ###
-			// ###############################
-			for(size_t plane = 0; plane < nplanes; plane ++)
-				{
+	  for(auto pid : geom->PlaneIDs() ){
+	    for(size_t ww = 0; ww<vert2d.size(); ++ww){
+	      //std::cout<<"plane = "<<plane<<std::endl;
+	      //std::cout<<"vert2d[ww]->WireID().Plane = "<<vert2d[ww]->WireID().Plane<<std::endl;
+	      // Only look at this 2d vertex if it is in the current plane
+	      if (vert2d[ww]->WireID().planeID() != pid){continue;}
+					
+	      Vertex2d_TimeTick[n2dVtx] = vert2d[ww]->DriftTime();
+	      Vertex2d_Wire[n2dVtx]     = vert2d[ww]->WireID().Wire;
+	      
+	      // ======================== Translating each of these in cm =====================
+	      Vertex2d_Wire_InCM[n2dVtx]	   = Vertex2d_Wire[n2dVtx] * WirePitch_CurrentPlane[pid.Plane];	
+	      //std::cout<<"Vertex2d_Wire[n2dVtx] = "<<Vertex2d_Wire[n2dVtx]<<" , WirePitch_CurrentPlane[plane] = "<<WirePitch_CurrentPlane[plane]<<std::endl;
+	      //std::cout<<"Vertex2d_Wire_InCM[n2dVtx] = "<<Vertex2d_Wire_InCM[n2dVtx]<<std::endl;
+	      Vertex2d_TimeTick_InCM[n2dVtx]     = Vertex2d_TimeTick[n2dVtx] * TimetoCm;
+					
+	      // ###########################################################################
+	      // ### Checking how well we did in reconstructing the vertex (Reco - True) ###
+	      // ###########################################################################
+	      
+	      float RecoCheck_TimeTick = Vertex2d_TimeTick[n2dVtx] - VtxTimeTick[pid.Plane];
+	      float RecoCheck_WireNum  = Vertex2d_Wire[n2dVtx] - VtxWireNum[pid.Plane];
+	      
+	      float RecoCheck_TimeInCm = Vertex2d_TimeTick_InCM[n2dVtx] - VtxTimeTick_InCM[pid.Plane];
+	      float RecoCheck_WireInCm = Vertex2d_Wire_InCM[n2dVtx] - VtxWireNum_InCM[pid.Plane];
+	      
+					
+	      
+	      if( vert2d[ww]->Strength() > -1)
+		{
+		  if(pid.Plane == 0)
+		    {
+		      vertexWstrengthplane0 = true;
+		      //std::cout<<"Filling Plane 0 "<<std::endl;
+		      //std::cout<<"Vertex2d_Wire[n2dVtx] = "<<Vertex2d_Wire[n2dVtx]<<std::endl;
+		      
+		      fTwoDWireNumberPlane0->Fill( Vertex2d_Wire[n2dVtx]  );
+		      fTwoDTimeTickPlane0->Fill( Vertex2d_TimeTick[n2dVtx] );
+		      fTwoDWireInCmPlane0->Fill( Vertex2d_Wire_InCM[n2dVtx] );
+		      fTwoDTimeInCmPlane0->Fill( Vertex2d_TimeTick_InCM[n2dVtx] );
+		      
+		      fTwoDStrengthPlane0->Fill( vert2d[ww]->Strength() );
+		      
+		      fRecoCheck2dWireNumPlane0->Fill( RecoCheck_WireNum );
+		      fRecoCheck2dTimeTickPlane0->Fill( RecoCheck_TimeTick );
+		      fRecoCheck2dWireInCmPlane0->Fill( RecoCheck_WireInCm );
+		      fRecoCheck2dTimeInCmPlane0->Fill( RecoCheck_TimeInCm );
+		      
+		      n2dVtxPlane0++;
+		      
+		    }//<---End Plane 0
 				
-				for(size_t ww = 0; ww<vert2d.size(); ww++)
-					{
-					//std::cout<<"plane = "<<plane<<std::endl;
-					//std::cout<<"vert2d[ww]->WireID().Plane = "<<vert2d[ww]->WireID().Plane<<std::endl;
-					// Only look at this 2d vertex if it is in the current plane
-					if (vert2d[ww]->WireID().Plane != plane){continue;}
-					
-					Vertex2d_TimeTick[n2dVtx] = vert2d[ww]->DriftTime();
-					Vertex2d_Wire[n2dVtx]     = vert2d[ww]->WireID().Wire;
-				
-					// ======================== Translating each of these in cm =====================
-					Vertex2d_Wire_InCM[n2dVtx]	   = Vertex2d_Wire[n2dVtx] * WirePitch_CurrentPlane[plane];	
-					//std::cout<<"Vertex2d_Wire[n2dVtx] = "<<Vertex2d_Wire[n2dVtx]<<" , WirePitch_CurrentPlane[plane] = "<<WirePitch_CurrentPlane[plane]<<std::endl;
-					//std::cout<<"Vertex2d_Wire_InCM[n2dVtx] = "<<Vertex2d_Wire_InCM[n2dVtx]<<std::endl;
-					Vertex2d_TimeTick_InCM[n2dVtx]     = Vertex2d_TimeTick[n2dVtx] * TimetoCm;
-					
-					// ###########################################################################
-					// ### Checking how well we did in reconstructing the vertex (Reco - True) ###
-					// ###########################################################################
-					
-					float RecoCheck_TimeTick = Vertex2d_TimeTick[n2dVtx] - VtxTimeTick[plane];
-					float RecoCheck_WireNum  = Vertex2d_Wire[n2dVtx] - VtxWireNum[plane];
-					
-					float RecoCheck_TimeInCm = Vertex2d_TimeTick_InCM[n2dVtx] - VtxTimeTick_InCM[plane];
-					float RecoCheck_WireInCm = Vertex2d_Wire_InCM[n2dVtx] - VtxWireNum_InCM[plane];
-					
-					
-					
-					if( vert2d[ww]->Strength() > -1)
-					{
-					if(plane == 0)
-						{
-						vertexWstrengthplane0 = true;
-						//std::cout<<"Filling Plane 0 "<<std::endl;
-						//std::cout<<"Vertex2d_Wire[n2dVtx] = "<<Vertex2d_Wire[n2dVtx]<<std::endl;
-					
-						fTwoDWireNumberPlane0->Fill( Vertex2d_Wire[n2dVtx]  );
-   						fTwoDTimeTickPlane0->Fill( Vertex2d_TimeTick[n2dVtx] );
-						fTwoDWireInCmPlane0->Fill( Vertex2d_Wire_InCM[n2dVtx] );
-   						fTwoDTimeInCmPlane0->Fill( Vertex2d_TimeTick_InCM[n2dVtx] );
-						
-						fTwoDStrengthPlane0->Fill( vert2d[ww]->Strength() );
-						
-						fRecoCheck2dWireNumPlane0->Fill( RecoCheck_WireNum );
-						fRecoCheck2dTimeTickPlane0->Fill( RecoCheck_TimeTick );
-						fRecoCheck2dWireInCmPlane0->Fill( RecoCheck_WireInCm );
-						fRecoCheck2dTimeInCmPlane0->Fill( RecoCheck_TimeInCm );
-						
-						n2dVtxPlane0++;
-					
-						}//<---End Plane 0
-				
-					if(plane == 1)
-						{
-						vertexWstrengthplane1 = true;
-						fTwoDWireNumberPlane1->Fill( Vertex2d_Wire[n2dVtx]  );
-   						fTwoDTimeTickPlane1->Fill( Vertex2d_TimeTick[n2dVtx] );
-						fTwoDWireInCmPlane1->Fill( Vertex2d_Wire_InCM[n2dVtx] );
-   						fTwoDTimeInCmPlane1->Fill( Vertex2d_TimeTick_InCM[n2dVtx] );
-						
-						fTwoDStrengthPlane1->Fill( vert2d[ww]->Strength() );
-						
-						fRecoCheck2dWireNumPlane1->Fill( RecoCheck_WireNum );
-						fRecoCheck2dTimeTickPlane1->Fill( RecoCheck_TimeTick );
-						fRecoCheck2dWireInCmPlane1->Fill( RecoCheck_WireInCm );
-						fRecoCheck2dTimeInCmPlane1->Fill( RecoCheck_TimeInCm );
-						
-						n2dVtxPlane1++;
-					
-						}//<---End Plane 1
-					
-					if(plane == 2)
-						{
-						  //vertexWstrengthplane2 = true;
-						fTwoDWireNumberPlane2->Fill( Vertex2d_Wire[n2dVtx]  );
-   						fTwoDTimeTickPlane2->Fill( Vertex2d_TimeTick[n2dVtx] );
-						fTwoDWireInCmPlane2->Fill( Vertex2d_Wire_InCM[n2dVtx] );
-   						fTwoDTimeInCmPlane2->Fill( Vertex2d_TimeTick_InCM[n2dVtx] );
-						
-						fTwoDStrengthPlane2->Fill( vert2d[ww]->Strength() );
-						
-						fRecoCheck2dWireNumPlane2->Fill( RecoCheck_WireNum );
-						fRecoCheck2dTimeTickPlane2->Fill( RecoCheck_TimeTick );
-						fRecoCheck2dWireInCmPlane2->Fill( RecoCheck_WireInCm );
-						fRecoCheck2dTimeInCmPlane2->Fill( RecoCheck_TimeInCm );
-						
-						n2dVtxPlane2++;
-					
-					
-						}//<---End Plane 2
-					}
-					
-					
-   					n2dVtx++;
-   					}//<--end ww loop
-				
-					
-				}//<---End plane loop
-			}//<---End tpc loop
-		}//<---End cstat loop
+		  if(pid.Plane == 1)
+		    {
+		      vertexWstrengthplane1 = true;
+		      fTwoDWireNumberPlane1->Fill( Vertex2d_Wire[n2dVtx]  );
+		      fTwoDTimeTickPlane1->Fill( Vertex2d_TimeTick[n2dVtx] );
+		      fTwoDWireInCmPlane1->Fill( Vertex2d_Wire_InCM[n2dVtx] );
+		      fTwoDTimeInCmPlane1->Fill( Vertex2d_TimeTick_InCM[n2dVtx] );
+		      
+		      fTwoDStrengthPlane1->Fill( vert2d[ww]->Strength() );
+		      
+		      fRecoCheck2dWireNumPlane1->Fill( RecoCheck_WireNum );
+		      fRecoCheck2dTimeTickPlane1->Fill( RecoCheck_TimeTick );
+		      fRecoCheck2dWireInCmPlane1->Fill( RecoCheck_WireInCm );
+		      fRecoCheck2dTimeInCmPlane1->Fill( RecoCheck_TimeInCm );
+		      
+		      n2dVtxPlane1++;
+		      
+		    }//<---End Plane 1
+		  
+		  if(pid.Plane == 2)
+		    {
+		      //vertexWstrengthplane2 = true;
+		      fTwoDWireNumberPlane2->Fill( Vertex2d_Wire[n2dVtx]  );
+		      fTwoDTimeTickPlane2->Fill( Vertex2d_TimeTick[n2dVtx] );
+		      fTwoDWireInCmPlane2->Fill( Vertex2d_Wire_InCM[n2dVtx] );
+		      fTwoDTimeInCmPlane2->Fill( Vertex2d_TimeTick_InCM[n2dVtx] );
+		      
+		      fTwoDStrengthPlane2->Fill( vert2d[ww]->Strength() );
+		      
+		      fRecoCheck2dWireNumPlane2->Fill( RecoCheck_WireNum );
+		      fRecoCheck2dTimeTickPlane2->Fill( RecoCheck_TimeTick );
+		      fRecoCheck2dWireInCmPlane2->Fill( RecoCheck_WireInCm );
+		      fRecoCheck2dTimeInCmPlane2->Fill( RecoCheck_TimeInCm );
+		      
+		      n2dVtxPlane2++;
+		      
+		      
+		    }//<---End Plane 2
+		}
+	      
+	      
+	      ++n2dVtx;
+	    }//<--end ww loop
+	    
+	    
+	  }//<---End plane ID
 
 	}//<--End checking if we have 2d end points
 	
-fTwoDNVtxPlane0->Fill( n2dVtxPlane0 );
-fTwoDNVtxPlane1->Fill( n2dVtxPlane1 );
-fTwoDNVtxPlane2->Fill( n2dVtxPlane2 );
-
-// =================================================================================================================
+  fTwoDNVtxPlane0->Fill( n2dVtxPlane0 );
+  fTwoDNVtxPlane1->Fill( n2dVtxPlane1 );
+  fTwoDNVtxPlane2->Fill( n2dVtxPlane2 );
+  
+  // =================================================================================================================
 // ==================================== Looping over 3dVertex information ==========================================
 // =================================================================================================================
    art::PtrVector<recob::Vertex>     Vertexlist;

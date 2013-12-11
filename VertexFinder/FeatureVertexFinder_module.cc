@@ -923,15 +923,15 @@ for(int aaa = 0; aaa < n3dFeatures; aaa++)
 						std::vector< art::Ptr<recob::Hit> > hitClu1 = fmh.at(m);
 						std::vector< art::Ptr<recob::Hit> > hitClu2 = fmh.at(n);
 						
-						if( (abs( Clu_EndPos_Wire[m] - intersection_X2 ) > 80 && hitClu1.size() < 8) ||
-						    (abs( Clu_EndPos_Wire[n] - intersection_X2 ) > 80 && hitClu2.size() < 8) )
+						if( (std::abs( Clu_EndPos_Wire[m] - intersection_X2 ) > 80 && hitClu1.size() < 8) ||
+						    (std::abs( Clu_EndPos_Wire[n] - intersection_X2 ) > 80 && hitClu2.size() < 8) )
 						    {
 						    intersection_X2 = -999;
 						    intersection_Y2 = -999;
 						    }
 						    
-						if( (abs( Clu_StartPos_Wire[m] - intersection_X ) > 80 && hitClu1.size() < 8) ||
-						    (abs( Clu_StartPos_Wire[n] - intersection_X ) > 80 && hitClu2.size() < 8) )
+						if( (std::abs( Clu_StartPos_Wire[m] - intersection_X ) > 80 && hitClu1.size() < 8) ||
+						    (std::abs( Clu_StartPos_Wire[n] - intersection_X ) > 80 && hitClu2.size() < 8) )
 						    {
 						    intersection_X = -999;
 						    intersection_Y = -999;
@@ -940,15 +940,15 @@ for(int aaa = 0; aaa < n3dFeatures; aaa++)
 						// ### If the intersection point is 50 or more wires away from either cluster
 						// ### and the one of the clusters has fewer than 3 hits the intersection
 						// ### is likely a crap one and we won't save this point 
-						if( (abs( Clu_EndPos_Wire[m] - intersection_X2 ) > 50 && hitClu1.size() < 4) ||
-						    (abs( Clu_EndPos_Wire[n] - intersection_X2 ) > 50 && hitClu2.size() < 4) )
+						if( (std::abs( Clu_EndPos_Wire[m] - intersection_X2 ) > 50 && hitClu1.size() < 4) ||
+						    (std::abs( Clu_EndPos_Wire[n] - intersection_X2 ) > 50 && hitClu2.size() < 4) )
 						    {
 						    intersection_X2 = -999;
 						    intersection_Y2 = -999;
 						    }
 						    
-						if( (abs( Clu_StartPos_Wire[m] - intersection_X ) > 50 && hitClu1.size() < 4) ||
-						    (abs( Clu_StartPos_Wire[n] - intersection_X ) > 50 && hitClu2.size() < 4) )
+						if( (std::abs( Clu_StartPos_Wire[m] - intersection_X ) > 50 && hitClu1.size() < 4) ||
+						    (std::abs( Clu_StartPos_Wire[n] - intersection_X ) > 50 && hitClu2.size() < 4) )
 						    {
 						    intersection_X = -999;
 						    intersection_Y = -999;
@@ -980,7 +980,7 @@ for(int aaa = 0; aaa < n3dFeatures; aaa++)
 							double hit_wire = hit->WireID().Wire;
 							double hit_time = hit->PeakTime();
 							
-							if( fabs(intersection_X2 - hit_wire) < 4 && fabs(intersection_Y2 - hit_time) < 20)
+							if( std::abs(intersection_X2 - hit_wire) < 4 && std::abs(intersection_Y2 - hit_time) < 20)
 								{
 								nOverlapHitsEndPoint++;
 								/*std::cout<<std::endl;
@@ -993,7 +993,7 @@ for(int aaa = 0; aaa < n3dFeatures; aaa++)
 								
 								}//<--End checking the hit overlap with the intersection
 								
-							if( fabs(intersection_X - hit_wire) < 4 && fabs(intersection_Y - hit_time) < 20)
+							if( std::abs(intersection_X - hit_wire) < 4 && std::abs(intersection_Y - hit_time) < 20)
 								{
 								nOverlapHitsStartPoint++;
 								/*std::cout<<std::endl;
@@ -1132,12 +1132,12 @@ for(int aaa = 0; aaa < n3dFeatures; aaa++)
 			// ### Considering merging 2d vertices if they ###
 			// ###    are within 3 wires of each other     ###
 			// ###############################################
-			if( fabs(Wire[vtxloop1] - Wire[vtxloop2]) < 4 )
+			if( std::abs(Wire[vtxloop1] - Wire[vtxloop2]) < 4 )
 				{
 				// ############################################################
 				// ### Merge the verticies if they are within 10 time ticks ###
 				// ############################################################
-				if( fabs(Time[vtxloop1] - Time[vtxloop2]) < 10 )
+				if( std::abs(Time[vtxloop1] - Time[vtxloop2]) < 10 )
 					{
 					vtx_wire_merged[n2dMergedVertices] = ((Wire[vtxloop2] + Wire[vtxloop1])/ 2) ;
 					vtx_time_merged[n2dMergedVertices] = ((Time[vtxloop2] + Time[vtxloop1])/ 2) ;
@@ -1703,7 +1703,7 @@ double TwoDvertexStrength = 0;
 							double hit_wire = hit->WireID().Wire;
 							double hit_time = hit->PeakTime();
 							
-							if( fabs(EndPoint2d_Wire - hit_wire) < 4 && fabs(EndPoint2d_TimeTick - hit_time) < 20)
+							if( std::abs(EndPoint2d_Wire - hit_wire) < 4 && std::abs(EndPoint2d_TimeTick - hit_time) < 20)
 								{
 								matchedVtxToHit++;
 								
