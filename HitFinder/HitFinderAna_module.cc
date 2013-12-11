@@ -223,109 +223,104 @@ namespace hit{
 
     sim::ParticleList _particleList = bt->ParticleList();
 
-    std::cout << _particleList << std::endl;
+    LOG_VERBATIM("HitFinderAna") << _particleList;
 
-    //    art::PtrVector<recob::Hit> hits;
-    std::vector< art::Ptr<recob::Hit> > hits;
-    art::fill_ptr_vector(hits, hitHandle);
-    
     art::ServiceHandle<geo::Geometry> geom;  
+
+    std::map<geo::PlaneID, std::vector< art::Ptr<recob::Hit> > > planeIDToHits;
+    for(size_t h = 0; h < hitHandle->size(); ++h)
+      planeIDToHits[hitHandle->at(h).WireID().planeID()].push_back(art::Ptr<recob::Hit>(hitHandle, h));
   
-    unsigned int p(0), w(0);
-    for(unsigned int cstat = 0; cstat < geom->Ncryostats(); ++cstat){
-      for(unsigned int tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc){
-	fNp0=0;       fN3p0=0;
-	fNp1=0;       fN3p1=0;
-	fNp2=0;       fN3p2=0;
+    
+    for(auto mapitr : planeIDToHits){
+      fNp0=0;       fN3p0=0;
+      fNp1=0;       fN3p1=0;
+      fNp2=0;       fN3p2=0;
+      
+      geo::PlaneID pid = mapitr.first;
+      auto itr = mapitr.second.begin();
+      while(itr != mapitr.second.end()) {
+	  
+	fRun = evt.run();
+	fEvt = evt.id().event();
+	  
+	std::vector<cheat::TrackIDE> trackides = bt->HitToTrackID(*itr);
+	std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
+	std::vector<double> xyz = bt->HitToXYZ(*itr);
 	
-	std::vector< art::Ptr<recob::Hit> >::iterator itr = hits.begin();
-	while(itr != hits.end()) {
+	if (pid.Plane == 0 && fNp0 < 9000){
+	  fTimep0[fNp0] = (*itr)->PeakTime();
+	  fWirep0[fNp0] = (*itr)->WireID().Wire;
+	  fChgp0[fNp0] = (*itr)->Charge();
 	  
-	  p = (*itr)->WireID().Plane; 
-	  w = (*itr)->WireID().Wire;
-	  
-	  fRun = evt.run();
-	  fEvt = evt.id().event();
-	  
-	  std::vector<cheat::TrackIDE> trackides = bt->HitToTrackID(*itr);
-	  std::vector<cheat::TrackIDE>::iterator idesitr = trackides.begin();
-	  std::vector<double> xyz = bt->HitToXYZ(*itr);
-	  	  
-	  if (p==0 && fNp0<9000){
-	    fTimep0[fNp0] = (*itr)->PeakTime();
-	    fWirep0[fNp0] = w;
-	    fChgp0[fNp0] = (*itr)->Charge();
+	  for (unsigned int kk = 0; kk < 3; ++kk){
+	    fXYZp0[fNp0*3+kk] = xyz[kk];
+	  }
 	    
-	    for (unsigned int kk=0;kk<3;kk++){
-	      fXYZp0[fNp0*3+kk] = xyz[kk];
+	    
+	  while( idesitr != trackides.end() ){
+	    fMCTId0[fNp0] = (*idesitr).trackID;
+	    if (_particleList.find((*idesitr).trackID) != _particleList.end()){
+	      const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
+	      fMCPdg0[fNp0] = particle->PdgCode();
+	      fMCE0[fNp0] = particle->E();
 	    }
-	    
-	    
-	    while( idesitr != trackides.end() ){
-	      fMCTId0[fNp0] = (*idesitr).trackID;
-	      if (_particleList.find((*idesitr).trackID) != _particleList.end()){
-		const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
-		fMCPdg0[fNp0] = particle->PdgCode();
-		fMCE0[fNp0] = particle->E();
-	      }
-	      idesitr++;
-	    }
-	    
-	    fNp0++;
+	    idesitr++;
 	  }
 	  
-	  else if (p==1 && fNp1<9000){
-	    fTimep1[fNp1] = (*itr)->PeakTime();
-	    fWirep1[fNp1] = w;
-	    fChgp1[fNp1] = (*itr)->Charge();
+	  ++fNp0;
+	}
+	  
+	else if (pid.Plane == 1 && fNp1 < 9000){
+	  fTimep1[fNp1] = (*itr)->PeakTime();
+	  fWirep1[fNp1] = (*itr)->WireID().Wire;
+	  fChgp1[fNp1] = (*itr)->Charge();
+	  
+	  for (unsigned int kk = 0; kk < 3; ++kk){
+	    fXYZp1[fNp1*3+kk] = xyz[kk];
+	  }
 	    
-	    for (unsigned int kk=0;kk<3;kk++){
-	      fXYZp1[fNp1*3+kk] = xyz[kk];
+	  while( idesitr != trackides.end() ){
+	    fMCTId1[fNp1] = (*idesitr).trackID;
+	    if (_particleList.find((*idesitr).trackID) != _particleList.end()){
+	      const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
+	      fMCPdg1[fNp1] = particle->PdgCode();
+	      fMCE1[fNp1] = particle->E();
 	    }
-	    
-	    while( idesitr != trackides.end() ){
-	      fMCTId1[fNp1] = (*idesitr).trackID;
-	      if (_particleList.find((*idesitr).trackID) != _particleList.end()){
-		const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
-		fMCPdg1[fNp1] = particle->PdgCode();
-		fMCE1[fNp1] = particle->E();
-	      }
-	      idesitr++;
-	    }
-	    fNp1++;
+	    idesitr++;
+	  }
+	  ++fNp1;
+	}
+	
+	else if (pid.Plane == 2  && fNp2 < 9000){
+	  fTimep2[fNp2] = (*itr)->PeakTime();
+	  fWirep2[fNp2] = (*itr)->WireID().Wire;
+	  fChgp2[fNp2] = (*itr)->Charge();
+	  
+	  for (unsigned int kk = 0; kk < 3; ++kk){
+	    fXYZp2[fNp2*3+kk] = xyz[kk];
 	  }
 	  
-	  else if (p==2  && fNp2<9000){
-	    fTimep2[fNp2] = (*itr)->PeakTime();
-	    fWirep2[fNp2] = w;
-	    fChgp2[fNp2] = (*itr)->Charge();
-	    
-	    for (unsigned int kk=0;kk<3;kk++){
-	      fXYZp2[fNp2*3+kk] = xyz[kk];
+	  while( idesitr != trackides.end()){
+	    fMCTId2[fNp2] = (*idesitr).trackID;
+	    if (_particleList.find((*idesitr).trackID) != _particleList.end() ){
+	      const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
+	      fMCPdg2[fNp2] = particle->PdgCode();
+	      fMCE2[fNp2] = particle->E();
 	    }
-	    
-	    while( idesitr != trackides.end()){
-	      fMCTId2[fNp2] = (*idesitr).trackID;
-	      if (_particleList.find((*idesitr).trackID) != _particleList.end() ){
-		const simb::MCParticle* particle = _particleList.at( (*idesitr).trackID);
-		fMCPdg2[fNp2] = particle->PdgCode();
-		fMCE2[fNp2] = particle->E();
-	      }
-	      idesitr++;
-	    }
-	    fNp2++;
+	    idesitr++;
 	  }
-	  
-	  fN3p0 = 3* fNp0;
-	  fN3p1 = 3* fNp1;
-	  fN3p2 = 3* fNp2;
-	  
-	  fHTree->Fill();
-	  itr++;
-	} // loop on Hits
-	//      }
-      } //  loop on NTPCs
-    } // loop on cryostats
+	  ++fNp2;
+	}
+	
+	fN3p0 = 3* fNp0;
+	fN3p1 = 3* fNp1;
+	fN3p2 = 3* fNp2;
+	
+	fHTree->Fill();
+	itr++;
+      } // loop on Hits
+    } // loop on map
 
     return;
   }//end analyze method
