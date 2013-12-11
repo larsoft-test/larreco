@@ -199,121 +199,115 @@ namespace shwf{
     // For EVERY vertex, the algorithm is going to scan the plane to find clusters 
     // contained in the scanning cones
     
-    for(unsigned int cs = 0; cs < geom->Ncryostats(); ++cs){
-      for(unsigned int t = 0; t < geom->Cryostat(cs).NTPC(); ++t){
-	for(unsigned int p = 0; p < geom->Cryostat(cs).TPC(t).Nplanes(); ++p) {  
+    for(size_t ivert = 0; ivert < vertSel.size(); ++ivert){
+      
+      mf::LogInfo("ShowerFinder") << "Number of STRONG vertices = " << vertSel.size();
 
-	  for(size_t ivert = 0; ivert < vertSel.size(); ++ivert){
-	    
-	    mf::LogInfo("ShowerFinder") << "Number of STRONG vertices = " << vertSel.size();
-
-	    //get the coordinates of the vertex for the summit of the cone
-	    xa_cone = vertSel[ivert]->WireID().Wire;   //for update to EndPoint2D ... WK 4/22/13
-	    ya_cone = vertSel[ivert]->DriftTime();
-
-	    mf::LogInfo("ShowerFinder") << "Vertex at: (" << xa_cone << ", " << ya_cone << ")";
+      //get the coordinates of the vertex for the summit of the cone
+      xa_cone = vertSel[ivert]->WireID().Wire;   //for update to EndPoint2D ... WK 4/22/13
+      ya_cone = vertSel[ivert]->DriftTime();
+      
+      mf::LogInfo("ShowerFinder") << "Vertex at: (" << xa_cone << ", " << ya_cone << ")";
+      
+      //Beginning of the scan!
+      for(unsigned int iscan = 0; iscan < n_scan; ++iscan){
 	
-	    //Beginning of the scan!
-	    for(unsigned int iscan = 0; iscan < n_scan; ++iscan){
-
-	      mf::LogInfo("ShowerFinder") << ">>>> Start SCAN: " << iscan;
+	mf::LogInfo("ShowerFinder") << ">>>> Start SCAN: " << iscan;
+	
+	//define the scan anlge
+	scan_angle = (TMath::Pi()/2.0) - (iscan*(2.0*cone_angle));
+	
+	mf::LogInfo("ShowerFinder") << "Scan Angle: " << (180.*scan_angle)/TMath::Pi();
+	
+	//get the complementary angle for geometry puurposes
+	compl_angle = scan_angle - cone_angle;  
+	
+	//Calculate the coordinates of the top right corner of the cone
+	x1_cone = xa_cone + fScone*(std::cos(compl_angle));
+	y1_cone = ya_cone + fScone*(std::sin(compl_angle));
+	
+	//Calculate the coordinates of the top left corner of the cone
+	x2_cone = xa_cone + fScone*(std::cos(scan_angle + cone_angle));
+	y2_cone = ya_cone + fScone*(std::sin(scan_angle + cone_angle));
+	
+	//Looking if a cluster is in this cone (loop over all hits of all clusters)
+	for(size_t iclust = 0; iclust < clusterListHandle->size(); ++iclust){
 	  
-	      //define the scan anlge
-	      scan_angle = (TMath::Pi()/2.0) - (iscan*(2.0*cone_angle));
-
-	      mf::LogInfo("ShowerFinder") << "Scan Angle: " << (180.*scan_angle)/TMath::Pi();
+	  art::Ptr<recob::Cluster> clust(clusterListHandle, iclust);
 	  
-	      //get the complementary angle for geometry puurposes
-	      compl_angle = scan_angle - cone_angle;  
-	  	  
-	      //Calculate the coordinates of the top right corner of the cone
-	      x1_cone = xa_cone + fScone*(TMath::Cos(compl_angle));
-	      y1_cone = ya_cone + fScone*(TMath::Sin(compl_angle));
+	  //Get the hits vector from the cluster
+	  clusterhits = fmh.at(iclust);
+	  if(clusterhits.size() == 0) continue;
 	  
-	      //Calculate the coordinates of the top left corner of the cone
-	      x2_cone = xa_cone + fScone*(TMath::Cos(scan_angle + cone_angle));
-	      y2_cone = ya_cone + fScone*(TMath::Sin(scan_angle + cone_angle));
-	  
-	      //Looking if a cluster is in this cone (loop over all hits of all clusters)
-	      for(size_t iclust = 0; iclust < clusterListHandle->size(); ++iclust){
-	  
-		art::Ptr<recob::Cluster> clust(clusterListHandle, iclust);
+	  //Loop over ALL hits in the cluster. Looking if the cluster's 
+	  // hit is comprised in the cone
+	  for(size_t ihits = 0; ihits < clusterhits.size(); ++ihits){
 	    
-		//Get the hits vector from the cluster
-		clusterhits = fmh.at(iclust);
-		if(clusterhits.size() == 0) continue;
-
-		//Loop over ALL hits in the cluster. Looking if the cluster's hit is comprised in the cone
-		for(size_t ihits = 0; ihits < clusterhits.size(); ++ihits){
-
-		  
-		  x_hit = clusterhits[ihits]->WireID().Wire;   //for update to EndPoint2D ... WK 4/22/13
-		  y_hit = clusterhits[ihits]->PeakTime();
-	      
-		  // Check in hits is INSIDE cone
-	      
-		  //define the 2 line equations:
-		  if(y_hit <= ((y2_cone - ya_cone)/(x2_cone - xa_cone))*x_hit + ya_cone && 
-		     y_hit >= ((y1_cone - ya_cone)/(x1_cone - xa_cone))*x_hit + ya_cone){
-		    hits_cluster_counter++;
-		  }		    
-	      
-		}//end hits loop
 	    
-		//If there is more than 50% if the cluster INSIDE the cone, this is a protoshower
-		if(clusterhits.size() == 0) continue;
-		if(((double)hits_cluster_counter / (double)clusterhits.size()) >= 0.5){
-		  mf::LogInfo("ShowerFinder") << "GOT A SHOWER!!!  in scan " << iscan 
-					      << "  cluster: " << iclust << " : " << clust->ID();
-
-		  //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		  /// \todo NEED TO TAKE OUT THE HOUGH LINES FROM THE PROTOSHOWERS!!!!!  
-		  //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-		  protoShowers.push_back(clust);
-		}
-		clusterhits.clear();
-		hits_cluster_counter = 0;
+	    x_hit = clusterhits[ihits]->WireID().Wire;   //for update to EndPoint2D ... WK 4/22/13
+	    y_hit = clusterhits[ihits]->PeakTime();
 	    
-	      } //end cluster loop
-
-	      if(protoShowers.size() == 0) continue;
-
-	      // loop over hits in the protoShowers to determine the total charge of the shower
-	      double totalCharge = 0.;
-
-	      art::FindManyP<recob::Hit> fmhps(protoShowers, evt, fClusterModuleLabel);
-
-	      for(size_t p = 0; p < protoShowers.size(); ++p){
-		std::vector< art::Ptr<recob::Hit> > hits = fmhps.at(p);
-		for(size_t h = 0; h < hits.size(); ++h)
-		  if(hits[h]->SignalType() == geo::kCollection) totalCharge += hits[h]->Charge();
-	      }
-
-	      /// \todo really need to determine the values of the arguments of the recob::Shower ctor
-	      // fill with bogus values for now
-	      double dcosVtx[3]    = { util::kBogusD };
-	      double dcosVtxErr[3] = { util::kBogusD };
-	      double maxTransWidth[2] = { util::kBogusD };
-	      double distMaxWidth = util::kBogusD;
-	      showercol->push_back( recob::Shower(dcosVtx, dcosVtxErr, maxTransWidth, totalCharge, distMaxWidth) );
-	      
-	      // associate the shower with its clusters
-	      util::CreateAssn(*this, evt, *showercol, protoShowers, *cassn);
-	      
-	      // get the hits associated with each cluster and associate those with the shower
-	      for(size_t p = 0; p < protoShowers.size(); ++p){
-		std::vector< art::Ptr<recob::Hit> > hits = fmhps.at(p);
-		util::CreateAssn(*this, evt, *showercol, hits, *hassn);
-	      }
-
-	      protoShowers.clear();
-
-	    } //end scan loop
-	  } //end vertices loop
-	}//end of plane loop 
-      }// end loop over tpcs
-    }// end loop over cryostats
+	    // Check in hits is INSIDE cone
+	    
+	    //define the 2 line equations:
+	    if(y_hit <= ((y2_cone - ya_cone)/(x2_cone - xa_cone))*x_hit + ya_cone && 
+	       y_hit >= ((y1_cone - ya_cone)/(x1_cone - xa_cone))*x_hit + ya_cone){
+	      hits_cluster_counter++;
+	    }		    
+	    
+	  }//end hits loop
+	  
+	  //If there is more than 50% if the cluster INSIDE the cone, this is a protoshower
+	  if(clusterhits.size() == 0) continue;
+	  if(((double)hits_cluster_counter / (double)clusterhits.size()) >= 0.5){
+	    mf::LogInfo("ShowerFinder") << "GOT A SHOWER!!!  in scan " << iscan 
+					<< "  cluster: " << iclust << " : " << clust->ID();
+	    
+	    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	    /// \todo NEED TO TAKE OUT THE HOUGH LINES FROM THE PROTOSHOWERS!!!!!  
+	    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	    
+	    protoShowers.push_back(clust);
+	  }
+	  clusterhits.clear();
+	  hits_cluster_counter = 0;
+	  
+	} //end cluster loop
+	
+	if(protoShowers.size() == 0) continue;
+	
+	// loop over hits in the protoShowers to determine the total charge of the shower
+	double totalCharge = 0.;
+	
+	art::FindManyP<recob::Hit> fmhps(protoShowers, evt, fClusterModuleLabel);
+	
+	for(size_t p = 0; p < protoShowers.size(); ++p){
+	  std::vector< art::Ptr<recob::Hit> > hits = fmhps.at(p);
+	  for(size_t h = 0; h < hits.size(); ++h)
+	    if(hits[h]->SignalType() == geo::kCollection) totalCharge += hits[h]->Charge();
+	}
+	
+	/// \todo really need to determine the values of the arguments of the recob::Shower ctor
+	// fill with bogus values for now
+	double dcosVtx[3]    = { util::kBogusD };
+	double dcosVtxErr[3] = { util::kBogusD };
+	double maxTransWidth[2] = { util::kBogusD };
+	double distMaxWidth = util::kBogusD;
+	showercol->push_back( recob::Shower(dcosVtx, dcosVtxErr, maxTransWidth, totalCharge, distMaxWidth) );
+	
+	// associate the shower with its clusters
+	util::CreateAssn(*this, evt, *showercol, protoShowers, *cassn);
+	
+	// get the hits associated with each cluster and associate those with the shower
+	for(size_t p = 0; p < protoShowers.size(); ++p){
+	  std::vector< art::Ptr<recob::Hit> > hits = fmhps.at(p);
+	  util::CreateAssn(*this, evt, *showercol, hits, *hassn);
+	}
+	
+	protoShowers.clear();
+	
+      } //end scan loop
+    } //end vertices loop
 
     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     //NEED TO SEPARATE THE SHOWERS FROM THE DIFFERENT VERTEX!!!!  
