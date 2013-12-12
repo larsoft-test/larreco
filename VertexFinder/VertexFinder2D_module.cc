@@ -445,10 +445,10 @@ namespace vertex{
       // 	  }
     }
     
-    mf::LogVerbatim("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
-    mf::LogVerbatim("Summary") << "VertexFinder2D Summary:";
-    for(size_t i = 0; i<epcol->size(); ++i) mf::LogVerbatim("Summary") << epcol->at(i) ;
-    for(size_t i = 0; i<vcol->size(); ++i) mf::LogVerbatim("Summary") << vcol->at(i) ;
+    LOG_VERBATIM("Summary") << std::setfill('-') << std::setw(175) << "-" << std::setfill(' ');
+    LOG_VERBATIM("Summary") << "VertexFinder2D Summary:";
+    for(size_t i = 0; i<epcol->size(); ++i) LOG_VERBATIM("Summary") << epcol->at(i) ;
+    for(size_t i = 0; i<vcol->size(); ++i) LOG_VERBATIM("Summary") << vcol->at(i) ;
     
     evt.put(std::move(epcol));
     evt.put(std::move(vcol));
