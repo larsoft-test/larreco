@@ -303,7 +303,7 @@ namespace cluster{
           // wire
           unsigned short itmp = tcl[ii].BeginWir;
           tcl[ii].BeginWir = tcl[ii].EndWir;
-          tcl[ii].BeginWir = itmp;
+          tcl[ii].EndWir = itmp;
           // time
           tmp = tcl[ii].BeginTim;
           tcl[ii].BeginTim = tcl[ii].EndTim;
