@@ -351,16 +351,18 @@ void GausHitFinder::produce(art::Event& evt)
       // 3 the height of the dip between the two is greater than threshold/2
       // 4 and there is no gap between them
       while(numHits < fMaxMultiHit && numHits+hitIndex < (signed)endTimes.size() && 
-	    signal[endTimes[hitIndex+numHits-1]] >threshold/2.0 &&  
-	startTimes[hitIndex+numHits] - endTimes[hitIndex+numHits-1] < 2){
-	if(signal[maxTimes[hitIndex+numHits]] < minPeakHeight){ 
-	  minPeakHeight=signal[maxTimes[hitIndex+numHits]];
+            signal[endTimes[hitIndex+numHits-1]] >threshold/2.0 &&  
+	    startTimes[hitIndex+numHits] - endTimes[hitIndex+numHits-1] < 2)
+	{
+	if(signal[maxTimes[hitIndex+numHits]] < minPeakHeight)
+		{ 
+	  	minPeakHeight=signal[maxTimes[hitIndex+numHits]];
 	      
-	}//<---Only move the mean peakHeight in this hit
+		}//<---Only move the mean peakHeight in this hit
 	    
 	numHits++;//<---Interate the multihit function
 	    
-      }//<---End multihit while loop
+      	}//<---End multihit while loop
 	  
 	  
 	  
@@ -465,8 +467,16 @@ void GausHitFinder::produce(art::Event& evt)
       // ####################################################
       hitSignal.Sumw2();
       
-      hitSignal.Fit(&Gaus,"QNRW","", startT, endT);
-      //hitSignal.Fit(&Gaus,"QR0LLi","", startT, endT);
+      try
+      	{
+      	hitSignal.Fit(&Gaus,"QNRW","", startT, endT);
+      	//hitSignal.Fit(&Gaus,"QR0LLi","", startT, endT);
+	}
+      catch(...)
+      	{
+	mf::LogWarning("GausHitFinder") << "Fitter failed finding a hit";
+	
+	}
 	  
       for(int hitNumber = 0; hitNumber < numHits; ++hitNumber){
 	totSig = 0;	
@@ -539,20 +549,37 @@ void GausHitFinder::produce(art::Event& evt)
 	
 	  float TempStartIime = MeanPosition - 4;
 	  float TempEndTime   = MeanPosition  + 4;
-	 	
-	  hitSignal.Fit(hit,"QNRLLi","", TempStartIime, TempEndTime);
-	
+	  
+	  try
+	  	{	
+	  	hitSignal.Fit(hit,"QNRLLi","", TempStartIime, TempEndTime);
+		
+		FitGoodnes			= hit->GetChisquare() / hit->GetNDF();
 	      
-	  FitGoodnes			= hit->GetChisquare() / hit->GetNDF();
-	      
-	  StartTimeError			= TMath::Sqrt( (hit->GetParError(1)*hit->GetParError(1)) + 
+	  	StartTimeError			= TMath::Sqrt( (hit->GetParError(1)*hit->GetParError(1)) + 
 							       (hit->GetParError(2)*hit->GetParError(2)));
 	      
-	  EndTimeError			= TMath::Sqrt( (hit->GetParError(1)*hit->GetParError(1)) + 
+	  	EndTimeError			= TMath::Sqrt( (hit->GetParError(1)*hit->GetParError(1)) + 
 						       (hit->GetParError(2)*hit->GetParError(2)));
 	      
 	      
-	  MeanPosError			= hit->GetParError(1);
+	  	MeanPosError			= hit->GetParError(1);
+		
+		
+		}
+	 // ### Putting in a protection in case the fitter fails ###
+	 catch(...)
+	 	{
+		mf::LogWarning("GausHitFinder") << "Fitter failed to define how good a fit this was";
+		FitGoodnes = -999;
+		
+		StartTimeError = -999;
+		EndTimeError = -999;
+		MeanPosError = -999;
+		}
+	
+	      
+	  
 	      
 	  // ####################################################################################
 	  // ### Skipping hits with a chi2/NDF larger than the value defined in the .fcl file ###
