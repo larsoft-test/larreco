@@ -178,14 +178,18 @@ namespace cluster{
   void ClusterMatchAlg::FillEventInfo(const art::Event &evt)
   //##########################################################################################  
   {
+    art::ServiceHandle<geo::Geometry> geo;
+     _tot_planes = geo->Nplanes();
+     
     if(!(_event_id) && !_event_var_filled) {
       // 1st call ever
       PrepareTree();
     }
     else if(_event_var_filled && SameEvent(evt)) return;
     ClearEventInfo();
+   
     if(FillClusterInfo(evt)) {
-      FillMCInfo(evt);
+      FillMCInfo(evt); 
       _event_id = evt.id().event();
       _run = evt.run();
       _subrun = evt.subRun();
@@ -250,7 +254,8 @@ namespace cluster{
     //
     // Pull a vector of cluster & hit pointer from input (std::vector<art::Ptr>)
     //
-    std::vector<art::Ptr<recob::Cluster> > cluster_ptr_v;
+    
+   std::vector<art::Ptr<recob::Cluster> > cluster_ptr_v;
     art::Handle< std::vector<recob::Cluster> > cluster_handle;
     evt.getByLabel(_ModName_Cluster, cluster_handle);
     if(cluster_handle.isValid()) {
@@ -283,7 +288,9 @@ namespace cluster{
     art::ServiceHandle<util::DetectorProperties> det_h;
     double time_offset_uplane = det_h->GetXTicksOffset(geo::kU,0,0);
     double time_offset_vplane = det_h->GetXTicksOffset(geo::kV,0,0);
-    double time_offset_wplane = det_h->GetXTicksOffset(geo::kW,0,0);
+     double time_offset_wplane=0;
+    if (_tot_planes >2 )
+      time_offset_wplane = det_h->GetXTicksOffset(geo::kW,0,0);
 
     // Start looping over clusters
     std::ostringstream msg;
@@ -431,6 +438,7 @@ namespace cluster{
   {
     bool use_wplane(_wcluster_v.size());
 
+    
     if( uindex >= _ucluster_v.size() ||
 	vindex >= _vcluster_v.size() ||
 	(use_wplane && (windex >= _wcluster_v.size())) ) {
@@ -459,7 +467,6 @@ namespace cluster{
     size_t max_size = _uhits_v.at(uindex).size() + _vhits_v.at(vindex).size();
     if(use_wplane) max_size += _whits_v.at(windex).size();
     hit_group.reserve(max_size);
-
     // Loop over hits in U-plane
     for(auto const hit : _uhits_v.at(uindex)) {
       if(hit->PeakTime() < trange_min) continue;
@@ -469,7 +476,6 @@ namespace cluster{
     // Check if any hit found in this plane
     size_t u_nhits = hit_group.size();
     if( !u_nhits && !_debug_mode) return false;
-    
     // Loop over hits in V-plane
     for(auto const hit: _vhits_v.at(vindex)) {
       if(hit->PeakTime() < trange_min) continue;
@@ -481,15 +487,19 @@ namespace cluster{
     if( !(v_nhits) && !_debug_mode) return false;
     
     // Loop over hits in W-plane
-    for(auto const hit: _whits_v.at(windex)) {
-      if(hit->PeakTime() < trange_min) continue;
-      if(hit->PeakTime() > trange_max) continue;
-      hit_group.push_back(hit);
+    if(_tot_planes>2)
+    {
+      for(auto const hit: _whits_v.at(windex)) {
+	if(hit->PeakTime() < trange_min) continue;
+	if(hit->PeakTime() > trange_max) continue;
+	hit_group.push_back(hit);
+      }
     }
     // Check if any hit found in this plane
     size_t w_nhits = hit_group.size() - u_nhits - v_nhits;
     if( !(w_nhits) && use_wplane && !_debug_mode) return false;
 
+    
     // Run SpacePoint finder algo
     std::vector<recob::SpacePoint> sps;
     if(u_nhits && v_nhits && (w_nhits && use_wplane)) {
@@ -500,7 +510,8 @@ namespace cluster{
     size_t nsps = sps.size();
     _u_nhits_v.push_back(u_nhits);
     _v_nhits_v.push_back(v_nhits);
-    _w_nhits_v.push_back(w_nhits);
+    if(_tot_planes>2)
+    { _w_nhits_v.push_back(w_nhits); }
     _nsps.push_back(nsps);
 
     if( nsps < _num_sps_cut ) return false;
@@ -533,8 +544,7 @@ namespace cluster{
 	overlay_2d = true;
 
 	// Apply cuts
-
-	// Rough z-position overlay cut
+        // Rough z-position overlay cut
 	if(_match_methods[kRoughZ]) {
 
 	  if(Match_RoughZ(_ucluster_v.at(uci_index), _vcluster_v.at(vci_index), geo::kU, geo::kV))
@@ -543,6 +553,7 @@ namespace cluster{
 	  else overlay_2d = false;
 	}
 
+		
 	// Sum charge cut
 	if(_match_methods[kSumCharge]) {
 	  
@@ -561,7 +572,7 @@ namespace cluster{
 	  else overlay_2d = false;
 	}
 
-	// SpacePoint cut
+        // SpacePoint cut
 	if(_match_methods[kSpacePoint]) {
 	  
 	  if(Match_SpacePoint(uci_index, vci_index)) 

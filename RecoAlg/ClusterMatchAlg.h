@@ -241,6 +241,7 @@ namespace cluster
     double _mc_Vy;
     double _mc_Vz;
     int _pdgid;
+    unsigned int _tot_planes;
     unsigned short _tot_u;
     unsigned short _tot_v;
     unsigned short _tot_w;
