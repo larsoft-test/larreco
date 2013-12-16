@@ -1115,6 +1115,7 @@ void cluster::ShowerAngleClusterAna::GetVertexCluster(std::vector < art::Ptr < r
     mcpdg[iClust]=particle->PdgCode();
     mcenergy[iClust]=particle->E();  
   
+  //  std::cout << " ===== particle, energy per Cluster,plane: " << mcpdg[iClust] << " "<< mcenergy[iClust] << " " << iClust << " "<<mcplane[iClust] << " "<<hitlist.size() <<std::endl;
      
     // Find Hit with closest deposition to original x,y,z 
     double x,y,z;
@@ -1319,10 +1320,10 @@ void cluster::ShowerAngleClusterAna::GetVertexN(const art::Event& evt){
 //   fMCPhistart.resize(mctruth->NParticles());
 //   fMCThetastart.resize(mctruth->NParticles());
   
-  fMCPDGstart.resize(plist.size()); 
-  fMCenergystart.resize(plist.size());
-  fMCPhistart.resize(plist.size());
-  fMCThetastart.resize(plist.size());
+//   fMCPDGstart.resize(plist.size()); 
+//   fMCenergystart.resize(plist.size());
+//   fMCPhistart.resize(plist.size());
+//   fMCThetastart.resize(plist.size());
   
   if(plist.size())
   {
@@ -1359,8 +1360,8 @@ void cluster::ShowerAngleClusterAna::GetVertexN(const art::Event& evt){
 	continue;
       
       fNParticles++;
-      fMCPDGstart[iParticle]=(neut->PdgCode());
-      fMCenergystart[iParticle]=(neut->P());  
+      fMCPDGstart.push_back(neut->PdgCode());
+      fMCenergystart.push_back(neut->P());  
   
     if (neut->P()){
       double lep_dcosx_truth = neut->Px()/neut->P();
@@ -1370,12 +1371,12 @@ void cluster::ShowerAngleClusterAna::GetVertexN(const art::Event& evt){
       mf::LogVerbatim("ShowerAngleClusterAna")  << "-----  cx,cy,cz " << lep_dcosx_truth << " " << lep_dcosy_truth << " " << lep_dcosz_truth << std::endl;
     
     
-      fMCPhistart[iParticle]=( (lep_dcosx_truth == 0.0 && lep_dcosz_truth == 0.0) ? 0.0 : TMath::ATan2(lep_dcosx_truth,lep_dcosz_truth));
-      fMCThetastart[iParticle]=( (lep_dcosx_truth == 0.0 && lep_dcosy_truth == 0.0 && lep_dcosz_truth == 0.0) ? 0.0 : TMath::Pi()*0.5-TMath::ATan2(std::sqrt(lep_dcosx_truth*lep_dcosx_truth + lep_dcosz_truth*lep_dcosz_truth),lep_dcosy_truth) );
+      fMCPhistart.push_back( (lep_dcosx_truth == 0.0 && lep_dcosz_truth == 0.0) ? 0.0 : TMath::ATan2(lep_dcosx_truth,lep_dcosz_truth));
+      fMCThetastart.push_back( (lep_dcosx_truth == 0.0 && lep_dcosy_truth == 0.0 && lep_dcosz_truth == 0.0) ? 0.0 : TMath::Pi()*0.5-TMath::ATan2(std::sqrt(lep_dcosx_truth*lep_dcosx_truth + lep_dcosz_truth*lep_dcosz_truth),lep_dcosy_truth) );
     
    
-      fMCPhistart[iParticle]=180*fMCPhistart[iParticle]/TMath::Pi();
-      fMCThetastart[iParticle]= 180*fMCThetastart[iParticle]/TMath::Pi();
+      fMCPhistart[iParticle]=(180*fMCPhistart[iParticle]/TMath::Pi());
+      fMCThetastart[iParticle]=( 180*fMCThetastart[iParticle]/TMath::Pi());
       mf::LogVerbatim("ShowerAngleClusterAna") << " Particle: " << iParticle << " PDG, En: " << fMCPDGstart[iParticle] << " " << fMCenergystart[iParticle] <<
        "-----  phi, theta " <<   fMCPhistart[iParticle] << " " << fMCThetastart[iParticle] << std::endl;
     
