@@ -216,6 +216,13 @@ standard_trackstitcher:
     SpptSepTolerance: 3.0 # cm
 }
 
+standard_magdriftana:
+{
+ module_type:           "MagDriftAna"
+ HitsModuleLabel:       "ffthit"
+ LArGeantModuleLabel:   "largeant"
+}
+
 bo_track:                               @local::standard_track3Dreco  
 bo_kalman:                              @local::standard_track3Dkalman
 bo_spacepts:                            @local::standard_spacepts     
@@ -292,13 +299,6 @@ microboone_2stg_kalman:
  MomStart3:           [0.10,0.10,1.0]    #  Will be Unit norm'd.
  TailPtsFrac:         0.9    # fraction of upstream SpacePoints to ignore in 1st stage fit.
  GenfPRINT:           true
-}
-
-standard_magdriftana:
-{
- module_type:           "MagDriftAna"
- HitsModuleLabel:       "ffthit"
- LArGeantModuleLabel:   "largeant"
 }
 
 END_PROLOG
