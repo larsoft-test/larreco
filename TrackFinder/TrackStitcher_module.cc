@@ -176,7 +176,7 @@ namespace trkf {
     art::Handle< std::vector< recob::Track > > tListHandle;
     evt.getByLabel(fTrackModuleLabel,tListHandle);
 
-    mf::LogVerbatim("TrackStitcher.beginning") << "There are " <<  tListHandle->size() << " Tracks in this event before stitching.";
+    //    mf::LogVerbatim("TrackStitcher.beginning") << "There are " <<  tListHandle->size() << " Tracks in this event before stitching.";
     
     int ntrack = tListHandle->size();
     for(int ii = 0; ii < ntrack; ++ii) {
@@ -277,12 +277,12 @@ namespace trkf {
 	// Now make the Assns of relevant Hits to stitched Track
 	util::CreateAssn(*this, evt, *tcol, hits, *thassn, tcol->size()-1);
 	const art::PtrVector<recob::SpacePoint>& sppts(GetSpacePointsFromComponentTracks(tcolTmp, evt));
-	// Now make the Assns of relevant Spptts to stitched Track
+	// Now make the Assns of relevant Sppts to stitched Track
 	util::CreateAssn(*this, evt, *tcol, sppts, *tsptassn, tcol->size()-1);
 
       }
     
-        mf::LogVerbatim("TrackStitcher.end") << "There are " <<  tvcol->size() << " Tracks in this event after stitching.";
+    //        mf::LogVerbatim("TrackStitcher.end") << "There are " <<  tvcol->size() << " Tracks in this event after stitching.";
     evt.put(std::move(tcol)); 
     evt.put(std::move(tvcol));
     // Add Hit-to-Track and Sppt-to-Track Assns.
@@ -308,16 +308,31 @@ namespace trkf {
       {
 	for (size_t pt = 0; pt!=(*it).get()->NumberTrajectoryPoints(); pt++)
 	  {
-	    xyz.push_back((*it).get()->LocationAtPoint(pt));
-	    dxdydz.push_back((*it).get()->DirectionAtPoint(pt));
-	    cov.push_back((*it).get()->CovarianceAtPoint(pt));
-	    mom.push_back((*it).get()->MomentumAtPoint(pt));
-	    std::vector <double> dum; // someone insisted this must be a vector ...
-	    if (pt<(*it).get()->NumberdQdx(geo::kZ))
-	      dum.push_back((*it).get()->DQdxAtPoint(pt,geo::kZ));
-	    else
-	      dum.push_back(0.0);
-	    dQdx.push_back(dum);
+	    try 
+	      { 
+		xyz.push_back((*it).get()->LocationAtPoint(pt));
+		dxdydz.push_back((*it).get()->DirectionAtPoint(pt));
+		TMatrixT<double>  dumc(5,5); 
+		if (pt<(*it).get()->NumberCovariance())
+		  dumc = (*it).get()->CovarianceAtPoint(pt);
+		cov.push_back(dumc);
+		double dumm(0.0); 
+		if (pt<(*it).get()->NumberFitMomentum())
+		  dumm = (*it).get()->MomentumAtPoint(pt);
+		mom.push_back(dumm);
+		std::vector <double> dum; 
+		if (pt<(*it).get()->NumberdQdx(geo::kZ))
+		  dum.push_back((*it).get()->DQdxAtPoint(pt,geo::kZ));
+		else
+		  dum.push_back(0.0);
+		dQdx.push_back(dum);
+
+	      }
+	    catch (cet::exception &e)
+	      {
+		mf::LogVerbatim("TrackStitcher bailing. ") << " One or more of xyz, dxdydz, cov, mom, dQdx elements from original Track is out of range..." << e.what() << __LINE__;
+		break;
+	      }
 	  }
       }
    
