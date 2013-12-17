@@ -19,14 +19,17 @@ namespace cluster{
   {    
 
     _debug_mode         = pset.get<bool>   ("DebugMode");
+    _store_sps          = pset.get<bool>   ("StoreSpacePoint");
     _num_sps_cut        = pset.get<size_t> ("CutParam_NumSpacePoint");
     _overlay_tratio_cut = pset.get<double> ("CutParam_OverlayTimeFraction");
     _qratio_cut         = pset.get<double> ("CutParam_SumChargeRatio");
     std::vector<size_t> algo_list = pset.get<std::vector<size_t> > ("MatchAlgoList");
 
-     _sps_algo = new trkf::SpacePointAlg(pset.get<fhicl::ParameterSet>("SpacePointAlg"));
-    _tree = 0;
+    _sps_algo = new trkf::SpacePointAlg(pset.get<fhicl::ParameterSet>("SpacePointAlg"));
+    _match_tree = 0;
+    _cluster_tree = 0;
     _event_var_filled = false;
+    _save_cluster_info = true;
 
     for(size_t i=0; i<(size_t)(kMATCH_METHOD_MAX); ++i)
 
@@ -92,6 +95,7 @@ namespace cluster{
     _matched_uclusters_v.clear();
     _matched_vclusters_v.clear();
     _matched_wclusters_v.clear();
+    _matched_sps_v.clear();
 
     /// Run control variables
     _event_id = 0;
@@ -124,6 +128,16 @@ namespace cluster{
     _w_nhits_v.clear();
     _nsps.clear();
 
+    _view_v.clear();
+    _charge_v.clear();
+    _nhits_v.clear();
+    _tstart_min_v.clear();
+    _tstart_max_v.clear();
+    _tpeak_min_v.clear();
+    _tpeak_max_v.clear();
+    _tend_min_v.clear();
+    _tend_max_v.clear();   
+
   }
   
   //##################################################################
@@ -142,36 +156,47 @@ namespace cluster{
   //##################################################################
   {
     art::ServiceHandle<art::TFileService> fileService;
-    if(!_tree){
-      _tree = fileService->make<TTree>("match_tree","");
-      _tree->Branch("mc_E",&_mc_E,"mc_E/D");
-      _tree->Branch("mc_Px",&_mc_Px,"mc_Px/D");
-      _tree->Branch("mc_Py",&_mc_Py,"mc_Py/D");
-      _tree->Branch("mc_Pz",&_mc_Pz,"mc_Pz/D");
-      _tree->Branch("mc_Vx",&_mc_Vx,"mc_Vx/D");
-      _tree->Branch("mc_Vy",&_mc_Vy,"mc_Vy/D");
-      _tree->Branch("mc_Vz",&_mc_Vz,"mc_Vz/D");
+    if(!_match_tree){
+      _match_tree = fileService->make<TTree>("match_tree","");
+      _match_tree->Branch("mc_E",&_mc_E,"mc_E/D");
+      _match_tree->Branch("mc_Px",&_mc_Px,"mc_Px/D");
+      _match_tree->Branch("mc_Py",&_mc_Py,"mc_Py/D");
+      _match_tree->Branch("mc_Pz",&_mc_Pz,"mc_Pz/D");
+      _match_tree->Branch("mc_Vx",&_mc_Vx,"mc_Vx/D");
+      _match_tree->Branch("mc_Vy",&_mc_Vy,"mc_Vy/D");
+      _match_tree->Branch("mc_Vz",&_mc_Vz,"mc_Vz/D");
 
-      _tree->Branch("pdgid",&_pdgid,"pdgid/I");
-      _tree->Branch("tot_u",&_tot_u,"tot_u/s");
-      _tree->Branch("tot_v",&_tot_v,"tot_v/s");
-      _tree->Branch("tot_w",&_tot_w,"tot_w/s");
-      _tree->Branch("tot_pass_t",&_tot_pass_t,"tot_pass_t/s");
-      _tree->Branch("tot_pass_z",&_tot_pass_z,"tot_pass_z/s");
-      _tree->Branch("tot_pass_sps",&_tot_pass_sps,"tot_pass_sps/s");
-      _tree->Branch("tot_pass_qsum",&_tot_pass_qsum,"tot_pass_qsum/s");
+      _match_tree->Branch("pdgid",&_pdgid,"pdgid/I");
+      _match_tree->Branch("tot_u",&_tot_u,"tot_u/s");
+      _match_tree->Branch("tot_v",&_tot_v,"tot_v/s");
+      _match_tree->Branch("tot_w",&_tot_w,"tot_w/s");
+      _match_tree->Branch("tot_pass_t",&_tot_pass_t,"tot_pass_t/s");
+      _match_tree->Branch("tot_pass_z",&_tot_pass_z,"tot_pass_z/s");
+      _match_tree->Branch("tot_pass_sps",&_tot_pass_sps,"tot_pass_sps/s");
+      _match_tree->Branch("tot_pass_qsum",&_tot_pass_qsum,"tot_pass_qsum/s");
 
-      _tree->Branch("uv_tratio_v","std::vector<double>",&_uv_tratio_v);
-      _tree->Branch("vw_tratio_v","std::vector<double>",&_vw_tratio_v);
-      _tree->Branch("wu_tratio_v","std::vector<double>",&_wu_tratio_v);
+      _match_tree->Branch("uv_tratio_v","std::vector<double>",&_uv_tratio_v);
+      _match_tree->Branch("vw_tratio_v","std::vector<double>",&_vw_tratio_v);
+      _match_tree->Branch("wu_tratio_v","std::vector<double>",&_wu_tratio_v);
 
-      _tree->Branch("qratio_v", "std::vector<double>",&_qratio_v);
-      _tree->Branch("u_nhits_v", "std::vector<UShort_t>",&_u_nhits_v);
-      _tree->Branch("v_nhits_v", "std::vector<UShort_t>",&_v_nhits_v);
-      _tree->Branch("w_nhits_v", "std::vector<UShort_t>",&_w_nhits_v);
-      _tree->Branch("nsps",  "std::vector<UShort_t>",&_nsps);
+      _match_tree->Branch("qratio_v", "std::vector<double>",&_qratio_v);
+      _match_tree->Branch("u_nhits_v", "std::vector<UShort_t>",&_u_nhits_v);
+      _match_tree->Branch("v_nhits_v", "std::vector<UShort_t>",&_v_nhits_v);
+      _match_tree->Branch("w_nhits_v", "std::vector<UShort_t>",&_w_nhits_v);
+      _match_tree->Branch("nsps",  "std::vector<UShort_t>",&_nsps);
     }
-
+    if(_save_cluster_info && !_cluster_tree){
+      _cluster_tree = fileService->make<TTree>("cluster_tree","");
+      _cluster_tree->Branch("view_v","std::vector<uint16_t>", &_view_v);
+      _cluster_tree->Branch("charge_v","std::vector<double>", &_charge_v);
+      _cluster_tree->Branch("nhits_v","std::vector<uint16_t>",&_nhits_v);
+      _cluster_tree->Branch("tstart_min_v","std::vector<double>",&_tstart_min_v);
+      _cluster_tree->Branch("tstart_max_v","std::vector<double>",&_tstart_max_v);
+      _cluster_tree->Branch("tpeak_min_v","std::vector<double>",&_tpeak_min_v);
+      _cluster_tree->Branch("tpeak_max_v","std::vector<double>",&_tpeak_max_v);
+      _cluster_tree->Branch("tend_min_v","std::vector<double>",&_tend_min_v);
+      _cluster_tree->Branch("tend_max_v","std::vector<double>",&_tend_max_v);
+    }
   }
 
   //##########################################################################################
@@ -288,7 +313,7 @@ namespace cluster{
     art::ServiceHandle<util::DetectorProperties> det_h;
     double time_offset_uplane = det_h->GetXTicksOffset(geo::kU,0,0);
     double time_offset_vplane = det_h->GetXTicksOffset(geo::kV,0,0);
-     double time_offset_wplane=0;
+    double time_offset_wplane=0;
     if (_tot_planes >2 )
       time_offset_wplane = det_h->GetXTicksOffset(geo::kW,0,0);
 
@@ -368,8 +393,22 @@ namespace cluster{
 	continue;
       }
 
+      if(_cluster_tree){
+	_view_v.push_back(ci.view);
+	_charge_v.push_back(ci.sum_charge);
+	_nhits_v.push_back(hit_v.size());
+	_tstart_min_v.push_back(ci.start_time_min);
+	_tstart_max_v.push_back(ci.start_time_max);
+	_tpeak_min_v.push_back(ci.peak_time_min);
+	_tpeak_max_v.push_back(ci.peak_time_max);
+	_tend_min_v.push_back(ci.end_time_min);
+	_tend_max_v.push_back(ci.end_time_max);
+      }
       
     }
+
+    if(_cluster_tree)
+      _cluster_tree->Fill();
 
     msg << Form("Found (U,V,W) = (%zu,%zu,%zu) clusters...",
 		_uhits_v.size(),
@@ -378,7 +417,7 @@ namespace cluster{
 	<< std::endl;
     
     mf::LogWarning("ClusterMatchAlg")<<msg.str()<<std::endl;
-
+    
     _tot_u = _ucluster_v.size();
     _tot_v = _vcluster_v.size();
     _tot_w = _wcluster_v.size();
@@ -433,11 +472,13 @@ namespace cluster{
   }
 
   //#####################################################################################################
-  bool ClusterMatchAlg::Match_SpacePoint(const size_t uindex, const size_t vindex, const size_t windex)
+  bool ClusterMatchAlg::Match_SpacePoint(const size_t uindex, 
+					 const size_t vindex, 
+					 const size_t windex, 
+					 std::vector<recob::SpacePoint> &sps_v)
   //#####################################################################################################
   {
     bool use_wplane(_wcluster_v.size());
-
     
     if( uindex >= _ucluster_v.size() ||
 	vindex >= _vcluster_v.size() ||
@@ -487,13 +528,10 @@ namespace cluster{
     if( !(v_nhits) && !_debug_mode) return false;
     
     // Loop over hits in W-plane
-    if(_tot_planes>2)
-    {
-      for(auto const hit: _whits_v.at(windex)) {
-	if(hit->PeakTime() < trange_min) continue;
-	if(hit->PeakTime() > trange_max) continue;
-	hit_group.push_back(hit);
-      }
+    for(auto const hit: _whits_v.at(windex)) {
+      if(hit->PeakTime() < trange_min) continue;
+      if(hit->PeakTime() > trange_max) continue;
+      hit_group.push_back(hit);
     }
     // Check if any hit found in this plane
     size_t w_nhits = hit_group.size() - u_nhits - v_nhits;
@@ -501,17 +539,16 @@ namespace cluster{
 
     
     // Run SpacePoint finder algo
-    std::vector<recob::SpacePoint> sps;
     if(u_nhits && v_nhits && (w_nhits && use_wplane)) {
       _sps_algo->clearHitMap();
-      _sps_algo->makeSpacePoints(hit_group,sps);
+      _sps_algo->makeSpacePoints(hit_group,sps_v);
     }
 
-    size_t nsps = sps.size();
+    size_t nsps = sps_v.size();
     _u_nhits_v.push_back(u_nhits);
     _v_nhits_v.push_back(v_nhits);
-    if(_tot_planes>2)
-    { _w_nhits_v.push_back(w_nhits); }
+    if(use_wplane)
+      _w_nhits_v.push_back(w_nhits); 
     _nsps.push_back(nsps);
 
     if( nsps < _num_sps_cut ) return false;
@@ -573,9 +610,10 @@ namespace cluster{
 	}
 
         // SpacePoint cut
+	std::vector<recob::SpacePoint> sps_v;
 	if(_match_methods[kSpacePoint]) {
 	  
-	  if(Match_SpacePoint(uci_index, vci_index)) 
+	  if(Match_SpacePoint(uci_index, vci_index, 0, sps_v)) 
 	    _tot_pass_sps++;
 	  else if(!_debug_mode) continue;
 	  else overlay_2d = false;
@@ -584,11 +622,28 @@ namespace cluster{
 	if(overlay_2d) {
 	  _matched_uclusters_v.push_back((unsigned int)(_ucluster_v[uci_index].cluster_index));
 	  _matched_vclusters_v.push_back((unsigned int)(_vcluster_v[vci_index].cluster_index));
+	  if(_store_sps)
+	    _matched_sps_v.push_back(sps_v);
 	}
       } // end of ... _vcluster_v loop
     } // end of ... _ucluster_v loop
-    mf::LogWarning("ClusterMatchAlg")<<Form("Found %zu matched cluster pairs...",_matched_uclusters_v.size());
-    _tree->Fill();
+
+    // Report
+    std::ostringstream msg;
+    msg << std::endl
+	<< Form("Found %zu matched cluster pairs...",_matched_uclusters_v.size()) 
+	<< std::endl;
+    for(size_t i=0; i<_matched_uclusters_v.size(); ++i){
+
+      if(i==0) msg << "Listing matched clusters (U,V)..." << std::endl;
+      
+      msg << Form("Pair %-2zu: (%-3d, %-3d)",i,_matched_uclusters_v[i],_matched_vclusters_v[i]) << std::endl;
+      
+    }
+    msg << std::endl;
+    mf::LogWarning("ClusterMatchAlg")<<msg.str();
+
+    _match_tree->Fill();
   }
 
   //#######################################################################
@@ -601,6 +656,7 @@ namespace cluster{
     _matched_wclusters_v.clear();
     _matched_uclusters_v.clear();
     _matched_vclusters_v.clear();
+    _matched_sps_v.clear();
 
     bool overlay_2d=true;
     bool overlay_3d=true;
@@ -652,9 +708,10 @@ namespace cluster{
 	  }
 
 	  // SpacePoint cut
+	  std::vector<recob::SpacePoint> sps_v;
 	  if(_match_methods[kSpacePoint]) {
 
-	    if(Match_SpacePoint(uci_index, vci_index, wci_index))
+	    if(Match_SpacePoint(uci_index, vci_index, wci_index, sps_v))
 	      _tot_pass_sps++;
 	    else if(!_debug_mode) continue; 
 	    else overlay_3d = false;
@@ -664,12 +721,33 @@ namespace cluster{
 	    _matched_uclusters_v.push_back((unsigned int)(_ucluster_v[uci_index].cluster_index));
 	    _matched_vclusters_v.push_back((unsigned int)(_vcluster_v[vci_index].cluster_index));
 	    _matched_wclusters_v.push_back((unsigned int)(_wcluster_v[wci_index].cluster_index));
+	    if(_store_sps)
+	      _matched_sps_v.push_back(sps_v);
 	  }
 	} // end of ... _wcluster_v loop
       } // end of ... _vcluster_v loop
     } // end of ... _ucluster_v loop
-    mf::LogWarning("ClusterMatchAlg")<<Form("Found %zu matched cluster pairs...",_matched_uclusters_v.size());
-    _tree->Fill();
+
+    // Report
+    std::ostringstream msg;
+    msg << std::endl
+	<< Form("Found %zu matched cluster pairs...",_matched_uclusters_v.size()) 
+	<< std::endl;
+    for(size_t i=0; i<_matched_uclusters_v.size(); ++i){
+
+      if(i==0) msg << "Listing matched clusters (U,V,W)..." << std::endl;
+      
+      msg << Form("Pair %-2zu: (%-3d, %-3d, %-3d)",
+		  i,
+		  _matched_uclusters_v[i],
+		  _matched_vclusters_v[i],
+		  _matched_wclusters_v[i]) << std::endl;
+      
+    }
+    msg << std::endl;
+    mf::LogWarning("ClusterMatchAlg")<<msg.str();
+
+    _match_tree->Fill();
   }
 
 } // namespace match

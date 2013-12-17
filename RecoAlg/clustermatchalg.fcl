@@ -3,7 +3,8 @@ BEGIN_PROLOG
 
 standard_clustermatchalg:
 {
-  DebugMode: true
+  DebugMode:                    true
+  StoreSpacePoint:              true
   MatchAlgoList:                [0, 1, 2]  # Algorithms enum to be enabled
   CutParam_NumSpacePoint:       100        # Number of minimum space point to claim a cluster by kSpacePoint 
   CutParam_OverlayTimeFraction: 0.05       # Minimum fraction of overlayed time period used by kRoughTime 

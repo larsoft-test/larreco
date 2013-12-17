@@ -136,7 +136,13 @@ namespace cluster
 
     /// Method to retrieve matched cluster combinations. The format is [wire_plane][cluster_index]
     std::vector<std::vector<unsigned int> > GetMatchedClusters() const;
+    
+    /// Method to retrieve matched SpacePoint for each combinations.
+    const std::vector<std::vector<recob::SpacePoint> >& GetMatchedSpacePoints() const { return _matched_sps_v; };
 
+    /// Method to check if it is configured to store SpacePoint
+    bool StoreSpacePoints() const { return _store_sps; }
+    
     /// Method to fill input data ... to be called before Match function call.
     void FillEventInfo(const art::Event &evt);
 
@@ -189,7 +195,7 @@ namespace cluster
        there found N spacepoints using hits in them and N > min_nsps where "min_nsps" is
        the cut value you can set in SetNSpacePointCut() method.
     */
-    bool Match_SpacePoint(const size_t uindex, const size_t vindex, const size_t windex=0);
+    bool Match_SpacePoint(const size_t uindex, const size_t vindex, const size_t windex, std::vector<recob::SpacePoint> &sps_v);
 
     //
     // Cut parameter values 
@@ -204,6 +210,7 @@ namespace cluster
     std::vector<unsigned int> _matched_uclusters_v; ///< U plane matched clusters' index
     std::vector<unsigned int> _matched_vclusters_v; ///< V plane matched clusters' index
     std::vector<unsigned int> _matched_wclusters_v; ///< W plane matched clusters' index
+    std::vector<std::vector<recob::SpacePoint> > _matched_sps_v; ///< Local SpacePoint vector container
 
     //
     // Run control variables
@@ -212,6 +219,7 @@ namespace cluster
     bool _match_methods[kMATCH_METHOD_MAX]; ///< Boolean list for enabled algorithms
     bool _event_var_filled;                 ///< Boolean to keep track of whether the even data is received or not
     bool _debug_mode;                       ///< Boolean to enable debug mode (call all enabled matching methods)
+    bool _store_sps;                        ///< Boolean to enable storage of SpacePoint vector
     unsigned int _event_id;  ///< Processed event's counter
     unsigned int _run;       ///< Processed event's run number
     unsigned int _subrun;    ///< Processed event's subrun number
@@ -222,7 +230,7 @@ namespace cluster
     std::vector<art::PtrVector<recob::Hit> > _uhits_v; ///< Local Hit pointer vector container ... U-plane
     std::vector<art::PtrVector<recob::Hit> > _vhits_v; ///< Local Hit pointer vector container ... V-plane
     std::vector<art::PtrVector<recob::Hit> > _whits_v; ///< Local Hit pointer vector container ... W-plane
-
+    
     std::vector<cluster_info> _ucluster_v; ///< Local cluster data container... U-plane
     std::vector<cluster_info> _vcluster_v; ///< Local cluster data container... V-plane
     std::vector<cluster_info> _wcluster_v; ///< Local cluster data container... W-plane
@@ -232,7 +240,8 @@ namespace cluster
     //
     // Quality control parameters to be saved in the TTree
     //
-    TTree* _tree;
+    TTree* _match_tree;
+    // Event-wise variables
     double _mc_E;
     double _mc_Px;
     double _mc_Py;
@@ -249,15 +258,29 @@ namespace cluster
     unsigned short _tot_pass_t;
     unsigned short _tot_pass_z;
     unsigned short _tot_pass_sps;
+    // Cluster-combination-wise variable
     std::vector<uint16_t> _u_nhits_v;
     std::vector<uint16_t> _v_nhits_v;
     std::vector<uint16_t> _w_nhits_v;
     std::vector<uint16_t> _nsps;
     std::vector<double>   _qratio_v;
-    //std::vector<double>   _qratio_v2;
     std::vector<double>   _uv_tratio_v;
     std::vector<double>   _vw_tratio_v;
     std::vector<double>   _wu_tratio_v;
+
+    // Cluster-wise variable
+    bool _save_cluster_info;
+    TTree* _cluster_tree;
+    std::vector<uint16_t> _view_v;
+    std::vector<double>   _charge_v;
+    std::vector<uint16_t> _nhits_v;
+    std::vector<double>   _tstart_min_v;
+    std::vector<double>   _tstart_max_v;
+    std::vector<double>   _tpeak_min_v;
+    std::vector<double>   _tpeak_max_v;
+    std::vector<double>   _tend_min_v;
+    std::vector<double>   _tend_max_v;
+
   }; // class ClusterMatchAlg
   
 } //namespace cluster
