@@ -116,10 +116,10 @@ namespace cluster {
     std::vector< unsigned int >fNWires;
     double fNTimes;
     
-    recob::Cluster MainClusterLoop(art::Ptr<recob::Cluster> inCluster,std::vector< art::Ptr<recob::Hit> > hitlist, unsigned int iClust ); 
-    
-    
-    
+    recob::Cluster MainClusterLoop(art::Ptr<recob::Cluster> inCluster,
+				   std::vector< art::Ptr<recob::Hit> > hitlist, 
+				   unsigned int iClustInput, 
+				   unsigned int iClustOutput); 
     
     art::ServiceHandle<util::DetectorProperties> detp;
     art::ServiceHandle<util::LArProperties> larp;
@@ -171,11 +171,16 @@ cluster::ShowerAngleCluster::ShowerAngleCluster(fhicl::ParameterSet const& pset)
   this->reconfigure(pset);
   produces< std::vector<recob::Cluster> >();
   produces< art::Assns<recob::Cluster, recob::Hit>  >(); 
- // produces< art::Assns<recob::Cluster, recob::Hit>  >(); 
+  // produces< art::Assns<recob::Cluster, recob::Hit>  >(); 
   //produces< art::Assns<recob::Cluster, recob::Cluster>  >(); 
   produces< std::vector < art::PtrVector <recob::Cluster> >  >();
-  
-    // Create random number engine needed for PPHT
+
+  // Store std::vector< art::PtrVector<recob::SpacePoint> > > if requested by ClusterMatchAlg
+  if(fCMatchAlg.StoreSpacePoints()) {
+    produces< std::vector <recob::SpacePoint> >();
+    produces< std::vector < art::PtrVector <recob::SpacePoint> > >();
+  }
+  // Create random number engine needed for PPHT
   createEngine(SeedCreator::CreateRandomNumberSeed(),"HepJamesRandom");
 
   
@@ -312,11 +317,14 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
 { 
   
 
-    // make an art::PtrVector of the clusters
- std::unique_ptr<std::vector<recob::Cluster> > ShowerAngleCluster(new std::vector<recob::Cluster>);
- std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
- std::unique_ptr< std::vector < art::PtrVector < recob::Cluster > > > classn(new std::vector < art::PtrVector < recob::Cluster > >);
-  
+  // make an art::PtrVector of the clusters
+  std::unique_ptr<std::vector<recob::Cluster> > ShowerAngleCluster(new std::vector<recob::Cluster>);
+  std::unique_ptr< art::Assns<recob::Cluster, recob::Hit> > assn(new art::Assns<recob::Cluster, recob::Hit>);
+  std::unique_ptr< std::vector < art::PtrVector < recob::Cluster > > > classn(new std::vector < art::PtrVector < recob::Cluster > >);
+
+  std::unique_ptr<std::vector<recob::SpacePoint> > MatchSpacePoint(new std::vector<recob::SpacePoint>);
+  std::unique_ptr< std::vector< art::PtrVector < recob::SpacePoint > > > sps_assn(new std::vector < art::PtrVector < recob::SpacePoint > >);
+
  mf::LogWarning("ShowerAngleCluster") << "In produce module " ; 
 
   //%%%%% this goes into ana module.
@@ -370,9 +378,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
     art::FindManyP<recob::Hit> fs( pcoll, evt, fClusterModuleLabel);
     std::vector< art::Ptr<recob::Hit> > hitlist = fs.at(0);
     //std::cout << "---------- going into pclust " << pclust->StartPos()[0] << " " << pclust->StartPos()[1] << std::endl;
-    recob::Cluster temp=MainClusterLoop( pclust,hitlist, iClust );
-    
-   
+    recob::Cluster temp=MainClusterLoop( pclust,hitlist, iClust, ShowerAngleCluster->size());
     ShowerAngleCluster->push_back(temp);
     util::CreateAssn(*this, evt, *(ShowerAngleCluster.get()), hitlist, *(assn.get()));
     }
@@ -389,9 +395,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
 	cvec.push_back(aptr);
 	}
     if((*ShowerAngleCluster).size()>0)   //make sure to make associations to something that exists.
-       classn->push_back(cvec); 
-     
-  
+       classn->push_back(cvec);   
   }
    
  }
@@ -412,19 +416,30 @@ else // no matching was done. Need to do it ourselves, but first run through all
       // resizing once cluster size is known.
   
        //endflag=false;
- 
-    for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++){
 
-	art::Ptr<recob::Cluster> cl(clusterListHandle, iClust);
-	std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iClust);
-      
-	//if(hitlist.size()<=fMinHitListSize )
-	//  continue;
-	recob::Cluster temp=MainClusterLoop( cl,hitlist, iClust );
-	ShowerAngleCluster->push_back(temp);
-	util::CreateAssn(*this, evt, *(ShowerAngleCluster.get()), hitlist, *(assn.get()));
-      } // End loop on clusters.
-  
+
+     /** 
+	 Loop over input clusters, process & produce ShowerAngleCluster output.
+	 Define std::vector<bool> ShowerAngleClusterFlags here to account for
+	 clusters that are skipped.
+     */
+     std::map<unsigned int,unsigned int> clusterIndexMap;
+     std::vector<bool> ShowerClusterFlags(clusterListHandle->size(),true);
+     for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++){
+       
+       art::Ptr<recob::Cluster> cl(clusterListHandle, iClust);
+       std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(iClust);
+       
+       if(hitlist.size()<=fMinHitListSize ) {
+	 ShowerClusterFlags[iClust] = false;
+	 continue;
+       }
+       clusterIndexMap[iClust] = (unsigned int)(ShowerAngleCluster->size());
+       recob::Cluster temp=MainClusterLoop( cl,hitlist, iClust, ShowerAngleCluster->size());
+       ShowerAngleCluster->push_back(temp);
+       util::CreateAssn(*this, evt, *(ShowerAngleCluster.get()), hitlist, *(assn.get()));
+     } // End loop on clusters.
+     
 
    
 //std::cout << " matchflag!!!  " << matchflag << std::endl;
@@ -442,16 +457,15 @@ else // no matching was done. Need to do it ourselves, but first run through all
 
 	//
 	// Step 1: We want to match only clusters that is shower-like.
-	//         Prepare a boolean vector of the length same as the
-	//         number of recob::Cluster products to be used.
-	std::vector<bool> ShowerClusterFlags(clusterListHandle->size(),true);
-	// Loop over cluters to set the boolean flag 
+	//         Update ShowerClusterFlags boolean vector clntents
+	//         based on ClusterParamsAlg::isShower() return.
 	for(size_t i=0; i<clusterListHandle->size(); ++i) {
+	  // Skip the cluster if it is already flagged as not-shower-like
+	  if(!ShowerClusterFlags[i]) continue;
 	  // Flagging code here
-	   //const recob::Cluster& cluster = clusterListHandle->at(i);
-	   std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(i);
-	   ShowerClusterFlags[i]=fCParAlg.isShower(lineslopetest[i],fWireVertex[i],fTimeVertex[i],fWireEnd[i],fTimeEnd[i], hitlist);
-	   //std::cout << " i " << i << " " << ShowerClusterFlags[i] << std::endl;
+	  std::vector< art::Ptr<recob::Hit> > hitlist = fmh.at(i);
+	  ShowerClusterFlags[i]=fCParAlg.isShower(lineslopetest[i],fWireVertex[i],fTimeVertex[i],fWireEnd[i],fTimeEnd[i], hitlist);
+	  //std::cout << " i " << i << " " << ShowerClusterFlags[i] << std::endl;
 	}
 	
 	
@@ -469,7 +483,18 @@ else // no matching was done. Need to do it ourselves, but first run through all
 	
 	// Retrieve the result
 	ClusterSets = fCMatchAlg.GetMatchedClusters();
+	std::vector<std::vector<recob::SpacePoint> > matchSPS_v = fCMatchAlg.GetMatchedSpacePoints();
 
+	if(fCMatchAlg.StoreSpacePoints()){
+
+	  for(auto const& spsVector : matchSPS_v)
+	    
+	    for(auto const& sps : spsVector)
+	      
+	      MatchSpacePoint->push_back(sps);
+		
+	}
+	
 	
 	//
 	// End of Kazu's added code on Nov. 30 2013
@@ -527,20 +552,47 @@ else // no matching was done. Need to do it ourselves, but first run through all
 	// -- Kazu 03 Dec 2013
 	//
 	art::PtrVector < recob::Cluster > cvec;
+	art::PtrVector < recob::SpacePoint > spsvec;
         for(unsigned int iSet=0; iSet<ClusterSets[geo::kU].size(); iSet++) {
 	  cvec.clear();
+	  spsvec.clear();
           for(unsigned int ip=0; ip<fNPlanes; ++ip) {
 	    
-            unsigned int iClust = ClusterSets[ip][iSet];
-	    
-	    art::ProductID aid = this->getProductID< std::vector < recob::Cluster > >(evt);
-	    
-	    art::Ptr< recob::Cluster > aptr(aid, iClust, evt.productGetter(aid));
+	    // Get an index of input cluster array
+            unsigned int iClustInput = ClusterSets[ip][iSet];
+	    // Get an index of produced cluster array
+	    if(clusterIndexMap.find(iClustInput) == clusterIndexMap.end()) {
+	      
+	      mf::LogError("ShowerAngleCluster") 
+		<< Form("Invalid cluster index requested! No output cluster found for input cluster %d",iClustInput);
+	      cvec.clear();
+	      break;
 
-	   cvec.push_back(aptr);
+	    }
+	    unsigned int iClustOutput = clusterIndexMap[iClustInput];
+	    // Obtain a poitner to the output cluster through an index
+	    art::ProductID aid = this->getProductID< std::vector < recob::Cluster > >(evt);
+	    art::Ptr< recob::Cluster > aptr(aid, iClustOutput, evt.productGetter(aid));
+	    cvec.push_back(aptr);
           }
-        if(ClusterSets[geo::kU].size()>0 )   //make sure to make associations to something that exists.  
-          classn->push_back(cvec);		
+	  // Do the same for SpacePoint if MatchAlg requests to store it
+	  if(cvec.size() && fCMatchAlg.StoreSpacePoints()){
+	    size_t index_offset = 0;
+	    for(size_t i=0; i<iSet; ++i)
+	      index_offset += matchSPS_v[i].size();
+	    for(size_t i=0; i<matchSPS_v[i].size(); ++i) {
+	      art::ProductID aid = this->getProductID< std::vector < recob::SpacePoint > >(evt);
+	      art::Ptr< recob::SpacePoint > aptr(aid, (unsigned int)(index_offset+i), evt.productGetter(aid));
+	      spsvec.push_back(aptr);
+	    }
+	  }
+
+	  //make sure to make associations to something that exists.  
+	  if(ClusterSets[geo::kU].size()>0 && cvec.size()) {
+	    classn->push_back(cvec);		
+	    if(spsvec.size())
+	      sps_assn->push_back(spsvec);
+	  }
         } // end of loop on sets
        						 //At least one of the first two planes 	
       }
@@ -550,18 +602,23 @@ else // no matching was done. Need to do it ourselves, but first run through all
  } // end else if collection is valid
 //  //std::cout << "--- classn size, saving: " << classn.size() << std::endl << std::endl;
   
-  evt.put(std::move(ShowerAngleCluster));
-  evt.put(std::move(assn));
-  evt.put(std::move(classn));
-
-  
+ evt.put(std::move(ShowerAngleCluster));
+ evt.put(std::move(assn));
+ evt.put(std::move(classn));
+ if(fCMatchAlg.StoreSpacePoints()) {
+   evt.put(std::move(MatchSpacePoint));
+   evt.put(std::move(sps_assn));
+ }
+ 
 }
 
 
 
 
-recob::Cluster cluster::ShowerAngleCluster::MainClusterLoop( art::Ptr<recob::Cluster> inCluster,std::vector< art::Ptr<recob::Hit> > hitlist, unsigned int iClust ) {
-
+recob::Cluster cluster::ShowerAngleCluster::MainClusterLoop( art::Ptr<recob::Cluster> inCluster,
+							     std::vector< art::Ptr<recob::Hit> > hitlist, 
+							     unsigned int iClustInput,
+							     unsigned int iClustOutput) {
 
       std::vector< double > spos=inCluster->StartPos();
       std::vector< double > sposerr=inCluster->SigmaStartPos();
@@ -590,17 +647,16 @@ recob::Cluster cluster::ShowerAngleCluster::MainClusterLoop( art::Ptr<recob::Clu
     
     
     fCParAlg.Find2DAxisRough(lineslope,lineintercept,goodness,hitlist);
-    fVerticalness[iClust]=goodness;
+    fVerticalness[iClustInput]=goodness;
     //if(hitlist_high.size()<=3 )
 	//continue;
     
     fCParAlg.Find2DStartPointsHighCharge( hitlist,wire_start,time_start,wire_end,time_end);
     
-    fWireVertex[iClust]=wire_start;
-    fTimeVertex[iClust]=time_start;
+    fWireVertex[iClustInput]=wire_start;
+    fTimeVertex[iClustInput]=time_start;
    
 
-    
     
     double wstn=0,tstn=0,wendn=0,tendn=0;
     fCParAlg.FindTrunk(hitlist,wstn,tstn,wendn,tendn,lineslope,lineintercept);
@@ -623,61 +679,62 @@ recob::Cluster cluster::ShowerAngleCluster::MainClusterLoop( art::Ptr<recob::Clu
      //std::cout << "%%%%%%%% Hough line refine start points: (" << wire_start<<","<<time_start<<"), end: ( "<<wire_end << ","<<time_end <<")" << "Direction: " << fDirection << std::endl; 
     if(fExternalStartPoints==false)  // start points have been handed over from external
     {
-      fWireVertex[iClust]=wire_start;
-      fTimeVertex[iClust]=time_start;
-      fWireEnd[iClust]=wire_end;
-      fTimeEnd[iClust]=time_end; 
+      fWireVertex[iClustInput]=wire_start;
+      fTimeVertex[iClustInput]=time_start;
+      fWireEnd[iClustInput]=wire_end;
+      fTimeEnd[iClustInput]=time_end; 
     }
     else
     {
-     fWireVertex[iClust]=spos[0];
-     fTimeVertex[iClust]=spos[1]; 
-     fWireEnd[iClust]=epos[0];
-     fTimeEnd[iClust]=epos[1];
+     fWireVertex[iClustInput]=spos[0];
+     fTimeVertex[iClustInput]=spos[1]; 
+     fWireEnd[iClustInput]=epos[0];
+     fTimeEnd[iClustInput]=epos[1];
     }
     
     
     
-    lineslopetest[iClust]=lineslope; 
-    lineinterctest[iClust]=lineintercept;
+    lineslopetest[iClustInput]=lineslope; 
+    lineinterctest[iClustInput]=lineintercept;
       
 	  
-    xangle[iClust]=Get2DAngleForHit( fWireVertex[iClust],fTimeVertex[iClust], hitlist);
+    xangle[iClustInput]=Get2DAngleForHit( fWireVertex[iClustInput],fTimeVertex[iClustInput], hitlist);
   
   
-  
-  
-    //std::cout << " in save loop, \"iplane\" " << iClust <<  std::endl;
+    //std::cout << " in save loop, \"iplane\" " << iClustInput <<  std::endl;
     //std::cout << " hitlist size: " << hitlist.size() <<  std::endl;
      
   
-    if(fVerticalness[iClust]<1) 
-      fErrors[iClust]=0.1;
+    if(fVerticalness[iClustInput]<1) 
+      fErrors[iClustInput]=0.1;
     else
-      fErrors[iClust]=10; 
+      fErrors[iClustInput]=10; 
   
       
-    unsigned int xplane;
-    xplane=hitlist[0]->WireID().Plane;
+    // Following 2 lines commented out: we have an access to the plane through viewfix variable
+    //unsigned int xplane;
+    //xplane=hitlist[0]->WireID().Plane;
+
     geo::View_t viewfix = hitlist[0]->View();
     
-    //std::cout << " wire " << fWireVertex[iClust] << std::endl;
-    //std::cout << " fErrors " << fErrors[iClust] << std::endl;
-    //std::cout << " time " << fTimeVertex[iClust] << std::endl;
-    //std::cout << " wirelast " << fWireEnd[iClust] << std::endl;
-    //std::cout << " timelast " <<  fTimeEnd[iClust] << std::endl; 
-    //std::cout << " xangle " <<  xangle[iClust] << std::endl; 
-    //std::cout <<"lineslope " <<  lineslopetest[iClust] << std::endl; 
-    //std::cout <<"lineinterc " << lineinterctest[iClust] <<std::endl;	
+    //std::cout << " wire " << fWireVertex[iClustInput] << std::endl;
+    //std::cout << " fErrors " << fErrors[iClustInput] << std::endl;
+    //std::cout << " time " << fTimeVertex[iClustInput] << std::endl;
+    //std::cout << " wirelast " << fWireEnd[iClustInput] << std::endl;
+    //std::cout << " timelast " <<  fTimeEnd[iClustInput] << std::endl; 
+    //std::cout << " xangle " <<  xangle[iClustInput] << std::endl; 
+    //std::cout <<"lineslope " <<  lineslopetest[iClustInput] << std::endl; 
+    //std::cout <<"lineinterc " << lineinterctest[iClustInput] <<std::endl;	
     //std::cout <<"plane  " << xplane <<std::endl;	
-    recob::Cluster outCluster(fWireVertex[iClust], fErrors[iClust],
-                         fTimeVertex[iClust], fErrors[iClust],
-                         fWireEnd[iClust], fWireEnd[iClust]*0.05,
-                         fTimeEnd[iClust], fTimeEnd[iClust]*0.05,  
-		    xangle[iClust], xangle[iClust]*0.05, lineslopetest[iClust],lineinterctest[iClust],5.,
-		    viewfix,
-		    xplane);
-    
+
+    recob::Cluster outCluster(fWireVertex[iClustInput], fErrors[iClustInput],
+			      fTimeVertex[iClustInput], fErrors[iClustInput],
+			      fWireEnd[iClustInput], fWireEnd[iClustInput]*0.05,
+			      fTimeEnd[iClustInput], fTimeEnd[iClustInput]*0.05,  
+			      xangle[iClustInput], xangle[iClustInput]*0.05, lineslopetest[iClustInput],lineinterctest[iClustInput],5.,
+			      viewfix,
+			      iClustOutput);
+
 //     ShowerAngleCluster->push_back(temp);
 //   
 //     util::CreateAssn(*this, evt, *(ShowerAngleCluster.get()), hitlist, *(assn.get()));
