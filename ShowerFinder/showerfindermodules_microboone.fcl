@@ -1,5 +1,5 @@
-#include "showerfindermodules.fcl"
 #include "calorimetry_microboone.fcl"
+#include "showerfindermodules.fcl"
 
 BEGIN_PROLOG
 
