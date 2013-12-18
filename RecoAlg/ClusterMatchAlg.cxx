@@ -478,7 +478,7 @@ namespace cluster{
 					 std::vector<recob::SpacePoint> &sps_v)
   //#####################################################################################################
   {
-    bool use_wplane(_wcluster_v.size());
+    bool use_wplane = _tot_planes > 2;
     
     if( uindex >= _ucluster_v.size() ||
 	vindex >= _vcluster_v.size() ||
@@ -528,21 +528,20 @@ namespace cluster{
     if( !(v_nhits) && !_debug_mode) return false;
     
     // Loop over hits in W-plane
-  if(_tot_planes>2)
-      {
+    if(use_wplane) {
       for(auto const hit: _whits_v.at(windex)) {
 	if(hit->PeakTime() < trange_min) continue;
 	if(hit->PeakTime() > trange_max) continue;
 	hit_group.push_back(hit);
-	}
       }
+    }
     // Check if any hit found in this plane
     size_t w_nhits = hit_group.size() - u_nhits - v_nhits;
     if( !(w_nhits) && use_wplane && !_debug_mode) return false;
 
-    
     // Run SpacePoint finder algo
-    if(u_nhits && v_nhits && (w_nhits && use_wplane)) {
+    if(u_nhits && v_nhits && 
+       (!use_wplane || (w_nhits && use_wplane))) {
       _sps_algo->clearHitMap();
       _sps_algo->makeSpacePoints(hit_group,sps_v);
     }
