@@ -528,11 +528,14 @@ namespace cluster{
     if( !(v_nhits) && !_debug_mode) return false;
     
     // Loop over hits in W-plane
-    for(auto const hit: _whits_v.at(windex)) {
-      if(hit->PeakTime() < trange_min) continue;
-      if(hit->PeakTime() > trange_max) continue;
-      hit_group.push_back(hit);
-    }
+  if(_tot_planes>2)
+      {
+      for(auto const hit: _whits_v.at(windex)) {
+	if(hit->PeakTime() < trange_min) continue;
+	if(hit->PeakTime() > trange_max) continue;
+	hit_group.push_back(hit);
+	}
+      }
     // Check if any hit found in this plane
     size_t w_nhits = hit_group.size() - u_nhits - v_nhits;
     if( !(w_nhits) && use_wplane && !_debug_mode) return false;
