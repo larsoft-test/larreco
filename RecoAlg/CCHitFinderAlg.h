@@ -15,7 +15,7 @@
 // This study only needs to be done once for a detector configuration using
 // MC and real data. This study should be performed on a single event that 
 // contains one or more shallow angle tracks with minimal activity elsewhere
-#define STUDYHITS
+// #define STUDYHITS
 
 // Insert code for printing out hit finding/fitting
 // #define PRINTHITS
