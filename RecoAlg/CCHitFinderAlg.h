@@ -10,6 +10,16 @@
 #define CCHITFINDERALG_H
 
 
+// Insert code for studying hit fitting. This study is required to determine
+// the best values of the fcl inputs - ChiNorms, MinSigInd, MinRMSInd, etc.
+// This study only needs to be done once for a detector configuration using
+// MC and real data. This study should be performed on a single event that 
+// contains one or more shallow angle tracks with minimal activity elsewhere
+#define STUDYHITS
+
+// Insert code for printing out hit finding/fitting
+// #define PRINTHITS
+
 #include "TMath.h"
 
 #include <vector>
@@ -93,8 +103,18 @@ namespace cluster {
     float timeoff;
     const float Sqrt2Pi = 2.5066;
     const float SqrtPi  = 1.7725;
-    
+
+#ifdef STUDYHITS
+    std::vector<int> bumpCnt;
+    std::vector<float> bumpChi;
+    std::vector<float> bumpRMS;
+    std::vector<int> hitCnt;
+    std::vector<float> hitRMS;
+#endif
+
+#ifdef PRINTHITS
     bool prt;
+#endif
     
     art::ServiceHandle<geo::Geometry> geom;
     art::ServiceHandle<util::LArProperties> larprop;

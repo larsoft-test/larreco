@@ -219,7 +219,15 @@ bo_endpointalg:                 @local::standard_endpointalg
 argoneut_clustercrawleralg:          @local::standard_clustercrawleralg
 argoneut_cchitfinderalg:             @local::standard_cchitfinderalg
 argoneut_cchitfinderalg.MinSigInd:   5.
-argoneut_cchitfinderalg.MinSigCol:   3.
+argoneut_cchitfinderalg.MinSigCol:   5.
+argoneut_cchitfinderalg.MinRMSInd:   5.
+argoneut_cchitfinderalg.MinRMSCol:  10.
+argoneut_cchitfinderalg.ChiNorms:  [ 0.5, 2.7]
+argoneut_cchitfinderalg.ChgNorms:  [ 1.0, 1.0]
+
+
+
+
 argoneut_cchitrefineralg:            @local::standard_cchitrefineralg
 argoneut_dbscanalg:                  @local::standard_dbscanalg       
 argoneut_fuzzyclusteralg:            @local::standard_fuzzyclusteralg

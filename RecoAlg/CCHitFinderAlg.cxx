@@ -10,12 +10,13 @@
 ///
 ////////////////////////////////////////////////////////////////////////
 
-
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 }
 #include <stdint.h>
+#include <iostream>
+#include <iomanip>
 
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h" 
@@ -35,7 +36,7 @@ extern "C" {
 #include "TGraph.h"
 #include "TMath.h"
 #include "TF1.h"
-#include "TVirtualFitter.h"
+// #include "TVirtualFitter.h"
 
 #include "RecoAlg/CCHitFinderAlg.h"
 
@@ -71,6 +72,7 @@ namespace cluster{
     hitcuts.ChiNorms  = fChiNorms;
     hitcuts.TimeOffsets = fTimeOffsets;
     hitcuts.ChgNorms  = fChgNorms;
+
   }
 
 //------------------------------------------------------------------------------
@@ -80,6 +82,23 @@ namespace cluster{
   
   void CCHitFinderAlg::RunCCHitFinder(art::Event & evt) {
   
+    
+#ifdef STUDYHITS
+    // Fit chisq sum for the first fit on a single bump in each plane.
+    // Assume there will never be more than 3 planes
+    for(unsigned short ii = 0; ii < 3; ++ii) {
+      // Average chisq of the first fit on a single bump in each plane
+      bumpChi.push_back(0.);
+      // Average RMS of the dump
+      bumpRMS.push_back(0.);
+      // The number of single bumps in each plane
+      bumpCnt.push_back(0.);
+      // The number of single hits found in each plane
+      hitCnt.push_back(0.);
+      // Average reconstructed hit RMS
+      hitRMS.push_back(0.);
+    }
+#endif
 
     allhits.clear();
 
@@ -96,7 +115,9 @@ namespace cluster{
     }
     float *signl = new float[maxticks];
 
+#ifdef PRINTHITS
     prt = false;
+#endif
 
     for(size_t wireIter = 0; wireIter < wireVecHandle->size(); wireIter++){
 
@@ -127,9 +148,10 @@ namespace cluster{
       timeoff = fTimeOffsets[thePlane];
       ChgNorm = fChgNorms[thePlane];
 
-      // debugging
-//  prt = (thePlane == 1 && theWireNum == 1259);
-
+#ifdef PRINTHITS
+      // edit this line to debug hit fitting on a particular plane/wire
+      prt = (thePlane == 1 && theWireNum == 50);
+#endif
       std::vector<float> signal(theWire->Signal());
 
       unsigned short nabove = 0;
@@ -179,7 +201,9 @@ namespace cluster{
                  signal[ii - 1] > signal[ii - 2] &&
                  signal[ii    ] > signal[ii + 1] &&
                  signal[ii + 1] > signal[ii + 2]) bumps.push_back(npt);
-//  if(prt) std::cout<<"signl "<<ii<<" "<<signl[npt]<<std::endl;
+#ifdef PRINTHITS
+  if(prt) std::cout<<"signl "<<ii<<" "<<signl[npt]<<std::endl;
+#endif
               ++npt;
             }
             // just make a crude hit if too many bumps
@@ -195,8 +219,36 @@ namespace cluster{
             chidof = 0.;
             bool HitStored = false;
             unsigned short nMaxFit = bumps.size() + fMaxXtraHits;
+#ifdef STUDYHITS
+  bool first = false;
+  if(bumps.size() == 1) first = true;
+#endif
             while(nHitsFit <= nMaxFit) {
               FitNG(nHitsFit, npt, ticks, signl);
+#ifdef STUDYHITS
+  if(first) {
+    first = false;
+    if(bumps.size() == 1 && chidof < 9999.) {
+      bumpCnt[thePlane] += 1;
+      bumpChi[thePlane] += chidof;
+      // calculate the average bin
+      float sumt = 0.;
+      float sum = 0.;
+      for(unsigned short ii = 0; ii < npt; ++ii) {
+        sum  += signl[ii];
+        sumt += signl[ii] * ii;
+      } // ii
+      float aveb = sumt / sum;
+      // now calculate the RMS
+      sumt = 0.;
+      for(unsigned short ii = 0; ii < npt; ++ii) {
+        float dbin = (float)ii - aveb;
+        sumt += signl[ii] * dbin * dbin;
+      } // ii
+      bumpRMS[thePlane] += sqrt(sumt / sum);
+    } // bumps.size() == 1 && chidof < 9999.
+  } // first
+#endif
               // good chisq so store it
               if(chidof < fChiSplit) {
                 StoreHits(tstart, theWire);
@@ -221,6 +273,30 @@ namespace cluster{
 
     delete ticks;
     delete signl;
+
+#ifdef STUDYHITS
+    // The goal is to adjust the fcl inputs so that the number of single 
+    // hits found is ~equal to the number of single bumps found. The ChiNorm
+    // inputs should be adjusted so the average chisq/DOF is ~1 in each plane.
+    std::cout<<" bCnt   bChi   bRMS hCnt   hRMS  Recommended ChiNorm"<<std::endl;
+    for(unsigned short ii = 0; ii < 3; ++ii) {
+      if(bumpCnt[ii] > 0) {
+        bumpChi[ii] = bumpChi[ii] / (float)bumpCnt[ii];
+        bumpRMS[ii] = bumpRMS[ii] / (float)bumpCnt[ii];
+        hitRMS[ii]  = hitRMS[ii]  / (float)hitCnt[ii];
+        std::cout<<std::right<<std::setw(5)<<bumpCnt[ii]
+          <<std::setw(7)<<std::fixed<<std::setprecision(2)<<bumpChi[ii]
+          <<std::setw(7)<<bumpRMS[ii]
+          <<std::setw(5)<<hitCnt[ii]
+          <<std::setw(7)<<std::setprecision(1)<<hitRMS[ii]
+          <<std::setw(7)<<std::setprecision(1)
+          <<bumpChi[ii]*fChiNorms[ii]
+          <<std::endl;
+      } // 
+    } // ii
+      std::cout<<"Set MinRMSInd and MinRMSCol in the fcl file to the "
+        <<"values of hRMS printed above"<<std::endl;
+#endif
 
   } //RunCCHitFinder
 
@@ -253,7 +329,9 @@ namespace cluster{
     TGraph *fitn = new TGraph(npt, ticks, signl);
     TF1 *Gn = new TF1("gn",eqn.c_str());
 
-//  if(prt) std::cout<<"FitNG nGaus "<<nGaus<<" nBumps "<<bumps.size()<<std::endl;
+#ifdef PRINTHITS
+  if(prt) std::cout<<"FitNG nGaus "<<nGaus<<" nBumps "<<bumps.size()<<std::endl;
+#endif
 
     // put in the bump parameters. Assume that nGaus >= bumps.size()
     for(unsigned short ii = 0; ii < bumps.size(); ++ii) {
@@ -266,7 +344,9 @@ namespace cluster{
       Gn->SetParLimits(index + 1, 0, (double)npt);
       Gn->SetParameter(index + 2, (double)minRMS);
       Gn->SetParLimits(index + 2, 1., 3*(double)minRMS);
-//  if(prt) std::cout<<"Bump params "<<ii<<" "<<(short)amp<<" "<<(int)bumptime<<" "<<(int)minRMS<<std::endl;
+#ifdef PRINTHITS
+  if(prt) std::cout<<"Bump params "<<ii<<" "<<(short)amp<<" "<<(int)bumptime<<" "<<(int)minRMS<<std::endl;
+#endif
     } // ii bumps
 
     // search for other bumps that may be hidden by the already found ones
@@ -282,7 +362,9 @@ namespace cluster{
         }
       } // jj
       if(imbig > 0) {
-//  if(prt) std::cout<<"Found bump "<<ii<<" "<<(short)big<<" "<<imbig<<std::endl;
+#ifdef PRINTHITS
+  if(prt) std::cout<<"Found bump "<<ii<<" "<<(short)big<<" "<<imbig<<std::endl;
+#endif
         // set the parameters for the bump
         unsigned short index = ii * 3;
         Gn->SetParameter(index    , (double)big);
@@ -308,7 +390,7 @@ namespace cluster{
     }
     chidof = Gn->GetChisquare() / ( ndof * chinorm);
     
-/*
+#ifdef PRINTHITS
     if(prt) {
       std::cout<<"Fit "<<nGaus<<" chi "<<chidof<<" npars "<<partmp.size()<<std::endl;
       std::cout<<"pars    errs "<<std::endl;
@@ -316,7 +398,8 @@ namespace cluster{
         std::cout<<ii<<" "<<partmp[ii]<<" "<<partmperr[ii]<<std::endl;
       }
     }
-*/
+#endif
+
     // ensure that the fit is reasonable
     bool fitok = true;
     for(unsigned short ii = 0; ii < nGaus; ++ii) {
@@ -334,7 +417,7 @@ namespace cluster{
       }
       // ensure that the RMS is large enough but not too large
       float rms = partmp[index + 2];
-      if(rms < minRMS || rms > 4 * minRMS) {
+      if(rms < 0.5 * minRMS || rms > 4 * minRMS) {
         fitok = false;
         break;
       }
@@ -356,7 +439,9 @@ namespace cluster{
       parerr = partmperr;
     } else {
       chidof = 9999.;
-//      if(prt) std::cout<<"Bad fit parameters"<<std::endl;
+#ifdef PRINTHITS
+      if(prt) std::cout<<"Bad fit parameters"<<std::endl;
+#endif
     }
     
     delete fitn;
@@ -385,7 +470,9 @@ namespace cluster{
     rms = sqrt(rms / sumS);
     float amp = sumS / (Sqrt2Pi * rms);
     par.clear();
-//  if(prt) std::cout<<"Crude hit Amp "<<(int)amp<<" mean "<<(int)mean<<" rms "<<rms<<std::endl;
+#ifdef PRINTHITS
+  if(prt) std::cout<<"Crude hit Amp "<<(int)amp<<" mean "<<(int)mean<<" rms "<<rms<<std::endl;
+#endif
     par.push_back(amp);
     par.push_back(mean);
     par.push_back(rms);
@@ -397,7 +484,9 @@ namespace cluster{
     parerr.push_back(amperr);
     parerr.push_back(meanerr);
     parerr.push_back(rmserr);
-//  if(prt) std::cout<<" errors Amp "<<amperr<<" mean "<<meanerr<<" rms "<<rmserr<<std::endl;
+#ifdef PRINTHITS
+  if(prt) std::cout<<" errors Amp "<<amperr<<" mean "<<meanerr<<" rms "<<rmserr<<std::endl;
+#endif
     chidof = 9999.;
   }
 
@@ -410,7 +499,14 @@ namespace cluster{
     unsigned short nhits = par.size() / 3;
     
     if(nhits == 0) return;
-    
+
+#ifdef STUDYHITS
+  if(nhits == 1) {
+    hitCnt[thePlane] += nhits;
+    hitRMS[thePlane] += par[2];
+  }
+#endif
+
     CCHit onehit;
     // lohitid is the index of the first hit that will be added. Hits with
     // Multiplicity > 1 will reside in a block from
@@ -433,7 +529,8 @@ namespace cluster{
       onehit.WireNum = theWireNum;
       onehit.numHits = nhits;
       onehit.LoHitID = lohitid;
-/*
+
+#ifdef PRINTHITS
   if(prt) {
     std::cout<<"W:H "<<theWireNum;
     std::cout<<":"<<allhits.size()<<" Chg "<<(short)onehit.Charge;
@@ -442,7 +539,7 @@ namespace cluster{
     std::cout<<" chidof "<<chidof;
     std::cout<<std::endl;
   }
-*/
+#endif
       allhits.push_back(onehit);
     } // hit
   } // StoreHits
