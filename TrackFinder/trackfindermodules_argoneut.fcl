@@ -16,7 +16,7 @@ argoneut_spacepoint.SpacePointAlgTime.MaxDT:  50.
 argoneut_spacepoint.SpacePointAlgSep:         @local::argoneut_spacepointalg
 argoneut_spacepoint.SpacePointAlgSep.MaxS:    10.
 argoneut_spacepoint.SpacePointAlgDefault:     @local::argoneut_spacepointalg
-argoneut_spacepoint_finder:                   @local::standard_spacepointalg    
+argoneut_spacepoint_finder:                   @local::standard_spacepointfinder   
 argoneut_spacepoint_finder.SpacePointAlg:     @local::argoneut_spacepointalg    
 argoneut_spacepointcheater:                   @local::standard_spacepointcheater
 argoneut_spacepointcheater.SpacePointAlg:     @local::argoneut_spacepointalg    
