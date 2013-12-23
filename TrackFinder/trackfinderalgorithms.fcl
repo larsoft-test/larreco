@@ -43,7 +43,7 @@ standard_beziertrackeralgorithm:
 standard_beziertrackeralgorithm.SeedFinder.LengthCut: 2
 
 bo_spacepointalg:          @local::standard_spacepointalg
-bo_spacepointalg.MinViews: 3
+bo_spacepointalg.MinViews: 2
 bo_spacepointalg.EnableW:  true
 
 argoneut_spacepointalg: @local::standard_spacepointalg
