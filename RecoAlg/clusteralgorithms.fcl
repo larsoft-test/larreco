@@ -216,6 +216,20 @@ bo_houghbasealg.NumAngleCells:  5000
 bo_houghbasealg.MaxDistance:    5.0
 bo_endpointalg:                 @local::standard_endpointalg
 bo_clustercrawleralg:           @local::standard_clustercrawleralg
+bo_clustercrawleralg.NumPass: 1
+bo_clustercrawleralg.MaxHitsFit: [ 8 ]
+bo_clustercrawleralg.MinHits: [ 3 ]
+bo_clustercrawleralg.ChgCut: [ 2. ]
+bo_clustercrawleralg.WidCut: [ 2. ]
+bo_clustercrawleralg.ChiCut: [ 20. ]
+bo_clustercrawleralg.MaxWirSkip: [ 25 ]
+bo_clustercrawleralg.MinWirAfterSkip: [ 1 ]
+bo_clustercrawleralg.KinkChiRat: [ 2. ]
+bo_clustercrawleralg.KinkAngCut: [ 0.5 ]
+bo_clustercrawleralg.DoMerge:  [ true ]
+bo_clustercrawleralg.TimeDelta:  [ 10. ]
+bo_clustercrawleralg.FindVertices: [ false ]
+bo_clustercrawleralg.HitErrFac: 1.
 bo_cchitfinderalg:              @local::standard_cchitfinderalg
 bo_cchitfinderalg.MinSigInd:    4.
 bo_cchitfinderalg.MinSigCol:    4.
