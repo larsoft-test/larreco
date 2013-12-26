@@ -59,7 +59,7 @@ namespace cluster {
     struct VtxStore {
       unsigned short Wire;
       float Time;
-      float Wght;
+      float Wght;       // Wght < 0 for abandoned vertices 
       short Topo;
       unsigned short CTP;
     };
@@ -88,16 +88,17 @@ namespace cluster {
                                     ///< after skipping
     std::vector<bool> fDoMerge;     ///< try to merge clusters?
     std::vector<float> fTimeDelta;  ///< max time difference for matching
-    std::vector<bool> fDoVertex;    ///< run vertexing code after clustering?
+    std::vector<bool> fFindVertices;    ///< run vertexing code after clustering?
 
     // global cuts and parameters 
-    float fHitErrFac;   ///< hit time error = fHitErrFac * (EndTime - PeakTime)
+    float fHitErrFac;   ///< hit time error = fHitErrFac * hit RMS
                         ///< used for cluster fit
-    float fHitWidFac;   ///< hit width = fHitWidFac * (EndTime - PeakTime)
-                        ///< used to decide if there is a signal near the projected
-                        ///< cluster position
     float fLAClusAngleCut;  ///< call Large Angle Clustering code if > 0
     float fLAClusSlopeCut;
+    float fClHitMergeChiCut; ///< Merge cluster hit-multiplets if the separation chisq
+                             ///< is < cut. Set < 0 for no merging
+    float fClGhostHitFrac; ///< Merge clusters if they share a fraction of hits
+                           ///< in the same hit multiplet. Set < 0 for no merging
     short fDebugPlane;
     short fDebugWire;  ///< set to the Begin Wire and Hit of a cluster to print
     short fDebugHit;   ///< out detailed information while crawling
@@ -145,18 +146,20 @@ namespace cluster {
                         ///< +   10 ChkMerge
                         ///< +  100 ChkMerge12
                         ///< +  200 ClusterFix
-                        ///< 666 LAClCrawl
+                        ///< +  300 LAClCrawl
                         ///< + 1000 VtxClusterSplit
                         ///< + 2000 failed pass N cuts but passes pass N=1 cuts
+                        ///< + 3000 Cluster hits merged
     short clAssn;         ///< index of a parent cluster. -1 if no parent.
                         ///< Parent clusters are not associated with daughters
     unsigned short clCTP; // Cryostat/TPC/Plane code
     
     unsigned short fFirstWire;    ///< the first wire with a hit
-    unsigned short fFirstHit;     ///< first hit used for indexing hiterr2
+    unsigned short fFirstHit;     ///< first hit used
     unsigned short fLastWire;      ///< the last wire with a hit
     float fAveChg;  ///< average charge at leading edge of cluster
     float fChgSlp;  ///< slope of the  charge vs wire 
+    float fAveWid;  ///< average hit width at the leading edge of the cluster
     unsigned int cstat;         // the current cryostat
     unsigned int tpc;         // the current TPC
     unsigned int plane;         // the current plane
@@ -170,8 +173,6 @@ namespace cluster {
     // in the range fFirstWire to fLastWire. A value of -2 indicates that there
     // are no hits on the wire. A value of -1 indicates that the wire is dead
     std::vector< std::pair<short, short> > WireHitRange;
-    std::vector<float> hiterr2;     ///< hit time error^2
-    std::vector<float> hitwid;     ///< hit width
     
     std::vector<unsigned short> fcl2hits;  ///< vector of hits used in the cluster
     std::vector<float> chifits;   ///< fit chisq for monitoring kinks, etc
@@ -179,24 +180,24 @@ namespace cluster {
 
     std::string fhitsModuleLabel;
     
-    // Sorts clusters in tcl by decreasing number of hits, while ignoring
-    // abandoned clusters
-    void cl2SortByLength(std::vector<ClusterStore>& tcl,
-        std::map<unsigned short, unsigned short>& sortindex);
-    // inits everything
-    void CrawlInit();
+
+    // ******** crawling routines *****************
+
     // Loops over wires looking for seed clusters
     void ClusterLoop(std::vector<CCHitFinderAlg::CCHit>& allhits);
     // Finds a hit on wire kwire, adds it to the cluster and re-fits it
     void AddHit(std::vector<CCHitFinderAlg::CCHit>& allhits, 
       unsigned short kwire, bool& HitOK, bool& SigOK);
+    // Finds a hit on wire kwire, adds it to a LargeAngle cluster and re-fits it
+    void AddLAHit(std::vector<CCHitFinderAlg::CCHit>& allhits, 
+      unsigned short kwire, bool& ChkCharge, bool& HitOK, bool& SigOK);
     // Fits the cluster hits in fcl2hits to a straight line
-    void ClusterFit(std::vector<CCHitFinderAlg::CCHit>& allhits);
+    void FitCluster(std::vector<CCHitFinderAlg::CCHit>& allhits);
     // Fits the middle of a temporary cluster it1 using hits iht to iht + nhit
-    void ClusterFitMid(std::vector<CCHitFinderAlg::CCHit>& allhits, 
+    void FitClusterMid(std::vector<CCHitFinderAlg::CCHit>& allhits, 
       std::vector<ClusterStore>& tcl, unsigned short it1, unsigned short iht, short nhit);
     // Fits the charge of the cluster hits in fcl2hits
-    void ClusterFitChg(std::vector<CCHitFinderAlg::CCHit>& allhits);
+    void FitClusterChg(std::vector<CCHitFinderAlg::CCHit>& allhits);
     // Crawls along a trail of hits UpStream
     void CrawlUS(std::vector<CCHitFinderAlg::CCHit>& allhits,
       std::vector<VtxStore>& vtx);
@@ -204,25 +205,9 @@ namespace cluster {
     void LACrawlUS(std::vector<CCHitFinderAlg::CCHit>& allhits,
       std::vector<VtxStore>& vtx);
     // returns true if the cluster is nearing a vertex on the next wire
-    bool CrawlVtxChk( 
-      std::vector<CCHitFinderAlg::CCHit>& allhits,
-      std::vector<VtxStore>& vtx, unsigned short kwire);
-    // fix up hits on large angle clusters
-    void MergeHits(std::vector<CCHitFinderAlg::CCHit>& allhits,
-      unsigned short theHit);
-    // Do a quality control check on clusters
-    void QACheck(std::vector<CCHitFinderAlg::CCHit>& allhits);
-    // Stores cluster information in a temporary vector
-    void TmpStore(std::vector<CCHitFinderAlg::CCHit>& allhits, 
-      std::vector<ClusterStore>& tcl);
-    // Gets a temp cluster and puts it into the working cluster variables
-    void TmpGet(std::vector<CCHitFinderAlg::CCHit>& allhits, 
-      std::vector<ClusterStore>& tcl, unsigned short it1);
-    // Splits a cluster into two clusters at position pos. Associates the
-    // new clusters with a vertex (optional)
-    void DoSplit(std::vector<CCHitFinderAlg::CCHit>& allhits,
-      std::vector<ClusterStore>& tcl, unsigned short icl, unsigned short pos,
-      unsigned short ivx);
+
+    // ************** cluster merging routines *******************
+
     // Compares two cluster combinations to see if they should be merged
     void ChkMerge(std::vector<CCHitFinderAlg::CCHit>& allhits,
       std::vector<ClusterStore>& tcl);
@@ -234,22 +219,16 @@ namespace cluster {
       std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx,
       unsigned short it1, unsigned short it2, 
       short ProcCode);
-    // Prints cluster information to the screen
-    void PrintClusters(std::vector<CCHitFinderAlg::CCHit>& allhits, 
-     std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx);
-    // Split clusters that cross preliminary vertices
-    void VtxClusterSplit(std::vector<CCHitFinderAlg::CCHit>& allhits,
-       std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx);
-    // make 2D vertices
-    void DoVertex(std::vector<CCHitFinderAlg::CCHit>& allhits,
+    // Merges clusters that share a significant fraction of hits in
+    // a multiplet
+    void MergeGhostClusters(std::vector<CCHitFinderAlg::CCHit>& allhits,
+      std::vector<ClusterStore>& tcl);
+
+    // ************** vertex routines *******************
+
+    // Find 2D vertices
+    void FindVertices(std::vector<CCHitFinderAlg::CCHit>& allhits,
       std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx);
-    // use a vertex constraint to start a cluster
-    void VtxConstraint(std::vector<CCHitFinderAlg::CCHit>& allhits,
-      std::vector<VtxStore>& vtx, unsigned short iwire, unsigned short ihit,
-      unsigned short jwire, unsigned short& useHit, bool& doConstrain);
-    // check for a signal on all wires between two points
-    void ChkSignal(std::vector<CCHitFinderAlg::CCHit>& allhits,
-      unsigned short wire1, float time1, unsigned short wire2, float time2, bool& SigOK);
     // check a vertex (vw, fvt) made with clusters it1, and it2 against the
     // vector of existing clusters
     void ChkVertex(std::vector<CCHitFinderAlg::CCHit>& allhits,
@@ -259,9 +238,57 @@ namespace cluster {
     void ClusterVertex(std::vector<CCHitFinderAlg::CCHit>& allhits, 
         std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx,
         unsigned short it2);
+    // Split clusters that cross a vertex
+    void VtxClusterSplit(std::vector<CCHitFinderAlg::CCHit>& allhits,
+       std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx);
+    // returns true if a vertex is encountered while crawling
+    bool CrawlVtxChk( 
+      std::vector<CCHitFinderAlg::CCHit>& allhits,
+      std::vector<VtxStore>& vtx, unsigned short kwire);
+    // use a vertex constraint to start a cluster
+    void VtxConstraint(std::vector<CCHitFinderAlg::CCHit>& allhits,
+      std::vector<VtxStore>& vtx, unsigned short iwire, unsigned short ihit,
+      unsigned short jwire, unsigned short& useHit, bool& doConstrain);
     // fit the vertex position
-    void VtxFit(std::vector<ClusterStore>& tcl,
+    void FitVtx(std::vector<ClusterStore>& tcl,
         std::vector<VtxStore>& vtx, unsigned short iv, float& ChiDOF);
+
+    // ************** hit routines *******************
+
+    // merge the hits in a multiplet into one hit
+    void MergeHits(std::vector<CCHitFinderAlg::CCHit>& allhits,
+      unsigned short theHit);
+    // merge all unused cluster hits in a multiplet into one hit
+    void MergeClusterHits(std::vector<CCHitFinderAlg::CCHit>& allhits,
+      std::vector<ClusterStore>& tcl);   
+
+    // ************** utility routines *******************
+
+    // inits everything
+    void CrawlInit();
+    // Sorts clusters in tcl by decreasing number of hits, while ignoring
+    // abandoned clusters
+    void cl2SortByLength(std::vector<ClusterStore>& tcl,
+        std::map<unsigned short, unsigned short>& sortindex);
+    // Do a quality control check on clusters
+    void QACheck(std::vector<CCHitFinderAlg::CCHit>& allhits);
+    // Stores cluster information in a temporary vector
+    void TmpStore(std::vector<CCHitFinderAlg::CCHit>& allhits, 
+      std::vector<ClusterStore>& tcl);
+    // Gets a temp cluster and puts it into the working cluster variables
+    void TmpGet(std::vector<CCHitFinderAlg::CCHit>& allhits, 
+      std::vector<ClusterStore>& tcl, unsigned short it1);
+    // Splits a cluster into two clusters at position pos. Associates the
+    // new clusters with a vertex
+    void SplitCluster(std::vector<CCHitFinderAlg::CCHit>& allhits,
+      std::vector<ClusterStore>& tcl, unsigned short icl, unsigned short pos,
+      unsigned short ivx);
+    // Prints cluster information to the screen
+    void PrintClusters(std::vector<CCHitFinderAlg::CCHit>& allhits, 
+     std::vector<ClusterStore>& tcl, std::vector<VtxStore>& vtx);
+    // check for a signal on all wires between two points
+    void ChkSignal(std::vector<CCHitFinderAlg::CCHit>& allhits,
+      unsigned short wire1, float time1, unsigned short wire2, float time2, bool& SigOK);
     // line fitter
     void LinFit(std::vector<float>& x, std::vector<float>& y, 
       std::vector<float>& ey2, float& Intercept, float& Slope, 
