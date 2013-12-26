@@ -10,15 +10,8 @@
 #define CCHITFINDERALG_H
 
 
-// Insert code for studying hit fitting. This study is required to determine
-// the best values of the fcl inputs - ChiNorms, MinSigInd, MinRMSInd, etc.
-// This study only needs to be done once for a detector configuration using
-// MC and real data. This study should be performed on a single event that 
-// contains one or more shallow angle tracks with minimal activity elsewhere
-// #define STUDYHITS
-
 // Insert code for printing out hit finding/fitting
-// #define PRINTHITS
+//#define PRINTHITS
 
 #include "TMath.h"
 
@@ -55,6 +48,9 @@ namespace cluster {
       unsigned short WireNum;
       unsigned short numHits;
       unsigned short LoHitID;
+      float LoTime;   // defines the Lo(Hi) time region of the hit
+      float HiTime;   // or hit multiplet
+      short InClus;
     };
     std::vector< CCHit > allhits;
     
@@ -104,13 +100,6 @@ namespace cluster {
     const float Sqrt2Pi = 2.5066;
     const float SqrtPi  = 1.7725;
 
-#ifdef STUDYHITS
-    std::vector<int> bumpCnt;
-    std::vector<float> bumpChi;
-    std::vector<float> bumpRMS;
-    std::vector<int> hitCnt;
-    std::vector<float> hitRMS;
-#endif
 
 #ifdef PRINTHITS
     bool prt;
@@ -134,7 +123,25 @@ namespace cluster {
     // make a cruddy hit if fitting fails
     void MakeCrudeHit(unsigned short npt, float *ticks, float *signl);
     // store the hits
-    void StoreHits(unsigned short TimeOffset, art::Ptr<recob::Wire>& theWire);
+    void StoreHits(unsigned short TStart, unsigned short npt, 
+      art::Ptr<recob::Wire>& theWire);
+/*
+    // study hit finding and fitting
+    void StudyHits(unsigned short flag, unsigned short npt = 0,
+      float *ticks = 0, float *signl = 0, unsigned short tstart = 0);
+    std::vector<int> bumpCnt;
+    std::vector<int> RATCnt;
+    std::vector<float> bumpChi;
+    std::vector<float> bumpRMS;
+    std::vector<int> hitCnt;
+    std::vector<float> hitRMS;
+    // use to determine the slope of protons
+    std::vector<float> loWire;
+    std::vector<float> loTime;
+    std::vector<float> hiWire;
+    std::vector<float> hiTime;
+    bool SelRAT; // set true if a Region Above Threshold should be studied
+*/
 
   }; // class CCHitFinderAlg
 

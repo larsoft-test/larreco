@@ -82,24 +82,6 @@ namespace cluster{
   
   void CCHitFinderAlg::RunCCHitFinder(art::Event & evt) {
   
-    
-#ifdef STUDYHITS
-    // Fit chisq sum for the first fit on a single bump in each plane.
-    // Assume there will never be more than 3 planes
-    for(unsigned short ii = 0; ii < 3; ++ii) {
-      // Average chisq of the first fit on a single bump in each plane
-      bumpChi.push_back(0.);
-      // Average RMS of the dump
-      bumpRMS.push_back(0.);
-      // The number of single bumps in each plane
-      bumpCnt.push_back(0.);
-      // The number of single hits found in each plane
-      hitCnt.push_back(0.);
-      // Average reconstructed hit RMS
-      hitRMS.push_back(0.);
-    }
-#endif
-
     allhits.clear();
 
     // make this accessible to ClusterCrawler_module
@@ -114,6 +96,9 @@ namespace cluster{
       ticks[ii] = ii;
     }
     float *signl = new float[maxticks];
+
+    // initialize the vectors for the hit study
+//  StudyHits(0);
 
 #ifdef PRINTHITS
     prt = false;
@@ -150,7 +135,7 @@ namespace cluster{
 
 #ifdef PRINTHITS
       // edit this line to debug hit fitting on a particular plane/wire
-      prt = (thePlane == 1 && theWireNum == 50);
+      prt = (thePlane == 1 && theWireNum == 1401);
 #endif
       std::vector<float> signal(theWire->Signal());
 
@@ -206,10 +191,12 @@ namespace cluster{
 #endif
               ++npt;
             }
+  // decide if this RAT should be studied
+//  StudyHits(1, npt, ticks, signl, tstart);
             // just make a crude hit if too many bumps
             if(bumps.size() > fMaxBumps) {
               MakeCrudeHit(npt, ticks, signl);
-              StoreHits(tstart, theWire);
+              StoreHits(tstart, npt, theWire);
               nabove = 0;
               continue;
             }
@@ -219,39 +206,18 @@ namespace cluster{
             chidof = 0.;
             bool HitStored = false;
             unsigned short nMaxFit = bumps.size() + fMaxXtraHits;
-#ifdef STUDYHITS
-  bool first = false;
-  if(bumps.size() == 1) first = true;
-#endif
+//  bool first = true;
             while(nHitsFit <= nMaxFit) {
               FitNG(nHitsFit, npt, ticks, signl);
-#ifdef STUDYHITS
-  if(first) {
+/*
+  if(first && SelRAT) {
     first = false;
-    if(bumps.size() == 1 && chidof < 9999.) {
-      bumpCnt[thePlane] += 1;
-      bumpChi[thePlane] += chidof;
-      // calculate the average bin
-      float sumt = 0.;
-      float sum = 0.;
-      for(unsigned short ii = 0; ii < npt; ++ii) {
-        sum  += signl[ii];
-        sumt += signl[ii] * ii;
-      } // ii
-      float aveb = sumt / sum;
-      // now calculate the RMS
-      sumt = 0.;
-      for(unsigned short ii = 0; ii < npt; ++ii) {
-        float dbin = (float)ii - aveb;
-        sumt += signl[ii] * dbin * dbin;
-      } // ii
-      bumpRMS[thePlane] += sqrt(sumt / sum);
-    } // bumps.size() == 1 && chidof < 9999.
-  } // first
-#endif
+    StudyHits(2, npt, ticks, signl, tstart);
+  }
+*/
               // good chisq so store it
               if(chidof < fChiSplit) {
-                StoreHits(tstart, theWire);
+                StoreHits(tstart, npt, theWire);
                 HitStored = true;
                 break;
               }
@@ -263,7 +229,7 @@ namespace cluster{
             if( !HitStored && npt < maxticks) {
               // failed all fitting. Make a crude hit
               MakeCrudeHit(npt, ticks, signl);
-              StoreHits(tstart, theWire);
+              StoreHits(tstart, npt, theWire);
             }
           } // nabove > minSamples
           nabove = 0;
@@ -271,32 +237,11 @@ namespace cluster{
       } // time
     } // wireIter
 
+    // print out
+//  StudyHits(4);
+
     delete ticks;
     delete signl;
-
-#ifdef STUDYHITS
-    // The goal is to adjust the fcl inputs so that the number of single 
-    // hits found is ~equal to the number of single bumps found. The ChiNorm
-    // inputs should be adjusted so the average chisq/DOF is ~1 in each plane.
-    std::cout<<" bCnt   bChi   bRMS hCnt   hRMS  Recommended ChiNorm"<<std::endl;
-    for(unsigned short ii = 0; ii < 3; ++ii) {
-      if(bumpCnt[ii] > 0) {
-        bumpChi[ii] = bumpChi[ii] / (float)bumpCnt[ii];
-        bumpRMS[ii] = bumpRMS[ii] / (float)bumpCnt[ii];
-        hitRMS[ii]  = hitRMS[ii]  / (float)hitCnt[ii];
-        std::cout<<std::right<<std::setw(5)<<bumpCnt[ii]
-          <<std::setw(7)<<std::fixed<<std::setprecision(2)<<bumpChi[ii]
-          <<std::setw(7)<<bumpRMS[ii]
-          <<std::setw(5)<<hitCnt[ii]
-          <<std::setw(7)<<std::setprecision(1)<<hitRMS[ii]
-          <<std::setw(7)<<std::setprecision(1)
-          <<bumpChi[ii]*fChiNorms[ii]
-          <<std::endl;
-      } // 
-    } // ii
-      std::cout<<"Set MinRMSInd and MinRMSCol in the fcl file to the "
-        <<"values of hRMS printed above"<<std::endl;
-#endif
 
   } //RunCCHitFinder
 
@@ -372,7 +317,7 @@ namespace cluster{
         Gn->SetParameter(index + 1, (double)imbig);
         Gn->SetParLimits(index + 1, 0, (double)npt);
         Gn->SetParameter(index + 2, (double)minRMS);
-        Gn->SetParLimits(index + 2, 1., 3*(double)minRMS);
+        Gn->SetParLimits(index + 2, 1., 5*(double)minRMS);
       } // imbig > 0
     } // ii 
     
@@ -417,7 +362,7 @@ namespace cluster{
       }
       // ensure that the RMS is large enough but not too large
       float rms = partmp[index + 2];
-      if(rms < 0.5 * minRMS || rms > 4 * minRMS) {
+      if(rms < 0.5 * minRMS || rms > 5 * minRMS) {
         fitok = false;
         break;
       }
@@ -492,7 +437,7 @@ namespace cluster{
 
 
 /////////////////////////////////////////
-  void CCHitFinderAlg::StoreHits(unsigned short TStart,
+  void CCHitFinderAlg::StoreHits(unsigned short TStart, unsigned short npt,
     art::Ptr<recob::Wire>& theWire)
   {
     // store the hits in the struct
@@ -500,12 +445,8 @@ namespace cluster{
     
     if(nhits == 0) return;
 
-#ifdef STUDYHITS
-  if(nhits == 1) {
-    hitCnt[thePlane] += nhits;
-    hitRMS[thePlane] += par[2];
-  }
-#endif
+  // fill RMS for single hits
+//  StudyHits(3);
 
     CCHit onehit;
     // lohitid is the index of the first hit that will be added. Hits with
@@ -529,12 +470,16 @@ namespace cluster{
       onehit.WireNum = theWireNum;
       onehit.numHits = nhits;
       onehit.LoHitID = lohitid;
+      onehit.LoTime = TStart;
+      onehit.HiTime = TStart + npt;
+      // set flag indicating hit is not used in a cluster
+      onehit.InClus = 0;
 
 #ifdef PRINTHITS
   if(prt) {
-    std::cout<<"W:H "<<theWireNum;
-    std::cout<<":"<<allhits.size()<<" Chg "<<(short)onehit.Charge;
-    std::cout<<" Time "<<(short)onehit.Time<<" RMS "<<onehit.RMS;
+    std::cout<<"W:T "<<theWireNum;
+    std::cout<<":"<<(short)onehit.Time<<" Chg "<<(short)onehit.Charge;
+    std::cout<<" RMS "<<onehit.RMS;
     std::cout<<" lo/hi ID "<<onehit.LoHitID;
     std::cout<<" chidof "<<chidof;
     std::cout<<std::endl;
@@ -544,6 +489,158 @@ namespace cluster{
     } // hit
   } // StoreHits
 
+/*
+//////////////////////////////////////////////////
+  void CCHitFinderAlg::StudyHits(unsigned short flag, unsigned short npt,
+      float *ticks, float *signl, unsigned short tstart) {
+    // study hits
+
+    // init
+    if(flag == 0) {
+      for(unsigned short ipl = 0; ipl < 3; ++ipl) {
+        // Average chisq of the first fit on a single bump in each plane
+        bumpChi.push_back(0.);
+        // Average RMS of the dump
+        bumpRMS.push_back(0.);
+        // The number of single bumps in each plane
+        bumpCnt.push_back(0.);
+        // number of RATs
+        RATCnt.push_back(0);
+        // The number of single hits found in each plane
+        hitCnt.push_back(0.);
+        // Average reconstructed hit RMS
+        hitRMS.push_back(0.);
+        // lo/hi wire/time
+        loWire.push_back(9999.);
+        loTime.push_back(0.);
+        hiWire.push_back(-1.);
+        hiTime.push_back(0.);
+      } // ii
+      return;
+    } // flag == 0
+    
+    if(flag == 1) {
+      // decide if this RAT should be studied. look for a large PH 
+      SelRAT = false;
+      for(unsigned short ii = 0; ii < npt; ++ii) {
+        if(signl[ii] > 20.) {
+          SelRAT = true;
+          RATCnt[thePlane] += 1;
+          break;
+        }
+      }  // ii
+      return;
+    } // flag == 1
+    
+    if(flag == 2) {
+      if(!SelRAT) return;
+      // in this section we find the low/hi wire/time for a large PH
+      // signal (e.g. proton track). This will be used to calculate
+      // the slope dT/dW to study hit width, fraction of crude hits, etc
+      // vs dT/dW
+      // find the peak value and time of the peak value
+      float big = 0.;
+      float imbig = 0.;
+      for(unsigned short ii = 0; ii < npt; ++ii) {
+        if(signl[ii] > big) {
+          big = signl[ii];
+          imbig = ii;
+        }
+      } // ii
+      // require a significant PH 
+      if(big < 20) std::cout<<"Ooops "<<std::endl;
+      if(big > 20) {
+        // get the Lo info
+        if(theWireNum < loWire[thePlane]) {
+          loWire[thePlane] = theWireNum;
+          loTime[thePlane] = tstart + imbig;
+        }
+        // get the Hi info
+        if(theWireNum > hiWire[thePlane]) {
+          hiWire[thePlane] = theWireNum;
+          hiTime[thePlane] = tstart + imbig;
+        }
+      } // big > 20
+      if(bumps.size() == 1 && chidof < 9999.) {
+        bumpCnt[thePlane] += bumps.size();
+        bumpChi[thePlane] += chidof;
+        // calculate the average bin
+        float sumt = 0.;
+        float sum = 0.;
+        for(unsigned short ii = 0; ii < npt; ++ii) {
+          sum  += signl[ii];
+          sumt += signl[ii] * ii;
+        } // ii
+        float aveb = sumt / sum;
+        // now calculate the RMS
+        sumt = 0.;
+        for(unsigned short ii = 0; ii < npt; ++ii) {
+          float dbin = (float)ii - aveb;
+          sumt += signl[ii] * dbin * dbin;
+        } // ii
+        bumpRMS[thePlane] += sqrt(sumt / sum);
+      } // bumps.size() == 1 && chidof < 9999.
+      return;
+    } // flag == 2    
+
+    // fill info for single hits
+    if(flag == 3) {
+      if(!SelRAT) return;
+      if(par.size() == 3) {
+        hitCnt[thePlane] += 1;
+        hitRMS[thePlane] += par[2];
+      }
+      return;
+    }
+
+
+    if(flag == 4) {
+      // The goal is to adjust the fcl inputs so that the number of single 
+      // hits found is ~equal to the number of single bumps found for shallow
+      // angle tracks. The ChiNorm inputs should be adjusted so the average
+      //  chisq/DOF is ~1 in each plane.
+      std::cout<<"Check lo and hi W/T for each plane"<<std::endl;
+      for(unsigned short ipl = 0; ipl < 3; ++ipl) {
+        std::cout<<ipl<<" lo "<<loWire[ipl]<<" "<<loTime[ipl]
+          <<" hi "<<hiWire[ipl]<<" "<<hiTime[ipl]<<std::endl;
+      }
+      std::cout<<" ipl nRAT bCnt   bChi   bRMS 1hCnt   1hRMS  Theta New_ChiNorm"<<std::endl;
+      for(unsigned short ipl = 0; ipl < 3; ++ipl) {
+        if(bumpCnt[ipl] > 0) {
+          bumpChi[ipl] = bumpChi[ipl] / (float)bumpCnt[ipl];
+          bumpRMS[ipl] = bumpRMS[ipl] / (float)bumpCnt[ipl];
+          hitRMS[ipl]  = hitRMS[ipl]  / (float)hitCnt[ipl];
+          // calculate the slope
+          float dTdW = fabs((hiTime[ipl] - loTime[ipl]) / (hiWire[ipl] - loWire[ipl]));
+          // scale factor is for MicroBooNE 
+          int theta = atan(0.273 * dTdW) * 180. / 3.142;
+          std::cout<<"BB "<<ipl<<std::right<<std::setw(5)<<RATCnt[ipl]
+            <<std::setw(5)<<bumpCnt[ipl]
+            <<std::setw(7)<<std::fixed<<std::setprecision(2)<<bumpChi[ipl]
+            <<std::setw(7)<<bumpRMS[ipl]
+            <<std::setw(7)<<hitCnt[ipl]
+            <<std::setw(7)<<std::setprecision(1)<<hitRMS[ipl]
+            <<std::setw(7)<<theta
+            <<std::setw(7)<<std::setprecision(1)
+            <<bumpChi[ipl]*fChiNorms[ipl]
+            <<std::endl;
+        } // 
+      } // ipl
+      std::cout<<"Set MinRMSInd and MinRMSCol in the fcl file to the "
+               <<"values of hRMS printed above"<<std::endl;
+      bumpChi.clear();
+      bumpRMS.clear();
+      bumpCnt.clear();
+      RATCnt.clear();
+      hitRMS.clear();
+      hitCnt.clear();
+      loWire.clear();
+      loTime.clear();
+      hiWire.clear();
+      hiTime.clear();
+    }
+  } // StudyHits
+*/
 
 } // namespace cluster
 
