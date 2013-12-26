@@ -101,13 +101,6 @@ namespace cluster {
     std::vector<recob::Hit> shcol;
     std::vector<recob::Cluster> sccol;
     std::vector<recob::EndPoint2D> svcol;
-    
-    // vector to identify hits that are in clusters
-    std::vector<bool> inCluster;
-    // assume there are no clusters
-    for(unsigned short iht = 0; iht < fCCHFAlg.allhits.size(); ++iht) {
-      inCluster.push_back(false);
-    }
 
     // put clusters and hits into std::vectors
     unsigned short nclus = 0;
@@ -124,12 +117,14 @@ namespace cluster {
         unsigned short iht = clstr.tclhits[itt];
         if(iht > fCCHFAlg.allhits.size() - 1) {
           mf::LogError("ClusterCrawler")<<"Bad hit index "<<iht;
-          continue;
+          return;
         }
         CCHitFinderAlg::CCHit& theHit = fCCHFAlg.allhits[iht];
-        if(theHit.Charge < 0) {
-          mf::LogError("ClusterCrawler")<<"Using dead hit";
-          continue;
+        // consistency check
+        if(theHit.InClus != clstr.ID) {
+          mf::LogError("ClusterCrawler")<<"Using bad hit in cluster "<<clstr.ID
+            <<" hit ID "<<iht<<" InClus "<<theHit.InClus;
+          return;
         }
         art::Ptr<recob::Wire> theWire = theHit.Wire;
         uint32_t channel = theWire->Channel();
@@ -137,15 +132,8 @@ namespace cluster {
         std::vector<geo::WireID> wids = geo->ChannelToWire(channel);
         if(!wids[0].isValid) {
           mf::LogError("ClusterCrawler")<<"Invalid Wire ID "<<theWire<<" "<<channel;
-          continue;
+          return;
         }
-        // mark the hit used in a cluster
-        if(inCluster[iht]) {
-          mf::LogError("ClusterCrawler")<<"Module: Hit already used "<<iht
-            <<" Cluster ID "<<clstr.ID;
-          continue;
-        }
-        inCluster[iht] = true;
         recob::Hit hit(theHit.Wire,  wids[0],
               (double) theHit.Time - theHit.RMS, 0.,
               (double) theHit.Time + theHit.RMS, 0.,
@@ -179,10 +167,9 @@ namespace cluster {
     // make hits that are not associated with any cluster
     hitcnt = 0;
     for(unsigned short iht = 0; iht < fCCHFAlg.allhits.size(); ++iht) {
-      if(inCluster[iht]) continue;
       CCHitFinderAlg::CCHit& theHit = fCCHFAlg.allhits[iht];
-      // Abandoned hits have negative Charge
-      if(theHit.Charge < 0) continue;
+      // obsolete or used hit?
+      if(theHit.InClus != 0) continue;
       ++hitcnt;
       art::Ptr<recob::Wire> theWire = theHit.Wire;
       uint32_t channel = theWire->Channel();
