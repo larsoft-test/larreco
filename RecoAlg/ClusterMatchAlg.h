@@ -63,10 +63,11 @@ namespace cluster
        over hits takes time.  
        In other words... all hits related variables should be stored here!
     */
-    struct cluster_info {
+    struct cluster_match_info {
       
       unsigned short cluster_index; ///< Cluster's index position in the input cluster vector array
       geo::View_t view;             ///< Wire plane ID
+      unsigned int   nhits;         ///< Number of hits
       unsigned short wire_max;      ///< Maximum wire number in this cluster
       unsigned short wire_min;      ///< Minimum wire number in this cluster
       double start_time_max;        ///< Maximum "start time" among all hits in this cluster
@@ -78,7 +79,7 @@ namespace cluster
       double sum_charge;            ///< Summed charge among all hits in this cluster
       
       /// Constructor with cluster's index ID
-      cluster_info(unsigned short index) {
+      cluster_match_info(unsigned short index) {
 	cluster_index = index;
 	view = geo::kUnknown;
 	wire_max = 0;
@@ -89,8 +90,8 @@ namespace cluster
       };
       
       /// Default constructor
-      cluster_info(){
-	cluster_info(0xffff);
+      cluster_match_info(){
+	cluster_match_info(0xffff);
       };
     };
     
@@ -106,22 +107,20 @@ namespace cluster
     /// Method to report the current configuration
     void ReportConfig() const;
 
-    /// Method to specify input cluster's module name (necessary)
-    void SetClusterModName(std::string name);
-
     /// Method to specify input MCTruth's module name (optional)
     void SetMCTruthModName(std::string name)
     {_ModName_MCTruth = name;}
 
-    /** 
-	Method to set boolean vector which tells which cluster to ignroe.
-	The input vector must have the same length as the cluster pointer vector
-	that can be retrieved with the set cluster module name. Index with false
-	entry is ignored from cluster vector.
-    */
-    void SetInputBoolArray(std::vector<bool> input_cluster_index)
-    {_input_cluster_index = input_cluster_index;}
+    /// Internal method to fill MCTruth information when available
+    void FillMCInfo(const art::Event &evt);
 
+    /// Method to fill cluster information to be used for matching
+    void AppendClusterInfo(const recob::Cluster &in_cluster,
+			   const std::vector<art::Ptr<recob::Hit> > &in_hit_v);
+
+    /// Method to fill cluster information to be used for matching
+    void AppendClusterInfo(const art::Ptr<recob::Cluster> in_cluster,
+			   const std::vector<art::Ptr<recob::Hit> > &in_hit_v);
     /**
        Method to run matching algorithms for three planes. 
        Event info must be provided prior to this function call through FillEventInfo() 
@@ -142,52 +141,56 @@ namespace cluster
 
     /// Method to check if it is configured to store SpacePoint
     bool StoreSpacePoints() const { return _store_sps; }
-    
-    /// Method to fill input data ... to be called before Match function call.
-    void FillEventInfo(const art::Event &evt);
 
     /// Method to clear event-wise information
     void ClearEventInfo();
 
   protected:
 
-    /// Internal method to fill cluster-wise information
-    bool FillClusterInfo(const art::Event &evt);
-    /// Internal method to fill MCTruth information when available
-    void FillMCInfo(const art::Event &evt);
+    /// Method to clear input cluster information
+    void ClearMatchInputInfo();
+
+    /// Method to clear output matched cluster information
+    void ClearMatchOutputInfo();
+
+    /// Method to clear TTree variables 
+    void ClearTTreeInfo();
+
     /// Internal method, called only once, to fill detector-wise information
     void PrepareDetParams();
+
     /// Internal method to create output TTree for quality checking of the algorithm
-    void PrepareTree();
-    /// Internal method to check if the stored event is the same as what was provided previously
-    inline bool SameEvent(const art::Event &evt) const
-    { return (_run == evt.run() && _subrun == evt.subRun() && _event_id == evt.id().event() ); }
-    //
-    // Filtering methods
-    //
+    void PrepareTTree();
+
+    void FillHitInfo(cluster_match_info &ci, 
+		     art::PtrVector<recob::Hit> &out_hit_v,
+		     const std::vector<art::Ptr<recob::Hit> > &in_hit_v);
+
+    /// Internal method to fill cluster-info tree
+    void AppendClusterTreeVariables(const cluster_match_info &ci);
 
     /**
        Match clusters based on min/max Z boundary information. It checks clusters' overlap 
        along Z spatial coordinate based on 2 input cluster information.
     */
-    bool Match_RoughZ(const cluster_info &ci1,  const cluster_info &ci2,
+    bool Match_RoughZ(const cluster_match_info &ci1,  const cluster_match_info &ci2,
 		      const geo::View_t v1,     const geo::View_t v2 ) const;
 
     /// Checks min/max hit timing among two clusters and make sure there is an overlap
-    bool Match_RoughTime(const cluster_info &ci1, const cluster_info &ci2);
+    bool Match_RoughTime(const cluster_match_info &ci1, const cluster_match_info &ci2);
 
     /**
       Checks min/max hit timing among three clusters and make sure there is an overlap.
       If _overlay_tratio_cut is set, then overlapped-time / cluster-timespan fraction
       is compared to the set cut value to claim a match.
     */
-    //bool Match_RoughTime(const cluster_info &ci1, const cluster_info &ci2, const cluster_info &ci3);
+    //bool Match_RoughTime(const cluster_match_info &ci1, const cluster_match_info &ci2, const cluster_match_info &ci3);
     
     /**
        Checks the ratio of two clusters' summed charge. If the ratio is within 1 +/- set cut value,
        two clusters are considered to match.
     */
-    bool Match_SumCharge(const cluster_info &uc, const cluster_info &vc);
+    bool Match_SumCharge(const cluster_match_info &uc, const cluster_match_info &vc);
 
     /**
        Cluster matching using space points. This can be slow as we run SpacePointFinder
@@ -215,25 +218,24 @@ namespace cluster
     //
     // Run control variables
     //
-    std::vector<bool> _input_cluster_index; ///< Boolean vector to ignore some clusters
     bool _match_methods[kMATCH_METHOD_MAX]; ///< Boolean list for enabled algorithms
-    bool _event_var_filled;                 ///< Boolean to keep track of whether the even data is received or not
+    bool _det_params_prepared;
     bool _debug_mode;                       ///< Boolean to enable debug mode (call all enabled matching methods)
     bool _store_sps;                        ///< Boolean to enable storage of SpacePoint vector
-    unsigned int _event_id;  ///< Processed event's counter
-    unsigned int _run;       ///< Processed event's run number
-    unsigned int _subrun;    ///< Processed event's subrun number
+    unsigned int _tot_planes;
+    double _time_offset_uplane;
+    double _time_offset_vplane;
+    double _time_offset_wplane;
 
-    std::string _ModName_Cluster; ///< Cluster producer's module name
     std::string _ModName_MCTruth; ///< MCTruth producer's module name
 
     std::vector<art::PtrVector<recob::Hit> > _uhits_v; ///< Local Hit pointer vector container ... U-plane
     std::vector<art::PtrVector<recob::Hit> > _vhits_v; ///< Local Hit pointer vector container ... V-plane
     std::vector<art::PtrVector<recob::Hit> > _whits_v; ///< Local Hit pointer vector container ... W-plane
     
-    std::vector<cluster_info> _ucluster_v; ///< Local cluster data container... U-plane
-    std::vector<cluster_info> _vcluster_v; ///< Local cluster data container... V-plane
-    std::vector<cluster_info> _wcluster_v; ///< Local cluster data container... W-plane
+    std::vector<cluster_match_info> _ucluster_v; ///< Local cluster data container... U-plane
+    std::vector<cluster_match_info> _vcluster_v; ///< Local cluster data container... V-plane
+    std::vector<cluster_match_info> _wcluster_v; ///< Local cluster data container... W-plane
 
     trkf::SpacePointAlg* _sps_algo; ///< SpacePointFinder algorithm pointer
 
@@ -250,7 +252,6 @@ namespace cluster
     double _mc_Vy;
     double _mc_Vz;
     int _pdgid;
-    unsigned int _tot_planes;
     unsigned short _tot_u;
     unsigned short _tot_v;
     unsigned short _tot_w;
@@ -258,6 +259,7 @@ namespace cluster
     unsigned short _tot_pass_t;
     unsigned short _tot_pass_z;
     unsigned short _tot_pass_sps;
+
     // Cluster-combination-wise variable
     std::vector<uint16_t> _u_nhits_v;
     std::vector<uint16_t> _v_nhits_v;

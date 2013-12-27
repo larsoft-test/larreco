@@ -13,7 +13,6 @@ namespace cluster{
 
   //##################################################################
   ClusterMatchAlg::ClusterMatchAlg(fhicl::ParameterSet const& pset):
-    _ModName_Cluster(""),
     _ModName_MCTruth("")
   //##################################################################
   {    
@@ -28,8 +27,8 @@ namespace cluster{
     _sps_algo = new trkf::SpacePointAlg(pset.get<fhicl::ParameterSet>("SpacePointAlg"));
     _match_tree = 0;
     _cluster_tree = 0;
-    _event_var_filled = false;
     _save_cluster_info = true;
+    _det_params_prepared = false;
 
     for(size_t i=0; i<(size_t)(kMATCH_METHOD_MAX); ++i)
 
@@ -76,11 +75,8 @@ namespace cluster{
 
   }
 
-  //##################################################################
-  void ClusterMatchAlg::ClearEventInfo()
-  //##################################################################
+  void ClusterMatchAlg::ClearMatchInputInfo()
   {
-    // Clear input event data holders
     _ucluster_v.clear();
     _vcluster_v.clear();
     _wcluster_v.clear();
@@ -88,22 +84,19 @@ namespace cluster{
     _uhits_v.clear();
     _vhits_v.clear();
     _whits_v.clear();
+  }
 
-    _event_var_filled = false;
-
-    // Clear result data holders
+  void ClusterMatchAlg::ClearMatchOutputInfo()
+  {
     _matched_uclusters_v.clear();
     _matched_vclusters_v.clear();
     _matched_wclusters_v.clear();
     _matched_sps_v.clear();
+  }
 
-    /// Run control variables
-    _event_id = 0;
-    _run = 0;
-    _subrun = 0;
-    _input_cluster_index.clear();
+  void ClusterMatchAlg::ClearTTreeInfo()
+  {
 
-    /// QC variables
     _mc_E  = 0;
     _mc_Px = 0;
     _mc_Py = 0;
@@ -139,24 +132,28 @@ namespace cluster{
     _tend_max_v.clear();   
 
   }
-  
-  //##################################################################
-  void ClusterMatchAlg::SetClusterModName(std::string name)
-  //##################################################################
-  {    
-    if(name != _ModName_Cluster) {
-      _ModName_Cluster=name;
-      ClearEventInfo();
-    }
-
-  }
 
   //##################################################################
-  void ClusterMatchAlg::PrepareTree()
+  void ClusterMatchAlg::ClearEventInfo()
   //##################################################################
   {
-    art::ServiceHandle<art::TFileService> fileService;
+    // Clear input event data holders
+    ClearMatchInputInfo();
+
+    // Clear result data holders
+    ClearMatchOutputInfo();
+
+    /// Clear TTree variables
+    ClearTTreeInfo();
+
+  }
+  
+  //##################################################################
+  void ClusterMatchAlg::PrepareTTree()
+  //##################################################################
+  {
     if(!_match_tree){
+      art::ServiceHandle<art::TFileService> fileService;
       _match_tree = fileService->make<TTree>("match_tree","");
       _match_tree->Branch("mc_E",&_mc_E,"mc_E/D");
       _match_tree->Branch("mc_Px",&_mc_Px,"mc_Px/D");
@@ -186,6 +183,7 @@ namespace cluster{
       _match_tree->Branch("nsps",  "std::vector<UShort_t>",&_nsps);
     }
     if(_save_cluster_info && !_cluster_tree){
+      art::ServiceHandle<art::TFileService> fileService;
       _cluster_tree = fileService->make<TTree>("cluster_tree","");
       _cluster_tree->Branch("view_v","std::vector<uint16_t>", &_view_v);
       _cluster_tree->Branch("charge_v","std::vector<double>", &_charge_v);
@@ -197,30 +195,6 @@ namespace cluster{
       _cluster_tree->Branch("tend_min_v","std::vector<double>",&_tend_min_v);
       _cluster_tree->Branch("tend_max_v","std::vector<double>",&_tend_max_v);
     }
-  }
-
-  //##########################################################################################
-  void ClusterMatchAlg::FillEventInfo(const art::Event &evt)
-  //##########################################################################################  
-  {
-    art::ServiceHandle<geo::Geometry> geo;
-     _tot_planes = geo->Nplanes();
-     
-    if(!(_event_id) && !_event_var_filled) {
-      // 1st call ever
-      PrepareTree();
-    }
-    else if(_event_var_filled && SameEvent(evt)) return;
-    ClearEventInfo();
-   
-    if(FillClusterInfo(evt)) {
-      FillMCInfo(evt); 
-      _event_id = evt.id().event();
-      _run = evt.run();
-      _subrun = evt.subRun();
-      _event_var_filled = true;
-    }else
-      ClearEventInfo(); 
   }
 
   //##########################################################################################
@@ -270,163 +244,151 @@ namespace cluster{
     }
   }
 
+  void ClusterMatchAlg::PrepareDetParams() 
+  {
+    if(!_det_params_prepared){
+      // Total number of planes
+      art::ServiceHandle<geo::Geometry> geo;
+      _tot_planes = geo->Nplanes();
+      
+      // Ask DetectorPrperties about time-offset among different wire planes ... used to correct timing
+      // difference among different wire planes in the following loop.
+      art::ServiceHandle<util::DetectorProperties> det_h;
+      _time_offset_uplane = det_h->GetXTicksOffset(geo::kU,0,0);
+      _time_offset_vplane = det_h->GetXTicksOffset(geo::kV,0,0);
+      _time_offset_wplane=0;
+      if (_tot_planes >2 )
+	_time_offset_wplane = det_h->GetXTicksOffset(geo::kW,0,0);
+      _det_params_prepared = true;
+    }
+  }
+  
+  void ClusterMatchAlg::AppendClusterInfo(const recob::Cluster &in_cluster,
+					  const std::vector<art::Ptr<recob::Hit> > &in_hit_v) {
 
-  //##########################################################################################
-  bool ClusterMatchAlg::FillClusterInfo(const art::Event &evt)
-  //##########################################################################################
+    PrepareDetParams();
+    cluster_match_info ci(in_cluster.ID());
+    ci.view = in_cluster.View();
+
+    art::PtrVector<recob::Hit> hit_ptrv;
+    FillHitInfo(ci, hit_ptrv, in_hit_v);
+
+    // Save created art::PtrVector & cluster_match_info struct object
+    switch(ci.view){
+    case geo::kU:
+      _uhits_v.push_back(hit_ptrv);
+      _ucluster_v.push_back(ci);
+      AppendClusterTreeVariables(ci);
+      break;
+    case geo::kV:
+      _vhits_v.push_back(hit_ptrv);
+      _vcluster_v.push_back(ci);
+      AppendClusterTreeVariables(ci);
+      break;
+    case geo::kW:
+      _whits_v.push_back(hit_ptrv);
+      _wcluster_v.push_back(ci);
+      AppendClusterTreeVariables(ci);
+      break;
+    default:
+      mf::LogError("ClusterMatchAlg")<<Form("Found an invalid plane ID: %d",in_cluster.View());
+    }
+    
+  }
+  
+  void ClusterMatchAlg::AppendClusterInfo(const art::Ptr<recob::Cluster> in_cluster,
+					  const std::vector<art::Ptr<recob::Hit> > &in_hit_v) {
+
+    PrepareDetParams();
+    cluster_match_info ci(in_cluster->ID());
+    ci.view = in_cluster->View();
+
+    art::PtrVector<recob::Hit> hit_ptrv;
+    FillHitInfo(ci, hit_ptrv, in_hit_v);
+
+    // Save created art::PtrVector & cluster_match_info struct object                                                                       
+    switch(ci.view){
+    case geo::kU:
+      _uhits_v.push_back(hit_ptrv);
+      _ucluster_v.push_back(ci);
+      AppendClusterTreeVariables(ci);
+      break;
+    case geo::kV:
+      _vhits_v.push_back(hit_ptrv);
+      _vcluster_v.push_back(ci);
+      AppendClusterTreeVariables(ci);
+      break;
+    case geo::kW:
+      _whits_v.push_back(hit_ptrv);
+      _wcluster_v.push_back(ci);
+      AppendClusterTreeVariables(ci);
+      break;
+    default:
+      mf::LogError("ClusterMatchAlg")<<Form("Found an invalid plane ID: %d",in_cluster->View());
+    }
+
+  }
+  
+
+
+  void ClusterMatchAlg::FillHitInfo(cluster_match_info &ci, 
+				    art::PtrVector<recob::Hit> &out_hit_v,
+				    const std::vector<art::Ptr<recob::Hit> > &in_hit_v) 
   {
 
-    //
-    // Pull a vector of cluster & hit pointer from input (std::vector<art::Ptr>)
-    //
+    out_hit_v.reserve(in_hit_v.size());
     
-   std::vector<art::Ptr<recob::Cluster> > cluster_ptr_v;
-    art::Handle< std::vector<recob::Cluster> > cluster_handle;
-    evt.getByLabel(_ModName_Cluster, cluster_handle);
-    if(cluster_handle.isValid()) {
-      art::fill_ptr_vector(cluster_ptr_v, cluster_handle);
-    }
+    double time_offset = 0;
+    if(ci.view == geo::kU) time_offset = _time_offset_uplane;
+    else if(ci.view == geo::kV) time_offset = _time_offset_vplane;
+    else if(ci.view == geo::kW) time_offset = _time_offset_wplane;
 
-    // Check the set cluster-enable-boolean vector length here
-    if(_input_cluster_index.size()) {
-      if(_input_cluster_index.size()!=cluster_ptr_v.size()) {
-	
-	mf::LogError("ClusterMatchAlg")
-	  << Form("Found cluster vector length = %zu mismatched with provided boolean vector length = %zu",
-		  cluster_ptr_v.size(),_input_cluster_index.size());
-	return false;
-      }
-    }
-    else _input_cluster_index.resize(_input_cluster_index.size(),true);
+    // Loop over hits in this cluster
+    for(auto const hit : in_hit_v){
 
-    //
-    // Next, we loop over clusters & save art::PtrVector<recob::Hit> per cluster
-    // into the local data container. In the loop, we also save some relevant
-    // cluster-wise data in a dedicated cluster_info struct defined in the header.
-    //
+      unsigned int wire = hit->WireID().Wire;
+      double tstart = hit->StartTime() - time_offset;
+      double tpeak = hit->PeakTime() - time_offset;
+      double tend = hit->EndTime() - time_offset;
 
-    // Create association 
-    art::FindManyP<recob::Hit> hit_m(cluster_handle, evt, _ModName_Cluster);
-
-    // Ask Geo about time-offset among different wire planes ... used to correct timing
-    // difference among different wire planes in the following loop.
-    art::ServiceHandle<util::DetectorProperties> det_h;
-    double time_offset_uplane = det_h->GetXTicksOffset(geo::kU,0,0);
-    double time_offset_vplane = det_h->GetXTicksOffset(geo::kV,0,0);
-    double time_offset_wplane=0;
-    if (_tot_planes >2 )
-      time_offset_wplane = det_h->GetXTicksOffset(geo::kW,0,0);
-
-    // Start looping over clusters
-    std::ostringstream msg;
-    for(size_t i = 0; i < cluster_ptr_v.size(); ++i) {
-
-      if(!_input_cluster_index[i]) {
-	msg<<Form("Skipping cluster index %zu",i)<<std::endl;
-	continue;
-      }
-
-      const art::Ptr<recob::Cluster> cluster_ptr = cluster_ptr_v.at(i);
-      cluster_info ci((unsigned short)(i));
-      ci.view = cluster_ptr->View();
-
-      const std::vector<art::Ptr<recob::Hit> > hit_v = hit_m.at(i);
-      art::PtrVector<recob::Hit> hit_ptrv;
-      hit_ptrv.reserve(hit_v.size());
+      ci.sum_charge += hit->Charge();
       
-      // Loop over hits in this cluster
-      for(auto const hit : hit_v){
-	unsigned int wire = hit->WireID().Wire;
-	double tstart = hit->StartTime();
-	double tpeak = hit->PeakTime();
-	double tend = hit->EndTime();
-	ci.sum_charge += hit->Charge();
-
-	ci.wire_max = (ci.wire_max < wire) ? wire : ci.wire_max;
-	ci.wire_min = (ci.wire_min > wire) ? wire : ci.wire_min;
-
-	ci.start_time_max = ( ci.start_time_max < tstart ) ? tstart : ci.start_time_max;
-	ci.peak_time_max  = ( ci.peak_time_max  < tpeak  ) ? tpeak  : ci.peak_time_max;
-	ci.end_time_max   = ( ci.end_time_max   < tend   ) ? tend   : ci.end_time_max;
-
-	ci.start_time_min = ( ci.start_time_min > tstart) ? tstart : ci.start_time_min;
-	ci.peak_time_min  = ( ci.peak_time_min  > tpeak)  ? tpeak  : ci.peak_time_min;
-	ci.end_time_min   = ( ci.end_time_min   > tend)   ? tend   : ci.end_time_min;
-
-	hit_ptrv.push_back(hit);
-      }
-
-      // Save created art::PtrVector & cluster_info struct object
-      switch(ci.view){
-      case geo::kU: 
-	_uhits_v.push_back(hit_ptrv);
-	ci.start_time_max -= time_offset_uplane;
-	ci.peak_time_max  -= time_offset_uplane;
-	ci.end_time_max   -= time_offset_uplane;
-	ci.start_time_min -= time_offset_uplane;
-	ci.peak_time_min  -= time_offset_uplane;
-	ci.end_time_min   -= time_offset_uplane;
-	_ucluster_v.push_back(ci);
-	break;
-      case geo::kV: 
-	_vhits_v.push_back(hit_ptrv);
-	ci.start_time_max -= time_offset_vplane;
-	ci.peak_time_max  -= time_offset_vplane;
-	ci.end_time_max   -= time_offset_vplane;
-	ci.start_time_min -= time_offset_vplane;
-	ci.peak_time_min  -= time_offset_vplane;
-	ci.end_time_min   -= time_offset_vplane;
-	_vcluster_v.push_back(ci);
-	break;
-      case geo::kW:
-	_whits_v.push_back(hit_ptrv);
-	ci.start_time_max -= time_offset_wplane;
-	ci.peak_time_max  -= time_offset_wplane;
-	ci.end_time_max   -= time_offset_wplane;
-	ci.start_time_min -= time_offset_wplane;
-	ci.peak_time_min  -= time_offset_wplane;
-	ci.end_time_min   -= time_offset_wplane;
-	_wcluster_v.push_back(ci);
-	break;
-      default:
-	mf::LogError("ClusterMatchAlg")<<Form("Found an invalid plane ID: %d",cluster_ptr->View());
-	continue;
-      }
-
-      if(_cluster_tree){
-	_view_v.push_back(ci.view);
-	_charge_v.push_back(ci.sum_charge);
-	_nhits_v.push_back(hit_v.size());
-	_tstart_min_v.push_back(ci.start_time_min);
-	_tstart_max_v.push_back(ci.start_time_max);
-	_tpeak_min_v.push_back(ci.peak_time_min);
-	_tpeak_max_v.push_back(ci.peak_time_max);
-	_tend_min_v.push_back(ci.end_time_min);
-	_tend_max_v.push_back(ci.end_time_max);
-      }
+      ci.wire_max = (ci.wire_max < wire) ? wire : ci.wire_max;
+      ci.wire_min = (ci.wire_min > wire) ? wire : ci.wire_min;
       
+      ci.start_time_max = ( ci.start_time_max < tstart ) ? tstart : ci.start_time_max;
+      ci.peak_time_max  = ( ci.peak_time_max  < tpeak  ) ? tpeak  : ci.peak_time_max;
+      ci.end_time_max   = ( ci.end_time_max   < tend   ) ? tend   : ci.end_time_max;
+      
+      ci.start_time_min = ( ci.start_time_min > tstart) ? tstart : ci.start_time_min;
+      ci.peak_time_min  = ( ci.peak_time_min  > tpeak)  ? tpeak  : ci.peak_time_min;
+      ci.end_time_min   = ( ci.end_time_min   > tend)   ? tend   : ci.end_time_min;
+      
+      out_hit_v.push_back(hit);
+    }
+    
+    ci.nhits = in_hit_v.size();
+  }
+
+  void ClusterMatchAlg::AppendClusterTreeVariables(const cluster_match_info &ci)
+  {
+
+    if(_cluster_tree){
+      _view_v.push_back(ci.view);
+      _charge_v.push_back(ci.sum_charge);
+      _nhits_v.push_back(ci.nhits);
+      _tstart_min_v.push_back(ci.start_time_min);
+      _tstart_max_v.push_back(ci.start_time_max);
+      _tpeak_min_v.push_back(ci.peak_time_min);
+      _tpeak_max_v.push_back(ci.peak_time_max);
+      _tend_min_v.push_back(ci.end_time_min);
+      _tend_max_v.push_back(ci.end_time_max);
     }
 
-    if(_cluster_tree)
-      _cluster_tree->Fill();
-
-    msg << Form("Found (U,V,W) = (%zu,%zu,%zu) clusters...",
-		_uhits_v.size(),
-		_vhits_v.size(),
-		_whits_v.size())
-	<< std::endl;
-    
-    mf::LogWarning("ClusterMatchAlg")<<msg.str()<<std::endl;
-    
-    _tot_u = _ucluster_v.size();
-    _tot_v = _vcluster_v.size();
-    _tot_w = _wcluster_v.size();
-
-    return true;
   }
 
   //########################################################################################
-  bool ClusterMatchAlg::Match_RoughZ(const cluster_info &ci1,  const cluster_info &ci2,
+  bool ClusterMatchAlg::Match_RoughZ(const cluster_match_info &ci1,  const cluster_match_info &ci2,
 				     const geo::View_t v1,     const geo::View_t v2 ) const
   //########################################################################################
   {
@@ -439,7 +401,7 @@ namespace cluster{
   }
 
   //###########################################################################################
-  bool ClusterMatchAlg::Match_RoughTime(const cluster_info &ci1, const cluster_info &ci2)
+  bool ClusterMatchAlg::Match_RoughTime(const cluster_match_info &ci1, const cluster_match_info &ci2)
   //###########################################################################################
   {
     //return (!(ci1.end_time_max < ci2.start_time_min || ci2.end_time_max < ci1.start_time_min));
@@ -459,9 +421,9 @@ namespace cluster{
     return (overlay_tratio > _overlay_tratio_cut);
   }
 
-  //###################################################################################
-  bool ClusterMatchAlg::Match_SumCharge(const cluster_info &uc, const cluster_info &vc)
-  //###################################################################################
+  //##############################################################################################
+  bool ClusterMatchAlg::Match_SumCharge(const cluster_match_info &uc, const cluster_match_info &vc)
+  //##############################################################################################
   {
     double qratio = (uc.sum_charge)/(vc.sum_charge);
     
@@ -479,7 +441,7 @@ namespace cluster{
   //#####################################################################################################
   {
     bool use_wplane = _tot_planes > 2;
-    
+
     if( uindex >= _ucluster_v.size() ||
 	vindex >= _vcluster_v.size() ||
 	(use_wplane && (windex >= _wcluster_v.size())) ) {
@@ -572,8 +534,26 @@ namespace cluster{
   void ClusterMatchAlg::MatchTwoPlanes()
   //#######################################################################
   {
-    // Return immediately if this method was already called
-    if(_matched_uclusters_v.size()) return;
+    std::ostringstream msg;
+    msg << Form("Received (U,V,W) = (%zu,%zu,%zu) clusters...",
+		_uhits_v.size(),
+		_vhits_v.size(),
+		_whits_v.size())
+	<< std::endl;
+    _tot_u = _ucluster_v.size();
+    _tot_v = _vcluster_v.size();
+    _tot_w = _wcluster_v.size();
+
+    if(!(_tot_u + _tot_v + _tot_w)) {
+      
+      mf::LogError(__PRETTY_FUNCTION__)<<"No input cluster info found! Aborting the function call...";
+
+      return;
+    }
+
+    // Initialization
+    PrepareTTree();
+    ClearMatchOutputInfo();
 
     bool overlay_2d = false;
     for(size_t uci_index=0; uci_index<_ucluster_v.size(); ++uci_index) {
@@ -631,7 +611,6 @@ namespace cluster{
     } // end of ... _ucluster_v loop
 
     // Report
-    std::ostringstream msg;
     msg << std::endl
 	<< Form("Found %zu matched cluster pairs...",_matched_uclusters_v.size()) 
 	<< std::endl;
@@ -645,20 +624,39 @@ namespace cluster{
     msg << std::endl;
     mf::LogWarning("ClusterMatchAlg")<<msg.str();
 
-    _match_tree->Fill();
+    if(_match_tree)   _match_tree->Fill();
+    if(_cluster_tree) _cluster_tree->Fill();
+
+    // Clear input event data holders
+    ClearMatchInputInfo();
+    /// Clear TTree variables
+    ClearTTreeInfo();
   }
 
   //#######################################################################
   void ClusterMatchAlg::MatchThreePlanes()
   //#######################################################################
   {
-    // Return immediately if this method was already called
-    if(_matched_wclusters_v.size()) return;
-    // Handle the case MatchTwoPlanes() was already called (tolerate)
-    _matched_wclusters_v.clear();
-    _matched_uclusters_v.clear();
-    _matched_vclusters_v.clear();
-    _matched_sps_v.clear();
+    std::ostringstream msg;
+    msg << Form("Received (U,V,W) = (%zu,%zu,%zu) clusters...",
+		_uhits_v.size(),
+		_vhits_v.size(),
+		_whits_v.size())
+	<< std::endl;
+    _tot_u = _ucluster_v.size();
+    _tot_v = _vcluster_v.size();
+    _tot_w = _wcluster_v.size();
+
+    if(!(_tot_u + _tot_v + _tot_w)) {
+      
+      mf::LogError(__PRETTY_FUNCTION__)<<"No input cluster info found! Aborting the function call...";
+
+      return;
+    }
+
+    // Clear match information
+    PrepareTTree();
+    ClearMatchOutputInfo();
 
     bool overlay_2d=true;
     bool overlay_3d=true;
@@ -731,7 +729,6 @@ namespace cluster{
     } // end of ... _ucluster_v loop
 
     // Report
-    std::ostringstream msg;
     msg << std::endl
 	<< Form("Found %zu matched cluster pairs...",_matched_uclusters_v.size()) 
 	<< std::endl;
@@ -749,7 +746,13 @@ namespace cluster{
     msg << std::endl;
     mf::LogWarning("ClusterMatchAlg")<<msg.str();
 
-    _match_tree->Fill();
+    if(_match_tree)   _match_tree->Fill();
+    if(_cluster_tree) _cluster_tree->Fill();
+    // Clear input event data holders
+    ClearMatchInputInfo();
+    /// Clear TTree variables
+    ClearTTreeInfo();
+
   }
 
 } // namespace match
