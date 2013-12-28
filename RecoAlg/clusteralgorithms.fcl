@@ -235,9 +235,9 @@ bo_clustercrawleralg.FindVertices: [ false ]
 bo_clustercrawleralg.HitErrFac: 1.
 bo_cchitfinderalg:              @local::standard_cchitfinderalg
 bo_cchitfinderalg.MinSigInd:    4.
-bo_cchitfinderalg.MinSigCol:    4.
+bo_cchitfinderalg.MinSigCol:    5.
 bo_cchitfinderalg.MinRMSInd:     8.
-bo_cchitfinderalg.MinRMSCol:     9.
+bo_cchitfinderalg.MinRMSCol:     7.
 bo_cchitfinderalg.ChiNorms:     [ 1.8, 3.3, 4.3 ]
 bo_cchitrefineralg:             @local::standard_cchitrefineralg
 
