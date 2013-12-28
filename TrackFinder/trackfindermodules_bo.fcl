@@ -6,6 +6,7 @@ bo_track:                               @local::standard_track3Dreco
 bo_cosmictracker:                       @local::standard_cosmictracker  
 bo_cosmictracker.TMatch:                10.0
 bo_cosmictracker.SMatch:                1.0
+bo_cosmictracker.EnableV:               false
 bo_kalman:                              @local::standard_track3Dkalman
 bo_spacepts:                            @local::standard_spacepts     
 bo_spacepoint:                          @local::standard_spacepointana

@@ -71,6 +71,9 @@ standard_cosmictracker:
  SMatch:             1.0
  Toler1:             30    #tolerance in fit, 1st iteration
  Toler2:             20    #tolerance in fit, 2nd iteration
+ EnableU:            true
+ EnableV:            true
+ EnableZ:            true
  Debug:              false
  IsoHitCut:          100000
 }

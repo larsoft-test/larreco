@@ -107,11 +107,16 @@ namespace trkf {
     
     bool             fdebug;
 
+    bool            fEnableU;
+    bool            fEnableV;
+    bool            fEnableZ;
+
     int             fisohitcut;
 
     //testing histograms
     std::vector<TH1D *> dtime;
     std::vector<TH1D *> testsig;
+    std::vector<TH1D *> testpulse;
     TH1D *hks;
   
   }; // class CosmicTracker
@@ -133,6 +138,7 @@ namespace trkf {
 
     dtime  .resize(3);
     testsig.resize(3);
+    testpulse.resize(3);
   }
 
   //-------------------------------------------------
@@ -150,6 +156,9 @@ namespace trkf {
     ftoler1                 = pset.get< double >("Toler1");
     ftoler2                 = pset.get< double >("Toler2");
     fdebug                  = pset.get< bool   >("Debug");
+    fEnableU                = pset.get< bool   >("EnableU");
+    fEnableV                = pset.get< bool   >("EnableV");
+    fEnableZ                = pset.get< bool   >("EnableZ");
     fisohitcut              = pset.get< int    >("IsoHitCut");
   }
 
@@ -165,6 +174,11 @@ namespace trkf {
     testsig[0] = tfs->make<TH1D>("testsig0","testsig0",4096,0,4096);
     testsig[1] = tfs->make<TH1D>("testsig1","testsig1",4096,0,4096);
     testsig[2] = tfs->make<TH1D>("testsig2","testsig2",4096,0,4096);
+
+    testpulse[0] = tfs->make<TH1D>("testpulse0","testpulse0",4096,0,4096);
+    testpulse[1] = tfs->make<TH1D>("testpulse1","testpulse1",4096,0,4096);
+    testpulse[2] = tfs->make<TH1D>("testpulse2","testpulse2",4096,0,4096);
+
 
     hks = tfs->make<TH1D>("hks","hks",100,0,1);
 
@@ -207,6 +221,7 @@ namespace trkf {
     int nplanes = geom->Nplanes();
 
     std::vector< std::vector<TH1D*> > signals(nplanes);
+    std::vector< std::vector<TH1D*> > pulses(nplanes);
 
     // get input Cluster object(s).
     art::Handle< std::vector<recob::Cluster> > clusterListHandle;
@@ -220,20 +235,20 @@ namespace trkf {
 
     for (size_t iclu = 0; iclu<clusterlist.size(); ++iclu){
 
-      double t0 = clusterlist[iclu]->StartPos()[1];
-      double t1 = clusterlist[iclu]->EndPos()[1];
-      t0 -= detprop->GetXTicksOffset(clusterlist[iclu]->View(),0,0);
-      t1 -= detprop->GetXTicksOffset(clusterlist[iclu]->View(),0,0);
+//      double t0 = clusterlist[iclu]->StartPos()[1];
+//      double t1 = clusterlist[iclu]->EndPos()[1];
+//      t0 -= detprop->GetXTicksOffset(clusterlist[iclu]->View(),0,0);
+//      t1 -= detprop->GetXTicksOffset(clusterlist[iclu]->View(),0,0);
     
       switch(clusterlist[iclu]->View()){
       case geo::kU :
-	Cls[0].push_back(iclu);
+	if (fEnableU) Cls[0].push_back(iclu);
 	break;
       case geo::kV :
-	Cls[1].push_back(iclu);
+	if (fEnableV) Cls[1].push_back(iclu);
 	break;
-      case geo::kW :
-	Cls[2].push_back(iclu);
+      case geo::kZ :
+	if (fEnableZ) Cls[2].push_back(iclu);
 	break;
       default :
 	break;
@@ -264,6 +279,7 @@ namespace trkf {
 	  }
 	}
 	if (sigint.Integral()) sigint.Scale(1./sigint.GetBinContent(sigint.GetNbinsX()));
+	pulses[i].push_back(new TH1D(sig));
 	signals[i].push_back(new TH1D(sigint));
 	if (hitlist.size()>10){
 	  meantime[i].push_back(sig.GetMean());
@@ -287,6 +303,7 @@ namespace trkf {
 	  for (int j = 0; j<signals[i][k]->GetNbinsX(); ++j){
 	    double binc = signals[i][k]->GetBinContent(j+1);
 	    testsig[i]->SetBinContent(j+1,binc);
+	    testpulse[i]->SetBinContent(j+1,pulses[i][k]->GetBinContent(j+1));
 	  }
 	}
       }
@@ -340,7 +357,7 @@ namespace trkf {
 			clusterlist[Cls[i][c1]]->View()){
 		      matchview = true;
 		      //replace if the new cluster has more hits
-		      if (fm.at(Cls[i][c1])>fm.at(matchedclusters[imatch][ii])){
+		      if (fm.at(Cls[i][c1]).size()>fm.at(matchedclusters[imatch][ii]).size()){
 			matched[matchedclusters[imatch][ii]] = 0;
 			matchedclusters[imatch][ii] = Cls[i][c1];
 			matched[Cls[i][c1]] = 1;
@@ -396,6 +413,7 @@ namespace trkf {
     for (int i = 0; i<nplanes; ++i){
       for (size_t j = 0; j<signals[i].size(); ++j){
 	delete signals[i][j];
+	delete pulses[i][j];
       }
     }
 
