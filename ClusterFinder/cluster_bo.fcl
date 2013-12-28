@@ -11,6 +11,10 @@ bo_houghbasealg.NumAngleCells:  5000
 bo_houghbasealg.MaxDistance:    5.0
 bo_endpointalg:                 @local::standard_endpointalg
 
+bo_clustercrawler:               @local::standard_clustercrawler      
+bo_clustercrawler.ClusterCrawlerAlg: @local::bo_clustercrawleralg
+bo_clustercrawler.CCHitFinderAlg:    @local::bo_cchitfinderalg
+bo_clustercrawler.CCHitRefinerAlg:   @local::bo_cchitrefineralg
 bo_dbcluster:                    @local::standard_dbcluster      
 bo_fuzzycluster:                 @local::standard_fuzzycluster      
 bo_fuzzycluster.HoughBaseAlg:    @local::standard_houghbasealg      
