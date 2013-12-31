@@ -57,6 +57,13 @@ std::vector<double> vwire;
 std::vector<double> vtime;
 std::vector<double> vph;
 
+struct CluLen{
+  int index;
+  double length;
+};
+
+bool myfunction (CluLen c1, CluLen c2) { return (c1.length>c2.length);}
+
 void myfcn(Int_t &, Double_t *, Double_t &f, Double_t *par, Int_t) {
   //minimisation function computing the sum of squares of residuals
   f = 0;
@@ -232,28 +239,41 @@ namespace trkf {
     art::FindManyP<recob::Hit> fm(clusterListHandle, evt, fClusterModuleLabel);
 
     std::vector< std::vector<int> > Cls(nplanes);
-
+    std::vector< std::vector<CluLen> > clulens(nplanes);
     for (size_t iclu = 0; iclu<clusterlist.size(); ++iclu){
 
-//      double t0 = clusterlist[iclu]->StartPos()[1];
-//      double t1 = clusterlist[iclu]->EndPos()[1];
+      double w0 = clusterlist[iclu]->StartPos()[0];
+      double w1 = clusterlist[iclu]->EndPos()[0];
+      double t0 = clusterlist[iclu]->StartPos()[1];
+      double t1 = clusterlist[iclu]->EndPos()[1];
 //      t0 -= detprop->GetXTicksOffset(clusterlist[iclu]->View(),0,0);
 //      t1 -= detprop->GetXTicksOffset(clusterlist[iclu]->View(),0,0);
-    
+
+      CluLen clulen;
+      clulen.index = iclu;
+      clulen.length = sqrt(pow((w0-w1)*wire_pitch,2)+pow(detprop->ConvertTicksToX(t0,clusterlist[iclu]->View(),0,0)-detprop->ConvertTicksToX(t1,clusterlist[iclu]->View(),0,0),2));
       switch(clusterlist[iclu]->View()){
       case geo::kU :
-	if (fEnableU) Cls[0].push_back(iclu);
+	if (fEnableU) clulens[0].push_back(clulen);
 	break;
       case geo::kV :
-	if (fEnableV) Cls[1].push_back(iclu);
+	if (fEnableV) clulens[1].push_back(clulen);
 	break;
       case geo::kZ :
-	if (fEnableZ) Cls[2].push_back(iclu);
+	if (fEnableZ) clulens[2].push_back(clulen);
 	break;
       default :
 	break;
       }
 
+    }
+
+    //sort clusters based on 2D length
+    for (size_t i = 0; i<clulens.size(); ++i){
+      std::sort (clulens[i].begin(),clulens[i].end(), myfunction);
+      for (size_t j = 0; j<clulens[i].size(); ++j){
+	Cls[i].push_back(clulens[i][j].index);
+      }
     }
 
     //calibrate drift times between wire planes using single muons
@@ -376,7 +396,7 @@ namespace trkf {
 			clusterlist[Cls[j][c2]]->View()){
 		      matchview = true;
 		      //replace if it has more hits
-		      if (fm.at(Cls[j][c2])>fm.at(matchedclusters[imatch][jj])){
+		      if (fm.at(Cls[j][c2]).size()>fm.at(matchedclusters[imatch][jj]).size()){
 			matched[matchedclusters[imatch][jj]] = 0;
 			matchedclusters[imatch][jj] = Cls[j][c2];
 			matched[Cls[j][c2]] = 1;
@@ -394,9 +414,9 @@ namespace trkf {
 		tmp.push_back(Cls[i][c1]);
 		tmp.push_back(Cls[j][c2]);
 		matchedclusters.push_back(tmp);
+		matched[Cls[i][c1]]=1;
+		matched[Cls[j][c2]]=1;
 	      }
-	      matched[Cls[i][c1]]=1;
-	      matched[Cls[j][c2]]=1;
 	    }//pass KS test
 	  }//c2
 	}//c1
