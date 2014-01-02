@@ -31,6 +31,7 @@
 //#include "RecoAlg/HoughBaseAlg.h"
 #include "RecoAlg/ClusterParamsAlg.h"
 #include "RecoAlg/ClusterMatchAlg.h"
+#include "RecoAlg/ClusterMergeAlg.h"
 
 extern "C" {
 #include <sys/types.h>
@@ -109,7 +110,7 @@ namespace cluster {
  
     //HoughBaseAlg fHBAlg; 
     ClusterParamsAlg fCParAlg;
-    //ClusterMergeAlg fCMergeAlg;
+    ClusterMergeAlg fCMergeAlg;
     ClusterMatchAlg fCMatchAlg;
     bool fExternalStartPoints;
  //   double fWiretoCm,fTimetoCm,fWireTimetoCmCm;
@@ -170,7 +171,7 @@ namespace cluster {
 cluster::ShowerAngleCluster::ShowerAngleCluster(fhicl::ParameterSet const& pset)
  :// fHBAlg(pset.get< fhicl::ParameterSet >("HoughBaseAlg")),
   fCParAlg(pset.get< fhicl::ParameterSet >("ClusterParamsAlg"),pset.get< std::string >("module_type")),
-  //fCMergeAlg(pset.get< fhicl::ParameterSet >("ClusterMergeAlg")),
+  fCMergeAlg(pset.get< fhicl::ParameterSet >("ClusterMergeAlg")),
   fCMatchAlg(pset.get< fhicl::ParameterSet >("ClusterMatchAlg"))
 {
   this->reconfigure(pset);
@@ -426,6 +427,7 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
 	 clusters. The output of this loop is then used for merging algorithm.
 	 -- Kazu Dec. 27 2013
      */
+     fCMergeAlg.ClearEventInfo();
      std::vector<recob::Cluster> inputShowerClusters;
      std::vector<std::vector<art::Ptr<recob::Hit> > > inputShowerClusterHits;
      for(unsigned int iClust = 0; iClust < clusterListHandle->size(); iClust++){
@@ -445,20 +447,77 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
 			     hitlist))
 	 continue;
        
+       // Store this processed shower-like cluster
        inputShowerClusters.push_back(temp);
        inputShowerClusterHits.push_back(hitlist);
 
+       // Feed this cluster & hitlist into Merge algorithm
+       fCMergeAlg.AppendClusterInfo(temp,hitlist);
+
      } // End loop on clusters.
      
+     // Run merging algorithm & retrieve the result
+     fCMergeAlg.ProcessMergeAlg();
 
-     for(size_t iClust=0; iClust < inputShowerClusters.size(); ++iClust) {
+     std::vector<std::vector<unsigned int> > mergedClusterSets = fCMergeAlg.GetClusterSets();
+     
+     /**
+	Loop over the merging algorithm result. For clusters to be merged,
+	re-compute cluster parameters (start,end,angle). For clusters that
+	are not to be merged, copy already-computed parameters and only
+	modify the cluster ID to an appropriate value.
+     */
+     std::vector<std::vector<art::Ptr<recob::Hit> > >outputShowerClusterHits;
+     outputShowerClusterHits.reserve(mergedClusterSets.size());
+     ShowerAngleCluster->reserve(mergedClusterSets.size());
+     for(auto const& cluster_set : mergedClusterSets) {
 
-       ShowerAngleCluster->push_back(inputShowerClusters[iClust]);
+       int outClusterID = -1;
 
-       util::CreateAssn(*this, evt, *(ShowerAngleCluster.get()), inputShowerClusterHits[iClust], *(assn.get()));
+       // If length == 1, no merging required
+       if(cluster_set.empty())
+
+	 mf::LogError(__FUNCTION__) << "Encountered 0-length merged cluster sets (logic error)!";
+       
+       else if(cluster_set.size()==1) {
+
+	 unsigned int iClust = cluster_set[0];
+	 outClusterID = (int)(ShowerAngleCluster->size());
+	 ShowerAngleCluster->push_back(recob::Cluster(inputShowerClusters[iClust].StartPos()[0],
+						      inputShowerClusters[iClust].SigmaStartPos()[0],
+						      inputShowerClusters[iClust].StartPos()[1],
+						      inputShowerClusters[iClust].SigmaStartPos()[1],
+						      inputShowerClusters[iClust].EndPos()[0],
+						      inputShowerClusters[iClust].SigmaEndPos()[0],
+						      inputShowerClusters[iClust].EndPos()[1],
+						      inputShowerClusters[iClust].SigmaEndPos()[1],
+						      inputShowerClusters[iClust].dTdW(),
+						      inputShowerClusters[iClust].SigmadTdW(),
+						      inputShowerClusters[iClust].dQdW(),
+						      inputShowerClusters[iClust].SigmadQdW(),
+						      inputShowerClusters[iClust].Charge(),
+						      inputShowerClusters[iClust].View(),
+						      outClusterID));
+	 outputShowerClusterHits.push_back(inputShowerClusterHits.at(iClust));
+       }
+       // else we need to merge hits & re-evaluate cluster parameters.
+       else{
+
+	 std::vector<art::Ptr<recob::Hit> > hitlist;
+	 for(auto const& iClust : cluster_set)
+
+	   for(auto const& iHit : inputShowerClusterHits[iClust])
+
+	     hitlist.push_back(iHit);
+	 outClusterID = (int)(ShowerAngleCluster->size());
+	 ShowerAngleCluster->push_back(MergeClusterLoop(hitlist,outClusterID));
+	 outputShowerClusterHits.push_back(hitlist);
+       }
+
+       util::CreateAssn(*this, evt, *(ShowerAngleCluster.get()), outputShowerClusterHits.at(outClusterID), *(assn.get()));
 
      }
-     
+
      if(!matchflag)
        {
 	 //matching code here.
@@ -477,9 +536,10 @@ void cluster::ShowerAngleCluster::produce(art::Event& evt)
          fCMatchAlg.ClearEventInfo();
          fCMatchAlg.SetMCTruthModName("generator"); // Won't crash even if data product do not exist.
          fCMatchAlg.FillMCInfo(evt);
-	 for(size_t i=0; i<inputShowerClusters.size(); ++i)
+	 for(size_t i=0; i<ShowerAngleCluster->size(); ++i )
 	  
-	   fCMatchAlg.AppendClusterInfo(inputShowerClusters[i],inputShowerClusterHits[i]);
+	   fCMatchAlg.AppendClusterInfo(ShowerAngleCluster->at(i),
+					outputShowerClusterHits.at(i));
 
 	 if(fNPlanes==2)
 	   fCMatchAlg.MatchTwoPlanes();

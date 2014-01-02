@@ -113,6 +113,8 @@ standard_showeranglecluster:
  module_type:              "ShowerAngleCluster"
  ClusterModuleLabel:       "dbcluster"
  ClusterParamsAlg: 	   @local::standard_clusterparamsalg
+ ClusterMatchAlg:          @local::standard_clustermatchalg
+ ClusterMergeAlg:          @local::standard_clustermergealg
  ExternalStartPoints:	   false
  MinHitListSize:	  15
 }
