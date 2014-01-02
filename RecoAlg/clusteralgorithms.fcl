@@ -1,3 +1,4 @@
+#include "trackfinderalgorithms.fcl"
 BEGIN_PROLOG
 
 standard_clustercrawleralg:
@@ -187,7 +188,26 @@ standard_clusterparamsalg:
   HoughBaseAlg:                   @local::standard_houghbasealg
 
  }
- 
+
+ standard_clustermatchalg:
+ {
+  DebugMode: true
+  StoreSpacePoint: true
+  MatchAlgoList:                [0, 1, 2, 3] # Algorithms enum to be enabled
+  CutParam_NumSpacePoint:       100          # Number of minimum space point to claim a cluster by kSpacePoint
+  CutParam_OverlayTimeFraction: 0.0          # Minimum fraction of overlayed time period used by kRoughTime
+  CutParam_SumChargeRatio:      1000.0       # Maximum difference in fraction of clusters' charge sum used by kSumCharge
+  SpacePointAlg:                @local::microboone_spacepointalg
+  }
+ standard_clustermatchalg.SpacePointAlg.Filter: false
+
+ standard_clustermergealg:
+ {
+  VerboseMode:    false
+  MaxAngleDiff:   0
+  MaxSquaredDist: 0
+  }
+
 standard_smallclustalg:
  {
   RadiusSizePar:   	3	  #radius of circle in "cm"
@@ -283,6 +303,8 @@ microboone_cornerfinderalg:		      @local::standard_cornerfinderalg
 microboone_clusterparamsalg:                 @local::standard_clusterparamsalg
 microboone_smallclustalg:	   @local::standard_smallclustalg
 microboone_clustercrawleralg:      @local::standard_clustercrawleralg
+microboone_clustermatchalg:                   @local::standard_clustermatchalg
+microboone_clustermergealg:                   @local::standard_clustermergealg
 
 lbnefd_dbscanalg:    @local::standard_dbscanalg_fast
 lbnefd_houghbasealg: @local::standard_houghbasealg
