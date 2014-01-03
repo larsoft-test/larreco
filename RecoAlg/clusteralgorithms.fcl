@@ -25,6 +25,7 @@ standard_clustercrawleralg:
   ClGhostHitFrac:     -0.5 # Merge clusters if they share a fraction of hits
                            # in the same hit multiplet. Set < 0 for no merging
   HitErrFac:           0.4 # hit time error for fitting = fHitErrFac * (hit width)
+  AllowNoHitWire:        0 # 
   DebugPlane:          -1  # print info only in this plane
   DebugWire:            0  # set to the Begin Wire and Hit of a cluster to print
   DebugHit:             0  # out detailed information while crawling
