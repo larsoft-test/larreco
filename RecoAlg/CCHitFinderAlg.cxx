@@ -96,7 +96,6 @@ namespace cluster{
       ticks[ii] = ii;
     }
     float *signl = new float[maxticks];
-
     // initialize the vectors for the hit study
 //  StudyHits(0);
 
@@ -135,7 +134,7 @@ namespace cluster{
 
 #ifdef PRINTHITS
       // edit this line to debug hit fitting on a particular plane/wire
-      prt = (thePlane == 1 && theWireNum == 1401);
+//      prt = (thePlane == 0 && theWireNum == 1864);
 #endif
       std::vector<float> signal(theWire->Signal());
 
@@ -334,6 +333,41 @@ namespace cluster{
       partmperr.push_back(Gn->GetParError(ipar));
     }
     chidof = Gn->GetChisquare() / ( ndof * chinorm);
+
+    // Sort by increasing time if necessary
+    if(nGaus > 1) {
+      std::vector< std::pair<unsigned short, unsigned short> > times;
+      // fill the sort vector
+      for(unsigned short ii = 0; ii < nGaus; ++ii) {
+        unsigned short index = ii * 3;
+        times.push_back(std::make_pair(partmp[index + 1],ii));
+      } // ii
+      std::sort(times.begin(), times.end());
+      // see if re-arranging is necessary
+      bool sortem = false;
+      for(unsigned short ii = 0; ii < nGaus; ++ii) {
+        if(times[ii].second != ii) {
+          sortem = true;
+          break;
+        }
+      } // ii
+      if(sortem) {
+        // temp temp vectors for putting things in the right time order
+        std::vector<double> partmpt;
+        std::vector<double> partmperrt;
+        for(unsigned short ii = 0; ii < nGaus; ++ii) {
+          unsigned short index = times[ii].second * 3;
+          partmpt.push_back(partmp[index]);
+          partmpt.push_back(partmp[index+1]);
+          partmpt.push_back(partmp[index+2]);
+          partmperrt.push_back(partmperr[index]);
+          partmperrt.push_back(partmperr[index+1]);
+          partmperrt.push_back(partmperr[index+2]);
+        } // ii
+        partmp = partmpt;
+        partmperr = partmperrt;
+      } // sortem
+    } // nGaus > 1
     
 #ifdef PRINTHITS
     if(prt) {
@@ -448,6 +482,65 @@ namespace cluster{
   // fill RMS for single hits
 //  StudyHits(3);
 
+    float loTime = TStart;
+    float hiTime = TStart + npt;
+    // check for large separation between hits. These vectors define the
+    // boundaries of sub-multiplets
+    std::vector<float> loTimes(nhits, loTime);
+    std::vector<float> hiTimes(nhits, hiTime);
+    std::vector<unsigned short> loHitIDs(nhits,allhits.size());
+    std::vector<unsigned short> nMultHits(nhits,nhits);
+    unsigned short nhm = 0;
+    // scan for large separation
+    for(unsigned short hit = 1; hit < nhits; ++hit) {
+      // increment the number of hits in this (sub-)multiplet
+      ++nhm;
+      unsigned short index = 3 * hit;
+      // RMS of the previous hit
+      float rms1 = par[index - 1];
+      // significance of the time separation from the previous hit
+      float sep = fabs(par[index + 1] - par[index - 2]) / rms1;
+      if(sep > 5) {
+        // large separation. re-define the boundaries
+        float newLoTime = 0.5 * (par[index + 1] + par[index - 2]);
+        // re-define the previous hit boundaries
+        for(unsigned short phit = 0; phit < hit; ++phit) {
+          // hi times for the previous hits are the new low times for the
+          // next hits
+          hiTimes[phit] = newLoTime;
+          nMultHits[phit] = nhm;
+        } // phit
+        // reset the hit counter
+        nhm = 0;
+        // re-define the lower boundary of the next set of hits
+        for(unsigned short phit = hit; phit < nhits; ++phit) {
+          loTimes[phit] = newLoTime;
+          loHitIDs[phit] = hit;
+          // set the hit multiplicity = 0 as a flag
+          nMultHits[phit] = 0;
+        } // phit
+      } // sep > 5
+    } // hit
+    // correct the high boundary for the last set of hits if necessary
+    if(nhm < nhits) {
+      for(unsigned short hit = nhits - 1; hit > 0; --hit) {
+        if(nMultHits[hit] == 0) {
+          nMultHits[hit] = nhm;
+        } else {
+          break;
+        }
+      }
+    }
+
+#ifdef PRINTHITS
+  if(prt) {
+    std::cout<<"hit loTime hiTime loHitIDs nMultHits"<<std::endl;
+    for(unsigned short hit = 0; hit < nhits; ++hit) {
+      std::cout<<hit<<" "<<(int)loTimes[hit]<<" "<<(int)hiTimes[hit]
+        <<" "<<loHitIDs[hit]<<" "<<nMultHits[hit]<<std::endl;
+    }
+  }
+#endif
     CCHit onehit;
     // lohitid is the index of the first hit that will be added. Hits with
     // Multiplicity > 1 will reside in a block from
@@ -455,10 +548,9 @@ namespace cluster{
     unsigned short lohitid = allhits.size();
     for(unsigned short hit = 0; hit < nhits; ++hit) {
       unsigned short index = 3 * hit;
-      
       onehit.Charge = Sqrt2Pi * par[index] * par[index + 2] / ChgNorm;
       onehit.ChargeErr = SqrtPi * (parerr[index] * par[index + 2] +
-                                  par[index] * parerr[index + 2]);
+                                   par[index] * parerr[index + 2]);
       onehit.Amplitude = par[index];
       onehit.AmplitudeErr = parerr[index];
       onehit.Time = par[index + 1] + TStart + timeoff;
@@ -470,19 +562,21 @@ namespace cluster{
       onehit.WireNum = theWireNum;
       onehit.numHits = nhits;
       onehit.LoHitID = lohitid;
-      onehit.LoTime = TStart;
-      onehit.HiTime = TStart + npt;
+      onehit.LoTime = loTime;
+      onehit.HiTime = hiTime;
       // set flag indicating hit is not used in a cluster
       onehit.InClus = 0;
 
 #ifdef PRINTHITS
   if(prt) {
-    std::cout<<"W:T "<<theWireNum;
-    std::cout<<":"<<(short)onehit.Time<<" Chg "<<(short)onehit.Charge;
-    std::cout<<" RMS "<<onehit.RMS;
-    std::cout<<" lo/hi ID "<<onehit.LoHitID;
-    std::cout<<" chidof "<<chidof;
-    std::cout<<std::endl;
+    std::cout<<"W:T "<<theWireNum<<":"<<(short)onehit.Time
+      <<" Chg "<<(short)onehit.Charge
+      <<" RMS "<<onehit.RMS
+      <<" lo ID "<<onehit.LoHitID
+      <<" numHits "<<nhm
+      <<" loTime "<<loTime<<" hiTime "<<hiTime
+      <<" chidof "<<chidof
+      <<std::endl;
   }
 #endif
       allhits.push_back(onehit);
