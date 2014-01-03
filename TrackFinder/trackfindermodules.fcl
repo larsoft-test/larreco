@@ -72,6 +72,7 @@ standard_cosmictracker:
  EnableZ:            true
  Debug:              false
  IsoHitCut:          100000
+ SortDirection:      "+z"
 }
 
 standard_track3Dkalman:

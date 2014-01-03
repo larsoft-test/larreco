@@ -75,6 +75,48 @@ void myfcn(Int_t &, Double_t *, Double_t &f, Double_t *par, Int_t) {
   }
 }
 
+bool sp_sort_x0(const recob::SpacePoint h1, const recob::SpacePoint h2)
+{
+  const double* xyz1 = h1.XYZ();
+  const double* xyz2 = h2.XYZ();
+  return xyz1[0] < xyz2[0];
+}
+
+bool sp_sort_x1(const recob::SpacePoint h1, const recob::SpacePoint h2)
+{
+  const double* xyz1 = h1.XYZ();
+  const double* xyz2 = h2.XYZ();
+  return xyz1[0] > xyz2[0];
+}
+
+bool sp_sort_y0(const recob::SpacePoint h1, const recob::SpacePoint h2)
+{
+  const double* xyz1 = h1.XYZ();
+  const double* xyz2 = h2.XYZ();
+  return xyz1[1] < xyz2[1];
+}
+
+bool sp_sort_y1(const recob::SpacePoint h1, const recob::SpacePoint h2)
+{
+  const double* xyz1 = h1.XYZ();
+  const double* xyz2 = h2.XYZ();
+  return xyz1[1] > xyz2[1];
+}
+
+bool sp_sort_z0(const recob::SpacePoint h1, const recob::SpacePoint h2)
+{
+  const double* xyz1 = h1.XYZ();
+  const double* xyz2 = h2.XYZ();
+  return xyz1[2] < xyz2[2];
+}
+
+bool sp_sort_z1(const recob::SpacePoint h1, const recob::SpacePoint h2)
+{
+  const double* xyz1 = h1.XYZ();
+  const double* xyz2 = h2.XYZ();
+  return xyz1[2] > xyz2[2];
+}
+
 namespace trkf {
    
   struct SortByWire {
@@ -119,6 +161,8 @@ namespace trkf {
     bool            fEnableZ;
 
     int             fisohitcut;
+    
+    std::string     fSortDir;            ///< sort space points 
 
     //testing histograms
     std::vector<TH1D *> dtime;
@@ -167,6 +211,7 @@ namespace trkf {
     fEnableV                = pset.get< bool   >("EnableV");
     fEnableZ                = pset.get< bool   >("EnableZ");
     fisohitcut              = pset.get< int    >("IsoHitCut");
+    fSortDir                = pset.get< std::string >("SortDirection","+z");
   }
 
   //-------------------------------------------------
@@ -709,8 +754,43 @@ namespace trkf {
 				(hit2e->second)->Wire()->RawDigit()->Channel(),
 				y,z);	     
 	endpointVec.SetXYZ((te1-presamplings)*timepitch+2*plane_pitch,y,z);
+	
+	//sort start/end
+	if (fSortDir == "+x" && startpointVec.X() > endpointVec.X()){
+	  TVector3 tempVec = startpointVec;
+	  startpointVec = endpointVec;
+	  endpointVec = tempVec;
+	}
+	if (fSortDir == "-x" && startpointVec.X() < endpointVec.X()){
+	  TVector3 tempVec = startpointVec;
+	  startpointVec = endpointVec;
+	  endpointVec = tempVec;
+	}
+
+	if (fSortDir == "+y" && startpointVec.Y() > endpointVec.Y()){
+	  TVector3 tempVec = startpointVec;
+	  startpointVec = endpointVec;
+	  endpointVec = tempVec;
+	}
+	if (fSortDir == "-y" && startpointVec.Y() < endpointVec.Y()){
+	  TVector3 tempVec = startpointVec;
+	  startpointVec = endpointVec;
+	  endpointVec = tempVec;
+	}
+
+	if (fSortDir == "+z" && startpointVec.Z() > endpointVec.Z()){
+	  TVector3 tempVec = startpointVec;
+	  startpointVec = endpointVec;
+	  endpointVec = tempVec;
+	}
+	if (fSortDir == "-z" && startpointVec.Z() < endpointVec.Z()){
+	  TVector3 tempVec = startpointVec;
+	  startpointVec = endpointVec;
+	  endpointVec = tempVec;
+	}
       
 	DirCos = endpointVec - startpointVec;
+
 	//SetMag casues a crash if the magnitude of the vector is zero
 	try
 	  {
@@ -819,10 +899,35 @@ namespace trkf {
 	}//loop over hits1
       
 	size_t spEnd = spcol->size();
-      
+
+	if (fSortDir == "+x"){
+	  std::sort(spacepoints.begin(),spacepoints.end(),sp_sort_x0);
+	  std::sort(spcol->begin()+spStart,spcol->begin()+spEnd,sp_sort_x0);
+	}
+	if (fSortDir == "-x"){
+	  std::sort(spacepoints.begin(),spacepoints.end(),sp_sort_x1);
+	  std::sort(spcol->begin()+spStart,spcol->begin()+spEnd,sp_sort_x1);
+	}
+	if (fSortDir == "+y"){
+	  std::sort(spacepoints.begin(),spacepoints.end(),sp_sort_y0);
+	  std::sort(spcol->begin()+spStart,spcol->begin()+spEnd,sp_sort_y0);
+	}
+	if (fSortDir == "-y"){
+	  std::sort(spacepoints.begin(),spacepoints.end(),sp_sort_y1);
+	  std::sort(spcol->begin()+spStart,spcol->begin()+spEnd,sp_sort_y1);
+	}
+	if (fSortDir == "+z"){
+	  std::sort(spacepoints.begin(),spacepoints.end(),sp_sort_z0);
+	  std::sort(spcol->begin()+spStart,spcol->begin()+spEnd,sp_sort_z0);
+	}
+	if (fSortDir == "-z"){
+	  std::sort(spacepoints.begin(),spacepoints.end(),sp_sort_z1);
+	  std::sort(spcol->begin()+spStart,spcol->begin()+spEnd,sp_sort_z1);
+	}
+
 	// Add the 3D track to the vector of the reconstructed tracks
 	if(spacepoints.size()>0){
-	
+
 	  // make a vector of the trajectory points along the track
 	  std::vector<TVector3> xyz(spacepoints.size());
 	  for(size_t s = 0; s < spacepoints.size(); ++s){
