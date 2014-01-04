@@ -3,7 +3,17 @@
 BEGIN_PROLOG
 
 argoneut_dbscanalg:                  @local::standard_dbscanalg       
-argoneut_clustercrawleralg:          @local::standard_clustercrawleralg       
+argoneut_clustercrawleralg:          @local::standard_clustercrawleralg
+argoneut_clustercrawleralg.ChgCut:   [0.8, 0.8, 0.8]
+argoneut_clustercrawleralg.HitErrFac:0.25
+argoneut_cchitfinderalg:             @local::standard_cchitfinderalg
+argoneut_cchitfinderalg.MinSigInd:   1.8
+argoneut_cchitfinderalg.MinSigCol:   2.5
+argoneut_cchitfinderalg.MinRMSInd:   5.
+argoneut_cchitfinderalg.MinRMSCol:  10.
+argoneut_cchitfinderalg.ChiNorms:  [ 0.5, 2.7]
+argoneut_cchitfinderalg.ChgNorms:  [ 1.0, 1.0]
+argoneut_cchitrefineralg:            @local::standard_cchitrefineralg
 argoneut_fuzzyclusteralg:            @local::standard_fuzzyclusteralg
 argoneut_houghbasealg:               @local::standard_houghbasealg   
 argoneut_houghbasealg.MaxLines:      15                              
@@ -16,6 +26,10 @@ argoneut_clustercrawler:               @local::standard_clustercrawler
 argoneut_clustercrawler.ClusterCrawlerAlg: @local::argoneut_clustercrawleralg
 argoneut_clustercrawler.CCHitFinderAlg:    @local::argoneut_cchitfinderalg
 argoneut_clustercrawler.CCHitRefinerAlg:   @local::argoneut_cchitrefineralg
+argoneut_clustercrawlermc:             @local::argoneut_clustercrawler      
+argoneut_clustercrawlermc.CCHitFinderAlg.MinRMSInd: 6.7
+argoneut_clustercrawlermc.CCHitFinderAlg.MinRMSCol: 7.6
+argoneut_clustercrawlermc.CCHitFinderAlg.ChiNorms:  [ 1.6, 7.5 ]
 argoneut_dbcluster:                    @local::standard_dbcluster      
 argoneut_dbcluster.DBScanAlg:          @local::argoneut_dbscanalg    
 argoneut_dbclusterana:                 @local::standard_dbclusterana   
