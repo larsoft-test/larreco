@@ -9,7 +9,6 @@
 #ifndef CCHITREFINERALG_H
 #define CCHITREFINERALG_H
 
-
 #include "TMath.h"
 
 #include <vector>
@@ -25,6 +24,28 @@
 #include "RecoAlg/ClusterCrawlerAlg.h"
 #include "RecoAlg/CCHitFinderAlg.h"
 
+struct MinuitStruct{
+  
+    std::vector< std::vector<float> > WireSignals;
+    std::vector< std::vector<float> > HitSignals;
+    float MatchChisq;
+
+    // Parameters for extrapolating clusters into the vertex region
+    // This struct is defined for separate RAT ranges
+    struct VtxCluster {
+      unsigned short clIndx; // cluster index
+      short Wire0;  // The wire index for cluster Time0
+      float Time0;  // Time index
+      float Slope;  // 
+      float RMS;    // average hit RMS
+      float Amp; // average hit Amplitude
+      float AmpErr; // error on the amplitude
+      bool isDS; // cluster is DS of the vertex
+    };
+    std::vector< VtxCluster > vcl;
+
+};
+
 namespace cluster {
 
   class CCHitRefinerAlg {
@@ -36,15 +57,18 @@ namespace cluster {
 
     void reconfigure(fhicl::ParameterSet const& pset);
 
-    void RunCCHitRefiner(std::vector<CCHitFinderAlg::CCHit>& allhits,
+    void RunCCHitRefiner(
+      std::vector<CCHitFinderAlg::CCHit>& allhits,
       CCHitFinderAlg::HitCuts& hitcuts,
       std::vector<ClusterCrawlerAlg::ClusterStore>& tcl,
-      std::vector<ClusterCrawlerAlg::VtxStore>& vtx, ClusterCrawlerAlg& fCCAlg);
+      std::vector<ClusterCrawlerAlg::VtxStore>& vtx,
+      ClusterCrawlerAlg& fCCAlg);
 
     bool fRefineHits;   ///< refine hits?
     float fBEChgRat;    ///< Begin/End Charge ratio to determine cluster direction
-                        ///< Set to 0 to turn off
-    
+
+//    const std::vector< std::vector<float> >& WireSignals() const;
+
   private:
     
     
@@ -59,35 +83,52 @@ namespace cluster {
     unsigned short fFirstWire;
     unsigned short fLastWire;
 
-    // fit n Gaussians possibly with bounds setting (parmin, parmax)
-    void FitNG(unsigned short nGaus, unsigned short tstart, 
-      unsigned short tend, std::vector<float>& signal, 
-      CCHitFinderAlg::HitCuts& hitcuts);
-    // parameters, errors, lower limit, upper limits for FitNG
-    std::vector<double> par;
-    std::vector<double> parerr;
-    std::vector<double> parlo;
-    std::vector<double> parhi;
-    float chidof;
-    float fitChiDOF;
+    unsigned short theVtx;
+    // list of clusters associated with theVtx
+    std::vector<unsigned short> clBeg;
+    std::vector<unsigned short> clEnd;
 
-    void ChkTopo1Vtx(
+    // boundaries of the RAT range
+    unsigned short loWire;
+    unsigned short hiWire;
+    unsigned short loTime;
+    unsigned short hiTime;
+    
+    void RefineHits(
       std::vector<CCHitFinderAlg::CCHit>& allhits,
-      CCHitFinderAlg::HitCuts& hitcuts,
-      std::vector<ClusterCrawlerAlg::ClusterStore>& tcl, 
-      std::vector<ClusterCrawlerAlg::VtxStore>& vtx, unsigned int iv,
-      std::vector<unsigned short>& clusters);
+      std::vector<ClusterCrawlerAlg::ClusterStore>& tcl,
+      std::vector<ClusterCrawlerAlg::VtxStore>& vtx);
 
-    // Gets the signal Region Above Threshold
-    void GetRAT(std::vector<CCHitFinderAlg::CCHit>& allhits,
-      unsigned short inwire, unsigned short intime, std::vector<float>& rat,
-      unsigned short& firsttick);
+    // define a Region Above Threhold (RAT) range of wires loWire - hiWire
+    // and times loTime - hiTime surrounding a vertex in which hit
+    // refining will be done
+    void FindRATRange(
+      std::vector<CCHitFinderAlg::CCHit>& allhits,
+      std::vector<ClusterCrawlerAlg::ClusterStore>& tcl, 
+      std::vector<ClusterCrawlerAlg::VtxStore>& vtx);
+
+    // Fills the WireSignals vector in the RAT range
+    void FillWireSignals(std::vector<CCHitFinderAlg::CCHit>& allhits);
+
+    // Fits clusters at the boundary of the RAT range
+    void RefitClusters(std::vector<CCHitFinderAlg::CCHit>& allhits,
+      std::vector<ClusterCrawlerAlg::ClusterStore>& tcl, 
+      std::vector<ClusterCrawlerAlg::VtxStore>& vtx,
+      ClusterCrawlerAlg& fCCAlg);
+    
+    void PrintSignals();
+    
+    void FitHitSignals(std::vector<ClusterCrawlerAlg::VtxStore>& vtx);
+
     // Sets the beginning and end direction of the cluster
-    void cl2SetBeginEnd(std::vector<CCHitFinderAlg::CCHit>& allhits,
+    void SetClusterBeginEnd(std::vector<CCHitFinderAlg::CCHit>& allhits,
       std::vector<ClusterCrawlerAlg::ClusterStore>& tcl);
 
   }; // class CCHitRefinerAlg
 
-} // cchit
-
+} // cluster
+/*
+    inline const std::vector< std::vector<float> >& cluster::CCHitRefinerAlg::WireSignals()
+          const { return fWireSignals; };
+*/
 #endif // ifndef CCHITREFINERALG_H
