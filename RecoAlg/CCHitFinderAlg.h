@@ -9,10 +9,6 @@
 #ifndef CCHITFINDERALG_H
 #define CCHITFINDERALG_H
 
-
-// Insert code for printing out hit finding/fitting
-//#define PRINTHITS
-
 #include "TMath.h"
 
 #include <vector>
@@ -101,9 +97,7 @@ namespace cluster {
     const float SqrtPi  = 1.7725;
 
 
-#ifdef PRINTHITS
     bool prt;
-#endif
     
     art::ServiceHandle<geo::Geometry> geom;
     art::ServiceHandle<util::LArProperties> larprop;

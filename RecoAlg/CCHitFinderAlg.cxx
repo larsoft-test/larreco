@@ -88,8 +88,7 @@ namespace cluster{
     art::Handle< std::vector<recob::Wire> > wireVecHandle;
     evt.getByLabel(fCalDataModuleLabel,wireVecHandle);
 
-    // don't expect more than 50% of the max time to have a signal
-    unsigned short maxticks = detprop->NumberTimeSamples() / 2 - 4;
+    unsigned short maxticks = 1000;
     float *ticks = new float[maxticks];
     // define the ticks array used for fitting 
     for(unsigned short ii = 0; ii < maxticks; ++ii) {
@@ -99,9 +98,7 @@ namespace cluster{
     // initialize the vectors for the hit study
 //  StudyHits(0);
 
-#ifdef PRINTHITS
     prt = false;
-#endif
 
     for(size_t wireIter = 0; wireIter < wireVecHandle->size(); wireIter++){
 
@@ -132,10 +129,8 @@ namespace cluster{
       timeoff = fTimeOffsets[thePlane];
       ChgNorm = fChgNorms[thePlane];
 
-#ifdef PRINTHITS
       // edit this line to debug hit fitting on a particular plane/wire
 //      prt = (thePlane == 0 && theWireNum == 1864);
-#endif
       std::vector<float> signal(theWire->Signal());
 
       unsigned short nabove = 0;
@@ -185,9 +180,7 @@ namespace cluster{
                  signal[ii - 1] > signal[ii - 2] &&
                  signal[ii    ] > signal[ii + 1] &&
                  signal[ii + 1] > signal[ii + 2]) bumps.push_back(npt);
-#ifdef PRINTHITS
-  if(prt) std::cout<<"signl "<<ii<<" "<<signl[npt]<<std::endl;
-#endif
+  if(prt) mf::LogDebug("CCHitFinder")<<"signl "<<ii<<" "<<signl[npt];
               ++npt;
             }
   // decide if this RAT should be studied
@@ -273,9 +266,8 @@ namespace cluster{
     TGraph *fitn = new TGraph(npt, ticks, signl);
     TF1 *Gn = new TF1("gn",eqn.c_str());
 
-#ifdef PRINTHITS
-  if(prt) std::cout<<"FitNG nGaus "<<nGaus<<" nBumps "<<bumps.size()<<std::endl;
-#endif
+  if(prt) mf::LogDebug("CCHitFinder")
+    <<"FitNG nGaus "<<nGaus<<" nBumps "<<bumps.size();
 
     // put in the bump parameters. Assume that nGaus >= bumps.size()
     for(unsigned short ii = 0; ii < bumps.size(); ++ii) {
@@ -288,9 +280,8 @@ namespace cluster{
       Gn->SetParLimits(index + 1, 0, (double)npt);
       Gn->SetParameter(index + 2, (double)minRMS);
       Gn->SetParLimits(index + 2, 1., 3*(double)minRMS);
-#ifdef PRINTHITS
-  if(prt) std::cout<<"Bump params "<<ii<<" "<<(short)amp<<" "<<(int)bumptime<<" "<<(int)minRMS<<std::endl;
-#endif
+  if(prt) mf::LogDebug("CCHitFinder")<<"Bump params "<<ii<<" "<<(short)amp
+    <<" "<<(int)bumptime<<" "<<(int)minRMS;
     } // ii bumps
 
     // search for other bumps that may be hidden by the already found ones
@@ -306,9 +297,8 @@ namespace cluster{
         }
       } // jj
       if(imbig > 0) {
-#ifdef PRINTHITS
-  if(prt) std::cout<<"Found bump "<<ii<<" "<<(short)big<<" "<<imbig<<std::endl;
-#endif
+  if(prt) mf::LogDebug("CCHitFinder")<<"Found bump "<<ii<<" "<<(short)big
+    <<" "<<imbig;
         // set the parameters for the bump
         unsigned short index = ii * 3;
         Gn->SetParameter(index    , (double)big);
@@ -369,15 +359,15 @@ namespace cluster{
       } // sortem
     } // nGaus > 1
     
-#ifdef PRINTHITS
-    if(prt) {
-      std::cout<<"Fit "<<nGaus<<" chi "<<chidof<<" npars "<<partmp.size()<<std::endl;
-      std::cout<<"pars    errs "<<std::endl;
-      for(unsigned short ii = 0; ii < partmp.size(); ++ii) {
-        std::cout<<ii<<" "<<partmp[ii]<<" "<<partmperr[ii]<<std::endl;
-      }
+  if(prt) {
+    mf::LogDebug("CCHitFinder")<<"Fit "<<nGaus<<" chi "<<chidof
+      <<" npars "<<partmp.size();
+    mf::LogDebug("CCHitFinder")<<"pars    errs ";
+    for(unsigned short ii = 0; ii < partmp.size(); ++ii) {
+      mf::LogDebug("CCHitFinder")<<ii<<" "<<partmp[ii]<<" "
+        <<partmperr[ii];
     }
-#endif
+  }
 
     // ensure that the fit is reasonable
     bool fitok = true;
@@ -418,9 +408,7 @@ namespace cluster{
       parerr = partmperr;
     } else {
       chidof = 9999.;
-#ifdef PRINTHITS
-      if(prt) std::cout<<"Bad fit parameters"<<std::endl;
-#endif
+      if(prt) mf::LogDebug("CCHitFinder")<<"Bad fit parameters";
     }
     
     delete fitn;
@@ -449,9 +437,8 @@ namespace cluster{
     rms = sqrt(rms / sumS);
     float amp = sumS / (Sqrt2Pi * rms);
     par.clear();
-#ifdef PRINTHITS
-  if(prt) std::cout<<"Crude hit Amp "<<(int)amp<<" mean "<<(int)mean<<" rms "<<rms<<std::endl;
-#endif
+  if(prt) mf::LogDebug("CCHitFinder")<<"Crude hit Amp "<<(int)amp<<" mean "
+    <<(int)mean<<" rms "<<rms;
     par.push_back(amp);
     par.push_back(mean);
     par.push_back(rms);
@@ -463,9 +450,8 @@ namespace cluster{
     parerr.push_back(amperr);
     parerr.push_back(meanerr);
     parerr.push_back(rmserr);
-#ifdef PRINTHITS
-  if(prt) std::cout<<" errors Amp "<<amperr<<" mean "<<meanerr<<" rms "<<rmserr<<std::endl;
-#endif
+  if(prt) mf::LogDebug("CCHitFinder")<<" errors Amp "<<amperr<<" mean "
+    <<meanerr<<" rms "<<rmserr;
     chidof = 9999.;
   }
 
@@ -532,15 +518,14 @@ namespace cluster{
       }
     }
 
-#ifdef PRINTHITS
   if(prt) {
-    std::cout<<"hit loTime hiTime loHitIDs nMultHits"<<std::endl;
+    mf::LogDebug("CCHitFinder")<<"hit loTime hiTime loHitIDs nMultHits";
     for(unsigned short hit = 0; hit < nhits; ++hit) {
-      std::cout<<hit<<" "<<(int)loTimes[hit]<<" "<<(int)hiTimes[hit]
-        <<" "<<loHitIDs[hit]<<" "<<nMultHits[hit]<<std::endl;
+      mf::LogDebug("CCHitFinder")<<hit<<" "<<(int)loTimes[hit]
+        <<" "<<(int)hiTimes[hit]
+        <<" "<<loHitIDs[hit]<<" "<<nMultHits[hit];
     }
   }
-#endif
     CCHit onehit;
     // lohitid is the index of the first hit that will be added. Hits with
     // Multiplicity > 1 will reside in a block from
@@ -567,18 +552,15 @@ namespace cluster{
       // set flag indicating hit is not used in a cluster
       onehit.InClus = 0;
 
-#ifdef PRINTHITS
   if(prt) {
-    std::cout<<"W:T "<<theWireNum<<":"<<(short)onehit.Time
+    mf::LogDebug("CCHitFinder")<<"W:T "<<theWireNum<<":"<<(short)onehit.Time
       <<" Chg "<<(short)onehit.Charge
       <<" RMS "<<onehit.RMS
       <<" lo ID "<<onehit.LoHitID
       <<" numHits "<<nhm
       <<" loTime "<<loTime<<" hiTime "<<hiTime
-      <<" chidof "<<chidof
-      <<std::endl;
+      <<" chidof "<<chidof;
   }
-#endif
       allhits.push_back(onehit);
     } // hit
   } // StoreHits
