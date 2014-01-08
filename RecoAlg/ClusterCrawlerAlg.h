@@ -57,7 +57,7 @@ namespace cluster {
 
     // struct of temporary vertices
     struct VtxStore {
-      unsigned short Wire;
+      float Wire;
       float Time;
       float Wght;       // Wght < 0 for abandoned vertices 
       short Topo;
@@ -75,7 +75,7 @@ namespace cluster {
     unsigned short fNumPass;                 ///< number of passes over the hit collection
     std::vector<unsigned short> fMaxHitsFit; ///< Max number of hits fitted
     std::vector<unsigned short> fMinHits;    ///< Min number of hits to make a cluster
-    std::vector<unsigned short> fNHitsAve;   ///< number of US hits used to compute fAveChg and fAveWid
+    std::vector<unsigned short> fNHitsAve;   ///< number of US hits used to compute fAveChg and fAveRMS
                                     ///< set to > 2 to do a charge fit using fNHitsAve hits
     std::vector<float> fChiCut;     ///< stop adding hits to clusters if chisq too high
     std::vector<float> fKinkChiRat; ///< Max consecutive chisq increase for the last 
@@ -99,6 +99,7 @@ namespace cluster {
                              ///< is < cut. Set < 0 for no merging
     float fClGhostHitFrac; ///< Merge clusters if they share a fraction of hits
                            ///< in the same hit multiplet. Set < 0 for no merging
+    unsigned short fAllowNoHitWire; 
     short fDebugPlane;
     short fDebugWire;  ///< set to the Begin Wire and Hit of a cluster to print
     short fDebugHit;   ///< out detailed information while crawling
@@ -108,7 +109,23 @@ namespace cluster {
       unsigned short CTP, 
       std::vector< std::pair<short, short> >& wirehitrange,
       unsigned short& firstwire, unsigned short& lastwire);
-    
+
+    // Fits the middle of a temporary cluster it1 using hits iht to iht + nhit
+    void FitClusterMid(std::vector<CCHitFinderAlg::CCHit>& allhits, 
+      std::vector<ClusterStore>& tcl, unsigned short it1, unsigned short iht,
+      short nhit);
+
+    // these variables define the cluster used during crawling
+    float clpar[2];     ///< cluster parameters for the current fit with
+                        ///< origin at the US wire on the cluster
+    float clparerr[2];  ///< cluster parameter errors
+    float clChisq;     ///< chisq of the current fit
+    float fAveChg;  ///< average charge at leading edge of cluster
+    float fAveAmp;  ///< average hit Amplitude at the leading edge of the cluster
+    float fAveRMS;  ///< average hit width at the leading edge of the cluster
+
+////////////////////////////////////
+
     private:
     
     bool prt;
@@ -119,11 +136,6 @@ namespace cluster {
     art::ServiceHandle<util::LArProperties> larprop;
     art::ServiceHandle<util::DetectorProperties> detprop;
 
-    // these variables define the cluster used during crawling
-    float clpar[2];     ///< cluster parameters for the current fit with
-                        ///< origin at the US wire on the cluster
-    float clparerr[2];  ///< cluster parameter errors
-    float clChisq;     ///< chisq of the current fit
     float clBeginSlp;  ///< begin slope (= DS end = high wire number)
     float clBeginSlpErr; 
     unsigned short clBeginWir;  ///< begin wire
@@ -150,6 +162,7 @@ namespace cluster {
                         ///< + 1000 VtxClusterSplit
                         ///< + 2000 failed pass N cuts but passes pass N=1 cuts
                         ///< + 3000 Cluster hits merged
+                        ///< +10000 modified by CCHitRefiner
     short clAssn;         ///< index of a parent cluster. -1 if no parent.
                         ///< Parent clusters are not associated with daughters
     unsigned short clCTP; // Cryostat/TPC/Plane code
@@ -157,7 +170,6 @@ namespace cluster {
     unsigned short fFirstWire;    ///< the first wire with a hit
     unsigned short fFirstHit;     ///< first hit used
     unsigned short fLastWire;      ///< the last wire with a hit
-    float fAveChg;  ///< average charge at leading edge of cluster
     float fChgSlp;  ///< slope of the  charge vs wire 
     float fAveWid;  ///< average hit width at the leading edge of the cluster
     unsigned int cstat;         // the current cryostat
@@ -190,12 +202,10 @@ namespace cluster {
       unsigned short kwire, bool& HitOK, bool& SigOK);
     // Finds a hit on wire kwire, adds it to a LargeAngle cluster and re-fits it
     void AddLAHit(std::vector<CCHitFinderAlg::CCHit>& allhits, 
+      std::vector<VtxStore>& vtx,
       unsigned short kwire, bool& ChkCharge, bool& HitOK, bool& SigOK);
     // Fits the cluster hits in fcl2hits to a straight line
     void FitCluster(std::vector<CCHitFinderAlg::CCHit>& allhits);
-    // Fits the middle of a temporary cluster it1 using hits iht to iht + nhit
-    void FitClusterMid(std::vector<CCHitFinderAlg::CCHit>& allhits, 
-      std::vector<ClusterStore>& tcl, unsigned short it1, unsigned short iht, short nhit);
     // Fits the charge of the cluster hits in fcl2hits
     void FitClusterChg(std::vector<CCHitFinderAlg::CCHit>& allhits);
     // Crawls along a trail of hits UpStream
