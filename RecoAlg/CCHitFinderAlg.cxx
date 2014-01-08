@@ -624,7 +624,6 @@ namespace cluster{
         }
       } // ii
       // require a significant PH 
-      if(big < 20) std::cout<<"Ooops "<<std::endl;
       if(big > 20) {
         // get the Lo info
         if(theWireNum < loWire[thePlane]) {
