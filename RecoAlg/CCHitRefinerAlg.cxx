@@ -15,6 +15,8 @@ extern "C" {
 #include <sys/stat.h>
 }
 #include <stdint.h>
+#include <iostream>
+#include <iomanip>
 
 // ROOT Includes
 #include "TMinuit.h"
@@ -40,13 +42,13 @@ MinuitStruct gMinuitStruct;
     // Fill hit signals using these parameters
     // access the gMinuitStruct.wireSignals
     unsigned short wsize = gMinuitStruct.WireSignals.size();
-//    if(wsize != gMinuitStruct.HitSignals.size()) {
-//      std::cout<<"Inconsistent wires "<<std::endl;
-//    }
+    if(wsize != gMinuitStruct.HitSignals.size()) {
+      mf::LogError("ClusterCrawler")<<"Inconsistent wires ";
+    }
     unsigned short tsize = gMinuitStruct.WireSignals[0].size();
-//    if(tsize != gMinuitStruct.HitSignals[0].size()) {
-//      std::cout<<"Inconsistent times "<<std::endl;
-//    }
+    if(tsize != gMinuitStruct.HitSignals[0].size()) {
+      mf::LogError("ClusterCrawler")<<"Inconsistent times ";
+    }
 
     // ensure that the parameters are within the bounds of the RAT range;
 //    fval = 1.E6;
@@ -60,11 +62,10 @@ MinuitStruct gMinuitStruct;
       }
     }
 /*
-  std::cout<<"par ";
+  mf::LogVerbatim("ClusterCrawler")<<"par ";
   for(int ip = 0; ip < 4; ++ip) {
-    std::cout<<par[ip]<<" ";
+    mf::LogVerbatim("ClusterCrawler")<<par[ip]<<" ";
   }
-  std::cout<<std::endl;
 */
     // fill the hit signals vector using the input pars for each cluster
     for(unsigned short icl = 0; icl < gMinuitStruct.vcl.size(); ++icl) {
@@ -88,8 +89,8 @@ MinuitStruct gMinuitStruct;
         }
         float ptime = clT0 + slope * (w - clW0);
         float amp = cellFrac * par[2 + icl];
-//  std::cout<<"ptime "<<icl<<" wire "<<w<<" "<<ptime
-//    <<" amp "<<amp<<std::endl;
+//  mf::LogVerbatim("ClusterCrawler")<<"ptime "<<icl<<" wire "<<w<<" "<<ptime
+//    <<" amp "<<amp<;
         // find the +/- 3.5 sigma time range and ensure that it is within
         // the vector bounds
         float ptchk = ptime - 3.5 * clRMS;
@@ -117,8 +118,8 @@ MinuitStruct gMinuitStruct;
                      - gMinuitStruct.HitSignals[w][t]);
           fval += wght * arg * arg;
           wsum += wght;
-//  std::cout<<"SIG "<<w<<" "<<t<<" "<<gMinuitStruct.WireSignals[w][t]
-//    <<" "<<gMinuitStruct.HitSignals[w][t]<<std::endl;
+//  mf::LogVerbatim("ClusterCrawler")<<"SIG "<<w<<" "<<t<<" "<<gMinuitStruct.WireSignals[w][t]
+//    <<" "<<gMinuitStruct.HitSignals[w][t];
         }
       } // t
     } // w
@@ -183,8 +184,8 @@ namespace cluster{
       if(vtx[iv].Wght < 0) continue;
   if(iv != 4) continue;
   prt = true;
-  vtx[iv].Wire += 0.5;
-  std::cout<<"wHit mod to vtx "<<std::endl;
+      // move the vertex into the middle of the wire cell
+      vtx[iv].Wire += 0.5;
       theVtx = iv;
       plane = vtx[theVtx].CTP - vtx[theVtx].CTP / 10;
       if(plane != lastplane) {
@@ -250,16 +251,18 @@ namespace cluster{
     float ChgNorm = 2.507 * allhits[iht].Amplitude * allhits[iht].RMS
         / allhits[iht].Charge;
 
-  std::cout<<"vtx chk "<<vtx[theVtx].Wire<<" "<<vtx[theVtx].Time<<std::endl;
+  if(prt) mf::LogVerbatim("ClusterCrawler")
+    <<"vtx chk "<<vtx[theVtx].Wire<<" "<<vtx[theVtx].Time;
 
     // Refine existing hits and create new ones
     for(unsigned short ii = 0; ii < gMinuitStruct.vcl.size(); ++ii) {
       // cluster ID in the tcl struct
-  std::cout<<"vcl chk "<<gMinuitStruct.vcl[ii].Wire0<<" "
-    <<gMinuitStruct.vcl[ii].Time0<<std::endl;
+  if(prt) mf::LogVerbatim("ClusterCrawler")
+    <<"vcl chk "<<gMinuitStruct.vcl[ii].Wire0<<" "
+    <<gMinuitStruct.vcl[ii].Time0;
       float slope = (vtx[theVtx].Time - loTime - gMinuitStruct.vcl[ii].Time0) / 
                     (vtx[theVtx].Wire - loWire - gMinuitStruct.vcl[ii].Wire0);
-  std::cout<<"slope "<<slope<<std::endl;
+  if(prt) mf::LogVerbatim("ClusterCrawler")<<"slope "<<slope;
       float rms = gMinuitStruct.vcl[ii].RMS;
       float amp = gMinuitStruct.vcl[ii].Amp;
       float amperr = gMinuitStruct.vcl[ii].AmpErr;
@@ -318,11 +321,13 @@ namespace cluster{
         } // jj
       } // !isDS
 
-  std::cout<<"hIndx ";
-  for(unsigned short w = 0; w < hIndx.size(); ++w) {
-    std::cout<<hIndx[w]<<" ";
+  if(prt) {
+    mf::LogVerbatim myprt("ClusterCrawler");
+    myprt<<"hIndx ";
+    for(unsigned short w = 0; w < hIndx.size(); ++w) {
+    myprt<<hIndx[w]<<" ";
+    }
   }
-  std::cout<<std::endl;
       // now refine/create hits
       for(unsigned short w = 0; w < hIndx.size(); ++w) {
         // ensure that this isn't a dead wire
@@ -376,7 +381,8 @@ namespace cluster{
         allhits[theHit].LoTime = hTime - 3 * rms;
         allhits[theHit].HiTime = hTime + 3 * rms;
         allhits[theHit].InClus = tcl[icl].ID;
-  std::cout<<"RAT range hit "<<hIndx[w]<<" wire "<<wire<<std::endl;
+  if(prt) mf::LogVerbatim("ClusterCrawler")
+    <<"RAT range hit "<<hIndx[w]<<" wire "<<wire;
       } // w
       if(reMakeCluster) {
         // hits were added or removed from the cluster in tcl so it needs
@@ -457,11 +463,11 @@ namespace cluster{
         ncl.EndVtx = tcl[icl].EndVtx;
         ncl.tclhits = fcl2hits;
 /*
-  std::cout<<"fcl2hits "<<std::endl;
-  for(unsigned short jj = 0; jj < fcl2hits.size(); ++jj) {
-    std::cout<<fcl2hits[jj]<<" "<<allhits[fcl2hits[jj]].WireNum<<std::endl;
-  }
-  std::cout<<std::endl;
+  if(prt) {
+    mf::LogVerbatim("ClusterCrawler")<<"fcl2hits ";
+    for(unsigned short jj = 0; jj < fcl2hits.size(); ++jj) {
+      mf::LogVerbatim("ClusterCrawler")<<fcl2hits[jj]<<" "<<allhits[fcl2hits[jj]].WireNum;
+    }
 */
         tcl.push_back(ncl);
         // declare the old cluster obsolete
@@ -520,11 +526,13 @@ namespace cluster{
     // Ref: http://wwwasdoc.web.cern.ch/wwwasdoc/minuit/node18.html
     gMin->mnexcm("MIGRAD", arglist, 2, errFlag);
     
-  std::cout<<"Chisq "<<gMinuitStruct.MatchChisq<<std::endl;
+  if(prt) mf::LogVerbatim("ClusterCrawler")
+    <<"Chisq "<<gMinuitStruct.MatchChisq;
     // get the parameters
     for(unsigned short ip = 0; ip < par.size(); ++ip) {
       gMin->GetParameter(ip, par[ip], parerr[ip]);
-  std::cout<<"Par "<<ip<<" "<<par[ip]<<std::endl;
+  if(prt) mf::LogVerbatim("ClusterCrawler")
+    <<"Par "<<ip<<" "<<par[ip];
     }
     
     // should make a chisq decision here
@@ -591,7 +599,8 @@ namespace cluster{
         gMinuitStruct.vcl.push_back(rcl);
       } // tcl[icl].BeginWir > hiWire
       else {
-  std::cout<<"Cluster ends inside the RAT. Deal with it"<<std::endl;
+  if(prt) mf::LogVerbatim("ClusterCrawler")
+    <<"Cluster ends inside the RAT. Deal with it";
       } // tcl[icl].BeginWir < hiWire
     } // ii
   
@@ -643,9 +652,9 @@ namespace cluster{
       unsigned short wIndx = wire - loWire;
       for(unsigned short time = loTime; time <= hiTime; ++time) {
         unsigned short tIndx = time - loTime;
-        std::cout<<"SIG "
-          <<wire<<" "<<time<<" "<<(int)gMinuitStruct.WireSignals[wIndx][tIndx]
-          <<" "<<(int)gMinuitStruct.HitSignals[wIndx][tIndx]<<std::endl;
+          mf::LogVerbatim("ClusterCrawler")<<"SIG "
+            <<wire<<" "<<time<<" "<<(int)gMinuitStruct.WireSignals[wIndx][tIndx]
+            <<" "<<(int)gMinuitStruct.HitSignals[wIndx][tIndx];
       } // time
     } // wire
   } // PrintSignals
@@ -673,11 +682,9 @@ namespace cluster{
         if(allhits[hit].WireNum > hiWire) hiWire = allhits[hit].WireNum;
         if(allhits[hit].HiTime  > hiTime) hiTime = allhits[hit].HiTime;
         // stop looking if the multiplicity = 1 and the hit fit is good
-/*
-  std::cout<<"Chk "<<tcl[icl].ID<<" "<<allhits[hit].WireNum
-    <<":"<<(int)allhits[hit].Time<<" mult "<<allhits[hit].numHits
-    <<std::endl;
-*/
+  if(prt) mf::LogVerbatim("ClusterCrawler")
+    <<"Chk "<<tcl[icl].ID<<" "<<allhits[hit].WireNum
+    <<":"<<(int)allhits[hit].Time<<" mult "<<allhits[hit].numHits;
         if(allhits[hit].numHits == 1) break;
         // stop if it looks squirrely
         if(jj < tcl[icl].tclhits.size() - 10) break;
