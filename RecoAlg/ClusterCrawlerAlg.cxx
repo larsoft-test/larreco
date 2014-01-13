@@ -76,6 +76,7 @@ namespace cluster {
     fLAClusAngleCut     = pset.get<             float  >("LAClusAngleCut");
     fClHitMergeChiCut   = pset.get<             float  >("ClHitMergeChiCut");
     fClGhostHitFrac     = pset.get<             float  >("ClGhostHitFrac");
+    fAllowNoHitWire     = pset.get<    unsigned short  >("AllowNoHitWire");
     fDebugPlane         = pset.get<             short  >("DebugPlane");
     fDebugWire          = pset.get<             short  >("DebugWire");
     fDebugHit           = pset.get<             short  >("DebugHit");
@@ -2436,6 +2437,7 @@ namespace cluster {
     clpar[1] = slope;
     clparerr[0] = intcpterr;
     clparerr[1] = slopeerr;
+  std::cout<<"fitclustermid "<<slopeerr<<std::endl;
   }
 
 /////////////////////////////////////////
