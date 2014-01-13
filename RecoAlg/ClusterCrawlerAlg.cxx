@@ -2868,6 +2868,60 @@ namespace cluster {
     FitClusterChg(allhits);
   } // AddHit
 
+//////////////////////////////////////
+    void ClusterCrawlerAlg::FitVtx(std::vector<ClusterStore>& tcl,
+        std::vector<VtxStore>& vtx, unsigned short iv, float& ChiDOF)
+    {
+      
+      std::vector<float> x;
+      std::vector<float> y;
+      std::vector<float> ey2;
+      
+      for(unsigned short icl = 0; icl < tcl.size(); ++icl) {
+        if(tcl[icl].ID < 0) continue;
+        if(tcl[icl].EndVtx == iv) {
+          x.push_back(tcl[icl].EndSlp);
+          float arg = tcl[icl].EndSlp * tcl[icl].EndWir - tcl[icl].EndTim;
+          y.push_back(arg);
+          if(tcl[icl].EndSlpErr > 0.) {
+            arg = tcl[icl].EndSlpErr * tcl[icl].EndWir;
+          } else {
+            arg = .01 * tcl[icl].EndWir;
+          }
+          ey2.push_back(arg * arg);
+        } else if(tcl[icl].BeginVtx == iv) {
+          x.push_back(tcl[icl].BeginSlp);
+          float arg = tcl[icl].BeginSlp * tcl[icl].BeginWir - tcl[icl].BeginTim;
+          y.push_back(arg);
+          if(tcl[icl].BeginSlpErr > 0.) {
+            arg = tcl[icl].BeginSlpErr * tcl[icl].BeginWir;
+          } else {
+            arg = .01 * tcl[icl].BeginWir;
+          }
+          ey2.push_back(arg * arg);
+        }
+      } // ii
+      if(x.size() < 2) {
+        vtx[iv].Wght = -1;
+        return;
+      }
+      
+      float tv = 0.;
+      float tverr = 0.;
+      float wv = 0.;
+      float wverr = 0.;
+      LinFit(x, y, ey2, tv, wv, tverr, wverr, ChiDOF);
+      if(ChiDOF < 5) {
+        vtx[iv].Wire = (int)(wv + 0.5);
+        vtx[iv].Time = -tv;
+        if(vtx[iv].Time < 0 || vtx[iv].Time > 3200) {
+          mf::LogError("ClusterCrawler")<<"FitVtx: Bad fit time "<<vtx[iv].Time
+            <<" on vtx "<<iv;
+        }
+      } // ChiDOF < 5
+    } // FitVtx
+
+
 /////////////////////////////////////////
     void ClusterCrawlerAlg::LinFit(std::vector<float>& x, std::vector<float>& y, 
       std::vector<float>& ey2, float& Intercept, float& Slope, 
