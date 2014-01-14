@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <stdint.h>
+#include <iostream>
 
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "art/Framework/Principal/Event.h"
@@ -242,7 +243,8 @@ namespace trkf {
 		    
 		    TVector3 Center, Direction;
 		    std::vector<double> ViewRMS;
-		    GetCenterAndDirection(HitsFlat, PresentHitList, Center, Direction, ViewRMS);
+		    std::vector<int>    HitsPerView;
+		    GetCenterAndDirection(HitsFlat, PresentHitList, Center, Direction, ViewRMS, HitsPerView);
 		   		    
 		    Direction = Direction.Unit() * TheSeed.GetLength();
 		    
@@ -256,6 +258,8 @@ namespace trkf {
 			
 			TheSeed.SetPoint(pt, err);
 			TheSeed.SetDirection(dir, err);
+		   
+			if(HitsPerView[n]==0) TheSeed.SetValidity(false);
 		      }
 		    
 		    ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, fExtendSeeds);	  
@@ -352,21 +356,26 @@ namespace trkf {
 	TVector3 SeedDirection( 0, 0, 0 );
 	
 	std::vector<double> ViewRMS;
-	
+	std::vector<int>    HitsPerView;
+
 	std::vector<art::PtrVector<recob::Hit> > HitsInThisCollection(3);
 	
-	GetCenterAndDirection(HitsFlat, ListAllHits, SeedCenter, SeedDirection, ViewRMS);
+	GetCenterAndDirection(HitsFlat, ListAllHits, SeedCenter, SeedDirection, ViewRMS, HitsPerView);
+
+	bool ThrowOutSeed = false;
 
 	double PtArray[3], DirArray[3];
 	for(size_t n=0; n!=3; ++n)
 	  {
 	    PtArray[n] = SeedCenter[n];
 	    DirArray[n] = SeedDirection[n];
+	    if(HitsPerView[n]==0) ThrowOutSeed=true;
 	  }
 	recob::Seed TheSeed(PtArray,DirArray);
-	ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, false);
 
-	bool ThrowOutSeed = false;
+
+	
+
  
 	
 	if(!ThrowOutSeed)
@@ -375,38 +384,44 @@ namespace trkf {
 	      {
 		ThrowOutSeed=true;
 	      }
-	    
-	    // Now we have consolidated, grab the right 
-	    //  hits to find the RMS and refitted direction	
-	    ListAllHits.clear();
-	    for(size_t i=0; i!=HitStatus.size(); ++i)
+	    else
 	      {
-		if(HitStatus.at(i)==2)
-		  ListAllHits.push_back(i);
-	      }
-	    
-	    GetCenterAndDirection(HitsFlat, ListAllHits, SeedCenter, SeedDirection, ViewRMS);
-	    
-	    for(size_t n=0; n!=3; ++n)
-	      {
-		PtArray[n] = SeedCenter[n];
-		DirArray[n] = SeedDirection[n];
-	      }
-	    
-	    TheSeed = recob::Seed(PtArray,DirArray);
-	    
-	    if(fMaxViewRMS.at(0)>0)
-	      {
-		for(size_t j=0; j!=fMaxViewRMS.size(); j++)
+		
+		ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, false);
+		
+		// Now we have consolidated, grab the right 
+		//  hits to find the RMS and refitted direction	
+		ListAllHits.clear();
+		for(size_t i=0; i!=HitStatus.size(); ++i)
 		  {
-		    if(fMaxViewRMS.at(j)<ViewRMS.at(j))
+		    if(HitStatus.at(i)==2)
+		      ListAllHits.push_back(i);
+		  }
+		std::vector<int>  HitsPerView;
+		GetCenterAndDirection(HitsFlat, ListAllHits, SeedCenter, SeedDirection, ViewRMS, HitsPerView);
+		
+		for(size_t n=0; n!=3; ++n)
+		  {
+		    PtArray[n] = SeedCenter[n];
+		    DirArray[n] = SeedDirection[n];
+		    if(HitsPerView[n]==0) TheSeed.SetValidity(false);
+		  }
+	    
+		TheSeed = recob::Seed(PtArray,DirArray);
+		
+		if(fMaxViewRMS.at(0)>0)
+		  {
+		    for(size_t j=0; j!=fMaxViewRMS.size(); j++)
 		      {
-			ThrowOutSeed=true;
+			if(fMaxViewRMS.at(j)<ViewRMS.at(j))
+			  {
+			    ThrowOutSeed=true;
+			  }
 		      }
 		  }
 	      }
 	  }
-	if(!ThrowOutSeed)
+	if((!ThrowOutSeed)&&(TheSeed.IsValid()))
 	  {
 	    ReturnVector.push_back(TheSeed);
 	    art::PtrVector<recob::Hit> HitsThisSeed;
@@ -415,9 +430,7 @@ namespace trkf {
 		HitsThisSeed.push_back(HitsFlat.at(ListAllHits.at(i)));
 	      }
 	    CataloguedHits.push_back(HitsThisSeed);
-	    
 	  }
-	
       }
   
     
@@ -863,7 +876,9 @@ namespace trkf {
       }
     
     std::vector<double> ViewRMS;
-    GetCenterAndDirection(HitsFlat, HitList, SeedCenter, SeedDirection, ViewRMS);
+    std::vector<int>    HitsPerView;
+    
+    GetCenterAndDirection(HitsFlat, HitList, SeedCenter, SeedDirection, ViewRMS, HitsPerView);
     
     HitMap.clear();
     HitList.clear();
@@ -872,21 +887,18 @@ namespace trkf {
     
     bool ThrowOutSeed = false;
     
+
     
     double PtArray[3], DirArray[3];
-    
-    PtArray[0] = SeedCenter.X();
-    PtArray[1] = SeedCenter.Y();
-    PtArray[2] = SeedCenter.Z();
-    
-    
     double AngleFactor = pow(pow(SeedDirection.Y(),2)+pow(SeedDirection.Z(),2),0.5)/SeedDirection.Mag();
-    
-    DirArray[0] = SeedDirection.X() * fInitSeedLength / AngleFactor;
-    DirArray[1] = SeedDirection.Y() * fInitSeedLength / AngleFactor;
-    DirArray[2] = SeedDirection.Z() * fInitSeedLength / AngleFactor;
-    
-    
+
+    for(size_t n=0; n!=3; ++n)
+      {
+	DirArray[n] = SeedDirection[n] * fInitSeedLength / AngleFactor;
+	PtArray[n] = SeedCenter[n];
+	if(HitsPerView[n]==0) ThrowOutSeed=true;
+      }
+        
     ReturnSeed = recob::Seed(PtArray,DirArray);
     
     if(fMaxViewRMS.at(0)>0)
@@ -917,13 +929,15 @@ namespace trkf {
 
   //-----------------------------------------------------------
 
-  void  SeedFinderAlgorithm::GetCenterAndDirection(art::PtrVector<recob::Hit> const& HitsFlat, std::vector<int>&  HitsToUse, TVector3& Center, TVector3& Direction, std::vector<double>& ViewRMS)
+  void  SeedFinderAlgorithm::GetCenterAndDirection(art::PtrVector<recob::Hit> const& HitsFlat, std::vector<int>&  HitsToUse, TVector3& Center, TVector3& Direction, std::vector<double>& ViewRMS, std::vector<int>& N)
   {
     // Initialize the services we need
     art::ServiceHandle<util::DetectorProperties>     det;
 
-  
+    //    std::cout<<"GetCenterAndDirection called on hit vector length " << HitsToUse.size()<<std::endl;
  
+    N.resize(3);
+
     std::map<uint32_t, bool>   HitsClaimed;
 
     // We'll store hit coordinates in each view into this vector
@@ -936,7 +950,7 @@ namespace trkf {
 
     // Run through the collection getting hit info for these spacepoints
 
-    std::vector<double> x(3,0), y(3,0), xx(3,0), xy(3,0), yy(3,0),  sig(3,0), N(3,0);
+    std::vector<double> x(3,0), y(3,0), xx(3,0), xy(3,0), yy(3,0),  sig(3,0);
     
     for(size_t i=0; i!=HitsToUse.size(); ++i)
       {
@@ -976,17 +990,28 @@ namespace trkf {
     std::vector<double>   ViewGrad(3);
     std::vector<double>   ViewOffset(3);
     
-    std::vector<double> CenterTime(3);
-    std::vector<double> CenterWireAtT0(3);
-    
-
 
     for(size_t n=0; n!=3; ++n)
       {
 	MeanWireCoord[n] /= N[n];
 	MeanTimeCoord[n] /= N[n];
 	
-	ViewGrad.at(n)   = (y[n]/sig[n] - xy[n]/x[n])/(x[n]/sig[n]-xx[n]/x[n]);
+	double BigN=1000000;
+	double SmallN=1./BigN;
+	
+	if(N[n]>2)
+	  {
+	    double Numerator   = (y[n]/sig[n] - xy[n]/x[n]);
+	    double Denominator = (x[n]/sig[n] - xx[n]/x[n]);
+	    if(fabs(Denominator) > SmallN)
+	      ViewGrad.at(n) = Numerator/Denominator;
+	    else ViewGrad[n] = BigN;
+	   
+	  }
+	else if(N[n]==2) ViewGrad[n] = xy[n]/xx[n];
+	else ViewGrad[n] = BigN;
+	
+
 	ViewOffset.at(n) = (y[n] - ViewGrad[n]*x[n])/sig[n];
 	ViewRMS.at(n)    = pow((yy[n] 
 				+ pow(ViewGrad[n],2) * xx[n] 
@@ -1000,38 +1025,6 @@ namespace trkf {
       }
 
 
-    std::vector<TVector3> ViewDir2D(3);
-
-    std::vector<TVector3> Center2D(3);
-
-    // Calculate centers and directions from pairs
-    for(size_t n=0; n!=3; ++n)
-      {
-	int n1 = (n+1)%3;
-	int n2 = (n+2)%3;
-
-
-	ViewDir2D[n] =
-	  (fXDir + fPitchDir[n1] *(1./ViewGrad[n1])
-	   + fWireDir[n1]  * (((1./ViewGrad[n2]) - fPitchDir[n1].Dot(fPitchDir[n2]) * (1./ViewGrad[n1])) / fWireDir[n1].Dot(fPitchDir[n2])) ).Unit();
-	
-	/*
-	Center2D[n] =
-	  fXDir * 0.5 * (MeanTimeCoord[n1]+MeanTimeCoord[n2])
-	  + fPitchDir[n1] * (MeanWireCoord[n1] + fWireZeroOffset[n1])
-	  + fWireDir[n1] *  ( ((MeanWireCoord[n2] + fWireZeroOffset[n2]) - ( MeanWireCoord[n1] + fWireZeroOffset[n1] )*fPitchDir[n1].Dot(fPitchDir[n2]))/(fPitchDir[n2].Dot(fWireDir[n1])) );
-      
-	*/  
-    
-	double TimeCoord     = 0.5 * (MeanTimeCoord[n1]+MeanTimeCoord[n2]);
-        double WireCoordIn1  = (TimeCoord - ViewOffset[n1])/ViewGrad[n1] + fWireZeroOffset[n1];
-        double WireCoordIn2  = (TimeCoord - ViewOffset[n2])/ViewGrad[n2] + fWireZeroOffset[n2];
-
-        Center2D[n] =
-          fXDir * TimeCoord
-          + fPitchDir[n1] * WireCoordIn1
-          + fWireDir[n1] *  (( WireCoordIn2 - WireCoordIn1*fPitchDir[n1].Dot(fPitchDir[n2]))/(fPitchDir[n2].Dot(fWireDir[n1])));
-      }
     
     for(size_t n=0; n!=3; ++n)
       {
@@ -1040,17 +1033,47 @@ namespace trkf {
 	if( (N[n] <= N[n1]) &&
 	    (N[n] <= N[n2]) )
 	  {
-	    
-	    Center    = Center2D[n];
-	    Direction = ViewDir2D[n];
-	  
 
+	    if(N[n1]<N[n2])
+	      {
+		std::swap(n1,n2);
+	      }
+	    if((N[n1]==0)||(N[n2]==0)) continue;
+
+	    Direction =
+	      (fXDir + fPitchDir[n1] *(1./ViewGrad[n1])
+	       + fWireDir[n1]  * (((1./ViewGrad[n2]) - fPitchDir[n1].Dot(fPitchDir[n2]) * (1./ViewGrad[n1])) / fWireDir[n1].Dot(fPitchDir[n2])) ).Unit();
+	    
+	    /*
+	      Center2D[n] =
+	      fXDir * 0.5 * (MeanTimeCoord[n1]+MeanTimeCoord[n2])
+	      + fPitchDir[n1] * (MeanWireCoord[n1] + fWireZeroOffset[n1])
+	      + fWireDir[n1] *  ( ((MeanWireCoord[n2] + fWireZeroOffset[n2]) - ( MeanWireCoord[n1] + fWireZeroOffset[n1] )*fPitchDir[n1].Dot(fPitchDir[n2]))/(fPitchDir[n2].Dot(fWireDir[n1])) );
+	    */  
+    
+	    double TimeCoord     = 0.5 * (MeanTimeCoord[n1]+MeanTimeCoord[n2]);
+	    double WireCoordIn1  = (TimeCoord - ViewOffset[n1])/ViewGrad[n1] + fWireZeroOffset[n1];
+	    double WireCoordIn2  = (TimeCoord - ViewOffset[n2])/ViewGrad[n2] + fWireZeroOffset[n2];
+	    
+	    Center =
+	      fXDir * TimeCoord
+	      + fPitchDir[n1] * WireCoordIn1
+	      + fWireDir[n1] *  (( WireCoordIn2 - WireCoordIn1*fPitchDir[n1].Dot(fPitchDir[n2]))/(fPitchDir[n2].Dot(fWireDir[n1])));
+     
+	    //   std::cout<<"N's : " <<N[0]<<", " <<N[1]<<", " <<N[2]<<std::endl;
+	    //   std::cout<<"Using coords " << TimeCoord<<", " <<WireCoordIn1<<", " <<WireCoordIn2<<std::endl;
+
+	    
 	    ViewRMS[n]  = -fabs(ViewRMS[n]);
             ViewRMS[n1] =  fabs(ViewRMS[n1]);
             ViewRMS[n2] =  fabs(ViewRMS[n2]);
 
+	    break;
 	  }
       }
+
+    //    std::cout<<"Center set to " << Center[0]<<", " <<Center[1]<<", " <<Center[2]<<std::endl;
+	    
   }
   
 
