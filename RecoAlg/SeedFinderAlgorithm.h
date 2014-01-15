@@ -95,7 +95,7 @@ namespace trkf {
 
 
   
-    void                        GetCenterAndDirection(art::PtrVector<recob::Hit> const& HitsFlat, std::vector<int>& HitsToUse, TVector3& Center, TVector3& Direction, std::vector<double>& ViewRMS);
+    void                        GetCenterAndDirection(art::PtrVector<recob::Hit> const& HitsFlat, std::vector<int>& HitsToUse, TVector3& Center, TVector3& Direction, std::vector<double>& ViewRMS, std::vector<int>& HitsPerView);
 
   
     void                        ConsolidateSeed(recob::Seed& TheSeed, art::PtrVector<recob::Hit> const&, std::vector<char>& HitStatus,
