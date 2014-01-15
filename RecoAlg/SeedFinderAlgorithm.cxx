@@ -262,10 +262,12 @@ namespace trkf {
 			if(HitsPerView[n]==0) TheSeed.SetValidity(false);
 		      }
 		    
-		    ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, fExtendSeeds);	  
 		    
-		    // if we accidentally invalidated the seed, go back to the old one and escape
-		    if(!TheSeed.IsValid()) 
+		    if(TheSeed.IsValid())
+		      ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, fExtendSeeds);	  
+		    
+			// if we accidentally invalidated the seed, go back to the old one and escape
+		    else
 		      {
 			// If we invalidated the seed, go back one interaction
 			//  and kill the loop
@@ -373,54 +375,43 @@ namespace trkf {
 	  }
 	recob::Seed TheSeed(PtArray,DirArray);
 
-
-	
-
- 
 	
 	if(!ThrowOutSeed)
 	  {
-	    if(!TheSeed.IsValid())
-	      {
-		ThrowOutSeed=true;
-	      }
-	    else
-	      {
-		
-		ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, false);
-		
-		// Now we have consolidated, grab the right 
-		//  hits to find the RMS and refitted direction	
-		ListAllHits.clear();
-		for(size_t i=0; i!=HitStatus.size(); ++i)
-		  {
-		    if(HitStatus.at(i)==2)
-		      ListAllHits.push_back(i);
-		  }
-		std::vector<int>  HitsPerView;
-		GetCenterAndDirection(HitsFlat, ListAllHits, SeedCenter, SeedDirection, ViewRMS, HitsPerView);
-		
-		for(size_t n=0; n!=3; ++n)
-		  {
-		    PtArray[n] = SeedCenter[n];
-		    DirArray[n] = SeedDirection[n];
-		    if(HitsPerView[n]==0) TheSeed.SetValidity(false);
-		  }
+	    ConsolidateSeed(TheSeed, HitsFlat, HitStatus, OrgHits, false);
 	    
-		TheSeed = recob::Seed(PtArray,DirArray);
-		
-		if(fMaxViewRMS.at(0)>0)
+	    // Now we have consolidated, grab the right 
+	    //  hits to find the RMS and refitted direction	
+	    ListAllHits.clear();
+	    for(size_t i=0; i!=HitStatus.size(); ++i)
+	      {
+		if(HitStatus.at(i)==2)
+		  ListAllHits.push_back(i);
+	      }
+	    std::vector<int>  HitsPerView;
+	    GetCenterAndDirection(HitsFlat, ListAllHits, SeedCenter, SeedDirection, ViewRMS, HitsPerView);
+	    
+	    for(size_t n=0; n!=3; ++n)
+	      {
+		PtArray[n] = SeedCenter[n];
+		DirArray[n] = SeedDirection[n];
+		ThrowOutSeed = true;
+	      }
+	    
+	    TheSeed = recob::Seed(PtArray,DirArray);
+	    
+	    if(fMaxViewRMS.at(0)>0)
+	      {
+		for(size_t j=0; j!=fMaxViewRMS.size(); j++)
 		  {
-		    for(size_t j=0; j!=fMaxViewRMS.size(); j++)
+		    if(fMaxViewRMS.at(j)<ViewRMS.at(j))
 		      {
-			if(fMaxViewRMS.at(j)<ViewRMS.at(j))
-			  {
-			    ThrowOutSeed=true;
-			  }
+			ThrowOutSeed=true;
 		      }
 		  }
 	      }
 	  }
+	
 	if((!ThrowOutSeed)&&(TheSeed.IsValid()))
 	  {
 	    ReturnVector.push_back(TheSeed);
@@ -637,6 +628,7 @@ namespace trkf {
 			      GotOneThisChannel=true;
 			      if(s<0) 
 				{
+				  
 				  ToAddNegativeS[View].push_back(s);
 				  ToAddNegativeH[View].push_back(OrgHits[View][c].at(h));
 				}
@@ -653,7 +645,7 @@ namespace trkf {
 	  }
 	
 	
-	double ExtendPositiveS, ExtendNegativeS;
+	double ExtendPositiveS=0, ExtendNegativeS=0;
 
 	if((ToAddPositiveS[0].size()>0)&&
 	   (ToAddPositiveS[1].size()>0)&&
@@ -699,6 +691,7 @@ namespace trkf {
 	  {
 	    pt[n]  += dir[n] * PositionShift;
 	    dir[n] *= LengthRescale;
+
 
 	    for(size_t i=0; i!=ToAddPositiveS[n].size(); ++i)
 	      {
@@ -934,7 +927,6 @@ namespace trkf {
     // Initialize the services we need
     art::ServiceHandle<util::DetectorProperties>     det;
 
-    //    std::cout<<"GetCenterAndDirection called on hit vector length " << HitsToUse.size()<<std::endl;
  
     N.resize(3);
 
@@ -1060,10 +1052,6 @@ namespace trkf {
 	      + fPitchDir[n1] * WireCoordIn1
 	      + fWireDir[n1] *  (( WireCoordIn2 - WireCoordIn1*fPitchDir[n1].Dot(fPitchDir[n2]))/(fPitchDir[n2].Dot(fWireDir[n1])));
      
-	    //   std::cout<<"N's : " <<N[0]<<", " <<N[1]<<", " <<N[2]<<std::endl;
-	    //   std::cout<<"Using coords " << TimeCoord<<", " <<WireCoordIn1<<", " <<WireCoordIn2<<std::endl;
-
-	    
 	    ViewRMS[n]  = -fabs(ViewRMS[n]);
             ViewRMS[n1] =  fabs(ViewRMS[n1]);
             ViewRMS[n2] =  fabs(ViewRMS[n2]);
@@ -1072,8 +1060,6 @@ namespace trkf {
 	  }
       }
 
-    //    std::cout<<"Center set to " << Center[0]<<", " <<Center[1]<<", " <<Center[2]<<std::endl;
-	    
   }
   
 
