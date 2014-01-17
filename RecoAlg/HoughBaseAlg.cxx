@@ -265,7 +265,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     if(fpointId_to_clusterId->at(randInd) != clusterId)
       continue;
 
-    count--;
+    --count;
 
     /// Skip if it's already in a line
     if(skip[randInd]==1){
@@ -311,7 +311,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     //w.Stop();
     //std::cout << "Real Time: " << w.RealTime() << std::endl;
     //timeTotal += w.CpuTime();
-    nAccum++; 
+    ++nAccum; 
 
     //mf::LogVerbatim("HoughBaseAlg") << "cout: " << count << " maxCell: " << maxCell << std::endl;
     //mf::LogVerbatim("HoughBaseAlg") << "xMax: " << xMax << " yMax: " << yMax << std::endl;
@@ -346,28 +346,23 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     //continue;
 
 
-    // The threshold calculation using a Poisson distribution instead
-    //double binomProbSum = 0;
-    //for(int j = 0; j <= maxCell; j++){
-    //double binomProb = TMath::BinomialI(1/(double)accDx,nAccum,j);
-    //binomProbSum+=binomProb;
-    //mf::LogVerbatim("HoughBaseAlg") << "BinomialI: " << binomProb << std::endl;
-    //}
-    //mf::LogVerbatim("HoughBaseAlg") << "BinomialI prob sum: " << binomProbSum << std::endl;
+    // The threshold calculation using a Binomial distribution instead
+    double binomProbSum = TMath::BinomialI(1/(double)accDx,nAccum,maxCell);
+    //std::cout << "nAccum: " << nAccum << std::endl;
+    //std::cout << "maxCell: " << maxCell << std::endl;
+    //std::cout << "BinomialI: " << binomProbSum << std::endl;
+    //std::cout << std::endl;
     //mf::LogVerbatim("HoughBaseAlg") << "Probability it is higher: " << 1-binomProbSum << std::endl;
-
-    // Continue if the probability of finding a point, (1-poisProbSum) is the probability of finding a 
-    // value of maxCell higher than what it currently is
-    //if( (1-binomProbSum) > 1e-13)
-    //continue;
-
-
+    //Continue if the probability of finding a point, (1-poisProbSum) is the probability of finding a
+    //value of maxCell higher than what it currently is
+    if( binomProbSum > 1e-21)
+      continue;
 
 
 
     /// Continue if the biggest maximum for the randomly selected point is smaller than fMinHits
-    if (maxCell < fMinHits) 
-      continue;
+    //if (maxCell < fMinHits) 
+      //continue;
 
 
     /// Find the center of mass of the 3x3 cell system (with maxCell at the center). 
