@@ -164,6 +164,8 @@ namespace trkf {
     
     std::string     fSortDir;            ///< sort space points 
 
+    bool            fCleanUpHits;        ///< flag to remove outlier hits
+
     //testing histograms
     std::vector<TH1D *> dtime;
     std::vector<TH1D *> testsig;
@@ -212,6 +214,7 @@ namespace trkf {
     fEnableZ                = pset.get< bool   >("EnableZ");
     fisohitcut              = pset.get< int    >("IsoHitCut");
     fSortDir                = pset.get< std::string >("SortDirection","+z");
+    fCleanUpHits            = pset.get< bool   >("CleanUpHits");
   }
 
   //-------------------------------------------------
@@ -260,8 +263,8 @@ namespace trkf {
     std::unique_ptr<art::Assns<recob::SpacePoint, recob::Hit> >   shassn(new art::Assns<recob::SpacePoint, recob::Hit>);
 
     double timetick = detprop->SamplingRate()*1e-3;    //time sample in us
-    double presamplings = detprop->TriggerOffset(); // presamplings in ticks  
-    double plane_pitch = geom->PlanePitch(0,1);   //wire plane pitch in cm 
+    //double presamplings = detprop->TriggerOffset(); // presamplings in ticks  
+    //double plane_pitch = geom->PlanePitch(0,1);   //wire plane pitch in cm 
     double wire_pitch = geom->WirePitch(0,1,0);    //wire pitch in cm
     double Efield_drift = larprop->Efield(0);  // Electric Field in the drift region in kV/cm
     double Temperature = larprop->Temperature();  // LAr Temperature in K
@@ -539,33 +542,36 @@ namespace trkf {
 	  vtime.push_back(time);
 	  vph.push_back(hits[ihit]->Charge());
 	}
-	arglist[0] = 0;
-	if (vwire.size()>2) fitter->ExecuteCommand("MIGRAD", arglist, 0);
-	else{
-	  fitter->SetParameter(0,"p0",vtime[0],0.1,0,0);
-	  fitter->SetParameter(1,"p1",0,0.1,0,0);
-	  fitter->SetParameter(2,"p2",0,0.1,0,0);
-	}
-	//remove outliers
-	for (auto iw = vwire.begin(), it = vtime.begin(), iph = vph.begin(); iw!=vwire.end(); ){
-	  double y = fitter->GetParameter(0)+
-	    fitter->GetParameter(1)*(*iw)+
-	    fitter->GetParameter(2)*(*iw)*(*iw);
-	  if (std::abs(*it-y)>ftoler1){
-	    iw = vwire.erase(iw);
-	    it = vtime.erase(it);
-	    iph = vph.erase(iph);
-	  }
-	  else{
-	    ++iw;
-	    ++it;
-	    ++iph;
-	  }
-	}
-      
-	//refit
-	if (vwire.size()>2) fitter->ExecuteCommand("MIGRAD", arglist, 0);
 
+	if (fCleanUpHits){
+	  arglist[0] = 0;
+	  if (vwire.size()>2) fitter->ExecuteCommand("MIGRAD", arglist, 0);
+	  else{
+	    fitter->SetParameter(0,"p0",vtime[0],0.1,0,0);
+	    fitter->SetParameter(1,"p1",0,0.1,0,0);
+	    fitter->SetParameter(2,"p2",0,0.1,0,0);
+	  }
+	  //remove outliers
+	  for (auto iw = vwire.begin(), it = vtime.begin(), iph = vph.begin(); iw!=vwire.end(); ){
+	    double y = fitter->GetParameter(0)+
+	      fitter->GetParameter(1)*(*iw)+
+	      fitter->GetParameter(2)*(*iw)*(*iw);
+	    if (std::abs(*it-y)>ftoler1){
+	      iw = vwire.erase(iw);
+	      it = vtime.erase(it);
+	      iph = vph.erase(iph);
+	    }
+	    else{
+	      ++iw;
+	      ++it;
+	      ++iph;
+	    }
+	  }
+	  
+	  //refit
+	  if (vwire.size()>2) fitter->ExecuteCommand("MIGRAD", arglist, 0);
+	}
+	
 	std::map<int,double> timemap;
 	std::map<int,double> phmap;
 	std::map<int,art::Ptr<recob::Hit> > hitmap;
@@ -580,22 +586,30 @@ namespace trkf {
 					   hits[ihit]->WireID().TPC,
 					   hits[ihit]->WireID().Cryostat);
 	  double ph = hits[ihit]->Charge();
-	  if (ph>(phmap[w])){
-	    double y = fitter->GetParameter(0)+
-	      fitter->GetParameter(1)*w+
-	      fitter->GetParameter(2)*w*w;
-	    if (std::abs(time-y)<ftoler2){
-	      phmap[w] = ph;
-	      timemap[w] = time;
-	      hitmap[w] = hits[ihit];
+	  if (fCleanUpHits){
+	    if (ph>(phmap[w])){
+	      double y = fitter->GetParameter(0)+
+		fitter->GetParameter(1)*w+
+		fitter->GetParameter(2)*w*w;
+	      if (std::abs(time-y)<ftoler2){
+		phmap[w] = ph;
+		timemap[w] = time;
+		hitmap[w] = hits[ihit];
+	      }
 	    }
 	  }
+	  else{
+	    phmap[w] = ph;
+	    timemap[w] = time;
+	    hitmap[w] = hits[ihit];
+	    //std::cout<<w<<" "<<time<<" "<<ph<<" "<<hits[ihit]->WireID().Plane<<std::endl;
+	  }	  
 	}//ihit
 	vtimemap.push_back(timemap);
 	vhitmap.push_back(hitmap);
       }//iclu
-    
-
+      
+      
       // Remove isolated hits
       for (size_t iclu = 0; iclu<vtimemap.size(); ++iclu){
 	auto ihit = vhitmap[iclu].begin();
@@ -712,7 +726,7 @@ namespace trkf {
 
 	size_t spStart = spcol->size();
 	std::vector<recob::SpacePoint> spacepoints;
-	TVector3 startpointVec,endpointVec, DirCos;
+	//TVector3 startpointVec,endpointVec, DirCos;
 
 	bool rev = false;
 	auto times1 = vtimemap[iclu1].begin();
@@ -726,79 +740,12 @@ namespace trkf {
 	double te1 = timee1->second;
 	double ts2 = times2->second;
 	double te2 = timee2->second;
-      
-	auto hit1s = vhitmap[iclu1].begin();
-	auto hit1e = vhitmap[iclu1].end();
-	--hit1e;
-      
-	auto hit2s = vhitmap[iclu2].begin();
-	auto hit2e = vhitmap[iclu2].end();
-	--hit2e;
-      
+            
 	//find out if we need to flip ends
 	if (std::abs(ts1-ts2)+std::abs(te1-te2)>std::abs(ts1-te2)+std::abs(te1-ts2)){
 	  rev = true;
-	  hit2s = vhitmap[iclu2].end();
-	  --hit2s;
-	  times2 = vtimemap[iclu2].end();
-	  --times2;
-	  hit2e = vhitmap[iclu2].begin();
-	  timee2 = vtimemap[iclu2].begin();
-	}
-	double y,z;
-	geom->ChannelsIntersect((hit1s->second)->Wire()->RawDigit()->Channel(),
-				(hit2s->second)->Wire()->RawDigit()->Channel(),
-				y,z);	     
-	startpointVec.SetXYZ((ts1-presamplings)*timepitch+2*plane_pitch,y,z);
-	geom->ChannelsIntersect((hit1e->second)->Wire()->RawDigit()->Channel(),
-				(hit2e->second)->Wire()->RawDigit()->Channel(),
-				y,z);	     
-	endpointVec.SetXYZ((te1-presamplings)*timepitch+2*plane_pitch,y,z);
-	
-	//sort start/end
-	if (fSortDir == "+x" && startpointVec.X() > endpointVec.X()){
-	  TVector3 tempVec = startpointVec;
-	  startpointVec = endpointVec;
-	  endpointVec = tempVec;
-	}
-	if (fSortDir == "-x" && startpointVec.X() < endpointVec.X()){
-	  TVector3 tempVec = startpointVec;
-	  startpointVec = endpointVec;
-	  endpointVec = tempVec;
 	}
 
-	if (fSortDir == "+y" && startpointVec.Y() > endpointVec.Y()){
-	  TVector3 tempVec = startpointVec;
-	  startpointVec = endpointVec;
-	  endpointVec = tempVec;
-	}
-	if (fSortDir == "-y" && startpointVec.Y() < endpointVec.Y()){
-	  TVector3 tempVec = startpointVec;
-	  startpointVec = endpointVec;
-	  endpointVec = tempVec;
-	}
-
-	if (fSortDir == "+z" && startpointVec.Z() > endpointVec.Z()){
-	  TVector3 tempVec = startpointVec;
-	  startpointVec = endpointVec;
-	  endpointVec = tempVec;
-	}
-	if (fSortDir == "-z" && startpointVec.Z() < endpointVec.Z()){
-	  TVector3 tempVec = startpointVec;
-	  startpointVec = endpointVec;
-	  endpointVec = tempVec;
-	}
-      
-	DirCos = endpointVec - startpointVec;
-
-	//SetMag casues a crash if the magnitude of the vector is zero
-	try
-	  {
-	    DirCos.SetMag(1.0);//normalize vector
-	  }
-	catch(...){std::cout<<"The Spacepoint is infinitely small"<<std::endl;
-	  continue;
-	}
 	std::vector<double> vtracklength;
       
 	for (size_t iclu = 0; iclu<vtimemap.size(); ++iclu){
@@ -932,11 +879,129 @@ namespace trkf {
 	  std::vector<TVector3> xyz(spacepoints.size());
 	  for(size_t s = 0; s < spacepoints.size(); ++s){
 	    xyz[s] = TVector3(spacepoints[s].XYZ());
+	  }	
+	  //Calculate track direction cosines 
+	  TVector3 startpointVec,endpointVec, DirCos;
+	  startpointVec = xyz[0];
+	  endpointVec = xyz.back();
+	  DirCos = endpointVec - startpointVec;
+	  //SetMag casues a crash if the magnitude of the vector is zero
+	  try
+	    {
+	      DirCos.SetMag(1.0);//normalize vector
+	    }
+	  catch(...){std::cout<<"The Spacepoint is infinitely small"<<std::endl;
+	    continue;
 	  }
-	
-	  ///\todo really should fill the direction cosines with unique values 
 	  std::vector<TVector3> dircos(spacepoints.size(), DirCos);
-	
+	  for (size_t s = 0; s < xyz.size(); ++s){
+	    int np = 0;
+	    std::vector<double> vx;
+	    std::vector<double> vy;
+	    std::vector<double> vz;
+	    std::vector<double> vs;
+	    vx.push_back(xyz[s].x());
+	    vy.push_back(xyz[s].y());
+	    vz.push_back(xyz[s].z());
+	    vs.push_back(0);
+	    ++np;
+	    for (int ip = 1; ip<int(xyz.size()); ++ip){
+	      if (s-ip>=0){
+		vx.push_back(xyz[s-ip].x());
+		vy.push_back(xyz[s-ip].y());
+		vz.push_back(xyz[s-ip].z());
+		double dis = 0;
+		for (size_t j = s-ip; j<s; ++j){
+		  dis += -sqrt(pow(xyz[j].x()-xyz[j+1].x(),2)+
+			       pow(xyz[j].y()-xyz[j+1].y(),2)+
+			       pow(xyz[j].z()-xyz[j+1].z(),2));
+		}
+		vs.push_back(dis);
+		++np;
+		if (np==5) break;
+	      }
+	      if (s+ip<xyz.size()){
+		vx.push_back(xyz[s+ip].x());
+		vy.push_back(xyz[s+ip].y());
+		vz.push_back(xyz[s+ip].z());
+		double dis = 0;
+		for (size_t j = s; j<s+ip; ++j){
+		  dis += sqrt(pow(xyz[j].x()-xyz[j+1].x(),2)+
+			      pow(xyz[j].y()-xyz[j+1].y(),2)+
+			      pow(xyz[j].z()-xyz[j+1].z(),2));
+		}
+		vs.push_back(dis);
+		++np;
+		if (np==5) break;
+	      }
+	    }
+	    double kx = 0, ky = 0, kz = 0;
+	    if (np>=2){//at least two points
+	      TGraph *xs = new TGraph(np,&vs[0],&vx[0]);
+	      //for (int i = 0; i<np; i++) std::cout<<i<<" "<<vs[i]<<" "<<vx[i]<<" "<<vy[i]<<" "<<vz[i]<<std::endl;
+	      try{
+		if (np>2){
+		  xs->Fit("pol2","Q");
+		}
+		else{
+		  xs->Fit("pol1","Q");
+		}
+		TF1 *pol = 0;
+		if (np>2) pol = (TF1*) xs->GetFunction("pol2");
+		else pol = (TF1*) xs->GetFunction("pol1");
+		kx = pol->GetParameter(1);
+		//std::cout<<xyz3d[0]<<" "<<kx<<std::endl;
+	      }
+	      catch(...){
+		mf::LogWarning("Calorimetry::GetPitch") <<"Fitter failed";
+	      }
+	      delete xs;
+	      TGraph *ys = new TGraph(np,&vs[0],&vy[0]);
+	      try{
+		if (np>2){
+		  ys->Fit("pol2","Q");
+		}
+		else{
+		  ys->Fit("pol1","Q");
+		}
+		TF1 *pol = 0;
+		if (np>2) pol = (TF1*) ys->GetFunction("pol2");
+		else pol = (TF1*) ys->GetFunction("pol1");
+		ky = pol->GetParameter(1);
+		//std::cout<<xyz3d[1]<<" "<<ky<<std::endl;
+	      }
+	      catch(...){
+		mf::LogWarning("Calorimetry::GetPitch") <<"Fitter failed";
+	      }
+	      delete ys;
+	      TGraph *zs = new TGraph(np,&vs[0],&vz[0]);
+	      try{
+		if (np>2){
+		  zs->Fit("pol2","Q");
+		}
+		else{
+		  zs->Fit("pol1","Q");
+		}
+		TF1 *pol = 0;
+		if (np>2) pol = (TF1*) zs->GetFunction("pol2");
+		else pol = (TF1*) zs->GetFunction("pol1");
+		kz = pol->GetParameter(1);
+		//std::cout<<xyz3d[2]<<" "<<kz<<std::endl;
+	      }
+	      catch(...){
+		mf::LogWarning("Calorimetry::GetPitch") <<"Fitter failed";
+	      }
+	      delete zs;
+	      if (kx||ky||kz){
+		double tot = sqrt(kx*kx+ky*ky+kz*kz);
+		kx /= tot;
+		ky /= tot;
+		kz /= tot;
+		dircos[s].SetXYZ(kx,ky,kz);
+		//std::cout<<s<<" "<<kx<<" "<<ky<<" "<<kz<<std::endl;
+	      }
+	    }//np>=2
+	  }//loop over space points
 	  std::vector< std::vector<double> > dQdx;
 	  std::vector<double> mom(2, util::kBogusD);
 	  tcol->push_back(recob::Track(xyz, dircos, dQdx, mom, tcol->size()));
