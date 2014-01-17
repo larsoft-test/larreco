@@ -57,12 +57,12 @@
 #include "TF1.h"
 #include "TVector3.h"
 
+struct CluLen{
+  int index;
+  double length;
+};
 
-#ifndef VertexFinder2D_H
-#define VertexFinder2D_H
-
-
-class TH1D;
+bool myfunction (CluLen c1, CluLen c2) { return (c1.length>c2.length);}
 
 ///vertex reconstruction
 namespace vertex {
@@ -88,9 +88,6 @@ namespace vertex {
   };
     
 }
-
-#endif // VertexFinder2D_H
-
 
 namespace vertex{
 
@@ -178,26 +175,39 @@ namespace vertex{
     int nplanes = geom->Views().size();
 	
     std::vector< std::vector<int> > Cls(nplanes); //index to clusters in each view
+    std::vector< std::vector<CluLen> > clulens(nplanes);
+
     std::vector<double> dtdwstart;
       
     //loop over clusters
     for(size_t iclu = 0; iclu < clusters.size(); ++iclu){
       
+      double w0 = clusters[iclu]->StartPos()[0];
+      double w1 = clusters[iclu]->EndPos()[0];
+      double t0 = clusters[iclu]->StartPos()[1];
+      double t1 = clusters[iclu]->EndPos()[1];
+//      t0 -= detprop->GetXTicksOffset(clusters[iclu]->View(),0,0);
+//      t1 -= detprop->GetXTicksOffset(clusters[iclu]->View(),0,0);
+
+      CluLen clulen;
+      clulen.index = iclu;
+      clulen.length = sqrt(pow((w0-w1)*wire_pitch,2)+pow(detprop->ConvertTicksToX(t0,clusters[iclu]->View(),0,0)-detprop->ConvertTicksToX(t1,clusters[iclu]->View(),0,0),2));
+
       switch(clusters[iclu]->View()){
 	
       case geo::kU :
-	Cls[0].push_back(iclu);
+	clulens[0].push_back(clulen);
 	break;
       case geo::kV :
-	Cls[1].push_back(iclu);
-	    break;
+	clulens[1].push_back(clulen);
+	break;
       case geo::kZ :
-	Cls[2].push_back(iclu);
+	clulens[2].push_back(clulen);
 	break;
       default :
 	break;
       }
-      
+
       std::vector<double> wires;
       std::vector<double> times;
       
@@ -210,7 +220,7 @@ namespace vertex{
 	++n;
       }
       if(n>=2){
-	TGraph *the2Dtrack = new TGraph(n,&wires[0],&times[0]);           
+	TGraph *the2Dtrack = new TGraph(std::min(10,n),&wires[0],&times[0]);           
 	try{
 	  the2Dtrack->Fit("pol1","Q");
 	  TF1 *pol1=(TF1*) the2Dtrack->GetFunction("pol1");
@@ -228,8 +238,17 @@ namespace vertex{
 	delete the2Dtrack;
       }
       else dtdwstart.push_back(clusters[iclu]->dTdW());
+    
     }
     
+    //sort clusters based on 2D length
+    for (size_t i = 0; i<clulens.size(); ++i){
+      std::sort (clulens[i].begin(),clulens[i].end(), myfunction);
+      for (size_t j = 0; j<clulens[i].size(); ++j){
+	Cls[i].push_back(clulens[i][j].index);
+      }
+    }
+
     std::vector< std::vector<int> > cluvtx(nplanes);
     std::vector<double> vtx_w;
     std::vector<double> vtx_t;
@@ -267,11 +286,11 @@ namespace vertex{
 	    if (std::abs(wb1-ww0) > std::abs(we1-ww0)) rev = true;//reverse cluster dir
 	    if ((!rev && ww0 > wb1+15)||(rev && ww0 < we1-15)) deltaraylike = true;
 	    if (((!rev && ww0 > wb1+10)||(rev && ww0 < we1-10)) && nhits < 5) deltaraylike = true;
-	    if (wb > wb1+20 && nhits < 10) deltaraylike = true;
+	    if (wb > wb1+20 && nhits < 20) deltaraylike = true;
 	    if (wb > wb1+50 && nhits < 20) deltaraylike = true;
 	    if (wb > wb1+8 && TMath::Abs(dtdw1-dtdw) < 0.15) deltaraylike = true;
 	    if (std::abs(wb-wb1) > 30 && std::abs(we-we1) > 30) deltaraylike = true;
-	    
+	    if (std::abs(tt-tt1) > 100) deltaraylike = true; //not really deltaray, but isolated cluster
 	    //make sure there are enough hits in the cluster
 	    //at leaset 2 hits if goes horizentally, at leaset 4 hits if goes vertically
 	    double alpha = std::atan(dtdw);
@@ -305,6 +324,11 @@ namespace vertex{
 	    wb1 = clusters[Cls[i][j]]->StartPos()[0];
 	    we1 = clusters[Cls[i][j]]->EndPos()[0];
 	    tt1 = clusters[Cls[i][j]]->StartPos()[1];
+	    if (wb1>we1){
+	      wb1 = clusters[Cls[i][j]]->EndPos()[0];
+	      we1 = clusters[Cls[i][j]]->StartPos()[0];
+	      tt1 = clusters[Cls[i][j]]->EndPos()[1];
+	    }
 	    dtdw1 = dtdwstart[Cls[i][j]];
 	  }
 	  else if (lclu2 < lclu){
@@ -339,8 +363,8 @@ namespace vertex{
 	else if (Cls[i].size() >= 1){
 	  if (c1 != -1){
 	    cluvtx[i].push_back(c1);
-	    vtx_w.push_back(clusters[c1]->StartPos()[0]);
-	    vtx_t.push_back(clusters[c1]->StartPos()[1]);
+	    vtx_w.push_back(wb1);
+	    vtx_t.push_back(tt1);
 	  }
 	  else{
 	    cluvtx[i].push_back(Cls[i][0]);
@@ -389,7 +413,7 @@ namespace vertex{
       It0 *= timepitch;
       double Ct0 = vtx_t[1] - presamplings ;
       Ct0 *= timepitch;
-      vtxcoord[0] = Ct0;
+      vtxcoord[0] = detprop->ConvertTicksToX(vtx_t[1],1,0,0);
       vtxcoord[1] = (Cw0-Iw0)/(2.*std::sin(Angle));
       vtxcoord[2] = (Cw0+Iw0)/(2.*std::cos(Angle))-YC/2.*std::tan(Angle);
       
