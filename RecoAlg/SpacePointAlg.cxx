@@ -1023,18 +1023,18 @@ namespace  trkf{
       }
     }// end loop over cryostats
 
+    // Make empty multimap from hit pointer on preferred
+    // (most-populated or collection) plane to space points that
+    // include that hit (used for sorting, filtering, and
+    // merging).
+
+    typedef const recob::Hit* sptkey_type;
+    std::multimap<sptkey_type, recob::SpacePoint> sptmap;
+    std::set<sptkey_type> sptkeys;              // Keys of multimap.
+
     // Loop over TPCs.
     for(unsigned int cstat = 0; cstat < ncstat; ++cstat){
       for(unsigned int tpc = 0; tpc < geom->Cryostat(cstat).NTPC(); ++tpc) {
-
-	// Make empty multimap from hit pointer on preferred
-	// (most-populated or collection) plane to space points that
-	// include that hit (used for sorting, filtering, and
-	// merging).
-
-	typedef const recob::Hit* sptkey_type;
-	std::multimap<sptkey_type, recob::SpacePoint> sptmap;
-	std::set<sptkey_type> sptkeys;              // Keys of multimap.
 
 	// Sort maps in increasing order of number of hits.
 	// This is so that we can do the outer loops over hits 
@@ -1156,7 +1156,7 @@ namespace  trkf{
 		    // will go out of scope.
 
 		    std::vector<recob::SpacePoint> sptv;
-		    fillSpacePoint(hitvec, sptv, sptmap.size()-1);
+		    fillSpacePoint(hitvec, sptv, sptmap.size());
 		    sptkey_type key = &*phit2;
 		    sptmap.insert(std::pair<sptkey_type, recob::SpacePoint>(key, sptv.back()));
 		    sptkeys.insert(key);
