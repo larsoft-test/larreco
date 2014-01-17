@@ -144,9 +144,7 @@ namespace cluster {
     ~HoughTransform();
      
     void Init(int dx, int dy, int rhoresfact, int numACells);
-    bool AddPoint(int x, int y);
-    bool AddPointReturnMax(int x, int y);
-    int  AddPointReturnMax(int x, int y, int *yMax, int *xMax);
+    std::vector<int>  AddPointReturnMax(int x, int y);
     bool SubtractPoint(int x, int y);
     inline int  GetCell(int row, int col)            { return m_accum[row][col]; }
     void SetCell(int row, int col, int value) { m_accum[row][col] = value; }
@@ -179,8 +177,7 @@ namespace cluster {
     int m_numAngleCells;
     //std::vector<float> m_cosTable;
     //std::vector<float> m_sinTable;
-    bool DoAddPoint(int x, int y);
-    int  DoAddPointReturnMax(int x, int y, int *yMax, int *xMax);
+    std::vector<int>  DoAddPointReturnMax(int x, int y);
     bool DoSubtractPoint(int x, int y);
 
 
@@ -255,12 +252,6 @@ namespace cluster {
                                            ///< segments
     float  fMissedHitsDistance;            ///< Distance between hits in a hough line before a hit is considered missed
     float  fMissedHitsToLineSize;          ///< Ratio of missed hits to line size for a line to be considered a fake
-
-
-
-
-    
-
 
   protected:
 

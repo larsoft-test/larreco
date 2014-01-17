@@ -299,15 +299,15 @@ size_t cluster::HoughBaseAlg::Transform(std::vector<art::Ptr<recob::Hit> > const
     }/// end loop over size of listxmax
   
     /// Find the weightiest cell in the accumulator.
-    maxCell = 0;
-    xMax = 0;
-    yMax = 0;
     uint32_t channel = hits[randInd]->Wire()->RawDigit()->Channel();
     wireMax = hits[randInd]->WireID().Wire;
 
     /// Add the randomly selected point to the accumulator
     //w.Start();
-    maxCell = c.AddPointReturnMax(wireMax, (int)(hits[randInd]->PeakTime()), &yMax, &xMax);
+    std::vector<int> max = c.AddPointReturnMax(wireMax, (int)(hits[randInd]->PeakTime()));
+    maxCell = max[0];
+    xMax    = max[1];
+    yMax    = max[2];
     //w.Stop();
     //std::cout << "Real Time: " << w.RealTime() << std::endl;
     //timeTotal += w.CpuTime();
@@ -635,23 +635,15 @@ cluster::HoughTransform::~HoughTransform()
 }
 
 //------------------------------------------------------------------------------
-bool cluster::HoughTransform::AddPoint(int x, int y)
+// returns a vector<int> where the first is the overall maximum,
+// the second is the max x value, and the third is the max y value.
+inline std::vector<int> cluster::HoughTransform::AddPointReturnMax(int x, 
+								   int y)
 {
+  std::vector<int> max(3,0);
   if (x>m_dx || y>m_dy || x<0.0 || y<0.0)
-    return false;
-  return DoAddPoint(x, y);
-}
-
-
-//------------------------------------------------------------------------------
-inline int cluster::HoughTransform::AddPointReturnMax(int x, 
-					       int y, 
-					       int *yMax, 
-					       int *xMax)
-{
-  if (x>m_dx || y>m_dy || x<0.0 || y<0.0)
-    return 0;
-  return DoAddPointReturnMax(x, y, yMax, xMax);
+    return max;
+  return DoAddPointReturnMax(x, y);
 }
 
 
@@ -721,11 +713,12 @@ int cluster::HoughTransform::GetMax(int &xmax,
 }
 
 //------------------------------------------------------------------------------
-inline int cluster::HoughTransform::DoAddPointReturnMax(int x, 
-                                                 int y, 
-                                                 int *ymax, 
-                                                 int *xmax)
+// returns a vector<int> where the first is the overall maximum,
+// the second is the max x value, and the third is the max y value.
+inline std::vector<int> cluster::HoughTransform::DoAddPointReturnMax(int x, 
+								     int y)
 {
+  std::vector<int> max(3,-1);
 
   int distCenter = (int)(m_rowLength/2.);
   
@@ -762,9 +755,9 @@ inline int cluster::HoughTransform::DoAddPointReturnMax(int x,
         val = m_accumA->second++;
         
         if( max_val < val){
-          max_val = val;
-          *xmax = lastDist;
-          *ymax = (angleStepInt);
+          max[0] = val;
+          max[1] = lastDist;
+          max[2] = (angleStepInt);
         }
         m_accumALast = m_accumA;
         //mf::LogVerbatim("HoughBaseAlg") << "First, a: " << a << " lastDist: " << lastDist << std::endl;
@@ -779,9 +772,9 @@ inline int cluster::HoughTransform::DoAddPointReturnMax(int x,
           val = m_accumA->second++;
           //// Note, m_accum is a vector of associative containers, "a" calls the vector element, "cell" is the container key, and the ++ iterates the value correspoding to the key
           if(max_val < val){
-            max_val = val;
-            *xmax = cell;
-            *ymax = (angleStepInt);
+            max[0] = val;
+            max[1] = cell;
+            max[2] = (angleStepInt);
           }
           m_accumALast = m_accumA;
         }      
@@ -794,45 +787,10 @@ inline int cluster::HoughTransform::DoAddPointReturnMax(int x,
 
   //mf::LogVerbatim("HoughBaseAlg") << "Add point says xmax: " << *xmax << " ymax: " << *ymax << std::endl;
 
-  return max_val;
+  return max;
 }
 
 
-
-////------------------------------------------------------------------------------
-//bool cluster::HoughTransform::DoAddPoint(int x, int y)
-//{
-  //int distCenter = (int)(m_rowLength/2.);
- 
-  //// prime the lastDist variable so our linear fill works below
-  //int lastDist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[0]*x + m_sinTable[0]*y)));
-
-  //// loop through all angles a from 0 to 180 degrees
-  //for (unsigned int a=1; a<m_cosTable.size(); ++a){
-    //// Calculate the basic line equation dist = cos(a)*x + sin(a)*y.
-    //// Shift to center of row to cover negative values
-    //int dist = (int)(distCenter+(m_rhoResolutionFactor*(m_cosTable[a]*x + m_sinTable[a]*y)));
-    //// sanity check to make sure we stay within our row
-    //if (dist >= 0 && dist<m_rowLength){
-      //if(lastDist==dist){
-	//m_accum[a][lastDist]++;
-        ////mf::LogVerbatim("HoughBaseAlg") << "First, a: " << a << " lastDist: " << lastDist << std::endl;
-      //}
-      //else{
-	//// fill in all values in row a, not just a single cell
-	//int stepDir = dist>lastDist ? 1 : -1;
-	//for (int cell=lastDist; cell!=dist; cell+=stepDir){   
-	  //m_accum[a][cell]++;//maybe add weight of hit here?
-          //// Note, m_accum is a vector of associative containers, "a" calls the vector element, "cell" is the container key, and the ++ iterates the value correspoding to the key
-	//}      
-      //}
-    //}      
-    //lastDist = dist;
-  //}
-  //m_numAccumulated++;
-
-  //return true;
-//}
 
 //------------------------------------------------------------------------------
 inline bool cluster::HoughTransform::DoSubtractPoint(int x, int y)
@@ -926,7 +884,6 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
   CLHEP::HepRandomEngine & engine = rng -> getEngine();
   CLHEP::RandFlat flat(engine);
 
-  extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   std::vector< art::Ptr<recob::Hit> > hit;
 
   for(auto view : geom->Views() ){
@@ -1283,7 +1240,6 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
   CLHEP::HepRandomEngine & engine = rng -> getEngine();
   CLHEP::RandFlat flat(engine);
 
-  extern void SaveBMPFile(const char *f, unsigned char *pix, int dxx, int dyy);
   std::vector< art::Ptr<recob::Hit> > hit;
 
 //   for(size_t cs = 0; cs < geom->Ncryostats(); ++cs){
@@ -1412,11 +1368,13 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
             //find the weightiest cell in the accumulator.
             int maxCell = 0;
             unsigned int wireMax = hit[randInd]->WireID().Wire;
-            xMax = 0;
-            yMax = 0;
 
             // Add the randomly selected point to the accumulator
-            maxCell = c.AddPointReturnMax(wireMax, (int)(hit[randInd]->PeakTime()), &yMax, &xMax);
+	    std::vector<int> max = c.AddPointReturnMax(wireMax, 
+						       (int)(hit[randInd]->PeakTime()));
+            maxCell = max[0];
+            xMax    = max[1];
+            yMax    = max[2];
             nAccum++; 
 
             // Continue if the biggest maximum for the randomly selected point is smaller than fMinHits
@@ -1635,7 +1593,7 @@ size_t cluster::HoughBaseAlg::FastTransform(std::vector<art::Ptr<recob::Cluster>
 	      }
 	    }
 	    	    
-	    SaveBMPFile("houghaccum.bmp", outPix, accDx, accDy);
+	    HLSSaveBMPFile("houghaccum.bmp", outPix, accDx, accDy);
 	    delete [] outPix;
 	  }// end if saving accumulator
 	  
@@ -1675,7 +1633,7 @@ size_t cluster::HoughBaseAlg::Transform(std::vector< art::Ptr<recob::Hit> > cons
   c.Init(dx,dy,fRhoResolutionFactor,fNumAngleCells);
 
   for(unsigned int i=0;i < hits.size(); ++i){
-    c.AddPoint(hits[i]->WireID().Wire, (int)(hits[i]->PeakTime()));
+    c.AddPointReturnMax(hits[i]->WireID().Wire, (int)(hits[i]->PeakTime()));
   }// end loop over hits
 
   //gets the actual two-dimensional size of the accumulator
