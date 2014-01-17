@@ -4,8 +4,12 @@ BEGIN_PROLOG
 
 argoneut_dbscanalg:                  @local::standard_dbscanalg       
 argoneut_clustercrawleralg:          @local::standard_clustercrawleralg
-argoneut_clustercrawleralg.ChgCut:   [0.8, 0.8, 0.8]
-argoneut_clustercrawleralg.HitErrFac:0.25
+argoneut_clustercrawleralg.AllowNoHitWire:  3
+argoneut_clustercrawleralg.MaxWirSkip:      [12, 8, 2]
+argoneut_clustercrawleralg.MinWirAfterSkip: [1, 1, 1]
+argoneut_clustercrawleralg.ChiCut:          [2., 2., 2.]
+argoneut_clustercrawleralg.ChgCut:          [2., 2., 2.]
+argoneut_clustercrawleralg.HitErrFac:       0.6
 argoneut_cchitfinderalg:             @local::standard_cchitfinderalg
 argoneut_cchitfinderalg.MinSigInd:   1.8
 argoneut_cchitfinderalg.MinSigCol:   2.5
