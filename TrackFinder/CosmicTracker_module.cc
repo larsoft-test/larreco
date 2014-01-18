@@ -498,7 +498,6 @@ namespace trkf {
       arglist[0] = -1;
       fitter->ExecuteCommand("SET PRIN",arglist,1);
     }
-    std::cout<<"test"<<std::endl;
     //fit each cluster in 2D using pol2, iterate once to remove outliers
     for (size_t itrk = 0; itrk<matchedclusters.size(); ++itrk){//loop over tracks
 
@@ -774,7 +773,6 @@ namespace trkf {
 	  vtracklength.push_back(tracklength);
 	}
       
-	std::cout<<"Making space points"<<std::endl;
 	std::map<int,int> maxhitsMatch;
 
 	auto ihit1 = vhitmap[iclu1].begin();
