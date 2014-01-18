@@ -490,13 +490,15 @@ namespace trkf {
     /////////////////////////////////////////////////////
   
     ///Prepare fitter
+    double arglist[10];
     TVirtualFitter::SetDefaultFitter("Minuit");  //default is Minuit
     TVirtualFitter *fitter = TVirtualFitter::Fitter(0, 3);
-    fitter->SetFCN(myfcn);
-    double arglist[10];
-    arglist[0] = -1;
-    fitter->ExecuteCommand("SET PRIN",arglist,1);
-
+    if (fCleanUpHits){
+      fitter->SetFCN(myfcn);
+      arglist[0] = -1;
+      fitter->ExecuteCommand("SET PRIN",arglist,1);
+    }
+    std::cout<<"test"<<std::endl;
     //fit each cluster in 2D using pol2, iterate once to remove outliers
     for (size_t itrk = 0; itrk<matchedclusters.size(); ++itrk){//loop over tracks
 
@@ -772,6 +774,7 @@ namespace trkf {
 	  vtracklength.push_back(tracklength);
 	}
       
+	std::cout<<"Making space points"<<std::endl;
 	std::map<int,int> maxhitsMatch;
 
 	auto ihit1 = vhitmap[iclu1].begin();
@@ -895,7 +898,7 @@ namespace trkf {
 	    continue;
 	  }
 	  std::vector<TVector3> dircos(spacepoints.size(), DirCos);
-	  for (size_t s = 0; s < xyz.size(); ++s){
+	  for (int s = 0; s < int(xyz.size()); ++s){
 	    int np = 0;
 	    std::vector<double> vx;
 	    std::vector<double> vy;
@@ -912,7 +915,7 @@ namespace trkf {
 		vy.push_back(xyz[s-ip].y());
 		vz.push_back(xyz[s-ip].z());
 		double dis = 0;
-		for (size_t j = s-ip; j<s; ++j){
+		for (int j = s-ip; j<s; ++j){
 		  dis += -sqrt(pow(xyz[j].x()-xyz[j+1].x(),2)+
 			       pow(xyz[j].y()-xyz[j+1].y(),2)+
 			       pow(xyz[j].z()-xyz[j+1].z(),2));
@@ -921,12 +924,12 @@ namespace trkf {
 		++np;
 		if (np==5) break;
 	      }
-	      if (s+ip<xyz.size()){
+	      if (s+ip<int(xyz.size())){
 		vx.push_back(xyz[s+ip].x());
 		vy.push_back(xyz[s+ip].y());
 		vz.push_back(xyz[s+ip].z());
 		double dis = 0;
-		for (size_t j = s; j<s+ip; ++j){
+		for (int j = s; j<s+ip; ++j){
 		  dis += sqrt(pow(xyz[j].x()-xyz[j+1].x(),2)+
 			      pow(xyz[j].y()-xyz[j+1].y(),2)+
 			      pow(xyz[j].z()-xyz[j+1].z(),2));
@@ -954,7 +957,7 @@ namespace trkf {
 		//std::cout<<xyz3d[0]<<" "<<kx<<std::endl;
 	      }
 	      catch(...){
-		mf::LogWarning("Calorimetry::GetPitch") <<"Fitter failed";
+		mf::LogWarning("CosmicTracker") <<"Fitter failed";
 	      }
 	      delete xs;
 	      TGraph *ys = new TGraph(np,&vs[0],&vy[0]);
@@ -972,7 +975,7 @@ namespace trkf {
 		//std::cout<<xyz3d[1]<<" "<<ky<<std::endl;
 	      }
 	      catch(...){
-		mf::LogWarning("Calorimetry::GetPitch") <<"Fitter failed";
+		mf::LogWarning("CosmicTracker") <<"Fitter failed";
 	      }
 	      delete ys;
 	      TGraph *zs = new TGraph(np,&vs[0],&vz[0]);
@@ -990,7 +993,7 @@ namespace trkf {
 		//std::cout<<xyz3d[2]<<" "<<kz<<std::endl;
 	      }
 	      catch(...){
-		mf::LogWarning("Calorimetry::GetPitch") <<"Fitter failed";
+		mf::LogWarning("CosmicTracker") <<"Fitter failed";
 	      }
 	      delete zs;
 	      if (kx||ky||kz){
