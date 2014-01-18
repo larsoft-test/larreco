@@ -519,18 +519,19 @@ namespace trkf {
 	//fit hits time vs wire with pol2
 	std::vector< art::Ptr<recob::Hit> > hits = fm.at(matchedclusters[itrk][iclu]);
 	std::sort(hits.begin(), hits.end(), trkf::SortByWire());
-	double dtdw = 0;
-	if (clusterlist[matchedclusters[itrk][iclu]]->StartPos()[1]-
-	    clusterlist[matchedclusters[itrk][iclu]]->EndPos()[1]){
-	  dtdw = (clusterlist[matchedclusters[itrk][iclu]]->EndPos()[0]-
-		  clusterlist[matchedclusters[itrk][iclu]]->StartPos()[0])/
-	    (clusterlist[matchedclusters[itrk][iclu]]->EndPos()[1]-
-	     clusterlist[matchedclusters[itrk][iclu]]->StartPos()[1]);
+	if (fCleanUpHits){
+	  double dtdw = 0;
+	  if (clusterlist[matchedclusters[itrk][iclu]]->StartPos()[1]-
+	      clusterlist[matchedclusters[itrk][iclu]]->EndPos()[1]){
+	    dtdw = (clusterlist[matchedclusters[itrk][iclu]]->EndPos()[0]-
+		    clusterlist[matchedclusters[itrk][iclu]]->StartPos()[0])/
+	      (clusterlist[matchedclusters[itrk][iclu]]->EndPos()[1]-
+	       clusterlist[matchedclusters[itrk][iclu]]->StartPos()[1]);
+	  }
+	  fitter->SetParameter(0,"p0",clusterlist[matchedclusters[itrk][iclu]]->StartPos()[1]-dtdw-detprop->GetXTicksOffset(clusterlist[matchedclusters[itrk][iclu]]->View(),0,0),0.1,0,0);
+	  fitter->SetParameter(1,"p1",clusterlist[matchedclusters[itrk][iclu]]->dTdW(),0.1,0,0);
+	  fitter->SetParameter(2,"p2",0,0.1,0,0);
 	}
-	fitter->SetParameter(0,"p0",clusterlist[matchedclusters[itrk][iclu]]->StartPos()[1]-dtdw-detprop->GetXTicksOffset(clusterlist[matchedclusters[itrk][iclu]]->View(),0,0),0.1,0,0);
-	fitter->SetParameter(1,"p1",clusterlist[matchedclusters[itrk][iclu]]->dTdW(),0.1,0,0);
-	fitter->SetParameter(2,"p2",0,0.1,0,0);
-      
 	for (size_t ihit = 0; ihit<hits.size(); ++ihit){//loop over hits
 	  geo::WireID hitWireID = hits[ihit]->WireID();
 	  unsigned int w = hitWireID.Wire;
