@@ -78,6 +78,7 @@ standard_cosmictracker:
  IsoHitCut:          100000
  SortDirection:      "+z"
  CleanUpHits:        false
+ DirSPS:             false
 }
 
 standard_track3Dkalman:

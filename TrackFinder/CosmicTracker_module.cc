@@ -166,6 +166,7 @@ namespace trkf {
 
     bool            fCleanUpHits;        ///< flag to remove outlier hits
 
+    bool            fDirSPS;             ///< calculate direction cosine for each space point
     //testing histograms
     std::vector<TH1D *> dtime;
     std::vector<TH1D *> testsig;
@@ -215,6 +216,7 @@ namespace trkf {
     fisohitcut              = pset.get< int    >("IsoHitCut");
     fSortDir                = pset.get< std::string >("SortDirection","+z");
     fCleanUpHits            = pset.get< bool   >("CleanUpHits");
+    fDirSPS                 = pset.get< bool   >("DirSPS");
   }
 
   //-------------------------------------------------
@@ -747,7 +749,10 @@ namespace trkf {
 	if (std::abs(ts1-ts2)+std::abs(te1-te2)>std::abs(ts1-te2)+std::abs(te1-ts2)){
 	  rev = true;
 	}
-
+//	std::cout<<times1->first<<" "<<times1->second<<std::endl;
+//	std::cout<<timee1->first<<" "<<timee1->second<<std::endl;
+//	std::cout<<times2->first<<" "<<times2->second<<std::endl;
+//	std::cout<<timee2->first<<" "<<timee2->second<<std::endl;
 	std::vector<double> vtracklength;
       
 	for (size_t iclu = 0; iclu<vtimemap.size(); ++iclu){
@@ -895,115 +900,118 @@ namespace trkf {
 	  catch(...){std::cout<<"The Spacepoint is infinitely small"<<std::endl;
 	    continue;
 	  }
-	  std::vector<TVector3> dircos(spacepoints.size(), DirCos);
-	  for (int s = 0; s < int(xyz.size()); ++s){
-	    int np = 0;
-	    std::vector<double> vx;
-	    std::vector<double> vy;
-	    std::vector<double> vz;
-	    std::vector<double> vs;
-	    vx.push_back(xyz[s].x());
-	    vy.push_back(xyz[s].y());
-	    vz.push_back(xyz[s].z());
-	    vs.push_back(0);
-	    ++np;
-	    for (int ip = 1; ip<int(xyz.size()); ++ip){
-	      if (s-ip>=0){
-		vx.push_back(xyz[s-ip].x());
-		vy.push_back(xyz[s-ip].y());
-		vz.push_back(xyz[s-ip].z());
-		double dis = 0;
-		for (int j = s-ip; j<s; ++j){
-		  dis += -sqrt(pow(xyz[j].x()-xyz[j+1].x(),2)+
-			       pow(xyz[j].y()-xyz[j+1].y(),2)+
-			       pow(xyz[j].z()-xyz[j+1].z(),2));
+	  //std::cout<<DirCos.x()<<" "<<DirCos.y()<<" "<<DirCos.z()<<std::endl;
+	  std::vector<TVector3> dircos(spacepoints.size(), DirCos);	  
+	  if (fDirSPS){//calculat direction for each spacepoint
+	    for (int s = 0; s < int(xyz.size()); ++s){
+	      int np = 0;
+	      std::vector<double> vx;
+	      std::vector<double> vy;
+	      std::vector<double> vz;
+	      std::vector<double> vs;
+	      vx.push_back(xyz[s].x());
+	      vy.push_back(xyz[s].y());
+	      vz.push_back(xyz[s].z());
+	      vs.push_back(0);
+	      ++np;
+	      for (int ip = 1; ip<int(xyz.size()); ++ip){
+		if (s-ip>=0){
+		  vx.push_back(xyz[s-ip].x());
+		  vy.push_back(xyz[s-ip].y());
+		  vz.push_back(xyz[s-ip].z());
+		  double dis = 0;
+		  for (int j = s-ip; j<s; ++j){
+		    dis += -sqrt(pow(xyz[j].x()-xyz[j+1].x(),2)+
+				 pow(xyz[j].y()-xyz[j+1].y(),2)+
+				 pow(xyz[j].z()-xyz[j+1].z(),2));
+		  }
+		  vs.push_back(dis);
+		  ++np;
+		  if (np==5) break;
 		}
-		vs.push_back(dis);
-		++np;
-		if (np==5) break;
-	      }
-	      if (s+ip<int(xyz.size())){
-		vx.push_back(xyz[s+ip].x());
-		vy.push_back(xyz[s+ip].y());
-		vz.push_back(xyz[s+ip].z());
-		double dis = 0;
-		for (int j = s; j<s+ip; ++j){
-		  dis += sqrt(pow(xyz[j].x()-xyz[j+1].x(),2)+
-			      pow(xyz[j].y()-xyz[j+1].y(),2)+
-			      pow(xyz[j].z()-xyz[j+1].z(),2));
+		if (s+ip<int(xyz.size())){
+		  vx.push_back(xyz[s+ip].x());
+		  vy.push_back(xyz[s+ip].y());
+		  vz.push_back(xyz[s+ip].z());
+		  double dis = 0;
+		  for (int j = s; j<s+ip; ++j){
+		    dis += sqrt(pow(xyz[j].x()-xyz[j+1].x(),2)+
+				pow(xyz[j].y()-xyz[j+1].y(),2)+
+				pow(xyz[j].z()-xyz[j+1].z(),2));
+		  }
+		  vs.push_back(dis);
+		  ++np;
+		  if (np==5) break;
 		}
-		vs.push_back(dis);
-		++np;
-		if (np==5) break;
 	      }
-	    }
-	    double kx = 0, ky = 0, kz = 0;
-	    if (np>=2){//at least two points
-	      TGraph *xs = new TGraph(np,&vs[0],&vx[0]);
-	      //for (int i = 0; i<np; i++) std::cout<<i<<" "<<vs[i]<<" "<<vx[i]<<" "<<vy[i]<<" "<<vz[i]<<std::endl;
-	      try{
-		if (np>2){
-		  xs->Fit("pol2","Q");
+	      double kx = 0, ky = 0, kz = 0;
+	      if (np>=2){//at least two points
+		TGraph *xs = new TGraph(np,&vs[0],&vx[0]);
+		//for (int i = 0; i<np; i++) std::cout<<i<<" "<<vs[i]<<" "<<vx[i]<<" "<<vy[i]<<" "<<vz[i]<<std::endl;
+		try{
+		  if (np>2){
+		    xs->Fit("pol2","Q");
+		  }
+		  else{
+		    xs->Fit("pol1","Q");
+		  }
+		  TF1 *pol = 0;
+		  if (np>2) pol = (TF1*) xs->GetFunction("pol2");
+		  else pol = (TF1*) xs->GetFunction("pol1");
+		  kx = pol->GetParameter(1);
+		  //std::cout<<xyz3d[0]<<" "<<kx<<std::endl;
 		}
-		else{
-		  xs->Fit("pol1","Q");
+		catch(...){
+		  mf::LogWarning("CosmicTracker") <<"Fitter failed";
 		}
-		TF1 *pol = 0;
-		if (np>2) pol = (TF1*) xs->GetFunction("pol2");
-		else pol = (TF1*) xs->GetFunction("pol1");
-		kx = pol->GetParameter(1);
-		//std::cout<<xyz3d[0]<<" "<<kx<<std::endl;
-	      }
-	      catch(...){
-		mf::LogWarning("CosmicTracker") <<"Fitter failed";
-	      }
-	      delete xs;
-	      TGraph *ys = new TGraph(np,&vs[0],&vy[0]);
-	      try{
-		if (np>2){
-		  ys->Fit("pol2","Q");
+		delete xs;
+		TGraph *ys = new TGraph(np,&vs[0],&vy[0]);
+		try{
+		  if (np>2){
+		    ys->Fit("pol2","Q");
+		  }
+		  else{
+		    ys->Fit("pol1","Q");
+		  }
+		  TF1 *pol = 0;
+		  if (np>2) pol = (TF1*) ys->GetFunction("pol2");
+		  else pol = (TF1*) ys->GetFunction("pol1");
+		  ky = pol->GetParameter(1);
+		  //std::cout<<xyz3d[1]<<" "<<ky<<std::endl;
 		}
-		else{
-		  ys->Fit("pol1","Q");
+		catch(...){
+		  mf::LogWarning("CosmicTracker") <<"Fitter failed";
 		}
-		TF1 *pol = 0;
-		if (np>2) pol = (TF1*) ys->GetFunction("pol2");
-		else pol = (TF1*) ys->GetFunction("pol1");
-		ky = pol->GetParameter(1);
-		//std::cout<<xyz3d[1]<<" "<<ky<<std::endl;
-	      }
-	      catch(...){
-		mf::LogWarning("CosmicTracker") <<"Fitter failed";
-	      }
-	      delete ys;
-	      TGraph *zs = new TGraph(np,&vs[0],&vz[0]);
-	      try{
-		if (np>2){
-		  zs->Fit("pol2","Q");
+		delete ys;
+		TGraph *zs = new TGraph(np,&vs[0],&vz[0]);
+		try{
+		  if (np>2){
+		    zs->Fit("pol2","Q");
+		  }
+		  else{
+		    zs->Fit("pol1","Q");
+		  }
+		  TF1 *pol = 0;
+		  if (np>2) pol = (TF1*) zs->GetFunction("pol2");
+		  else pol = (TF1*) zs->GetFunction("pol1");
+		  kz = pol->GetParameter(1);
+		  //std::cout<<xyz3d[2]<<" "<<kz<<std::endl;
 		}
-		else{
-		  zs->Fit("pol1","Q");
+		catch(...){
+		  mf::LogWarning("CosmicTracker") <<"Fitter failed";
 		}
-		TF1 *pol = 0;
-		if (np>2) pol = (TF1*) zs->GetFunction("pol2");
-		else pol = (TF1*) zs->GetFunction("pol1");
-		kz = pol->GetParameter(1);
-		//std::cout<<xyz3d[2]<<" "<<kz<<std::endl;
-	      }
-	      catch(...){
-		mf::LogWarning("CosmicTracker") <<"Fitter failed";
-	      }
-	      delete zs;
-	      if (kx||ky||kz){
-		double tot = sqrt(kx*kx+ky*ky+kz*kz);
-		kx /= tot;
-		ky /= tot;
-		kz /= tot;
-		dircos[s].SetXYZ(kx,ky,kz);
-		//std::cout<<s<<" "<<kx<<" "<<ky<<" "<<kz<<std::endl;
-	      }
-	    }//np>=2
-	  }//loop over space points
+		delete zs;
+		if (kx||ky||kz){
+		  double tot = sqrt(kx*kx+ky*ky+kz*kz);
+		  kx /= tot;
+		  ky /= tot;
+		  kz /= tot;
+		  dircos[s].SetXYZ(kx,ky,kz);
+		  //std::cout<<s<<" "<<kx<<" "<<ky<<" "<<kz<<std::endl;
+		}
+	      }//np>=2
+	    }//loop over space points
+	  }
 	  std::vector< std::vector<double> > dQdx;
 	  std::vector<double> mom(2, util::kBogusD);
 	  tcol->push_back(recob::Track(xyz, dircos, dQdx, mom, tcol->size()));
