@@ -64,6 +64,14 @@ struct CluLen{
 
 bool myfunction (CluLen c1, CluLen c2) { return (c1.length>c2.length);}
 
+struct SortByWire {
+  bool operator() (art::Ptr<recob::Hit> const& h1, art::Ptr<recob::Hit> const& h2) const { 
+    return 
+      h1->Wire()->RawDigit()->Channel() < 
+      h2->Wire()->RawDigit()->Channel() ;
+  }
+};
+
 ///vertex reconstruction
 namespace vertex {
    
@@ -212,7 +220,7 @@ namespace vertex{
       std::vector<double> times;
       
       std::vector< art::Ptr<recob::Hit> > hit = fmh.at(iclu);
-      
+      std::sort(hit.begin(), hit.end(), SortByWire());
       int n = 0;
       for(size_t i = 0; i < hit.size(); ++i){
 	wires.push_back(hit[i]->WireID().Wire);
@@ -348,17 +356,31 @@ namespace vertex{
 	  
 	  double w1 = clusters[c1]->StartPos()[0];
 	  double t1 = clusters[c1]->StartPos()[1];
+	  if (clusters[c1]->StartPos()[0]>clusters[c1]->EndPos()[0]){
+	    w1 = clusters[c1]->EndPos()[0];
+	    t1 = clusters[c1]->EndPos()[1];
+	  }
 	  double k1 = dtdwstart[c1];
 	  double w2 = clusters[c2]->StartPos()[0];
 	  double t2 = clusters[c2]->StartPos()[1];
+	  if (clusters[c2]->StartPos()[0]>clusters[c2]->EndPos()[0]){
+	    w1 = clusters[c2]->EndPos()[0];
+	    t1 = clusters[c2]->EndPos()[1];
+	  }
 	  double k2 = dtdwstart[c2];
-	  
+//	  std::cout<<c1<<" "<<w1<<" "<<t1<<" "<<k1<<" "<<std::endl;
+//	  std::cout<<c2<<" "<<w2<<" "<<t2<<" "<<k2<<" "<<std::endl;
 	  //calculate the vertex
-	  if (std::abs(k1-k2) < 1e-10) continue;
-	  double t0 = (k1*k2*(w1-w2)+k1*t2-k2*t1)/(k1-k2);
-	  double w0 = (t2-t1+k1*w1-k2*w2)/(k1-k2);
-	  vtx_w.push_back(w0);
-	  vtx_t.push_back(t0);
+	  if (std::abs(k1-k2) < 0.5){
+	    vtx_w.push_back(w1);
+	    vtx_t.push_back(t1);
+	  }
+	  else{
+	    double t0 = (k1*k2*(w1-w2)+k1*t2-k2*t1)/(k1-k2);
+	    double w0 = (t2-t1+k1*w1-k2*w2)/(k1-k2);
+	    vtx_w.push_back(w0);
+	    vtx_t.push_back(t0);
+	  }
 	}
 	else if (Cls[i].size() >= 1){
 	  if (c1 != -1){
