@@ -256,11 +256,14 @@ namespace cluster {
     std::vector <double > mctheta;
     
     std::vector<int> fMCPDGstart;
+    std::vector<int> fMCPDGisPrimary;
     std::vector<double> fMCenergystart;
     std::vector<double> fMCPhistart;
     std::vector<double> fMCThetastart;
     
-    double fMCZOrig,fMCYOrig,fMCXOrig;
+    std::vector<double>  fMCZOrig; 
+    std::vector<double>  fMCYOrig; 
+    std::vector<double>  fMCXOrig;
     
     
     std::vector< unsigned int> mcwirevertex;  // wire coordinate of vertex for each plane
@@ -411,13 +414,14 @@ void cluster::ShowerAngleClusterAna::beginJob()
   ftree_cluster->Branch("mctheta","std::vector<double >", &mctheta);
   ftree_cluster->Branch("mcomega","std::vector<double >", &mcomega);
     
-  ftree_cluster->Branch("MCpdgOrig","std::vector< int>", &fMCPDGstart);
+  ftree_cluster->Branch("MCpdgOrig","std::vector< int>", &fMCPDGstart);  
+  ftree_cluster->Branch("MCPDGisPrimary","std::vector< int>", &fMCPDGisPrimary);
   ftree_cluster->Branch("MCenergyOrig","std::vector<double>", &fMCenergystart);
   ftree_cluster->Branch("MCphiOrig","std::vector< double >", &fMCPhistart);
   ftree_cluster->Branch("MCthetaOrig","std::vector<double >", &fMCThetastart);
-  ftree_cluster->Branch("MCXOrig",&fMCXOrig,"MCXOrig/D");
-  ftree_cluster->Branch("MCYOrig",&fMCYOrig,"MCYOrig/D");
-  ftree_cluster->Branch("MCZOrig",&fMCZOrig,"MCZOrig/D");
+  ftree_cluster->Branch("MCXOrig","std::vector<double >", &fMCXOrig);
+  ftree_cluster->Branch("MCYOrig","std::vector<double >", &fMCYOrig);
+  ftree_cluster->Branch("MCZOrig","std::vector<double >", &fMCZOrig);
     
   ftree_cluster->Branch("mcwirevertex","std::vector<unsigned int>", &mcwirevertex);
   ftree_cluster->Branch("mctimevertex","std::vector<double>", &mctimevertex);
@@ -1299,10 +1303,10 @@ void cluster::ShowerAngleClusterAna::GetVertexN(const art::Event& evt){
   fMCenergystart.clear();
   fMCPhistart.clear();
   fMCThetastart.clear();
-  
-  fMCXOrig=0;
-  fMCYOrig=0;
-  fMCZOrig=0;
+  fMCXOrig.clear();
+  fMCYOrig.clear();
+  fMCZOrig.clear();
+  fMCPDGisPrimary.clear();
    art::ServiceHandle<cheat::BackTracker> bt;
 //   art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
 //   std::vector<art::Ptr<simb::MCTruth> > mclist;
@@ -1325,13 +1329,7 @@ void cluster::ShowerAngleClusterAna::GetVertexN(const art::Event& evt){
 //   fMCPhistart.resize(plist.size());
 //   fMCThetastart.resize(plist.size());
   
-  if(plist.size())
-  {
-    fMCXOrig=plist.begin()->second->Vx();
-    fMCYOrig=plist.begin()->second->Vy();
-    fMCZOrig=plist.begin()->second->Vz();
-       
-  }
+
 //   art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
 //   evt.getByLabel("nugenerator",mctruthListHandle);
 //   art::PtrVector<simb::MCTruth> mclist;
@@ -1356,13 +1354,18 @@ void cluster::ShowerAngleClusterAna::GetVertexN(const art::Event& evt){
 //       if(neut->PdgCode()>10000 || !(neut->P()>0))
 // 	continue;
 //       
-      if(!(neut->Process()=="primary") )
+      if(!(neut->Process()=="primary" || neut->PdgCode()==22) )   //save primary particles or photons
 	continue;
       
       fNParticles++;
       fMCPDGstart.push_back(neut->PdgCode());
       fMCenergystart.push_back(neut->P());  
-  
+      fMCXOrig.push_back(neut->Vx());
+      fMCYOrig.push_back(neut->Vy());
+      fMCZOrig.push_back(neut->Vz());
+      fMCPDGisPrimary.push_back(neut->Process()=="primary");
+      
+      
     if (neut->P()){
       double lep_dcosx_truth = neut->Px()/neut->P();
       double lep_dcosy_truth = neut->Py()/neut->P();
