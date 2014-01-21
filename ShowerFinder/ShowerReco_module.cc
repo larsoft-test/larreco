@@ -186,6 +186,8 @@ namespace shwf {
   double fDriftVelocity; 
   double fWireTimetoCmCm;
   
+  std::vector< int > fNhitsperplane;
+  std::vector< double > fTotADCperplane;
   //services 
   art::ServiceHandle<util::LArProperties> larp;
   art::ServiceHandle<geo::Geometry> geom;
@@ -311,6 +313,10 @@ void ShowerReco::beginJob()
 //    ftree_shwf->Branch("ChargeMeV_4cm_axsum","std::vector<double>",&fChargeMeV_4cm_axsum);
 
 
+  ftree_shwf->Branch("fNhitsperplane","std::vector<int>",&fNhitsperplane);
+  ftree_shwf->Branch("fTotADCperplane","std::vector<double>",&fTotADCperplane);
+
+  
 
   ftree_shwf->Branch("ChargedistributionADC","std::vector<std::vector<double>>",&fDistribChargeADC);
   
@@ -398,6 +404,9 @@ void ShowerReco::beginRun(art::Run&)
     fRMS_2cm.clear();
     fNpoints_2cm.clear();
  
+    fNhitsperplane.clear();
+    fTotADCperplane.clear();
+    
  
  
     fWire_vertex.resize(fNAngles,-1);
@@ -433,7 +442,8 @@ void ShowerReco::beginRun(art::Run&)
     fChargeMeV_2cm_refined.resize(fNAngles,0);;
     fChargeMeV_2cm_axsum.resize(fNAngles,0);;
     
-    
+    fNhitsperplane.resize(fNPlanes,-1);
+    fTotADCperplane.resize(fNPlanes,-1);
     
   
     vdEdx.clear();
@@ -475,7 +485,7 @@ void ShowerReco::produce(art::Event& evt)
   
   art::FindManyP<recob::Hit> fmh(clusterListHandle, evt,fClusterModuleLabel);
   
-  //std::cout << " ---------- ShowerReco!!! -------------- " << std::endl;
+//   std::cout << " ---------- ShowerReco!!! -------------- " << std::endl;
   fRun = evt.id().run();
   fSubRun = evt.id().subRun();
   fEvent = evt.id().event();
@@ -544,15 +554,15 @@ void ShowerReco::produce(art::Event& evt)
       GetVertexAndAnglesFromCluster( pclust,p);
     
       
-      
+      double ADCcharge=0;
     //loop over cluster hits
     for(art::PtrVector<recob::Hit>::const_iterator a = hitlist.begin(); a != hitlist.end();  a++){
       p=  (*a)->WireID().Plane;
       hitlist_all[p].push_back(*a);
-      
+      ADCcharge+=(*a)->Charge(true);
     }
-      
-      
+      fNhitsperplane[p]=hitlist_all[p].size();
+      fTotADCperplane[p]=ADCcharge;
     //   unsigned int nCollections= clusterAssociationHandle->size();
 //   std::vector < art::PtrVector<recob::Cluster> >::const_iterator clusterSet = clusterAssociationHandle->begin();
 //    for(unsigned int iCol=0;iCol<nCollections;iCol++)
@@ -627,6 +637,8 @@ for(unsigned int ij = 0; ij < fNPlanes; ++ij)
     
   }
     
+    
+ //std::cout << " angles in:  " << bp1 << " " << bp2 << " "   << slope[bp1]*TMath::Pi()/180. << " " << slope[bp2]*TMath::Pi()/180. << " " << slope[bp1] << " " << slope[bp2] << std::endl;
  gser.Get3DaxisN(bp1,bp2,slope[bp1]*TMath::Pi()/180.,slope[bp2]*TMath::Pi()/180.,xphi,xtheta);
      
   ///////////////////////////////////////////////////////////
@@ -654,14 +666,15 @@ for(unsigned int ij = 0; ij < fNPlanes; ++ij)
 
 	double y,z;
 //	bool wires_cross = geom->ChannelsIntersect(chan1,chan2,y,z);
-       geom->ChannelsIntersect(chan1,chan2,y,z);
+	geom->ChannelsIntersect(chan1,chan2,y,z);
+ //       geom->ChannelsIntersect(chan1,chan2,y,z);
 	
 	xyz_vertex_fit[1]=y;
 	xyz_vertex_fit[2]=z;
 	xyz_vertex_fit[0]=(fTime_vertex[bp1]-detprop->TriggerOffset()) *fDriftVelocity*fTimeTick+position[0][0];
 
 
-	//std::cout << ":::::: found x,y,z vertex " << wires_cross << " " << xyz_vertex_fit[0] << " " << y << " " << z << std::endl;
+	//std::cout << ":::::: found x,y,z vertex " << wires_cross << " " << xyz_vertex_fit[0] << " " << y << " " << z << " " << wires_cross << std::endl;
     }
     catch(cet::exception e) {
       mf::LogWarning("ShowerReco") << "caught exception \n" << e;
@@ -698,14 +711,14 @@ for(unsigned int ij = 0; ij < fNPlanes; ++ij)
       }
       
       
-     //std::cout << "^^^^^^cross-check xphi and xtheta: " << xphi << " " << xtheta << std::endl;
+   //  std::cout << "^^^^^^cross-check xphi and xtheta: " << xphi << " " << xtheta << std::endl;
       
      
-   //   if(fabs(xphi) < 2 )
-  //	 xtheta= gser.Get3DSpecialCaseTheta(bp1,bp2,fWire_last[bp1]-fWire_vertex[bp1], fWire_last[bp2]-fWire_vertex[bp2]);
+      if(fabs(xphi) < 5. )
+      { xtheta= gser.Get3DSpecialCaseTheta(bp1,bp2,fWire_last[bp1]-fWire_vertex[bp1], fWire_last[bp2]-fWire_vertex[bp2]);
 	
-	////std::cout << "xphi, xtheta1:" << xphi << " " << xtheta  <<std::endl;
-      
+	//std::cout << "xphi, xtheta1:,alt" << xphi << " " << xtheta  <<std::endl;
+      }
     //}
     
 // zero the arrays just to make sure    
@@ -860,6 +873,8 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
   //get effective pitch using 3D angles
   double newpitch=gser.PitchInView(plane,xphi,xtheta);
  
+  
+  
   for(art::PtrVector<recob::Hit>::const_iterator hitIter = hitlist.begin(); hitIter != hitlist.end();  hitIter++){
     art::Ptr<recob::Hit> theHit = (*hitIter);
     time = theHit->PeakTime() ;  
@@ -892,11 +907,12 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
  
     
    //calculate the distance from the vertex using the effective pitch metric 
-    double wdist=(((double)wire-(double)fWire_vertex[plane])*newpitch);
+    double wdist=(((double)wire-(double)fWire_vertex[plane])*newpitch)*direction;  //wdist is always positive
 
     
-  if( (fabs(wdist)<fcalodEdxlength)&&(fabs(wdist)>0.2)){  
-    
+//   if( (fabs(wdist)<fcalodEdxlength)&&(fabs(wdist)>0.2)){  
+  if( (wdist<fcalodEdxlength)&&(wdist>0.2)){    
+  
     vdEdx.push_back(dEdx_new);
     vresRange.push_back(fabs(wdist));
     vdQdx.push_back((*hitIter)->Charge(true)/newpitch);
@@ -908,16 +924,16 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
     
     
     
-//    //std::cout << " CALORIMETRY:" << " Pitch " <<newpitch << " dist: " << wdist <<  " dE/dx: " << dEdx_new << "MeV/cm "  << " average: " <<  sum/npoints_calo  << "hit: wire, time " << wire << " " << time << " line,ort " << linedist << " " << ortdist<< " direction " << direction << std::endl;
+//std::cout << " CALORIMETRY:" << " Pitch " <<newpitch << " dist: " << wdist <<  " dE/dx: " << dEdx_new << "MeV/cm "  << " average: " <<  sum/npoints_calo  << "hit: wire, time " << wire << " " << time << " line,ort " << linedist << " " << ortdist<< " direction " << direction << std::endl;
     
    
      if(wdist<fdEdxlength 
       && ((direction==1 && wire>fWire_vertex[plane])     //take no hits before vertex (depending on direction)
       || (direction==-1 && wire<fWire_vertex[plane])  ) 
-	     && ortdist<3 && linedist < fdEdxlength ){
+	     && ortdist<4.5 && linedist < fdEdxlength ){
 	      fChargeMeV_2cm[set]+= dEdx_new ; 
 	      fNpoints_2cm[set]++;
-	      //std::cout << " CALORIMETRY:" << " Pitch " <<newpitch << " dist: " << wdist <<  " dE/dx: " << dEdx_new << "MeV/cm "  << " average: " <<  sum/npoints_calo  << "hit: wire, time " << wire << " " << time << " line,ort " << linedist << " " << ortdist<< " direction " << direction << std::endl;
+	     // std::cout << " CALORIMETRY:" << " Pitch " <<newpitch << " dist: " << wdist <<  " dE/dx: " << dEdx_new << "MeV/cm "  << " average: " <<  sum/npoints_calo  << "hit: wire, time " << wire << " " << time << " line,ort " << linedist << " " << ortdist<< " direction " << direction << std::endl;
 	     }
 
         // fill out for 4cm preshower
@@ -972,7 +988,7 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
     
     
     
-    double wdist=(((double)wire-(double)fWire_vertex[plane])*newpitch);
+    double wdist=(((double)wire-(double)fWire_vertex[plane])*newpitch)*direction;
     
  //    //std::cout << dEdx << " MeV, outside of if;; wd " << wdist << " ld " << linedist << " od " << ortdist << std::endl;
     
@@ -980,7 +996,7 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
       if(wdist<fdEdxlength
 	  && ((direction==1 && wire>fWire_vertex[plane]) || 
 	  (direction==-1 && wire<fWire_vertex[plane])  ) 
-	     && ortdist<3 && linedist < fdEdxlength)
+	     && ortdist<4.5 && linedist < fdEdxlength)
 	{
 //	  //std::cout << dEdx << " MeV " << std::endl;
 	fRMS_2cm[set]+= (dEdx-mevav2cm)*(dEdx-mevav2cm); 
@@ -1018,17 +1034,19 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
     linedist=gser.Get2DDistance(wire_on_line,time_on_line,fWire_vertex[plane],fTime_vertex[plane]);
     ortdist=gser.Get2DDistance(wire_on_line,time_on_line,wire,time);
     
-    double wdist=(((double)wire-(double)fWire_vertex[plane])*newpitch);
+    double wdist=(((double)wire-(double)fWire_vertex[plane])*newpitch)*direction;
     
     
     if( (wdist < fcalodEdxlength) && (wdist > 0.2
         && ((direction==1 && wire>fWire_vertex[plane]) ||
         (direction==-1 && wire<fWire_vertex[plane])  ) 
-	     && ortdist<3 && linedist < fdEdxlength ))
+	     && ortdist<4.5 && linedist < fdEdxlength ))
       { 
       if(wdist < fdEdxlength)
 	  {
-	  if(dEdx > (mevav2cm-fRMS_2cm[set]) && dEdx < (mevav2cm+fRMS_2cm[set]) ) {
+	  if( ((dEdx > (mevav2cm-fRMS_2cm[set]) )
+	    && (dEdx < (mevav2cm+fRMS_2cm[set]) )) 
+		|| (newpitch > 0.3*fdEdxlength ) ) {
 	    fCorr_MeV_2cm[set]+= dEdx; 
 	  fNpoints_corr_MeV_2cm[set]++;
 	  }
@@ -1053,7 +1071,7 @@ void ShowerReco::LongTransEnergy(unsigned int set, std::vector < art::Ptr<recob:
   
 
 ////std::cout << " total ENERGY, birks: " << fTotChargeMeV[set] << " MeV " << " assumeMIPs:  " << fTotChargeMeV_MIPs[set] << "MeV " <<  std::endl;
- //std::cout << " total ENERGY, birks: " << fTotChargeMeV[set] << " MeV "  << " |average:  " << fChargeMeV_2cm_refined[set] <<   std::endl;
+// std::cout << " total ENERGY, birks: " << fTotChargeMeV[set] << " MeV "  << " |average:  " << fChargeMeV_2cm_refined[set] <<   std::endl;
 }
 
 
@@ -1075,9 +1093,9 @@ void   ShowerReco::GetVertexAndAnglesFromCluster(art::Ptr< recob::Cluster > clus
   
   ////////// insert detector offset
 
-  //std::cout << "======= setting slope for view: " << plane 
-	//		    << " " << slope[plane] << " " << fWire_vertex[plane] 
-	//		    << " " << fTime_vertex[plane] << " " 
+ // std::cout << "======= setting slope for view: " << plane 
+//			    << " " << slope[plane] << " " << fWire_vertex[plane] 
+//			    << " " << fTime_vertex[plane] << " " << std::endl;
 	//		    <<  fWire_vertex[plane]+50<< " "
 	//		    << fTime_vertex[plane] + slope[plane]*(fWire_vertex[plane]+50)<< std::endl;
   
